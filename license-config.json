@@ -23,7 +23,7 @@
     },
     "trailingWhitespace": "TRIM",
     "ignore": [
-        "**/*.!(ts|tsx|js|jsx|scss|spec.ts|config.js|stories.js|stories.mdx|mdx|md)",
+        "**/*.!(ts|tsx|js|jsx|scss|spec.ts|test.ts|config.js|stories.js|stories.mdx|mdx|md)",
         "**/__snapshots__",
         ".git",
         ".idea",
@@ -31,6 +31,7 @@
         ".vscode",
         "**/coverage",
         "**/lib",
+        "**/bin",
         "**/node_modules",
         "**/docs/catalogue",
         "**/.editorconfig",
