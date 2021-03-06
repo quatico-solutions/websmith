@@ -1,0 +1,68 @@
+{
+    "name": "@qs/websmith",
+    "version": "0.0.1",
+    "description": "A compiler for web blocks to custom elements",
+    "author": "Quatico Solutions AG",
+    "license": "SEE LICENSE IN LICENSE",
+    "publishConfig": {
+        "registry": "https://binaries.quatico.com/api/npm/quatico-private-npm/"
+    },
+    "main": "./bin/index.js",
+    "types": "./bin/index.d.ts",
+    "bin": {
+        "websmith": "./bin/cli/compile.js"
+    },
+    "files": [
+        "LICENSE",
+        "README.md",
+        "bin"
+    ],
+    "scripts": {
+        "clean": "rimraf dist bin coverage",
+        "lint": "tslint -p tsconfig.lint.json",
+        "build": "tsc",
+        "watch": "tsc --watch",
+        "test": "jest --verbose --coverage",
+        "test:update-snapshots": "yarn test -u",
+        "test:watch": "jest --watch",
+        "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\"",
+        "license:check": "license-check-and-add check -f license-config.json",
+        "license:add": "license-check-and-add add -f license-config.json",
+        "license:remove": "license-check-and-add remove -f license-config.json",
+        "prepublishOnly": "yarn dist",
+        "publish-npm": "npm publish --access public"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.1.3",
+        "@types/jest": "^26.0.15",
+        "@types/lodash": "4.14.165",
+        "@types/node": "12",
+        "@types/sass": "1.16.0",
+        "@types/scss-parser": "^1.0.0",
+        "concurrently": "5.3.0",
+        "cross-env": "7.0.2",
+        "glob": "7.1.6",
+        "husky": "4.3.0",
+        "jest": "26.6.3",
+        "jest-environment-jsdom-sixteen": "1.0.3",
+        "lodash": "^4.17.20",
+        "prettier": "1.19.1",
+        "rimraf": "3.0.2",
+        "ts-dedent": "^2.0.0",
+        "ts-jest": "26.4.4",
+        "tslint": "5.20.1",
+        "tslint-config-prettier": "^1.18.0",
+        "tslint-plugin-prettier": "^2.3.0",
+        "typescript": "^3.8.3"
+    },
+    "dependencies": {
+        "mem": "8.0.0",
+        "path": "0.12.7",
+        "picomatch": "2.2.2",
+        "sass": "^1.29.0",
+        "scss-parser": "^1.0.4",
+        "typescript": "^3.8.3",
+        "web-component-analyzer": "^1.1.6",
+        "yargs": "^16.2.0"
+    }
+}

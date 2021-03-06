@@ -1,0 +1,31 @@
+# dependencies
+node_modules
+
+# testing
+coverage
+
+# production
+bin
+lib
+storybook-static
+
+# misc
+*.log
+*.iws
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# intellij
+.idea/*
+!.idea/codeStyles
+!.idea/inspectionProfiles
+!.idea/runConfigurations
+!.idea/checkstyle-idea.xml
+!.idea/jsLibraryMappings.xml
+!.idea/modules.xml
+!.idea/prettier.xml
+!.idea/vcs.xml
+
