@@ -19,7 +19,7 @@ import { isScriptFileName, isStyleFileName } from "../elements";
 export interface ParserOptions {
     compilerOptions: ts.CompilerOptions;
     system: ts.System;
-    fileNames?: string[];
+    filePaths?: string[];
 }
 
 export interface Project {
@@ -32,21 +32,21 @@ export type Parser = (fileNames?: string[]) => Project;
 export const createParser = (options: ParserOptions): Parser => {
     const { compilerOptions } = options;
 
-    return (fileNames?: string[]) => {
-        const { scriptPaths, stylePaths } = parsePaths(options, fileNames);
+    return (filePaths?: string[]) => {
+        const { scriptPaths, stylePaths } = parsePaths(options, filePaths);
         const host = ts.createCompilerHost(compilerOptions);
         return { program: ts.createProgram(scriptPaths, compilerOptions, host), stylePaths };
     };
 };
 
-export const parsePaths = (options: ParserOptions, fileNames?: string[]) => {
-    const { fileNames: globalFileNames, system } = options;
+export const parsePaths = (options: ParserOptions, filePaths?: string[]) => {
+    const { filePaths: globalFileNames, system } = options;
 
     let scriptPaths: string[] = [];
     let stylePaths: string[] = [];
-    if (fileNames && fileNames.length > 0) {
-        scriptPaths = fileNames.filter(cur => isScriptFileName(cur));
-        stylePaths = fileNames.filter(cur => isStyleFileName(cur));
+    if (filePaths && filePaths.length > 0) {
+        scriptPaths = filePaths.filter(cur => isScriptFileName(cur));
+        stylePaths = filePaths.filter(cur => isStyleFileName(cur));
     } else {
         scriptPaths = globalFileNames?.filter(cur => isScriptFileName(cur)) || [];
         stylePaths = system

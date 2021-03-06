@@ -114,7 +114,7 @@ export class Compiler {
     protected parse(fileNames?: string[]): Project {
         const { options, fileNames: globalFileNames } = this.config;
 
-        return createParser({ compilerOptions: options, fileNames: globalFileNames, system: this.system })(fileNames);
+        return createParser({ compilerOptions: options, filePaths: globalFileNames, system: this.system })(fileNames);
     }
 
     protected emit(program: ts.Program): ts.EmitResult {
