@@ -13,6 +13,8 @@
  * with Quatico.
  */
 // tslint:disable: object-literal-sort-keys
+// @ts-ignore no type declarations
+import createHashFn from "create-hash";
 import * as path from "path";
 import * as ts from "typescript";
 import { tsLibDefaults } from "../compiler";
@@ -22,10 +24,14 @@ export const createBrowserSystem = (files?: { [name: string]: string }): ts.Syst
     return {
         args: [],
         newLine: "\n",
-        useCaseSensitiveFileNames: true,
-        createDirectory: (): void => {
-            throw new Error("createDirectory() not implemented");
+        useCaseSensitiveFileNames: false,
+        createDirectory: (dirPath: string): void => {
+            knownFiles[dirPath] = "";
         },
+        createHash: (data: string): string =>
+            createHashFn("sha256")
+                .update(data)
+                .digest("hex"),
         directoryExists: (directory: string): boolean => {
             if (!directory) {
                 return false;
@@ -36,16 +42,18 @@ export const createBrowserSystem = (files?: { [name: string]: string }): ts.Syst
             if (directory.endsWith("/")) {
                 directory = directory.slice(0, -1);
             }
+
             return Object.keys(knownFiles).some(
                 cur => cur.startsWith(directory) && cur.replace(directory, "").includes("/")
             );
         },
-        exit: (): boolean => {
-            throw new Error("exit() not implemented");
+        exit: (exitCode?: number): void => {
+            if (exitCode && exitCode > 0) {
+                throw new Error(`websmith exited with code "${exitCode}".`);
+            }
         },
-        fileExists: (filePath: string): boolean => knownFiles[filePath] != null,
-        getCurrentDirectory: (): string => "/",
-
+        fileExists: (filePath: string): boolean => Object.keys(knownFiles).includes(filePath),
+        getCurrentDirectory: (): string => path.resolve("."),
         getDirectories: (dirPath: string): string[] => resolveDirectories(dirPath, Object.keys(knownFiles)),
         getExecutingFilePath: (): string => "/",
         readDirectory: (dirPath: string, extensions?: readonly string[]): string[] => {
@@ -62,6 +70,14 @@ export const createBrowserSystem = (files?: { [name: string]: string }): ts.Syst
             return keys;
         },
         readFile: (filePath: string): string => knownFiles[filePath],
+        realpath: (filePath: string): string => {
+            if (filePath === "") {
+                return path.resolve(".");
+            }
+            return path.extname(filePath) !== "" || (path.isAbsolute(filePath) && !filePath.startsWith("."))
+                ? filePath
+                : path.join(path.resolve("."), filePath);
+        },
         resolvePath: (filePath: string): string => absolutePath(filePath),
         write: (): void => {
             throw new Error("write() not implemented");
@@ -89,7 +105,10 @@ const absolutePath = (filePath: string): string => {
 const resolveDirectories = (dirPath: string, knownPaths: string[]): string[] => {
     return knownPaths
         .filter(cur => cur.startsWith(dirPath) && isDirectoryName(cur.replace(dirPath, "")))
-        .map(cur => cur.substring(0, cur.lastIndexOf("/")));
+        .map(cur => {
+            const dirName = path.dirname(cur);
+            return dirName.includes("/") ? dirName.substring(dirName.lastIndexOf("/") + 1) : dirName;
+        });
 };
 
 const resolveFiles = (filePath: string, knownPaths: string[]): string[] => {
