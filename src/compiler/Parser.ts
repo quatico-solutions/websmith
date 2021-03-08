@@ -34,8 +34,8 @@ export const createParser = (options: ParserOptions): Parser => {
     const { compilerOptions } = options;
 
     return (filePaths?: string[]) => {
-        const { scriptPaths, stylePaths } = parsePaths(options, filePaths);
         const host = ts.createCompilerHost(compilerOptions);
+        const { scriptPaths, stylePaths } = parsePaths(options, filePaths);
         const program = ts.createProgram([...scriptPaths, ...stylePaths], compilerOptions, host);
         return {
             filePaths: [...scriptPaths, ...stylePaths],

@@ -35,20 +35,9 @@ export const createConfig = (configFilePath: string, system: ts.System): ts.Pars
         configFilePath,
         {} /* no extra compiler options */,
         parseHost,
-        undefined,
-        undefined,
-        [
-            {
-                extension: ".scss",
-                isMixedContent: false,
-                scriptKind: ts.ScriptKind.Deferred,
-            },
-            {
-                extension: ".css",
-                isMixedContent: false,
-                scriptKind: ts.ScriptKind.Deferred,
-            },
-        ]
+        undefined /* no extended config cache */,
+        undefined /* no extra watch options */,
+        undefined /* no extra file extensions */
     )!;
 
     if (!result) {

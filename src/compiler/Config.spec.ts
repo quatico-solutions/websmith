@@ -13,6 +13,7 @@
  * with Quatico.
  */
 // tslint:disable: object-literal-sort-keys
+import * as path from "path";
 import { createBrowserSystem } from "../environment";
 import { createConfig } from "./Config";
 
@@ -22,25 +23,28 @@ describe("empty config", () => {
     });
 
     it("yields empty config with empty config file", () => {
+        const baseDir = path.resolve(__dirname, "../..");
+
         const actual = createConfig("tsconfig.json", emptySystem);
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual([]);
-        expect(actual.options).toEqual({ configFilePath: "/tsconfig.json" });
+        expect(actual.options).toEqual({ configFilePath: path.resolve(__dirname, "../..", "tsconfig.json") });
         expect(actual.projectReferences).toBeUndefined();
         expect(actual.raw).toEqual({});
         expect(actual.typeAcquisition).toEqual({ enable: false, exclude: [], include: [] });
         expect(actual.watchOptions).toBeUndefined();
-        expect(actual.wildcardDirectories).toEqual({ "": 1 });
+        expect(actual.wildcardDirectories).toEqual({ [baseDir.toLowerCase()]: 1 });
     });
 
     it("yields error with no matching includes", () => {
+        const fileName = path.resolve(__dirname, "../..", "tsconfig.json");
+
         const actual = createConfig("tsconfig.json", emptySystem);
 
         expect(actual.errors[0]).toEqual(
             expect.objectContaining({
-                messageText:
-                    "No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.",
+                messageText: `No inputs were found in config file '${fileName}'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.`,
             })
         );
         expect(actual.errors.length).toBe(1);
