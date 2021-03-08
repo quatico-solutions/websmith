@@ -13,6 +13,7 @@
  * with Quatico.
  */
 import merge from "lodash/merge";
+import * as path from "path";
 import * as ts from "typescript";
 import { DefaultReporter } from "../compiler";
 import { Reporter, VersionedSourceFile } from "../model";
@@ -33,9 +34,12 @@ export const createCompileHost = (
     system: ts.System
 ): ts.CompilerHost => ({
     ...system,
-    getCanonicalFileName: fileName => fileName,
+    getCanonicalFileName: fileName => {
+        const result = path.normalize(fileName);
+        return system.useCaseSensitiveFileNames ? result : result.toLowerCase();
+    },
     getDefaultLibFileName: () => "/lib.es2015.d.ts",
-    getDirectories: (path: string) => system.getDirectories(path),
+    getDirectories: (dirPath: string) => system.getDirectories(dirPath),
     getNewLine: () => system.newLine,
     getSourceFile: fileName => sourceFiles[fileName],
     useCaseSensitiveFileNames: () => system.useCaseSensitiveFileNames,
@@ -58,6 +62,7 @@ export const createWatchHost = (
         undefined /* no project references */,
         undefined /* no extra watch options */
     );
+    // TODO: Remove if watch with rootFiles works
     // return ts.createWatchCompilerHost(
     //     configFilePath,
     //     undefined /* no extra compiler options */,
