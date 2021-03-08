@@ -12,6 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import * as path from "path";
 import * as ts from "typescript";
 
 const ELEMENT_DECORATOR: RegExp = /^@customElement\(.*?\)/;
@@ -43,7 +44,7 @@ export const isStyleFile = (file: ts.Node, filterExported: boolean = false): fil
 
 export const isStyleFileName = (fileName: string, filterExported: boolean = false): boolean =>
     VALID_STYLE_FILES.some(extname => fileName.endsWith(extname)) &&
-    (filterExported === false || fileName.startsWith("_"));
+    (filterExported === false || path.basename(fileName).startsWith("_"));
 
 export const isElementDeclaration = (node: ts.Node): node is ts.ClassDeclaration => {
     const isCustomElement = (dec: ts.Decorator): boolean => {

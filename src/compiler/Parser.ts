@@ -12,7 +12,6 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import path from "path";
 import * as ts from "typescript";
 import { isScriptFileName, isStyleFileName } from "../elements";
 
@@ -25,6 +24,8 @@ export interface ParserOptions {
 export interface Project {
     program: ts.Program;
     stylePaths: string[];
+    scriptPaths: string[];
+    filePaths: string[];
 }
 
 export type Parser = (fileNames?: string[]) => Project;
@@ -35,7 +36,13 @@ export const createParser = (options: ParserOptions): Parser => {
     return (filePaths?: string[]) => {
         const { scriptPaths, stylePaths } = parsePaths(options, filePaths);
         const host = ts.createCompilerHost(compilerOptions);
-        return { program: ts.createProgram(scriptPaths, compilerOptions, host), stylePaths };
+        const program = ts.createProgram([...scriptPaths, ...stylePaths], compilerOptions, host);
+        return {
+            filePaths: [...scriptPaths, ...stylePaths],
+            program,
+            scriptPaths,
+            stylePaths,
+        };
     };
 };
 
@@ -51,7 +58,7 @@ export const parsePaths = (options: ParserOptions, filePaths?: string[]) => {
         scriptPaths = globalFileNames?.filter(cur => isScriptFileName(cur)) || [];
         stylePaths = system
             .readDirectory(system.getCurrentDirectory(), ["scss", "css"])
-            .filter(cur => path.basename(cur).startsWith("_"));
+            .filter(cur => isStyleFileName(cur, true));
     }
 
     return { scriptPaths, stylePaths };

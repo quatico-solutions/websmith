@@ -19,19 +19,10 @@ import { AddonRegistry, createResolver, CustomGenerators } from "./addon-registr
 import { concat } from "./collections";
 import { createConfig } from "./Config";
 import { DefaultReporter } from "./DefaultReporter";
-import { createParser } from "./Parser";
+import { createParser, Project } from "./Parser";
 import { createProcessorTransformer } from "./processor-transformer";
 import { createStyleCompiler } from "./style-compiler";
 
-export interface ProjectInput {
-    scriptPaths: string[];
-    stylePaths: string[];
-}
-
-export interface Project {
-    program: ts.Program;
-    stylePaths: string[];
-}
 export class Compiler {
     private config!: ts.ParsedCommandLine;
     private configPath: string;
@@ -89,7 +80,8 @@ export class Compiler {
     }
 
     public watch() {
-        const host = createWatchHost(this.configPath, this.system, this.reporter);
+        const { filePaths } = this.parse();
+        const host = createWatchHost(filePaths, this.config.options, this.system, this.reporter);
         const config = ts.createWatchProgram(host);
         injectTransformers(host, this.getTransformers(config.getProgram().getProgram()));
     }

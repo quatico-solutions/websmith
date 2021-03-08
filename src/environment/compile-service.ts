@@ -42,33 +42,43 @@ export const createCompileHost = (
 });
 
 export const createWatchHost = (
-    configFilePath: string,
+    rootFiles: string[],
+    compilerOptions: ts.CompilerOptions,
     system: ts.System,
     reporter?: Reporter
-): ts.WatchCompilerHostOfConfigFile<ts.SemanticDiagnosticsBuilderProgram> => {
+): ts.WatchCompilerHostOfFilesAndCompilerOptions<ts.SemanticDiagnosticsBuilderProgram> => {
     reporter = reporter ?? new DefaultReporter(system);
-    const result = ts.createWatchCompilerHost(
-        configFilePath,
-        undefined /* no extra compiler options */,
+    return ts.createWatchCompilerHost(
+        rootFiles,
+        compilerOptions,
         system,
         createProgram,
         reporter.reportDiagnostic,
         reporter.reportWatchStatus,
-        undefined /* no extra watch options */,
-        [
-            /* extra file extensions to watch */
-            {
-                extension: ".scss",
-                isMixedContent: true,
-                scriptKind: ts.ScriptKind.Deferred,
-            },
-        ]
+        undefined /* no project references */,
+        undefined /* no extra watch options */
     );
-    return result;
+    // return ts.createWatchCompilerHost(
+    //     configFilePath,
+    //     undefined /* no extra compiler options */,
+    //     system,
+    //     createProgram,
+    //     reporter.reportDiagnostic,
+    //     reporter.reportWatchStatus,
+    //     undefined /* no extra watch options */,
+    //     [
+    //         /* extra file extensions to watch */
+    //         {
+    //             extension: ".scss",
+    //             isMixedContent: true,
+    //             scriptKind: ts.ScriptKind.Deferred,
+    //         },
+    //     ]
+    // );
 };
 
 export const injectTransformers = (
-    host: ts.WatchCompilerHostOfConfigFile<ts.SemanticDiagnosticsBuilderProgram>,
+    host: ts.WatchCompilerHostOfFilesAndCompilerOptions<ts.SemanticDiagnosticsBuilderProgram>,
     transformers?: ts.CustomTransformers
 ): void => {
     const originalAfterProgramCreate = host.afterProgramCreate;

@@ -72,7 +72,7 @@ describe("createParser", () => {
     it("returns script names and no style name with global file inputs", () => {
         const actual = parse();
 
-        expect(actual.program.getRootFileNames()).toEqual([]);
+        expect(actual.program.getRootFileNames()).toEqual(["src/_four.css", "src/_five.scss"]);
         expect(actual.stylePaths).toEqual(["src/_four.css", "src/_five.scss"]);
     });
 });
