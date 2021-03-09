@@ -30,7 +30,8 @@
         "license:add": "license-check-and-add add -f license-config.json",
         "license:remove": "license-check-and-add remove -f license-config.json",
         "prepublishOnly": "yarn dist",
-        "publish-npm": "npm publish --access public"
+        "publish-npm": "npm publish --access public",
+        "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags"
     },
     "devDependencies": {
         "@types/glob": "^7.1.3",
