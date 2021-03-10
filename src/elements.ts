@@ -15,9 +15,10 @@
 import * as path from "path";
 import * as ts from "typescript";
 
-const ELEMENT_DECORATOR: RegExp = /^@customElement\(.*?\)/;
-const VALID_SCRIPT_FILES = [".js", ".ts", ".tsx", ".d.ts"];
-const VALID_STYLE_FILES = [".scss", ".css"];
+export const ELEMENT_DECORATOR: RegExp = /^@customElement\(.*?\)/;
+export const VALID_SCRIPT_FILES = [".js", ".ts", ".tsx", ".d.ts"];
+export const VALID_STYLE_FILES = [".scss", ".css"];
+export const VALID_PROJECT_FILES = [...VALID_SCRIPT_FILES, ...VALID_STYLE_FILES];
 
 export const getBaseName = (filePath: string): string => {
     if (filePath.includes("/")) {
@@ -37,6 +38,9 @@ export const isScriptFile = (file: ts.Node): file is ts.SourceFile => {
 
 export const isScriptFileName = (fileName: string): boolean =>
     VALID_SCRIPT_FILES.some(extname => fileName.endsWith(extname));
+
+export const isProjectFileName = (fileName: string): boolean =>
+    VALID_PROJECT_FILES.some(extname => fileName.endsWith(extname));
 
 export const isStyleFile = (file: ts.Node, filterExported: boolean = false): file is ts.SourceFile => {
     return ts.isSourceFile(file) && isStyleFileName(file.fileName, filterExported);

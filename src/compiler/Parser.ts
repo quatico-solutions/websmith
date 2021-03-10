@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import * as ts from "typescript";
-import { isScriptFileName, isStyleFileName } from "../elements";
+import { isProjectFileName, isScriptFileName, isStyleFileName, VALID_STYLE_FILES } from "../elements";
 
 export interface ParserOptions {
     compilerOptions: ts.CompilerOptions;
@@ -35,31 +35,29 @@ export const createParser = (options: ParserOptions): Parser => {
 
     return (filePaths?: string[]) => {
         const host = ts.createCompilerHost(compilerOptions);
-        const { scriptPaths, stylePaths } = parsePaths(options, filePaths);
-        const program = ts.createProgram([...scriptPaths, ...stylePaths], compilerOptions, host);
+        const targets = parsePaths(options, filePaths);
+        const program = ts.createProgram(targets, compilerOptions, host);
         return {
-            filePaths: [...scriptPaths, ...stylePaths],
+            filePaths: targets,
             program,
-            scriptPaths,
-            stylePaths,
+            scriptPaths: targets.filter(cur => isScriptFileName(cur)),
+            stylePaths: targets.filter(cur => isStyleFileName(cur)),
         };
     };
 };
 
-export const parsePaths = (options: ParserOptions, filePaths?: string[]) => {
-    const { filePaths: globalFileNames, system } = options;
+export const parsePaths = (options: ParserOptions, filePaths?: string[]): string[] => {
+    const { filePaths: globalFileNames = [], system } = options;
 
-    let scriptPaths: string[] = [];
-    let stylePaths: string[] = [];
-    if (filePaths && filePaths.length > 0) {
-        scriptPaths = filePaths.filter(cur => isScriptFileName(cur));
-        stylePaths = filePaths.filter(cur => isStyleFileName(cur));
-    } else {
-        scriptPaths = globalFileNames?.filter(cur => isScriptFileName(cur)) || [];
-        stylePaths = system
-            .readDirectory(system.getCurrentDirectory(), ["scss", "css"])
-            .filter(cur => isStyleFileName(cur, true));
-    }
+    const targets =
+        filePaths && filePaths.length > 0
+            ? filePaths
+            : Array.from(
+                  new Set([
+                      ...globalFileNames,
+                      ...system.readDirectory(system.getCurrentDirectory(), VALID_STYLE_FILES),
+                  ])
+              );
 
-    return { scriptPaths, stylePaths };
+    return targets.filter(cur => isProjectFileName(cur));
 };

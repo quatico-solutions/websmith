@@ -15,7 +15,7 @@
 // tslint:disable: object-literal-sort-keys
 import { createBrowserSystem } from "../environment";
 import { createConfig } from "./Config";
-import { createParser, parsePaths, Parser } from "./Parser";
+import { createParser, parsePaths } from "./Parser";
 
 const testSystem = createBrowserSystem({
     "tsconfig.json": `{}`,
@@ -56,24 +56,64 @@ const testSystem = createBrowserSystem({
 });
 
 describe("createParser", () => {
-    let parse: Parser;
-    beforeEach(() => {
+    it("yields script names and no style name with direct single file input", () => {
         const compilerOptions = createConfig("tsconfig.json", testSystem).options;
-        parse = createParser({ system: testSystem, compilerOptions });
-    });
+        const parse = createParser({ system: testSystem, compilerOptions });
 
-    it("returns script names and no style name with direct single file input", () => {
         const actual = parse(["/one.ts"]);
 
         expect(actual.program.getRootFileNames()).toEqual(["/one.ts"]);
+        expect(actual.filePaths).toEqual(["/one.ts"]);
+        expect(actual.scriptPaths).toEqual(["/one.ts"]);
         expect(actual.stylePaths).toEqual([]);
     });
 
-    it("returns script names and no style name with global file inputs", () => {
+    it("yields script names and no style name with direct single file input and global files", () => {
+        const config = createConfig("tsconfig.json", testSystem);
+        const parse = createParser({
+            system: testSystem,
+            compilerOptions: config.options,
+            filePaths: config.fileNames,
+        });
+
+        const actual = parse(["/one.ts"]);
+
+        expect(actual.program.getRootFileNames()).toEqual(["/one.ts"]);
+        expect(actual.filePaths).toEqual(["/one.ts"]);
+        expect(actual.scriptPaths).toEqual(["/one.ts"]);
+        expect(actual.stylePaths).toEqual([]);
+    });
+
+    it("yields script and style names with global file inputs", () => {
+        const config = createConfig("tsconfig.json", testSystem);
+        const parse = createParser({
+            system: testSystem,
+            compilerOptions: config.options,
+            filePaths: config.fileNames,
+        });
+
         const actual = parse();
 
-        expect(actual.program.getRootFileNames()).toEqual(["src/_four.css", "src/_five.scss"]);
-        expect(actual.stylePaths).toEqual(["src/_four.css", "src/_five.scss"]);
+        expect(actual.program.getRootFileNames()).toEqual([
+            "src/two.ts",
+            "src/three.tsx",
+            "src/seven.ts",
+            "src/_four.css",
+            "src/_five.scss",
+            "src/six.scss",
+            "src/seven.scss",
+        ]);
+        expect(actual.filePaths).toEqual([
+            "src/two.ts",
+            "src/three.tsx",
+            "src/seven.ts",
+            "src/_four.css",
+            "src/_five.scss",
+            "src/six.scss",
+            "src/seven.scss",
+        ]);
+        expect(actual.scriptPaths).toEqual(["src/two.ts", "src/three.tsx", "src/seven.ts"]);
+        expect(actual.stylePaths).toEqual(["src/_four.css", "src/_five.scss", "src/six.scss", "src/seven.scss"]);
     });
 });
 
@@ -81,19 +121,19 @@ describe("parsePaths", () => {
     const compilerOptions = createConfig("tsconfig.json", testSystem).options;
     const system = testSystem;
 
-    it("returns scriptPaths with direct script filePaths", () => {
+    it("returns paths with direct script filePaths", () => {
         const actual = parsePaths({ compilerOptions, system }, ["/one.ts", "/two.ts", "/three.js"]);
 
-        expect(actual).toEqual({ scriptPaths: ["/one.ts", "/two.ts", "/three.js"], stylePaths: [] });
+        expect(actual).toEqual(["/one.ts", "/two.ts", "/three.js"]);
     });
 
-    it("returns stylePaths with direct style filePaths", () => {
+    it("returns paths with direct style filePaths", () => {
         const actual = parsePaths({ compilerOptions, system }, ["/one.css", "/two.scss", "/three.scss"]);
 
-        expect(actual).toEqual({ scriptPaths: [], stylePaths: ["/one.css", "/two.scss", "/three.scss"] });
+        expect(actual).toEqual(["/one.css", "/two.scss", "/three.scss"]);
     });
 
-    it("returns scriptPaths and stylePaths with direct filePaths", () => {
+    it("returns path with direct script and style paths", () => {
         const actual = parsePaths({ compilerOptions, system }, [
             "/one.js",
             "/two.ts",
@@ -102,39 +142,48 @@ describe("parsePaths", () => {
             "/five.scss",
         ]);
 
-        expect(actual).toEqual({
-            scriptPaths: ["/one.js", "/two.ts", "/three.tsx"],
-            stylePaths: ["/four.css", "/five.scss"],
-        });
+        expect(actual).toEqual(["/one.js", "/two.ts", "/three.tsx", "/four.css", "/five.scss"]);
     });
 
-    it("returns scriptPaths and stylePaths with global filePaths", () => {
+    it("returns paths with global filePaths", () => {
         const actual = parsePaths({
             compilerOptions,
             system,
             filePaths: ["src/one.js", "src/two.ts", "src/three.tsx", "src/_four.css", "src/_five.scss"],
         });
 
-        expect(actual).toEqual({
-            scriptPaths: ["src/one.js", "src/two.ts", "src/three.tsx"],
-            stylePaths: ["src/_four.css", "src/_five.scss"],
-        });
+        expect(actual).toEqual([
+            "src/one.js",
+            "src/two.ts",
+            "src/three.tsx",
+            "src/_four.css",
+            "src/_five.scss",
+            "src/six.scss",
+            "src/seven.scss",
+        ]);
     });
 
-    it("returns scriptPaths and stylePaths with global fileNames", () => {
+    it("returns paths with global fileNames", () => {
         const actual = parsePaths({
             compilerOptions,
             system,
             filePaths: ["one.js", "two.ts", "three.tsx", "_four.css", "_five.scss"],
         });
 
-        expect(actual).toEqual({
-            scriptPaths: ["one.js", "two.ts", "three.tsx"],
-            stylePaths: ["src/_four.css", "src/_five.scss"],
-        });
+        expect(actual).toEqual([
+            "one.js",
+            "two.ts",
+            "three.tsx",
+            "_four.css",
+            "_five.scss",
+            "src/_four.css",
+            "src/_five.scss",
+            "src/six.scss",
+            "src/seven.scss",
+        ]);
     });
 
-    it("replaces scriptPaths and stylePaths with global and direct fileNames", () => {
+    it("return direct paths with global and direct fileNames", () => {
         const actual = parsePaths(
             {
                 compilerOptions,
@@ -144,9 +193,6 @@ describe("parsePaths", () => {
             ["zip.js", "zap.css", "zup.tsx"]
         );
 
-        expect(actual).toEqual({
-            scriptPaths: ["zip.js", "zup.tsx"],
-            stylePaths: ["zap.css"],
-        });
+        expect(actual).toEqual(["zip.js", "zap.css", "zup.tsx"]);
     });
 });

@@ -13,7 +13,6 @@
  * with Quatico.
  */
 import merge from "lodash/merge";
-import * as path from "path";
 import * as ts from "typescript";
 import { DefaultReporter } from "../compiler";
 import { Reporter, VersionedSourceFile } from "../model";
@@ -35,8 +34,7 @@ export const createCompileHost = (
 ): ts.CompilerHost => ({
     ...system,
     getCanonicalFileName: fileName => {
-        const result = path.normalize(fileName);
-        return system.useCaseSensitiveFileNames ? result : result.toLowerCase();
+        return system.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase();
     },
     getDefaultLibFileName: () => "/lib.es2015.d.ts",
     getDirectories: (dirPath: string) => system.getDirectories(dirPath),

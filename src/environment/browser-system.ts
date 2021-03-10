@@ -53,7 +53,7 @@ export const createBrowserSystem = (files?: { [name: string]: string }): ts.Syst
             }
         },
         fileExists: (filePath: string): boolean => Object.keys(knownFiles).includes(filePath),
-        getCurrentDirectory: (): string => path.resolve("."),
+        getCurrentDirectory: (): string => "/",
         getDirectories: (dirPath: string): string[] => resolveDirectories(dirPath, Object.keys(knownFiles)),
         getExecutingFilePath: (): string => "/",
         readDirectory: (dirPath: string, extensions?: readonly string[]): string[] => {
@@ -72,11 +72,11 @@ export const createBrowserSystem = (files?: { [name: string]: string }): ts.Syst
         readFile: (filePath: string): string => knownFiles[filePath],
         realpath: (filePath: string): string => {
             if (filePath === "") {
-                return path.resolve(".");
+                return "/";
             }
             return path.extname(filePath) !== "" || (path.isAbsolute(filePath) && !filePath.startsWith("."))
                 ? filePath
-                : path.join(path.resolve("."), filePath);
+                : path.join("/", filePath);
         },
         resolvePath: (filePath: string): string => absolutePath(filePath),
         write: (): void => {

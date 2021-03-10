@@ -207,10 +207,10 @@ describe("fileExists", () => {
 });
 
 describe("getCurrentDirectory", () => {
-    it("returns current directory w/o trailing slash", () => {
+    it("returns root directory", () => {
         const testObj = createBrowserSystem({});
 
-        expect(testObj.getCurrentDirectory().endsWith("qs-websmith")).toBe(true);
+        expect(testObj.getCurrentDirectory()).toBe("/");
     });
 });
 

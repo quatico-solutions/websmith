@@ -62,10 +62,6 @@ export class Compiler {
         return this;
     }
 
-    public getFileNames(): string[] {
-        return this.config.fileNames;
-    }
-
     public compile(...fileNames: string[]): number {
         const { program, stylePaths } = this.parse(fileNames);
 

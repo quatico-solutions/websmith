@@ -806,16 +806,6 @@ array-unique@^0.3.2:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/array-unique/-/array-unique-0.3.2.tgz#a894b75d4bc4f6cd679ef3244a9fd8f46ae2d428"
   integrity sha1-qJS3XUvE9s1nnvMkSp/Y9Gri1Cg=
 
-asn1.js@^5.2.0:
-  version "5.4.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/asn1.js/-/asn1.js-5.4.1.tgz#11a980b84ebb91781ce35b0fdc2ee294e3783f07"
-  integrity sha1-EamAuE67kXgc41sP3C7ilON4Pwc=
-  dependencies:
-    bn.js "^4.0.0"
-    inherits "^2.0.1"
-    minimalistic-assert "^1.0.0"
-    safer-buffer "^2.1.0"
-
 asn1@~0.2.3:
   version "0.2.4"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/asn1/-/asn1-0.2.4.tgz#8d2475dfab553bb33e77b54e59e880bb8ce23136"
@@ -944,16 +934,6 @@ binary-extensions@^2.0.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/binary-extensions/-/binary-extensions-2.2.0.tgz#75f502eeaf9ffde42fc98829645be4ea76bd9e2d"
   integrity sha1-dfUC7q+f/eQvyYgpZFvk6na9ni0=
 
-bn.js@^4.0.0, bn.js@^4.1.0, bn.js@^4.11.9:
-  version "4.12.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/bn.js/-/bn.js-4.12.0.tgz#775b3f278efbb9718eec7361f483fb36fbbfea88"
-  integrity sha1-d1s/J477uXGO7HNh9IP7Nvu/6og=
-
-bn.js@^5.0.0, bn.js@^5.1.1:
-  version "5.2.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/bn.js/-/bn.js-5.2.0.tgz#358860674396c6997771a9d051fcc1b57d4ae002"
-  integrity sha1-NYhgZ0OWxpl3canQUfzBtX1K4AI=
-
 brace-expansion@^1.1.7:
   version "1.1.11"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/brace-expansion/-/brace-expansion-1.1.11.tgz#3c7fcbf529d87226f3d2f52b966ff5271eb441dd"
@@ -985,69 +965,10 @@ braces@^3.0.1, braces@~3.0.2:
   dependencies:
     fill-range "^7.0.1"
 
-brorand@^1.0.1, brorand@^1.1.0:
-  version "1.1.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/brorand/-/brorand-1.1.0.tgz#12c25efe40a45e3c323eb8675a0a0ce57b22371f"
-  integrity sha1-EsJe/kCkXjwyPrhnWgoM5XsiNx8=
-
 browser-process-hrtime@^1.0.0:
   version "1.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/browser-process-hrtime/-/browser-process-hrtime-1.0.0.tgz#3c9b4b7d782c8121e56f10106d84c0d0ffc94626"
   integrity sha1-PJtLfXgsgSHlbxAQbYTA0P/JRiY=
-
-browserify-aes@^1.0.0, browserify-aes@^1.0.4:
-  version "1.2.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/browserify-aes/-/browserify-aes-1.2.0.tgz#326734642f403dabc3003209853bb70ad428ef48"
-  integrity sha1-Mmc0ZC9APavDADIJhTu3CtQo70g=
-  dependencies:
-    buffer-xor "^1.0.3"
-    cipher-base "^1.0.0"
-    create-hash "^1.1.0"
-    evp_bytestokey "^1.0.3"
-    inherits "^2.0.1"
-    safe-buffer "^5.0.1"
-
-browserify-cipher@^1.0.0:
-  version "1.0.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/browserify-cipher/-/browserify-cipher-1.0.1.tgz#8d6474c1b870bfdabcd3bcfcc1934a10e94f15f0"
-  integrity sha1-jWR0wbhwv9q807z8wZNKEOlPFfA=
-  dependencies:
-    browserify-aes "^1.0.4"
-    browserify-des "^1.0.0"
-    evp_bytestokey "^1.0.0"
-
-browserify-des@^1.0.0:
-  version "1.0.2"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/browserify-des/-/browserify-des-1.0.2.tgz#3af4f1f59839403572f1c66204375f7a7f703e9c"
-  integrity sha1-OvTx9Zg5QDVy8cZiBDdfen9wPpw=
-  dependencies:
-    cipher-base "^1.0.1"
-    des.js "^1.0.0"
-    inherits "^2.0.1"
-    safe-buffer "^5.1.2"
-
-browserify-rsa@^4.0.0, browserify-rsa@^4.0.1:
-  version "4.1.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/browserify-rsa/-/browserify-rsa-4.1.0.tgz#b2fd06b5b75ae297f7ce2dc651f918f5be158c8d"
-  integrity sha1-sv0Gtbda4pf3zi3GUfkY9b4VjI0=
-  dependencies:
-    bn.js "^5.0.0"
-    randombytes "^2.0.1"
-
-browserify-sign@^4.0.0:
-  version "4.2.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/browserify-sign/-/browserify-sign-4.2.1.tgz#eaf4add46dd54be3bb3b36c0cf15abbeba7956c3"
-  integrity sha1-6vSt1G3VS+O7OzbAzxWrvrp5VsM=
-  dependencies:
-    bn.js "^5.1.1"
-    browserify-rsa "^4.0.1"
-    create-hash "^1.2.0"
-    create-hmac "^1.1.7"
-    elliptic "^6.5.3"
-    inherits "^2.0.4"
-    parse-asn1 "^5.1.5"
-    readable-stream "^3.6.0"
-    safe-buffer "^5.2.0"
 
 browserslist@^4.14.5:
   version "4.16.3"
@@ -1078,11 +999,6 @@ buffer-from@1.x, buffer-from@^1.0.0:
   version "1.1.1"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/buffer-from/-/buffer-from-1.1.1.tgz#32713bc028f75c02fdb710d7c7bcec1f2c6070ef"
   integrity sha1-MnE7wCj3XAL9txDXx7zsHyxgcO8=
-
-buffer-xor@^1.0.3:
-  version "1.0.3"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/buffer-xor/-/buffer-xor-1.0.3.tgz#26e61ed1422fb70dd42e6e36729ed51d855fe8d9"
-  integrity sha1-JuYe0UIvtw3ULm42cp7VHYVf6Nk=
 
 builtin-modules@^1.1.1:
   version "1.1.1"
@@ -1186,7 +1102,7 @@ ci-info@^2.0.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ci-info/-/ci-info-2.0.0.tgz#67a9e964be31a51e15e5010d58e6f12834002f46"
   integrity sha1-Z6npZL4xpR4V5QENWObxKDQAL0Y=
 
-cipher-base@^1.0.0, cipher-base@^1.0.1, cipher-base@^1.0.3:
+cipher-base@^1.0.1:
   version "1.0.4"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/cipher-base/-/cipher-base-1.0.4.tgz#8760e4ecc272f4c363532f926d874aae2c1397de"
   integrity sha1-h2Dk7MJy9MNjUy+SbYdKriwTl94=
@@ -1353,15 +1269,7 @@ cosmiconfig@^7.0.0:
     path-type "^4.0.0"
     yaml "^1.10.0"
 
-create-ecdh@^4.0.0:
-  version "4.0.4"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/create-ecdh/-/create-ecdh-4.0.4.tgz#d6e7f4bffa66736085a0762fd3a632684dabcc4e"
-  integrity sha1-1uf0v/pmc2CFoHYv06YyaE2rzE4=
-  dependencies:
-    bn.js "^4.1.0"
-    elliptic "^6.5.3"
-
-create-hash@1.2.0, create-hash@^1.1.0, create-hash@^1.1.2, create-hash@^1.2.0:
+create-hash@1.2.0:
   version "1.2.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/create-hash/-/create-hash-1.2.0.tgz#889078af11a63756bcfb59bd221996be3a9ef196"
   integrity sha1-iJB4rxGmN1a8+1m9IhmWvjqe8ZY=
@@ -1371,18 +1279,6 @@ create-hash@1.2.0, create-hash@^1.1.0, create-hash@^1.1.2, create-hash@^1.2.0:
     md5.js "^1.3.4"
     ripemd160 "^2.0.1"
     sha.js "^2.4.0"
-
-create-hmac@^1.1.0, create-hmac@^1.1.4, create-hmac@^1.1.7:
-  version "1.1.7"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/create-hmac/-/create-hmac-1.1.7.tgz#69170c78b3ab957147b2b8b04572e47ead2243ff"
-  integrity sha1-aRcMeLOrlXFHsriwRXLkfq0iQ/8=
-  dependencies:
-    cipher-base "^1.0.3"
-    create-hash "^1.1.0"
-    inherits "^2.0.1"
-    ripemd160 "^2.0.0"
-    safe-buffer "^5.0.1"
-    sha.js "^2.4.8"
 
 cross-env@7.0.2:
   version "7.0.2"
@@ -1410,23 +1306,6 @@ cross-spawn@^7.0.0, cross-spawn@^7.0.1:
     path-key "^3.1.0"
     shebang-command "^2.0.0"
     which "^2.0.1"
-
-crypto-browserify@3.12.0:
-  version "3.12.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/crypto-browserify/-/crypto-browserify-3.12.0.tgz#396cf9f3137f03e4b8e532c58f698254e00f80ec"
-  integrity sha1-OWz58xN/A+S45TLFj2mCVOAPgOw=
-  dependencies:
-    browserify-cipher "^1.0.0"
-    browserify-sign "^4.0.0"
-    create-ecdh "^4.0.0"
-    create-hash "^1.1.0"
-    create-hmac "^1.1.0"
-    diffie-hellman "^5.0.0"
-    inherits "^2.0.1"
-    pbkdf2 "^3.0.3"
-    public-encrypt "^4.0.0"
-    randombytes "^2.0.0"
-    randomfill "^1.0.3"
 
 cssom@^0.4.4:
   version "0.4.4"
@@ -1532,14 +1411,6 @@ delayed-stream@~1.0.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/delayed-stream/-/delayed-stream-1.0.0.tgz#df3ae199acadfb7d440aaae0b29e2272b24ec619"
   integrity sha1-3zrhmayt+31ECqrgsp4icrJOxhk=
 
-des.js@^1.0.0:
-  version "1.0.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/des.js/-/des.js-1.0.1.tgz#5382142e1bdc53f85d86d53e5f4aa7deb91e0843"
-  integrity sha1-U4IULhvcU/hdhtU+X0qn3rkeCEM=
-  dependencies:
-    inherits "^2.0.1"
-    minimalistic-assert "^1.0.0"
-
 detect-newline@^3.0.0:
   version "3.1.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/detect-newline/-/detect-newline-3.1.0.tgz#576f5dfc63ae1a192ff192d8ad3af6308991b651"
@@ -1554,15 +1425,6 @@ diff@^4.0.1:
   version "4.0.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/diff/-/diff-4.0.2.tgz#60f3aecb89d5fae520c11aa19efc2bb982aade7d"
   integrity sha1-YPOuy4nV+uUgwRqhnvwruYKq3n0=
-
-diffie-hellman@^5.0.0:
-  version "5.0.3"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/diffie-hellman/-/diffie-hellman-5.0.3.tgz#40e8ee98f55a2149607146921c63e1ae5f3d2875"
-  integrity sha1-QOjumPVaIUlgcUaSHGPhrl89KHU=
-  dependencies:
-    bn.js "^4.1.0"
-    miller-rabin "^4.0.0"
-    randombytes "^2.0.0"
 
 dir-glob@^3.0.1:
   version "3.0.1"
@@ -1590,19 +1452,6 @@ electron-to-chromium@^1.3.649:
   version "1.3.682"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/electron-to-chromium/-/electron-to-chromium-1.3.682.tgz#f4b5c8d4479df96b61e508a721d6c32c1262ef23"
   integrity sha1-9LXI1Eed+Wth5QinIdbDLBJi7yM=
-
-elliptic@^6.5.3:
-  version "6.5.4"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/elliptic/-/elliptic-6.5.4.tgz#da37cebd31e79a1367e941b592ed1fbebd58abbb"
-  integrity sha1-2jfOvTHnmhNn6UG1ku0fvr1Yq7s=
-  dependencies:
-    bn.js "^4.11.9"
-    brorand "^1.1.0"
-    hash.js "^1.0.0"
-    hmac-drbg "^1.0.1"
-    inherits "^2.0.4"
-    minimalistic-assert "^1.0.1"
-    minimalistic-crypto-utils "^1.0.1"
 
 emittery@^0.7.1:
   version "0.7.2"
@@ -1682,14 +1531,6 @@ esutils@^2.0.2:
   version "2.0.3"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/esutils/-/esutils-2.0.3.tgz#74d2eb4de0b8da1293711910d50775b9b710ef64"
   integrity sha1-dNLrTeC42hKTcRkQ1Qd1ubcQ72Q=
-
-evp_bytestokey@^1.0.0, evp_bytestokey@^1.0.3:
-  version "1.0.3"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/evp_bytestokey/-/evp_bytestokey-1.0.3.tgz#7fcbdb198dc71959432efe13842684e0525acb02"
-  integrity sha1-f8vbGY3HGVlDLv4ThCaE4FJaywI=
-  dependencies:
-    md5.js "^1.3.4"
-    safe-buffer "^5.1.1"
 
 exec-sh@^0.3.2:
   version "0.3.4"
@@ -2096,23 +1937,6 @@ hash-base@^3.0.0:
     inherits "^2.0.4"
     readable-stream "^3.6.0"
     safe-buffer "^5.2.0"
-
-hash.js@^1.0.0, hash.js@^1.0.3:
-  version "1.1.7"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/hash.js/-/hash.js-1.1.7.tgz#0babca538e8d4ee4a0f8988d68866537a003cf42"
-  integrity sha1-C6vKU46NTuSg+JiNaIZlN6ADz0I=
-  dependencies:
-    inherits "^2.0.3"
-    minimalistic-assert "^1.0.1"
-
-hmac-drbg@^1.0.1:
-  version "1.0.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/hmac-drbg/-/hmac-drbg-1.0.1.tgz#d2745701025a6c775a6c545793ed502fc0c649a1"
-  integrity sha1-0nRXAQJabHdabFRXk+1QL8DGSaE=
-  dependencies:
-    hash.js "^1.0.3"
-    minimalistic-assert "^1.0.0"
-    minimalistic-crypto-utils "^1.0.1"
 
 hosted-git-info@^2.1.4:
   version "2.8.8"
@@ -3189,14 +3013,6 @@ micromatch@^4.0.2:
     braces "^3.0.1"
     picomatch "^2.0.5"
 
-miller-rabin@^4.0.0:
-  version "4.0.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/miller-rabin/-/miller-rabin-4.0.1.tgz#f080351c865b0dc562a8462966daa53543c78a4d"
-  integrity sha1-8IA1HIZbDcViqEYpZtqlNUPHik0=
-  dependencies:
-    bn.js "^4.0.0"
-    brorand "^1.0.1"
-
 mime-db@1.46.0:
   version "1.46.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/mime-db/-/mime-db-1.46.0.tgz#6267748a7f799594de3cbc8cde91def349661cee"
@@ -3218,16 +3034,6 @@ mimic-fn@^3.1.0:
   version "3.1.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/mimic-fn/-/mimic-fn-3.1.0.tgz#65755145bbf3e36954b949c16450427451d5ca74"
   integrity sha1-ZXVRRbvz42lUuUnBZFBCdFHVynQ=
-
-minimalistic-assert@^1.0.0, minimalistic-assert@^1.0.1:
-  version "1.0.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/minimalistic-assert/-/minimalistic-assert-1.0.1.tgz#2e194de044626d4a10e7f7fbc00ce73e83e4d5c7"
-  integrity sha1-LhlN4ERibUoQ5/f7wAznPoPk1cc=
-
-minimalistic-crypto-utils@^1.0.1:
-  version "1.0.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/minimalistic-crypto-utils/-/minimalistic-crypto-utils-1.0.1.tgz#f6c00c1c0b082246e5c4d99dfb8c7c083b2b582a"
-  integrity sha1-9sAMHAsIIkblxNmd+4x8CDsrWCo=
 
 minimatch@^3.0.4:
   version "3.0.4"
@@ -3473,17 +3279,6 @@ parent-module@^1.0.0:
   dependencies:
     callsites "^3.0.0"
 
-parse-asn1@^5.0.0, parse-asn1@^5.1.5:
-  version "5.1.6"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/parse-asn1/-/parse-asn1-5.1.6.tgz#385080a3ec13cb62a62d39409cb3e88844cdaed4"
-  integrity sha1-OFCAo+wTy2KmLTlAnLPoiETNrtQ=
-  dependencies:
-    asn1.js "^5.2.0"
-    browserify-aes "^1.0.0"
-    evp_bytestokey "^1.0.0"
-    pbkdf2 "^3.0.3"
-    safe-buffer "^5.1.1"
-
 parse-json@^4.0.0:
   version "4.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/parse-json/-/parse-json-4.0.0.tgz#be35f5425be1f7f6c747184f98a788cb99477ee0"
@@ -3554,17 +3349,6 @@ path@0.12.7:
   dependencies:
     process "^0.11.1"
     util "^0.10.3"
-
-pbkdf2@^3.0.3:
-  version "3.1.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/pbkdf2/-/pbkdf2-3.1.1.tgz#cb8724b0fada984596856d1a6ebafd3584654b94"
-  integrity sha1-y4cksPramEWWhW0abrr9NYRlS5Q=
-  dependencies:
-    create-hash "^1.1.2"
-    create-hmac "^1.1.4"
-    ripemd160 "^2.0.1"
-    safe-buffer "^5.0.1"
-    sha.js "^2.4.8"
 
 performance-now@^2.1.0:
   version "2.1.0"
@@ -3645,18 +3429,6 @@ psl@^1.1.28:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/psl/-/psl-1.8.0.tgz#9326f8bcfb013adcc005fdff056acce020e51c24"
   integrity sha1-kyb4vPsBOtzABf3/BWrM4CDlHCQ=
 
-public-encrypt@^4.0.0:
-  version "4.0.3"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/public-encrypt/-/public-encrypt-4.0.3.tgz#4fcc9d77a07e48ba7527e7cbe0de33d0701331e0"
-  integrity sha1-T8ydd6B+SLp1J+fL4N4z0HATMeA=
-  dependencies:
-    bn.js "^4.1.0"
-    browserify-rsa "^4.0.0"
-    create-hash "^1.1.0"
-    parse-asn1 "^5.0.0"
-    randombytes "^2.0.1"
-    safe-buffer "^5.1.2"
-
 pump@^3.0.0:
   version "3.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/pump/-/pump-3.0.0.tgz#b4a2116815bde2f4e1ea602354e8c75565107a64"
@@ -3679,21 +3451,6 @@ queue-microtask@^1.2.2:
   version "1.2.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/queue-microtask/-/queue-microtask-1.2.2.tgz#abf64491e6ecf0f38a6502403d4cda04f372dfd3"
   integrity sha1-q/ZEkebs8POKZQJAPUzaBPNy39M=
-
-randombytes@^2.0.0, randombytes@^2.0.1, randombytes@^2.0.5:
-  version "2.1.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/randombytes/-/randombytes-2.1.0.tgz#df6f84372f0270dc65cdf6291349ab7a473d4f2a"
-  integrity sha1-32+ENy8CcNxlzfYpE0mrekc9Tyo=
-  dependencies:
-    safe-buffer "^5.1.0"
-
-randomfill@^1.0.3:
-  version "1.0.4"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/randomfill/-/randomfill-1.0.4.tgz#c92196fc86ab42be983f1bf31778224931d61458"
-  integrity sha1-ySGW/IarQr6YPxvzF3giSTHWFFg=
-  dependencies:
-    randombytes "^2.0.5"
-    safe-buffer "^5.1.0"
 
 react-is@^17.0.1:
   version "17.0.1"
@@ -3866,7 +3623,7 @@ rimraf@3.0.2, rimraf@^3.0.0:
   dependencies:
     glob "^7.1.3"
 
-ripemd160@^2.0.0, ripemd160@^2.0.1:
+ripemd160@^2.0.1:
   version "2.0.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ripemd160/-/ripemd160-2.0.2.tgz#a1c1a6f624751577ba5d07914cbc92850585890c"
   integrity sha1-ocGm9iR1FXe6XQeRTLyShQWFiQw=
@@ -3893,7 +3650,7 @@ rxjs@^6.5.2:
   dependencies:
     tslib "^1.9.0"
 
-safe-buffer@^5.0.1, safe-buffer@^5.1.0, safe-buffer@^5.1.1, safe-buffer@^5.1.2, safe-buffer@^5.2.0, safe-buffer@~5.2.0:
+safe-buffer@^5.0.1, safe-buffer@^5.1.2, safe-buffer@^5.2.0, safe-buffer@~5.2.0:
   version "5.2.1"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/safe-buffer/-/safe-buffer-5.2.1.tgz#1eaf9fa9bdb1fdd4ec75f58f9cdb4e6b7827eec6"
   integrity sha1-Hq+fqb2x/dTsdfWPnNtOa3gn7sY=
@@ -3994,7 +3751,7 @@ set-value@^2.0.0, set-value@^2.0.1:
     is-plain-object "^2.0.3"
     split-string "^3.0.1"
 
-sha.js@^2.4.0, sha.js@^2.4.8:
+sha.js@^2.4.0:
   version "2.4.11"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/sha.js/-/sha.js-2.4.11.tgz#37a5cf0b81ecbc6943de109ba2960d1b26584ae7"
   integrity sha1-N6XPC4HsvGlD3hCbopYNGyZYSuc=

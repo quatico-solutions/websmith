@@ -18,13 +18,11 @@ import { GeneratorMock, ReporterMock } from "../__mocks__";
 import { createBrowserSystem, createSystem } from "../environment";
 import { CompilerOptions } from "../model";
 import { CustomGenerators } from "./addon-registry";
-import { Compiler, Project } from "./Compiler";
+import { Compiler } from "./Compiler";
+import { Project } from "./Parser";
 
 const testSystem = createBrowserSystem({
     "tsconfig.json": `{
-        "include": [
-            "./src/*"
-        ],
         "compilerOptions": {
             "strict": true,
             "lib": [
@@ -129,14 +127,16 @@ describe("setOptions", () => {
 
 describe("getFileNames", () => {
     it("returns all files matching tsconfig.json constraints without '.json' and '.js'", () => {
-        expect(testObj.getFileNames()).toEqual([
+        const { filePaths } = testObj.parse();
+
+        expect(filePaths).toEqual([
             "two.ts",
             "three.tsx",
+            "seven.ts",
             "_four.css",
             "_five.scss",
             "six.scss",
             "/seven.scss",
-            "seven.ts",
         ]);
     });
 });

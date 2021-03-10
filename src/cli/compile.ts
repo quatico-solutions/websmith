@@ -48,6 +48,7 @@ export const compile = (params: string[]): void | never => {
             options?: ts.WatchOptions
         ): ts.FileWatcher => {
             process.stdout.write(`Watching: "${path.substring(path.lastIndexOf("/") + 1)}"\n`);
+            // tslint:disable-next-line: no-empty
             return raw.watchFile ? raw.watchFile(path, callback, pollingInterval, options) : { close: () => {} };
         },
     };
