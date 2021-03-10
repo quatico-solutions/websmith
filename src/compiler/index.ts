@@ -14,7 +14,20 @@
  */
 import { AddonRegistry } from "./addon-registry";
 import { Compiler } from "./Compiler";
+import { createConfig } from "./Config";
 import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
+import { createParser, Parser, ParserOptions, Project } from "./Parser";
 
-export { AddonRegistry, Compiler, DefaultReporter, tsLibDefaults, tsDefaults };
+export {
+    AddonRegistry,
+    Compiler,
+    createConfig,
+    createParser,
+    DefaultReporter,
+    Parser,
+    ParserOptions,
+    Project,
+    tsDefaults,
+    tsLibDefaults,
+};
