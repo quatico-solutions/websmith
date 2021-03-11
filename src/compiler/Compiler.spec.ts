@@ -24,13 +24,10 @@ import { Project } from "./Parser";
 const testSystem = createBrowserSystem({
     "tsconfig.json": `{
         "compilerOptions": {
-            "strict": true,
-            "lib": [
-                "dom",
-                "es2015"
-            ],
-            "jsx": "react"
-        }
+            "target": "ESNEXT",
+            "outDir": "./.build"
+        },
+        "include": ["seven.ts"]
     }`,
     "one.js": `{
         export class One {}
@@ -69,17 +66,20 @@ const testSystem = createBrowserSystem({
 });
 
 class CompilerTestClass extends Compiler {
+    public project?: Project;
+
     constructor(options: CompilerOptions) {
         options.system = testSystem;
         super(options);
     }
     public parse(fileNames?: string[]): Project {
-        return super.parse(fileNames ?? []);
+        this.project = super.parse(fileNames ?? []);
+        return this.project!;
     }
     public emit(program: ts.Program): ts.EmitResult {
         return super.emit(program);
     }
-    public report(program: ts.Program, result: ts.EmitResult): number {
+    public report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         return super.report(program, result);
     }
     public getTransformers(program: ts.Program): ts.CustomTransformers {
@@ -102,9 +102,8 @@ describe("Constructor", () => {
     it("parses tsconfig.json and yields options", () => {
         expect(testObj.getOptions()).toEqual({
             configFilePath: "/tsconfig.json",
-            jsx: 2,
-            lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
-            strict: true,
+            outDir: "/.build",
+            target: 99,
         });
     });
 });
@@ -125,8 +124,8 @@ describe("setOptions", () => {
     });
 });
 
-describe("getFileNames", () => {
-    it("returns all files matching tsconfig.json constraints without '.json' and '.js'", () => {
+describe("parse", () => {
+    it("yields filePaths matching tsconfig.json constraints without '.json' and '.js'", () => {
         const { filePaths } = testObj.parse();
 
         expect(filePaths).toEqual([
@@ -138,6 +137,31 @@ describe("getFileNames", () => {
             "six.scss",
             "/seven.scss",
         ]);
+    });
+
+    it("yields program w/ root file names matching tsconfig.json constraints", () => {
+        const { program } = testObj.parse();
+
+        expect(program.getRootFileNames()).toEqual([
+            "two.ts",
+            "three.tsx",
+            "seven.ts",
+            "_four.css",
+            "_five.scss",
+            "six.scss",
+            "/seven.scss",
+        ]);
+    });
+
+    it("yields program w/ source files matching tsconfig.json constraints", () => {
+        const { program } = testObj.parse();
+
+        expect(
+            program
+                .getSourceFiles()
+                .filter(cur => !cur.fileName.endsWith(".d.ts")) // ignore library files
+                .map(cur => cur.fileName)
+        ).toEqual(["two.ts", "three.tsx", "seven.ts", "_four.css", "_five.scss", "six.scss", "/seven.scss"]);
     });
 });
 
@@ -314,7 +338,7 @@ describe("report", () => {
         );
     });
 
-    it("yields result's emitSkipped", () => {
+    it("yields emitSkipped true", () => {
         const mockProgram = {
             getCompilerOptions: () => ({}),
             getConfigFileParsingDiagnostics: () => [],
@@ -330,7 +354,7 @@ describe("report", () => {
 
         const actual = testObj.report(mockProgram, mockResult);
 
-        expect(actual).toBe(1);
+        expect(actual.emitSkipped).toBe(true);
     });
 });
 
@@ -391,5 +415,56 @@ describe("getTransformers", () => {
 describe.skip("watch", () => {
     it("should ", () => {
         testObj.watch();
+    });
+});
+
+describe("end-2-end compile", () => {
+    it("should yield compiled file", () => {
+        const targetSystem = createBrowserSystem({
+            "tsconfig.json": `
+                {
+                    include: ['./**/*'],
+                }`,
+            "foo/one.ts": ``,
+            "foo/two.ts": ``,
+        });
+        const testObject = new CompilerTestClass({
+            configPath: "tsconfig.json",
+            reporter: new ReporterMock(targetSystem),
+        });
+
+        const result = testObject.compile();
+
+        expect(result.emitSkipped).toBe(false);
+        expect(result.diagnostics).toEqual([]);
+        expect(targetSystem.fileExists("/foo/one.js")).toBe(true);
+        expect(targetSystem.fileExists("/foo/two.js")).toBe(true);
+
+        //   const configParser = new ConfigParser(fs.basePath, 'tsconfig.json', ts)
+        //   const config = configParser.parse()
+
+        //   const builder = new Builder(ts, config.config!, new PluginManager())
+        //   const response = builder.build()
+
+        //   assert.isFalse(response.skipped)
+        //   assert.deepEqual(response.diagnostics, [])
+
+        //   const hasBarFile = await fs.fsExtra.pathExists(join(fs.basePath, 'foo/bar.js'))
+        //   const hasBazFile = await fs.fsExtra.pathExists(join(fs.basePath, 'foo/baz.js'))
+
+        //   assert.isTrue(hasBarFile)
+        //   assert.isTrue(hasBazFile)
+        // }).timeout(9000)
+    });
+
+    it("should call transformer before emitting file", () => {
+        const target = jest.fn().mockReturnValue({ transformSourceFile: (sf: any) => sf });
+
+        testObj.getAddonRegistry().registerTransformer("before", target);
+        testObj.compile("seven.ts");
+
+        expect(target).toHaveBeenCalled();
+
+        expect(testObj.project?.program.getSourceFile("seven.ts")).toBe("");
     });
 });

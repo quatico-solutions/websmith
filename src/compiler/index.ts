@@ -18,16 +18,30 @@ import { createConfig } from "./Config";
 import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
 import { createParser, Parser, ParserOptions, Project } from "./Parser";
+import {
+    createStyleCompiler,
+    parseStyles,
+    StyleCompilerOptions,
+    StyleVisitor,
+    visitNode,
+    writeNode,
+} from "./style-compiler";
 
 export {
     AddonRegistry,
     Compiler,
     createConfig,
     createParser,
+    createStyleCompiler,
     DefaultReporter,
     Parser,
     ParserOptions,
+    parseStyles,
     Project,
+    StyleCompilerOptions,
+    StyleVisitor,
     tsDefaults,
     tsLibDefaults,
+    visitNode,
+    writeNode,
 };

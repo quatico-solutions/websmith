@@ -15,7 +15,7 @@
 // tslint:disable: object-literal-sort-keys
 import * as ts from "typescript";
 import { ReporterMock } from "../../__mocks__";
-import { createBrowserSystem, getSourceFile } from "../../environment";
+import { createBrowserSystem, getVersionedFile } from "../../environment";
 import { createStyleCompiler, resolveStyleImports, tryTransform } from "./compile-styles";
 import { findStylesMethod } from "./inline-styles";
 
@@ -185,7 +185,7 @@ describe("createStyleCompiler", () => {
     it("yields injected importedStyles method with style import", () => {
         const compileStyles = createStyleCompiler({ reporter, system: testSystem }, {});
 
-        const result = compileStyles({} as any)(getSourceFile("two.ts", testSystem)!);
+        const result = compileStyles({} as any)(getVersionedFile("two.ts", testSystem)!);
         const classDecl = result.statements?.filter(
             cur => cur.kind === ts.SyntaxKind.ClassDeclaration
         )[0] as ts.ClassDeclaration;
@@ -201,7 +201,7 @@ display: none;
     it("yields unmodified code w/o style import", () => {
         const compileStyles = createStyleCompiler({ reporter, system: testSystem }, {});
 
-        const actual = compileStyles({} as any)(getSourceFile("one.ts", testSystem)!);
+        const actual = compileStyles({} as any)(getVersionedFile("one.ts", testSystem)!);
 
         expect(actual.text).toBe("class One {}");
     });
@@ -209,7 +209,7 @@ display: none;
     it("yields no method w/o customElement decorator", () => {
         const compileStyles = createStyleCompiler({ reporter, system: testSystem }, {});
 
-        const result = compileStyles({} as any)(getSourceFile("four.ts", testSystem)!);
+        const result = compileStyles({} as any)(getVersionedFile("four.ts", testSystem)!);
 
         const classDecl = result.statements?.filter(
             cur => cur.kind === ts.SyntaxKind.ClassDeclaration
@@ -222,7 +222,7 @@ display: none;
     it("yields no method w/ non-existing style import", () => {
         const compileStyles = createStyleCompiler({ reporter, system: testSystem }, {});
 
-        const result = compileStyles({} as any)(getSourceFile("five.ts", testSystem)!);
+        const result = compileStyles({} as any)(getVersionedFile("five.ts", testSystem)!);
 
         const classDecl = result.statements?.filter(
             cur => cur.kind === ts.SyntaxKind.ClassDeclaration

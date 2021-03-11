@@ -14,6 +14,7 @@
  */
 import * as ts from "typescript";
 import { isProjectFileName, isScriptFileName, isStyleFileName, VALID_STYLE_FILES } from "../elements";
+import { createCompileHost } from "../environment";
 
 export interface ParserOptions {
     compilerOptions: ts.CompilerOptions;
@@ -31,17 +32,24 @@ export interface Project {
 export type Parser = (fileNames?: string[]) => Project;
 
 export const createParser = (options: ParserOptions): Parser => {
-    const { compilerOptions } = options;
+    const { compilerOptions, system } = options;
 
     return (filePaths?: string[]) => {
-        const host = ts.createCompilerHost(compilerOptions);
-        const targets = parsePaths(options, filePaths);
-        const program = ts.createProgram(targets, compilerOptions, host);
+        const rootNames = parsePaths(options, filePaths);
+        const host = createCompileHost(compilerOptions, system);
+        // FIXME: Remove is testing is done
+        // const host = ts.createCompilerHost(compilerOptions);
+        const program = ts.createProgram({
+            host,
+            options: compilerOptions,
+            projectReferences: [],
+            rootNames,
+        });
         return {
-            filePaths: targets,
+            filePaths: rootNames,
             program,
-            scriptPaths: targets.filter(cur => isScriptFileName(cur)),
-            stylePaths: targets.filter(cur => isStyleFileName(cur)),
+            scriptPaths: rootNames.filter(cur => isScriptFileName(cur)),
+            stylePaths: rootNames.filter(cur => isStyleFileName(cur)),
         };
     };
 };

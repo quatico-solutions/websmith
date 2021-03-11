@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import * as ts from "typescript";
-import { VersionedSourceFile } from "../model";
+import { VersionedFile } from "../model";
 import * as service from "./compile-service";
 
 /**
@@ -37,7 +37,7 @@ import * as service from "./compile-service";
  * @param system
  */
 export const createLanguageServiceHost = (
-    sourceFiles: { [name: string]: VersionedSourceFile },
+    sourceFiles: { [name: string]: VersionedFile },
     options: ts.CompilerOptions,
     compilerHost: ts.CompilerHost,
     system: ts.System,
@@ -82,7 +82,7 @@ export const createLanguageServiceHost = (
  * @param transformers
  */
 export const createLanguageService = (
-    sourceFiles: { [name: string]: VersionedSourceFile },
+    sourceFiles: { [name: string]: VersionedFile },
     options: ts.CompilerOptions,
     system: ts.System,
     transformers?: ts.CustomTransformers

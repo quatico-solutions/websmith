@@ -14,7 +14,7 @@
  */
 import { ReporterMock } from "../../../__mocks__";
 import { createBrowserSystem } from "../../../environment";
-import { extractImportedStyles } from "../docgen";
+import { extractImportedStyles } from "./extract-custom-props";
 import {
     customPropertyNameCompareFn,
     extractCssPropertiesFromStyleSheet,

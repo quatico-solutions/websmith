@@ -14,7 +14,7 @@
  */
 import { uniq } from "lodash";
 import { Node } from "scss-parser";
-import { parseStyles, visitNode } from "../../../compiler/style-compiler";
+import { parseStyles, visitNode } from "../../../compiler";
 
 export const parseCustomPropertyNames = (styles: string): string[] => {
     if (!styles) {

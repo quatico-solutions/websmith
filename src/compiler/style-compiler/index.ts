@@ -13,6 +13,6 @@
  * with Quatico.
  */
 import { createStyleCompiler, StyleCompilerOptions } from "./compile-styles";
-import { parseStyles, StyleVisitor, visitNode, writeNode } from "./scss-parser";
+import { parseStyles, StyleVisitor, visitNode, writeNode } from "./parse-scss";
 
 export { StyleCompilerOptions, createStyleCompiler, StyleVisitor, parseStyles, visitNode, writeNode };

@@ -20,7 +20,7 @@ import { Processor, ProcessorKind } from "./Processor";
 import { aggregateMessages, ErrorMessage, InfoMessage, messageToString, Reporter, WarnMessage } from "./Reporter";
 import { StyleTransformer, StyleTransformerKind } from "./StyleTransformer";
 import { fromGenerator, Transformer, TransformerKind } from "./Transformer";
-import { VersionedSourceFile } from "./VersionedSourceFile";
+import { VersionedFile } from "./VersionedFile";
 
 export {
     aggregateMessages,
@@ -40,6 +40,6 @@ export {
     StyleTransformerKind,
     Transformer,
     TransformerKind,
-    VersionedSourceFile,
+    VersionedFile,
     WarnMessage,
 };

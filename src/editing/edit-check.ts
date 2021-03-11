@@ -14,7 +14,7 @@
  */
 import * as ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
-import { createLanguageService, createSourceFiles, createSystem } from "../environment";
+import { createLanguageService, createSystem, createVersionedFiles } from "../environment";
 
 export const typecheck = (code: string): ts.Diagnostic[] => {
     const dummyFilename = "file.ts";
@@ -27,7 +27,7 @@ export const typecheck = (code: string): ts.Diagnostic[] => {
         ...files,
     });
     const compilerOptions = tsDefaults;
-    const sourceFiles = createSourceFiles(files, compilerOptions);
+    const sourceFiles = createVersionedFiles(files, compilerOptions);
     const languageService = createLanguageService(sourceFiles, compilerOptions, system);
     const diagnostics = languageService.getSemanticDiagnostics(dummyFilename);
 

@@ -31,7 +31,7 @@ export class DefaultReporter implements Reporter {
 
     public reportDiagnostic(diagnostic: ts.Diagnostic): void {
         const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, this.formatHost.getNewLine());
-        if (diagnostic.file && diagnostic.start) {
+        if (typeof diagnostic.file?.getLineAndCharacterOfPosition === "function" && diagnostic.start) {
             const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
             this.logProblem(
                 `${levelOf(diagnostic)}: ${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`

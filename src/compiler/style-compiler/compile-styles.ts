@@ -19,7 +19,7 @@ import { ErrorMessage, InfoMessage, Reporter, StyleTransformer, Transformer } fr
 import { CustomStyleTransformers } from "../addon-registry";
 import { createSass } from "../sass-compiler";
 import { inlineStyles, isStyleImport } from "./inline-styles";
-import { parseStyles, visitNode, writeNode } from "./scss-parser";
+import { parseStyles, visitNode, writeNode } from "./parse-scss";
 
 export interface StyleCompilerOptions {
     sassOptions?: sass.Options;

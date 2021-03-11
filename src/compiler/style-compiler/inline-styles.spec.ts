@@ -14,7 +14,7 @@
  */
 // tslint:disable: object-literal-sort-keys
 import * as ts from "typescript";
-import { createBrowserSystem, getSourceFile } from "../../environment";
+import { createBrowserSystem, getVersionedFile } from "../../environment";
 import {
     findStylesMethod,
     getFirstClassDeclaration,
@@ -36,7 +36,7 @@ const testSystem = createBrowserSystem({
 
 describe("findStylesMethod,", () => {
     it("returns style method with locally defined style method", () => {
-        const file = getSourceFile("one.ts", testSystem)!;
+        const file = getVersionedFile("one.ts", testSystem)!;
         const target = file.statements?.filter(
             cur => cur.kind === ts.SyntaxKind.ClassDeclaration
         )[0] as ts.ClassDeclaration;
@@ -47,7 +47,7 @@ describe("findStylesMethod,", () => {
     });
 
     it("returns undefined with non-existing importedStyles method", () => {
-        const file = getSourceFile("two.ts", testSystem)!;
+        const file = getVersionedFile("two.ts", testSystem)!;
         const target = file.statements?.filter(
             cur => cur.kind === ts.SyntaxKind.ClassDeclaration
         )[0] as ts.ClassDeclaration;
@@ -60,7 +60,7 @@ describe("findStylesMethod,", () => {
 
 describe("getFirstClassDeclaration", () => {
     it("return class declaration with one locally defined class", () => {
-        const target = getSourceFile("two.ts", testSystem)!;
+        const target = getVersionedFile("two.ts", testSystem)!;
 
         const actual = getFirstClassDeclaration(target)!;
 
@@ -68,7 +68,7 @@ describe("getFirstClassDeclaration", () => {
     });
 
     it("return first class declaration with multiple locally defined class", () => {
-        const target = getSourceFile("three.ts", testSystem)!;
+        const target = getVersionedFile("three.ts", testSystem)!;
 
         const actual = getFirstClassDeclaration(target)!;
 
@@ -78,7 +78,7 @@ describe("getFirstClassDeclaration", () => {
 
 describe("getOrCreateStylesMethod", () => {
     it("returns method declaration with non-existing importedStyle method", () => {
-        const file = getSourceFile("two.ts", testSystem)!;
+        const file = getVersionedFile("two.ts", testSystem)!;
         const target = file.statements?.filter(
             cur => cur.kind === ts.SyntaxKind.ClassDeclaration
         )[0] as ts.ClassDeclaration;
@@ -89,7 +89,7 @@ describe("getOrCreateStylesMethod", () => {
     });
 
     it("returns method declaration with existing importedStyle method", () => {
-        const file = getSourceFile("one.ts", testSystem)!;
+        const file = getVersionedFile("one.ts", testSystem)!;
         const target = file.statements?.filter(
             cur => cur.kind === ts.SyntaxKind.ClassDeclaration
         )[0] as ts.ClassDeclaration;
@@ -100,7 +100,7 @@ describe("getOrCreateStylesMethod", () => {
     });
 
     it("returns styles in method body with existing importedStyle method", () => {
-        const file = getSourceFile("one.ts", testSystem)!;
+        const file = getVersionedFile("one.ts", testSystem)!;
         const target = file.statements?.filter(
             cur => cur.kind === ts.SyntaxKind.ClassDeclaration
         )[0] as ts.ClassDeclaration;
@@ -113,7 +113,7 @@ describe("getOrCreateStylesMethod", () => {
 
 describe("inlineStyles", () => {
     it("returns SourceFile with same class declaration", () => {
-        const target = getSourceFile("one.ts", testSystem)!;
+        const target = getVersionedFile("one.ts", testSystem)!;
         const compiledStyles = ["expected"];
 
         const result = inlineStyles(target, compiledStyles);
@@ -125,7 +125,7 @@ describe("inlineStyles", () => {
     });
 
     it("returns SourceFile and defined method with existing importedStyles method", () => {
-        const target = getSourceFile("one.ts", testSystem)!;
+        const target = getVersionedFile("one.ts", testSystem)!;
         const compiledStyles = ["expected"];
 
         const result = inlineStyles(target, compiledStyles);
@@ -139,7 +139,7 @@ describe("inlineStyles", () => {
     });
 
     it("returns SourceFile and newly created method declaration with non-existing importedStyles method", () => {
-        const target = getSourceFile("two.ts", testSystem)!;
+        const target = getVersionedFile("two.ts", testSystem)!;
         const compiledStyles = ["expected"];
 
         const result = inlineStyles(target, compiledStyles);

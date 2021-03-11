@@ -18,6 +18,6 @@ import * as ts from "typescript";
  * Represents an AST for a given file with some additional information like the file name,
  * source text and version number.
  */
-export interface VersionedSourceFile extends ts.SourceFile {
+export interface VersionedFile extends ts.SourceFile {
     version: number;
 }

@@ -16,7 +16,8 @@ import merge from "lodash/merge";
 import * as path from "path";
 import * as ts from "typescript";
 import { DefaultReporter } from "../compiler";
-import { Reporter, VersionedSourceFile } from "../model";
+import { createVersionedFile } from "../environment";
+import { Reporter, VersionedFile } from "../model";
 
 /**
  * The TypeScript compiler interacts with the host environment via a compiler host.
@@ -29,20 +30,30 @@ import { Reporter, VersionedSourceFile } from "../model";
  * @param sourceFiles
  * @param system
  */
-export const createCompileHost = (
-    sourceFiles: { [name: string]: VersionedSourceFile },
-    system: ts.System
-): ts.CompilerHost => ({
-    ...system,
-    getCanonicalFileName: fileName => {
-        return system.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase();
-    },
-    getDefaultLibFileName: (options: ts.CompilerOptions) => path.join("/", getDefaultLibFileName0(options)),
-    getDirectories: (dirPath: string) => system.getDirectories(dirPath),
-    getNewLine: () => system.newLine,
-    getSourceFile: fileName => sourceFiles[fileName],
-    useCaseSensitiveFileNames: () => system.useCaseSensitiveFileNames,
-});
+export const createCompileHost = (options: ts.CompilerOptions, system: ts.System): ts.CompilerHost => {
+    const knownFiles: { [name: string]: VersionedFile } = {};
+    return {
+        ...system,
+        getCanonicalFileName: fileName => {
+            return system.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase();
+        },
+        getDefaultLibFileName: (compOptions: ts.CompilerOptions) => path.join("/", getDefaultLibFileName0(compOptions)),
+        getDirectories: (dirPath: string) => system.getDirectories(dirPath),
+        getNewLine: () => system.newLine,
+        getSourceFile: fileName => {
+            let result = knownFiles[fileName];
+            if (!result) {
+                const content = system.readFile(fileName);
+                if (content) {
+                    result = createVersionedFile(fileName, content, options);
+                    knownFiles[fileName] = result;
+                }
+            }
+            return result;
+        },
+        useCaseSensitiveFileNames: () => system.useCaseSensitiveFileNames,
+    };
+};
 
 export const createWatchHost = (
     rootFiles: string[],
@@ -61,24 +72,6 @@ export const createWatchHost = (
         undefined /* no project references */,
         undefined /* no extra watch options */
     );
-    // TODO: Remove if watch with rootFiles works
-    // return ts.createWatchCompilerHost(
-    //     configFilePath,
-    //     undefined /* no extra compiler options */,
-    //     system,
-    //     createProgram,
-    //     reporter.reportDiagnostic,
-    //     reporter.reportWatchStatus,
-    //     undefined /* no extra watch options */,
-    //     [
-    //         /* extra file extensions to watch */
-    //         {
-    //             extension: ".scss",
-    //             isMixedContent: true,
-    //             scriptKind: ts.ScriptKind.Deferred,
-    //         },
-    //     ]
-    // );
 };
 
 export const injectTransformers = (

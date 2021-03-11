@@ -79,9 +79,8 @@ export const createBrowserSystem = (files?: { [name: string]: string }): ts.Syst
                 : path.join("/", filePath);
         },
         resolvePath: (filePath: string): string => absolutePath(filePath),
-        write: (): void => {
-            throw new Error("write() not implemented");
-        },
+        // tslint:disable-next-line: no-console
+        write: (str: string): void => console.warn(`write() not supported. Did not write: "${str}".`),
         writeFile: (filePath: string, contents: string): void => {
             if (filePath && filePath.length > 0) {
                 knownFiles[filePath] = contents;

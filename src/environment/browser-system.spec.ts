@@ -41,10 +41,27 @@ describe("createDirectory", () => {
 });
 
 describe("write", () => {
-    it("throws error", () => {
+    // tslint:disable-next-line: no-console
+    const orgWarnLog = console.warn;
+    let targetLog: any;
+
+    beforeEach(() => {
+        targetLog = jest.fn();
+        // tslint:disable-next-line: no-console
+        console.warn = targetLog;
+    });
+
+    afterAll(() => {
+        // tslint:disable-next-line: no-console
+        console.warn = orgWarnLog;
+    });
+
+    it("yields error on console log", () => {
         const testObj = createBrowserSystem({});
 
-        expect(() => testObj.write("whatever")).toThrowError("write() not implemented");
+        testObj.write("whatever");
+
+        expect(targetLog).toHaveBeenCalledWith('write() not supported. Did not write: "whatever".');
     });
 });
 
@@ -410,6 +427,7 @@ describe("writeFile", () => {
             }`
         );
 
+        expect(testObj.fileExists("one.js")).toBe(true);
         expect(testObj.readFile("one.js")).toBe(`{
                 export class One {}
             }`);
@@ -425,6 +443,7 @@ describe("writeFile", () => {
             }`
         );
 
+        expect(testObj.fileExists("/expected/one.js")).toBe(true);
         expect(testObj.readFile("/expected/one.js")).toBe(`{
                 export class One {}
             }`);
@@ -440,6 +459,7 @@ describe("writeFile", () => {
             }`
         );
 
+        expect(testObj.fileExists("../expected/one.js")).toBe(true);
         expect(testObj.readFile("../expected/one.js")).toBe(`{
                 export class One {}
             }`);
@@ -450,6 +470,7 @@ describe("writeFile", () => {
 
         testObj.writeFile("whatever", "");
 
+        expect(testObj.fileExists("whatever")).toBe(true);
         expect(testObj.readFile("whatever")).toBe("");
     });
 
@@ -458,6 +479,7 @@ describe("writeFile", () => {
 
         testObj.writeFile("", "whatever");
 
+        expect(testObj.fileExists("")).toBe(false);
         expect(testObj.readFile("")).toBeUndefined();
     });
 });

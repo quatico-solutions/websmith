@@ -14,7 +14,7 @@
  */
 import * as ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
-import { VersionedSourceFile } from "../model";
+import { VersionedFile } from "../model";
 import { createBrowserSystem } from "./browser-system";
 
 export const isNodeJs = (): boolean => typeof module !== "undefined" && module.exports;
@@ -45,21 +45,23 @@ export const readFiles = (paths: string[], system: ts.System = ts.sys): { [name:
         return result;
     }, {});
 
-export const createSourceFiles = (
+export const createVersionedFiles = (
     files: { [name: string]: string },
     options: ts.CompilerOptions
-): { [name: string]: VersionedSourceFile } => {
-    return Object.keys(files).reduce((result: { [name: string]: VersionedSourceFile }, name: string) => {
-        const scriptKind = name.endsWith(".ts") ? undefined : ts.ScriptKind.Deferred;
-        result[name] = {
-            ...ts.createSourceFile(name, files[name], options.target || ts.ScriptTarget.Latest, undefined, scriptKind),
-            version: 0,
-        };
+): { [name: string]: VersionedFile } => {
+    return Object.keys(files).reduce((result: { [name: string]: VersionedFile }, name: string) => {
+        result[name] = createVersionedFile(name, files[name], options);
         return result;
     }, {});
 };
 
-export const getSourceFile = (filePath: string, system: ts.System): ts.SourceFile | undefined => {
-    const files = createSourceFiles(readFiles([filePath], system), tsDefaults);
-    return files[filePath];
+export const getVersionedFile = (filePath: string, system: ts.System): ts.SourceFile | undefined =>
+    createVersionedFiles(readFiles([filePath], system), tsDefaults)[filePath];
+
+export const createVersionedFile = (name: string, content: string, options: ts.CompilerOptions): VersionedFile => {
+    const scriptKind = name.endsWith(".ts") ? undefined : ts.ScriptKind.Deferred;
+    return {
+        ...ts.createSourceFile(name, content, options.target || ts.ScriptTarget.Latest, undefined, scriptKind),
+        version: 0,
+    };
 };

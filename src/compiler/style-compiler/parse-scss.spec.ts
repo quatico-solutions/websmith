@@ -13,7 +13,7 @@
  * with Quatico.
  */
 // tslint:disable: max-line-length
-import { Node, parseStyles, visitNode, writeNode } from "./scss-parser";
+import { Node, parseStyles, visitNode, writeNode } from "./parse-scss";
 
 describe("parseStyles", () => {
     it("returns node of type 'stylesheet' w/ valid stylesheet", () => {

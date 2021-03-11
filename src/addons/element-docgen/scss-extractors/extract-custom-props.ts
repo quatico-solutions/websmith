@@ -12,8 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { Reporter } from "../../../model";
-import { extractStyleSheetFromJsFile } from "../docgen";
+import * as fs from "fs";
+import { ErrorMessage, Reporter } from "../../../model";
 import { parseCustomPropertyNames } from "../scss-parsers/parse-custom-prop-names";
 
 const IGNORED_STATES: string[] = ["override", "type", "state", "default", "value"];
@@ -40,4 +40,37 @@ export const filterAndSortCssProperties = (tagName: string, cssProperties: strin
 
 export const customPropertyNameCompareFn = (propNameA: string, propNameB: string): number => {
     return propNameA.replace(/_/g, "+") < propNameB.replace(/_/g, "+") ? -1 : 1;
+};
+
+export const extractStyleSheetFromJsFile = (tagName: string, path: string, reporter: Reporter): string | undefined => {
+    if (!path) {
+        return undefined;
+    }
+
+    const filePath = path.replace("src", "lib").replace(".ts", ".js");
+
+    if (!fs.existsSync(filePath)) {
+        reporter.reportDiagnostic(new ErrorMessage(`${tagName}: '${filePath}' does not exist.\n`));
+        return undefined;
+    }
+    const script = fs.readFileSync(filePath, "utf8");
+    return extractImportedStyles(script, tagName, filePath, reporter);
+};
+
+export const extractImportedStyles = (
+    script: string,
+    tagName: string,
+    filePath: string,
+    reporter: Reporter
+): string | undefined => {
+    const START_TAG = 'importedStyles() { return "';
+    const END_TAG = '"; }';
+    const stylesStart = script.indexOf(START_TAG);
+    const stylesEnd = stylesStart >= 0 ? script.indexOf(END_TAG, stylesStart) : -1;
+    if (stylesEnd >= 0) {
+        // tslint:disable-next-line:no-eval
+        return eval(`"${script.substring(stylesStart + START_TAG.length, stylesEnd)}"`);
+    }
+    reporter.reportDiagnostic(new ErrorMessage(`${tagName}: Error '${filePath}' does not contain styles.\n`));
+    return undefined;
 };

@@ -15,7 +15,7 @@
 import * as ts from "typescript";
 import { ReporterMock } from "../../__mocks__";
 import { tsDefaults } from "../../compiler";
-import { createBrowserSystem, createCompileHost, createSourceFiles, readFiles } from "../../environment";
+import { createBrowserSystem, createCompileHost, createVersionedFiles, readFiles } from "../../environment";
 import { DocGenerator } from "./DocGenerator";
 
 const testSystem = createBrowserSystem({
@@ -57,7 +57,7 @@ describe("XXX", () => {
 });
 
 const setup = (filePath: string, system: ts.System): { file: ts.SourceFile | undefined; program: ts.Program } => {
-    const files = createSourceFiles(readFiles([filePath], system), tsDefaults);
+    const files = createVersionedFiles(readFiles([filePath], system), tsDefaults);
     const program = ts.createProgram([filePath], {}, createCompileHost(files, ts.sys));
     const file = program.getSourceFile(filePath);
     return { file, program };

@@ -62,7 +62,7 @@ export class Compiler {
         return this;
     }
 
-    public compile(...fileNames: string[]): number {
+    public compile(...fileNames: string[]): ts.EmitResult {
         const { program, stylePaths } = this.parse(fileNames);
 
         // FIXME: Add style processors here to generate docs
@@ -126,12 +126,12 @@ export class Compiler {
         return result;
     }
 
-    protected report(program: ts.Program, result: ts.EmitResult): number {
+    protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         ts.getPreEmitDiagnostics(program)
             .concat(result.diagnostics)
             .forEach(cur => this.reporter.reportDiagnostic(cur));
 
-        return result.emitSkipped ? 1 : 0;
+        return result;
     }
 
     protected getTransformers(program: ts.Program): ts.CustomTransformers {

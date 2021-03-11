@@ -14,7 +14,7 @@
  */
 // tslint:disable: object-literal-sort-keys
 import { isStyleFile } from "../elements";
-import { createBrowserSystem, getSourceFile } from "../environment";
+import { createBrowserSystem, getVersionedFile } from "../environment";
 import { CustomProcessors } from "./addon-registry";
 import { createProcessorTransformer } from "./processor-transformer";
 
@@ -36,7 +36,7 @@ const testSystem = createBrowserSystem({
 describe("createProcessorTransformer", () => {
     it("calls element processor with element file", () => {
         const target = jest.fn();
-        const file = getSourceFile("one.ts", testSystem)!;
+        const file = getVersionedFile("one.ts", testSystem)!;
 
         setup({ element: [jest.fn().mockReturnValue(target)] }).transform(file);
 
@@ -45,7 +45,7 @@ describe("createProcessorTransformer", () => {
 
     it("calls styles processor with style file", () => {
         const target = jest.fn();
-        const file = getSourceFile("_two.scss", testSystem)!;
+        const file = getVersionedFile("_two.scss", testSystem)!;
 
         expect(file).toBeDefined();
         expect(isStyleFile(file)).toBe(true);
@@ -58,7 +58,7 @@ describe("createProcessorTransformer", () => {
 
 describe("createSourceFile", () => {
     it("Returns source files for non-TS files", () => {
-        const actual = getSourceFile("_styles.scss", testSystem)!;
+        const actual = getVersionedFile("_styles.scss", testSystem)!;
 
         expect(actual.fileName).toBe("_styles.scss");
     });
