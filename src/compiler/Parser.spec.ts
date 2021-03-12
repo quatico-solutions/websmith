@@ -18,7 +18,7 @@ import { createConfig } from "./Config";
 import { createParser, parsePaths } from "./Parser";
 
 const testSystem = createBrowserSystem({
-    "tsconfig.json": `{}`,
+    "tsconfig.json": JSON.stringify({}),
     "src/one.js": `{
         export class One {}
     }`,

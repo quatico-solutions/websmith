@@ -22,44 +22,43 @@ import { Compiler } from "./Compiler";
 import { Project } from "./Parser";
 
 const testSystem = createBrowserSystem({
-    "tsconfig.json": `{
-        "compilerOptions": {
-            "target": "ESNEXT",
-            "outDir": "./.build"
+    "tsconfig.json": JSON.stringify({
+        compilerOptions: {
+            target: "ESNEXT",
+            outDir: "./.build",
         },
-        "include": ["seven.ts"]
-    }`,
-    "one.js": `{
+    }),
+    "src/one.js": `{
         export class One {}
     }`,
-    "two.ts": `{
+    "src/two.ts": `{
         export class Two {}
     }`,
-    "three.tsx": `{
+    "src/three.tsx": `{
         export class Three {}
     }`,
-    "_four.css": `{
+    "src/_four.css": `{
         .four {
             display: none;
         }
     }`,
-    "_five.scss": `{
+    "src/_five.scss": `{
         .five {
             display: none;
         }
     }`,
-    "six.scss": `{
+    "src/six.scss": `{
         .five {
             display: none;
         }
     }`,
-    "/seven.scss": `{
+    "src/seven.scss": `{
         .seven {
             display: none;
         }
     }`,
-    "seven.ts": `{
-        import "/seven.scss";
+    "src/seven.ts": `{
+        import "./seven.scss";
         @customElement("my-seven")
         export class Seven {}
     }`,
@@ -129,13 +128,13 @@ describe("parse", () => {
         const { filePaths } = testObj.parse();
 
         expect(filePaths).toEqual([
-            "two.ts",
-            "three.tsx",
-            "seven.ts",
-            "_four.css",
-            "_five.scss",
-            "six.scss",
-            "/seven.scss",
+            "src/two.ts",
+            "src/three.tsx",
+            "src/seven.ts",
+            "src/_four.css",
+            "src/_five.scss",
+            "src/six.scss",
+            "src/seven.scss",
         ]);
     });
 
@@ -143,13 +142,13 @@ describe("parse", () => {
         const { program } = testObj.parse();
 
         expect(program.getRootFileNames()).toEqual([
-            "two.ts",
-            "three.tsx",
-            "seven.ts",
-            "_four.css",
-            "_five.scss",
-            "six.scss",
-            "/seven.scss",
+            "src/two.ts",
+            "src/three.tsx",
+            "src/seven.ts",
+            "src/_four.css",
+            "src/_five.scss",
+            "src/six.scss",
+            "src/seven.scss",
         ]);
     });
 
@@ -161,7 +160,7 @@ describe("parse", () => {
                 .getSourceFiles()
                 .filter(cur => !cur.fileName.endsWith(".d.ts")) // ignore library files
                 .map(cur => cur.fileName)
-        ).toEqual(["two.ts", "three.tsx", "seven.ts", "_four.css", "_five.scss", "six.scss", "/seven.scss"]);
+        ).toEqual(["src/two.ts", "src/three.tsx", "src/seven.ts"]);
     });
 });
 
@@ -412,59 +411,9 @@ describe("getTransformers", () => {
     });
 });
 
+// FIXME: Test watch mode
 describe.skip("watch", () => {
     it("should ", () => {
         testObj.watch();
-    });
-});
-
-describe("end-2-end compile", () => {
-    it("should yield compiled file", () => {
-        const targetSystem = createBrowserSystem({
-            "tsconfig.json": `
-                {
-                    include: ['./**/*'],
-                }`,
-            "foo/one.ts": ``,
-            "foo/two.ts": ``,
-        });
-        const testObject = new CompilerTestClass({
-            configPath: "tsconfig.json",
-            reporter: new ReporterMock(targetSystem),
-        });
-
-        const result = testObject.compile();
-
-        expect(result.emitSkipped).toBe(false);
-        expect(result.diagnostics).toEqual([]);
-        expect(targetSystem.fileExists("/foo/one.js")).toBe(true);
-        expect(targetSystem.fileExists("/foo/two.js")).toBe(true);
-
-        //   const configParser = new ConfigParser(fs.basePath, 'tsconfig.json', ts)
-        //   const config = configParser.parse()
-
-        //   const builder = new Builder(ts, config.config!, new PluginManager())
-        //   const response = builder.build()
-
-        //   assert.isFalse(response.skipped)
-        //   assert.deepEqual(response.diagnostics, [])
-
-        //   const hasBarFile = await fs.fsExtra.pathExists(join(fs.basePath, 'foo/bar.js'))
-        //   const hasBazFile = await fs.fsExtra.pathExists(join(fs.basePath, 'foo/baz.js'))
-
-        //   assert.isTrue(hasBarFile)
-        //   assert.isTrue(hasBazFile)
-        // }).timeout(9000)
-    });
-
-    it("should call transformer before emitting file", () => {
-        const target = jest.fn().mockReturnValue({ transformSourceFile: (sf: any) => sf });
-
-        testObj.getAddonRegistry().registerTransformer("before", target);
-        testObj.compile("seven.ts");
-
-        expect(target).toHaveBeenCalled();
-
-        expect(testObj.project?.program.getSourceFile("seven.ts")).toBe("");
     });
 });

@@ -7,9 +7,9 @@ import { createBrowserSystem } from "./browser-system";
 import { createCompileHost, createWatchHost } from "./compile-service";
 
 const testSystem = createBrowserSystem({
-    "tsconfig.json": `{
-        exclude: ["node_modules"]
-    }`,
+    "tsconfig.json": JSON.stringify({
+        exclude: ["node_modules"],
+    }),
     "folder/one.js": `class One {}`,
     "folder/two.js": `class Two {}`,
     "folder/foo/three.js": `class Three {}`,

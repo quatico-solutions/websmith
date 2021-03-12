@@ -18,7 +18,7 @@ import { createConfig } from "./Config";
 
 describe("empty config", () => {
     const emptySystem = createBrowserSystem({
-        "tsconfig.json": `{}`,
+        "tsconfig.json": JSON.stringify({}),
     });
 
     it("yields empty config with empty config file", () => {
@@ -48,11 +48,9 @@ describe("empty config", () => {
 
 describe("valid config", () => {
     const validSystem = createBrowserSystem({
-        "tsconfig.json": `{
-            "include": [
-                "foobar.ts"
-            ],
-        }`,
+        "tsconfig.json": JSON.stringify({
+            include: ["foobar.ts"],
+        }),
         "foobar.ts": `class Foobar {}`,
     });
     it("yields default value with valid config file", () => {
@@ -77,19 +75,14 @@ describe("valid config", () => {
 
 describe("default config", () => {
     const defaultSystem = createBrowserSystem({
-        "tsconfig.json": `{
-            "include": [
-                "**/*.tsx"
-            ],
-            "compilerOptions": {
-                "strict": true,
-                "lib": [
-                    "dom",
-                    "es2015"
-                ],
-                "jsx": "react"
-            }
-        }`,
+        "tsconfig.json": JSON.stringify({
+            include: ["**/*.tsx"],
+            compilerOptions: {
+                strict: true,
+                lib: ["dom", "es2015"],
+                jsx: "react",
+            },
+        }),
         "/one.tsx": `class One {}`,
         "/two.tsx": `class Two {}`,
         "/three.tsx": `class Three {}`,

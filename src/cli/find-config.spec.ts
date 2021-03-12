@@ -18,7 +18,7 @@ import { findConfigFile, findSassConfig } from "./find-config";
 describe("findConfigFile", () => {
     it("returns file name with path to existing file", () => {
         const target = createBrowserSystem({
-            "tsconfig.json": `{}`,
+            "tsconfig.json": JSON.stringify({}),
         });
 
         const actual = findConfigFile("./", target);
