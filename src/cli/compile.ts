@@ -56,7 +56,7 @@ export const compile = (params: string[]): void | never => {
     if (doWatch) {
         compiler.watch();
     } else {
-        const exitCode = compiler.compile();
+        const exitCode = compiler.compile().emitSkipped ? 1 : 0;
         process.stdout.write(`Process exiting with code '${exitCode}'.\n`);
         process.exit(exitCode);
     }
