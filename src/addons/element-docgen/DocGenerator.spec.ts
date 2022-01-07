@@ -12,7 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as ts from "typescript";
+/* eslint-disable jest/no-mocks-import */
+import ts from "typescript";
 import { ReporterMock } from "../../__mocks__";
 import { tsDefaults } from "../../compiler";
 import { createBrowserSystem, createCompileHost, createVersionedFiles, readFiles } from "../../environment";

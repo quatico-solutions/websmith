@@ -12,8 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: max-classes-per-file object-literal-sort-keys
-import * as ts from "typescript";
+/* eslint-disable jest/no-mocks-import */
+import ts from "typescript";
 import { GeneratorMock, ReporterMock } from "../__mocks__";
 import { createBrowserSystem, createSystem } from "../environment";
 import { CompilerOptions } from "../model";
@@ -407,13 +407,13 @@ describe("getTransformers", () => {
 
         const actual = testObj.getTransformers(mockProgram).before!;
 
-        expect(actual.length).toBe(4);
+        expect(actual).toHaveLength(4);
     });
 });
 
 // FIXME: Test watch mode
 describe.skip("watch", () => {
-    it("should ", () => {
+    it("should", () => {
         testObj.watch();
     });
 });

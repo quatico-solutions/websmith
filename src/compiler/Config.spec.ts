@@ -12,7 +12,6 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: object-literal-sort-keys
 import { createBrowserSystem } from "../environment";
 import { createConfig } from "./Config";
 
@@ -39,10 +38,10 @@ describe("empty config", () => {
 
         expect(actual.errors[0]).toEqual(
             expect.objectContaining({
-                messageText: `No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.`,
+                messageText: `No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '["**/*"]' and 'exclude' paths were '[]'.`,
             })
         );
-        expect(actual.errors.length).toBe(1);
+        expect(actual.errors).toHaveLength(1);
     });
 });
 

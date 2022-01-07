@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as ts from "typescript";
+import ts from "typescript";
 import yargs from "yargs";
 import { Compiler } from "../compiler";
 import { createSystem } from "../environment";
@@ -41,15 +41,9 @@ export const compile = (params: string[]): void | never => {
     const raw = createSystem();
     const system: ts.System = {
         ...raw,
-        watchFile: (
-            path: string,
-            callback: ts.FileWatcherCallback,
-            pollingInterval?: number,
-            options?: ts.WatchOptions
-        ): ts.FileWatcher => {
+        watchFile: (path: string, callback: ts.FileWatcherCallback, pollingInterval?: number, options?: ts.WatchOptions): ts.FileWatcher => {
             process.stdout.write(`Watching: "${path.substring(path.lastIndexOf("/") + 1)}"\n`);
-            // tslint:disable-next-line: no-empty
-            return raw.watchFile ? raw.watchFile(path, callback, pollingInterval, options) : { close: () => {} };
+            return raw.watchFile ? raw.watchFile(path, callback, pollingInterval, options) : { close: () => undefined };
         },
     };
     const compiler = new Compiler({ configPath, sassOptions, system });

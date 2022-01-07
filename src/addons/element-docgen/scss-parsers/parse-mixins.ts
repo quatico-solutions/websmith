@@ -58,9 +58,7 @@ export const readMixins = (path: string, reporter: Reporter): { [key: string]: M
                     const fileStat = fs.statSync(filePath);
                     if (fileStat && fileStat.isFile()) {
                         try {
-                            mixins["qs-" + directoryName] = parseMixins(
-                                fs.readFileSync(filePath, { encoding: "utf8" })
-                            );
+                            mixins["qs-" + directoryName] = parseMixins(fs.readFileSync(filePath, { encoding: "utf8" }));
                         } catch (err) {
                             reporter.reportDiagnostic(new ErrorMessage(`Error processing '${filePath}': ${err}`));
                         }
@@ -130,10 +128,7 @@ const aggregateDescription = (node: Node, aggregatedDescription: AggregatedDescr
     return result;
 };
 
-const aggregateDescriptionLine = (
-    line: string,
-    aggregatedDescription: AggregatedDescription
-): AggregatedDescription => {
+const aggregateDescriptionLine = (line: string, aggregatedDescription: AggregatedDescription): AggregatedDescription => {
     if (!line.trim()) {
         return aggregatedDescription;
     }
@@ -150,10 +145,7 @@ const aggregateDescriptionLine = (
         });
     }
     if (quoteStart > 0) {
-        return aggregateDescriptionLine(
-            line.substring(quoteStart),
-            aggregateDescriptionLine(line.substring(0, quoteStart), aggregatedDescription)
-        );
+        return aggregateDescriptionLine(line.substring(quoteStart), aggregateDescriptionLine(line.substring(0, quoteStart), aggregatedDescription));
     }
 
     if (aggregatedDescription.quoted) {
@@ -194,7 +186,7 @@ export const escapeMarkdown = (line: string): string => {
             );
         }
     }
-    return line.replace(/([\\`*_{}\[\]()#+-.!])/g, "\\$1");
+    return line.replace(/([\\`*_{}[\]()#+-.!])/g, "\\$1");
 };
 
 const getIdentifier = (node: Node): string | undefined => {

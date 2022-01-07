@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as ts from "typescript";
+import ts from "typescript";
 import { VersionedFile } from "../model";
 import * as service from "./compile-service";
 
@@ -86,13 +86,4 @@ export const createLanguageService = (
     options: ts.CompilerOptions,
     system: ts.System,
     transformers?: ts.CustomTransformers
-) =>
-    ts.createLanguageService(
-        createLanguageServiceHost(
-            sourceFiles,
-            options,
-            service.createCompileHost(options, system),
-            system,
-            transformers
-        )
-    );
+) => ts.createLanguageService(createLanguageServiceHost(sourceFiles, options, service.createCompileHost(options, system), system, transformers));

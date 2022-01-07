@@ -16,7 +16,7 @@ import memoize from "mem";
 import { join } from "path";
 // @ts-ignore no type desclaration
 import picomatch from "picomatch";
-import * as ts from "typescript";
+import ts from "typescript";
 
 export class VersionsMap {
     private data: ts.MapLike<{ version: number }> = {};

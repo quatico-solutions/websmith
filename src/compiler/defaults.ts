@@ -12,8 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: object-literal-sort-keys
-import * as ts from "typescript";
+import ts from "typescript";
 
 export const tsDefaults: ts.CompilerOptions = {
     ...ts.getDefaultCompilerOptions(),

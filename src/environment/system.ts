@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as ts from "typescript";
+import ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
 import { VersionedFile } from "../model";
 import { createBrowserSystem } from "./browser-system";
@@ -45,10 +45,7 @@ export const readFiles = (paths: string[], system: ts.System = ts.sys): { [name:
         return result;
     }, {});
 
-export const createVersionedFiles = (
-    files: { [name: string]: string },
-    options: ts.CompilerOptions
-): { [name: string]: VersionedFile } => {
+export const createVersionedFiles = (files: { [name: string]: string }, options: ts.CompilerOptions): { [name: string]: VersionedFile } => {
     return Object.keys(files).reduce((result: { [name: string]: VersionedFile }, name: string) => {
         result[name] = createVersionedFile(name, files[name], options);
         return result;

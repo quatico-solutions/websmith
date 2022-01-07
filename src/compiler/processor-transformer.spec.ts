@@ -12,7 +12,6 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: object-literal-sort-keys
 import { isStyleFile } from "../elements";
 import { createBrowserSystem, getVersionedFile } from "../environment";
 import { CustomProcessors } from "./addon-registry";

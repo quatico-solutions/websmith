@@ -12,10 +12,11 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+/* eslint-disable jest/no-mocks-import */
 import { ReporterMock } from "../../../__mocks__";
 import { createBrowserSystem } from "../../../environment";
-import { extractImportedStyles } from "./extract-custom-props";
 import {
+    extractImportedStyles,
     customPropertyNameCompareFn,
     extractCssPropertiesFromStyleSheet,
     filterAndSortCssProperties,
@@ -48,17 +49,13 @@ describe("filterAndSortCssProperties", () => {
         expect(actual).toStrictEqual(["--qs-alert__font-color--active"]);
     });
     it("sorts style names alphabetical", () => {
-        const actual = filterAndSortCssProperties("qs-alert", [
-            "--qs-alert__color",
-            "--qs-alert__border",
-            "--qs-alert__font-size",
-        ]);
+        const actual = filterAndSortCssProperties("qs-alert", ["--qs-alert__color", "--qs-alert__border", "--qs-alert__font-size"]);
         expect(actual).toStrictEqual(["--qs-alert__border", "--qs-alert__color", "--qs-alert__font-size"]);
     });
 });
 
 describe("extractImportedStyles", () => {
-    it("extracts empty string for declaration without content ", () => {
+    it("extracts empty string for declaration without content", () => {
         const input = '--PRE--importedStyles() { return ""; }--POST--';
         const actual = extractImportedStyles(input, "qs-pattern", "pattern.js", reporter);
         expect(actual).toStrictEqual("");

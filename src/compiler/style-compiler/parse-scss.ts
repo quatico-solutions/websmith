@@ -13,7 +13,6 @@
  * with Quatico.
  */
 // Allow for changes to AST nodes
-// tslint:disable-next-line
 Object.freeze = (obj: any) => obj;
 import { Node, parse, stringify } from "scss-parser";
 
@@ -180,10 +179,7 @@ class StyleVisitorAdaptor {
                         break;
                     case "pseudo_class":
                     case "pseudo_element":
-                        if (
-                            this.shouldVisit(cur) &&
-                            (!this.vis.visitPseudoElement || this.vis.visitPseudoElement(cur))
-                        ) {
+                        if (this.shouldVisit(cur) && (!this.vis.visitPseudoElement || this.vis.visitPseudoElement(cur))) {
                             cur = this.visitNode(cur);
                         }
                         break;

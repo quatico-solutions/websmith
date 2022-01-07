@@ -12,8 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: no-console
-import * as ts from "typescript";
+import ts from "typescript";
 import { messageToString, Reporter } from "../model";
 
 export class DefaultReporter implements Reporter {
@@ -33,9 +32,7 @@ export class DefaultReporter implements Reporter {
         const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, this.formatHost.getNewLine());
         if (typeof diagnostic.file?.getLineAndCharacterOfPosition === "function" && diagnostic.start) {
             const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
-            this.logProblem(
-                `${levelOf(diagnostic)}: ${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`
-            );
+            this.logProblem(`${levelOf(diagnostic)}: ${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
         } else {
             this.logProblem(`${levelOf(diagnostic)}: ${diagnostic.code ? diagnostic.code + ": " : ""}${message}`);
         }
@@ -45,12 +42,13 @@ export class DefaultReporter implements Reporter {
      * Prints a diagnostic every time the watch status changes, i.e., mainly
      * messages like "Starting compilation" or "Compilation completed".
      */
-    public reportWatchStatus(diagnostic: ts.Diagnostic, newLine: string = ""): void {
+    public reportWatchStatus(diagnostic: ts.Diagnostic, newLine = ""): void {
         // console.info(ts.formatDiagnostic(diagnostic, this.formatHost));
         process.stdout.write(`${messageToString(diagnostic.messageText)}${newLine}`);
     }
 
     protected logProblem(message?: any): void {
+        // eslint-disable-next-line no-console
         console.error(message);
     }
 }
@@ -62,5 +60,4 @@ const levelOf = (diagnostic: ts.Diagnostic): string => {
     return ts.DiagnosticCategory[diagnostic.category];
 };
 
-const isSystem = (host: ts.System | ts.FormatDiagnosticsHost): host is ts.System =>
-    (host as ts.System).write !== undefined;
+const isSystem = (host: ts.System | ts.FormatDiagnosticsHost): host is ts.System => (host as ts.System).write !== undefined;

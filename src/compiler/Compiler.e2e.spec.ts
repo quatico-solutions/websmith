@@ -1,4 +1,4 @@
-// tslint:disable: object-literal-sort-keys
+/* eslint-disable jest/no-mocks-import */
 import ts from "typescript";
 import { ReporterMock } from "../__mocks__";
 import { createBrowserSystem } from "../environment";

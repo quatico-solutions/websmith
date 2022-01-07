@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import * as sass from "sass";
-import * as ts from "typescript";
+import ts from "typescript";
 import { getBaseName, isScriptFile } from "../../elements";
 import { ErrorMessage, InfoMessage, Reporter, StyleTransformer, Transformer } from "../../model";
 import { CustomStyleTransformers } from "../addon-registry";
@@ -27,10 +27,7 @@ export interface StyleCompilerOptions {
     system: ts.System;
 }
 
-export const createStyleCompiler = (
-    options: StyleCompilerOptions,
-    transformers: CustomStyleTransformers
-): Transformer => {
+export const createStyleCompiler = (options: StyleCompilerOptions, transformers: CustomStyleTransformers): Transformer => {
     const { sassOptions, reporter, system } = options;
 
     const compileSass = createSass(sassOptions ?? {}, reporter);

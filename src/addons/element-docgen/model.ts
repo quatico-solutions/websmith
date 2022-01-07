@@ -12,7 +12,6 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable:no-empty-interface
 
 interface Value {
     name: string;
@@ -56,16 +55,16 @@ interface Property extends Member {
     default?: string;
 }
 
-interface Slot extends Member {}
+type Slot = Member;
 
-interface Event extends Member {}
+type Event = Member;
 
 export interface CssProperty extends Member {
     // Suggested fields:
     default?: string;
 }
 
-interface CssPart extends Member {}
+type CssPart = Member;
 
 export interface Tag {
     name: string;

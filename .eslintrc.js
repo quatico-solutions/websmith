@@ -26,8 +26,12 @@ module.exports = {
         node: true,
     },
     rules: {
-        // Place to specify ESLint rules. Can be used to overwrite rules specified from the extended configs
-        // e.g. "@typescript-eslint/explicit-function-return-type": "off",
+        // Override default rules due to significant performance impact
+        "import/namespace": "off",
+        "import/no-named-as-default": "off",
+        "import/default": "off",
+        "import/no-named-as-default-member": "off",
+        // "import/no-cycle": ["error", { maxDepth: Infinity }], // Enable this rule to detect dependency cycles,
         "@typescript-eslint/ban-ts-comment": "off",
         "@typescript-eslint/explicit-module-boundary-types": "off",
         "@typescript-eslint/no-var-requires": "warn",

@@ -14,7 +14,7 @@
  */
 import merge from "lodash/merge";
 import * as path from "path";
-import * as ts from "typescript";
+import ts from "typescript";
 import { DefaultReporter } from "../compiler";
 import { createVersionedFile } from "../environment";
 import { Reporter, VersionedFile } from "../model";

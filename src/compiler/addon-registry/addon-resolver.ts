@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as ts from "typescript";
+import ts from "typescript";
 import { CompilerAddon, Reporter, WarnMessage } from "../../model";
 
 export const ADDONS_FOLDER_NAME = `/addons`;
@@ -22,9 +22,7 @@ export type Resolver = (names: string[]) => CompilerAddon[];
 /**
  * Resolver to lookup addon names in "addons" folder, and return found addons
  */
-export const createResolver = (reporter: Reporter, system: ts.System): Resolver => (
-    names: string[]
-): CompilerAddon[] => {
+export const createResolver = (reporter: Reporter, system: ts.System): Resolver => (names: string[]): CompilerAddon[] => {
     return names.reduce((res: CompilerAddon[], name: string) => {
         const addon = resolveName(name, `${ADDONS_FOLDER_NAME}/${name}`, system);
         if (addon) {

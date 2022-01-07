@@ -12,11 +12,10 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: object-literal-sort-keys
 // @ts-ignore no type declarations
 import createHashFn from "create-hash";
 import * as path from "path";
-import * as ts from "typescript";
+import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
 
 export const createBrowserSystem = (files?: { [name: string]: string }): ts.System => {
@@ -43,9 +42,7 @@ export const createBrowserSystem = (files?: { [name: string]: string }): ts.Syst
                 directory = directory.slice(0, -1);
             }
 
-            return Object.keys(knownFiles).some(
-                cur => cur.startsWith(directory) && cur.replace(directory, "").includes("/")
-            );
+            return Object.keys(knownFiles).some(cur => cur.startsWith(directory) && cur.replace(directory, "").includes("/"));
         },
         exit: (exitCode?: number): void => {
             if (exitCode && exitCode > 0) {
@@ -74,12 +71,10 @@ export const createBrowserSystem = (files?: { [name: string]: string }): ts.Syst
             if (filePath === "") {
                 return "/";
             }
-            return path.extname(filePath) !== "" || (path.isAbsolute(filePath) && !filePath.startsWith("."))
-                ? filePath
-                : path.join("/", filePath);
+            return path.extname(filePath) !== "" || (path.isAbsolute(filePath) && !filePath.startsWith(".")) ? filePath : path.join("/", filePath);
         },
         resolvePath: (filePath: string): string => absolutePath(filePath),
-        // tslint:disable-next-line: no-console
+        // eslint-disable-next-line no-console
         write: (str: string): void => console.warn(`write() not supported. Did not write: "${str}".`),
         writeFile: (filePath: string, contents: string): void => {
             if (filePath && filePath.length > 0) {

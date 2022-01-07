@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as ts from "typescript";
+import ts from "typescript";
 import { isStyleFileName } from "../../elements";
 
 const STYLES_METHOD_NAME = "importedStyles";
@@ -33,9 +33,7 @@ export const inlineStyles = (file: ts.SourceFile, compiledStyles: string[]) => {
 
     // Update and emit source file with new class declaration
     if (updatedClassDecl) {
-        const statements = file.statements
-            .filter(stmt => !isStyleImport(stmt) && stmt !== classDecl)
-            .concat(updatedClassDecl);
+        const statements = file.statements.filter(stmt => !isStyleImport(stmt) && stmt !== classDecl).concat(updatedClassDecl);
 
         file = ts.updateSourceFileNode(
             file,
@@ -50,10 +48,7 @@ export const inlineStyles = (file: ts.SourceFile, compiledStyles: string[]) => {
     return file;
 };
 
-export const getOrCreateStylesMethod = (
-    classDecl: ts.ClassDeclaration | undefined,
-    styles: string[]
-): ts.MethodDeclaration => {
+export const getOrCreateStylesMethod = (classDecl: ts.ClassDeclaration | undefined, styles: string[]): ts.MethodDeclaration => {
     let classMembers = Array.from(classDecl?.members ?? []);
     let result: ts.MethodDeclaration;
 

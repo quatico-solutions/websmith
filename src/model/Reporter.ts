@@ -12,23 +12,14 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: max-classes-per-file
-import * as ts from "typescript";
+import ts from "typescript";
 
 export interface Reporter {
     reportDiagnostic(diagnostic: ts.Diagnostic): void;
-    reportWatchStatus(
-        diagnostic: ts.Diagnostic,
-        newLine?: string,
-        options?: ts.CompilerOptions,
-        errorCount?: number
-    ): void;
+    reportWatchStatus(diagnostic: ts.Diagnostic, newLine?: string, options?: ts.CompilerOptions, errorCount?: number): void;
 }
 
-export type MessageConstructor = new (
-    message: string | ts.DiagnosticMessageChain,
-    source?: ts.SourceFile | string
-) => ts.Diagnostic;
+export type MessageConstructor = new (message: string | ts.DiagnosticMessageChain, source?: ts.SourceFile | string) => ts.Diagnostic;
 
 export abstract class DiagnosticMessage implements MessageConstructor, ts.Diagnostic {
     public category: ts.DiagnosticCategory;
@@ -92,7 +83,7 @@ export class InfoMessage extends DiagnosticMessage {
     }
 }
 
-export const aggregateMessages = (message: string | ts.DiagnosticMessageChain, result: string = ""): string => {
+export const aggregateMessages = (message: string | ts.DiagnosticMessageChain, result = ""): string => {
     result = result.concat(messageToString(message));
     if (isMessage(message) && message.next) {
         message.next.forEach(cur => aggregateMessages(cur, result));

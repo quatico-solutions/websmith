@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as ts from "typescript";
+import ts from "typescript";
 import { CompilerOptions } from "./CompilerOptions";
 import { Generator, GeneratorKind } from "./Generator";
 import { Processor, ProcessorKind } from "./Processor";

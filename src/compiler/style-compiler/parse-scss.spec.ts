@@ -12,7 +12,6 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: max-line-length
 import { Node, parseStyles, visitNode, writeNode } from "./parse-scss";
 
 describe("parseStyles", () => {
@@ -20,14 +19,14 @@ describe("parseStyles", () => {
         const actual = parseStyles(".one { display: none; }");
 
         expect(actual.type).toBe("stylesheet");
-        expect(actual.value.length).toBe(1);
+        expect(actual.value).toHaveLength(1);
     });
 
     it("returns node of type 'stylesheet' with empty string", () => {
         const actual = parseStyles("");
 
         expect(actual.type).toBe("stylesheet");
-        expect(actual.value.length).toBe(0);
+        expect(actual.value).toHaveLength(0);
     });
 
     it("returns node of type 'stylesheet' with invalid CSS string", () => {

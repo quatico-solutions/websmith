@@ -12,6 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+/* eslint-disable jest/no-mocks-import */
 import { ReporterMock } from "../../__mocks__";
 import { createBrowserSystem } from "../../environment";
 import { AddonRegistry } from "./AddonRegistry";

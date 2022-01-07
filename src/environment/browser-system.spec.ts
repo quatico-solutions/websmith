@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: object-literal-sort-keys
+/* eslint-disable no-console */
 import { createBrowserSystem } from "./browser-system";
 
 describe("createDirectory", () => {
@@ -41,18 +41,15 @@ describe("createDirectory", () => {
 });
 
 describe("write", () => {
-    // tslint:disable-next-line: no-console
     const orgWarnLog = console.warn;
     let targetLog: any;
 
     beforeEach(() => {
         targetLog = jest.fn();
-        // tslint:disable-next-line: no-console
         console.warn = targetLog;
     });
 
     afterAll(() => {
-        // tslint:disable-next-line: no-console
         console.warn = orgWarnLog;
     });
 
@@ -69,19 +66,19 @@ describe("exit", () => {
     it("returns w/o any exitCode", () => {
         const testObj = createBrowserSystem({});
 
-        expect(() => testObj.exit()).not.toThrowError();
+        expect(() => testObj.exit()).not.toThrow();
     });
 
     it("returns with exitCode '0'", () => {
         const testObj = createBrowserSystem({});
 
-        expect(() => testObj.exit(0)).not.toThrowError();
+        expect(() => testObj.exit(0)).not.toThrow();
     });
 
     it("throws error with exitCode greater '0'", () => {
         const testObj = createBrowserSystem({});
 
-        expect(() => testObj.exit(1)).toThrowError('websmith exited with code "1".');
+        expect(() => testObj.exit(1)).toThrow('websmith exited with code "1".');
     });
 });
 
@@ -350,11 +347,7 @@ describe("readDirectory", () => {
             "/expected/three.js": "",
         });
 
-        expect(testObj.readDirectory("/expected")).toEqual([
-            "/expected/one.js",
-            "/expected/two.js",
-            "/expected/three.js",
-        ]);
+        expect(testObj.readDirectory("/expected")).toEqual(["/expected/one.js", "/expected/two.js", "/expected/three.js"]);
     });
 
     it("returns file path w/ nested dir names", () => {
@@ -364,11 +357,7 @@ describe("readDirectory", () => {
             "/expected/three/one.js": "",
         });
 
-        expect(testObj.readDirectory("/expected")).toEqual([
-            "/expected/one.js",
-            "/expected/two/one.js",
-            "/expected/three/one.js",
-        ]);
+        expect(testObj.readDirectory("/expected")).toEqual(["/expected/one.js", "/expected/two/one.js", "/expected/three/one.js"]);
     });
 });
 

@@ -12,16 +12,9 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: object-literal-sort-keys
-import * as ts from "typescript";
+import ts from "typescript";
 import { createBrowserSystem, getVersionedFile } from "../../environment";
-import {
-    findStylesMethod,
-    getFirstClassDeclaration,
-    getOrCreateStylesMethod,
-    inlineStyles,
-    isStyleImport,
-} from "./inline-styles";
+import { findStylesMethod, getFirstClassDeclaration, getOrCreateStylesMethod, inlineStyles, isStyleImport } from "./inline-styles";
 
 const testSystem = createBrowserSystem({
     "one.ts": `class One {
@@ -37,9 +30,7 @@ const testSystem = createBrowserSystem({
 describe("findStylesMethod,", () => {
     it("returns style method with locally defined style method", () => {
         const file = getVersionedFile("one.ts", testSystem)!;
-        const target = file.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const target = file.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
 
         const actual = findStylesMethod(target)!;
 
@@ -48,9 +39,7 @@ describe("findStylesMethod,", () => {
 
     it("returns undefined with non-existing importedStyles method", () => {
         const file = getVersionedFile("two.ts", testSystem)!;
-        const target = file.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const target = file.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
 
         const actual = findStylesMethod(target);
 
@@ -79,9 +68,7 @@ describe("getFirstClassDeclaration", () => {
 describe("getOrCreateStylesMethod", () => {
     it("returns method declaration with non-existing importedStyle method", () => {
         const file = getVersionedFile("two.ts", testSystem)!;
-        const target = file.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const target = file.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
 
         const actual = getOrCreateStylesMethod(target, ["whatever"]);
 
@@ -90,9 +77,7 @@ describe("getOrCreateStylesMethod", () => {
 
     it("returns method declaration with existing importedStyle method", () => {
         const file = getVersionedFile("one.ts", testSystem)!;
-        const target = file.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const target = file.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
 
         const actual = getOrCreateStylesMethod(target, ["whatever"]);
 
@@ -101,9 +86,7 @@ describe("getOrCreateStylesMethod", () => {
 
     it("returns styles in method body with existing importedStyle method", () => {
         const file = getVersionedFile("one.ts", testSystem)!;
-        const target = file.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const target = file.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
 
         const actual = getOrCreateStylesMethod(target, ["expected"]).body?.statements[0] as any;
 
@@ -118,9 +101,7 @@ describe("inlineStyles", () => {
 
         const result = inlineStyles(target, compiledStyles);
 
-        const actual = result.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const actual = result.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
         expect(actual.name).toEqual(expect.objectContaining({ escapedText: "One" }));
     });
 
@@ -130,9 +111,7 @@ describe("inlineStyles", () => {
 
         const result = inlineStyles(target, compiledStyles);
 
-        const classDecl = result.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const classDecl = result.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
         const actual = findStylesMethod(classDecl)?.body?.statements[0] as any;
 
         expect(actual.expression).toEqual(expect.objectContaining({ text: "" }));
@@ -144,9 +123,7 @@ describe("inlineStyles", () => {
 
         const result = inlineStyles(target, compiledStyles);
 
-        const classDecl = result.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const classDecl = result.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
         const actual = findStylesMethod(classDecl)?.body?.statements[0] as any;
 
         expect(actual.expression).toEqual(expect.objectContaining({ text: "expected" }));

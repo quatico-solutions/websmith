@@ -12,9 +12,9 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as ts from "typescript";
+import ts from "typescript";
 
-export const findConfigFile = (searchPath: string = "./", system: ts.System = ts.sys): string | never => {
+export const findConfigFile = (searchPath = "./", system: ts.System = ts.sys): string | never => {
     const configPath = ts.findConfigFile(searchPath, system.fileExists, "tsconfig.json");
     if (!configPath) {
         throw new Error("Could not find a valid 'tsconfig.json'.");
@@ -22,7 +22,7 @@ export const findConfigFile = (searchPath: string = "./", system: ts.System = ts
     return configPath;
 };
 
-export const findSassConfig = (filePath: string = "sass.config.js", system: ts.System = ts.sys): string | never => {
+export const findSassConfig = (filePath = "sass.config.js", system: ts.System = ts.sys): string | never => {
     const configPath = system.resolvePath(filePath);
     if (!system.fileExists(configPath)) {
         throw new Error("Could not find a valid 'sass.config.js'.");

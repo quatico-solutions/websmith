@@ -31,12 +31,12 @@
 // });
 
 describe.skip("compile", () => {
-    it.skip("should ", () => {
+    it.skip("should", () => {
         // @ts-ignore
         process.exit = jest.fn();
 
         // compile([]);
 
-        expect(process.exit).toBeCalledWith("0");
+        expect(process.exit).toHaveBeenCalledWith("0");
     });
 });

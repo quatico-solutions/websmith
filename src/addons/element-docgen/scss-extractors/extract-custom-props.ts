@@ -57,18 +57,12 @@ export const extractStyleSheetFromJsFile = (tagName: string, path: string, repor
     return extractImportedStyles(script, tagName, filePath, reporter);
 };
 
-export const extractImportedStyles = (
-    script: string,
-    tagName: string,
-    filePath: string,
-    reporter: Reporter
-): string | undefined => {
+export const extractImportedStyles = (script: string, tagName: string, filePath: string, reporter: Reporter): string | undefined => {
     const START_TAG = 'importedStyles() { return "';
     const END_TAG = '"; }';
     const stylesStart = script.indexOf(START_TAG);
     const stylesEnd = stylesStart >= 0 ? script.indexOf(END_TAG, stylesStart) : -1;
     if (stylesEnd >= 0) {
-        // tslint:disable-next-line:no-eval
         return eval(`"${script.substring(stylesStart + START_TAG.length, stylesEnd)}"`);
     }
     reporter.reportDiagnostic(new ErrorMessage(`${tagName}: Error '${filePath}' does not contain styles.\n`));

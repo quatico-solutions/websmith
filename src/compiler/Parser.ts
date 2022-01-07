@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as ts from "typescript";
+import ts from "typescript";
 import { isProjectFileName, isScriptFileName, isStyleFileName, VALID_STYLE_FILES } from "../elements";
 import { createCompileHost } from "../environment";
 
@@ -60,12 +60,7 @@ export const parsePaths = (options: ParserOptions, filePaths?: string[]): string
     const targets =
         filePaths && filePaths.length > 0
             ? filePaths
-            : Array.from(
-                  new Set([
-                      ...globalFileNames,
-                      ...system.readDirectory(system.getCurrentDirectory(), VALID_STYLE_FILES),
-                  ])
-              );
+            : Array.from(new Set([...globalFileNames, ...system.readDirectory(system.getCurrentDirectory(), VALID_STYLE_FILES)]));
 
     return targets.filter(cur => isProjectFileName(cur));
 };

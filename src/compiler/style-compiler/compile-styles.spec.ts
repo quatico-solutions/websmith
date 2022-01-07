@@ -12,8 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: object-literal-sort-keys
-import * as ts from "typescript";
+/* eslint-disable jest/no-mocks-import */
+import ts from "typescript";
 import { ReporterMock } from "../../__mocks__";
 import { createBrowserSystem, getVersionedFile } from "../../environment";
 import { createStyleCompiler, resolveStyleImports, tryTransform } from "./compile-styles";
@@ -186,9 +186,7 @@ describe("createStyleCompiler", () => {
         const compileStyles = createStyleCompiler({ reporter, system: testSystem }, {});
 
         const result = compileStyles({} as any)(getVersionedFile("two.ts", testSystem)!);
-        const classDecl = result.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const classDecl = result.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
         const actual = findStylesMethod(classDecl)!.body!.statements[0] as any;
 
         expect(actual.expression.text).toBe(
@@ -211,9 +209,7 @@ display: none;
 
         const result = compileStyles({} as any)(getVersionedFile("four.ts", testSystem)!);
 
-        const classDecl = result.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const classDecl = result.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
         const actual = findStylesMethod(classDecl);
 
         expect(actual).toBeUndefined();
@@ -224,9 +220,7 @@ display: none;
 
         const result = compileStyles({} as any)(getVersionedFile("five.ts", testSystem)!);
 
-        const classDecl = result.statements?.filter(
-            cur => cur.kind === ts.SyntaxKind.ClassDeclaration
-        )[0] as ts.ClassDeclaration;
+        const classDecl = result.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
         const actual = findStylesMethod(classDecl);
 
         expect(actual).toBeUndefined();

@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as ts from "typescript";
+import ts from "typescript";
 import { createSystem, createWatchHost, injectTransformers } from "../environment";
 import { CompilerAddon, CompilerOptions, fromGenerator, InfoMessage, Reporter, Transformer } from "../model";
 import { AddonRegistry, createResolver, CustomGenerators } from "./addon-registry";
@@ -66,10 +66,8 @@ export class Compiler {
         const { program, stylePaths } = this.parse(fileNames);
 
         // FIXME: Add style processors here to generate docs
-        stylePaths
-            .filter(cur => cur.endsWith(".scss"))
-            // tslint:disable-next-line: no-console
-            .forEach(cur => console.log(`Style: ${cur}`));
+        // eslint-disable-next-line no-console
+        stylePaths.filter(cur => cur.endsWith(".scss")).forEach(cur => console.log(`Style: ${cur}`));
 
         const result = this.emit(program);
         return this.report(program, result);
@@ -89,9 +87,7 @@ export class Compiler {
             addon.activate(this.addons);
             addonNames.push(addon.name);
         });
-        this.reporter.reportWatchStatus(
-            new InfoMessage(`  + Addons: [${addonNames.map(cur => `"${cur}"`).join(", ")}]\n\n\n`)
-        );
+        this.reporter.reportWatchStatus(new InfoMessage(`  + Addons: [${addonNames.map(cur => `"${cur}"`).join(", ")}]\n\n\n`));
         return this;
     }
 

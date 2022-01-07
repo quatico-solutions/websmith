@@ -1,6 +1,6 @@
-// tslint:disable: object-literal-sort-keys
+/* eslint-disable jest/no-mocks-import */
 import * as path from "path";
-import * as ts from "typescript";
+import ts from "typescript";
 import { ReporterMock } from "../__mocks__";
 import { createConfig } from "../compiler";
 import { createBrowserSystem } from "./browser-system";
@@ -234,7 +234,7 @@ describe("createWatchHost", () => {
 
     describe("createHash", () => {
         it("returns same hash code", () => {
-            expect(target.createHash!("Foobar").length).toBe(64);
+            expect(target.createHash!("Foobar")).toHaveLength(64);
         });
     });
 

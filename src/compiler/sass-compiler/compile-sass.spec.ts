@@ -12,6 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+/* eslint-disable jest/no-mocks-import */
 import { ReporterMock } from "../../__mocks__";
 import { createBrowserSystem } from "../../environment";
 import { createSass } from "./compile-sass";
@@ -25,7 +26,7 @@ describe("createSass", () => {
 
         compileSass("invalid css");
 
-        expect(reporter.message).toEqual(`Error: expected \"{\".
+        expect(reporter.message).toEqual(`Error: expected "{".
   ╷
 1 │ invalid css
   │            ^

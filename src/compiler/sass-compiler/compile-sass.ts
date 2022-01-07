@@ -23,13 +23,14 @@ export const createSass = (options: sass.Options, reporter: Reporter) => (styles
         const compiled = sass.renderSync({ ...defaultOptions, ...options, data: styles });
         return removeComments(compiled.css.toString());
     } catch (err) {
-        reporter.reportDiagnostic(new ErrorMessage(err.message));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        reporter.reportDiagnostic(new ErrorMessage((err as any).message));
         return "";
     }
 };
 
 export const removeComments = (source: string): string =>
     source
-        .replace(/\/\*[^*]*\*+([^\/][^*]*\*+)*\//g, "")
+        .replace(/\/\*[^*]*\*+([^/][^*]*\*+)*\//g, "")
         .replace(/:var/g, ": var")
         .replace(/@charset+.*;[\n]+/, "");

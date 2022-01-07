@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import * as sass from "sass";
-import * as ts from "typescript";
+import ts from "typescript";
 import { Reporter } from "./Reporter";
 
 export interface CompilerOptions {

@@ -12,7 +12,6 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-// tslint:disable: object-literal-sort-keys
 import { createBrowserSystem } from "../environment";
 import { createConfig } from "./Config";
 import { createParser, parsePaths } from "./Parser";
@@ -134,13 +133,7 @@ describe("parsePaths", () => {
     });
 
     it("returns path with direct script and style paths", () => {
-        const actual = parsePaths({ compilerOptions, system }, [
-            "/one.js",
-            "/two.ts",
-            "/three.tsx",
-            "/four.css",
-            "/five.scss",
-        ]);
+        const actual = parsePaths({ compilerOptions, system }, ["/one.js", "/two.ts", "/three.tsx", "/four.css", "/five.scss"]);
 
         expect(actual).toEqual(["/one.js", "/two.ts", "/three.tsx", "/four.css", "/five.scss"]);
     });
@@ -152,15 +145,7 @@ describe("parsePaths", () => {
             filePaths: ["src/one.js", "src/two.ts", "src/three.tsx", "src/_four.css", "src/_five.scss"],
         });
 
-        expect(actual).toEqual([
-            "src/one.js",
-            "src/two.ts",
-            "src/three.tsx",
-            "src/_four.css",
-            "src/_five.scss",
-            "src/six.scss",
-            "src/seven.scss",
-        ]);
+        expect(actual).toEqual(["src/one.js", "src/two.ts", "src/three.tsx", "src/_four.css", "src/_five.scss", "src/six.scss", "src/seven.scss"]);
     });
 
     it("returns paths with global fileNames", () => {

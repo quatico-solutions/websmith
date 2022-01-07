@@ -29,7 +29,7 @@ describe("findConfigFile", () => {
     it("throws error with no existing config file", () => {
         const target = createBrowserSystem({});
 
-        expect(() => findConfigFile("./", target)).toThrowError("Could not find a valid 'tsconfig.json'.");
+        expect(() => findConfigFile("./", target)).toThrow("Could not find a valid 'tsconfig.json'.");
     });
 });
 
@@ -53,6 +53,6 @@ describe("findSassConfig", () => {
     it("throws error with no existing config file", () => {
         const target = createBrowserSystem({});
 
-        expect(() => findSassConfig("sass.config.js", target)).toThrowError("Could not find a valid 'sass.config.js'.");
+        expect(() => findSassConfig("sass.config.js", target)).toThrow("Could not find a valid 'sass.config.js'.");
     });
 });

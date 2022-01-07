@@ -12,6 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+/* eslint-disable jest/no-mocks-import */
 import path from "path";
 import { ReporterMock } from "../../__mocks__";
 import { createBrowserSystem } from "../../environment";
@@ -19,14 +20,9 @@ import { CompilerContext } from "../../model";
 import { createResolver } from "./addon-resolver";
 
 beforeAll(() => {
-    jest.mock(
-        path.normalize(`${__dirname}/../addons/one/addon`),
-        // tslint:disable-next-line: no-empty
-        () => ({ activate: (context: CompilerContext) => {} }),
-        {
-            virtual: true,
-        }
-    );
+    jest.mock(path.normalize(`${__dirname}/../addons/one/addon`), () => ({ activate: (context: CompilerContext) => undefined }), {
+        virtual: true,
+    });
 
     jest.mock(
         path.normalize(`${__dirname}/../addons/DESNOTEXIST/addon`),
@@ -48,7 +44,7 @@ describe("createResolver", () => {
 
         expect(actual[0].activate).toEqual(expect.any(Function));
         expect(actual[0].name).toBe("one");
-        expect(actual.length).toBe(1);
+        expect(actual).toHaveLength(1);
     });
 
     it("returns empty array for non-existing addon name", () => {
@@ -66,7 +62,7 @@ describe("createResolver", () => {
 
         expect(actual[0].activate).toEqual(expect.any(Function));
         expect(actual[0].name).toBe("one");
-        expect(actual.length).toBe(1);
+        expect(actual).toHaveLength(1);
     });
 
     it("reports use of unknown addon names", () => {

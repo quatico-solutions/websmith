@@ -51,7 +51,7 @@ export const parseCustomPropertyNames = (styles: string): string[] => {
     return uniq(results);
 };
 
-export const parseNames = (node: Node, results: string[], continueVisit: boolean = false): boolean => {
+export const parseNames = (node: Node, results: string[], continueVisit = false): boolean => {
     parseNodeValue(node, results);
     return continueVisit;
 };
