@@ -157,7 +157,7 @@ export class Compiler {
                         code: 0,
                         file: undefined,
                         length: 0,
-                        messageText: (err as any).message,
+                        messageText: err.message,
                         start: 0,
                     },
                 ],

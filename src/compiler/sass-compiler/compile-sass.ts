@@ -12,21 +12,22 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as sass from "sass";
+import sass from "sass";
 import { ErrorMessage, Reporter } from "../../model";
 import { defaultOptions } from "./defaults";
 
 export const CONFIG_FILE_NAME_SASS = "sass.config.js";
 
-export const createSass = (options: sass.Options, reporter: Reporter) => (styles?: string): string => {
+export const createSass = (options: sass.Options<"sync">, reporter: Reporter) => (styles?: string): string => {
     try {
-        const compiled = sass.renderSync({ ...defaultOptions, ...options, data: styles });
-        return removeComments(compiled.css.toString());
+        if (styles) {
+            const compiled = sass.compileString(styles, { ...defaultOptions, ...options });
+            return removeComments(compiled.css.toString());
+        }
     } catch (err) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        reporter.reportDiagnostic(new ErrorMessage((err as any).message));
-        return "";
+        reporter.reportDiagnostic(new ErrorMessage(err.message));
     }
+    return "";
 };
 
 export const removeComments = (source: string): string =>

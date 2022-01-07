@@ -1,5 +1,5 @@
 /* eslint-disable jest/no-mocks-import */
-import * as path from "path";
+import path from "path";
 import ts from "typescript";
 import { ReporterMock } from "../__mocks__";
 import { createConfig } from "../compiler";

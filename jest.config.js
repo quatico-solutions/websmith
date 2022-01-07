@@ -23,7 +23,6 @@ module.exports = {
     },
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
     preset: "ts-jest",
-    testEnvironment: "jest-environment-jsdom-sixteen",
     setupFilesAfterEnv: ["./src/__mocks__/jest.setup.ts"],
     testRegex: "src/.*(test|spec)\\.(tsx?)$",
     testURL: "http://localhost/",

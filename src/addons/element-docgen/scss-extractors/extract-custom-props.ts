@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as fs from "fs";
+import fs from "fs";
 import { ErrorMessage, Reporter } from "../../../model";
 import { parseCustomPropertyNames } from "../scss-parsers/parse-custom-prop-names";
 

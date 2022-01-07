@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as sass from "sass";
+import sass from "sass";
 import ts from "typescript";
 import { Reporter } from "./Reporter";
 
@@ -20,6 +20,6 @@ export interface CompilerOptions {
     configPath: string;
     libFiles?: { [name: string]: string };
     reporter?: Reporter;
-    sassOptions?: sass.Options;
+    sassOptions?: sass.Options<"sync">;
     system?: ts.System;
 }

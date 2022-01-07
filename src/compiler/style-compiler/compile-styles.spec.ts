@@ -191,7 +191,7 @@ describe("createStyleCompiler", () => {
 
         expect(actual.expression.text).toBe(
             `.target {
-display: none;
+  display: none;
 }`
         );
     });

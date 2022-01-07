@@ -14,7 +14,7 @@
  */
 import ts from "typescript";
 import { VersionedFile } from "../model";
-import * as service from "./compile-service";
+import { createCompileHost } from "./compile-service";
 
 /**
  * The language service host “abstracts all interactions between the language service
@@ -86,4 +86,4 @@ export const createLanguageService = (
     options: ts.CompilerOptions,
     system: ts.System,
     transformers?: ts.CustomTransformers
-) => ts.createLanguageService(createLanguageServiceHost(sourceFiles, options, service.createCompileHost(options, system), system, transformers));
+) => ts.createLanguageService(createLanguageServiceHost(sourceFiles, options, createCompileHost(options, system), system, transformers));

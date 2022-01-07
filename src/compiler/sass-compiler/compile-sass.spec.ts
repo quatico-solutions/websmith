@@ -31,7 +31,7 @@ describe("createSass", () => {
 1 │ invalid css
   │            ^
   ╵
-  stdin 1:12  root stylesheet\n`);
+  - 1:12  root stylesheet\n`);
     });
 
     it("uses default config with invalid config", () => {

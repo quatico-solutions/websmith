@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import merge from "lodash/merge";
-import * as path from "path";
+import path from "path";
 import ts from "typescript";
 import { DefaultReporter } from "../compiler";
 import { createVersionedFile } from "../environment";

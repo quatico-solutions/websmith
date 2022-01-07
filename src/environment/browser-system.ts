@@ -14,7 +14,7 @@
  */
 // @ts-ignore no type declarations
 import createHashFn from "create-hash";
-import * as path from "path";
+import path from "path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
 

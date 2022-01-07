@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as sass from "sass";
+import sass from "sass";
 import ts from "typescript";
 import { getBaseName, isScriptFile } from "../../elements";
 import { ErrorMessage, InfoMessage, Reporter, StyleTransformer, Transformer } from "../../model";
@@ -22,7 +22,7 @@ import { inlineStyles, isStyleImport } from "./inline-styles";
 import { parseStyles, visitNode, writeNode } from "./parse-scss";
 
 export interface StyleCompilerOptions {
-    sassOptions?: sass.Options;
+    sassOptions?: sass.Options<"sync">;
     reporter: Reporter;
     system: ts.System;
 }

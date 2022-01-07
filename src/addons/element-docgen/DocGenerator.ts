@@ -44,12 +44,12 @@ export class DocGenerator implements Generator {
 
     public process(program: ts.Program): ts.Visitor {
         const options: AnalyzerOptions = {
-            program,
+            program: program as any,
             verbose: this.config.verbose,
         };
         return node => {
             if (isScriptFile(node)) {
-                this.results.push(analyzeSourceFile(node, options));
+                this.results.push(analyzeSourceFile(node as any, options));
             }
             return node;
         };
@@ -61,7 +61,7 @@ export class DocGenerator implements Generator {
                 inlineTypes: this.config.inlineTypes,
                 visibility: this.config.visibility,
             };
-            const output = transformAnalyzerResult("json", this.results, program, config);
+            const output = transformAnalyzerResult("json", this.results, program as any, config);
             const data = JSON.parse(output) as Element;
 
             extractCustomPropertyDocs(data, this.config.reporter);

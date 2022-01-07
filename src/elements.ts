@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import * as path from "path";
+import path from "path";
 import ts from "typescript";
 
 export const ELEMENT_DECORATOR = /^@customElement\(.*?\)/;
