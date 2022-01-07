@@ -91,7 +91,7 @@ export const createLanguageService = (
         createLanguageServiceHost(
             sourceFiles,
             options,
-            service.createCompileHost(sourceFiles, system),
+            service.createCompileHost(options, system),
             system,
             transformers
         )

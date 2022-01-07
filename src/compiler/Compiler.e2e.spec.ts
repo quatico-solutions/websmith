@@ -1,4 +1,5 @@
 // tslint:disable: object-literal-sort-keys
+import ts from "typescript";
 import { ReporterMock } from "../__mocks__";
 import { createBrowserSystem } from "../environment";
 import { Compiler } from "./Compiler";
@@ -7,8 +8,8 @@ describe("end-2-end compile", () => {
     it("should yield compiled file", () => {
         const system = createBrowserSystem({
             "tsconfig.json": JSON.stringify({ compilerOptions: { outDir: "./bin" } }),
-            "src/one.ts": ``,
-            "src/two.ts": ``,
+            "src/one.ts": `whatever`,
+            "src/two.ts": `whatever`,
         });
         const testObj = new Compiler({
             configPath: "tsconfig.json",
@@ -25,14 +26,13 @@ describe("end-2-end compile", () => {
     });
 
     it("should call transformer before emitting file", () => {
-        const target = jest.fn().mockReturnValue({
-            transformSourceFile: (sf: any) => {
-                throw new Error("XXX");
-            },
+        const target = jest.fn().mockImplementation((sf: ts.SourceFile) => {
+            return sf;
         });
+
         const system = createBrowserSystem({
             "tsconfig.json": JSON.stringify({}),
-            "src/one.ts": ``,
+            "src/one.ts": `whatever`,
         });
         const testObj = new Compiler({
             configPath: "tsconfig.json",
@@ -40,9 +40,10 @@ describe("end-2-end compile", () => {
             system,
         });
 
-        testObj.getAddonRegistry().registerTransformer("before", target);
+        testObj.getAddonRegistry().registerTransformer("before", () => target);
         testObj.compile();
 
-        expect(target).toHaveBeenCalled();
+        expect(target).toHaveBeenCalledWith(expect.objectContaining({ fileName: "src/one.ts" }));
+        expect(target).toHaveBeenCalledTimes(1);
     });
 });

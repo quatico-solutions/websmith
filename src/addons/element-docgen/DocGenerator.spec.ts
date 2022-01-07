@@ -45,6 +45,7 @@ const testSystem = createBrowserSystem({
 describe("XXX", () => {
     it.skip("XXX", () => {
         const mockContext = {} as any;
+
         const { file } = setup("one.ts", testSystem);
         const reporter = new ReporterMock(createBrowserSystem({}));
 
@@ -57,8 +58,10 @@ describe("XXX", () => {
 });
 
 const setup = (filePath: string, system: ts.System): { file: ts.SourceFile | undefined; program: ts.Program } => {
+    // @ts-ignore FIXME: Add files to options
     const files = createVersionedFiles(readFiles([filePath], system), tsDefaults);
-    const program = ts.createProgram([filePath], {}, createCompileHost(files, ts.sys));
+    const options: ts.CompilerOptions = { ...tsDefaults, ...{ noEmit: true } };
+    const program = ts.createProgram([filePath], {}, createCompileHost(options, ts.sys));
     const file = program.getSourceFile(filePath);
     return { file, program };
 };
