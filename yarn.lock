@@ -2,6 +2,13 @@
 # yarn lockfile v1
 
 
+"@babel/code-frame@7.12.11":
+  version "7.12.11"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@babel/code-frame/-/code-frame-7.12.11.tgz#f4ad435aa263db935b8f10f2c552d23fb716a63f"
+  integrity sha1-9K1DWqJj25NbjxDyxVLSP7cWpj8=
+  dependencies:
+    "@babel/highlight" "^7.10.4"
+
 "@babel/code-frame@^7.0.0", "@babel/code-frame@^7.12.13":
   version "7.12.13"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@babel/code-frame/-/code-frame-7.12.13.tgz#dcfc826beef65e75c50e21d3837d7d95798dd658"
@@ -141,6 +148,11 @@
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@babel/helper-validator-identifier/-/helper-validator-identifier-7.12.11.tgz#c9a1f021917dcb5ccf0d4e453e399022981fc9ed"
   integrity sha1-yaHwIZF9y1zPDU5FPjmQIpgfye0=
 
+"@babel/helper-validator-identifier@^7.16.7":
+  version "7.16.7"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@babel/helper-validator-identifier/-/helper-validator-identifier-7.16.7.tgz#e8c602438c4a8195751243da9031d1607d247cad"
+  integrity sha1-6MYCQ4xKgZV1EkPakDHRYH0kfK0=
+
 "@babel/helper-validator-option@^7.12.17":
   version "7.12.17"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@babel/helper-validator-option/-/helper-validator-option-7.12.17.tgz#d1fbf012e1a79b7eebbfdc6d270baaf8d9eb9831"
@@ -154,6 +166,15 @@
     "@babel/template" "^7.12.13"
     "@babel/traverse" "^7.13.0"
     "@babel/types" "^7.13.0"
+
+"@babel/highlight@^7.10.4":
+  version "7.16.7"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@babel/highlight/-/highlight-7.16.7.tgz#81a01d7d675046f0d96f82450d9d9578bdfd6b0b"
+  integrity sha1-gaAdfWdQRvDZb4JFDZ2VeL39aws=
+  dependencies:
+    "@babel/helper-validator-identifier" "^7.16.7"
+    chalk "^2.0.0"
+    js-tokens "^4.0.0"
 
 "@babel/highlight@^7.12.13":
   version "7.13.8"
@@ -298,6 +319,35 @@
   dependencies:
     exec-sh "^0.3.2"
     minimist "^1.2.0"
+
+"@eslint/eslintrc@^0.4.3":
+  version "0.4.3"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@eslint/eslintrc/-/eslintrc-0.4.3.tgz#9e42981ef035beb3dd49add17acb96e8ff6f394c"
+  integrity sha1-nkKYHvA1vrPdSa3ResuW6P9vOUw=
+  dependencies:
+    ajv "^6.12.4"
+    debug "^4.1.1"
+    espree "^7.3.0"
+    globals "^13.9.0"
+    ignore "^4.0.6"
+    import-fresh "^3.2.1"
+    js-yaml "^3.13.1"
+    minimatch "^3.0.4"
+    strip-json-comments "^3.1.1"
+
+"@humanwhocodes/config-array@^0.5.0":
+  version "0.5.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@humanwhocodes/config-array/-/config-array-0.5.0.tgz#1407967d4c6eecd7388f83acf1eaf4d0c6e58ef9"
+  integrity sha1-FAeWfUxu7Nc4j4Os8er00Mbljvk=
+  dependencies:
+    "@humanwhocodes/object-schema" "^1.2.0"
+    debug "^4.1.1"
+    minimatch "^3.0.4"
+
+"@humanwhocodes/object-schema@^1.2.0":
+  version "1.2.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
+  integrity sha1-tSBSnsIdjllFoYUd/Rwy6U45/0U=
 
 "@istanbuljs/load-nyc-config@^1.0.0":
   version "1.1.0"
@@ -625,6 +675,16 @@
     jest-diff "^26.0.0"
     pretty-format "^26.0.0"
 
+"@types/json-schema@^7.0.3", "@types/json-schema@^7.0.7":
+  version "7.0.9"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@types/json-schema/-/json-schema-7.0.9.tgz#97edc9037ea0c38585320b28964dde3b39e4660d"
+  integrity sha1-l+3JA36gw4WFMgsolk3eOznkZg0=
+
+"@types/json5@^0.0.29":
+  version "0.0.29"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@types/json5/-/json5-0.0.29.tgz#ee28707ae94e11d2b827bcbe5270bcea7f3e71ee"
+  integrity sha1-7ihweulOEdK4J7y+UnC86n8+ce4=
+
 "@types/lodash@4.14.165":
   version "4.14.165"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@types/lodash/-/lodash-4.14.165.tgz#74d55d947452e2de0742bad65270433b63a8c30f"
@@ -694,6 +754,113 @@
   dependencies:
     "@types/yargs-parser" "*"
 
+"@typescript-eslint/eslint-plugin@^4.18.0":
+  version "4.33.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/eslint-plugin/-/eslint-plugin-4.33.0.tgz#c24dc7c8069c7706bc40d99f6fa87edcb2005276"
+  integrity sha1-wk3HyAacdwa8QNmfb6h+3LIAUnY=
+  dependencies:
+    "@typescript-eslint/experimental-utils" "4.33.0"
+    "@typescript-eslint/scope-manager" "4.33.0"
+    debug "^4.3.1"
+    functional-red-black-tree "^1.0.1"
+    ignore "^5.1.8"
+    regexpp "^3.1.0"
+    semver "^7.3.5"
+    tsutils "^3.21.0"
+
+"@typescript-eslint/experimental-utils@4.33.0", "@typescript-eslint/experimental-utils@^4.0.1":
+  version "4.33.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/experimental-utils/-/experimental-utils-4.33.0.tgz#6f2a786a4209fa2222989e9380b5331b2810f7fd"
+  integrity sha1-byp4akIJ+iIimJ6TgLUzGygQ9/0=
+  dependencies:
+    "@types/json-schema" "^7.0.7"
+    "@typescript-eslint/scope-manager" "4.33.0"
+    "@typescript-eslint/types" "4.33.0"
+    "@typescript-eslint/typescript-estree" "4.33.0"
+    eslint-scope "^5.1.1"
+    eslint-utils "^3.0.0"
+
+"@typescript-eslint/experimental-utils@^3.10.1":
+  version "3.10.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/experimental-utils/-/experimental-utils-3.10.1.tgz#e179ffc81a80ebcae2ea04e0332f8b251345a686"
+  integrity sha1-4Xn/yBqA68ri6gTgMy+LJRNFpoY=
+  dependencies:
+    "@types/json-schema" "^7.0.3"
+    "@typescript-eslint/types" "3.10.1"
+    "@typescript-eslint/typescript-estree" "3.10.1"
+    eslint-scope "^5.0.0"
+    eslint-utils "^2.0.0"
+
+"@typescript-eslint/parser@^4.18.0":
+  version "4.33.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/parser/-/parser-4.33.0.tgz#dfe797570d9694e560528d18eecad86c8c744899"
+  integrity sha1-3+eXVw2WlOVgUo0Y7srYbIx0SJk=
+  dependencies:
+    "@typescript-eslint/scope-manager" "4.33.0"
+    "@typescript-eslint/types" "4.33.0"
+    "@typescript-eslint/typescript-estree" "4.33.0"
+    debug "^4.3.1"
+
+"@typescript-eslint/scope-manager@4.33.0":
+  version "4.33.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/scope-manager/-/scope-manager-4.33.0.tgz#d38e49280d983e8772e29121cf8c6e9221f280a3"
+  integrity sha1-045JKA2YPody4pEhz4xukiHygKM=
+  dependencies:
+    "@typescript-eslint/types" "4.33.0"
+    "@typescript-eslint/visitor-keys" "4.33.0"
+
+"@typescript-eslint/types@3.10.1":
+  version "3.10.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/types/-/types-3.10.1.tgz#1d7463fa7c32d8a23ab508a803ca2fe26e758727"
+  integrity sha1-HXRj+nwy2KI6tQioA8ov4m51hyc=
+
+"@typescript-eslint/types@4.33.0":
+  version "4.33.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/types/-/types-4.33.0.tgz#a1e59036a3b53ae8430ceebf2a919dc7f9af6d72"
+  integrity sha1-oeWQNqO1OuhDDO6/KpGdx/mvbXI=
+
+"@typescript-eslint/typescript-estree@3.10.1":
+  version "3.10.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/typescript-estree/-/typescript-estree-3.10.1.tgz#fd0061cc38add4fad45136d654408569f365b853"
+  integrity sha1-/QBhzDit1PrUUTbWVECFafNluFM=
+  dependencies:
+    "@typescript-eslint/types" "3.10.1"
+    "@typescript-eslint/visitor-keys" "3.10.1"
+    debug "^4.1.1"
+    glob "^7.1.6"
+    is-glob "^4.0.1"
+    lodash "^4.17.15"
+    semver "^7.3.2"
+    tsutils "^3.17.1"
+
+"@typescript-eslint/typescript-estree@4.33.0":
+  version "4.33.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/typescript-estree/-/typescript-estree-4.33.0.tgz#0dfb51c2908f68c5c08d82aefeaf166a17c24609"
+  integrity sha1-DftRwpCPaMXAjYKu/q8WahfCRgk=
+  dependencies:
+    "@typescript-eslint/types" "4.33.0"
+    "@typescript-eslint/visitor-keys" "4.33.0"
+    debug "^4.3.1"
+    globby "^11.0.3"
+    is-glob "^4.0.1"
+    semver "^7.3.5"
+    tsutils "^3.21.0"
+
+"@typescript-eslint/visitor-keys@3.10.1":
+  version "3.10.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/visitor-keys/-/visitor-keys-3.10.1.tgz#cd4274773e3eb63b2e870ac602274487ecd1e931"
+  integrity sha1-zUJ0dz4+tjsuhwrGAidEh+zR6TE=
+  dependencies:
+    eslint-visitor-keys "^1.1.0"
+
+"@typescript-eslint/visitor-keys@4.33.0":
+  version "4.33.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@typescript-eslint/visitor-keys/-/visitor-keys-4.33.0.tgz#2a22f77a41604289b7a186586e9ec48ca92ef1dd"
+  integrity sha1-KiL3ekFgQom3oYZYbp7EjKku8d0=
+  dependencies:
+    "@typescript-eslint/types" "4.33.0"
+    eslint-visitor-keys "^2.0.0"
+
 abab@^2.0.3:
   version "2.0.5"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/abab/-/abab-2.0.5.tgz#c0b678fb32d60fc1219c784d6a826fe385aeb79a"
@@ -707,17 +874,22 @@ acorn-globals@^6.0.0:
     acorn "^7.1.1"
     acorn-walk "^7.1.1"
 
+acorn-jsx@^5.3.1:
+  version "5.3.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/acorn-jsx/-/acorn-jsx-5.3.2.tgz#7ed5bb55908b3b2f1bc55c6af1653bada7f07937"
+  integrity sha1-ftW7VZCLOy8bxVxq8WU7rafweTc=
+
 acorn-walk@^7.1.1:
   version "7.2.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/acorn-walk/-/acorn-walk-7.2.0.tgz#0de889a601203909b0fbe07b8938dc21d2e967bc"
   integrity sha1-DeiJpgEgOQmw++B7iTjcIdLpZ7w=
 
-acorn@^7.1.1:
+acorn@^7.1.1, acorn@^7.4.0:
   version "7.4.1"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/acorn/-/acorn-7.4.1.tgz#feaed255973d2e77555b83dbc08851a6c63520fa"
   integrity sha1-/q7SVZc9LndVW4PbwIhRpsY1IPo=
 
-ajv@^6.12.3:
+ajv@^6.10.0, ajv@^6.12.3, ajv@^6.12.4:
   version "6.12.6"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ajv/-/ajv-6.12.6.tgz#baf5a62e802b07d977034586f8c3baf5adf26df4"
   integrity sha1-uvWmLoArB9l3A0WG+MO69a3ybfQ=
@@ -726,6 +898,21 @@ ajv@^6.12.3:
     fast-json-stable-stringify "^2.0.0"
     json-schema-traverse "^0.4.1"
     uri-js "^4.2.2"
+
+ajv@^8.0.1:
+  version "8.8.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ajv/-/ajv-8.8.2.tgz#01b4fef2007a28bf75f0b7fc009f62679de4abbb"
+  integrity sha1-AbT+8gB6KL918Lf8AJ9iZ53kq7s=
+  dependencies:
+    fast-deep-equal "^3.1.1"
+    json-schema-traverse "^1.0.0"
+    require-from-string "^2.0.2"
+    uri-js "^4.2.2"
+
+ansi-colors@^4.1.1:
+  version "4.1.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ansi-colors/-/ansi-colors-4.1.1.tgz#cbb9ae256bf750af1eab344f229aa27fe94ba348"
+  integrity sha1-y7muJWv3UK8eqzRPIpqif+lLo0g=
 
 ansi-escapes@^4.2.1:
   version "4.3.1"
@@ -743,6 +930,11 @@ ansi-regex@^5.0.0:
   version "5.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ansi-regex/-/ansi-regex-5.0.0.tgz#388539f55179bf39339c81af30a654d69f87cb75"
   integrity sha1-OIU59VF5vzkznIGvMKZU1p+Hy3U=
+
+ansi-regex@^5.0.1:
+  version "5.0.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ansi-regex/-/ansi-regex-5.0.1.tgz#082cb2c89c9fe8659a311a53bd6a4dc5301db304"
+  integrity sha1-CCyyyJyf6GWaMRpTvWpNxTAdswQ=
 
 ansi-styles@^3.2.0, ansi-styles@^3.2.1:
   version "3.2.1"
@@ -796,6 +988,17 @@ arr-union@^3.1.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/arr-union/-/arr-union-3.1.0.tgz#e39b09aea9def866a8f206e288af63919bae39c4"
   integrity sha1-45sJrqne+Gao8gbiiK9jkZuuOcQ=
 
+array-includes@^3.1.4:
+  version "3.1.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/array-includes/-/array-includes-3.1.4.tgz#f5b493162c760f3539631f005ba2bb46acb45ba9"
+  integrity sha1-9bSTFix2DzU5Yx8AW6K7Rqy0W6k=
+  dependencies:
+    call-bind "^1.0.2"
+    define-properties "^1.1.3"
+    es-abstract "^1.19.1"
+    get-intrinsic "^1.1.1"
+    is-string "^1.0.7"
+
 array-union@^2.1.0:
   version "2.1.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/array-union/-/array-union-2.1.0.tgz#b798420adbeb1de828d84acd8a2e23d3efe85e8d"
@@ -805,6 +1008,15 @@ array-unique@^0.3.2:
   version "0.3.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/array-unique/-/array-unique-0.3.2.tgz#a894b75d4bc4f6cd679ef3244a9fd8f46ae2d428"
   integrity sha1-qJS3XUvE9s1nnvMkSp/Y9Gri1Cg=
+
+array.prototype.flat@^1.2.5:
+  version "1.2.5"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/array.prototype.flat/-/array.prototype.flat-1.2.5.tgz#07e0975d84bbc7c48cd1879d609e682598d33e13"
+  integrity sha1-B+CXXYS7x8SM0YedYJ5oJZjTPhM=
+  dependencies:
+    call-bind "^1.0.2"
+    define-properties "^1.1.3"
+    es-abstract "^1.19.0"
 
 asn1@~0.2.3:
   version "0.2.4"
@@ -822,6 +1034,11 @@ assign-symbols@^1.0.0:
   version "1.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/assign-symbols/-/assign-symbols-1.0.0.tgz#59667f41fadd4f20ccbc2bb96b8d4f7f78ec0367"
   integrity sha1-WWZ/QfrdTyDMvCu5a41Pf3jsA2c=
+
+astral-regex@^2.0.0:
+  version "2.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/astral-regex/-/astral-regex-2.0.0.tgz#483143c567aeed4785759c0865786dc77d7d2e31"
+  integrity sha1-SDFDxWeu7UeFdZwIZXhtx319LjE=
 
 asynckit@^0.4.0:
   version "0.4.0"
@@ -1000,11 +1217,6 @@ buffer-from@1.x, buffer-from@^1.0.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/buffer-from/-/buffer-from-1.1.1.tgz#32713bc028f75c02fdb710d7c7bcec1f2c6070ef"
   integrity sha1-MnE7wCj3XAL9txDXx7zsHyxgcO8=
 
-builtin-modules@^1.1.1:
-  version "1.1.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/builtin-modules/-/builtin-modules-1.1.1.tgz#270f076c5a72c02f5b65a47df94c5fe3a278892f"
-  integrity sha1-Jw8HbFpywC9bZaR9+Uxf46J4iS8=
-
 cache-base@^1.0.1:
   version "1.0.1"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/cache-base/-/cache-base-1.0.1.tgz#0a7f46416831c8b662ee36fe4e7c59d76f666ab2"
@@ -1019,6 +1231,14 @@ cache-base@^1.0.1:
     to-object-path "^0.3.0"
     union-value "^1.0.0"
     unset-value "^1.0.0"
+
+call-bind@^1.0.0, call-bind@^1.0.2:
+  version "1.0.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/call-bind/-/call-bind-1.0.2.tgz#b1d4e89e688119c3c9a903ad30abb2f6a919be3c"
+  integrity sha1-sdTonmiBGcPJqQOtMKuy9qkZvjw=
+  dependencies:
+    function-bind "^1.1.1"
+    get-intrinsic "^1.0.2"
 
 callsites@^3.0.0:
   version "3.1.0"
@@ -1052,7 +1272,7 @@ caseless@~0.12.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/caseless/-/caseless-0.12.0.tgz#1b681c21ff84033c826543090689420d187151dc"
   integrity sha1-G2gcIf+EAzyCZUMJBolCDRhxUdw=
 
-chalk@^2.0.0, chalk@^2.3.0, chalk@^2.4.2:
+chalk@^2.0.0, chalk@^2.4.2:
   version "2.4.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/chalk/-/chalk-2.4.2.tgz#cd42541677a54333cf541a49108c1432b44c9424"
   integrity sha1-zUJUFnelQzPPVBpJEIwUMrRMlCQ=
@@ -1206,11 +1426,6 @@ combined-stream@^1.0.6, combined-stream@~1.0.6:
   dependencies:
     delayed-stream "~1.0.0"
 
-commander@^2.12.1:
-  version "2.20.3"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/commander/-/commander-2.20.3.tgz#fd485e84c03eb4881c20722ba48035e8531aeb33"
-  integrity sha1-/UhehMA+tIgcIHIrpIA16FMa6zM=
-
 compare-versions@^3.6.0:
   version "3.6.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/compare-versions/-/compare-versions-3.6.0.tgz#1a5689913685e5a87637b8d3ffca75514ec41d62"
@@ -1298,7 +1513,7 @@ cross-spawn@^6.0.0:
     shebang-command "^1.2.0"
     which "^1.2.9"
 
-cross-spawn@^7.0.0, cross-spawn@^7.0.1:
+cross-spawn@^7.0.0, cross-spawn@^7.0.1, cross-spawn@^7.0.2:
   version "7.0.3"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/cross-spawn/-/cross-spawn-7.0.3.tgz#f73a85b9d5d41d045551c177e2882d4ac85728a6"
   integrity sha1-9zqFudXUHQRVUcF34ogtSshXKKY=
@@ -1345,12 +1560,26 @@ date-fns@^2.0.1:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/date-fns/-/date-fns-2.19.0.tgz#65193348635a28d5d916c43ec7ce6fbd145059e1"
   integrity sha1-ZRkzSGNaKNXZFsQ+x85vvRRQWeE=
 
-debug@^2.2.0, debug@^2.3.3:
+debug@^2.2.0, debug@^2.3.3, debug@^2.6.9:
   version "2.6.9"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/debug/-/debug-2.6.9.tgz#5d128515df134ff327e90a4c93f4e077a536341f"
   integrity sha1-XRKFFd8TT/Mn6QpMk/Tgd6U2NB8=
   dependencies:
     ms "2.0.0"
+
+debug@^3.2.7:
+  version "3.2.7"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/debug/-/debug-3.2.7.tgz#72580b7e9145fb39b6676f9c5e5fb100b934179a"
+  integrity sha1-clgLfpFF+zm2Z2+cXl+xALk0F5o=
+  dependencies:
+    ms "^2.1.1"
+
+debug@^4.0.1, debug@^4.3.1:
+  version "4.3.3"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/debug/-/debug-4.3.3.tgz#04266e0b70a98d4462e6e288e38259213332b664"
+  integrity sha1-BCZuC3CpjURi5uKI44JZITMytmQ=
+  dependencies:
+    ms "2.1.2"
 
 debug@^4.1.0, debug@^4.1.1:
   version "4.3.1"
@@ -1374,6 +1603,11 @@ decode-uri-component@^0.2.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/decode-uri-component/-/decode-uri-component-0.2.0.tgz#eb3913333458775cb84cd1a1fae062106bb87545"
   integrity sha1-6zkTMzRYd1y4TNGh+uBiEGu4dUU=
 
+deep-is@^0.1.3:
+  version "0.1.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/deep-is/-/deep-is-0.1.4.tgz#a6f2dce612fadd2ef1f519b73551f17e85199831"
+  integrity sha1-pvLc5hL63S7x9Rm3NVHxfoUZmDE=
+
 deep-is@~0.1.3:
   version "0.1.3"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/deep-is/-/deep-is-0.1.3.tgz#b369d6fb5dbc13eecf524f91b070feedc357cf34"
@@ -1383,6 +1617,13 @@ deepmerge@^4.2.2:
   version "4.2.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/deepmerge/-/deepmerge-4.2.2.tgz#44d2ea3679b8f4d4ffba33f03d865fc1e7bf4955"
   integrity sha1-RNLqNnm49NT/ujPwPYZfwee/SVU=
+
+define-properties@^1.1.3:
+  version "1.1.3"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/define-properties/-/define-properties-1.1.3.tgz#cf88da6cbee26fe6db7094f61d870cbd84cee9f1"
+  integrity sha1-z4jabL7ib+bbcJT2HYcMvYTO6fE=
+  dependencies:
+    object-keys "^1.0.12"
 
 define-property@^0.2.5:
   version "0.2.5"
@@ -1421,17 +1662,26 @@ diff-sequences@^26.6.2:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/diff-sequences/-/diff-sequences-26.6.2.tgz#48ba99157de1923412eed41db6b6d4aa9ca7c0b1"
   integrity sha1-SLqZFX3hkjQS7tQdtrbUqpynwLE=
 
-diff@^4.0.1:
-  version "4.0.2"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/diff/-/diff-4.0.2.tgz#60f3aecb89d5fae520c11aa19efc2bb982aade7d"
-  integrity sha1-YPOuy4nV+uUgwRqhnvwruYKq3n0=
-
 dir-glob@^3.0.1:
   version "3.0.1"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/dir-glob/-/dir-glob-3.0.1.tgz#56dbf73d992a4a93ba1584f4534063fd2e41717f"
   integrity sha1-Vtv3PZkqSpO6FYT0U0Bj/S5BcX8=
   dependencies:
     path-type "^4.0.0"
+
+doctrine@^2.1.0:
+  version "2.1.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/doctrine/-/doctrine-2.1.0.tgz#5cd01fc101621b42c4cd7f5d1a66243716d3f39d"
+  integrity sha1-XNAfwQFiG0LEzX9dGmYkNxbT850=
+  dependencies:
+    esutils "^2.0.2"
+
+doctrine@^3.0.0:
+  version "3.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/doctrine/-/doctrine-3.0.0.tgz#addebead72a6574db783639dc87a121773973961"
+  integrity sha1-rd6+rXKmV023g2OdyHoSF3OXOWE=
+  dependencies:
+    esutils "^2.0.2"
 
 domexception@^2.0.1:
   version "2.0.1"
@@ -1475,12 +1725,54 @@ end-of-stream@^1.1.0:
   dependencies:
     once "^1.4.0"
 
+enquirer@^2.3.5:
+  version "2.3.6"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/enquirer/-/enquirer-2.3.6.tgz#2a7fe5dd634a1e4125a975ec994ff5456dc3734d"
+  integrity sha1-Kn/l3WNKHkElqXXsmU/1RW3Dc00=
+  dependencies:
+    ansi-colors "^4.1.1"
+
 error-ex@^1.3.1:
   version "1.3.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/error-ex/-/error-ex-1.3.2.tgz#b4ac40648107fdcdcfae242f428bea8a14d4f1bf"
   integrity sha1-tKxAZIEH/c3PriQvQovqihTU8b8=
   dependencies:
     is-arrayish "^0.2.1"
+
+es-abstract@^1.19.0, es-abstract@^1.19.1:
+  version "1.19.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/es-abstract/-/es-abstract-1.19.1.tgz#d4885796876916959de78edaa0df456627115ec3"
+  integrity sha1-1IhXlodpFpWd547aoN9FZicRXsM=
+  dependencies:
+    call-bind "^1.0.2"
+    es-to-primitive "^1.2.1"
+    function-bind "^1.1.1"
+    get-intrinsic "^1.1.1"
+    get-symbol-description "^1.0.0"
+    has "^1.0.3"
+    has-symbols "^1.0.2"
+    internal-slot "^1.0.3"
+    is-callable "^1.2.4"
+    is-negative-zero "^2.0.1"
+    is-regex "^1.1.4"
+    is-shared-array-buffer "^1.0.1"
+    is-string "^1.0.7"
+    is-weakref "^1.0.1"
+    object-inspect "^1.11.0"
+    object-keys "^1.1.1"
+    object.assign "^4.1.2"
+    string.prototype.trimend "^1.0.4"
+    string.prototype.trimstart "^1.0.4"
+    unbox-primitive "^1.0.1"
+
+es-to-primitive@^1.2.1:
+  version "1.2.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/es-to-primitive/-/es-to-primitive-1.2.1.tgz#e55cd4c9cdc188bcefb03b366c736323fc5c898a"
+  integrity sha1-5VzUyc3BiLzvsDs2bHNjI/xciYo=
+  dependencies:
+    is-callable "^1.1.4"
+    is-date-object "^1.0.1"
+    is-symbol "^1.0.2"
 
 escalade@^3.1.1:
   version "3.1.1"
@@ -1497,6 +1789,11 @@ escape-string-regexp@^2.0.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/escape-string-regexp/-/escape-string-regexp-2.0.0.tgz#a30304e99daa32e23b2fd20f51babd07cffca344"
   integrity sha1-owME6Z2qMuI7L9IPUbq9B8/8o0Q=
 
+escape-string-regexp@^4.0.0:
+  version "4.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/escape-string-regexp/-/escape-string-regexp-4.0.0.tgz#14ba83a5d373e3d311e5afca29cf5bfad965bf34"
+  integrity sha1-FLqDpdNz49MR5a/KKc9b+tllvzQ=
+
 escodegen@^1.14.1:
   version "1.14.3"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/escodegen/-/escodegen-1.14.3.tgz#4e7b81fba61581dc97582ed78cab7f0e8d63f503"
@@ -1509,23 +1806,195 @@ escodegen@^1.14.1:
   optionalDependencies:
     source-map "~0.6.1"
 
-eslint-plugin-prettier@^2.2.0:
-  version "2.7.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-plugin-prettier/-/eslint-plugin-prettier-2.7.0.tgz#b4312dcf2c1d965379d7f9d5b5f8aaadc6a45904"
-  integrity sha1-tDEtzywdllN51/nVtfiqrcakWQQ=
+eslint-config-prettier@^7.2.0:
+  version "7.2.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-config-prettier/-/eslint-config-prettier-7.2.0.tgz#f4a4bd2832e810e8cc7c1411ec85b3e85c0c53f9"
+  integrity sha1-9KS9KDLoEOjMfBQR7IWz6FwMU/k=
+
+eslint-import-resolver-alias@^1.1.2:
+  version "1.1.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-import-resolver-alias/-/eslint-import-resolver-alias-1.1.2.tgz#297062890e31e4d6651eb5eba9534e1f6e68fc97"
+  integrity sha1-KXBiiQ4x5NZlHrXrqVNOH25o/Jc=
+
+eslint-import-resolver-node@^0.3.6:
+  version "0.3.6"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-import-resolver-node/-/eslint-import-resolver-node-0.3.6.tgz#4048b958395da89668252001dbd9eca6b83bacbd"
+  integrity sha1-QEi5WDldqJZoJSAB29nsprg7rL0=
   dependencies:
-    fast-diff "^1.1.1"
-    jest-docblock "^21.0.0"
+    debug "^3.2.7"
+    resolve "^1.20.0"
+
+eslint-module-utils@^2.7.2:
+  version "2.7.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-module-utils/-/eslint-module-utils-2.7.2.tgz#1d0aa455dcf41052339b63cada8ab5fd57577129"
+  integrity sha1-HQqkVdz0EFIzm2PK2oq1/VdXcSk=
+  dependencies:
+    debug "^3.2.7"
+    find-up "^2.1.0"
+
+eslint-plugin-flowtype@^5.4.0:
+  version "5.10.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-plugin-flowtype/-/eslint-plugin-flowtype-5.10.0.tgz#7764cc63940f215bf3f0bd2d9a1293b2b9b2b4bb"
+  integrity sha1-d2TMY5QPIVvz8L0tmhKTsrmytLs=
+  dependencies:
+    lodash "^4.17.15"
+    string-natural-compare "^3.0.1"
+
+eslint-plugin-import@^2.22.1:
+  version "2.25.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-plugin-import/-/eslint-plugin-import-2.25.4.tgz#322f3f916a4e9e991ac7af32032c25ce313209f1"
+  integrity sha1-Mi8/kWpOnpkax68yAywlzjEyCfE=
+  dependencies:
+    array-includes "^3.1.4"
+    array.prototype.flat "^1.2.5"
+    debug "^2.6.9"
+    doctrine "^2.1.0"
+    eslint-import-resolver-node "^0.3.6"
+    eslint-module-utils "^2.7.2"
+    has "^1.0.3"
+    is-core-module "^2.8.0"
+    is-glob "^4.0.3"
+    minimatch "^3.0.4"
+    object.values "^1.1.5"
+    resolve "^1.20.0"
+    tsconfig-paths "^3.12.0"
+
+eslint-plugin-jest@^24.3.1:
+  version "24.7.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-plugin-jest/-/eslint-plugin-jest-24.7.0.tgz#206ac0833841e59e375170b15f8d0955219c4889"
+  integrity sha1-IGrAgzhB5Z43UXCxX40JVSGcSIk=
+  dependencies:
+    "@typescript-eslint/experimental-utils" "^4.0.1"
+
+eslint-plugin-prettier@^3.3.1:
+  version "3.4.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-plugin-prettier/-/eslint-plugin-prettier-3.4.1.tgz#e9ddb200efb6f3d05ffe83b1665a716af4a387e5"
+  integrity sha1-6d2yAO+289Bf/oOxZlpxavSjh+U=
+  dependencies:
+    prettier-linter-helpers "^1.0.0"
+
+eslint-plugin-testing-library@^3.9.2:
+  version "3.10.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-plugin-testing-library/-/eslint-plugin-testing-library-3.10.2.tgz#609ec2b0369da7cf2e6d9edff5da153cc31d87bd"
+  integrity sha1-YJ7CsDadp88ubZ7f9doVPMMdh70=
+  dependencies:
+    "@typescript-eslint/experimental-utils" "^3.10.1"
+
+eslint-scope@^5.0.0, eslint-scope@^5.1.1:
+  version "5.1.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-scope/-/eslint-scope-5.1.1.tgz#e786e59a66cb92b3f6c1fb0d508aab174848f48c"
+  integrity sha1-54blmmbLkrP2wfsNUIqrF0hI9Iw=
+  dependencies:
+    esrecurse "^4.3.0"
+    estraverse "^4.1.1"
+
+eslint-utils@^2.0.0, eslint-utils@^2.1.0:
+  version "2.1.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-utils/-/eslint-utils-2.1.0.tgz#d2de5e03424e707dc10c74068ddedae708741b27"
+  integrity sha1-0t5eA0JOcH3BDHQGjd7a5wh0Gyc=
+  dependencies:
+    eslint-visitor-keys "^1.1.0"
+
+eslint-utils@^3.0.0:
+  version "3.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-utils/-/eslint-utils-3.0.0.tgz#8aebaface7345bb33559db0a1f13a1d2d48c3672"
+  integrity sha1-iuuvrOc0W7M1WdsKHxOh0tSMNnI=
+  dependencies:
+    eslint-visitor-keys "^2.0.0"
+
+eslint-visitor-keys@^1.1.0, eslint-visitor-keys@^1.3.0:
+  version "1.3.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-visitor-keys/-/eslint-visitor-keys-1.3.0.tgz#30ebd1ef7c2fdff01c3a4f151044af25fab0523e"
+  integrity sha1-MOvR73wv3/AcOk8VEESvJfqwUj4=
+
+eslint-visitor-keys@^2.0.0:
+  version "2.1.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint-visitor-keys/-/eslint-visitor-keys-2.1.0.tgz#f65328259305927392c938ed44eb0a5c9b2bd303"
+  integrity sha1-9lMoJZMFknOSyTjtROsKXJsr0wM=
+
+eslint@^7.22.0:
+  version "7.32.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/eslint/-/eslint-7.32.0.tgz#c6d328a14be3fb08c8d1d21e12c02fdb7a2a812d"
+  integrity sha1-xtMooUvj+wjI0dIeEsAv23oqgS0=
+  dependencies:
+    "@babel/code-frame" "7.12.11"
+    "@eslint/eslintrc" "^0.4.3"
+    "@humanwhocodes/config-array" "^0.5.0"
+    ajv "^6.10.0"
+    chalk "^4.0.0"
+    cross-spawn "^7.0.2"
+    debug "^4.0.1"
+    doctrine "^3.0.0"
+    enquirer "^2.3.5"
+    escape-string-regexp "^4.0.0"
+    eslint-scope "^5.1.1"
+    eslint-utils "^2.1.0"
+    eslint-visitor-keys "^2.0.0"
+    espree "^7.3.1"
+    esquery "^1.4.0"
+    esutils "^2.0.2"
+    fast-deep-equal "^3.1.3"
+    file-entry-cache "^6.0.1"
+    functional-red-black-tree "^1.0.1"
+    glob-parent "^5.1.2"
+    globals "^13.6.0"
+    ignore "^4.0.6"
+    import-fresh "^3.0.0"
+    imurmurhash "^0.1.4"
+    is-glob "^4.0.0"
+    js-yaml "^3.13.1"
+    json-stable-stringify-without-jsonify "^1.0.1"
+    levn "^0.4.1"
+    lodash.merge "^4.6.2"
+    minimatch "^3.0.4"
+    natural-compare "^1.4.0"
+    optionator "^0.9.1"
+    progress "^2.0.0"
+    regexpp "^3.1.0"
+    semver "^7.2.1"
+    strip-ansi "^6.0.0"
+    strip-json-comments "^3.1.0"
+    table "^6.0.9"
+    text-table "^0.2.0"
+    v8-compile-cache "^2.0.3"
+
+espree@^7.3.0, espree@^7.3.1:
+  version "7.3.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/espree/-/espree-7.3.1.tgz#f2df330b752c6f55019f8bd89b7660039c1bbbb6"
+  integrity sha1-8t8zC3Usb1UBn4vYm3ZgA5wbu7Y=
+  dependencies:
+    acorn "^7.4.0"
+    acorn-jsx "^5.3.1"
+    eslint-visitor-keys "^1.3.0"
 
 esprima@^4.0.0, esprima@^4.0.1:
   version "4.0.1"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/esprima/-/esprima-4.0.1.tgz#13b04cdb3e6c5d19df91ab6987a8695619b0aa71"
   integrity sha1-E7BM2z5sXRnfkatph6hpVhmwqnE=
 
-estraverse@^4.2.0:
+esquery@^1.4.0:
+  version "1.4.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/esquery/-/esquery-1.4.0.tgz#2148ffc38b82e8c7057dfed48425b3e61f0f24a5"
+  integrity sha1-IUj/w4uC6McFff7UhCWz5h8PJKU=
+  dependencies:
+    estraverse "^5.1.0"
+
+esrecurse@^4.3.0:
+  version "4.3.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/esrecurse/-/esrecurse-4.3.0.tgz#7ad7964d679abb28bee72cec63758b1c5d2c9921"
+  integrity sha1-eteWTWeauyi+5yzsY3WLHF0smSE=
+  dependencies:
+    estraverse "^5.2.0"
+
+estraverse@^4.1.1, estraverse@^4.2.0:
   version "4.3.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/estraverse/-/estraverse-4.3.0.tgz#398ad3f3c5a24948be7725e83d11a7de28cdbd1d"
   integrity sha1-OYrT88WiSUi+dyXoPRGn3ijNvR0=
+
+estraverse@^5.1.0, estraverse@^5.2.0:
+  version "5.3.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/estraverse/-/estraverse-5.3.0.tgz#2eea5290702f26ab8fe5370370ff86c965d21123"
+  integrity sha1-LupSkHAvJquP5TcDcP+GyWXSESM=
 
 esutils@^2.0.2:
   version "2.0.3"
@@ -1639,12 +2108,12 @@ extsprintf@^1.2.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/extsprintf/-/extsprintf-1.4.0.tgz#e2689f8f356fad62cca65a3a91c5df5f9551692f"
   integrity sha1-4mifjzVvrWLMplo6kcXfX5VRaS8=
 
-fast-deep-equal@^3.1.1:
+fast-deep-equal@^3.1.1, fast-deep-equal@^3.1.3:
   version "3.1.3"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz#3a7d56b559d6cbc3eb512325244e619a65c6c525"
   integrity sha1-On1WtVnWy8PrUSMlJE5hmmXGxSU=
 
-fast-diff@^1.1.1:
+fast-diff@^1.1.2:
   version "1.2.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/fast-diff/-/fast-diff-1.2.0.tgz#73ee11982d86caaf7959828d519cfe927fac5f03"
   integrity sha1-c+4RmC2Gyq95WYKNUZz+kn+sXwM=
@@ -1661,12 +2130,23 @@ fast-glob@^3.0.3, fast-glob@^3.2.2:
     micromatch "^4.0.2"
     picomatch "^2.2.1"
 
+fast-glob@^3.1.1:
+  version "3.2.8"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/fast-glob/-/fast-glob-3.2.8.tgz#b4c563b4750cee1cbe8d8d41d3abf5cd6e211923"
+  integrity sha1-tMVjtHUM7hy+jY1B06v1zW4hGSM=
+  dependencies:
+    "@nodelib/fs.stat" "^2.0.2"
+    "@nodelib/fs.walk" "^1.2.3"
+    glob-parent "^5.1.2"
+    merge2 "^1.3.0"
+    micromatch "^4.0.4"
+
 fast-json-stable-stringify@2.x, fast-json-stable-stringify@^2.0.0:
   version "2.1.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/fast-json-stable-stringify/-/fast-json-stable-stringify-2.1.0.tgz#874bf69c6f404c2b5d99c481341399fd55892633"
   integrity sha1-h0v2nG9ATCtdmcSBNBOZ/VWJJjM=
 
-fast-levenshtein@~2.0.6:
+fast-levenshtein@^2.0.6, fast-levenshtein@~2.0.6:
   version "2.0.6"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/fast-levenshtein/-/fast-levenshtein-2.0.6.tgz#3d8a5c66883a16a30ca8643e851f19baa7797917"
   integrity sha1-PYpcZog6FqMMqGQ+hR8Zuqd5eRc=
@@ -1685,6 +2165,13 @@ fb-watchman@^2.0.0:
   dependencies:
     bser "2.1.1"
 
+file-entry-cache@^6.0.1:
+  version "6.0.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/file-entry-cache/-/file-entry-cache-6.0.1.tgz#211b2dd9659cb0394b073e7323ac3c933d522027"
+  integrity sha1-IRst2WWcsDlLBz5zI6w8kz1SICc=
+  dependencies:
+    flat-cache "^3.0.4"
+
 fill-range@^4.0.0:
   version "4.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/fill-range/-/fill-range-4.0.0.tgz#d544811d428f98eb06a63dc402d2403c328c38f7"
@@ -1701,6 +2188,13 @@ fill-range@^7.0.1:
   integrity sha1-GRmmp8df44ssfHflGYU12prN2kA=
   dependencies:
     to-regex-range "^5.0.1"
+
+find-up@^2.1.0:
+  version "2.1.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/find-up/-/find-up-2.1.0.tgz#45d1b7e506c717ddd482775a2b77920a3c0c57a7"
+  integrity sha1-RdG35QbHF93UgndaK3eSCjwMV6c=
+  dependencies:
+    locate-path "^2.0.0"
 
 find-up@^3.0.0:
   version "3.0.0"
@@ -1723,6 +2217,19 @@ find-versions@^3.2.0:
   integrity sha1-ECl/mAMKeGgpaBaQVF72We0dJU4=
   dependencies:
     semver-regex "^2.0.0"
+
+flat-cache@^3.0.4:
+  version "3.0.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/flat-cache/-/flat-cache-3.0.4.tgz#61b0338302b2fe9f957dcc32fc2a87f1c3048b11"
+  integrity sha1-YbAzgwKy/p+Vfcwy/CqH8cMEixE=
+  dependencies:
+    flatted "^3.1.0"
+    rimraf "^3.0.2"
+
+flatted@^3.1.0:
+  version "3.2.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/flatted/-/flatted-3.2.4.tgz#28d9969ea90661b5134259f312ab6aa7929ac5e2"
+  integrity sha1-KNmWnqkGYbUTQlnzEqtqp5KaxeI=
 
 for-in@^1.0.2:
   version "1.0.2"
@@ -1774,6 +2281,11 @@ function-bind@^1.1.1:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/function-bind/-/function-bind-1.1.1.tgz#a56899d3ea3c9bab874bb9773b7c5ede92f4895d"
   integrity sha1-pWiZ0+o8m6uHS7l3O3xe3pL0iV0=
 
+functional-red-black-tree@^1.0.1:
+  version "1.0.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/functional-red-black-tree/-/functional-red-black-tree-1.0.1.tgz#1b0ab3bd553b2a0d6399d29c0e3ea0b252078327"
+  integrity sha1-GwqzvVU7Kg1jmdKcDj6gslIHgyc=
+
 gensync@^1.0.0-beta.2:
   version "1.0.0-beta.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/gensync/-/gensync-1.0.0-beta.2.tgz#32a6ee76c3d7f52d46b2b1ae5d93fea8580a25e0"
@@ -1783,6 +2295,15 @@ get-caller-file@^2.0.1, get-caller-file@^2.0.5:
   version "2.0.5"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/get-caller-file/-/get-caller-file-2.0.5.tgz#4f94412a82db32f36e3b0b9741f8a97feb031f7e"
   integrity sha1-T5RBKoLbMvNuOwuXQfipf+sDH34=
+
+get-intrinsic@^1.0.2, get-intrinsic@^1.1.0, get-intrinsic@^1.1.1:
+  version "1.1.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/get-intrinsic/-/get-intrinsic-1.1.1.tgz#15f59f376f855c446963948f0d24cd3637b4abc6"
+  integrity sha1-FfWfN2+FXERpY5SPDSTNNje0q8Y=
+  dependencies:
+    function-bind "^1.1.1"
+    has "^1.0.3"
+    has-symbols "^1.0.1"
 
 get-package-type@^0.1.0:
   version "0.1.0"
@@ -1802,6 +2323,14 @@ get-stream@^5.0.0:
   integrity sha1-SWaheV7lrOZecGxLe+txJX1uItM=
   dependencies:
     pump "^3.0.0"
+
+get-symbol-description@^1.0.0:
+  version "1.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/get-symbol-description/-/get-symbol-description-1.0.0.tgz#7fdb81c900101fbd564dd5f1a30af5aadc1e58d6"
+  integrity sha1-f9uByQAQH71WTdXxowr1qtweWNY=
+  dependencies:
+    call-bind "^1.0.2"
+    get-intrinsic "^1.1.1"
 
 get-value@^2.0.3, get-value@^2.0.6:
   version "2.0.6"
@@ -1827,10 +2356,29 @@ glob-parent@^5.1.0, glob-parent@~5.1.0:
   dependencies:
     is-glob "^4.0.1"
 
+glob-parent@^5.1.2:
+  version "5.1.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/glob-parent/-/glob-parent-5.1.2.tgz#869832c58034fe68a4093c17dc15e8340d8401c4"
+  integrity sha1-hpgyxYA0/mikCTwX3BXoNA2EAcQ=
+  dependencies:
+    is-glob "^4.0.1"
+
 glob@7.1.6, glob@^7.1.1, glob@^7.1.2, glob@^7.1.3, glob@^7.1.4:
   version "7.1.6"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/glob/-/glob-7.1.6.tgz#141f33b81a7c2492e125594307480c46679278a6"
   integrity sha1-FB8zuBp8JJLhJVlDB0gMRmeSeKY=
+  dependencies:
+    fs.realpath "^1.0.0"
+    inflight "^1.0.4"
+    inherits "2"
+    minimatch "^3.0.4"
+    once "^1.3.0"
+    path-is-absolute "^1.0.0"
+
+glob@^7.1.6:
+  version "7.2.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/glob/-/glob-7.2.0.tgz#d15535af7732e02e948f4c41628bd910293f6023"
+  integrity sha1-0VU1r3cy4C6Uj0xBYovZECk/YCM=
   dependencies:
     fs.realpath "^1.0.0"
     inflight "^1.0.4"
@@ -1844,6 +2392,13 @@ globals@^11.1.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/globals/-/globals-11.12.0.tgz#ab8795338868a0babd8525758018c2a7eb95c42e"
   integrity sha1-q4eVM4hooLq9hSV1gBjCp+uVxC4=
 
+globals@^13.6.0, globals@^13.9.0:
+  version "13.12.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/globals/-/globals-13.12.0.tgz#4d733760304230a0082ed96e21e5c565f898089e"
+  integrity sha1-TXM3YDBCMKAILtluIeXFZfiYCJ4=
+  dependencies:
+    type-fest "^0.20.2"
+
 globby@^10.0.1:
   version "10.0.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/globby/-/globby-10.0.2.tgz#277593e745acaa4646c3ab411289ec47a0392543"
@@ -1856,6 +2411,18 @@ globby@^10.0.1:
     glob "^7.1.3"
     ignore "^5.1.1"
     merge2 "^1.2.3"
+    slash "^3.0.0"
+
+globby@^11.0.3:
+  version "11.0.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/globby/-/globby-11.0.4.tgz#2cbaff77c2f2a62e71e9b2813a67b97a3a3001a5"
+  integrity sha1-LLr/d8Lypi5x6bKBOme5ejowAaU=
+  dependencies:
+    array-union "^2.1.0"
+    dir-glob "^3.0.1"
+    fast-glob "^3.1.1"
+    ignore "^5.1.4"
+    merge2 "^1.3.0"
     slash "^3.0.0"
 
 graceful-fs@^4.1.6, graceful-fs@^4.2.0, graceful-fs@^4.2.4:
@@ -1881,6 +2448,11 @@ har-validator@~5.1.3:
     ajv "^6.12.3"
     har-schema "^2.0.0"
 
+has-bigints@^1.0.1:
+  version "1.0.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/has-bigints/-/has-bigints-1.0.1.tgz#64fe6acb020673e3b78db035a5af69aa9d07b113"
+  integrity sha1-ZP5qywIGc+O3jbA1pa9pqp0HsRM=
+
 has-flag@^3.0.0:
   version "3.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/has-flag/-/has-flag-3.0.0.tgz#b5d454dc2199ae225699f3467e5a07f3b955bafd"
@@ -1890,6 +2462,18 @@ has-flag@^4.0.0:
   version "4.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/has-flag/-/has-flag-4.0.0.tgz#944771fd9c81c81265c4d6941860da06bb59479b"
   integrity sha1-lEdx/ZyByBJlxNaUGGDaBrtZR5s=
+
+has-symbols@^1.0.1, has-symbols@^1.0.2:
+  version "1.0.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/has-symbols/-/has-symbols-1.0.2.tgz#165d3070c00309752a1236a479331e3ac56f1423"
+  integrity sha1-Fl0wcMADCXUqEjakeTMeOsVvFCM=
+
+has-tostringtag@^1.0.0:
+  version "1.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/has-tostringtag/-/has-tostringtag-1.0.0.tgz#7e133818a7d394734f941e73c3d3f9291e658b25"
+  integrity sha1-fhM4GKfTlHNPlB5zw9P5KR5liyU=
+  dependencies:
+    has-symbols "^1.0.2"
 
 has-value@^0.3.1:
   version "0.3.1"
@@ -1992,12 +2576,22 @@ iconv-lite@0.4.24:
   dependencies:
     safer-buffer ">= 2.1.2 < 3"
 
+ignore@^4.0.6:
+  version "4.0.6"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ignore/-/ignore-4.0.6.tgz#750e3db5862087b4737ebac8207ffd1ef27b25fc"
+  integrity sha1-dQ49tYYgh7RzfrrIIH/9HvJ7Jfw=
+
 ignore@^5.1.1, ignore@^5.1.2:
   version "5.1.8"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ignore/-/ignore-5.1.8.tgz#f150a8b50a34289b33e22f5889abd4d8016f0e57"
   integrity sha1-8VCotQo0KJsz4i9YiavU2AFvDlc=
 
-import-fresh@^3.2.1:
+ignore@^5.1.4, ignore@^5.1.8:
+  version "5.2.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ignore/-/ignore-5.2.0.tgz#6d3bac8fa7fe0d45d9f9be7bac2fc279577e345a"
+  integrity sha1-bTusj6f+DUXZ+b57rC/CeVd+NFo=
+
+import-fresh@^3.0.0, import-fresh@^3.2.1:
   version "3.3.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/import-fresh/-/import-fresh-3.3.0.tgz#37162c25fcb9ebaa2e6e53d5b4d88ce17d9e0c2b"
   integrity sha1-NxYsJfy566oublPVtNiM4X2eDCs=
@@ -2036,6 +2630,15 @@ inherits@2.0.3:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/inherits/-/inherits-2.0.3.tgz#633c2c83e3da42a502f52466022480f4208261de"
   integrity sha1-Yzwsg+PaQqUC9SRmAiSA9CCCYd4=
 
+internal-slot@^1.0.3:
+  version "1.0.3"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/internal-slot/-/internal-slot-1.0.3.tgz#7347e307deeea2faac2ac6205d4bc7d34967f59c"
+  integrity sha1-c0fjB97uovqsKsYgXUvH00ln9Zw=
+  dependencies:
+    get-intrinsic "^1.1.0"
+    has "^1.0.3"
+    side-channel "^1.0.4"
+
 invariant@2.2.4:
   version "2.2.4"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/invariant/-/invariant-2.2.4.tgz#610f3c92c9359ce1db616e538008d23ff35158e6"
@@ -2067,6 +2670,13 @@ is-arrayish@^0.2.1:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-arrayish/-/is-arrayish-0.2.1.tgz#77c99840527aa8ecb1a8ba697b80645a7a926a9d"
   integrity sha1-d8mYQFJ6qOyxqLppe4BkWnqSap0=
 
+is-bigint@^1.0.1:
+  version "1.0.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-bigint/-/is-bigint-1.0.4.tgz#08147a1875bc2b32005d41ccd8291dffc6691df3"
+  integrity sha1-CBR6GHW8KzIAXUHM2Ckd/8ZpHfM=
+  dependencies:
+    has-bigints "^1.0.1"
+
 is-binary-path@~2.1.0:
   version "2.1.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-binary-path/-/is-binary-path-2.1.0.tgz#ea1f7f3b80f064236e83470f86c09c254fb45b09"
@@ -2074,10 +2684,23 @@ is-binary-path@~2.1.0:
   dependencies:
     binary-extensions "^2.0.0"
 
+is-boolean-object@^1.1.0:
+  version "1.1.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-boolean-object/-/is-boolean-object-1.1.2.tgz#5c6dc200246dd9321ae4b885a114bb1f75f63719"
+  integrity sha1-XG3CACRt2TIa5LiFoRS7H3X2Nxk=
+  dependencies:
+    call-bind "^1.0.2"
+    has-tostringtag "^1.0.0"
+
 is-buffer@^1.1.5:
   version "1.1.6"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-buffer/-/is-buffer-1.1.6.tgz#efaa2ea9daa0d7ab2ea13a97b2b8ad51fefbe8be"
   integrity sha1-76ouqdqg16suoTqXsritUf776L4=
+
+is-callable@^1.1.4, is-callable@^1.2.4:
+  version "1.2.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-callable/-/is-callable-1.2.4.tgz#47301d58dd0259407865547853df6d61fe471945"
+  integrity sha1-RzAdWN0CWUB4ZVR4U99tYf5HGUU=
 
 is-ci@^2.0.0:
   version "2.0.0"
@@ -2090,6 +2713,13 @@ is-core-module@^2.2.0:
   version "2.2.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-core-module/-/is-core-module-2.2.0.tgz#97037ef3d52224d85163f5597b2b63d9afed981a"
   integrity sha1-lwN+89UiJNhRY/VZeytj2a/tmBo=
+  dependencies:
+    has "^1.0.3"
+
+is-core-module@^2.8.0:
+  version "2.8.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-core-module/-/is-core-module-2.8.1.tgz#f59fdfca701d5879d0a6b100a40aa1560ce27211"
+  integrity sha1-9Z/fynAdWHnQprEApAqhVgzichE=
   dependencies:
     has "^1.0.3"
 
@@ -2106,6 +2736,13 @@ is-data-descriptor@^1.0.0:
   integrity sha1-2Eh2Mh0Oet0DmQQGq7u9NrqSaMc=
   dependencies:
     kind-of "^6.0.0"
+
+is-date-object@^1.0.1:
+  version "1.0.5"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-date-object/-/is-date-object-1.0.5.tgz#0841d5536e724c25597bf6ea62e1bd38298df31f"
+  integrity sha1-CEHVU25yTCVZe/bqYuG9OCmN8x8=
+  dependencies:
+    has-tostringtag "^1.0.0"
 
 is-descriptor@^0.1.0:
   version "0.1.6"
@@ -2162,12 +2799,31 @@ is-generator-fn@^2.0.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-generator-fn/-/is-generator-fn-2.1.0.tgz#7d140adc389aaf3011a8f2a2a4cfa6faadffb118"
   integrity sha1-fRQK3DiarzARqPKipM+m+q3/sRg=
 
+is-glob@^4.0.0, is-glob@^4.0.3:
+  version "4.0.3"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-glob/-/is-glob-4.0.3.tgz#64f61e42cbbb2eec2071a9dac0b28ba1e65d5084"
+  integrity sha1-ZPYeQsu7LuwgcanawLKLoeZdUIQ=
+  dependencies:
+    is-extglob "^2.1.1"
+
 is-glob@^4.0.1, is-glob@~4.0.1:
   version "4.0.1"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-glob/-/is-glob-4.0.1.tgz#7567dbe9f2f5e2467bc77ab83c4a29482407a5dc"
   integrity sha1-dWfb6fL14kZ7x3q4PEopSCQHpdw=
   dependencies:
     is-extglob "^2.1.1"
+
+is-negative-zero@^2.0.1:
+  version "2.0.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-negative-zero/-/is-negative-zero-2.0.2.tgz#7bf6f03a28003b8b3965de3ac26f664d765f3150"
+  integrity sha1-e/bwOigAO4s5Zd46wm9mTXZfMVA=
+
+is-number-object@^1.0.4:
+  version "1.0.6"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-number-object/-/is-number-object-1.0.6.tgz#6a7aaf838c7f0686a50b4553f7e54a96494e89f0"
+  integrity sha1-anqvg4x/BoalC0VT9+VKlklOifA=
+  dependencies:
+    has-tostringtag "^1.0.0"
 
 is-number@^3.0.0:
   version "3.0.0"
@@ -2193,6 +2849,19 @@ is-potential-custom-element-name@^1.0.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-potential-custom-element-name/-/is-potential-custom-element-name-1.0.0.tgz#0c52e54bcca391bb2c494b21e8626d7336c6e397"
   integrity sha1-DFLlS8yjkbssSUsh6GJtczbG45c=
 
+is-regex@^1.1.4:
+  version "1.1.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-regex/-/is-regex-1.1.4.tgz#eef5663cd59fa4c0ae339505323df6854bb15958"
+  integrity sha1-7vVmPNWfpMCuM5UFMj32hUuxWVg=
+  dependencies:
+    call-bind "^1.0.2"
+    has-tostringtag "^1.0.0"
+
+is-shared-array-buffer@^1.0.1:
+  version "1.0.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-shared-array-buffer/-/is-shared-array-buffer-1.0.1.tgz#97b0c85fbdacb59c9c446fe653b82cf2b5b7cfe6"
+  integrity sha1-l7DIX72stZycRG/mU7gs8rW3z+Y=
+
 is-stream@^1.1.0:
   version "1.1.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-stream/-/is-stream-1.1.0.tgz#12d4a3dd4e68e0b79ceb8dbc84173ae80d91ca44"
@@ -2203,10 +2872,31 @@ is-stream@^2.0.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-stream/-/is-stream-2.0.0.tgz#bde9c32680d6fae04129d6ac9d921ce7815f78e3"
   integrity sha1-venDJoDW+uBBKdasnZIc54FfeOM=
 
+is-string@^1.0.5, is-string@^1.0.7:
+  version "1.0.7"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-string/-/is-string-1.0.7.tgz#0dd12bf2006f255bb58f695110eff7491eebc0fd"
+  integrity sha1-DdEr8gBvJVu1j2lREO/3SR7rwP0=
+  dependencies:
+    has-tostringtag "^1.0.0"
+
+is-symbol@^1.0.2, is-symbol@^1.0.3:
+  version "1.0.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-symbol/-/is-symbol-1.0.4.tgz#a6dac93b635b063ca6872236de88910a57af139c"
+  integrity sha1-ptrJO2NbBjymhyI23oiRClevE5w=
+  dependencies:
+    has-symbols "^1.0.2"
+
 is-typedarray@^1.0.0, is-typedarray@~1.0.0:
   version "1.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-typedarray/-/is-typedarray-1.0.0.tgz#e479c80858df0c1b11ddda6940f96011fcda4a9a"
   integrity sha1-5HnICFjfDBsR3dppQPlgEfzaSpo=
+
+is-weakref@^1.0.1:
+  version "1.0.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/is-weakref/-/is-weakref-1.0.2.tgz#9529f383a9338205e89765e0392efc2f100f06f2"
+  integrity sha1-lSnzg6kzggXol2XgOS78LxAPBvI=
+  dependencies:
+    call-bind "^1.0.2"
 
 is-windows@^1.0.2:
   version "1.0.2"
@@ -2349,11 +3039,6 @@ jest-diff@^26.0.0, jest-diff@^26.6.2:
     diff-sequences "^26.6.2"
     jest-get-type "^26.3.0"
     pretty-format "^26.6.2"
-
-jest-docblock@^21.0.0:
-  version "21.2.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/jest-docblock/-/jest-docblock-21.2.0.tgz#51529c3b30d5fd159da60c27ceedc195faf8d414"
-  integrity sha1-UVKcOzDV/RWdpgwnzu3Blfr41BQ=
 
 jest-docblock@^26.0.0:
   version "26.0.0"
@@ -2778,10 +3463,20 @@ json-schema-traverse@^0.4.1:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/json-schema-traverse/-/json-schema-traverse-0.4.1.tgz#69f6a87d9513ab8bb8fe63bdb0979c448e684660"
   integrity sha1-afaofZUTq4u4/mO9sJecRI5oRmA=
 
+json-schema-traverse@^1.0.0:
+  version "1.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/json-schema-traverse/-/json-schema-traverse-1.0.0.tgz#ae7bcb3656ab77a73ba5c49bf654f38e6b6860e2"
+  integrity sha1-rnvLNlard6c7pcSb9lTzjmtoYOI=
+
 json-schema@0.2.3:
   version "0.2.3"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/json-schema/-/json-schema-0.2.3.tgz#b480c892e59a2f05954ce727bd3f2a4e882f9e13"
   integrity sha1-tIDIkuWaLwWVTOcnvT8qTogvnhM=
+
+json-stable-stringify-without-jsonify@^1.0.1:
+  version "1.0.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/json-stable-stringify-without-jsonify/-/json-stable-stringify-without-jsonify-1.0.1.tgz#9db7b59496ad3f3cfef30a75142d2d930ad72651"
+  integrity sha1-nbe1lJatPzz+8wp1FC0tkwrXJlE=
 
 json-stringify-safe@~5.0.1:
   version "5.0.1"
@@ -2794,6 +3489,13 @@ json5@2.x, json5@^2.1.2:
   integrity sha1-Lf7+cgxrpSXZ69kJlQ8FFTFsiaM=
   dependencies:
     minimist "^1.2.5"
+
+json5@^1.0.1:
+  version "1.0.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/json5/-/json5-1.0.1.tgz#779fb0018604fa854eacbf6252180d83543e3dbe"
+  integrity sha1-d5+wAYYE+oVOrL9iUhgNg1Q+Pb4=
+  dependencies:
+    minimist "^1.2.0"
 
 jsonfile@^4.0.0:
   version "4.0.0"
@@ -2846,6 +3548,14 @@ leven@^3.1.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/leven/-/leven-3.1.0.tgz#77891de834064cccba82ae7842bb6b14a13ed7f2"
   integrity sha1-d4kd6DQGTMy6gq54QrtrFKE+1/I=
 
+levn@^0.4.1:
+  version "0.4.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/levn/-/levn-0.4.1.tgz#ae4562c007473b932a6200d403268dd2fffc6ade"
+  integrity sha1-rkViwAdHO5MqYgDUAyaN0v/8at4=
+  dependencies:
+    prelude-ls "^1.2.1"
+    type-check "~0.4.0"
+
 levn@~0.3.0:
   version "0.3.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/levn/-/levn-0.3.0.tgz#3b09924edf9f083c0490fdd4c0bc4421e04764ee"
@@ -2870,6 +3580,14 @@ lines-and-columns@^1.1.6:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
+locate-path@^2.0.0:
+  version "2.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/locate-path/-/locate-path-2.0.0.tgz#2b568b265eec944c6d9c0de9c3dbbbca0354cd8e"
+  integrity sha1-K1aLJl7slExtnA3pw9u7ygNUzY4=
+  dependencies:
+    p-locate "^2.0.0"
+    path-exists "^3.0.0"
+
 locate-path@^3.0.0:
   version "3.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/locate-path/-/locate-path-3.0.0.tgz#dbec3b3ab759758071b58fe59fc41871af21400e"
@@ -2890,10 +3608,20 @@ lodash.memoize@4.x:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/lodash.memoize/-/lodash.memoize-4.1.2.tgz#bcc6c49a42a2840ed997f323eada5ecd182e0bfe"
   integrity sha1-vMbEmkKihA7Zl/Mj6tpezRguC/4=
 
+lodash.merge@^4.6.2:
+  version "4.6.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/lodash.merge/-/lodash.merge-4.6.2.tgz#558aa53b43b661e1925a0afdfa36a9a1085fe57a"
+  integrity sha1-VYqlO0O2YeGSWgr9+japoQhf5Xo=
+
 lodash.sortby@^4.7.0:
   version "4.7.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/lodash.sortby/-/lodash.sortby-4.7.0.tgz#edd14c824e2cc9c1e0b0a1b42bb5210516a42438"
   integrity sha1-7dFMgk4sycHgsKG0K7UhBRakJDg=
+
+lodash.truncate@^4.4.2:
+  version "4.4.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/lodash.truncate/-/lodash.truncate-4.4.2.tgz#5a350da0b1113b837ecfffd5812cbe58d6eae193"
+  integrity sha1-WjUNoLERO4N+z//VgSy+WNbq4ZM=
 
 lodash@^4.17.15, lodash@^4.17.19, lodash@^4.17.20, lodash@^4.17.4:
   version "4.17.21"
@@ -3013,6 +3741,14 @@ micromatch@^4.0.2:
     braces "^3.0.1"
     picomatch "^2.0.5"
 
+micromatch@^4.0.4:
+  version "4.0.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/micromatch/-/micromatch-4.0.4.tgz#896d519dfe9db25fce94ceb7a500919bf881ebf9"
+  integrity sha1-iW1Rnf6dsl/OlM63pQCRm/iB6/k=
+  dependencies:
+    braces "^3.0.1"
+    picomatch "^2.2.3"
+
 mime-db@1.46.0:
   version "1.46.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/mime-db/-/mime-db-1.46.0.tgz#6267748a7f799594de3cbc8cde91def349661cee"
@@ -3060,13 +3796,6 @@ mkdirp@1.x:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/mkdirp/-/mkdirp-1.0.4.tgz#3eb5ed62622756d79a5f0e2a221dfebad75c2f7e"
   integrity sha1-PrXtYmInVteaXw4qIh3+utdcL34=
 
-mkdirp@^0.5.1:
-  version "0.5.5"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/mkdirp/-/mkdirp-0.5.5.tgz#d91cefd62d1436ca0f41620e251288d420099def"
-  integrity sha1-2Rzv1i0UNsoPQWIOJRKI1CAJne8=
-  dependencies:
-    minimist "^1.2.5"
-
 ms@2.0.0:
   version "2.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ms/-/ms-2.0.0.tgz#5608aeadfc00be6c2901df5f9861788de0d597c8"
@@ -3076,6 +3805,11 @@ ms@2.1.2:
   version "2.1.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ms/-/ms-2.1.2.tgz#d09d1f357b443f493382a8eb3ccd183872ae6009"
   integrity sha1-0J0fNXtEP0kzgqjrPM0YOHKuYAk=
+
+ms@^2.1.1:
+  version "2.1.3"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ms/-/ms-2.1.3.tgz#574c8138ce1d2b5861f0b44579dbadd60c6615b2"
+  integrity sha1-V0yBOM4dK1hh8LRFedut1gxmFbI=
 
 nanomatch@^1.2.9:
   version "1.2.13"
@@ -3186,6 +3920,16 @@ object-copy@^0.1.0:
     define-property "^0.2.5"
     kind-of "^3.0.3"
 
+object-inspect@^1.11.0, object-inspect@^1.9.0:
+  version "1.12.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/object-inspect/-/object-inspect-1.12.0.tgz#6e2c120e868fd1fd18cb4f18c31741d0d6e776f0"
+  integrity sha1-biwSDoaP0f0Yy08YwxdB0NbndvA=
+
+object-keys@^1.0.12, object-keys@^1.1.1:
+  version "1.1.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/object-keys/-/object-keys-1.1.1.tgz#1c47f272df277f3b1daf061677d9c82e2322c60e"
+  integrity sha1-HEfyct8nfzsdrwYWd9nILiMixg4=
+
 object-visit@^1.0.0:
   version "1.0.1"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/object-visit/-/object-visit-1.0.1.tgz#f79c4493af0c5377b59fe39d395e41042dd045bb"
@@ -3193,12 +3937,31 @@ object-visit@^1.0.0:
   dependencies:
     isobject "^3.0.0"
 
+object.assign@^4.1.2:
+  version "4.1.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/object.assign/-/object.assign-4.1.2.tgz#0ed54a342eceb37b38ff76eb831a0e788cb63940"
+  integrity sha1-DtVKNC7Os3s4/3brgxoOeIy2OUA=
+  dependencies:
+    call-bind "^1.0.0"
+    define-properties "^1.1.3"
+    has-symbols "^1.0.1"
+    object-keys "^1.1.1"
+
 object.pick@^1.3.0:
   version "1.3.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/object.pick/-/object.pick-1.3.0.tgz#87a10ac4c1694bd2e1cbf53591a66141fb5dd747"
   integrity sha1-h6EKxMFpS9Lhy/U1kaZhQftd10c=
   dependencies:
     isobject "^3.0.1"
+
+object.values@^1.1.5:
+  version "1.1.5"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/object.values/-/object.values-1.1.5.tgz#959f63e3ce9ef108720333082131e4a459b716ac"
+  integrity sha1-lZ9j486e8QhyAzMIITHkpFm3Fqw=
+  dependencies:
+    call-bind "^1.0.2"
+    define-properties "^1.1.3"
+    es-abstract "^1.19.1"
 
 once@^1.3.0, once@^1.3.1, once@^1.4.0:
   version "1.4.0"
@@ -3231,6 +3994,18 @@ optionator@^0.8.1:
     type-check "~0.3.2"
     word-wrap "~1.2.3"
 
+optionator@^0.9.1:
+  version "0.9.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/optionator/-/optionator-0.9.1.tgz#4f236a6373dae0566a6d43e1326674f50c291499"
+  integrity sha1-TyNqY3Pa4FZqbUPhMmZ09QwpFJk=
+  dependencies:
+    deep-is "^0.1.3"
+    fast-levenshtein "^2.0.6"
+    levn "^0.4.1"
+    prelude-ls "^1.2.1"
+    type-check "^0.4.0"
+    word-wrap "^1.2.3"
+
 p-defer@^1.0.0:
   version "1.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/p-defer/-/p-defer-1.0.0.tgz#9f6eb182f6c9aa8cd743004a7d4f96b196b0fb0c"
@@ -3246,12 +4021,26 @@ p-finally@^1.0.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/p-finally/-/p-finally-1.0.0.tgz#3fbcfb15b899a44123b34b6dcc18b724336a2cae"
   integrity sha1-P7z7FbiZpEEjs0ttzBi3JDNqLK4=
 
+p-limit@^1.1.0:
+  version "1.3.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/p-limit/-/p-limit-1.3.0.tgz#b86bd5f0c25690911c7590fcbfc2010d54b3ccb8"
+  integrity sha1-uGvV8MJWkJEcdZD8v8IBDVSzzLg=
+  dependencies:
+    p-try "^1.0.0"
+
 p-limit@^2.0.0, p-limit@^2.2.0:
   version "2.3.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/p-limit/-/p-limit-2.3.0.tgz#3dd33c647a214fdfffd835933eb086da0dc21db1"
   integrity sha1-PdM8ZHohT9//2DWTPrCG2g3CHbE=
   dependencies:
     p-try "^2.0.0"
+
+p-locate@^2.0.0:
+  version "2.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/p-locate/-/p-locate-2.0.0.tgz#20a0103b222a70c8fd39cc2e580680f3dde5ec43"
+  integrity sha1-IKAQOyIqcMj9OcwuWAaA893l7EM=
+  dependencies:
+    p-limit "^1.1.0"
 
 p-locate@^3.0.0:
   version "3.0.0"
@@ -3266,6 +4055,11 @@ p-locate@^4.1.0:
   integrity sha1-o0KLtwiLOmApL2aRkni3wpetTwc=
   dependencies:
     p-limit "^2.2.0"
+
+p-try@^1.0.0:
+  version "1.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/p-try/-/p-try-1.0.0.tgz#cbc79cdbaf8fd4228e13f621f2b1a237c1b207b3"
+  integrity sha1-y8ec26+P1CKOE/Yh8rGiN8GyB7M=
 
 p-try@^2.0.0:
   version "2.2.0"
@@ -3337,6 +4131,11 @@ path-parse@^1.0.6:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/path-parse/-/path-parse-1.0.6.tgz#d62dbb5679405d72c4737ec58600e9ddcf06d24c"
   integrity sha1-1i27VnlAXXLEc37FhgDp3c8G0kw=
 
+path-parse@^1.0.7:
+  version "1.0.7"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/path-parse/-/path-parse-1.0.7.tgz#fbc114b60ca42b30d9daf5858e4bd68bbedb6735"
+  integrity sha1-+8EUtgykKzDZ2vWFjkvWi77bZzU=
+
 path-type@^4.0.0:
   version "4.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/path-type/-/path-type-4.0.0.tgz#84ed01c0a7ba380afe09d90a8c180dcd9d03043b"
@@ -3359,6 +4158,11 @@ picomatch@2.2.2, picomatch@^2.0.4, picomatch@^2.0.5, picomatch@^2.2.1:
   version "2.2.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/picomatch/-/picomatch-2.2.2.tgz#21f333e9b6b8eaff02468f5146ea406d345f4dad"
   integrity sha1-IfMz6ba46v8CRo9RRupAbTRfTa0=
+
+picomatch@^2.2.3:
+  version "2.3.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/picomatch/-/picomatch-2.3.1.tgz#3ba3833733646d9d3e4995946c1365a67fb07a42"
+  integrity sha1-O6ODNzNkbZ0+SZWUbBNlpn+wekI=
 
 pify@^3.0.0:
   version "3.0.0"
@@ -3391,15 +4195,27 @@ posix-character-classes@^0.1.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/posix-character-classes/-/posix-character-classes-0.1.1.tgz#01eac0fe3b5af71a2a6c02feabb8c1fef7e00eab"
   integrity sha1-AerA/jta9xoqbAL+q7jB/vfgDqs=
 
+prelude-ls@^1.2.1:
+  version "1.2.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/prelude-ls/-/prelude-ls-1.2.1.tgz#debc6489d7a6e6b0e7611888cec880337d316396"
+  integrity sha1-3rxkidem5rDnYRiIzsiAM30xY5Y=
+
 prelude-ls@~1.1.2:
   version "1.1.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/prelude-ls/-/prelude-ls-1.1.2.tgz#21932a549f5e52ffd9a827f570e04be62a97da54"
   integrity sha1-IZMqVJ9eUv/ZqCf1cOBL5iqX2lQ=
 
-prettier@1.19.1:
-  version "1.19.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/prettier/-/prettier-1.19.1.tgz#f7d7f5ff8a9cd872a7be4ca142095956a60797cb"
-  integrity sha1-99f1/4qc2HKnvkyhQglZVqYHl8s=
+prettier-linter-helpers@^1.0.0:
+  version "1.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/prettier-linter-helpers/-/prettier-linter-helpers-1.0.0.tgz#d23d41fe1375646de2d0104d3454a3008802cf7b"
+  integrity sha1-0j1B/hN1ZG3i0BBNNFSjAIgCz3s=
+  dependencies:
+    fast-diff "^1.1.2"
+
+prettier@^2.4.1:
+  version "2.5.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/prettier/-/prettier-2.5.1.tgz#fff75fa9d519c54cf0fce328c1017d94546bc56a"
+  integrity sha1-//dfqdUZxUzw/OMowQF9lFRrxWo=
 
 pretty-format@^26.0.0, pretty-format@^26.6.2:
   version "26.6.2"
@@ -3415,6 +4231,11 @@ process@^0.11.1:
   version "0.11.10"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/process/-/process-0.11.10.tgz#7332300e840161bda3e69a1d1d91a7d4bc16f182"
   integrity sha1-czIwDoQBYb2j5podHZGn1LwW8YI=
+
+progress@^2.0.0:
+  version "2.0.3"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/progress/-/progress-2.0.3.tgz#7e8cf8d8f5b8f239c1bc68beb4eb78567d572ef8"
+  integrity sha1-foz42PW48jnBvGi+tOt4Vn1XLvg=
 
 prompts@^2.0.1:
   version "2.4.0"
@@ -3509,6 +4330,11 @@ regex-not@^1.0.0, regex-not@^1.0.2:
     extend-shallow "^3.0.2"
     safe-regex "^1.1.0"
 
+regexpp@^3.1.0:
+  version "3.2.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/regexpp/-/regexpp-3.2.0.tgz#0425a2768d8f23bad70ca4b90461fa2f1213e1b2"
+  integrity sha1-BCWido2PI7rXDKS5BGH6LxIT4bI=
+
 remove-trailing-separator@^1.0.1:
   version "1.1.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/remove-trailing-separator/-/remove-trailing-separator-1.1.0.tgz#c24bce2a283adad5bc3f58e0d48249b92379d8ef"
@@ -3571,6 +4397,11 @@ require-directory@^2.1.1:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/require-directory/-/require-directory-2.1.1.tgz#8c64ad5fd30dab1c976e2344ffe7f792a6a6df42"
   integrity sha1-jGStX9MNqxyXbiNE/+f3kqam30I=
 
+require-from-string@^2.0.2:
+  version "2.0.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/require-from-string/-/require-from-string-2.0.2.tgz#89a7fdd938261267318eafe14f9c32e598c36909"
+  integrity sha1-iaf92TgmEmcxjq/hT5wy5ZjDaQk=
+
 require-main-filename@^2.0.0:
   version "2.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/require-main-filename/-/require-main-filename-2.0.0.tgz#d0b329ecc7cc0f61649f62215be69af54aa8989b"
@@ -3598,13 +4429,22 @@ resolve-url@^0.2.1:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/resolve-url/-/resolve-url-0.2.1.tgz#2c637fe77c893afd2a663fe21aa9080068e2052a"
   integrity sha1-LGN/53yJOv0qZj/iGqkIAGjiBSo=
 
-resolve@^1.10.0, resolve@^1.18.1, resolve@^1.3.2:
+resolve@^1.10.0, resolve@^1.18.1:
   version "1.20.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/resolve/-/resolve-1.20.0.tgz#629a013fb3f70755d6f0b7935cc1c2c5378b1975"
   integrity sha1-YpoBP7P3B1XW8LeTXMHCxTeLGXU=
   dependencies:
     is-core-module "^2.2.0"
     path-parse "^1.0.6"
+
+resolve@^1.20.0:
+  version "1.21.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/resolve/-/resolve-1.21.0.tgz#b51adc97f3472e6a5cf4444d34bc9d6b9037591f"
+  integrity sha1-tRrcl/NHLmpc9ERNNLyda5A3WR8=
+  dependencies:
+    is-core-module "^2.8.0"
+    path-parse "^1.0.7"
+    supports-preserve-symlinks-flag "^1.0.0"
 
 ret@~0.1.10:
   version "0.1.15"
@@ -3616,7 +4456,7 @@ reusify@^1.0.4:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/reusify/-/reusify-1.0.4.tgz#90da382b1e126efc02146e90845a88db12925d76"
   integrity sha1-kNo4Kx4SbvwCFG6QhFqI2xKSXXY=
 
-rimraf@3.0.2, rimraf@^3.0.0:
+rimraf@3.0.2, rimraf@^3.0.0, rimraf@^3.0.2:
   version "3.0.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/rimraf/-/rimraf-3.0.2.tgz#f1a5402ba6220ad52cc1282bac1ae3aa49fd061a"
   integrity sha1-8aVAK6YiCtUswSgrrBrjqkn9Bho=
@@ -3719,7 +4559,7 @@ semver-regex@^2.0.0:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/semver-regex/-/semver-regex-2.0.0.tgz#a93c2c5844539a770233379107b38c7b4ac9d338"
   integrity sha1-qTwsWERTmncCMzeRB7OMe0rJ0zg=
 
-"semver@2 || 3 || 4 || 5", semver@^5.3.0, semver@^5.5.0:
+"semver@2 || 3 || 4 || 5", semver@^5.5.0:
   version "5.7.1"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/semver/-/semver-5.7.1.tgz#a954f931aeba508d307bbf069eff0c01c96116f7"
   integrity sha1-qVT5Ma66UI0we78Gnv8MAclhFvc=
@@ -3735,6 +4575,13 @@ semver@^6.0.0, semver@^6.3.0:
   version "6.3.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/semver/-/semver-6.3.0.tgz#ee0a64c8af5e8ceea67687b133761e1becbd1d3d"
   integrity sha1-7gpkyK9ejO6mdoexM3YeG+y9HT0=
+
+semver@^7.2.1, semver@^7.3.5:
+  version "7.3.5"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/semver/-/semver-7.3.5.tgz#0b621c879348d8998e4b0e4be94b3f12e6018ef7"
+  integrity sha1-C2Ich5NI2JmOSw5L6Us/EuYBjvc=
+  dependencies:
+    lru-cache "^6.0.0"
 
 set-blocking@^2.0.0:
   version "2.0.0"
@@ -3788,6 +4635,15 @@ shellwords@^0.1.1:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/shellwords/-/shellwords-0.1.1.tgz#d6b9181c1a48d397324c84871efbcfc73fc0654b"
   integrity sha1-1rkYHBpI05cyTISHHvvPxz/AZUs=
 
+side-channel@^1.0.4:
+  version "1.0.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/side-channel/-/side-channel-1.0.4.tgz#efce5c8fdc104ee751b25c58d4290011fa5ea2cf"
+  integrity sha1-785cj9wQTudRslxY1CkAEfpeos8=
+  dependencies:
+    call-bind "^1.0.0"
+    get-intrinsic "^1.0.2"
+    object-inspect "^1.9.0"
+
 signal-exit@^3.0.0, signal-exit@^3.0.2:
   version "3.0.3"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/signal-exit/-/signal-exit-3.0.3.tgz#a1410c2edd8f077b08b4e253c8eacfcaf057461c"
@@ -3802,6 +4658,15 @@ slash@^3.0.0:
   version "3.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/slash/-/slash-3.0.0.tgz#6539be870c165adbd5240220dbe361f1bc4d4634"
   integrity sha1-ZTm+hwwWWtvVJAIg2+Nh8bxNRjQ=
+
+slice-ansi@^4.0.0:
+  version "4.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/slice-ansi/-/slice-ansi-4.0.0.tgz#500e8dd0fd55b05815086255b3195adf2a45fe6b"
+  integrity sha1-UA6N0P1VsFgVCGJVsxla3ypF/ms=
+  dependencies:
+    ansi-styles "^4.0.0"
+    astral-regex "^2.0.0"
+    is-fullwidth-code-point "^3.0.0"
 
 snapdragon-node@^2.0.1:
   version "2.1.1"
@@ -3965,6 +4830,11 @@ string-length@^4.0.1:
     char-regex "^1.0.2"
     strip-ansi "^6.0.0"
 
+string-natural-compare@^3.0.1:
+  version "3.0.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/string-natural-compare/-/string-natural-compare-3.0.1.tgz#7a42d58474454963759e8e8b7ae63d71c1e7fdf4"
+  integrity sha1-ekLVhHRFSWN1no6LeuY9ccHn/fQ=
+
 string-width@^3.0.0, string-width@^3.1.0:
   version "3.1.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/string-width/-/string-width-3.1.0.tgz#22767be21b62af1081574306f69ac51b62203961"
@@ -3982,6 +4852,31 @@ string-width@^4.1.0, string-width@^4.2.0:
     emoji-regex "^8.0.0"
     is-fullwidth-code-point "^3.0.0"
     strip-ansi "^6.0.0"
+
+string-width@^4.2.3:
+  version "4.2.3"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
+  integrity sha1-JpxxF9J7Ba0uU2gwqOyJXvnG0BA=
+  dependencies:
+    emoji-regex "^8.0.0"
+    is-fullwidth-code-point "^3.0.0"
+    strip-ansi "^6.0.1"
+
+string.prototype.trimend@^1.0.4:
+  version "1.0.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/string.prototype.trimend/-/string.prototype.trimend-1.0.4.tgz#e75ae90c2942c63504686c18b287b4a0b1a45f80"
+  integrity sha1-51rpDClCxjUEaGwYsoe0oLGkX4A=
+  dependencies:
+    call-bind "^1.0.2"
+    define-properties "^1.1.3"
+
+string.prototype.trimstart@^1.0.4:
+  version "1.0.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/string.prototype.trimstart/-/string.prototype.trimstart-1.0.4.tgz#b36399af4ab2999b4c9c648bd7a3fb2bb26feeed"
+  integrity sha1-s2OZr0qymZtMnGSL16P7K7Jv7u0=
+  dependencies:
+    call-bind "^1.0.2"
+    define-properties "^1.1.3"
 
 string_decoder@^1.1.1:
   version "1.3.0"
@@ -4004,6 +4899,18 @@ strip-ansi@^6.0.0:
   dependencies:
     ansi-regex "^5.0.0"
 
+strip-ansi@^6.0.1:
+  version "6.0.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
+  integrity sha1-nibGPTD1NEPpSJSVshBdN7Z6hdk=
+  dependencies:
+    ansi-regex "^5.0.1"
+
+strip-bom@^3.0.0:
+  version "3.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/strip-bom/-/strip-bom-3.0.0.tgz#2334c18e9c759f7bdd56fdef7e9ae3d588e68ed3"
+  integrity sha1-IzTBjpx1n3vdVv3vfprj1YjmjtM=
+
 strip-bom@^4.0.0:
   version "4.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/strip-bom/-/strip-bom-4.0.0.tgz#9c3505c1db45bcedca3d9cf7a16f5c5aa3901878"
@@ -4018,6 +4925,11 @@ strip-final-newline@^2.0.0:
   version "2.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/strip-final-newline/-/strip-final-newline-2.0.0.tgz#89b852fb2fcbe936f6f4b3187afb0a12c1ab58ad"
   integrity sha1-ibhS+y/L6Tb29LMYevsKEsGrWK0=
+
+strip-json-comments@^3.1.0, strip-json-comments@^3.1.1:
+  version "3.1.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/strip-json-comments/-/strip-json-comments-3.1.1.tgz#31f1281b3832630434831c310c01cccda8cbe006"
+  integrity sha1-MfEoGzgyYwQ0gxwxDAHMzajL4AY=
 
 supports-color@^5.3.0:
   version "5.5.0"
@@ -4048,10 +4960,26 @@ supports-hyperlinks@^2.0.0:
     has-flag "^4.0.0"
     supports-color "^7.0.0"
 
+supports-preserve-symlinks-flag@^1.0.0:
+  version "1.0.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz#6eda4bd344a3c94aea376d4cc31bc77311039e09"
+  integrity sha1-btpL00SjyUrqN21MwxvHcxEDngk=
+
 symbol-tree@^3.2.4:
   version "3.2.4"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/symbol-tree/-/symbol-tree-3.2.4.tgz#430637d248ba77e078883951fb9aa0eed7c63fa2"
   integrity sha1-QwY30ki6d+B4iDlR+5qg7tfGP6I=
+
+table@^6.0.9:
+  version "6.8.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/table/-/table-6.8.0.tgz#87e28f14fa4321c3377ba286f07b79b281a3b3ca"
+  integrity sha1-h+KPFPpDIcM3e6KG8Ht5soGjs8o=
+  dependencies:
+    ajv "^8.0.1"
+    lodash.truncate "^4.4.2"
+    slice-ansi "^4.0.0"
+    string-width "^4.2.3"
+    strip-ansi "^6.0.1"
 
 terminal-link@^2.0.0:
   version "2.1.1"
@@ -4069,6 +4997,11 @@ test-exclude@^6.0.0:
     "@istanbuljs/schema" "^0.1.2"
     glob "^7.1.4"
     minimatch "^3.0.4"
+
+text-table@^0.2.0:
+  version "0.2.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/text-table/-/text-table-0.2.0.tgz#7f5ee823ae805207c00af2df4a84ec3fcfa570b4"
+  integrity sha1-f17oI66AUgfACvLfSoTsP8+lcLQ=
 
 throat@^5.0.0:
   version "5.0.0"
@@ -4173,48 +5106,25 @@ ts-simple-type@~1.0.5:
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/ts-simple-type/-/ts-simple-type-1.0.7.tgz#03930af557528dd40eaa121913c7035a0baaacf8"
   integrity sha1-A5MK9VdSjdQOqhIZE8cDWguqrPg=
 
-tslib@^1.7.1, tslib@^1.8.0, tslib@^1.8.1, tslib@^1.9.0:
+tsconfig-paths@^3.12.0:
+  version "3.12.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/tsconfig-paths/-/tsconfig-paths-3.12.0.tgz#19769aca6ee8f6a1a341e38c8fa45dd9fb18899b"
+  integrity sha1-GXaaym7o9qGjQeOMj6Rd2fsYiZs=
+  dependencies:
+    "@types/json5" "^0.0.29"
+    json5 "^1.0.1"
+    minimist "^1.2.0"
+    strip-bom "^3.0.0"
+
+tslib@^1.8.1, tslib@^1.9.0:
   version "1.14.1"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/tslib/-/tslib-1.14.1.tgz#cf2d38bdc34a134bcaf1091c41f6619e2f672d00"
   integrity sha1-zy04vcNKE0vK8QkcQfZhni9nLQA=
 
-tslint-config-prettier@^1.18.0:
-  version "1.18.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/tslint-config-prettier/-/tslint-config-prettier-1.18.0.tgz#75f140bde947d35d8f0d238e0ebf809d64592c37"
-  integrity sha1-dfFAvelH012PDSOODr+AnWRZLDc=
-
-tslint-plugin-prettier@^2.3.0:
-  version "2.3.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/tslint-plugin-prettier/-/tslint-plugin-prettier-2.3.0.tgz#73fe71bf9f03842ac48c104122ca9b1de012ecf4"
-  integrity sha1-c/5xv58DhCrEjBBBIsqbHeAS7PQ=
-  dependencies:
-    eslint-plugin-prettier "^2.2.0"
-    lines-and-columns "^1.1.6"
-    tslib "^1.7.1"
-
-tslint@5.20.1:
-  version "5.20.1"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/tslint/-/tslint-5.20.1.tgz#e401e8aeda0152bc44dd07e614034f3f80c67b7d"
-  integrity sha1-5AHortoBUrxE3QfmFANPP4DGe30=
-  dependencies:
-    "@babel/code-frame" "^7.0.0"
-    builtin-modules "^1.1.1"
-    chalk "^2.3.0"
-    commander "^2.12.1"
-    diff "^4.0.1"
-    glob "^7.1.1"
-    js-yaml "^3.13.1"
-    minimatch "^3.0.4"
-    mkdirp "^0.5.1"
-    resolve "^1.3.2"
-    semver "^5.3.0"
-    tslib "^1.8.0"
-    tsutils "^2.29.0"
-
-tsutils@^2.29.0:
-  version "2.29.0"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/tsutils/-/tsutils-2.29.0.tgz#32b488501467acbedd4b85498673a0812aca0b99"
-  integrity sha1-MrSIUBRnrL7dS4VJhnOggSrKC5k=
+tsutils@^3.17.1, tsutils@^3.21.0:
+  version "3.21.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/tsutils/-/tsutils-3.21.0.tgz#b48717d394cea6c1e096983eed58e9d61715b623"
+  integrity sha1-tIcX05TOpsHglpg+7Vjp1hcVtiM=
   dependencies:
     tslib "^1.8.1"
 
@@ -4229,6 +5139,13 @@ tweetnacl@^0.14.3, tweetnacl@~0.14.0:
   version "0.14.5"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/tweetnacl/-/tweetnacl-0.14.5.tgz#5ae68177f192d4456269d108afa93ff8743f4f64"
   integrity sha1-WuaBd/GS1EViadEIr6k/+HQ/T2Q=
+
+type-check@^0.4.0, type-check@~0.4.0:
+  version "0.4.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/type-check/-/type-check-0.4.0.tgz#07b8203bfa7056c0657050e3ccd2c37730bab8f1"
+  integrity sha1-B7ggO/pwVsBlcFDjzNLDdzC6uPE=
+  dependencies:
+    prelude-ls "^1.2.1"
 
 type-check@~0.3.2:
   version "0.3.2"
@@ -4246,6 +5163,11 @@ type-fest@^0.11.0:
   version "0.11.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/type-fest/-/type-fest-0.11.0.tgz#97abf0872310fed88a5c466b25681576145e33f1"
   integrity sha1-l6vwhyMQ/tiKXEZrJWgVdhReM/E=
+
+type-fest@^0.20.2:
+  version "0.20.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/type-fest/-/type-fest-0.20.2.tgz#1bf207f4b28f91583666cb5fbd327887301cd5f4"
+  integrity sha1-G/IH9LKPkVg2ZstfvTJ4hzAc1fQ=
 
 type-fest@^0.6.0:
   version "0.6.0"
@@ -4268,6 +5190,16 @@ typescript@^3.8.3:
   version "3.9.9"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/typescript/-/typescript-3.9.9.tgz#e69905c54bc0681d0518bd4d587cc6f2d0b1a674"
   integrity sha1-5pkFxUvAaB0FGL1NWHzG8tCxpnQ=
+
+unbox-primitive@^1.0.1:
+  version "1.0.1"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/unbox-primitive/-/unbox-primitive-1.0.1.tgz#085e215625ec3162574dc8859abee78a59b14471"
+  integrity sha1-CF4hViXsMWJXTciFmr7nilmxRHE=
+  dependencies:
+    function-bind "^1.1.1"
+    has-bigints "^1.0.1"
+    has-symbols "^1.0.2"
+    which-boxed-primitive "^1.0.2"
 
 union-value@^1.0.0:
   version "1.0.1"
@@ -4330,6 +5262,11 @@ uuid@^8.3.0:
   version "8.3.2"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/uuid/-/uuid-8.3.2.tgz#80d5b5ced271bb9af6c445f21a1a04c606cefbe2"
   integrity sha1-gNW1ztJxu5r2xEXyGhoExgbO++I=
+
+v8-compile-cache@^2.0.3:
+  version "2.3.0"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/v8-compile-cache/-/v8-compile-cache-2.3.0.tgz#2de19618c66dc247dcfb6f99338035d8245a2cee"
+  integrity sha1-LeGWGMZtwkfc+2+ZM4A12CRaLO4=
 
 v8-to-istanbul@^7.0.0:
   version "7.1.0"
@@ -4419,6 +5356,17 @@ whatwg-url@^8.0.0:
     tr46 "^2.0.2"
     webidl-conversions "^6.1.0"
 
+which-boxed-primitive@^1.0.2:
+  version "1.0.2"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/which-boxed-primitive/-/which-boxed-primitive-1.0.2.tgz#13757bc89b209b049fe5d86430e21cf40a89a8e6"
+  integrity sha1-E3V7yJsgmwSf5dhkMOIc9AqJqOY=
+  dependencies:
+    is-bigint "^1.0.1"
+    is-boolean-object "^1.1.0"
+    is-number-object "^1.0.4"
+    is-string "^1.0.5"
+    is-symbol "^1.0.3"
+
 which-module@^2.0.0:
   version "2.0.0"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/which-module/-/which-module-2.0.0.tgz#d9ef07dce77b9902b8a3a8fa4b31c3e3f7e6e87a"
@@ -4443,7 +5391,7 @@ which@^2.0.1, which@^2.0.2:
   dependencies:
     isexe "^2.0.0"
 
-word-wrap@~1.2.3:
+word-wrap@^1.2.3, word-wrap@~1.2.3:
   version "1.2.3"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/word-wrap/-/word-wrap-1.2.3.tgz#610636f6b1f703891bd34771ccb17fb93b47079c"
   integrity sha1-YQY29rH3A4kb00dxzLF/uTtHB5w=
