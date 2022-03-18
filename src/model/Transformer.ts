@@ -20,5 +20,6 @@ export type TransformerKind = "before" | "after" | "afterDeclarations";
 export type Transformer = (ctx: ts.TransformationContext) => ts.Transformer<ts.SourceFile>;
 
 export const fromGenerator = (generator: Generator, program: ts.Program): Transformer => (
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     context: ts.TransformationContext
 ): ts.Transformer<ts.SourceFile> => (file: ts.SourceFile) => ts.visitNode(file, generator.process(program));

@@ -233,6 +233,7 @@ class StyleVisitorAdaptor {
         }
         return node;
     }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private shouldVisit(node: Node): boolean {
         return this.mode !== "disabled";
     }

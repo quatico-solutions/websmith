@@ -11,7 +11,8 @@
  * disclose such Confidential Information and shall use it only in
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
- */
+*/
+// eslint-disable-next-line import/no-unresolved
 import memoize from "mem";
 import { join } from "path";
 // @ts-ignore no type desclaration

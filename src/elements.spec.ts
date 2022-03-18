@@ -42,7 +42,7 @@ describe("isElementDeclaration", () => {
 
         const actual = isElementDeclaration(target);
 
-        expect(actual).toEqual(true);
+        expect(actual).toBe(true);
     });
 
     it("returns false without ClassDeclaration", () => {
@@ -53,7 +53,7 @@ describe("isElementDeclaration", () => {
 
         const actual = isElementDeclaration(target);
 
-        expect(actual).toEqual(false);
+        expect(actual).toBe(false);
     });
 
     it("returns false with ClassDeclaration and no decorator", () => {
@@ -63,7 +63,7 @@ describe("isElementDeclaration", () => {
 
         const actual = isElementDeclaration(target);
 
-        expect(actual).toEqual(false);
+        expect(actual).toBe(false);
     });
 
     it("returns true with single-quote decorator", () => {
@@ -112,7 +112,7 @@ describe("isScriptFile", () => {
 
         const actual = isScriptFile(target);
 
-        expect(actual).toEqual(true);
+        expect(actual).toBe(true);
     });
 
     it("returns false for SourceFile without ClassDeclaration", () => {
@@ -129,7 +129,7 @@ describe("isScriptFile", () => {
 
         const actual = isScriptFile(target);
 
-        expect(actual).toEqual(false);
+        expect(actual).toBe(false);
     });
 
     it("returns false for not SourceFile", () => {
@@ -146,7 +146,7 @@ describe("isScriptFile", () => {
 
         const actual = isScriptFile(target);
 
-        expect(actual).toEqual(false);
+        expect(actual).toBe(false);
     });
 
     it("returns false for SourceFile with ClassDeclaration and no decorator", () => {
@@ -162,7 +162,7 @@ describe("isScriptFile", () => {
 
         const actual = isScriptFile(target);
 
-        expect(actual).toEqual(false);
+        expect(actual).toBe(false);
     });
 
     it("returns true for SourceFile with single-quote decorator", () => {
@@ -217,7 +217,7 @@ describe("isStyleFile", () => {
 
         const actual = isStyleFile(target);
 
-        expect(actual).toEqual(true);
+        expect(actual).toBe(true);
     });
 
     it("returns true for style file w/o underscore name", () => {
@@ -228,7 +228,7 @@ describe("isStyleFile", () => {
 
         const actual = isStyleFile(target);
 
-        expect(actual).toEqual(true);
+        expect(actual).toBe(true);
     });
 
     it("returns false for style file w/o underscore name and true", () => {
@@ -239,6 +239,6 @@ describe("isStyleFile", () => {
 
         const actual = isStyleFile(target, true);
 
-        expect(actual).toEqual(false);
+        expect(actual).toBe(false);
     });
 });

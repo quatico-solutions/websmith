@@ -308,7 +308,7 @@ describe("createWatchHost", () => {
 
     describe("useCaseSensitiveFileNames", () => {
         it("return same value", () => {
-            expect(target.useCaseSensitiveFileNames()).toEqual(false);
+            expect(target.useCaseSensitiveFileNames()).toBe(false);
         });
     });
 

@@ -26,7 +26,7 @@ describe("createSass", () => {
 
         compileSass("invalid css");
 
-        expect(reporter.message).toEqual(`Error: expected "{".
+        expect(reporter.message).toBe(`Error: expected "{".
   ╷
 1 │ invalid css
   │            ^
@@ -40,6 +40,6 @@ describe("createSass", () => {
 
         compileSass(".foo {}");
 
-        expect(reporter.message).toEqual("");
+        expect(reporter.message).toBe("");
     });
 });

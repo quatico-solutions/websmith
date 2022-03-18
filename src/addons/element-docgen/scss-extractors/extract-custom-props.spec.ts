@@ -58,12 +58,12 @@ describe("extractImportedStyles", () => {
     it("extracts empty string for declaration without content", () => {
         const input = '--PRE--importedStyles() { return ""; }--POST--';
         const actual = extractImportedStyles(input, "qs-pattern", "pattern.js", reporter);
-        expect(actual).toStrictEqual("");
+        expect(actual).toBe("");
     });
     it("unescapes extracted text", () => {
         const input = 'importedStyles() { return "\\u00c4\\n\\""; }';
         const actual = extractImportedStyles(input, "qs-pattern", "pattern.js", reporter);
-        expect(actual).toStrictEqual('Ä\n"');
+        expect(actual).toBe('Ä\n"');
     });
 });
 
