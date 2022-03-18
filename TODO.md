@@ -1,7 +1,7 @@
 <!--
  @license
 
- Copyright (c) 2017-2021 Quatico Solutions AG
+ Copyright (c) 2017-2022 Quatico Solutions AG
  Förrlibuckstrasse 220, 8005 Zurich, Switzerland
 
  All Rights Reserved.
@@ -12,9 +12,10 @@
  accordance with the terms of the license agreement you entered into
  with Quatico.
 -->
+
 # TODOS
 
-- [ ] Add proper CLI interface
-- [ ] Depict scope: injectStyles, generate-docs (mixins, properties), generate-snippets (scss, css), optimize CSS styles
-- [ ] Picture compilation process w/ targets, transformers, plugins
-- [ ] Describe API for AST Transformers
+-   [ ] Add proper CLI interface
+-   [ ] Depict scope: injectStyles, generate-docs (mixins, properties), generate-snippets (scss, css), optimize CSS styles
+-   [ ] Picture compilation process w/ targets, transformers, plugins
+-   [ ] Describe API for AST Transformers
