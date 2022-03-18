@@ -42,7 +42,7 @@ const testSystem = createBrowserSystem({
         }`,
 });
 
-// FIXME: Implement
+// TODO: Implement integration tests for DocGenerator
 describe("XXX", () => {
     it.skip("XXX", () => {
         const mockContext = {} as any;
