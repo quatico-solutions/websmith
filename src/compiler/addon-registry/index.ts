@@ -13,6 +13,8 @@
  * with Quatico.
  */
 import { createResolver } from "./addon-resolver";
+import type { AddonActivator } from "./AddonActivator";
 import { AddonRegistry, CustomGenerators, CustomProcessors, CustomStyleTransformers } from "./AddonRegistry";
 
-export { AddonRegistry, CustomGenerators, CustomProcessors, CustomStyleTransformers, createResolver };
+export { AddonRegistry, createResolver };
+export type { CustomGenerators, CustomProcessors, CustomStyleTransformers, AddonActivator };

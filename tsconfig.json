@@ -72,6 +72,6 @@
         "noEmitOnError": true,
         "skipLibCheck": true
     },
-    "exclude": ["node_modules", "bin", "src/__mocks__"],
+    "exclude": ["node_modules", "bin"],
     "include": ["src", "@types"]
 }

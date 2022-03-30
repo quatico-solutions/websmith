@@ -14,7 +14,7 @@
  */
 /* eslint-disable jest/no-mocks-import */
 import ts from "typescript";
-import { ReporterMock } from "../../__mocks__";
+import { ReporterMock } from "../../../test";
 import { tsDefaults } from "../../compiler";
 import { createBrowserSystem, createCompileHost, createVersionedFiles, readFiles } from "../../environment";
 import { DocGenerator } from "./DocGenerator";

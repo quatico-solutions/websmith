@@ -14,13 +14,13 @@
  */
 /* eslint-disable jest/no-mocks-import */
 import path from "path";
-import { ReporterMock } from "../../__mocks__";
+import { ReporterMock } from "../../../test";
 import { createBrowserSystem } from "../../environment";
-import { CompilerContext } from "../../model";
+import { CompilationContext } from "../../compiler";
 import { createResolver } from "./addon-resolver";
 
 beforeAll(() => {
-    jest.mock(path.normalize(`${__dirname}/../addons/one/addon`), () => ({ activate: (context: CompilerContext) => undefined }), {
+    jest.mock(path.normalize(`${__dirname}/../addons/one/addon`), () => ({ activate: (context: CompilationContext) => undefined }), {
         virtual: true,
     });
 

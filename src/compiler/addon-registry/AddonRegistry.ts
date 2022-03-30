@@ -13,78 +13,63 @@
  * with Quatico.
  */
 import ts from "typescript";
-import {
-    CompilerContext,
-    CompilerOptions,
-    Generator,
-    GeneratorKind,
-    Processor,
-    ProcessorKind,
-    Reporter,
-    StyleTransformer,
-    StyleTransformerKind,
-    Transformer,
-    TransformerKind,
-} from "../../model";
-import { concat } from "../collections";
+import { CompilerAddon, Generator, Processor, Reporter, StyleTransformer, WarnMessage } from "../../model";
+import { CompilerConfig } from "../config";
+import { createResolver } from "./addon-resolver";
 
-// FIXME: Separate registry from context, Only compiler should have direct access to registry
-export class AddonRegistry implements CompilerContext {
-    public readonly compilerOptions: CompilerOptions;
-    public readonly system: ts.System;
-    public readonly reporter: Reporter;
+export type AddonRegistryOptions = {
+    addonsDir: string;
+    config?: CompilerConfig;
+    reporter: Reporter;
+    system: ts.System;
+};
 
-    private _transformers: ts.CustomTransformers;
-    private _styleTransformers: CustomStyleTransformers;
-    private _generators: CustomGenerators;
-    private _processors: CustomProcessors;
+export class AddonRegistry {
+    private config?: CompilerConfig;
+    private availableAddons: CompilerAddon[];
+    private reporter: Reporter;
 
-    constructor(options: CompilerOptions, reporter: Reporter, system: ts.System) {
-        this._styleTransformers = {};
-        this._transformers = {};
-        this._generators = {};
-        this._processors = {};
+    constructor(options: AddonRegistryOptions) {
+        const { addonsDir, config, reporter, system } = options;
+        this.config = config;
+        this.availableAddons = findAddons(addonsDir, reporter, system);
         this.reporter = reporter;
-        this.system = system;
-        this.compilerOptions = options;
     }
 
-    public registerStyleTransformer(kind: StyleTransformerKind, trans: StyleTransformer): this {
-        this._styleTransformers[kind] = concat(this._transformers[kind] as any, [trans]) as any;
-        return this;
+    public getAddons(target?: string): CompilerAddon[] {
+        const expected = getAddonNames(target, this.config);
+        this.reportMissingAddons(target ?? "", expected);
+        if (expected.length > 0) {
+            return this.availableAddons.filter(addon => expected.includes(addon.name));
+        }
+        return this.availableAddons;
     }
 
-    public registerTransformer(kind: TransformerKind, trans: Transformer): this {
-        this._transformers[kind] = concat(this._transformers[kind] as any, [trans]) as any;
-        return this;
-    }
-
-    public registerGenerator(kind: GeneratorKind, gen: Generator): this {
-        this._generators[kind] = concat(this._generators[kind], [gen]);
-        return this;
-    }
-
-    public registerProcessor(kind: ProcessorKind, proc: Processor): this {
-        this._processors[kind] = concat(this._processors[kind], [proc]);
-        return this;
-    }
-
-    public get styleTransformers(): CustomStyleTransformers {
-        return this._styleTransformers;
-    }
-
-    public get transformers(): ts.CustomTransformers {
-        return this._transformers;
-    }
-
-    public get generators(): CustomGenerators {
-        return this._generators;
-    }
-
-    public get processors(): CustomProcessors {
-        return this._processors;
+    private reportMissingAddons(target: string, expected: string[]): void {
+        // TODO: Addon resolution: Found addons in addonsDir vs. specified addons in CompilerConfig
+        // Found addons in addonsDir
+        // Specified addon names in CompilerConfig
+        const missing = expected.filter(name => !this.availableAddons.some(addon => addon.name === name));
+        if (missing.length > 0) {
+            this.reporter.reportDiagnostic(new WarnMessage(`Missing addons for target "${target || "All"}": "${missing.join(", ")}"`));
+        }
     }
 }
+
+const getAddonNames = (target?: string, config: CompilerConfig = {}): string[] => {
+    if (target) {
+        const { targets = {} } = config;
+        return targets[target]?.addons ?? [];
+    }
+    return [];
+};
+
+const findAddons = (addonsDir: string, reporter: Reporter, system: ts.System): CompilerAddon[] => {
+    // TODO: Implement resolution of all addons in addonsDir
+    createResolver(reporter, system);
+    return [];
+};
+
 export interface CustomProcessors {
     element?: Processor[];
     styles?: Processor[];

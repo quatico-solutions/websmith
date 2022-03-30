@@ -1,7 +1,8 @@
 /* eslint-disable jest/no-mocks-import */
 import ts from "typescript";
-import { ReporterMock } from "../__mocks__";
+import { ReporterMock } from "../../test";
 import { createBrowserSystem } from "../environment";
+import { AddonRegistry } from "./addon-registry";
 import { Compiler } from "./Compiler";
 
 describe("end-2-end compile", () => {
@@ -11,11 +12,7 @@ describe("end-2-end compile", () => {
             "src/one.ts": `whatever`,
             "src/two.ts": `whatever`,
         });
-        const testObj = new Compiler({
-            configPath: "tsconfig.json",
-            reporter: new ReporterMock(system),
-            system,
-        });
+        const testObj = createCompiler(system);
 
         const result = testObj.compile();
 
@@ -34,16 +31,32 @@ describe("end-2-end compile", () => {
             "tsconfig.json": JSON.stringify({}),
             "src/one.ts": `whatever`,
         });
-        const testObj = new Compiler({
-            configPath: "tsconfig.json",
-            reporter: new ReporterMock(system),
-            system,
-        });
+        const testObj = createCompiler(system);
 
-        testObj.getAddonRegistry().registerTransformer("before", () => target);
+        testObj.getContext()!.registerEmitTransformer("before", () => target);
         testObj.compile();
 
         expect(target).toHaveBeenCalledWith(expect.objectContaining({ fileName: "src/one.ts" }));
         expect(target).toHaveBeenCalledTimes(1);
     });
 });
+
+const createCompiler = (system: ts.System) => {
+    const reporter = new ReporterMock(system);
+    const result = new Compiler(
+        {
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system }),
+            buildDir: "./src",
+            config: {},
+            project: {},
+            reporter,
+            targets: [],
+            tsconfig: { options: {}, fileNames: [], errors: [] },
+            debug: false,
+            sourceMap: false,
+            watch: false,
+        },
+        system
+    );
+    return result;
+};

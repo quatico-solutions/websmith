@@ -15,8 +15,8 @@
 /* eslint-disable jest/no-mocks-import */
 import path from "path";
 import ts from "typescript";
-import { ReporterMock } from "../__mocks__";
-import { createConfig } from "../compiler";
+import { ReporterMock } from "../../test";
+import { parseProjectConfig } from "../compiler";
 import { createBrowserSystem } from "./browser-system";
 import { createCompileHost, createWatchHost } from "./compile-service";
 
@@ -32,7 +32,7 @@ const testSystem = createBrowserSystem({
 describe("createCompileHost", () => {
     let expected: ts.CompilerHost;
     let target: ts.CompilerHost;
-    const options = createConfig("tsconfig.json", testSystem).options;
+    const options = parseProjectConfig("tsconfig.json", testSystem).options;
     beforeEach(() => {
         expected = ts.createCompilerHost(options);
         target = createCompileHost({}, testSystem);
@@ -241,7 +241,7 @@ describe("createCompileHost", () => {
 
 describe("createWatchHost", () => {
     let target: ts.WatchCompilerHostOfFilesAndCompilerOptions<ts.SemanticDiagnosticsBuilderProgram>;
-    const config = createConfig("tsconfig.json", testSystem);
+    const config = parseProjectConfig("tsconfig.json", testSystem);
     beforeEach(() => {
         target = createWatchHost(config.fileNames, config.options, testSystem, new ReporterMock(testSystem));
     });

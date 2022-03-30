@@ -14,7 +14,8 @@
  */
 import { uniq } from "lodash";
 import { Node } from "scss-parser";
-import { parseStyles, visitNode } from "../../../compiler";
+// TODO: Add support for style processors via addon: FIX IMPORT
+import { parseStyles, visitNode } from "../../style-compiler";
 
 export const parseCustomPropertyNames = (styles: string): string[] => {
     if (!styles) {

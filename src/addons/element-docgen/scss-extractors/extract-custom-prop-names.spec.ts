@@ -14,7 +14,7 @@
  */
 /* eslint-disable jest/no-mocks-import */
 import path from "path";
-import { ReporterMock } from "../../../__mocks__";
+import { ReporterMock } from "../../../../test";
 import { createBrowserSystem } from "../../../environment";
 import { extractCustomPropNames, readCustomPropNames } from "./extract-custom-prop-names";
 

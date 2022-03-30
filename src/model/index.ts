@@ -12,27 +12,28 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { CompilerAddon } from "./CompilerAddon";
-import { CompilerContext } from "./CompilerContext";
-import { CompilerOptions } from "./CompilerOptions";
-import { Generator, GeneratorKind } from "./Generator";
+import type { CompilerOptions } from "../compiler";
+import type { CompilerAddon } from "./CompilerAddon";
+import type { EmitTransformer, EmitTransformerKind } from "./EmitTransformer";
+import type { Transformer, TransformerKind } from "./Transformer";
+import type { StyleTransformer, StyleTransformerKind } from "./StyleTransformer";
+import type { Generator, GeneratorKind } from "./Generator";
 import { Processor, ProcessorKind } from "./Processor";
-import { aggregateMessages, ErrorMessage, InfoMessage, messageToString, Reporter, WarnMessage } from "./Reporter";
-import { StyleTransformer, StyleTransformerKind } from "./StyleTransformer";
-import { fromGenerator, Transformer, TransformerKind } from "./Transformer";
-import { VersionedFile } from "./VersionedFile";
+import { aggregateMessages, ErrorMessage, InfoMessage, messageToString, WarnMessage } from "./Reporter";
+import type { Reporter } from "./Reporter";
+import type { VersionedFile } from "./VersionedFile";
+import type { PreEmitTransformer } from "./PreEmitTransformer";
 
-export {
-    aggregateMessages,
+export { aggregateMessages, ErrorMessage, InfoMessage, messageToString, WarnMessage };
+
+export type {
     CompilerAddon,
-    CompilerContext,
     CompilerOptions,
-    ErrorMessage,
-    fromGenerator,
+    EmitTransformer,
+    EmitTransformerKind,
     Generator,
     GeneratorKind,
-    InfoMessage,
-    messageToString,
+    PreEmitTransformer,
     Processor,
     ProcessorKind,
     Reporter,
@@ -41,5 +42,4 @@ export {
     Transformer,
     TransformerKind,
     VersionedFile,
-    WarnMessage,
 };

@@ -14,10 +14,11 @@
  */
 /* eslint-disable jest/no-mocks-import */
 import ts from "typescript";
-import { ReporterMock } from "../../__mocks__";
 import { createBrowserSystem, getVersionedFile } from "../../environment";
+import { ReporterMock } from "../../../test";
 import { createStyleCompiler, resolveStyleImports, tryTransform } from "./compile-styles";
 import { findStylesMethod } from "./inline-styles";
+import { Node } from "./parse-scss";
 
 const testSystem = createBrowserSystem({
     "/two.scss": `.target { display: none; }`,
@@ -139,9 +140,9 @@ describe("tryTransform", () => {
         const actual = tryTransform(".target { display: none; }", {
             reporter,
             visitor: {
-                endVisit: node => node.type === "class",
-                startVisit: node => node.type === "class",
-                visitIdentifier: node => {
+                endVisit: (node: Node) => node.type === "class",
+                startVisit: (node: Node) => node.type === "class",
+                visitIdentifier: (node: Node) => {
                     node.value = `${node.value}-expected`;
                     return false;
                 },
@@ -161,9 +162,9 @@ describe("tryTransform", () => {
             {
                 reporter,
                 visitor: {
-                    endVisit: node => node.type === "class",
-                    startVisit: node => node.type === "class",
-                    visitIdentifier: node => {
+                    endVisit: (node: Node) => node.type === "class",
+                    startVisit: (node: Node) => node.type === "class",
+                    visitIdentifier: (node: Node) => {
                         node.value = `${node.value}-expected`;
                         return true;
                     },

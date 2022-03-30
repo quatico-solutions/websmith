@@ -14,10 +14,10 @@
  */
 /* eslint-disable jest/no-mocks-import */
 import ts from "typescript";
-import { GeneratorMock, ReporterMock } from "../__mocks__";
+import { ReporterMock } from "../../test";
 import { createBrowserSystem, createSystem } from "../environment";
 import { CompilerOptions } from "../model";
-import { CustomGenerators } from "./addon-registry";
+import { AddonRegistry } from "./addon-registry";
 import { Compiler } from "./Compiler";
 import { Project } from "./Parser";
 
@@ -68,33 +68,35 @@ class CompilerTestClass extends Compiler {
     public project?: Project;
 
     constructor(options: CompilerOptions) {
-        options.system = testSystem;
-        super(options);
+        super(options, testSystem);
     }
     public parse(fileNames?: string[]): Project {
         this.project = super.parse(fileNames ?? []);
         return this.project!;
     }
-    public emit(program: ts.Program): ts.EmitResult {
-        return super.emit(program);
-    }
     public report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         return super.report(program, result);
-    }
-    public getTransformers(program: ts.Program): ts.CustomTransformers {
-        return super.getTransformers(program);
-    }
-    public getGenerators(): CustomGenerators {
-        return super.getGenerators();
     }
 }
 
 class CompilerMockClass extends CompilerTestClass {}
 
 let testObj: CompilerTestClass;
+const reporter = new ReporterMock(testSystem);
 
 beforeEach(() => {
-    testObj = new CompilerTestClass({ configPath: "tsconfig.json", reporter: new ReporterMock(testSystem) });
+    testObj = new CompilerTestClass({
+        addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+        buildDir: "./src",
+        config: {},
+        project: {},
+        reporter,
+        targets: [],
+        tsconfig: { options: {}, fileNames: [], errors: [] },
+        debug: false,
+        sourceMap: false,
+        watch: false,
+    });
 });
 
 describe("Constructor", () => {
@@ -116,10 +118,12 @@ describe("getSystem", () => {
 describe("setOptions", () => {
     it("replaces compiler options", () => {
         testObj.setOptions({
-            react: 1,
-        });
+            project: {
+                react: 1,
+            },
+        } as any);
 
-        expect(testObj.getOptions()).toEqual({ react: 1 });
+        expect(testObj.getOptions().project).toEqual({ react: 1 });
     });
 });
 
@@ -166,9 +170,21 @@ describe("parse", () => {
 
 describe("compile", () => {
     beforeEach(() => {
-        testObj = new CompilerMockClass({ configPath: "tsconfig.json" });
+        testObj = new CompilerMockClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            config: {},
+            project: {},
+            reporter,
+            targets: [],
+            tsconfig: { options: {}, fileNames: [], errors: [] },
+            debug: false,
+            sourceMap: false,
+            watch: false,
+        });
         CompilerMockClass.prototype.parse = jest.fn().mockReturnValue({ program: {}, stylePaths: [] });
-        CompilerMockClass.prototype.emit = jest.fn();
+        // TODO: Emit is no longer used
+        // CompilerMockClass.prototype.emit = jest.fn();
         CompilerMockClass.prototype.report = jest.fn();
     });
 
@@ -181,18 +197,10 @@ describe("compile", () => {
         expect(target).toHaveBeenCalledTimes(1);
     });
 
-    it("calls parse with files from arguments", () => {
-        const target = jest.fn().mockReturnValue({ program: {}, stylePaths: [] });
-        CompilerMockClass.prototype.parse = target;
-
-        testObj.compile("one.ts", "two.ts");
-
-        expect(target).toHaveBeenCalledWith(["one.ts", "two.ts"]);
-    });
-
     it("calls emit", () => {
         const target = jest.fn();
-        CompilerMockClass.prototype.emit = target;
+        // TODO: Emit is no longer used
+        // CompilerMockClass.prototype.emit = target;
 
         testObj.compile();
 
@@ -209,94 +217,106 @@ describe("compile", () => {
     });
 });
 
-describe("emit", () => {
-    it("calls emit on program", () => {
-        const target = jest.fn();
-        const mockProgram = { emit: target } as any;
+/// TODO: Migrate emit() tests to use compile() or compileSourceFile()?
+// describe("emit", () => {
+//     it("calls emit on program", () => {
+//         const target = jest.fn();
+//         const mockProgram = { emit: target } as any;
 
-        testObj.emit(mockProgram);
+//         testObj.emit(mockProgram);
 
-        expect(target).toHaveBeenCalled();
-    });
+//         expect(target).toHaveBeenCalled();
+//     });
 
-    it("calls emit on every generator", () => {
-        const mockProgram = {
-            emit: jest.fn().mockReturnValue({}),
-        } as any;
-        const target = jest.fn().mockReturnValue({});
-        const generator = GeneratorMock({ emit: target });
-        testObj.getAddonRegistry().registerGenerator("docs", generator);
+//     it("calls emit on every generator", () => {
+//         const mockProgram = {
+//             emit: jest.fn().mockReturnValue({}),
+//         } as any;
+//         const target = jest.fn().mockReturnValue({});
+//         const generator = GeneratorMock({ emit: target });
+//         testObj.getContext()!.registerGenerator("docs", generator);
 
-        testObj.emit(mockProgram);
+//         testObj.emit(mockProgram);
 
-        expect(target).toHaveBeenCalled();
-    });
+//         expect(target).toHaveBeenCalled();
+//     });
 
-    it("yields message from performed generators", () => {
-        const mockProgram = {
-            emit: jest.fn().mockReturnValue({}),
-        } as any;
-        const target = jest.fn().mockReturnValue({ diagnostics: [{ messageText: "Passed" }] });
-        const generator = GeneratorMock({ emit: target });
-        testObj.getAddonRegistry().registerGenerator("docs", generator);
+//     it("yields message from performed generators", () => {
+//         const mockProgram = {
+//             emit: jest.fn().mockReturnValue({}),
+//         } as any;
+//         const target = jest.fn().mockReturnValue({ diagnostics: [{ messageText: "Passed" }] });
+//         const generator = GeneratorMock({ emit: target });
+//         testObj.getContext()!.registerGenerator("docs", generator);
 
-        const actual = testObj.emit(mockProgram);
+//         const actual = testObj.emit(mockProgram);
 
-        expect(actual.diagnostics.reduce((res, cur) => (res += cur.messageText), "")).toBe("Passed");
-        expect(actual.emitSkipped).toBe(false);
-        expect(actual.emittedFiles).toEqual([]);
-    });
+//         expect(actual.diagnostics.reduce((res, cur) => (res += cur.messageText), "")).toBe("Passed");
+//         expect(actual.emitSkipped).toBe(false);
+//         expect(actual.emittedFiles).toEqual([]);
+//     });
 
-    it("yields error message from generators that throws error", () => {
-        const mockProgram = {
-            emit: jest.fn().mockReturnValue({}),
-        } as any;
-        const target = jest.fn().mockImplementation(() => {
-            throw new Error("Expected");
-        });
-        const generator = GeneratorMock({ emit: target });
-        testObj.getAddonRegistry().registerGenerator("docs", generator);
+//     it("yields error message from generators that throws error", () => {
+//         const mockProgram = {
+//             emit: jest.fn().mockReturnValue({}),
+//         } as any;
+//         const target = jest.fn().mockImplementation(() => {
+//             throw new Error("Expected");
+//         });
+//         const generator = GeneratorMock({ emit: target });
+//         testObj.getContext()!.registerGenerator("docs", generator);
 
-        const actual = testObj.emit(mockProgram);
+//         const actual = testObj.emit(mockProgram);
 
-        expect(actual.diagnostics.reduce((res, cur) => (res += cur.messageText), "")).toBe("Expected");
-        expect(actual.emitSkipped).toBe(true);
-        expect(actual.emittedFiles).toEqual([]);
-    });
+//         expect(actual.diagnostics.reduce((res, cur) => (res += cur.messageText), "")).toBe("Expected");
+//         expect(actual.emitSkipped).toBe(true);
+//         expect(actual.emittedFiles).toEqual([]);
+//     });
 
-    it("yields error message from generators that throws error with one failing generators", () => {
-        const mockProgram = {
-            emit: jest.fn().mockReturnValue({}),
-        } as any;
-        const target = jest.fn().mockImplementation(() => {
-            throw new Error("Expected");
-        });
-        const generator = GeneratorMock({ emit: target });
-        testObj
-            .getAddonRegistry()
-            .registerGenerator("docs", generator)
-            .registerGenerator(
-                "docs",
-                (() => {
-                    const result: any = jest.fn();
-                    result.emit = jest.fn().mockReturnValue({});
-                    return result;
-                })()
-            );
+//     it("yields error message from generators that throws error with one failing generators", () => {
+//         const mockProgram = {
+//             emit: jest.fn().mockReturnValue({}),
+//         } as any;
+//         const target = jest.fn().mockImplementation(() => {
+//             throw new Error("Expected");
+//         });
+//         const generator = GeneratorMock({ emit: target });
+//         testObj
+//             .getContext()!
+//             .registerGenerator("docs", generator)
+//             .registerGenerator(
+//                 "docs",
+//                 (() => {
+//                     const result: any = jest.fn();
+//                     result.emit = jest.fn().mockReturnValue({});
+//                     return result;
+//                 })()
+//             );
 
-        const actual = testObj.emit(mockProgram);
+//         const actual = testObj.emit(mockProgram);
 
-        expect(actual.diagnostics.reduce((res, cur) => (res += cur.messageText), "")).toBe("Expected");
-        expect(actual.emitSkipped).toBe(true);
-        expect(actual.emittedFiles).toEqual([]);
-    });
-});
+//         expect(actual.diagnostics.reduce((res, cur) => (res += cur.messageText), "")).toBe("Expected");
+//         expect(actual.emitSkipped).toBe(true);
+//         expect(actual.emittedFiles).toEqual([]);
+//     });
+// });
 
 describe("report", () => {
     let reporter: ReporterMock;
     beforeEach(() => {
         reporter = new ReporterMock(createSystem());
-        testObj = new CompilerTestClass({ configPath: "tsconfig.json", reporter });
+        testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            config: {},
+            project: {},
+            reporter,
+            targets: [],
+            tsconfig: { options: {}, fileNames: [], errors: [] },
+            debug: false,
+            sourceMap: false,
+            watch: false,
+        });
     });
 
     it("yields result's messageText", () => {
@@ -354,60 +374,6 @@ describe("report", () => {
         const actual = testObj.report(mockProgram, mockResult);
 
         expect(actual.emitSkipped).toBe(true);
-    });
-});
-
-describe("getGenerators", () => {
-    it("returns transformer from registered generators", () => {
-        const target = GeneratorMock();
-        testObj.getAddonRegistry().registerGenerator("docs", target);
-
-        expect(testObj.getGenerators()).toEqual({ docs: [target] });
-    });
-
-    it("returns transformer from two registered generators", () => {
-        const target = GeneratorMock();
-        testObj
-            .getAddonRegistry()
-            .registerGenerator("docs", target)
-            .registerGenerator("docs", target);
-
-        expect(testObj.getGenerators()).toEqual({ docs: [target, target] });
-    });
-
-    it("returns transformers with registered transformer and generators", () => {
-        const generator = GeneratorMock();
-        const transformer = jest.fn();
-        testObj
-            .getAddonRegistry()
-            .registerGenerator("docs", generator)
-            .registerTransformer("before", transformer);
-
-        expect(testObj.getGenerators()).toEqual({ docs: [generator] });
-    });
-});
-
-describe("getTransformers", () => {
-    it("returns transformers with registered transformer", () => {
-        const mockProgram = { emit: jest.fn() } as any;
-        const target = jest.fn();
-        testObj.getAddonRegistry().registerTransformer("before", target);
-
-        expect(testObj.getTransformers(mockProgram).before).toContain(target);
-    });
-
-    it("returns transformers and generator transformers with registered transformer and generators", () => {
-        const mockProgram = { emit: jest.fn() } as any;
-        const generator = GeneratorMock();
-        const transformer = jest.fn();
-        testObj
-            .getAddonRegistry()
-            .registerGenerator("docs", generator)
-            .registerTransformer("before", transformer);
-
-        const actual = testObj.getTransformers(mockProgram).before!;
-
-        expect(actual).toHaveLength(4);
     });
 });
 

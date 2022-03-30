@@ -12,115 +12,194 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { dirname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
-import { createSystem, createWatchHost, injectTransformers } from "../environment";
-import { CompilerAddon, CompilerOptions, fromGenerator, InfoMessage, Reporter, Transformer } from "../model";
-import { AddonRegistry, createResolver, CustomGenerators } from "./addon-registry";
+import { createSystem, createWatchHost, recursiveFindByFilter } from "../environment";
+import { CompilerOptions, Reporter } from "../model";
 import { concat } from "./collections";
-import { createConfig } from "./Config";
+import { CompilationContext } from "./CompilationContext";
+import { CompilationHost } from "./CompilationHost";
+import type { CompilationOptions } from "./CompilationOptions";
+import { CompilerConfig } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
+import { createSharedHost } from "./host";
 import { createParser, Project } from "./Parser";
-import { createProcessorTransformer } from "./processor-transformer";
-import { createStyleCompiler } from "./style-compiler";
+
+export type CompileFragment = {
+    version: number;
+    files: ts.OutputFile[];
+};
 
 export class Compiler {
-    private config!: ts.ParsedCommandLine;
-    private configPath: string;
-    private reporter: Reporter;
-    private system: ts.System;
-    private addons: AddonRegistry;
-    private compileImportedStyles: Transformer;
+    public contextMap!: Map<string, CompilationContext>;
+    public version: number;
 
-    constructor(options: CompilerOptions) {
-        // TODO: Add extra compiler options, additional to tsconfig.json
-        this.configPath = options.configPath;
-        this.system = options.system ?? createSystem(options.libFiles);
-        this.reporter = options.reporter ?? new DefaultReporter(this.system);
-        this.addons = new AddonRegistry(options, this.reporter, this.system);
-        this.config = this.parseConfig(this.configPath);
+    protected program?: ts.Program;
+    protected compilationHost!: CompilationHost;
+    protected langService!: ts.LanguageService;
+    protected options!: CompilerOptions;
 
-        this.compileImportedStyles = createStyleCompiler(
-            { sassOptions: options.sassOptions, reporter: this.reporter, system: this.system },
-            this.addons.styleTransformers
-        );
+    private configPath!: string;
+    private reporter!: Reporter;
+    private system!: ts.System;
+
+    // TODO: Add support for style processors via addon
+    // private compileImportedStyles: Transformer;
+
+    constructor(options: CompilerOptions, system?: ts.System) {
+        this.version = 0;
+        this.contextMap = new Map();
+        this.system = system ?? createSystem();
+        this.setOptions(options);
+
+        // TODO: Add support for style processors via addon
+        // this.compileImportedStyles = createStyleCompiler(
+        //     { sassOptions: options.sassOptions, reporter: this.reporter, system: this.system },
+        //     this.addons.styleTransformers
+        // );
     }
 
-    public getAddonRegistry() {
-        return this.addons;
+    public getContext(target?: string): CompilationContext | undefined {
+        return this.contextMap.get(target ?? "All");
     }
 
     public getSystem(): ts.System {
         return this.system;
     }
 
-    public getOptions(): ts.CompilerOptions {
-        return this.config.options;
+    public getOptions(): CompilerOptions {
+        return this.options;
     }
 
-    public setOptions(options: ts.CompilerOptions): this {
-        this.config.options = options;
+    public setOptions(options: CompilerOptions): this {
+        this.options = options;
+        this.options.targets.length === 0 && this.options.targets.push("All");
+
+        this.reporter = options.reporter ?? new DefaultReporter(this.system);
+        this.compilationHost = new CompilationHost(createSharedHost(this.system) as ts.LanguageServiceHost);
+        this.langService = ts.createLanguageService(this.compilationHost, ts.createDocumentRegistry());
+
+        if (!options.debug) {
+            // eslint-disable-next-line no-console
+            console.debug = () => undefined;
+            // eslint-disable-next-line no-console
+            console.log = () => undefined;
+        }
+
         return this;
     }
 
-    public compile(...fileNames: string[]): ts.EmitResult {
-        const { program, stylePaths } = this.parse(fileNames);
+    public compile(): ts.EmitResult {
+        const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
 
-        // FIXME: Add style processors here to generate docs
+        this.options.targets.forEach((target: string) => {
+            const { buildDir, config, project, tsconfig } = this.options;
+            const { writeFile } = getCompilationOptions(target, config);
+
+            const ctx = new CompilationContext({
+                buildDir,
+                project,
+                system: this.system,
+                tsconfig,
+                rootFiles: this.getRootFiles(),
+                reporter: this.reporter,
+            });
+            this.options.addons.getAddons(target).forEach(addon => {
+                addon.activate(ctx);
+            });
+            this.contextMap.set(target, ctx);
+
+            for (const fileName of this.getRootFiles()) {
+                const fragment = this.emitSourceFile(fileName, target, writeFile);
+                if (fragment?.files.length > 0) {
+                    result.emittedFiles = concat(
+                        result.emittedFiles,
+                        fragment.files.map(it => it.name)
+                    );
+                } else {
+                    // FIXME: Report error for source files that cannot be emitted
+                }
+            }
+        });
+
+        // TODO: Add style processors here to generate docs
         // eslint-disable-next-line no-console
-        stylePaths.filter(cur => cur.endsWith(".scss")).forEach(cur => console.log(`Style: ${cur}`));
+        // stylePaths.filter(cur => cur.endsWith(".scss")).forEach(cur => console.log(`Style: ${cur}`));
 
-        const result = this.emit(program);
-        return this.report(program, result);
+        /// Create single LanguageService with a dedicated CompilationHost and default LanguageServiceHost
+        /// Receive targets, go though each target
+        /// Create compilation per target with single CompilationContext per target
+        /// Create single LanguageServiceHost inside CompilationHost (if necessary)
+        /// Resolve addons for target
+        /// Go through all root files and apply all addons
+
+        // TODO: Return ts.EmitResult with diagnostics
+        return this.report(this.langService.getProgram()!, result);
     }
 
     public watch() {
         const { filePaths } = this.parse();
-        const host = createWatchHost(filePaths, this.config.options, this.system, this.reporter);
+        const host = createWatchHost(filePaths, this.options.project, this.system, this.reporter);
+        // @ts-ignore FIXME: Implement watch mode
         const config = ts.createWatchProgram(host);
-        injectTransformers(host, this.getTransformers(config.getProgram().getProgram()));
+        // injectTransformers(host, this.getTransformers(config.getProgram().getProgram()));
     }
 
-    public enableAddons(...names: string[]): this {
-        const addons = createResolver(this.reporter, this.system)(names);
-        const addonNames: string[] = [];
-        addons.forEach((addon: CompilerAddon) => {
-            addon.activate(this.addons);
-            addonNames.push(addon.name);
-        });
-        this.reporter.reportWatchStatus(new InfoMessage(`  + Addons: [${addonNames.map(cur => `"${cur}"`).join(", ")}]\n\n\n`));
-        return this;
-    }
+    protected emitSourceFile(fileName: string, target: string, writeFile = false): CompileFragment {
+        // FIXME: CompilationContext <=> LanguageServiceHost <=> CompilationTarget
+        const filePath = resolve(fileName);
+        const ctx = this.contextMap.get(target);
+        const cache = ctx?.getCache();
 
-    protected parseConfig(configFilePath: string): ts.ParsedCommandLine | never {
-        return createConfig(configFilePath, this.system);
+        if (ctx && cache) {
+            if (!cache.hasChanged(filePath, target)) {
+                return cache.getCachedFile(filePath, target);
+            }
+            let content = this.system.readFile(fileName) ?? "";
+            ctx.getPreEmitTransformers().forEach(it => (content = it(fileName, content)));
+            cache.updateSource(filePath, content, target);
+            this.compilationHost.setLanguageHost(ctx.getLanguageHost());
+
+            const output = this.langService.getEmitOutput(fileName);
+            if (!output.emitSkipped) {
+                cache.updateOutput(fileName, output.outputFiles);
+
+                if (writeFile) {
+                    this.writeOutputFiles(output);
+                }
+                return { version: cache.getVersion(fileName), files: output.outputFiles };
+            }
+        }
+
+        return { version: 0, files: this.langService.getEmitOutput(fileName).outputFiles };
     }
 
     protected parse(fileNames?: string[]): Project {
-        const { options, fileNames: globalFileNames } = this.config;
+        const { options, fileNames: globalFileNames } = this.options.tsconfig;
 
         return createParser({ compilerOptions: options, filePaths: globalFileNames, system: this.system })(fileNames);
     }
 
-    protected emit(program: ts.Program): ts.EmitResult {
-        const result: any = program.emit(
-            undefined /* target source file */,
-            (fileName, content) => {
-                this.system.writeFile(fileName, `/* @generated */${this.system.newLine}${content}`);
-            },
-            undefined /* cancellation token */,
-            false /* emit d.ts files only */,
-            this.getTransformers(program)
-        );
-        (this.getGenerators().docs ?? [])
-            .map(cur => this.tryEmit(() => cur.emit(program, this.system)))
-            .forEach(cur => {
-                result.diagnostics = concat(result.diagnostics, cur.diagnostics);
-                result.emitSkipped = result.emitSkipped === true || cur.emitSkipped === true;
-                result.emittedFiles = concat(result.emittedFiles, cur.emittedFiles);
-            });
+    // protected emit(program: ts.Program): ts.EmitResult {
+    //     const result: any = program.emit(
+    //         undefined /* target source file */,
+    //         (fileName, content) => {
+    //             this.system.writeFile(fileName, `/* @generated */${this.system.newLine}${content}`);
+    //         },
+    //         undefined /* cancellation token */,
+    //         false /* emit d.ts files only */,
+    //         this.getTransformers(program)
+    //     );
+    //     (this.getGenerators().docs ?? [])
+    //         .map(cur => this.tryEmit(() => cur.emit(program, this.system)))
+    //         .forEach(cur => {
+    //             result.diagnostics = concat(result.diagnostics, cur.diagnostics);
+    //             result.emitSkipped = result.emitSkipped === true || cur.emitSkipped === true;
+    //             result.emittedFiles = concat(result.emittedFiles, cur.emittedFiles);
+    //         });
 
-        return result;
-    }
+    //     return result;
+    // }
 
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         ts.getPreEmitDiagnostics(program)
@@ -130,39 +209,59 @@ export class Compiler {
         return result;
     }
 
-    protected getTransformers(program: ts.Program): ts.CustomTransformers {
-        return {
-            ...this.addons.transformers,
-            before: [
-                this.compileImportedStyles,
-                createProcessorTransformer(this.addons.processors),
-                ...(this.getGenerators().docs ?? []).map(cur => fromGenerator(cur, program)),
-                ...(this.addons.transformers.before || []),
-            ],
-        };
+    // private tryEmit(emit: () => ts.EmitResult): ts.EmitResult {
+    //     try {
+    //         return emit();
+    //     } catch (err) {
+    //         return {
+    //             diagnostics: [
+    //                 {
+    //                     category: 1 /* Error */,
+    //                     code: 0,
+    //                     file: undefined,
+    //                     length: 0,
+    //                     messageText: err.message,
+    //                     start: 0,
+    //                 },
+    //             ],
+    //             emitSkipped: true,
+    //         };
+    //     }
+    // }
+
+    private getRootFiles(): string[] {
+        return this.options.tsconfig.fileNames
+            ? this.options.tsconfig.fileNames
+            : recursiveFindByFilter(resolve(dirname(this.configPath), "./src"), (path: string) => path.endsWith(".ts"));
     }
 
-    protected getGenerators(): CustomGenerators {
-        return this.addons.generators ?? {};
-    }
-
-    private tryEmit(emit: () => ts.EmitResult): ts.EmitResult {
-        try {
-            return emit();
-        } catch (err) {
-            return {
-                diagnostics: [
-                    {
-                        category: 1 /* Error */,
-                        code: 0,
-                        file: undefined,
-                        length: 0,
-                        messageText: err.message,
-                        start: 0,
-                    },
-                ],
-                emitSkipped: true,
-            };
+    private writeOutputFiles(emitOutput: ts.EmitOutput) {
+        for (const cur of emitOutput.outputFiles) {
+            const filename = this.getFilePath(cur.name);
+            const target = dirname(filename);
+            if (!this.system.directoryExists(target)) {
+                this.system.createDirectory(target);
+            }
+            this.system.writeFile(filename, cur.text);
         }
     }
+
+    private getFilePath(fileName: string): string {
+        const projectDir = dirname(this.options.buildDir);
+        const basePath = this.getBasePath(fileName, projectDir);
+        const outDir = this.options.project.outDir;
+        if (!outDir) {
+            return !isAbsolute(fileName) ? join(basePath, fileName) : fileName;
+        }
+        return fileName.includes(outDir) ? fileName : fileName.replace(basePath, resolve(projectDir, outDir));
+    }
+
+    private getBasePath(fileName: string, projectDir: string): string {
+        return Object.keys(this.options.project.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? projectDir;
+    }
 }
+
+const getCompilationOptions = (target: string, config: CompilerConfig = {}): CompilationOptions => {
+    const { targets = {} } = config;
+    return targets[target] ?? {};
+};

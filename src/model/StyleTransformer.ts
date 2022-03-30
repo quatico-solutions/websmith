@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { StyleVisitor } from "../compiler/style-compiler";
+import { StyleVisitor } from "../addons/style-compiler";
 import { Reporter } from "./Reporter";
 
 // FIXME: StyleTransformer fix API

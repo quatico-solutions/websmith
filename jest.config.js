@@ -23,7 +23,7 @@ module.exports = {
     },
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
     preset: "ts-jest",
-    setupFilesAfterEnv: ["./src/__mocks__/jest.setup.ts"],
+    setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
     testRegex: "src/.*(test|spec)\\.(tsx?)$",
     testURL: "http://localhost/",
     transform: {

@@ -12,8 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { createBrowserSystem } from "../environment";
-import { createConfig } from "./Config";
+import { createBrowserSystem } from "../../environment";
+import { parseProjectConfig } from "./parse-project-config";
 
 describe("empty config", () => {
     const emptySystem = createBrowserSystem({
@@ -21,7 +21,7 @@ describe("empty config", () => {
     });
 
     it("yields empty config with empty config file", () => {
-        const actual = createConfig("tsconfig.json", emptySystem);
+        const actual = parseProjectConfig("tsconfig.json", emptySystem);
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual([]);
@@ -34,7 +34,7 @@ describe("empty config", () => {
     });
 
     it("yields error with no matching includes", () => {
-        const actual = createConfig("tsconfig.json", emptySystem);
+        const actual = parseProjectConfig("tsconfig.json", emptySystem);
 
         expect(actual.errors[0]).toEqual(
             expect.objectContaining({
@@ -53,7 +53,7 @@ describe("valid config", () => {
         "foobar.ts": `class Foobar {}`,
     });
     it("yields default value with valid config file", () => {
-        const actual = createConfig("tsconfig.json", validSystem);
+        const actual = parseProjectConfig("tsconfig.json", validSystem);
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual(["foobar.ts"]);
@@ -66,7 +66,7 @@ describe("valid config", () => {
     });
 
     it("yields no error with matching includes", () => {
-        const actual = createConfig("tsconfig.json", validSystem);
+        const actual = parseProjectConfig("tsconfig.json", validSystem);
 
         expect(actual.errors).toEqual([]);
     });
@@ -87,7 +87,7 @@ describe("default config", () => {
         "/three.tsx": `class Three {}`,
     });
     it("yields default value with valid config file", () => {
-        const actual = createConfig("tsconfig.json", defaultSystem);
+        const actual = parseProjectConfig("tsconfig.json", defaultSystem);
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual(["/one.tsx", "/two.tsx", "/three.tsx"]);
@@ -112,7 +112,7 @@ describe("default config", () => {
     });
 
     it("yields no error with matching includes", () => {
-        const actual = createConfig("tsconfig.json", defaultSystem);
+        const actual = parseProjectConfig("tsconfig.json", defaultSystem);
 
         expect(actual.errors).toEqual([]);
     });

@@ -58,6 +58,7 @@
         "jest-environment-jsdom-sixteen": "2.0.0",
         "license-check-and-add": "4.0.3",
         "lodash": "^4.17.20",
+        "memfs": "^3.4.1",
         "prettier": "^2.4.1",
         "rimraf": "3.0.2",
         "ts-dedent": "^2.0.0",
@@ -65,6 +66,7 @@
         "typescript": "^4.5.4"
     },
     "dependencies": {
+        "commander": "^9.1.0",
         "create-hash": "1.2.0",
         "mem": "9.0.1",
         "path": "0.12.7",

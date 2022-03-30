@@ -13,15 +13,15 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { aggregateMessages } from "../model";
+import { aggregateMessages } from "../../model";
 
 /**
- * Parses tsconfig.json files and creates config
+ * Parses tsconfig.json files and creates parsed command line options.
  *
  * @param configFilePath
  * @param system
  */
-export const createConfig = (configFilePath: string, system: ts.System): ts.ParsedCommandLine | never => {
+export const parseProjectConfig = (configFilePath: string, system: ts.System): ts.ParsedCommandLine | never => {
     let errorMessage: string | ts.DiagnosticMessageChain = "Could not find a valid 'tsconfig.json'.";
 
     const parseHost: ts.ParseConfigFileHost = {

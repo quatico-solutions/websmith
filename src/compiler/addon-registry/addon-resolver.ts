@@ -22,17 +22,19 @@ export type Resolver = (names: string[]) => CompilerAddon[];
 /**
  * Resolver to lookup addon names in "addons" folder, and return found addons
  */
-export const createResolver = (reporter: Reporter, system: ts.System): Resolver => (names: string[]): CompilerAddon[] => {
-    return names.reduce((res: CompilerAddon[], name: string) => {
-        const addon = resolveName(name, `${ADDONS_FOLDER_NAME}/${name}`, system);
-        if (addon) {
-            res.push(addon);
-        } else {
-            reporter.reportDiagnostic(new WarnMessage(`Couldn't find addon with name "${name}".`));
-        }
-        return res;
-    }, []);
-};
+export const createResolver =
+    (reporter: Reporter, system: ts.System): Resolver =>
+    (names: string[]): CompilerAddon[] => {
+        return names.reduce((res: CompilerAddon[], name: string) => {
+            const addon = resolveName(name, `${ADDONS_FOLDER_NAME}/${name}`, system);
+            if (addon) {
+                res.push(addon);
+            } else {
+                reporter.reportDiagnostic(new WarnMessage(`Couldn't find addon with name "${name}".`));
+            }
+            return res;
+        }, []);
+    };
 
 export const resolveName = (name: string, localPath: string, system: ts.System): CompilerAddon | undefined => {
     try {

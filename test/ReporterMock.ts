@@ -12,5 +12,17 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { createSass } from "./compile-sass";
-export { createSass };
+import ts from "typescript";
+import { DefaultReporter } from "../src/compiler";
+
+export class ReporterMock extends DefaultReporter {
+    public message?: string = "";
+
+    public reportWatchStatus(diagnostic: ts.Diagnostic) {
+        // do nothing
+    }
+
+    protected logProblem(message?: any): void {
+        this.message += `${message ?? ""}\n`;
+    }
+}

@@ -12,36 +12,43 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { AddonRegistry } from "./addon-registry";
+import { AddonRegistry, CustomStyleTransformers } from "./addon-registry";
 import { Compiler } from "./Compiler";
-import { createConfig } from "./Config";
+import { parseProjectConfig } from "./Config";
 import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
 import { createParser, Parser, ParserOptions, Project } from "./Parser";
-import {
-    createStyleCompiler,
-    parseStyles,
-    StyleCompilerOptions,
-    StyleVisitor,
-    visitNode,
-    writeNode,
-} from "./style-compiler";
+import type { CompilerOptions } from "./CompilerOptions";
+import type { CompilationContext } from "./CompilationContext";
+// TODO: Add support for style processors via addon
+// import {
+//     createStyleCompiler,
+//     parseStyles,
+//     StyleCompilerOptions,
+//     StyleVisitor,
+//     visitNode,
+//     writeNode,
+// } from "../addons/style-compiler";
 
 export {
     AddonRegistry,
     Compiler,
-    createConfig,
+    parseProjectConfig,
     createParser,
-    createStyleCompiler,
+    CustomStyleTransformers,
     DefaultReporter,
     Parser,
     ParserOptions,
-    parseStyles,
     Project,
-    StyleCompilerOptions,
-    StyleVisitor,
     tsDefaults,
     tsLibDefaults,
-    visitNode,
-    writeNode,
+    // TODO: Add support for style processors via addon
+    // createStyleCompiler,
+    // parseStyles,
+    // StyleCompilerOptions,
+    // StyleVisitor,
+    // visitNode,
+    // writeNode,
 };
+
+export type { CompilerOptions, CompilationContext };

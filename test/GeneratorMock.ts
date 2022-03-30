@@ -12,7 +12,16 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { createStyleCompiler, StyleCompilerOptions } from "./compile-styles";
-import { parseStyles, StyleVisitor, visitNode, writeNode } from "./parse-scss";
+import { Generator } from "../src/model";
 
-export { StyleCompilerOptions, createStyleCompiler, StyleVisitor, parseStyles, visitNode, writeNode };
+const GeneratorMock = (config: MockConfig = {}): Generator => ({
+    emit: config.emit ?? jest.fn().mockReturnValue({}),
+    process: config.process ?? jest.fn(),
+});
+
+interface MockConfig {
+    emit?: any;
+    process?: any;
+}
+
+export { GeneratorMock };

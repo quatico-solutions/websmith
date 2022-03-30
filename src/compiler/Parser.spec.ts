@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import { createBrowserSystem } from "../environment";
-import { createConfig } from "./Config";
+import { parseProjectConfig } from "./Config";
 import { createParser, parsePaths } from "./Parser";
 
 const testSystem = createBrowserSystem({
@@ -56,7 +56,7 @@ const testSystem = createBrowserSystem({
 
 describe("createParser", () => {
     it("yields script names and no style name with direct single file input", () => {
-        const compilerOptions = createConfig("tsconfig.json", testSystem).options;
+        const compilerOptions = parseProjectConfig("tsconfig.json", testSystem).options;
         const parse = createParser({ system: testSystem, compilerOptions });
 
         const actual = parse(["/one.ts"]);
@@ -68,7 +68,7 @@ describe("createParser", () => {
     });
 
     it("yields script names and no style name with direct single file input and global files", () => {
-        const config = createConfig("tsconfig.json", testSystem);
+        const config = parseProjectConfig("tsconfig.json", testSystem);
         const parse = createParser({
             system: testSystem,
             compilerOptions: config.options,
@@ -84,7 +84,7 @@ describe("createParser", () => {
     });
 
     it("yields script and style names with global file inputs", () => {
-        const config = createConfig("tsconfig.json", testSystem);
+        const config = parseProjectConfig("tsconfig.json", testSystem);
         const parse = createParser({
             system: testSystem,
             compilerOptions: config.options,
@@ -117,7 +117,7 @@ describe("createParser", () => {
 });
 
 describe("parsePaths", () => {
-    const compilerOptions = createConfig("tsconfig.json", testSystem).options;
+    const compilerOptions = parseProjectConfig("tsconfig.json", testSystem).options;
     const system = testSystem;
 
     it("returns paths with direct script filePaths", () => {

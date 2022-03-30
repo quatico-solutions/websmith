@@ -12,17 +12,9 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import ts from "typescript";
-import { DefaultReporter } from "../compiler";
+// TODO: Add support for style processors via addon
+import { createStyleCompiler, StyleCompilerOptions } from "./compile-styles";
+import { parseStyles, StyleVisitor, visitNode, writeNode, Node } from "./parse-scss";
 
-export class ReporterMock extends DefaultReporter {
-    public message?: string = "";
-
-    public reportWatchStatus(diagnostic: ts.Diagnostic) {
-        // do nothing
-    }
-
-    protected logProblem(message?: any): void {
-        this.message += `${message ?? ""}\n`;
-    }
-}
+export { StyleCompilerOptions, createStyleCompiler, StyleVisitor, parseStyles, visitNode, writeNode };
+export type { Node };

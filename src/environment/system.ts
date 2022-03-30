@@ -12,6 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { join } from "path";
 import ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
 import { VersionedFile } from "../model";
@@ -44,6 +45,12 @@ export const readFiles = (paths: string[], system: ts.System = ts.sys): { [name:
         result[path] = system.readFile(path) || "";
         return result;
     }, {});
+
+export const recursiveFindByFilter = (path: string, filter: (name: string) => boolean = () => true, system: ts.System = ts.sys): string[] =>
+    system
+        .readDirectory(path)
+        .flatMap(it => (system.directoryExists(join(path, it)) ? recursiveFindByFilter(join(path, it), filter) : join(path, it)))
+        .filter(filter);
 
 export const createVersionedFiles = (files: { [name: string]: string }, options: ts.CompilerOptions): { [name: string]: VersionedFile } => {
     return Object.keys(files).reduce((result: { [name: string]: VersionedFile }, name: string) => {

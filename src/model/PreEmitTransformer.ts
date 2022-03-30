@@ -12,16 +12,5 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { Generator } from "../model";
 
-const GeneratorMock = (config: MockConfig = {}): Generator => ({
-    emit: config.emit ?? jest.fn().mockReturnValue({}),
-    process: config.process ?? jest.fn(),
-});
-
-interface MockConfig {
-    emit?: any;
-    process?: any;
-}
-
-export { GeneratorMock };
+export type PreEmitTransformer = (fileName: string, content: string) => string | never;

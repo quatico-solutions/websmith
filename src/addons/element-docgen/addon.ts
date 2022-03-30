@@ -13,7 +13,7 @@
  * with Quatico.
  */
 
-import { CompilerContext } from "../../model";
+import type { CompilationContext } from "../../compiler";
 import { DocGenerator } from "./DocGenerator";
 
 /**
@@ -22,9 +22,9 @@ import { DocGenerator } from "./DocGenerator";
  *
  * @param context
  */
-export const activate = (context: CompilerContext) => {
+export const activate = (context: CompilationContext) => {
     context.registerGenerator(
         "docs",
-        new DocGenerator({ inlineTypes: false, verbose: false, visibility: "public", reporter: context.reporter })
+        new DocGenerator({ inlineTypes: false, verbose: false, visibility: "public", reporter: context.getReporter() })
     );
 };
