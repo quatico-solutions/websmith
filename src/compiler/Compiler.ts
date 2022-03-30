@@ -17,12 +17,9 @@ import ts from "typescript";
 import { createSystem, createWatchHost, recursiveFindByFilter } from "../environment";
 import { CompilerOptions, Reporter } from "../model";
 import { concat } from "./collections";
-import { CompilationContext } from "./CompilationContext";
-import { CompilationHost } from "./CompilationHost";
-import type { CompilationOptions } from "./CompilationOptions";
+import { CompilationContext, CompilationHost, CompilationOptions, createSharedHost } from "./compilation";
 import { CompilerConfig } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
-import { createSharedHost } from "./host";
 import { createParser, Project } from "./Parser";
 
 export type CompileFragment = {

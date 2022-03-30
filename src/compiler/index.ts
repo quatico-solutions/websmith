@@ -13,13 +13,13 @@
  * with Quatico.
  */
 import { AddonRegistry, CustomStyleTransformers } from "./addons";
+import type { CompilationContext } from "./compilation";
 import { Compiler } from "./Compiler";
+import type { CompilerOptions } from "./CompilerOptions";
 import { parseProjectConfig } from "./Config";
 import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
 import { createParser, Parser, ParserOptions, Project } from "./Parser";
-import type { CompilerOptions } from "./CompilerOptions";
-import type { CompilationContext } from "./CompilationContext";
 // TODO: Add support for style processors via addon
 // import {
 //     createStyleCompiler,
@@ -50,5 +50,4 @@ export {
     // visitNode,
     // writeNode,
 };
-
 export type { CompilerOptions, CompilationContext };

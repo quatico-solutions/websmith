@@ -1,5 +1,5 @@
-import { ReporterMock } from "../../test";
-import { createBrowserSystem } from "../environment";
+import { ReporterMock } from "../../../test";
+import { createBrowserSystem } from "../../environment";
 import { CompilationContext, CompilationContextOptions } from "./CompilationContext";
 
 class CompilationContextTestClass extends CompilationContext {

@@ -1,4 +1,4 @@
-import type { CompilationOptions } from "../CompilationOptions";
+import type { CompilationOptions } from "../compilation";
 
 export type CompilerConfig = {
     targets?: Record<string, CompilationOptions>;

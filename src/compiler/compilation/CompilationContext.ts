@@ -13,11 +13,11 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { EmitTransformer, EmitTransformerKind, Generator, GeneratorKind, PreEmitTransformer, Reporter } from "../model";
-import { CustomGenerators } from "./addons";
-import { FileCache } from "./cache";
-import { concat } from "./collections";
-import { createSharedHost } from "./host/shared-host";
+import { EmitTransformer, EmitTransformerKind, Generator, GeneratorKind, PreEmitTransformer, Reporter } from "../../model";
+import { CustomGenerators } from "../addons";
+import { FileCache } from "../cache";
+import { concat } from "../collections";
+import { createSharedHost } from "./shared-host";
 
 export type CompilationContextOptions = {
     buildDir: string;
