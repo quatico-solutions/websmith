@@ -17,7 +17,7 @@ import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createBrowserSystem, createSystem } from "../environment";
 import { CompilerOptions } from "../model";
-import { AddonRegistry } from "./addon-registry";
+import { AddonRegistry } from "./addons";
 import { Compiler } from "./Compiler";
 import { Project } from "./Parser";
 

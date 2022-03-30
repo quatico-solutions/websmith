@@ -2,7 +2,7 @@
 import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createBrowserSystem } from "../environment";
-import { AddonRegistry } from "./addon-registry";
+import { AddonRegistry } from "./addons";
 import { Compiler } from "./Compiler";
 
 describe("end-2-end compile", () => {

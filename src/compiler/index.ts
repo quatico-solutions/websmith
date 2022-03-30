@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { AddonRegistry, CustomStyleTransformers } from "./addon-registry";
+import { AddonRegistry, CustomStyleTransformers } from "./addons";
 import { Compiler } from "./Compiler";
 import { parseProjectConfig } from "./Config";
 import { DefaultReporter } from "./DefaultReporter";

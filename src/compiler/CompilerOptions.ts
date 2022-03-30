@@ -14,7 +14,7 @@
  */
 import ts from "typescript";
 import { Reporter } from "../model/Reporter";
-import { AddonRegistry } from "./addon-registry";
+import { AddonRegistry } from "./addons";
 import { CompilerConfig } from "./config";
 
 export interface CompilerOptions {

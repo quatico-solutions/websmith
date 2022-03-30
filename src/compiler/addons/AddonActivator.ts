@@ -1,4 +1,4 @@
-import { CompilationContext } from "../../compiler";
+import { CompilationContext } from "..";
 
 export interface AddonActivator {
     (ctx: CompilationContext): void;
