@@ -10,7 +10,7 @@
     "main": "./bin/index.js",
     "types": "./bin/index.d.ts",
     "bin": {
-        "websmith": "./bin/cli/compile.js"
+        "websmith": "./bin/cli/bin.js"
     },
     "files": [
         "LICENSE",

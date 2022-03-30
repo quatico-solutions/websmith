@@ -19,7 +19,7 @@ import { compileSystem } from "./compiler-system";
 import { CompilerArguments } from "./CompilerArguments";
 import { createOptions } from "./options";
 
-export const addCompileCommand = (parent = new Command(), compiler?: Compiler) => {
+export const addCompileCommand = (parent = new Command(), compiler?: Compiler): Command => {
     parent
         .command("compile")
         .showSuggestionAfterError()
