@@ -99,10 +99,38 @@ You can register two kinds of addons: `Generator` and `Transformer`.
 ```
 
 #### Transformer
-- `Transformer` are executed as part of the compilation process and allow you to transform the 
+
+- `Transformer` are executed as part of the compilation process and allow you to transform the
 - transformator (pre emit vs emit >> ts.CustomTransformers)
 
 ```javascript
+import { Context } from "@qs/magellan-compiler";
+
+export const activate = (ctx: Context) => {
+  ctx.registerPreEmitTransformer("delint", (fileName:string, content:string) => content);
+}
+
+```
+
+**Emit Transformer**
+Emit Transformers follow the standard TypeScript CustomTransformer / TransformerFactory<T> approach. You can for example easily integrate [the delint Transformer from the TypeScript Compiler API documentation](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) by creating the following addon:
+
+```javascript
+import { Context } from "@qs/magellan-compiler";
+import * as ts from "typescript";
+
+export const activate = (ctx: Context) => {
+  ctx.registerEmitTransformer("delint", {before:[createDelintTransformer]});
+}
+
+// From TypeScript linter example, copy the delintNode function
+export const createDelintTransformer = (sourceFile: ts.SourceFile) => {
+    return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
+        return (sf: ts.SourceFile) => {
+            return ts.visitNode(sf, delintNode)
+        }
+    }
+}
 
 ```
 
@@ -111,9 +139,10 @@ You can register two kinds of addons: `Generator` and `Transformer`.
 ### How to interact with the compiler: CompilationContext and Reporter explained
 
 ```javascript
-interface CompilationContext {
+interface Context {
     getSystem(): ts.System;
     getConfig(): ts.ParsedCommandLine;
+    getCompilationOptions(): unknown;
     getReporter(): Reporter;
 
     registerGenerator(...);
