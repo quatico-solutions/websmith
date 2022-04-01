@@ -1,10 +1,10 @@
 import { Reporter, WarnMessage } from "../../model";
-import { CompilerConfig } from "./CompilerConfig";
+import { CompilationConfig } from "./CompilationConfig";
 
-// TODO: Target resolution: Passed targets in CLI vs. specified targets in CompilerConfig
+// TODO: Target resolution: Passed targets in CLI vs. specified targets in CompilationConfig
 //  Passed target this args.target
-//  Specified targets in CompilerConfig
-export const resolveTargets = (targets: string, config: CompilerConfig | undefined, reporter: Reporter) => {
+//  Specified targets in CompilationConfig
+export const resolveTargets = (targets: string, config: CompilationConfig | undefined, reporter: Reporter) => {
     const passedTargets = targets
         .split(",")
         .map(it => it.trim())

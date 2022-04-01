@@ -1,8 +1,8 @@
 import ts from "typescript";
 import { Reporter, WarnMessage } from "../../model";
-import { CompilerConfig } from "./CompilerConfig";
+import { CompilationConfig } from "./CompilationConfig";
 
-export const resolveCompilerConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilerConfig | undefined => {
+export const resolveCompilationConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilationConfig | undefined => {
     if (configFilePath) {
         const resolvedPath = system.resolvePath(configFilePath);
         if (!system.fileExists(resolvedPath)) {

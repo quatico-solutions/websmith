@@ -16,7 +16,7 @@ import { AddonRegistry, CustomStyleTransformers } from "./addons";
 import type { CompilationContext } from "./compilation";
 import { Compiler } from "./Compiler";
 import type { CompilerOptions } from "./CompilerOptions";
-import { CompilerConfig, resolveCompilerConfig, resolveProjectConfig, resolveTargets } from "./config";
+import { CompilationConfig, resolveCompilationConfig, resolveProjectConfig, resolveTargets } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
 import { NoReporter } from "./NoReporter";
@@ -34,7 +34,7 @@ import { createParser, Parser, ParserOptions, Project } from "./Parser";
 export {
     AddonRegistry,
     Compiler,
-    CompilerConfig,
+    CompilationConfig,
     createParser,
     CustomStyleTransformers,
     DefaultReporter,
@@ -42,7 +42,7 @@ export {
     Parser,
     ParserOptions,
     Project,
-    resolveCompilerConfig,
+    resolveCompilationConfig,
     resolveProjectConfig,
     resolveTargets,
     tsDefaults,

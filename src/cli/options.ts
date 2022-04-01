@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { AddonRegistry, NoReporter, resolveTargets } from "../compiler";
 import { resolveProjectConfig as resolveTsConfig } from "../compiler/config";
-import { resolveCompilerConfig } from "../compiler/config/resolve-compiler-config";
+import { resolveCompilationConfig } from "../compiler/config/resolve-compiler-config";
 import { CompilerOptions, Reporter } from "../model";
 import { CompilerArguments } from "./CompilerArguments";
 
@@ -18,7 +18,7 @@ const DEFAULTS = {
 
 export const createOptions = (args: CompilerArguments, reporter: Reporter = new NoReporter(), system: ts.System = ts.sys): CompilerOptions => {
     const tsconfig = resolveTsConfig(args.project ?? DEFAULTS.project, system);
-    const compilerConfig = resolveCompilerConfig(args.config ?? DEFAULTS.config, reporter, system);
+    const compilationConfig = resolveCompilationConfig(args.config ?? DEFAULTS.config, reporter, system);
 
     tsconfig.options.outDir = args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir;
 
@@ -30,9 +30,9 @@ export const createOptions = (args: CompilerArguments, reporter: Reporter = new 
     }
 
     return {
-        addons: new AddonRegistry({ addonsDir: args.addonsDir ?? DEFAULTS.addonsDir, config: compilerConfig, reporter, system }),
+        addons: new AddonRegistry({ addonsDir: args.addonsDir ?? DEFAULTS.addonsDir, config: compilationConfig, reporter, system }),
         buildDir: args.buildDir ?? system.getCurrentDirectory(),
-        config: compilerConfig,
+        config: compilationConfig,
         debug: args.debug ?? DEFAULTS.debug,
         // FIXME: Do we need lib files, or is injecting them into the system sufficient?
         // files?: Record<string, string>;
@@ -40,7 +40,7 @@ export const createOptions = (args: CompilerArguments, reporter: Reporter = new 
         project: tsconfig.options,
         reporter,
         sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
-        targets: resolveTargets(args.targets || DEFAULTS.targets, compilerConfig, reporter),
+        targets: resolveTargets(args.targets || DEFAULTS.targets, compilationConfig, reporter),
         watch: args.watch ?? DEFAULTS.watch,
     };
 };

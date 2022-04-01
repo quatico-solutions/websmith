@@ -15,12 +15,12 @@
 import ts from "typescript";
 import { Reporter } from "../model/Reporter";
 import { AddonRegistry } from "./addons";
-import { CompilerConfig } from "./config";
+import { CompilationConfig } from "./config";
 
 export interface CompilerOptions {
     addons: AddonRegistry;
     buildDir: string;
-    config?: CompilerConfig;
+    config?: CompilationConfig;
     debug: boolean;
     tsconfig: ts.ParsedCommandLine;
     project: ts.CompilerOptions;

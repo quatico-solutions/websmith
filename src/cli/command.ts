@@ -15,7 +15,7 @@
 /* eslint-disable no-console */
 import { Command, program } from "commander";
 import { Compiler, DefaultReporter } from "../compiler";
-import { CompilerConfig } from "../compiler/config";
+import { CompilationConfig } from "../compiler/config";
 import { compileSystem } from "./compiler-system";
 import { CompilerArguments } from "./CompilerArguments";
 import { createOptions } from "./options";
@@ -95,7 +95,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
     return parent;
 };
 
-export const hasInvalidTargets = (targets?: string[], config?: CompilerConfig) => {
+export const hasInvalidTargets = (targets?: string[], config?: CompilationConfig) => {
     if (targets === undefined || targets.length === 0 || (targets[0] === "*" && targets.length === 1)) {
         return false;
     }

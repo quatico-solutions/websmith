@@ -369,11 +369,11 @@ describe("addCompileCommand", () => {
 });
 
 describe("hasInvalidTargets", () => {
-    it("should return true w/o CompilerConfig", () => {
+    it("should return true w/o CompilationConfig", () => {
         expect(hasInvalidTargets(["whatever"])).toBe(true);
     });
 
-    it("should return false w/ valid target and CompilerConfig", () => {
+    it("should return false w/ valid target and CompilationConfig", () => {
         expect(
             hasInvalidTargets(["valid"], {
                 targets: {
@@ -383,7 +383,7 @@ describe("hasInvalidTargets", () => {
         ).toBe(false);
     });
 
-    it("should return true w/ invalid and valid target and CompilerConfig", () => {
+    it("should return true w/ invalid and valid target and CompilationConfig", () => {
         expect(
             hasInvalidTargets(["valid", "invalid"], {
                 targets: {
@@ -393,7 +393,7 @@ describe("hasInvalidTargets", () => {
         ).toBe(true);
     });
 
-    it('should return false w/ "*" target and others in CompilerConfig', () => {
+    it('should return false w/ "*" target and others in CompilationConfig', () => {
         expect(
             hasInvalidTargets(["*"], {
                 targets: {
@@ -405,7 +405,7 @@ describe("hasInvalidTargets", () => {
         ).toBe(false);
     });
 
-    it('should return true w/ "*" and invalid target and CompilerConfig', () => {
+    it('should return true w/ "*" and invalid target and CompilationConfig', () => {
         expect(
             hasInvalidTargets(["*", "invalid"], {
                 targets: {

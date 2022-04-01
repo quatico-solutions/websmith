@@ -15,17 +15,17 @@
 import path, { basename, extname } from "path";
 import ts from "typescript";
 import { CompilerAddon, Generator, Processor, Reporter, StyleTransformer, WarnMessage } from "../../model";
-import { CompilerConfig } from "../config";
+import { CompilationConfig } from "../config";
 
 export type AddonRegistryOptions = {
     addonsDir: string;
-    config?: CompilerConfig;
+    config?: CompilationConfig;
     reporter: Reporter;
     system: ts.System;
 };
 
 export class AddonRegistry {
-    private config?: CompilerConfig;
+    private config?: CompilationConfig;
     private availableAddons: CompilerAddon[];
     private reporter: Reporter;
 
@@ -46,9 +46,9 @@ export class AddonRegistry {
     }
 
     private reportMissingAddons(target: string, expected: string[]): void {
-        // TODO: Addon resolution: Found addons in addonsDir vs. specified addons in CompilerConfig
+        // TODO: Addon resolution: Found addons in addonsDir vs. specified addons in CompilationConfig
         // Found addons in addonsDir
-        // Specified addon names in CompilerConfig
+        // Specified addon names in CompilationConfig
         // TODO: Validate options.addons with options.config.targets[target].addons
         // TODO: Validate args.addons with found addons in args.addonsDir
         const missing = expected.filter(name => !this.availableAddons.some(addon => addon.name === name));
@@ -58,7 +58,7 @@ export class AddonRegistry {
     }
 }
 
-const getAddonNames = (target?: string, config?: CompilerConfig): string[] => {
+const getAddonNames = (target?: string, config?: CompilationConfig): string[] => {
     if (target) {
         if (config) {
             const { targets = {} } = config;

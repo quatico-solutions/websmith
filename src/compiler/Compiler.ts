@@ -17,8 +17,8 @@ import ts from "typescript";
 import { createSystem, recursiveFindByFilter } from "../environment";
 import { CompilerOptions, ErrorMessage, Reporter } from "../model";
 import { concat } from "./collections";
-import { CompilationContext, CompilationHost, CompilationOptions, createSharedHost } from "./compilation";
-import { CompilerConfig } from "./config";
+import { CompilationContext, CompilationHost, TargetConfig, createSharedHost } from "./compilation";
+import { CompilationConfig } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import { createParser, Project } from "./Parser";
 
@@ -93,7 +93,7 @@ export class Compiler {
 
         this.options.targets.forEach((target: string) => {
             const { buildDir, config, project, tsconfig } = this.options;
-            const { writeFile } = getCompilationOptions(target, config);
+            const { writeFile } = getTargetConfig(target, config);
 
             const ctx = new CompilationContext({
                 buildDir,
@@ -138,7 +138,7 @@ export class Compiler {
 
     public watch() {
         this.options.targets.forEach((target: string) => {
-            const { writeFile } = getCompilationOptions(target, this.options.config);
+            const { writeFile } = getTargetConfig(target, this.options.config);
             if (typeof this.system.watchFile === "function") {
                 this.getRootFiles().forEach(cur =>
                     this.system.watchFile!(cur, (fileName, event) => this.emitSourceFile(fileName, target, writeFile))
@@ -247,7 +247,7 @@ export class Compiler {
     }
 }
 
-const getCompilationOptions = (target: string, config?: CompilerConfig): CompilationOptions => {
+const getTargetConfig = (target: string, config?: CompilationConfig): TargetConfig => {
     if (config) {
         const { targets = {} } = config;
         return targets[target] ?? {};
