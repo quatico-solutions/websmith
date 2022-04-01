@@ -14,23 +14,28 @@
  */
 // @ts-ignore no type declarations
 import createHashFn from "create-hash";
-import path from "path";
+import { extname, isAbsolute, join, normalize } from "path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
 
-export const createBrowserSystem = (files?: { [name: string]: string }): ts.System => {
-    const knownFiles = { ...(files ?? tsLibDefaults) };
+export const createBrowserSystem = (files?: Record<string, string>): ts.System => {
+    const knownFiles = Object.entries({ ...(files ?? tsLibDefaults) }).reduce((acc: Record<string, string>, [name, content]) => {
+        acc[resolvePath(name)] = content;
+        return acc;
+    }, {});
+
     return {
         args: [],
         newLine: "\n",
         useCaseSensitiveFileNames: false,
         createDirectory: (dirPath: string): void => {
-            knownFiles[dirPath] = "";
+            let resolved = resolvePath(dirPath);
+            if (!resolved.endsWith("/")) {
+                resolved = resolved + "/";
+            }
+            knownFiles[resolved] = "";
         },
-        createHash: (data: string): string =>
-            createHashFn("sha256")
-                .update(data)
-                .digest("hex"),
+        createHash: (data: string): string => createHashFn("sha256").update(data).digest("hex"),
         directoryExists: (directory: string): boolean => {
             if (!directory) {
                 return false;
@@ -38,27 +43,31 @@ export const createBrowserSystem = (files?: { [name: string]: string }): ts.Syst
             if (directory === "/") {
                 return true;
             }
-            if (directory.endsWith("/")) {
-                directory = directory.slice(0, -1);
-            }
 
-            return Object.keys(knownFiles).some(cur => cur.startsWith(directory) && cur.replace(directory, "").includes("/"));
+            const resolved = resolvePath(directory);
+
+            return Object.keys(knownFiles).some(cur => cur.startsWith(resolved) && cur.replace(resolved, "").includes("/"));
         },
         exit: (exitCode?: number): void => {
             if (exitCode && exitCode > 0) {
                 throw new Error(`websmith exited with code "${exitCode}".`);
             }
         },
-        fileExists: (filePath: string): boolean => Object.keys(knownFiles).includes(filePath),
+        fileExists: (filePath: string): boolean => [filePath, resolvePath(filePath)].some(it => Object.keys(knownFiles).includes(it)),
         getCurrentDirectory: (): string => "/",
         getDirectories: (dirPath: string): string[] => resolveDirectories(dirPath, Object.keys(knownFiles)),
         getExecutingFilePath: (): string => "/",
         readDirectory: (dirPath: string, extensions?: readonly string[]): string[] => {
             let keys: string[] = [];
+            if (!isDirectoryName(dirPath)) {
+                return keys;
+            }
+
+            const resolved = resolvePath(dirPath);
             if (dirPath === "/") {
-                keys = Object.keys(knownFiles);
+                keys = resolveFiles("/", Object.keys(knownFiles));
             } else {
-                keys = resolveFiles(dirPath, Object.keys(knownFiles));
+                keys = resolveFiles(resolved, Object.keys(knownFiles));
             }
 
             if (extensions) {
@@ -66,47 +75,66 @@ export const createBrowserSystem = (files?: { [name: string]: string }): ts.Syst
             }
             return keys;
         },
-        readFile: (filePath: string): string => knownFiles[filePath],
+        readFile: (filePath: string): string => knownFiles[resolvePath(filePath)],
         realpath: (filePath: string): string => {
             if (filePath === "") {
                 return "/";
             }
-            return path.extname(filePath) !== "" || (path.isAbsolute(filePath) && !filePath.startsWith(".")) ? filePath : path.join("/", filePath);
+            return extname(filePath) !== "" || (isAbsolute(filePath) && !filePath.startsWith(".")) ? filePath : join("/", filePath);
         },
-        resolvePath: (filePath: string): string => absolutePath(filePath),
+        resolvePath: (filePath: string): string => resolvePath(filePath),
         // eslint-disable-next-line no-console
         write: (str: string): void => console.warn(`write() not supported. Did not write: "${str}".`),
         writeFile: (filePath: string, contents: string): void => {
             if (filePath && filePath.length > 0) {
-                knownFiles[filePath] = contents;
+                knownFiles[resolvePath(filePath)] = contents;
             }
         },
     };
 };
 
-const absolutePath = (filePath: string): string => {
-    let result = filePath;
-    if (["//", "./"].includes(filePath.substring(0, 2))) {
-        result = filePath.substring(1);
-    } else if (["../"].includes(filePath.substring(0, 3))) {
-        result = filePath.substring(2);
-    } else if (!filePath || filePath === "") {
+export const resolvePath = (filePath: string): string => {
+    if (!filePath || filePath === "" || filePath === "/" || filePath === ".") {
         return "/";
     }
-    return path.normalize(result);
+
+    let result = filePath;
+    if (filePath.startsWith("./")) {
+        result = filePath.substring(1);
+    } else if (filePath.startsWith("../")) {
+        result = filePath.substring(2);
+    } else if (filePath.startsWith("//")) {
+        result = filePath.substring(1);
+    } else if (!filePath.startsWith("/")) {
+        result = join("/", filePath);
+    }
+
+    if (result.endsWith("/")) {
+        result = result.slice(0, -1);
+    }
+
+    return normalize(result);
 };
 
-const resolveDirectories = (dirPath: string, knownPaths: string[]): string[] => {
+export const resolveDirectories = (dirPath: string, knownPaths: string[]): string[] => {
+    dirPath = resolvePath(dirPath);
+
+    if (dirPath.endsWith("/")) {
+        dirPath = dirPath.slice(0, -1);
+    }
     return knownPaths
-        .filter(cur => cur.startsWith(dirPath) && isDirectoryName(cur.replace(dirPath, "")))
-        .map(cur => {
-            const dirName = path.dirname(cur);
-            return dirName.includes("/") ? dirName.substring(dirName.lastIndexOf("/") + 1) : dirName;
-        });
+        .filter(cur => cur.startsWith(dirPath))
+        .map(cur => cur.replace(dirPath + "/", ""))
+        .map(cur => (cur.indexOf("/") === -1 ? cur : cur.substring(0, cur.indexOf("/"))))
+        .filter((cur, idx, arr) => isDirectoryName(cur) && cur !== "" && arr.indexOf(cur) === idx);
 };
 
-const resolveFiles = (filePath: string, knownPaths: string[]): string[] => {
-    return knownPaths.filter(cur => isDirectoryName(cur) && cur.startsWith(filePath));
-};
+export const resolveFiles = (filePath: string, knownPaths: string[]): string[] =>
+    knownPaths.filter(cur => !isDirectoryName(cur) && cur.startsWith(filePath) && !cur.endsWith("/"));
 
-const isDirectoryName = (filePath: string): boolean => filePath.substring(1).includes("/");
+export const isDirectoryName = (filePath: string): boolean => {
+    if (!filePath) {
+        return false;
+    }
+    return extname(filePath) === "" || filePath.endsWith("/");
+};

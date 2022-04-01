@@ -13,27 +13,32 @@
  * with Quatico.
  */
 /* eslint-disable no-console */
-import { Command } from "commander";
-import { Compiler } from "../compiler";
+import { Command, program } from "commander";
+import { Compiler, DefaultReporter } from "../compiler";
+import { CompilerConfig } from "../compiler/config";
 import { compileSystem } from "./compiler-system";
 import { CompilerArguments } from "./CompilerArguments";
 import { createOptions } from "./options";
 
-export const addCompileCommand = (parent = new Command(), compiler?: Compiler): Command => {
+export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
     parent
-        .command("compile")
         .showSuggestionAfterError()
-        .argument("[target]", "Optional name of the compilation target to filter applied addons")
         // TODO: Add option to compile single files only?
         // .argument("[files]", "relative path to the files that should be compiled")
         .showHelpAfterError("Add --help for additional information.")
         .description("Compiles typescript source code and applies addons to transform source before or after emit.")
-        .option("-a, --addons <addonsDir>", 'directory path to the "addons" folder', "./addons")
-        .option("-c, --config <configPath>", 'Optional file path to the "websmith.config.json"', "./webshmith.config.json")
-        .option("-d, --debug", "enable the output of debug information", false)
+        .option("-a, --addons <addons>", "Comma-separated list of addons to apply. All found addons will be applied by default.")
+        .option("-f, --addonsDir <directoryPath>", 'Directory path to the "addons" folder.', "./addons")
+        .option("-c, --config <filePath>", 'File path to the "websmith.config.json".', "./websmith.config.json")
+        .option("-d, --debug", "Enable the output of debug information.", false)
         .option("-p, --project <projectPath>", 'Path to the configuration file, or to a folder with a "tsconfig.json".', "./tsconfig.json")
-        .option("-s, --sourceMap", "enable the output of sourceMap information", false)
-        .option("-w, --watch", "enable watch mode", false)
+        .option("-s, --sourceMap", "Enable the output of sourceMap information.", false)
+        .option(
+            "-t, --targets <targetList>",
+            "Comma-separated list of compilation target names to use specific configuration and list of addons.",
+            undefined
+        )
+        .option("-w, --watch", "Enable watch mode.", false)
         .allowUnknownOption(true)
         .hook("preAction", command => {
             if (command.opts().profile) {
@@ -45,12 +50,8 @@ export const addCompileCommand = (parent = new Command(), compiler?: Compiler): 
                 console.timeEnd("command duration");
             }
         })
-        .action((target: string, args: CompilerArguments, command: Command) => {
-            if (typeof target !== "string") {
-                console.error(`No target provided.` + `\nSome custom addons may not be applied during compilation.`);
-            }
-
-            const unknownArgs = command.args.filter(it => it !== target).filter(arg => !command.getOptionValueSource(arg));
+        .action((args: CompilerArguments, command: Command) => {
+            const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
             if (unknownArgs?.length > 0) {
                 unknownArgs.forEach(arg =>
                     console.error(
@@ -74,8 +75,11 @@ export const addCompileCommand = (parent = new Command(), compiler?: Compiler): 
             // process.stdout.write(`\n\n`);
 
             // TODO: Add files from CLI argument
-            const system = compileSystem();
-            const options = createOptions(args, system);
+            const system = compiler?.getSystem() ?? compileSystem();
+            const options = createOptions(args, new DefaultReporter(system), system);
+            if (hasInvalidTargets(options.targets, options.config)) {
+                console.warn(`Custom target configuration found, but no target provided.\nSome custom addons may not be applied during compilation.`);
+            }
             if (compiler === undefined) {
                 compiler = new Compiler(options, system);
             } else {
@@ -85,10 +89,20 @@ export const addCompileCommand = (parent = new Command(), compiler?: Compiler): 
             if (args.watch) {
                 compiler.watch();
             } else {
-                const exitCode = compiler.compile().emitSkipped ? 1 : 0;
-                process.stdout.write(`Process exiting with code '${exitCode}'.\n`);
-                process.exit(exitCode);
+                compiler.compile();
             }
         });
     return parent;
+};
+
+export const hasInvalidTargets = (targets?: string[], config?: CompilerConfig) => {
+    if (targets === undefined || targets.length === 0 || (targets[0] === "*" && targets.length === 1)) {
+        return false;
+    }
+    if (config === undefined) {
+        return true;
+    }
+    const definedTargets = Object.keys(config?.targets ?? []);
+
+    return !targets.every(it => definedTargets.includes(it));
 };

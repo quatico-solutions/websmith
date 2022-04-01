@@ -12,60 +12,84 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { writeFileSync } from "fs";
+import ts from "typescript";
+import { NoReporter } from "../compiler";
+import { createBrowserSystem } from "../environment";
 import { createOptions } from "./options";
 
+let testSystem: ts.System;
+const testReporter = new NoReporter();
+
 describe("createOptions", () => {
+    beforeEach(() => {
+        testSystem = createBrowserSystem({});
+    });
+
     it("should return defaults w/o any param", () => {
         const actual = createOptions({});
 
-        expect(actual).toEqual(expect.objectContaining({ config: {}, debug: false, sourceMap: false, targets: [], watch: false }));
+        expect(actual).toEqual(
+            expect.objectContaining({
+                debug: false,
+                sourceMap: false,
+                targets: ["*"],
+                watch: false,
+            })
+        );
     });
 
-    it("should return expected path w/ custom tsconfig", () => {
-        writeFileSync("expected/tsconfig.json", "{}");
+    it("should return project config w/ custom but empty tsconfig.json", () => {
+        testSystem.writeFile("./expected/tsconfig.json", "{}");
 
-        const actual = createOptions({ project: "./expected/tsconfig.json" }).tsconfig;
+        const actual = createOptions({ project: "./expected/tsconfig.json" }, testReporter, testSystem).project;
 
-        expect(actual).toEqual({
-            configFilePath: expect.stringContaining("/expected/tsconfig.json"),
-            outDir: "./lib",
-        });
+        expect(actual).toEqual(
+            expect.objectContaining({
+                configFilePath: expect.stringContaining("/expected/tsconfig.json"),
+                outDir: "./lib",
+            })
+        );
     });
 
     it("should return expected path w/ custom addons directory", () => {
-        writeFileSync("../expected/addon-foo/addon.ts", 'export const activate = ctx => { ctx.registerTransformer("before", () => node => node); };');
+        testSystem.writeFile("./tsconfig.json", "{}");
+        testSystem.writeFile("./expected/addon-foo/addon.ts", "export const activate = () => {};");
+        jest.mock(
+            "/expected/addon-foo/addon",
+            () => {
+                return { activate: jest.fn() };
+            },
+            { virtual: true }
+        );
 
-        const actual = createOptions({ addons: "../expected/" }).addons.getAddons();
+        const actual = createOptions({ addonsDir: "./expected" }, testReporter, testSystem).addons.getAddons();
 
-        expect(actual).toEqual({});
+        expect(actual.map(it => it.name)).toEqual(["addon-foo"]);
     });
 
     it("should return debug path w/ debug true", () => {
-        const actual = createOptions({ debug: true });
+        testSystem.writeFile("./tsconfig.json", "{}");
+        const actual = createOptions({ debug: true }, testReporter, testSystem);
 
         expect(actual).toEqual(expect.objectContaining({ debug: true }));
     });
 
     it("should return watch path w/ watch true", () => {
-        const actual = createOptions({ watch: true });
+        testSystem.writeFile("./tsconfig.json", "{}");
+        const actual = createOptions({ watch: true }, testReporter, testSystem);
 
         expect(actual).toEqual(expect.objectContaining({ watch: true }));
     });
 
     it("should return config w/ valid compiler config json", () => {
-        writeFileSync("websmith.config.json", '{ "target": { "addons": [ "one", "two", "three" ], "writeFile": true } }');
+        testSystem.writeFile("./tsconfig.json", "{}");
+        testSystem.writeFile("websmith.config.json", '{ "targets": { "whatever": { "addons": [ "one", "two", "three" ], "writeFile": true } } }');
 
-        const actual = createOptions({ config: "./websmith.config.json" }).config;
+        const actual = createOptions({ config: "./websmith.config.json" }, testReporter, testSystem).config;
 
-        expect(actual).toEqual({ target: { addons: ["one", "two", "three"], writeFile: true } });
-    });
-
-    it("should return config w/ valid compiler config json", () => {
-        writeFileSync("websmith.config.json", '{ "target": { "addons": [ "one", "two", "three" ], "writeFile": true } }');
-
-        const actual = createOptions({ config: "./websmith.config.json" }).config;
-
-        expect(actual).toEqual({ target: { addons: ["one", "two", "three"], writeFile: true } });
+        expect(actual).toEqual({
+            configFilePath: expect.stringContaining("/websmith.config.json"),
+            targets: { whatever: { addons: ["one", "two", "three"], writeFile: true } },
+        });
     });
 });

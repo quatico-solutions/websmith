@@ -12,11 +12,11 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import fs from "fs";
 import glob from "glob";
 import path from "path";
 import sass from "sass";
 import dedent from "ts-dedent";
+import ts from "typescript";
 import { ErrorMessage, Reporter } from "../../../model";
 import { filterAndSortCssProperties } from "./extract-custom-props";
 
@@ -79,13 +79,13 @@ export const extractCustomPropNames = (filePath: string, tagName: string, includ
     return [];
 };
 
-export const readCustomPropNames = (root: string, reporter: Reporter, additionalIncludePaths: string[] = []): PropNames => {
+export const readCustomPropNames = (root: string, reporter: Reporter, system: ts.System, additionalIncludePaths: string[] = []): PropNames => {
     const result: PropNames = {};
-    fs.readdirSync(root).forEach(name => {
+    system.readDirectory(root).forEach(name => {
         const dirPath = `${root}/${name}`;
         const tagName = `qs-${name}`;
-        if (fs.statSync(dirPath)?.isDirectory()) {
-            if (fs.existsSync(`${dirPath}/_${name}.scss`) && glob.sync(`${dirPath}/*.ts`, { ignore: IGNORED_FILES }).length === 0) {
+        if (system.directoryExists(dirPath)) {
+            if (system.fileExists(`${dirPath}/_${name}.scss`) && glob.sync(`${dirPath}/*.ts`, { ignore: IGNORED_FILES }).length === 0) {
                 const filePath = `../${name}/_${name}.scss`;
                 try {
                     result[tagName] = filterAndSortCssProperties(

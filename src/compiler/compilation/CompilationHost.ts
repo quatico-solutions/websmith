@@ -79,6 +79,10 @@ export class CompilationHost implements LanguageServiceHost {
         return this.currentHost.getCompilationSettings();
     }
 
+    /**
+     *  Get root files by default
+     * @returns
+     */
     public getScriptFileNames(): string[] {
         return this.currentHost.getScriptFileNames();
     }

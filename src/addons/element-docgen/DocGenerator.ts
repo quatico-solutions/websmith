@@ -64,9 +64,9 @@ export class DocGenerator implements Generator {
             const output = transformAnalyzerResult("json", this.results, program as any, config);
             const data = JSON.parse(output) as Element;
 
-            extractCustomPropertyDocs(data, this.config.reporter);
-            extractMixinDocs(data, this.config.reporter);
-            generateCustomPropertyDocs(data, this.config.reporter);
+            extractCustomPropertyDocs(data, this.config.reporter, system);
+            extractMixinDocs(data, this.config.reporter, system);
+            generateCustomPropertyDocs(data, this.config.reporter, system);
 
             system.writeFile(this.config.outputFile, JSON.stringify(data, null, 4));
 
@@ -99,8 +99,8 @@ export interface DocOptions {
  *
  * @param elem
  */
-export const extractCustomPropertyDocs = (elem: Element, reporter: Reporter) => {
-    elem.tags?.forEach(tag => transformTag(tag, reporter));
+export const extractCustomPropertyDocs = (elem: Element, reporter: Reporter, system: ts.System) => {
+    elem.tags?.forEach(tag => transformTag(tag, reporter, system));
 };
 /**
  * Extracts SassDoc description for all @mixin definitions from *.scss
@@ -108,8 +108,8 @@ export const extractCustomPropertyDocs = (elem: Element, reporter: Reporter) => 
  *
  * @param elem
  */
-export const extractMixinDocs = (elem: Element, reporter: Reporter) => {
-    const mixins = readMixins("src", reporter);
+export const extractMixinDocs = (elem: Element, reporter: Reporter, system: ts.System) => {
+    const mixins = readMixins("src", reporter, system);
     Object.keys(mixins).forEach(name => {
         let dataTag = elem.tags?.find(tag => tag.name === name);
         if (!dataTag) {
@@ -130,8 +130,8 @@ export const extractMixinDocs = (elem: Element, reporter: Reporter) => {
  *
  * @param elem
  */
-export const generateCustomPropertyDocs = (elem: Element, reporter: Reporter) => {
-    const customPropNames = readCustomPropNames("src", reporter);
+export const generateCustomPropertyDocs = (elem: Element, reporter: Reporter, system: ts.System) => {
+    const customPropNames = readCustomPropNames("src", reporter, system);
     Object.keys(customPropNames).forEach(name => {
         if (customPropNames[name].length > 0) {
             let dataTag = elem.tags?.find(tag => tag.name === name);

@@ -61,7 +61,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             return actualFs.readFileSync(path, options);
         },
         copyFileSync: (src: PathLike, dest: PathLike, mode?: number): void => {
-            if(memfs.existsSync(src)){
+            if (memfs.existsSync(src)) {
                 memfs.copyFileSync(src, dest, mode);
             } else {
                 const file = actualFs.readFileSync(src);

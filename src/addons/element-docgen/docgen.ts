@@ -12,17 +12,18 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import ts from "typescript";
 import { Reporter, WarnMessage } from "../../model";
 import { CssProperty, Mixin, Tag } from "./model";
 import { extractCssProperties } from "./scss-extractors/extract-custom-props";
 
 const IGNORED_STATES: string[] = ["override", "type", "state", "default", "value"];
 
-export const transformTag = (tag: Tag, reporter: Reporter): Tag => {
+export const transformTag = (tag: Tag, reporter: Reporter, system: ts.System): Tag => {
     if (!tag.cssProperties) {
         tag.cssProperties = [];
     }
-    const allowedCssProperties = extractCssProperties(tag.name, tag.path!, reporter);
+    const allowedCssProperties = extractCssProperties(tag.name, tag.path!, reporter, system);
     if (allowedCssProperties !== undefined) {
         transformCssProperties(tag.name, tag.cssProperties, allowedCssProperties, reporter);
     }
@@ -102,9 +103,7 @@ export const transformCssProperties = (
     });
 
     cssProperties.forEach(cssProperty => {
-        reporter.reportWatchStatus(
-            new WarnMessage(`${tagName}: JSDoc for [${cssProperty.name}] has no matching CSS property.\n`)
-        );
+        reporter.reportWatchStatus(new WarnMessage(`${tagName}: JSDoc for [${cssProperty.name}] has no matching CSS property.\n`));
     });
 
     // TODO: don't duplicated or non-existing css properties
@@ -155,9 +154,9 @@ export const generateDescription = (property: string, tagName: string) => {
         propName = propName.charAt(0).toUpperCase() + propName.substring(1);
     }
 
-    return `**${propName}** style of the ${elemSelector ? `**${elemSelector}** ` : ``}${elemName} element${
-        childName ? `'s **${childName}**` : ""
-    }${stateName ? ` in **${stateName}** state` : ``}.`;
+    return `**${propName}** style of the ${elemSelector ? `**${elemSelector}** ` : ``}${elemName} element${childName ? `'s **${childName}**` : ""}${
+        stateName ? ` in **${stateName}** state` : ``
+    }.`;
 };
 
 const guessType = (propertyName: string): string | undefined => {

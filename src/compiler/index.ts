@@ -16,9 +16,10 @@ import { AddonRegistry, CustomStyleTransformers } from "./addons";
 import type { CompilationContext } from "./compilation";
 import { Compiler } from "./Compiler";
 import type { CompilerOptions } from "./CompilerOptions";
-import { parseProjectConfig } from "./Config";
+import { CompilerConfig, resolveCompilerConfig, resolveProjectConfig, resolveTargets } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
+import { NoReporter } from "./NoReporter";
 import { createParser, Parser, ParserOptions, Project } from "./Parser";
 // TODO: Add support for style processors via addon
 // import {
@@ -33,13 +34,17 @@ import { createParser, Parser, ParserOptions, Project } from "./Parser";
 export {
     AddonRegistry,
     Compiler,
-    parseProjectConfig,
+    CompilerConfig,
     createParser,
     CustomStyleTransformers,
     DefaultReporter,
+    NoReporter,
     Parser,
     ParserOptions,
     Project,
+    resolveCompilerConfig,
+    resolveProjectConfig,
+    resolveTargets,
     tsDefaults,
     tsLibDefaults,
     // TODO: Add support for style processors via addon

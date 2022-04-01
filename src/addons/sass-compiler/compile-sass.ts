@@ -18,17 +18,19 @@ import { defaultOptions } from "./defaults";
 
 export const CONFIG_FILE_NAME_SASS = "sass.config.js";
 
-export const createSass = (options: sass.Options<"sync">, reporter: Reporter) => (styles?: string): string => {
-    try {
-        if (styles) {
-            const compiled = sass.compileString(styles, { ...defaultOptions, ...options });
-            return removeComments(compiled.css.toString());
+export const createSass =
+    (options: sass.Options<"sync">, reporter: Reporter) =>
+    (styles?: string): string => {
+        try {
+            if (styles) {
+                const compiled = sass.compileString(styles, { ...defaultOptions, ...options });
+                return removeComments(compiled.css.toString());
+            }
+        } catch (err) {
+            reporter.reportDiagnostic(new ErrorMessage(err.message));
         }
-    } catch (err) {
-        reporter.reportDiagnostic(new ErrorMessage(err.message));
-    }
-    return "";
-};
+        return "";
+    };
 
 export const removeComments = (source: string): string =>
     source

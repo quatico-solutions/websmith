@@ -13,26 +13,203 @@
  * with Quatico.
  */
 /* eslint-disable no-console */
-import { createBrowserSystem } from "./browser-system";
+import ts from "typescript";
+import { createBrowserSystem, isDirectoryName, resolveDirectories, resolveFiles, resolvePath } from "./browser-system";
+
+describe("resolvePath", () => {
+    it("returns path with root path", () => {
+        expect(resolvePath("/")).toBe("/");
+    });
+
+    it("returns path with empty path", () => {
+        expect(resolvePath("")).toBe("/");
+    });
+
+    it("returns path with point path", () => {
+        expect(resolvePath(".")).toBe("/");
+    });
+
+    it("returns path with absolute path", () => {
+        expect(resolvePath("/foo/bar")).toBe("/foo/bar");
+    });
+
+    it("returns path with implicitly relative path", () => {
+        expect(resolvePath("foo/bar")).toBe("/foo/bar");
+    });
+
+    it("returns path with explicitly relative path", () => {
+        expect(resolvePath("./foo/bar")).toBe("/foo/bar");
+    });
+
+    it("returns path with parent relative path", () => {
+        expect(resolvePath("../foo/bar")).toBe("/foo/bar");
+    });
+
+    it("returns path with network path", () => {
+        expect(resolvePath("//foo/bar")).toBe("/foo/bar");
+    });
+
+    it("returns path with directory path ending slash", () => {
+        expect(resolvePath("foo/bar/")).toBe("/foo/bar");
+    });
+
+    it("returns path with absolute file path", () => {
+        expect(resolvePath("/foo/bar.js")).toBe("/foo/bar.js");
+    });
+
+    it("returns path with relative file path", () => {
+        expect(resolvePath("foo/bar.js")).toBe("/foo/bar.js");
+    });
+});
+
+describe("resolveFiles", () => {
+    it("should return files w/ direct children", () => {
+        const actual = resolveFiles("/foo/bar", ["/foo/bar/baz.js", "/foo/bar/baz.ts"]);
+
+        expect(actual).toEqual(["/foo/bar/baz.js", "/foo/bar/baz.ts"]);
+    });
+
+    it("should return files w/ file path", () => {
+        const actual = resolveFiles("/foo/bar.ts", ["/foo/bar.ts"]);
+
+        expect(actual).toEqual(["/foo/bar.ts"]);
+    });
+
+    it("should return empty array w/ empty directory", () => {
+        const actual = resolveFiles("/foo", ["/foo/"]);
+
+        expect(actual).toEqual([]);
+    });
+});
+
+describe("resolveDirectories", () => {
+    it("should return direct child folder with file paths", () => {
+        const actual = resolveDirectories("/foo", ["/foo/bar/baz.js", "/foo/bar/baz.ts"]);
+
+        expect(actual).toEqual(["bar"]);
+    });
+
+    it("should 2", () => {
+        const actual = resolveDirectories("/foo", ["/foo/", "/foo/bar/"]);
+
+        expect(actual).toEqual(["bar"]);
+    });
+
+    it("should 33", () => {
+        const actual = resolveDirectories("/foo", ["/foo/", "/foo/bar/baz/zip.js"]);
+
+        expect(actual).toEqual(["bar"]);
+    });
+
+    it("should 4", () => {
+        const actual = resolveDirectories("/zip", ["/zip/zap/zup/"]);
+
+        expect(actual).toEqual(["zap"]);
+    });
+});
+
+describe("isDirectoryName", () => {
+    it("should return false w/ absolute file path", () => {
+        expect(isDirectoryName("/foo/bar/baz.js")).toBe(false);
+    });
+
+    it("should return false w/ relative file path", () => {
+        expect(isDirectoryName("bar/baz.js")).toBe(false);
+    });
+
+    it("should return false w/ file name", () => {
+        expect(isDirectoryName("baz.js")).toBe(false);
+    });
+
+    it("should return false w/ relative directory name and extension", () => {
+        expect(isDirectoryName("foo.bar")).toBe(false);
+    });
+
+    it("should return true w/ absolute directory path", () => {
+        expect(isDirectoryName("/foo/bar")).toBe(true);
+    });
+
+    it("should return true w/ absolute directory name", () => {
+        expect(isDirectoryName("/foo")).toBe(true);
+    });
+
+    it("should return true w/ relative directory name", () => {
+        expect(isDirectoryName("foo")).toBe(true);
+    });
+
+    it("should return true w/ relative directory name, extension and trailing slash", () => {
+        expect(isDirectoryName("foo.js/")).toBe(true);
+    });
+});
+
+describe("directoryExists", () => {
+    let testObj: ts.System;
+    beforeEach(() => {
+        testObj = createBrowserSystem({});
+    });
+
+    it("should return true w/ existing relative directory path", () => {
+        testObj.createDirectory("./addons");
+
+        expect(testObj.directoryExists("./addons")).toBe(true);
+    });
+
+    it("should return true w/ existing absolute directory path", () => {
+        testObj.createDirectory("/addons");
+
+        expect(testObj.directoryExists("/addons")).toBe(true);
+    });
+
+    it("should return true w/ existing directory name", () => {
+        testObj.createDirectory("addons");
+
+        expect(testObj.directoryExists("addons")).toBe(true);
+    });
+
+    it("should return true w/ existing directory name containing extension", () => {
+        testObj.createDirectory("addons.js");
+
+        expect(testObj.directoryExists("addons.js")).toBe(true);
+    });
+
+    it("should return true w/ existing directory name, extension, trailing slash ", () => {
+        testObj.createDirectory("addons.js");
+
+        expect(testObj.directoryExists("addons.js/")).toBe(true);
+    });
+
+    it("should return false w/ existing relative file path ", () => {
+        testObj.writeFile("addons/file.js", "export const foo = () => {};");
+
+        expect(testObj.directoryExists("addons/file.js")).toBe(false);
+    });
+
+    it("should return true w/ existing partial file path ", () => {
+        testObj.writeFile("addons.js/file.js", "export const foo = () => {};");
+
+        expect(testObj.directoryExists("/addons.js")).toBe(true);
+    });
+});
 
 describe("createDirectory", () => {
-    it("does nothing, but directed can be read", () => {
-        const testObj = createBrowserSystem({});
+    let testObj: ts.System;
+    beforeEach(() => {
+        testObj = createBrowserSystem({});
+    });
 
+    it("does nothing, but directed can be read", () => {
         testObj.createDirectory("expected");
 
         expect(testObj.readDirectory("expected")).toEqual([]);
     });
 
     it("does nothing, but new directory exists", () => {
-        const testObj = createBrowserSystem({});
         testObj.createDirectory("/expected/");
 
         expect(testObj.directoryExists("/expected")).toBe(true);
     });
 
     it("does nothing, but new file exists", () => {
-        const testObj = createBrowserSystem({});
         testObj.createDirectory("/expected/");
         testObj.writeFile("/expected/foobar.ts", "whatever");
 
@@ -54,7 +231,7 @@ describe("write", () => {
     });
 
     it("yields error on console log", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         testObj.write("whatever");
 
@@ -64,19 +241,19 @@ describe("write", () => {
 
 describe("exit", () => {
     it("returns w/o any exitCode", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(() => testObj.exit()).not.toThrow();
     });
 
     it("returns with exitCode '0'", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(() => testObj.exit(0)).not.toThrow();
     });
 
     it("throws error with exitCode greater '0'", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(() => testObj.exit(1)).toThrow('websmith exited with code "1".');
     });
@@ -84,31 +261,31 @@ describe("exit", () => {
 
 describe("directoryExists", () => {
     it("returns false with empty path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.directoryExists("")).toBe(false);
     });
 
     it("returns false with non-existing path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.directoryExists("doesnotexist")).toBe(false);
     });
 
     it("returns false with non-existing absolute path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.directoryExists("/doesnotexist/")).toBe(false);
     });
 
     it("returns false with non-existing relative path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.directoryExists("./doesnotexist")).toBe(false);
     });
 
     it("returns true with root path and no files", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.directoryExists("/")).toBe(true);
     });
@@ -166,25 +343,25 @@ describe("directoryExists", () => {
 
 describe("fileExists", () => {
     it("returns false with non-existing directory path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.fileExists("/doesnotexist")).toBe(false);
     });
 
     it("returns false with non-existing path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.fileExists("doesnotexist.js")).toBe(false);
     });
 
     it("returns false with non-existing relative path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.fileExists("./foobar/doesnotexist.js")).toBe(false);
     });
 
     it("returns false with non-existing absolute path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.fileExists("/foobar/doesnotexist.js")).toBe(false);
     });
@@ -222,7 +399,7 @@ describe("fileExists", () => {
 
 describe("getCurrentDirectory", () => {
     it("returns root directory", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.getCurrentDirectory()).toBe("/");
     });
@@ -230,7 +407,7 @@ describe("getCurrentDirectory", () => {
 
 describe("getDirectories", () => {
     it("returns empty array w/o files", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.getDirectories("whatever")).toEqual([]);
     });
@@ -273,7 +450,7 @@ describe("getDirectories", () => {
             "/three/two/one.js": "",
         });
 
-        expect(testObj.getDirectories("/")).toEqual(["three", "two", "two"]);
+        expect(testObj.getDirectories("/")).toEqual(["three", "two"]);
     });
 
     it("returns all dir paths w/ nested files in sub-folder", () => {
@@ -286,11 +463,22 @@ describe("getDirectories", () => {
 
         expect(testObj.getDirectories("/three")).toEqual(["two"]);
     });
+
+    it("returns all dir paths w/ nested directories in sub-folder", () => {
+        const testObj = createBrowserSystem({
+            "/three/one.js": "",
+            "/one.js": "",
+            "/three/one/one.js": "",
+            "/three/two/one.js": "",
+        });
+
+        expect(testObj.getDirectories("/three")).toEqual(["one", "two"]);
+    });
 });
 
 describe("getExecutingFilePath", () => {
     it('returns "/" path', () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.getExecutingFilePath()).toBe("/");
     });
@@ -298,7 +486,7 @@ describe("getExecutingFilePath", () => {
 
 describe("readDirectory", () => {
     it("returns empty array w/o any content", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.readDirectory("whatever")).toEqual([]);
     });
@@ -308,7 +496,8 @@ describe("readDirectory", () => {
             "one.js": "",
         });
 
-        expect(testObj.readDirectory(".")).toEqual([]);
+        expect(testObj.readDirectory("/")).toEqual(["/one.js"]);
+        expect(testObj.readDirectory(".")).toEqual(["/one.js"]);
         expect(testObj.readDirectory("..")).toEqual([]);
         expect(testObj.readDirectory("../")).toEqual([]);
         expect(testObj.readDirectory("./")).toEqual([]);
@@ -319,7 +508,7 @@ describe("readDirectory", () => {
             "one.js": "",
         });
 
-        expect(testObj.readDirectory("/")).toEqual(["one.js"]);
+        expect(testObj.readDirectory("/")).toEqual(["/one.js"]);
     });
 
     it("returns file path w/ root path and multiple existing files", () => {
@@ -329,7 +518,7 @@ describe("readDirectory", () => {
             "three.js": "",
         });
 
-        expect(testObj.readDirectory("/")).toEqual(["one.js", "two.js", "three.js"]);
+        expect(testObj.readDirectory("/")).toEqual(["/one.js", "/two.js", "/three.js"]);
     });
 
     it("returns empty array w/ file name", () => {
@@ -363,7 +552,7 @@ describe("readDirectory", () => {
 
 describe("readFile", () => {
     it("returns undefined w/ non-existing file", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.readFile("doesnotexist")).toBeUndefined();
     });
@@ -407,7 +596,7 @@ describe("readFile", () => {
 
 describe("writeFile", () => {
     it("yields file in system w/ file name", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         testObj.writeFile(
             "one.js",
@@ -423,7 +612,7 @@ describe("writeFile", () => {
     });
 
     it("yields file in system w/ dir path name", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         testObj.writeFile(
             "/expected/one.js",
@@ -439,7 +628,7 @@ describe("writeFile", () => {
     });
 
     it("yields file in system w/ relative path name", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         testObj.writeFile(
             "../expected/one.js",
@@ -455,7 +644,7 @@ describe("writeFile", () => {
     });
 
     it("yields file in system w/ empty string", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         testObj.writeFile("whatever", "");
 
@@ -464,7 +653,7 @@ describe("writeFile", () => {
     });
 
     it("does not yield file in system w/ empty path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         testObj.writeFile("", "whatever");
 
@@ -475,31 +664,31 @@ describe("writeFile", () => {
 
 describe("resolvePath", () => {
     it("returns path w/ dir path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.resolvePath("/expected")).toBe("/expected");
     });
 
     it("returns path w/ file path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.resolvePath("/expected/one.js")).toBe("/expected/one.js");
     });
 
     it("returns absolute path w/ relative path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.resolvePath("./expected/one.js")).toBe("/expected/one.js");
     });
 
     it("returns absolute path w/ relative parent path", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.resolvePath("../one.js")).toBe("/one.js");
     });
 
     it("returns root path w/ empty string", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         expect(testObj.resolvePath("")).toBe("/");
     });
@@ -507,7 +696,7 @@ describe("resolvePath", () => {
 
 describe("createHash", () => {
     it("returns same hash for multiple calls", () => {
-        const testObj = createBrowserSystem({});
+        const testObj = createBrowserSystem();
 
         const actual = testObj.createHash!("hello");
 

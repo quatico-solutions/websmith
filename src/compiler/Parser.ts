@@ -60,7 +60,12 @@ export const parsePaths = (options: ParserOptions, filePaths?: string[]): string
     const targets =
         filePaths && filePaths.length > 0
             ? filePaths
-            : Array.from(new Set([...globalFileNames, ...system.readDirectory(system.getCurrentDirectory(), VALID_STYLE_FILES)]));
+            : Array.from(
+                  new Set([
+                      ...globalFileNames.map(it => system.resolvePath(it)),
+                      ...system.readDirectory(system.getCurrentDirectory(), VALID_STYLE_FILES),
+                  ])
+              );
 
     return targets.filter(cur => isProjectFileName(cur));
 };

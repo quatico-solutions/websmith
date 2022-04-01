@@ -18,7 +18,8 @@ import { ReporterMock } from "../../../../test";
 import { createBrowserSystem } from "../../../environment";
 import { extractCustomPropNames, readCustomPropNames } from "./extract-custom-prop-names";
 
-const reporter = new ReporterMock(createBrowserSystem({}));
+const testSystem = createBrowserSystem({});
+const reporter = new ReporterMock(testSystem);
 
 // FIXME: Tests don't run on local machine
 describe.skip("extractCustomPropNames", () => {
@@ -44,6 +45,7 @@ describe.skip("extractCustomPropNames", () => {
         const actual = readCustomPropNames(
             "./src/test/patterns", // use 'path.resolve("../../packages/patterns/src")' to test with patterns
             reporter,
+            testSystem,
             [
                 // FIXME: extract properties libraries for use in scripts
                 path.resolve("../../packages/patterns/src/properties"),

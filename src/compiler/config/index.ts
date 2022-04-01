@@ -1,5 +1,7 @@
-import { parseProjectConfig } from "./parse-project-config";
 import type { CompilerConfig } from "./CompilerConfig";
+import { resolveCompilerConfig } from "./resolve-compiler-config";
+import { resolveProjectConfig } from "./resolve-project-config";
+import { resolveTargets } from "./resolve-targets";
 
-export { parseProjectConfig };
+export { resolveProjectConfig, resolveCompilerConfig, resolveTargets };
 export type { CompilerConfig };

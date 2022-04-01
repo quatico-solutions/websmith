@@ -16,7 +16,7 @@
 import path from "path";
 import ts from "typescript";
 import { ReporterMock } from "../../test";
-import { parseProjectConfig } from "../compiler";
+import { resolveProjectConfig } from "../compiler";
 import { createBrowserSystem } from "./browser-system";
 import { createCompileHost, createWatchHost } from "./compile-service";
 
@@ -32,7 +32,7 @@ const testSystem = createBrowserSystem({
 describe("createCompileHost", () => {
     let expected: ts.CompilerHost;
     let target: ts.CompilerHost;
-    const options = parseProjectConfig("tsconfig.json", testSystem).options;
+    const options = resolveProjectConfig("tsconfig.json", testSystem).options;
     beforeEach(() => {
         expected = ts.createCompilerHost(options);
         target = createCompileHost({}, testSystem);
@@ -166,7 +166,7 @@ describe("createCompileHost", () => {
         it("returns file paths for existing directory and matching file names", () => {
             const actual = target.readDirectory!("folder/foo", [".js"], [], []);
 
-            expect(actual).toEqual(["folder/foo/three.js"]);
+            expect(actual).toEqual(["/folder/foo/three.js"]);
         });
     });
 
@@ -241,7 +241,7 @@ describe("createCompileHost", () => {
 
 describe("createWatchHost", () => {
     let target: ts.WatchCompilerHostOfFilesAndCompilerOptions<ts.SemanticDiagnosticsBuilderProgram>;
-    const config = parseProjectConfig("tsconfig.json", testSystem);
+    const config = resolveProjectConfig("tsconfig.json", testSystem);
     beforeEach(() => {
         target = createWatchHost(config.fileNames, config.options, testSystem, new ReporterMock(testSystem));
     });
@@ -342,7 +342,7 @@ describe("createWatchHost", () => {
         it("returns file paths for existing directory and matching file names", () => {
             const actual = target.readDirectory!("folder/foo", [".js"], [], []);
 
-            expect(actual).toEqual(["folder/foo/three.js"]);
+            expect(actual).toEqual(["/folder/foo/three.js"]);
         });
     });
 

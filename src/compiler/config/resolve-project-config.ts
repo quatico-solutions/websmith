@@ -21,7 +21,7 @@ import { aggregateMessages } from "../../model";
  * @param configFilePath
  * @param system
  */
-export const parseProjectConfig = (configFilePath: string, system: ts.System): ts.ParsedCommandLine | never => {
+export const resolveProjectConfig = (configFilePath: string, system: ts.System): ts.ParsedCommandLine | never => {
     let errorMessage: string | ts.DiagnosticMessageChain = "Could not find a valid 'tsconfig.json'.";
 
     const parseHost: ts.ParseConfigFileHost = {
@@ -32,7 +32,7 @@ export const parseProjectConfig = (configFilePath: string, system: ts.System): t
     };
 
     const result = ts.getParsedCommandLineOfConfigFile(
-        configFilePath,
+        system.resolvePath(configFilePath),
         {} /* no extra compiler options */,
         parseHost,
         undefined /* no extended config cache */,

@@ -23,7 +23,7 @@ describe("findConfigFile", () => {
 
         const actual = findConfigFile("./", target);
 
-        expect(actual).toBe("tsconfig.json");
+        expect(actual).toBe("./tsconfig.json");
     });
 
     it("throws error with no existing config file", () => {
@@ -39,7 +39,7 @@ describe("findSassConfig", () => {
 
         const actual = findSassConfig("sass.config.js", target);
 
-        expect(actual).toBe("sass.config.js");
+        expect(actual).toBe("/sass.config.js");
     });
 
     it("returns file name with path to custom existing file", () => {
@@ -47,7 +47,7 @@ describe("findSassConfig", () => {
 
         const actual = findSassConfig("expected.js", target);
 
-        expect(actual).toBe("expected.js");
+        expect(actual).toBe("/expected.js");
     });
 
     it("throws error with no existing config file", () => {

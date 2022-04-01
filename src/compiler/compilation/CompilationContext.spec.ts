@@ -23,7 +23,7 @@ class CompilationContextTestClass extends CompilationContext {
 let testObj: CompilationContextTestClass;
 
 beforeEach(() => {
-    const testSystem = createBrowserSystem();
+    const testSystem = createBrowserSystem({});
     testObj = new CompilationContextTestClass({
         buildDir: "",
         project: {},

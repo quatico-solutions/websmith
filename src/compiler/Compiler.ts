@@ -12,10 +12,10 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { dirname, isAbsolute, join, resolve } from "path";
+import { dirname, extname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
-import { createSystem, createWatchHost, recursiveFindByFilter } from "../environment";
-import { CompilerOptions, Reporter } from "../model";
+import { createSystem, recursiveFindByFilter } from "../environment";
+import { CompilerOptions, ErrorMessage, Reporter } from "../model";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, CompilationOptions, createSharedHost } from "./compilation";
 import { CompilerConfig } from "./config";
@@ -57,7 +57,7 @@ export class Compiler {
     }
 
     public getContext(target?: string): CompilationContext | undefined {
-        return this.contextMap.get(target ?? "All");
+        return this.contextMap.get(target ?? "*");
     }
 
     public getSystem(): ts.System {
@@ -70,7 +70,9 @@ export class Compiler {
 
     public setOptions(options: CompilerOptions): this {
         this.options = options;
-        this.options.targets.length === 0 && this.options.targets.push("All");
+        if (this.options.targets.length === 0) {
+            this.options.targets.push("*");
+        }
 
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
         this.compilationHost = new CompilationHost(createSharedHost(this.system) as ts.LanguageServiceHost);
@@ -135,11 +137,16 @@ export class Compiler {
     }
 
     public watch() {
-        const { filePaths } = this.parse();
-        const host = createWatchHost(filePaths, this.options.project, this.system, this.reporter);
-        // @ts-ignore FIXME: Implement watch mode
-        const config = ts.createWatchProgram(host);
-        // injectTransformers(host, this.getTransformers(config.getProgram().getProgram()));
+        this.options.targets.forEach((target: string) => {
+            const { writeFile } = getCompilationOptions(target, this.options.config);
+            if (typeof this.system.watchFile === "function") {
+                this.getRootFiles().forEach(cur =>
+                    this.system.watchFile!(cur, (fileName, event) => this.emitSourceFile(fileName, target, writeFile))
+                );
+            } else {
+                this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
+            }
+        });
     }
 
     protected emitSourceFile(fileName: string, target: string, writeFile = false): CompileFragment {
@@ -176,28 +183,6 @@ export class Compiler {
 
         return createParser({ compilerOptions: options, filePaths: globalFileNames, system: this.system })(fileNames);
     }
-
-    // protected emit(program: ts.Program): ts.EmitResult {
-    //     const result: any = program.emit(
-    //         undefined /* target source file */,
-    //         (fileName, content) => {
-    //             this.system.writeFile(fileName, `/* @generated */${this.system.newLine}${content}`);
-    //         },
-    //         undefined /* cancellation token */,
-    //         false /* emit d.ts files only */,
-    //         this.getTransformers(program)
-    //     );
-    //     (this.getGenerators().docs ?? [])
-    //         .map(cur => this.tryEmit(() => cur.emit(program, this.system)))
-    //         .forEach(cur => {
-    //             result.diagnostics = concat(result.diagnostics, cur.diagnostics);
-    //             result.emitSkipped = result.emitSkipped === true || cur.emitSkipped === true;
-    //             result.emittedFiles = concat(result.emittedFiles, cur.emittedFiles);
-    //         });
-
-    //     return result;
-    // }
-
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         ts.getPreEmitDiagnostics(program)
             .concat(result.diagnostics)
@@ -206,6 +191,7 @@ export class Compiler {
         return result;
     }
 
+    // FIXME: compile and watch don't return proper ts.EmitResult(s)
     // private tryEmit(emit: () => ts.EmitResult): ts.EmitResult {
     //     try {
     //         return emit();
@@ -227,9 +213,12 @@ export class Compiler {
     // }
 
     private getRootFiles(): string[] {
+        // FIXME: Ignores tsx files still
         return this.options.tsconfig.fileNames
             ? this.options.tsconfig.fileNames
-            : recursiveFindByFilter(resolve(dirname(this.configPath), "./src"), (path: string) => path.endsWith(".ts"));
+            : recursiveFindByFilter(resolve(dirname(this.configPath), "./src"), (path: string) =>
+                  ["ts", "js"].some(it => extname(path).includes(it))
+              );
     }
 
     private writeOutputFiles(emitOutput: ts.EmitOutput) {
@@ -258,7 +247,10 @@ export class Compiler {
     }
 }
 
-const getCompilationOptions = (target: string, config: CompilerConfig = {}): CompilationOptions => {
-    const { targets = {} } = config;
-    return targets[target] ?? {};
+const getCompilationOptions = (target: string, config?: CompilerConfig): CompilationOptions => {
+    if (config) {
+        const { targets = {} } = config;
+        return targets[target] ?? {};
+    }
+    return {};
 };

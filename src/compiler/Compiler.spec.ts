@@ -88,7 +88,6 @@ beforeEach(() => {
     testObj = new CompilerTestClass({
         addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
         buildDir: "./src",
-        config: {},
         project: {},
         reporter,
         targets: [],
@@ -173,7 +172,6 @@ describe("compile", () => {
         testObj = new CompilerMockClass({
             addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
             buildDir: "./src",
-            config: {},
             project: {},
             reporter,
             targets: [],
@@ -308,7 +306,6 @@ describe("report", () => {
         testObj = new CompilerTestClass({
             addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
             buildDir: "./src",
-            config: {},
             project: {},
             reporter,
             targets: [],

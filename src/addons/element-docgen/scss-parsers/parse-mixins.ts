@@ -12,8 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import fs from "fs";
 import { Node, parse } from "scss-parser";
+import ts from "typescript";
 import { ErrorMessage, Reporter } from "../../../model";
 
 export interface Mixin {
@@ -46,19 +46,17 @@ interface AggregatedDescription {
     quoted?: boolean;
 }
 
-export const readMixins = (path: string, reporter: Reporter): { [key: string]: Mixin[] } => {
+export const readMixins = (path: string, reporter: Reporter, system: ts.System): { [key: string]: Mixin[] } => {
     const mixins: { [key: string]: Mixin[] } = {};
-    fs.readdirSync(path).forEach(directoryName => {
-        const directoryPath = path + "/" + directoryName;
-        const directoryStat = fs.statSync(directoryPath);
-        if (directoryStat && directoryStat.isDirectory()) {
-            fs.readdirSync(directoryPath).forEach(fileName => {
-                const filePath = directoryPath + "/" + fileName;
+    system.readDirectory(path).forEach(directoryName => {
+        const dirPath = path + "/" + directoryName;
+        if (dirPath && system.directoryExists(dirPath)) {
+            system.readDirectory(dirPath).forEach(fileName => {
+                const filePath = dirPath + "/" + fileName;
                 if (fileName.startsWith("_") && fileName.endsWith(".scss")) {
-                    const fileStat = fs.statSync(filePath);
-                    if (fileStat && fileStat.isFile()) {
+                    if (system.fileExists(filePath)) {
                         try {
-                            mixins["qs-" + directoryName] = parseMixins(fs.readFileSync(filePath, { encoding: "utf8" }));
+                            mixins["qs-" + directoryName] = parseMixins(system.readFile(filePath) ?? "");
                         } catch (err) {
                             reporter.reportDiagnostic(new ErrorMessage(`Error processing '${filePath}': ${err}`));
                         }

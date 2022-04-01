@@ -13,16 +13,14 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { DefaultReporter } from "../src/compiler";
+import { Reporter } from "../model";
 
-export class ReporterMock extends DefaultReporter {
-    public message?: string = "";
-
-    public reportWatchStatus(diagnostic: ts.Diagnostic) {
+export class NoReporter implements Reporter {
+    public reportDiagnostic(diagnostic: ts.Diagnostic): void {
         // do nothing
     }
 
-    protected logProblem(message: any, category: ts.DiagnosticCategory): void {
-        this.message += `${message ?? ""}\n`;
+    public reportWatchStatus(diagnostic: ts.Diagnostic, newLine = ""): void {
+        // do nothing
     }
 }

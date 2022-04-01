@@ -32,9 +32,9 @@ export class DefaultReporter implements Reporter {
         const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, this.formatHost.getNewLine());
         if (typeof diagnostic.file?.getLineAndCharacterOfPosition === "function" && diagnostic.start) {
             const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start!);
-            this.logProblem(`${levelOf(diagnostic)}: ${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`);
+            this.logProblem(`${levelOf(diagnostic)}: ${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`, diagnostic.category);
         } else {
-            this.logProblem(`${levelOf(diagnostic)}: ${diagnostic.code ? diagnostic.code + ": " : ""}${message}`);
+            this.logProblem(`${levelOf(diagnostic)}: ${diagnostic.code ? diagnostic.code + ": " : ""}${message}`, diagnostic.category);
         }
     }
 
@@ -47,9 +47,18 @@ export class DefaultReporter implements Reporter {
         process.stdout.write(`${messageToString(diagnostic.messageText)}${newLine}`);
     }
 
-    protected logProblem(message?: any): void {
-        // eslint-disable-next-line no-console
-        console.error(message);
+    protected logProblem(message: string, category: ts.DiagnosticCategory): void {
+        switch (category) {
+            case ts.DiagnosticCategory.Error:
+                console.error(message);
+                break;
+            case ts.DiagnosticCategory.Warning:
+                console.warn(message);
+                break;
+            default:
+                console.log(message);
+                break;
+        }
     }
 }
 

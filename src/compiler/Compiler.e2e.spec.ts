@@ -47,7 +47,6 @@ const createCompiler = (system: ts.System) => {
         {
             addons: new AddonRegistry({ addonsDir: "./addons", reporter, system }),
             buildDir: "./src",
-            config: {},
             project: {},
             reporter,
             targets: [],
