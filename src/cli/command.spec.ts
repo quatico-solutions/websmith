@@ -9,7 +9,7 @@
  * This software is the confidential and proprietary information of
  * Quatico Solutions AG, ("Confidential Information"). You shall not
  * disclose such Confidential Information and shall use it in
- * accordance with the terms of the license agresent you entered into
+ * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
 /* eslint-disable no-console */
@@ -17,7 +17,7 @@
 import { Command } from "commander";
 import path from "path";
 import ts from "typescript";
-import { Compiler } from "../compiler";
+import { Compiler, NoReporter } from "../compiler";
 import { createBrowserSystem } from "../environment";
 import { addCompileCommand, hasInvalidTargets } from "./command";
 import { createOptions } from "./options";
@@ -31,7 +31,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should warn w/ unknown argument", () => {
-        const testObj = addCompileCommand(new Command());
+        const testObj = addCompileCommand(new Command(), new Compiler(createOptions({}, new NoReporter())));
 
         // @ts-ignore
         testObj.help = jest.fn();
@@ -46,7 +46,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should set the default options w/o any config", () => {
-        const target = new Compiler(createOptions({}));
+        const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse([], { from: "user" });
 
@@ -101,7 +101,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield default options w/o any CLI argument", () => {
-        const target = new Compiler(createOptions({}));
+        const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse([], { from: "user" });
 
@@ -252,7 +252,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should set targets w/ single target cli argument", () => {
-        const target = new Compiler(createOptions({}));
+        const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse(["--targets", "expected"], { from: "user" });
 
@@ -260,7 +260,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should set target  w/ comma separated target cli argument", () => {
-        const target = new Compiler(createOptions({}));
+        const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse(["--targets", "one, two, three"], { from: "user" });
 
@@ -276,7 +276,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should not add addon name to addons  w/ --addons cli argument and unknown name", () => {
-        const target = new Compiler(createOptions({}));
+        const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse(["--addons", "unknown"], { from: "user" });
 
@@ -293,7 +293,7 @@ describe("addCompileCommand", () => {
             { virtual: true }
         );
 
-        const target = new Compiler(createOptions({}), testSystem);
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
 
         addCompileCommand(new Command(), target).parse(["--addons", "expected"], { from: "user" });
 
@@ -307,7 +307,7 @@ describe("addCompileCommand", () => {
 
     it("should set config option  w/ --config cli argument", () => {
         testSystem.writeFile("./expected/websmith.config.json", "{}");
-        const target = new Compiler(createOptions({}), testSystem);
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
 
         addCompileCommand(new Command(), target).parse(["--config", "./expected/websmith.config.json"], { from: "user" });
 
@@ -316,7 +316,7 @@ describe("addCompileCommand", () => {
 
     it("should set project option  w/ --project cli argument", () => {
         testSystem.writeFile("expected/tsconfig.json", "{}");
-        const target = new Compiler(createOptions({}), testSystem);
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
 
         addCompileCommand(new Command(), target).parse(["--project", "expected/tsconfig.json"], { from: "user" });
 
@@ -324,7 +324,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should set sourceMap option  w/ --sourceMap cli argument", () => {
-        const target = new Compiler(createOptions({}));
+        const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse(["--sourceMap"], { from: "user" });
 
@@ -332,7 +332,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should set debug compiler option  w/ --debug cli argument", () => {
-        const target = new Compiler(createOptions({}));
+        const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse(["--debug"], { from: "user" });
 
@@ -340,7 +340,7 @@ describe("addCompileCommand", () => {
     });
 
     it.skip("should set watch compiler option  w/ --watch cli argument", () => {
-        const target = new Compiler(createOptions({}));
+        const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse(["--watch"], { from: "user" });
 
@@ -348,7 +348,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should execute compile w/o --watch cli argument", () => {
-        const target = new Compiler(createOptions({}));
+        const target = new Compiler(createOptions({}, new NoReporter()));
         target.compile = jest.fn();
 
         addCompileCommand(new Command(), target).parse([], { from: "user" });
@@ -360,7 +360,7 @@ describe("addCompileCommand", () => {
         console.error = line => {
             throw new Error(line.toString());
         };
-        const target = new Compiler(createOptions({}));
+        const target = new Compiler(createOptions({}, new NoReporter()));
 
         expect(() => addCompileCommand(new Command(), target).parse(["--debug", "--allowJs", "--strict"], { from: "user" })).toThrow(
             `Unknown Argument "--allowJs".` + `\nIf this is a tsc command, please configure it in your typescript configuration file.\n`

@@ -16,6 +16,7 @@
 import { Command, program } from "commander";
 import { Compiler, DefaultReporter } from "../compiler";
 import { CompilationConfig } from "../compiler/config";
+import { WarnMessage } from "../model";
 import { compileSystem } from "./compiler-system";
 import { CompilerArguments } from "./CompilerArguments";
 import { createOptions } from "./options";
@@ -76,9 +77,13 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
 
             // TODO: Add files from CLI argument
             const system = compiler?.getSystem() ?? compileSystem();
-            const options = createOptions(args, new DefaultReporter(system), system);
+            const options = createOptions(args, compiler?.getReporter() ?? new DefaultReporter(system), system);
             if (hasInvalidTargets(options.targets, options.config)) {
-                console.warn(`Custom target configuration found, but no target provided.\nSome custom addons may not be applied during compilation.`);
+                options.reporter.reportDiagnostic(
+                    new WarnMessage(
+                        `Custom target configuration found, but no target provided.\nSome custom addons may not be applied during compilation.`
+                    )
+                );
             }
             if (compiler === undefined) {
                 compiler = new Compiler(options, system);

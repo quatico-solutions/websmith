@@ -64,6 +64,10 @@ export class Compiler {
         return this.system;
     }
 
+    public getReporter(): Reporter {
+        return this.reporter;
+    }
+
     public getOptions(): CompilerOptions {
         return this.options;
     }
