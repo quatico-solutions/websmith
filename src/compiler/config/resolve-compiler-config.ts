@@ -6,7 +6,7 @@ export const resolveCompilationConfig = (configFilePath: string, reporter: Repor
     if (configFilePath) {
         const resolvedPath = system.resolvePath(configFilePath);
         if (!system.fileExists(resolvedPath)) {
-            reporter.reportDiagnostic(new WarnMessage(`No magellan configuration found at ${resolvedPath}.`));
+            reporter.reportDiagnostic(new WarnMessage(`No configuration file found at ${resolvedPath}.`));
         } else {
             const content = system.readFile(resolvedPath);
             if (content) {

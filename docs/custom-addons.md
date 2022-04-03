@@ -104,23 +104,25 @@ You can register two kinds of addons: `Generator` and `Transformer`.
 - transformator (pre emit vs emit >> ts.CustomTransformers)
 
 ```javascript
-import { Context } from "@qs/magellan-compiler";
+import { CompilationContext } from "@websmith/addon-api";
 
-export const activate = (ctx: Context) => {
-  ctx.registerPreEmitTransformer("delint", (fileName:string, content:string) => content);
+export const activate = (ctx: CompilationContext) => {
+    ctx.registerPreEmitTransformer((fileName, content) => content);
 }
 
 ```
 
 **Emit Transformer**
-Emit Transformers follow the standard TypeScript CustomTransformer / TransformerFactory<T> approach. You can for example easily integrate [the delint Transformer from the TypeScript Compiler API documentation](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) by creating the following addon:
+Emit Transformers follow the standard TypeScript `CustomTransformer | TransformerFactory<T>` approach. You can for example easily
+integrate the delint Transformer from the [TypeScript Compiler API documentation](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) 
+by creating the following addon:
 
 ```javascript
-import { Context } from "@qs/magellan-compiler";
-import * as ts from "typescript";
+import ts from "typescript";
+import { CompilationContext } from "@websmith/addon-api";
 
-export const activate = (ctx: Context) => {
-  ctx.registerEmitTransformer("delint", {before:[createDelintTransformer]});
+export const activate = (ctx: CompilationContext) => {
+    ctx.registerEmitTransformer({ before: [createDelintTransformer] });
 }
 
 // From TypeScript linter example, copy the delintNode function
@@ -156,5 +158,5 @@ interface Report {
 }
 
 ErrorMessage, WarnMessage, InfoMessage
-// Zusammenarbeit mit --debug >> console.log / info / debug
+// TODO: Zusammenarbeit mit --debug >> console.log / info / debug
 ```
