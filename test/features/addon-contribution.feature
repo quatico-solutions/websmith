@@ -6,14 +6,14 @@ Feature: Feature: Addon contribution
     transformer or emit transformer functions.
 
     Scenario: Run Compiler with all addons in default directory
-        Given Folder "./addons" contains addons "foo-addon" and "bar-addon"
+        Given Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith"
-        Then Addons "bar-addon" and "foo-addon" are applied during compilation
+        Then Addons "bar-addon, foo-addon" should be applied during compilation
 
     Scenario: Use CLI argument to select different addons directory
-        Given Folder "./my-addons" contains addons "foo-addon" and "bar-addon"
+        Given Folder "./my-addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --addonsDir ./my-addons"
-        Then Addons "bar-addon" and "foo-addon" are applied during compilation
+        Then Addons "bar-addon, foo-addon" should be applied during compilation
 
     Scenario: Provide a generator addon in default addons directory
         # // ./addons/doc-generator/addons.ts
@@ -24,9 +24,9 @@ Feature: Feature: Addon contribution
         # export const activate = (ctx: CompilationContext) => {
         #     // TODO: Provide implementation
         # };
-        Given Folder "./addons" contains addon "doc-generator"
+        Given Folder "./addons" contains addons "doc-generator"
         When User calls command "websmith"
-        Then Addon "doc-generator" is applied during compilation
+        Then Addons "doc-generator" should be applied during compilation
         And A YAML file is emitted containing names of all exported module members
 
     Scenario: Provide a pre-emit transformer addon in default addons directory

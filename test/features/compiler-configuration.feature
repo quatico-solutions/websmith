@@ -9,9 +9,9 @@ Feature: Compiler configuration
         #     "addons": ["foo-addon"]
         # }
         Given A valid config file named "my-config.json" exists in project folder
-        And Config file contains "addons" with "foo-addon"
-        And Folder "./addons" contains addons "foo-addon" and "bar-addon"
+        And Config file "my-config.json" contains "addons" with "foo-addon"
+        And Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --config my-config.json"
-        Then Addon "foo-addon" is applied during compilation
-        And Addon "bar-addon" is not applied
+        Then Addons "foo-addon" should be applied during compilation
+        And Addons "bar-addon" should not be applied
 

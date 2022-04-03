@@ -35,35 +35,12 @@ Feature: Target configuration
         # const createFoobarTransformer = (substitute: string) => {
         #     // TBD put actual implementation here
         # };
-        Given A "foobar-transformer" addon is provided in the "addons" directory
-        And A "foobar" target is configured in the "websmith.config.json" file
-        And The target project contains a module "target.ts" with a function is named "foobar"
-        When User calls the command "websmith foobar"
-        Then The output file "target.js" should contain a function named "barfoo"
-        And Every call to that function in the project should be replaced with "barfoo"
 
+        Given Folder "./addons" contains addons "foobar-transformer"
+        And A valid config file named "websmit.config.json" exists in project folder
+        And Config file "websmit.config.json" contains target "foobar"
+        And Target project contains a module "target.ts" with a function is named "foobar"
+        When User calls command "websmith foobar"
+        Then Output file "target.js" should contain a function named "barfoo"
+        And Every call to function "foobar" should be replaced with "barfoo"
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-"websmith -p tsconfig.json foobar"

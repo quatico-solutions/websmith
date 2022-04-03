@@ -14,9 +14,9 @@ Feature: Addon configuration
         # export const activate = () => {
         #     console.log('bar-addon activated');
         # };
-        Given Folder "./addons" contains addons "foo-addon" and "bar-addon"
+        Given Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --addons foo-addon"
-        Then Addon "foo-addon" is applied during compilation
+        Then Addons "foo-addon" should be applied during compilation
 
     Scenario: Use CLI argument to activate multiple addons
         # // ./addons/foo-addon/addon.ts
@@ -28,9 +28,9 @@ Feature: Addon configuration
         # export const activate = () => {
         #     console.log('bar-addon activated');
         # };
-        Given Folder "./addons" contains addons "foo-addon" and "bar-addon"
+        Given Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --addons foo-addon, bar-addon"
-        Then Addons "foo-addon" and "bar-addon" are applied during compilation
+        Then Addons "foo-addon, bar-addon" should be applied during compilation
 
     Scenario: Use a config file to select active addons
         # // ./addons/foo-addon/addon.ts
@@ -48,8 +48,8 @@ Feature: Addon configuration
         #      "addons": ["foo-addon"]
         #  }
         Given A valid config file named "websmith.config.json" exists in project folder
-        And Config file contains "addons" with "foo-addon"
-        And Folder "./addons" contains addons "foo-addon" and "bar-addon"
+        And Config file "websmith.config.json" contains "addons" with "foo-addon"
+        And Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith"
-        Then Addon "foo-addon" is applied during compilation
-        And Addon "bar-addon" is not applied
+        Then Addons "foo-addon" should be applied during compilation
+        And Addons "bar-addon" should not be applied
