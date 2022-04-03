@@ -5,5 +5,5 @@ export type CompilationConfig = {
     configFilePath: string;
     addons?: string[];
     // FIXME: Introduce a new type for the CompilationConfig
-    targets?: Record<string, TargetConfig>; // TODO: Resolve to TargetOptions??
+    targets?: Record<string, TargetConfig>;
 };

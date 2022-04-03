@@ -12,5 +12,13 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { StyleVisitor } from ".";
+import { Reporter } from "../../model/Reporter";
 
-export type PreEmitTransformer = (fileName: string, content: string) => string | never;
+// FIXME: StyleTransformer fix API
+export type StyleTransformerKind = "before" | "after";
+
+export interface StyleTransformer {
+    visitor: StyleVisitor;
+    reporter: Reporter;
+}

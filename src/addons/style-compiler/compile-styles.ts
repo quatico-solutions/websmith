@@ -14,12 +14,14 @@
  */
 import sass from "sass";
 import ts from "typescript";
+import { Transformer } from "../../addon-api";
 import { getBaseName, isScriptFile } from "../../elements";
-import { ErrorMessage, InfoMessage, Reporter, StyleTransformer, Transformer } from "../../model";
-import { CustomStyleTransformers } from "../../compiler";
+import { ErrorMessage, InfoMessage, Reporter } from "../../model";
 import { createSass } from "../sass-compiler";
+import { CustomStyleTransformers } from "./CustomStyleTransformers";
 import { inlineStyles, isStyleImport } from "./inline-styles";
 import { parseStyles, visitNode, writeNode } from "./parse-scss";
+import { StyleTransformer } from "./StyleTransformer";
 
 export interface StyleCompilerOptions {
     sassOptions?: sass.Options<"sync">;
@@ -31,8 +33,9 @@ export const createStyleCompiler = (options: StyleCompilerOptions, transformers:
     const { sassOptions, reporter, system } = options;
 
     const compileSass = createSass(sassOptions ?? {}, reporter);
-    const result = (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
-        return (sf: ts.SourceFile) => ts.visitNode(sf, visitor);
+    const result = (fileName: string, content: string): string | never => {
+        const sf = ts.createSourceFile(fileName, content, ts.ScriptTarget.ESNext, /*setParentNodes */ true);
+        return ts.visitNode(sf, visitor).text;
     };
     const visitor: ts.Visitor = node => {
         if (isScriptFile(node)) {

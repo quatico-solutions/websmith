@@ -12,11 +12,9 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import ts from "typescript";
 
-export interface Generator {
-    process: (program: ts.Program) => ts.Visitor;
-    emit: (program: ts.Program, system: ts.System) => ts.EmitResult;
-}
+// import ts from "typescript";
+// export type Transformer = (ctx: ts.TransformationContext) => ts.Transformer<ts.SourceFile>;
 
-export type GeneratorKind = "docs" | "source";
+// FIXME: Seems not to be good enough
+export type Transformer = (fileName: string, content: string) => string | never;

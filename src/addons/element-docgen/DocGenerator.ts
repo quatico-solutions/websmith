@@ -22,7 +22,8 @@ import {
     VisibilityKind,
 } from "web-component-analyzer";
 import { isScriptFile } from "../../elements";
-import { Generator, Reporter } from "../../model";
+import { Reporter } from "../../model";
+import { Generator } from "../../addon-api";
 import { defaultOptions, DocDefaults } from "./defaults";
 import { addCustomPropNames, addMixins, transformTag } from "./docgen";
 import { Element } from "./model";

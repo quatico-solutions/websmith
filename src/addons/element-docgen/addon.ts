@@ -23,8 +23,5 @@ import { DocGenerator } from "./DocGenerator";
  * @param context
  */
 export const activate = (context: CompilationContext) => {
-    context.registerGenerator(
-        "docs",
-        new DocGenerator({ inlineTypes: false, verbose: false, visibility: "public", reporter: context.getReporter() })
-    );
+    context.registerGenerator(new DocGenerator({ inlineTypes: false, verbose: false, visibility: "public", reporter: context.getReporter() }));
 };

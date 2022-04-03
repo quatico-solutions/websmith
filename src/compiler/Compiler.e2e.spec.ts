@@ -23,8 +23,8 @@ describe("end-2-end compile", () => {
     });
 
     it("should call transformer before emitting file", () => {
-        const target = jest.fn().mockImplementation((sf: ts.SourceFile) => {
-            return sf;
+        const target = jest.fn().mockImplementation((fileName, content) => {
+            return content;
         });
 
         const system = createBrowserSystem({
@@ -33,7 +33,7 @@ describe("end-2-end compile", () => {
         });
         const testObj = createCompiler(system);
 
-        testObj.getContext()!.registerEmitTransformer("before", () => target);
+        testObj.getContext()!.registerEmitTransformer({ before: [target] });
         testObj.compile();
 
         expect(target).toHaveBeenCalledWith(expect.objectContaining({ fileName: "src/one.ts" }));

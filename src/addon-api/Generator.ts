@@ -12,13 +12,12 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { StyleVisitor } from "../addons/style-compiler";
-import { Reporter } from "./Reporter";
+import ts from "typescript";
 
-// FIXME: StyleTransformer fix API
-export type StyleTransformerKind = "before" | "after";
-
-export interface StyleTransformer {
-    visitor: StyleVisitor;
-    reporter: Reporter;
+export interface Generator {
+    process: (program: ts.Program) => ts.Visitor;
+    emit: (program: ts.Program, system: ts.System) => ts.EmitResult;
 }
+
+// FIXME: Seems not to be good enough
+// export type Generator = (fileName: string, content: string) => void;

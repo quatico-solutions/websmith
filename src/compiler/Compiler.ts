@@ -93,7 +93,7 @@ export class Compiler {
 
         this.options.targets.forEach((target: string) => {
             const { buildDir, config, project, tsconfig } = this.options;
-            const { writeFile } = getTargetConfig(target, config);
+            const { writeFile, config: targetConfig } = getTargetConfig(target, config);
 
             const ctx = new CompilationContext({
                 buildDir,
@@ -102,6 +102,7 @@ export class Compiler {
                 tsconfig,
                 rootFiles: this.getRootFiles(),
                 reporter: this.reporter,
+                config: targetConfig,
             });
             this.options.addons.getAddons(target).forEach(addon => {
                 addon.activate(ctx);

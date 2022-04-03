@@ -14,7 +14,7 @@
  */
 import path, { basename, extname } from "path";
 import ts from "typescript";
-import { CompilerAddon, Generator, Processor, Reporter, StyleTransformer, WarnMessage } from "../../model";
+import { CompilerAddon, Reporter, WarnMessage } from "../../model";
 import { CompilationConfig } from "../config";
 
 export type AddonRegistryOptions = {
@@ -95,19 +95,3 @@ const findAddons = (addonsDir: string, reporter: Reporter, system: ts.System): C
         });
     return Array.from(map.values());
 };
-
-export interface CustomProcessors {
-    element?: Processor[];
-    styles?: Processor[];
-}
-
-export interface CustomStyleTransformers {
-    after?: StyleTransformer[];
-    before?: StyleTransformer[];
-}
-
-export interface CustomGenerators {
-    docs?: Generator[];
-    source?: Generator[];
-    binary?: Generator[];
-}

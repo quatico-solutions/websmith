@@ -13,8 +13,8 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { EmitTransformer, EmitTransformerKind, Generator, GeneratorKind, PreEmitTransformer, Reporter } from "../../model";
-import { CustomGenerators } from "../addons";
+import { AddonContext, Generator, Transformer } from "../../addon-api";
+import { Reporter } from "../../model";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
 import { createSharedHost } from "./shared-host";
@@ -26,12 +26,13 @@ export type CompilationContextOptions = {
     rootFiles: string[];
     system: ts.System;
     tsconfig: ts.ParsedCommandLine;
+    config?: unknown;
 };
 
-export class CompilationContext {
+export class CompilationContext implements AddonContext<any> {
     protected emitTransformers: ts.CustomTransformers;
-    protected generators: CustomGenerators;
-    protected preEmitTransformers: PreEmitTransformer[];
+    protected generators: Generator[];
+    protected preEmitTransformers: Transformer[];
 
     private buildDir: string;
     private cache: FileCache;
@@ -39,21 +40,37 @@ export class CompilationContext {
     private reporter: Reporter;
     private rootFiles: string[];
     private tsconfig: ts.ParsedCommandLine;
+    private system: ts.System;
+    private config: any;
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, project, rootFiles, system, tsconfig } = options;
+        const { buildDir, project, rootFiles, system, tsconfig, config } = options;
         this.buildDir = buildDir;
         this.rootFiles = rootFiles;
         this.tsconfig = tsconfig;
-        this.emitTransformers = { before: [], after: [], afterDeclarations: [] };
+        this.emitTransformers = {};
         this.preEmitTransformers = [];
-        this.generators = {};
+        this.generators = [];
         this.languageHost = this.createLanguageServiceHost({
             system,
             options: project,
         });
         this.cache = new FileCache(system);
         this.reporter = options.reporter;
+        this.system = system;
+        this.config = config;
+    }
+
+    public getSystem(): ts.System {
+        return this.system;
+    }
+
+    public getConfig(): ts.ParsedCommandLine {
+        return this.tsconfig;
+    }
+
+    public getTargetConfig(): any {
+        return this.config ?? {};
     }
 
     public getCache(): FileCache {
@@ -72,26 +89,26 @@ export class CompilationContext {
         return Object.keys(this.tsconfig.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? this.buildDir;
     }
 
-    public registerEmitTransformer(kind: EmitTransformerKind, transformer: EmitTransformer): this {
-        if (!this.emitTransformers[kind]) {
-            this.emitTransformers[kind] = [];
-        }
-        this.emitTransformers[kind]!.push(transformer as any);
+    public registerEmitTransformer(transformers: ts.CustomTransformers): this {
+        Object.keys(transformers).forEach(kind => {
+            // @ts-ignore ts.CustomTransformers defines too many implicit any
+            this.emitTransformers[kind] = concat(this.emitTransformers[kind], transformers[kind]);
+        });
         return this;
     }
 
-    public registerPreEmitTransformer(transformer: PreEmitTransformer): this {
+    public registerPreEmitTransformer(transformer: Transformer): this {
         this.preEmitTransformers.push(transformer);
         return this;
     }
 
-    public registerGenerator(kind: GeneratorKind, gen: Generator): this {
-        this.generators[kind] = concat(this.generators[kind], [gen]);
+    public registerGenerator(gen: Generator): this {
+        this.generators.push(gen);
         return this;
     }
 
     // TODO: We shouldn't make this available to addon implementors.
-    getPreEmitTransformers(): PreEmitTransformer[] {
+    getPreEmitTransformers(): Transformer[] {
         return this.preEmitTransformers;
     }
 

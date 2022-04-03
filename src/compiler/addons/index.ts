@@ -14,7 +14,7 @@
  */
 import { createResolver } from "./addon-resolver";
 import type { AddonActivator } from "./AddonActivator";
-import { AddonRegistry, CustomGenerators, CustomProcessors, CustomStyleTransformers } from "./AddonRegistry";
+import { AddonRegistry } from "./AddonRegistry";
 
 export { AddonRegistry, createResolver };
-export type { CustomGenerators, CustomProcessors, CustomStyleTransformers, AddonActivator };
+export type { AddonActivator };

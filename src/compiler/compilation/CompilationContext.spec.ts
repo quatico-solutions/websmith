@@ -38,7 +38,7 @@ describe("registerEmitTransformer", () => {
     it("yields new transformer with before", () => {
         const target = jest.fn();
 
-        testObj.registerEmitTransformer("before", target);
+        testObj.registerEmitTransformer({ before: [target] });
 
         expect(testObj.getEmitTransformers().before).toEqual([target]);
     });
@@ -46,7 +46,7 @@ describe("registerEmitTransformer", () => {
     it("yields new transformer with after", () => {
         const target = jest.fn();
 
-        testObj.registerEmitTransformer("after", target);
+        testObj.registerEmitTransformer({ after: [target] });
 
         expect(testObj.getEmitTransformers().after).toEqual([target]);
     });
@@ -54,7 +54,7 @@ describe("registerEmitTransformer", () => {
     it("registers same transformer twice for same kind", () => {
         const target = jest.fn();
 
-        testObj.registerEmitTransformer("after", target).registerEmitTransformer("after", target);
+        testObj.registerEmitTransformer({ after: [target] }).registerEmitTransformer({ after: [target] });
 
         expect(testObj.getEmitTransformers().after).toEqual([target, target]);
     });
@@ -62,7 +62,7 @@ describe("registerEmitTransformer", () => {
     it("registers same transformer twice for different kinds", () => {
         const target = jest.fn();
 
-        testObj.registerEmitTransformer("before", target).registerEmitTransformer("after", target);
+        testObj.registerEmitTransformer({ before: [target] }).registerEmitTransformer({ after: [target] });
 
         expect(testObj.getEmitTransformers().after).toEqual([target]);
         expect(testObj.getEmitTransformers().before).toEqual([target]);
@@ -70,53 +70,28 @@ describe("registerEmitTransformer", () => {
 });
 
 describe("registerGenerator", () => {
-    it("yields new generator with docs", () => {
+    it("yields new generator with existing target", () => {
         const target = (() => {
             const result: any = jest.fn();
             result.emit = jest.fn();
             return result;
         })();
 
-        testObj.registerGenerator("docs", target);
+        testObj.registerGenerator(target);
 
-        expect(testObj.getGenerators().docs).toEqual([target]);
+        expect(testObj.getGenerators()).toEqual([target]);
     });
 
-    it("yields new generator with source", () => {
+    it("registers same generator twice", () => {
         const target = (() => {
             const result: any = jest.fn();
             result.emit = jest.fn();
             return result;
         })();
 
-        testObj.registerGenerator("source", target);
+        testObj.registerGenerator(target).registerGenerator(target);
 
-        expect(testObj.getGenerators().source).toEqual([target]);
-    });
-
-    it("registers same generator twice for same kind", () => {
-        const target = (() => {
-            const result: any = jest.fn();
-            result.emit = jest.fn();
-            return result;
-        })();
-
-        testObj.registerGenerator("source", target).registerGenerator("source", target);
-
-        expect(testObj.getGenerators().source).toEqual([target, target]);
-    });
-
-    it("registers same generator twice for different kinds", () => {
-        const target = (() => {
-            const result: any = jest.fn();
-            result.emit = jest.fn();
-            return result;
-        })();
-
-        testObj.registerGenerator("docs", target).registerGenerator("source", target);
-
-        expect(testObj.getGenerators().docs).toEqual([target]);
-        expect(testObj.getGenerators().source).toEqual([target]);
+        expect(testObj.getGenerators()).toEqual([target, target]);
     });
 });
 

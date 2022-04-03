@@ -14,32 +14,10 @@
  */
 import type { CompilerOptions } from "../compiler";
 import type { CompilerAddon } from "./CompilerAddon";
-import type { EmitTransformer, EmitTransformerKind } from "./EmitTransformer";
-import type { Transformer, TransformerKind } from "./Transformer";
-import type { StyleTransformer, StyleTransformerKind } from "./StyleTransformer";
-import type { Generator, GeneratorKind } from "./Generator";
-import { Processor, ProcessorKind } from "./Processor";
 import { aggregateMessages, ErrorMessage, InfoMessage, messageToString, WarnMessage } from "./Reporter";
 import type { Reporter } from "./Reporter";
 import type { VersionedFile } from "./VersionedFile";
-import type { PreEmitTransformer } from "./PreEmitTransformer";
 
 export { aggregateMessages, ErrorMessage, InfoMessage, messageToString, WarnMessage };
 
-export type {
-    CompilerAddon,
-    CompilerOptions,
-    EmitTransformer,
-    EmitTransformerKind,
-    Generator,
-    GeneratorKind,
-    PreEmitTransformer,
-    Processor,
-    ProcessorKind,
-    Reporter,
-    StyleTransformer,
-    StyleTransformerKind,
-    Transformer,
-    TransformerKind,
-    VersionedFile,
-};
+export type { CompilerAddon, CompilerOptions, Reporter, VersionedFile };

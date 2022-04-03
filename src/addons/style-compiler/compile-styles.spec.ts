@@ -185,8 +185,9 @@ describe("tryTransform", () => {
 describe("createStyleCompiler", () => {
     it("yields injected importedStyles method with style import", () => {
         const compileStyles = createStyleCompiler({ reporter, system: testSystem }, {});
+        const { fileName, text } = getVersionedFile("two.ts", testSystem)!;
 
-        const result = compileStyles({} as any)(getVersionedFile("two.ts", testSystem)!);
+        const result = ts.createSourceFile(fileName, compileStyles(fileName, text), ts.ScriptTarget.ESNext);
         const classDecl = result.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
         const actual = findStylesMethod(classDecl)!.body!.statements[0] as any;
 
@@ -199,16 +200,18 @@ describe("createStyleCompiler", () => {
 
     it("yields unmodified code w/o style import", () => {
         const compileStyles = createStyleCompiler({ reporter, system: testSystem }, {});
+        const { fileName, text } = getVersionedFile("one.ts", testSystem)!;
 
-        const actual = compileStyles({} as any)(getVersionedFile("one.ts", testSystem)!);
+        const actual = compileStyles(fileName, text);
 
-        expect(actual.text).toBe("class One {}");
+        expect(actual).toBe("class One {}");
     });
 
     it("yields no method w/o customElement decorator", () => {
         const compileStyles = createStyleCompiler({ reporter, system: testSystem }, {});
+        const { fileName, text } = getVersionedFile("four.ts", testSystem)!;
 
-        const result = compileStyles({} as any)(getVersionedFile("four.ts", testSystem)!);
+        const result = ts.createSourceFile(fileName, compileStyles(fileName, text), ts.ScriptTarget.ESNext);
 
         const classDecl = result.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
         const actual = findStylesMethod(classDecl);
@@ -218,8 +221,9 @@ describe("createStyleCompiler", () => {
 
     it("yields no method w/ non-existing style import", () => {
         const compileStyles = createStyleCompiler({ reporter, system: testSystem }, {});
+        const { fileName, text } = getVersionedFile("five.ts", testSystem)!;
 
-        const result = compileStyles({} as any)(getVersionedFile("five.ts", testSystem)!);
+        const result = ts.createSourceFile(fileName, compileStyles(fileName, text), ts.ScriptTarget.ESNext);
 
         const classDecl = result.statements?.filter(cur => cur.kind === ts.SyntaxKind.ClassDeclaration)[0] as ts.ClassDeclaration;
         const actual = findStylesMethod(classDecl);

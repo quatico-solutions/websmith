@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { Generator } from "../src/model";
+import { Generator } from "../src/addon-api";
 
 const GeneratorMock = (config: MockConfig = {}): Generator => ({
     emit: config.emit ?? jest.fn().mockReturnValue({}),
