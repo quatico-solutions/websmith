@@ -8,15 +8,15 @@ class CompilationContextTestClass extends CompilationContext {
     }
 
     public getEmitTransformers() {
-        return super.emitTransformers;
+        return this.emitTransformers;
     }
 
     public getPreEmitTransformers() {
-        return super.preEmitTransformers;
+        return this.preEmitTransformers;
     }
 
     public getGenerators() {
-        return super.generators;
+        return this.generators;
     }
 }
 
