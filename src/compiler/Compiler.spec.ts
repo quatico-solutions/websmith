@@ -70,10 +70,7 @@ class CompilerTestClass extends Compiler {
     constructor(options: CompilerOptions) {
         super(options, testSystem);
     }
-    public parse(fileNames?: string[]): Project {
-        this.project = super.parse(fileNames ?? []);
-        return this.project!;
-    }
+
     public report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         return super.report(program, result);
     }
@@ -98,16 +95,6 @@ beforeEach(() => {
     });
 });
 
-describe("Constructor", () => {
-    it("parses tsconfig.json and yields options", () => {
-        expect(testObj.getOptions()).toEqual({
-            configFilePath: "/tsconfig.json",
-            outDir: "/.build",
-            target: 99,
-        });
-    });
-});
-
 describe("getSystem", () => {
     it("returns the system passed to options", () => {
         expect(testObj.getSystem()).toBe(testSystem);
@@ -126,47 +113,6 @@ describe("setOptions", () => {
     });
 });
 
-describe("parse", () => {
-    it("yields filePaths matching tsconfig.json constraints without '.json' and '.js'", () => {
-        const { filePaths } = testObj.parse();
-
-        expect(filePaths).toEqual([
-            "src/two.ts",
-            "src/three.tsx",
-            "src/seven.ts",
-            "src/_four.css",
-            "src/_five.scss",
-            "src/six.scss",
-            "src/seven.scss",
-        ]);
-    });
-
-    it("yields program w/ root file names matching tsconfig.json constraints", () => {
-        const { program } = testObj.parse();
-
-        expect(program.getRootFileNames()).toEqual([
-            "src/two.ts",
-            "src/three.tsx",
-            "src/seven.ts",
-            "src/_four.css",
-            "src/_five.scss",
-            "src/six.scss",
-            "src/seven.scss",
-        ]);
-    });
-
-    it("yields program w/ source files matching tsconfig.json constraints", () => {
-        const { program } = testObj.parse();
-
-        expect(
-            program
-                .getSourceFiles()
-                .filter(cur => !cur.fileName.endsWith(".d.ts")) // ignore library files
-                .map(cur => cur.fileName)
-        ).toEqual(["src/two.ts", "src/three.tsx", "src/seven.ts"]);
-    });
-});
-
 describe("compile", () => {
     beforeEach(() => {
         testObj = new CompilerMockClass({
@@ -180,29 +126,7 @@ describe("compile", () => {
             sourceMap: false,
             watch: false,
         });
-        CompilerMockClass.prototype.parse = jest.fn().mockReturnValue({ program: {}, stylePaths: [] });
-        // TODO: Emit is no longer used
-        // CompilerMockClass.prototype.emit = jest.fn();
         CompilerMockClass.prototype.report = jest.fn();
-    });
-
-    it("calls parse with no files once", () => {
-        const target = jest.fn().mockReturnValue({ program: {}, stylePaths: [] });
-        CompilerMockClass.prototype.parse = target;
-
-        testObj.compile();
-
-        expect(target).toHaveBeenCalledTimes(1);
-    });
-
-    it("calls emit", () => {
-        const target = jest.fn();
-        // TODO: Emit is no longer used
-        // CompilerMockClass.prototype.emit = target;
-
-        testObj.compile();
-
-        expect(target).toHaveBeenCalled();
     });
 
     it("calls report", () => {

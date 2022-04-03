@@ -17,10 +17,9 @@ import ts from "typescript";
 import { createSystem, recursiveFindByFilter } from "../environment";
 import { CompilerOptions, ErrorMessage, Reporter } from "../model";
 import { concat } from "./collections";
-import { CompilationContext, CompilationHost, TargetConfig, createSharedHost } from "./compilation";
+import { CompilationContext, CompilationHost, createSharedHost, TargetConfig } from "./compilation";
 import { CompilationConfig } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
-import { createParser, Project } from "./Parser";
 
 export type CompileFragment = {
     version: number;
@@ -74,8 +73,8 @@ export class Compiler {
 
     public setOptions(options: CompilerOptions): this {
         this.options = options;
-        if (this.options.targets.length === 0) {
-            this.options.targets.push("*");
+        if (!this.options?.targets || this.options.targets.length === 0) {
+            options.targets = ["*"];
         }
 
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
@@ -183,11 +182,6 @@ export class Compiler {
         return { version: 0, files: this.langService.getEmitOutput(fileName).outputFiles };
     }
 
-    protected parse(fileNames?: string[]): Project {
-        const { options, fileNames: globalFileNames } = this.options.tsconfig;
-
-        return createParser({ compilerOptions: options, filePaths: globalFileNames, system: this.system })(fileNames);
-    }
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         ts.getPreEmitDiagnostics(program)
             .concat(result.diagnostics)

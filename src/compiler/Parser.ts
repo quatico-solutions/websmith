@@ -12,6 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+// FIXME: This file can be removed?
 import ts from "typescript";
 import { isProjectFileName, isScriptFileName, isStyleFileName, VALID_STYLE_FILES } from "../elements";
 import { createCompileHost } from "../environment";
