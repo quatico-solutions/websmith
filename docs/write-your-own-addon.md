@@ -48,36 +48,84 @@ end
 
 - `Generators` are executed before the compilation and enable you to act upon the unaltered input source code.
 
-
 #### Example: export-collector
+
 The goal of the export collector is to collect all exported functions and list them in a YAML. This output can be consumed by other tools as part of a delivery process for security audit, generating additional data like processing (s)css or documentation.
 
+**exportCollector/addon.ts**
+
 ```javascript
-import { Context } from "@qs/websmith";
+import { AddonContext } from "@websmith/addon-api";
+import { createExportCollector } from "./export-collector";
 
-export const activate = (ctx: Context) => {
-  ctx.registerGenerrator("export-collector", (fileName: string, sourceCode: string) => collectExports(fileName, sourceCode, ctx));
+export const activate = (ctx: AddonContext) => {
+    ctx.registerGenerator((fileName, content) => createExportCollector(fileName, content, ctx));
 }
+```
 
-const collectExports = (fileName: string, sourceCode: string, ctx: Context) => {
-    const sf: ts.createSourceFile(fileName, sourceCode, ts.ScriptTarget.Latest);
-    const transformResult = ts.Transform(sf, [createExportCollectorTransformer]);
-}
+**exportCollector/export-collector.ts**
 
-const createExportCollectorTransformer = (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
-    return (sourceFile: ts.SourceFile) => {
-        const checker = ctx.getProgram().getTypeChecker();
-        const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
-            if(ts.isSourceFile(sf)){
-                return ts.visitEachChild(node, visitor, ctx);
-            }
+```javascript
+import { existsSync, readFileSync, writeFileSync } from "fs";
+import { resolve } from "path";
+import ts from "typescript";
+import { AddonContext } from "@websmith/addon-api";
 
-            if()
+export const createExportCollector = (fileName: string, content: string, ctx: AddonContext) => {
+    const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
+    ts.transform(sf, [createExportCollectorFactory()], ctx.getConfig().options);
+};
+
+const createExportCollectorFactory = () => {
+    return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
+        return (sf: ts.SourceFile) => {
+            const exportFileContent = getOrCreateOutputFile(resolve("./output.yaml"));
+            const foundDeclarations: string[] = [];
+
+            const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                if (ts.isSourceFile(node)) {
+                    return ts.visitEachChild(node, visitor, ctx);
+                }
+
+                if (
+                    node.modifiers?.some(it => it.kind === ts.SyntaxKind.ExportKeyword) &&
+                    (ts.isVariableStatement(node) || ts.isFunctionDeclaration(node))
+                ) {
+                    foundDeclarations.push(getIdentifier(node));
+                }
+
+                return node;
+            };
+
+            sf = ts.visitNode(sf, visitor);
+
+            writeFileSync(resolve("./output.yaml"), getYAMLOutput(exportFileContent, sf.fileName, foundDeclarations));
+            return sf;
         };
+    };
+};
 
-        return ts.visitNode(sf, visitor);
+const getYAMLOutput = (exportFileContent: string, fileName: string, foundDeclarations: string[]): string => {
+    const existingFileContent = exportFileContent ? exportFileContent + "\n" : "";
+    const exportedDeclarations = foundDeclarations.length > 0 ? `\nexports: [${foundDeclarations.join(",")}]\n` : "";
+    return `${existingFileContent}-file: "${fileName}"${exportedDeclarations}`;
+};
+
+const getIdentifier = (node: ts.FunctionDeclaration | ts.VariableStatement): string => {
+    if (ts.isFunctionDeclaration(node)) {
+        return node.name?.getText() ?? "unknown";
+    } else if (ts.isVariableStatement(node)) {
+        return node.declarationList?.declarations[0]?.name?.getText() ?? "unknown";
     }
-}
+    return "";
+};
+
+const getOrCreateOutputFile = (fileName: string): string => {
+    if (!existsSync(fileName)) {
+        writeFileSync(fileName, "");
+    }
+    return readFileSync(fileName).toString();
+};
 ```
 
 ### Transformer
@@ -87,24 +135,33 @@ It is possible to use ts.Transform in `Transformers` to reuse existing TypeScrip
 
 > Note: Transformers are executed one by one unlike Emitters that are merged and yield a single TypeScript execution.
 
+**foobarReplacer/addon.ts**
 ```javascript
-import { Context } from "@websmith/addon-api";
+import { AddonContext } from "@websmith/addon-api";
+import 
 import ts from "typescript";
 
-export const activate = (ctx: Context) => {
-  ctx.registerTransformer("foobarReplacer", (fileName, content) => foobarReplacer(fileName, content, ctx));
+export const activate = (ctx: AddonContext) => {
+  ctx.registerTransformer((fileName, content) => createFoobarReplacer(fileName, content, ctx));
+}
+```
+
+**foobarReplacer/replace-foobar.ts
+```javascript
+const createFoobarReplacer = (fileName: string, content: string, ctx: Context) => {
+    const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
+    const transformResult = ts.transform(sf, [fooBarTransformer], ctx.getConfig().options);
+
+    return transformResult.transformed[0];
 }
 
-const foobarReplacer = (fileName: string, content: string, ctx: Context) => {
-
-}
-
-const createFooBarTransformer = (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
+const fooBarTransformer = (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
     return (sourceFile: ts.SourceFile) => {
         const visitor = (node: ts.Node): ts.VisitResult => {
             if(ts.isSourceFile(sf)){
                 return ts.visitEachChild(node, visitor, ctx);
             }
+
         };
 
         return ts.visitNode(sf, visitor);
