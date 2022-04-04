@@ -1,11 +1,20 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import ts from "typescript";
-import { AddonContext } from "../../../src/addon-api";
+import type { AddonContext } from "../../../src/addon-api";
+import { ErrorMessage } from "../../../src/model";
 
-export const createExportCollector = (fileName: string, content: string, ctx: AddonContext) => {
+export const createExportCollector = (fileName: string, content: string, ctx: AddonContext): void => {
     const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
-    ts.transform(sf, [createExportCollectorFactory()], ctx.getConfig().options);
+    const transformResult = ts.transform(sf, [createExportCollectorFactory()], ctx.getConfig().options);
+
+    if (transformResult.diagnostics && transformResult.diagnostics.length > 0) {
+        transformResult.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, sf)));
+    }
+
+    if (transformResult.transformed.length < 1) {
+        ctx.getReporter().reportDiagnostic(new ErrorMessage(`exportCollector failed for ${fileName} without identifiable error.`, sf));
+    }
 };
 
 const createExportCollectorFactory = () => {

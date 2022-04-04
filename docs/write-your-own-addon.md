@@ -55,7 +55,7 @@ The goal of the export collector is to collect all exported functions and list t
 **exportCollector/addon.ts**
 
 ```javascript
-import { AddonContext } from "@websmith/addon-api";
+import type { AddonContext } from "@websmith/addon-api";
 import { createExportCollector } from "./export-collector";
 
 export const activate = (ctx: AddonContext) => {
@@ -69,11 +69,20 @@ export const activate = (ctx: AddonContext) => {
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import ts from "typescript";
-import { AddonContext } from "@websmith/addon-api";
+import type { AddonContext } from "@websmith/addon-api";
+import { ErrorMessage } from "@websmith/addon-api"; 
 
-export const createExportCollector = (fileName: string, content: string, ctx: AddonContext) => {
+export const createExportCollector = (fileName: string, content: string, ctx: AddonContext): void => {
     const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
-    ts.transform(sf, [createExportCollectorFactory()], ctx.getConfig().options);
+    const transformResult = ts.transform(sf, [createExportCollectorFactory()], ctx.getConfig().options);
+
+    if (transformResult.diagnostics && transformResult.diagnostics.length > 0) {
+        transformResult.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, sf)));
+    }
+
+    if (transformResult.transformed.length < 1) {
+        ctx.getReporter().reportDiagnostic(new ErrorMessage(`exportCollector failed for ${fileName} without identifiable error.`, sf));
+    }
 };
 
 const createExportCollectorFactory = () => {
@@ -136,37 +145,65 @@ It is possible to use ts.Transform in `Transformers` to reuse existing TypeScrip
 > Note: Transformers are executed one by one unlike Emitters that are merged and yield a single TypeScript execution.
 
 **foobarReplacer/addon.ts**
-```javascript
-import { AddonContext } from "@websmith/addon-api";
-import 
-import ts from "typescript";
 
-export const activate = (ctx: AddonContext) => {
-  ctx.registerTransformer((fileName, content) => createFoobarReplacer(fileName, content, ctx));
-}
+```javascript
+import type { AddonContext } from "@websmith/addon-api";
+import { createFoobarReplacerTransformer } from "./foobar-replacer";
+
+export const activate = (ctx: AddonContext): void => {
+    ctx.registerPreEmitTransformer((fileName, content) => createFoobarReplacerTransformer(fileName, content, ctx));
+};
+
 ```
 
-**foobarReplacer/replace-foobar.ts
+**foobarReplacer/foobar-replacer.ts**
+
 ```javascript
-const createFoobarReplacer = (fileName: string, content: string, ctx: Context) => {
+import ts from "typescript";
+import type { AddonContext } from "@websmith/addon-api";
+import { ErrorMessage } from "@websmith/addon-api"; 
+
+export const createFoobarReplacerTransformer = (fileName: string, content: string, ctx: AddonContext): string => {
     const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
-    const transformResult = ts.transform(sf, [fooBarTransformer], ctx.getConfig().options);
-
-    return transformResult.transformed[0];
-}
-
-const fooBarTransformer = (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
-    return (sourceFile: ts.SourceFile) => {
-        const visitor = (node: ts.Node): ts.VisitResult => {
-            if(ts.isSourceFile(sf)){
-                return ts.visitEachChild(node, visitor, ctx);
-            }
-
-        };
-
-        return ts.visitNode(sf, visitor);
+    const transformResult = ts.transform(sf, [createFoobarReplacerFactory()], ctx.getConfig().options);
+    if (transformResult.diagnostics && transformResult.diagnostics.length > 0) {
+        transformResult.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, sf)));
+        return "";
     }
-}
+
+    if (transformResult.transformed.length > 0) {
+        return ts.createPrinter().printFile(transformResult.transformed[0]);
+    }
+
+    ctx.getReporter().reportDiagnostic(new ErrorMessage(`foobarReplacer failed for ${fileName} without identifiable error.`, sf));
+    return "";
+};
+
+const createFoobarReplacerFactory = () => {
+    return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
+        return (sf: ts.SourceFile) => {
+            const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                if (ts.isSourceFile(node)) {
+                    return ts.visitEachChild(node, visitor, ctx);
+                }
+
+                if (ts.isIdentifier(node)) {
+                    const identifier = node.getText();
+                    if (identifier.match(/foobar/gi)) {
+                        return ctx.factory.createIdentifier(identifier.replace(/foobar/gi, "barfoo"));
+                    }
+                    if (identifier.match(/barfoo/gi)) {
+                        return ctx.factory.createIdentifier(identifier.replace(/barfoo/gi, "foobar"));
+                    }
+                }
+
+                return ts.visitEachChild(node, visitor, ctx);
+            };
+
+            return ts.visitNode(sf, visitor);
+        };
+    };
+};
 ```
 
 ### Emitter
