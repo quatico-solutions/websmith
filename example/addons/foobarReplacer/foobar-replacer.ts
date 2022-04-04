@@ -18,7 +18,7 @@ export const createFoobarReplacerTransformer = (fileName: string, content: strin
     return "";
 };
 
-const createFoobarReplacerFactory = () => {
+export const createFoobarReplacerFactory = () => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (sf: ts.SourceFile) => {
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {

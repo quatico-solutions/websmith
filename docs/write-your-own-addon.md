@@ -179,7 +179,7 @@ export const createFoobarReplacerTransformer = (fileName: string, content: strin
     return "";
 };
 
-const createFoobarReplacerFactory = () => {
+export const createFoobarReplacerFactory = () => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (sf: ts.SourceFile) => {
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
@@ -208,31 +208,85 @@ const createFoobarReplacerFactory = () => {
 
 ### Emitter
 
-Emitters follow the standard TypeScript `ts.CustomTransformers / tsTransformerFactory<T>` approach. You can for example easily integrate [the delint Transformer from the TypeScript Compiler API documentation](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) by creating the following addon:
+Emitters follow the standard TypeScript `ts.CustomTransformers` approach, providing a factory that takes in a TransformationContext and returning a Transformer for SourceFiles.
+
+**foobarReplaceEmitter/addon.ts**
 
 ```javascript
-import { Context } from "@websmith/addon-api";
-import ts from "typescript";
+import { AddonContext } from "@websmith/addon-api";
+import { createFoobarReplacerFactory } from "../foobarReplacer/foobar-replacer";
 
-export const activate = (ctx: Context) => {
-  ctx.registerEmitter("delint", { before: [createDelintTransformer] });
-}
+export const activate = (ctx: AddonContext): void => {
+    ctx.registerEmitTransformer({ before: [createFoobarReplacerFactory()] });
+};
+```
 
-// From TypeScript linter example, copy the delintNode function
-export const createDelintTransformer = (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => { return (sourceFile: ts.SourceFile) => {
-        return (sf: ts.SourceFile) => {
-            return ts.visitNode(sf, delintNode);
-        }
-    }
+#### Important Note
+
+The same TypeScript TransformerFactories we used in the Transformer and Generator addons above can also be used Emitter addons as we did before.
+But we must keep in mind, that Transformer addons are executed after TypeScript has parsed the code and in essence generated the D.TS file. When using the foobarReplacer Factory for an Emitter plugin as shown above, the resulting transformed JavaScript code will be identical to the Transformer Addon, but because we rewrite the signature of the functions, the generated D.TS file will no longer match.
+
+For the input
+
+```javascript
+export const foobar1 = ():string => {
+    return "foobar1";
 }
 ```
 
+both Transformer and Emitter addons yield the following JavaScript output
+
+```javascript
+export const barfoo1 = () => {
+    return "foobar1";
+}
+```
+
+but the Transformer Addon will yield
+
+**Transformer .d.ts**
+
+```javascript
+export declare const barfoo1: () => string;
+```
+
+while the Emitter Addon will yield
+
+**Emitter .d.ts**
+
+```javascript
+// The signature of foobar has not been transformed.
+export declare const foobar1: () => string;
+```
+
+### Additional Examples and Information
+
+The official TypeScript has additional examples, for example [a delint Transformer documentation](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter).
+
+Further examples and indepth explanations for TypeScript code transformation can be found in the [TypeScript Transformer Handbook](https://github.com/madou/typescript-transformer-handbook).
+
+Keeping [the AST Explorer](https://astexplorer.net/) and [the TS Creator](https://ts-creator.js.org/) at hand to support you is advisable.
+VisualStudio Code users can leverage the extension [TypeScript AST Explorer](https://marketplace.visualstudio.com/items?itemName=krizzdewizz.vscode-typescript-ast-explorer).
+
 ## Error reporting
+
+Websmiths AddonContext provides a Reporter through getReporter() that allows you to report Info, Warn and Error messages in your Generator and Transformer addons.
+
+```javascript
+export const createTransformer = (fileName: string, content: string, ctx: AddonContext): string => {
+    if(content === "") {
+        ctx.getReporter().reportDiagnostic(new ErrorMessage(`No content to transform for ${fileName}`));
+        return "";
+    }
+
+    return executeTransformation(fileName, content, ctx);
+}
+```
 
 ## How to interact with the compiler: CompilationContext and Reporter explained
 
 ```javascript
-interface Context {
+interface AddonContext {
     getSystem(): ts.System;
     getConfig(): ts.ParsedCommandLine;
     getCompilationOptions(): unknown;
@@ -244,7 +298,7 @@ interface Context {
     // Add link to typescript transformer and transformer handbook
 }
 
-interface Report {
+interface Reporter {
     reportDiagnostic(DiagnosticMessage): void
 }
 
