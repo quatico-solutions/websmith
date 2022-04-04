@@ -81,10 +81,6 @@ export class CompilationContext implements AddonContext<any> {
         return this.cache;
     }
 
-    public getReporter(): Reporter {
-        return this.reporter;
-    }
-
     public getLanguageHost(): ts.LanguageServiceHost {
         return this.languageHost;
     }
