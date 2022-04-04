@@ -21,24 +21,17 @@ import { AddonRegistry } from "./AddonRegistry";
 
 let system: ts.System;
 let reporter: ReporterMock;
+beforeEach(() => {
+    system = createBrowserSystem({});
+    reporter = new ReporterMock(system);
+});
 
-describe("getAddons", () => {
-    beforeEach(() => {
-        system = createBrowserSystem({});
-        reporter = new ReporterMock(system);
-    });
-
-    it("returns empty addons w/ empty addons directory", () => {
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
-
-        expect(testObj.getAddons()).toEqual([]);
-    });
-
+describe("Ctor", () => {
     it("reports warning w/ non-existing addons directory", () => {
         reporter.reportDiagnostic = jest.fn();
         expect(system.directoryExists("./addons")).toBe(false);
 
-        new AddonRegistry({ addonsDir: "./addons", reporter, system }).getAddons();
+        new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
         expect(reporter.reportDiagnostic).toBeCalledWith(new WarnMessage('Addons directory "./addons" does not exist.'));
     });
@@ -47,9 +40,31 @@ describe("getAddons", () => {
         system.createDirectory("./addons");
         reporter.reportDiagnostic = jest.fn();
 
-        new AddonRegistry({ addonsDir: "./addons", reporter, system }).getAddons();
+        new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
         expect(reporter.reportDiagnostic).not.toBeCalled();
+    });
+
+    it("yields addons w/o addons property", () => {
+        const testObj = new AddonRegistry({} as any);
+
+        // @ts-ignore private property access
+        expect(testObj.addons).toEqual([]);
+    });
+
+    it("yields addons w/ addons property", () => {
+        const testObj = new AddonRegistry({ addons: "zip,zap, zup" } as any);
+
+        // @ts-ignore private property access
+        expect(testObj.addons).toEqual(["zip", "zap", "zup"]);
+    });
+});
+
+describe("getAddons", () => {
+    it("returns empty addons w/ empty addons directory", () => {
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+
+        expect(testObj.getAddons()).toEqual([]);
     });
 
     it("returns addons w/ single addon in addon directory", () => {
@@ -134,5 +149,33 @@ describe("getAddons", () => {
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
         expect(testObj.getAddons()).toEqual([]);
+    });
+
+    it("reports warning w/ non-existing addons name", () => {
+        system.createDirectory("./addons");
+        reporter.reportDiagnostic = jest.fn();
+
+        new AddonRegistry({
+            addonsDir: "./addons",
+            config: { addons: ["does-not-exist"], configFilePath: "" },
+            reporter,
+            system,
+        }).getAddons();
+
+        expect(reporter.reportDiagnostic).toBeCalledWith(new WarnMessage('Missing addons: "does-not-exist".'));
+    });
+
+    it("reports warning w/ target config and non-existing addons name", () => {
+        system.createDirectory("./addons");
+        reporter.reportDiagnostic = jest.fn();
+
+        new AddonRegistry({
+            addonsDir: "./addons",
+            config: { targets: { target: { addons: ["does-not-exist"] } }, configFilePath: "" },
+            reporter,
+            system,
+        }).getAddons("target");
+
+        expect(reporter.reportDiagnostic).toBeCalledWith(new WarnMessage('Missing addons for target "target": "does-not-exist".'));
     });
 });

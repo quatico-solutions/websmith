@@ -15,21 +15,21 @@
 /* eslint-disable no-console */
 
 import { Command } from "commander";
-import path from "path";
 import ts from "typescript";
 import { Compiler, NoReporter } from "../compiler";
 import { createBrowserSystem } from "../environment";
+import { WarnMessage } from "../model";
 import { addCompileCommand, hasInvalidTargets } from "./command";
 import { createOptions } from "./options";
 
 let testSystem: ts.System;
+beforeEach(() => {
+    testSystem = createBrowserSystem({});
+    testSystem.createDirectory("./addons");
+    testSystem.writeFile("./tsconfig.json", "{}");
+});
 
 describe("addCompileCommand", () => {
-    beforeEach(() => {
-        testSystem = createBrowserSystem({});
-        testSystem.writeFile("./tsconfig.json", "{}");
-    });
-
     it("should warn w/ unknown argument", () => {
         const testObj = addCompileCommand(new Command(), new Compiler(createOptions({}, new NoReporter())));
 
@@ -45,67 +45,61 @@ describe("addCompileCommand", () => {
         );
     });
 
-    it("should set the default options w/o any config", () => {
+    it("should yield default options w/o config and CLI arguments", () => {
         const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse([], { from: "user" });
 
         const actual = target.getOptions();
 
-        // @ts-ignore Private property access
-        expect(actual.addons.availableAddons).toEqual([]);
+        expect(actual.addons).toEqual(
+            expect.objectContaining({
+                availableAddons: [],
+            })
+        );
+        expect(actual.buildDir).toEqual(expect.stringContaining("/")), expect(actual.watch).toBe(false);
         expect(actual.config).toBeUndefined();
         expect(actual.debug).toBe(false);
-        expect(actual.project).toEqual({
-            emitDecoratorMetadata: true,
-            noImplicitReturns: true,
-            pretty: true,
-            target: 2,
-            declarationMap: true,
-            outDir: expect.stringContaining("/bin"),
-            noImplicitThis: true,
-            declaration: true,
-            experimentalDecorators: true,
-            noImplicitAny: true,
-            removeComments: false,
-            configFilePath: expect.stringContaining("/tsconfig.json"),
-            module: 1,
-            strict: true,
-            strictBindCallApply: true,
-            noEmitOnError: true,
-            resolveJsonModule: true,
-            useUnknownInCatchVariables: false,
-            lib: ["lib.es2015.d.ts", "lib.es2016.d.ts", "lib.es2017.d.ts", "lib.esnext.d.ts", "lib.dom.d.ts"],
-            strictFunctionTypes: true,
-            noUnusedLocals: true,
-            strictPropertyInitialization: true,
-            moduleResolution: 2,
-            importHelpers: true,
-            sourceMap: false,
-            strictNullChecks: true,
-            esModuleInterop: true,
-            typeRoots: [expect.stringContaining("/@types"), expect.stringContaining("/@types")],
-            allowSyntheticDefaultImports: true,
-            types: ["node", "jest", "raw-loader", "scss-parser", "lodash"],
-            incremental: true,
-            skipLibCheck: true,
-            noEmit: false,
-            downlevelIteration: true,
-            alwaysStrict: true,
-            allowJs: true,
-        });
-        expect(actual.reporter).toBeDefined();
-        expect(actual.sourceMap).toBe(false);
-        expect(actual.targets).toEqual(["*"]);
-        expect(actual.watch).toBe(false);
-    });
-
-    it("should yield default options w/o any CLI argument", () => {
-        const target = new Compiler(createOptions({}, new NoReporter()));
-
-        addCompileCommand(new Command(), target).parse([], { from: "user" });
-
-        const actual = target.getOptions();
+        expect(actual.project).toEqual(
+            expect.objectContaining({
+                emitDecoratorMetadata: true,
+                noImplicitReturns: true,
+                pretty: true,
+                target: 2,
+                declarationMap: true,
+                outDir: expect.stringContaining("/bin"),
+                noImplicitThis: true,
+                declaration: true,
+                experimentalDecorators: true,
+                noImplicitAny: true,
+                removeComments: false,
+                configFilePath: expect.stringContaining("/tsconfig.json"),
+                module: 1,
+                strict: true,
+                strictBindCallApply: true,
+                noEmitOnError: true,
+                resolveJsonModule: true,
+                useUnknownInCatchVariables: false,
+                lib: ["lib.es2015.d.ts", "lib.es2016.d.ts", "lib.es2017.d.ts", "lib.esnext.d.ts", "lib.dom.d.ts"],
+                strictFunctionTypes: true,
+                noUnusedLocals: true,
+                strictPropertyInitialization: true,
+                moduleResolution: 2,
+                importHelpers: true,
+                sourceMap: false,
+                strictNullChecks: true,
+                esModuleInterop: true,
+                typeRoots: [expect.stringContaining("/@types"), expect.stringContaining("/node_modules/@types")],
+                allowSyntheticDefaultImports: true,
+                types: ["node", "jest", "raw-loader", "scss-parser", "lodash"],
+                incremental: true,
+                skipLibCheck: true,
+                noEmit: false,
+                downlevelIteration: true,
+                alwaysStrict: true,
+                allowJs: true,
+            })
+        );
 
         expect(actual.tsconfig).toEqual(
             expect.objectContaining({
@@ -199,113 +193,13 @@ describe("addCompileCommand", () => {
                 wildcardDirectories: {},
             })
         );
+        expect(actual.reporter).toBeDefined();
         expect(actual.sourceMap).toBe(false);
-        expect(actual.config).toBeUndefined();
-        expect(actual.addons).toEqual(
-            expect.objectContaining({
-                availableAddons: [],
-            })
-        );
-        expect(actual.debug).toBe(false);
-        expect(actual.buildDir).toEqual(expect.stringContaining("/")), expect(actual.watch).toBe(false);
         expect(actual.targets).toEqual(["*"]);
-        expect(actual.project).toEqual(
-            expect.objectContaining({
-                emitDecoratorMetadata: true,
-                noImplicitReturns: true,
-                pretty: true,
-                target: 2,
-                declarationMap: true,
-                outDir: expect.stringContaining("/bin"),
-                noImplicitThis: true,
-                declaration: true,
-                experimentalDecorators: true,
-                noImplicitAny: true,
-                removeComments: false,
-                configFilePath: expect.stringContaining("/tsconfig.json"),
-                module: 1,
-                strict: true,
-                strictBindCallApply: true,
-                noEmitOnError: true,
-                resolveJsonModule: true,
-                useUnknownInCatchVariables: false,
-                lib: ["lib.es2015.d.ts", "lib.es2016.d.ts", "lib.es2017.d.ts", "lib.esnext.d.ts", "lib.dom.d.ts"],
-                strictFunctionTypes: true,
-                noUnusedLocals: true,
-                strictPropertyInitialization: true,
-                moduleResolution: 2,
-                importHelpers: true,
-                sourceMap: false,
-                strictNullChecks: true,
-                esModuleInterop: true,
-                typeRoots: [expect.stringContaining("/@types"), expect.stringContaining("/node_modules/@types")],
-                allowSyntheticDefaultImports: true,
-                types: ["node", "jest", "raw-loader", "scss-parser", "lodash"],
-                incremental: true,
-                skipLibCheck: true,
-                noEmit: false,
-                downlevelIteration: true,
-                alwaysStrict: true,
-                allowJs: true,
-            })
-        );
+        expect(actual.watch).toBe(false);
     });
 
-    it("should set targets w/ single target cli argument", () => {
-        const target = new Compiler(createOptions({}, new NoReporter()));
-
-        addCompileCommand(new Command(), target).parse(["--targets", "expected"], { from: "user" });
-
-        expect(target.getOptions().targets).toEqual(["expected"]);
-    });
-
-    it("should set target  w/ comma separated target cli argument", () => {
-        const target = new Compiler(createOptions({}, new NoReporter()));
-
-        addCompileCommand(new Command(), target).parse(["--targets", "one, two, three"], { from: "user" });
-
-        expect(target.getOptions().targets).toEqual(["one", "two", "three"]);
-    });
-
-    it("should show warning  w/ missing path in --addonsDir cli argument", () => {
-        console.warn = jest.fn();
-
-        addCompileCommand(new Command()).parse(["--addonsDir", "./unknown"], { from: "user" });
-
-        expect(console.warn).toHaveBeenCalledWith('Warning: Addons directory "./unknown" does not exist.');
-    });
-
-    it("should not add addon name to addons  w/ --addons cli argument and unknown name", () => {
-        const target = new Compiler(createOptions({}, new NoReporter()));
-
-        addCompileCommand(new Command(), target).parse(["--addons", "unknown"], { from: "user" });
-
-        expect(target.getOptions().addons.getAddons()).toEqual([]);
-    });
-
-    it("should add addon name to addons w/ --addons cli argument and known name", () => {
-        testSystem.writeFile("./addons/expected/addon.ts", "export const activate = () => {};");
-        jest.mock(
-            "/addons/expected/addon",
-            () => {
-                return { activate: jest.fn() };
-            },
-            { virtual: true }
-        );
-
-        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
-
-        addCompileCommand(new Command(), target).parse(["--addons", "expected"], { from: "user" });
-
-        expect(
-            target
-                .getOptions()
-                .addons.getAddons()
-                .map(it => it.name)
-        ).toEqual(["expected"]);
-    });
-
-    it("should set config option  w/ --config cli argument", () => {
+    it("should set config option w/ --config cli argument", () => {
         testSystem.writeFile("./expected/websmith.config.json", "{}");
         const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
 
@@ -314,7 +208,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().config?.configFilePath).toEqual(expect.stringContaining("/expected/websmith.config.json"));
     });
 
-    it("should set project option  w/ --project cli argument", () => {
+    it("should set project option w/ --project cli argument", () => {
         testSystem.writeFile("expected/tsconfig.json", "{}");
         const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
 
@@ -323,7 +217,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().project.configFilePath).toEqual(expect.stringContaining("/expected/tsconfig.json"));
     });
 
-    it("should set sourceMap option  w/ --sourceMap cli argument", () => {
+    it("should set sourceMap option w/ --sourceMap cli argument", () => {
         const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse(["--sourceMap"], { from: "user" });
@@ -331,7 +225,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().sourceMap).toBe(true);
     });
 
-    it("should set debug compiler option  w/ --debug cli argument", () => {
+    it("should set debug compiler option w/ --debug cli argument", () => {
         const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse(["--debug"], { from: "user" });
@@ -339,7 +233,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().debug).toBe(true);
     });
 
-    it.skip("should set watch compiler option  w/ --watch cli argument", () => {
+    it.skip("should set watch compiler option w/ --watch cli argument", () => {
         const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse(["--watch"], { from: "user" });
@@ -365,6 +259,222 @@ describe("addCompileCommand", () => {
         expect(() => addCompileCommand(new Command(), target).parse(["--debug", "--allowJs", "--strict"], { from: "user" })).toThrow(
             `Unknown Argument "--allowJs".` + `\nIf this is a tsc command, please configure it in your typescript configuration file.\n`
         );
+    });
+});
+
+describe("addCompileCommand#addons", () => {
+    it("should show warning w/ --addonsDir cli argument and non-existing path", () => {
+        const target = new Compiler(createOptions({}, new NoReporter()));
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--addonsDir", "./unknown"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "./unknown" does not exist.'));
+    });
+
+    it("should add addon name to addons w/ --addons cli argument and known name", () => {
+        testSystem.writeFile("./addons/expected/addon.ts", "export const activate = () => {};");
+        jest.mock(
+            "/addons/expected/addon",
+            () => {
+                return { activate: jest.fn() };
+            },
+            { virtual: true }
+        );
+
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
+
+        addCompileCommand(new Command(), target).parse(["--addons", "expected"], { from: "user" });
+
+        expect(
+            target
+                .getOptions()
+                .addons.getAddons()
+                .map(it => it.name)
+        ).toEqual(["expected"]);
+    });
+
+    it("should add addon name to addons w/ --addons cli argument and multiple known names", () => {
+        testSystem.writeFile("./addons/zip/addon.ts", "export const activate = () => {};");
+        testSystem.writeFile("./addons/zap/addon.ts", "export const activate = () => {};");
+        testSystem.writeFile("./addons/zup/addon.ts", "export const activate = () => {};");
+        jest.mock(
+            "/addons/zip/addon",
+            () => {
+                return { activate: jest.fn() };
+            },
+            { virtual: true }
+        );
+
+        jest.mock(
+            "/addons/zap/addon",
+            () => {
+                return { activate: jest.fn() };
+            },
+            { virtual: true }
+        );
+
+        jest.mock(
+            "/addons/zup/addon",
+            () => {
+                return { activate: jest.fn() };
+            },
+            { virtual: true }
+        );
+
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
+
+        addCompileCommand(new Command(), target).parse(["--addons", "zip, zap, zup"], { from: "user" });
+
+        expect(
+            target
+                .getOptions()
+                .addons.getAddons()
+                .map(it => it.name)
+        ).toEqual(["zip", "zap", "zup"]);
+    });
+
+    it("should not add addon name to addons w/ --addons cli argument and unknown name", () => {
+        const target = new Compiler(createOptions({}, new NoReporter()));
+
+        addCompileCommand(new Command(), target).parse(["--addons", "unknown"], { from: "user" });
+
+        expect(target.getOptions().addons.getAddons()).toEqual([]);
+    });
+
+    it("should not add unkonwn addon name to addons w/ --addons cli argument, known and unknown name", () => {
+        testSystem.writeFile("./addons/known/addon.ts", "export const activate = () => {};");
+        jest.mock(
+            "/addons/known/addon",
+            () => {
+                return { activate: jest.fn() };
+            },
+            { virtual: true }
+        );
+
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
+
+        addCompileCommand(new Command(), target).parse(["--addons", "unknown, known"], { from: "user" });
+
+        expect(
+            target
+                .getOptions()
+                .addons.getAddons()
+                .map(it => it.name)
+        ).toEqual(["known"]);
+    });
+
+    it("should show warning w/ --addons cli argument and unknown name", () => {
+        const target = new Compiler(createOptions({}, new NoReporter()));
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--addons", "unknown"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
+    });
+
+    it("should show warning w/ --addons cli argument, known and unknown name", () => {
+        testSystem.writeFile("./addons/known/addon.ts", "export const activate = () => {};");
+        jest.mock(
+            "/addons/known/addon",
+            () => {
+                return { activate: jest.fn() };
+            },
+            { virtual: true }
+        );
+
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--addons", "known, unknown"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
+    });
+});
+
+describe("addCompileCommand#targets", () => {
+    it("should set targets w/ single targets cli argument", () => {
+        const target = new Compiler(createOptions({}, new NoReporter()));
+
+        addCompileCommand(new Command(), target).parse(["--targets", "expected"], { from: "user" });
+
+        expect(target.getOptions().targets).toEqual(["expected"]);
+    });
+
+    it("should set target w/ comma separated targets cli argument", () => {
+        const target = new Compiler(createOptions({}, new NoReporter()));
+
+        addCompileCommand(new Command(), target).parse(["--targets", "one, two, three"], { from: "user" });
+
+        expect(target.getOptions().targets).toEqual(["one", "two", "three"]);
+    });
+
+    it("should show warning w/ --targets cli argument and unknown name", () => {
+        const target = new Compiler(createOptions({}, new NoReporter()));
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--targets", "unknown"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
+            new WarnMessage("Custom target configuration found, but no target provided.\nSome custom addons may not be applied during compilation.")
+        );
+    });
+
+    it("should not show any warning w/ --targets cli argument and known names", () => {
+        testSystem.writeFile("./websmith.config.json", '{ "targets": {"expected": {}} }');
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--targets", "expected"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalled();
+    });
+
+    it("should not show any warning w/ --targets cli argument and multiple known names", () => {
+        testSystem.writeFile("./websmith.config.json", '{ "targets": {"zip": {}, "zap": {}, "zup": {}} }');
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--targets", "zip, zap, zup"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalled();
+    });
+
+    it("should show warning w/ --targets cli argument, known and unknown names", () => {
+        testSystem.writeFile("./websmith.config.json", '{ "targets": {"whatever": {}, "known": {}} }');
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--targets", "unknown, known"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
+            new WarnMessage("Custom target configuration found, but no target provided.\nSome custom addons may not be applied during compilation.")
+        );
+    });
+
+    it("should show warning w/ --targets cli argument, known name but missing addons for target", () => {
+        testSystem.writeFile("./websmith.config.json", '{ "targets": {"known": { "addons": ["missing"]}} }');
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--targets", "known"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "known": "missing".'));
+    });
+
+    it("should show warning w/ --targets cli argument, multiple known names but missing addons for targets", () => {
+        testSystem.writeFile(
+            "./websmith.config.json",
+            '{ "targets": {"zip": { "addons": ["missing1"]}, "zap": { "addons": ["missing2"]}, "zup": { "addons": ["missing3"]}} }'
+        );
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--targets", "zip, zap, zup"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "zip": "missing1".'));
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "zap": "missing2".'));
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "zup": "missing3".'));
     });
 });
 
@@ -417,5 +527,3 @@ describe("hasInvalidTargets", () => {
         ).toBe(true);
     });
 });
-
-export const toAbsolute = (filePath: string) => (path.isAbsolute(filePath) ? filePath : path.join(process.cwd(), filePath));

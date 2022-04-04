@@ -30,7 +30,13 @@ export const createOptions = (args: CompilerArguments, reporter: Reporter = new 
     }
 
     return {
-        addons: new AddonRegistry({ addonsDir: args.addonsDir ?? DEFAULTS.addonsDir, config: compilationConfig, reporter, system }),
+        addons: new AddonRegistry({
+            addons: args.addons,
+            addonsDir: args.addonsDir ?? DEFAULTS.addonsDir,
+            config: compilationConfig,
+            reporter,
+            system,
+        }),
         buildDir: args.buildDir ?? system.getCurrentDirectory(),
         config: compilationConfig,
         debug: args.debug ?? DEFAULTS.debug,

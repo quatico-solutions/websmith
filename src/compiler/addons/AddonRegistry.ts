@@ -18,6 +18,7 @@ import { CompilerAddon, Reporter, WarnMessage } from "../../model";
 import { CompilationConfig } from "../config";
 
 export type AddonRegistryOptions = {
+    addons?: string;
     addonsDir: string;
     config?: CompilationConfig;
     reporter: Reporter;
@@ -25,44 +26,55 @@ export type AddonRegistryOptions = {
 };
 
 export class AddonRegistry {
+    private addons: string[];
     private config?: CompilationConfig;
     private availableAddons: CompilerAddon[];
     private reporter: Reporter;
 
     constructor(options: AddonRegistryOptions) {
-        const { addonsDir, config, reporter, system } = options;
+        const { addons, addonsDir, config, reporter, system } = options;
+        this.addons =
+            addons
+                ?.split(",")
+                .map(it => it.trim())
+                .filter(it => it.length > 0) ?? [];
         this.config = config;
         this.availableAddons = findAddons(addonsDir, reporter, system);
         this.reporter = reporter;
     }
 
     public getAddons(target?: string): CompilerAddon[] {
-        const expected = getAddonNames(target, this.config);
-        if (target && expected.length > 0) {
+        const expected = getAddonNames(target, this.addons, this.config);
+        if (expected.length > 0) {
             this.reportMissingAddons(target, expected);
             return this.availableAddons.filter(addon => expected.includes(addon.name));
         }
         return this.availableAddons;
     }
 
-    private reportMissingAddons(target: string, expected: string[]): void {
-        // TODO: Addon resolution: Found addons in addonsDir vs. specified addons in CompilationConfig
-        // Found addons in addonsDir
-        // Specified addon names in CompilationConfig
-        // TODO: Validate options.addons with options.config.targets[target].addons
-        // TODO: Validate args.addons with found addons in args.addonsDir
+    private reportMissingAddons(target: string | undefined, expected: string[]): void {
         const missing = expected.filter(name => !this.availableAddons.some(addon => addon.name === name));
         if (missing.length > 0) {
-            this.reporter.reportDiagnostic(new WarnMessage(`Missing addons for target "${target}": "${missing.join(", ")}"`));
+            if (target && target !== "*") {
+                this.reporter.reportDiagnostic(new WarnMessage(`Missing addons for target "${target}": "${missing.join(", ")}".`));
+            } else {
+                this.reporter.reportDiagnostic(new WarnMessage(`Missing addons: "${missing.join(", ")}".`));
+            }
         }
     }
 }
 
-const getAddonNames = (target?: string, config?: CompilationConfig): string[] => {
-    if (target) {
-        if (config) {
+const getAddonNames = (target: string | undefined, expectedAddons: string[], config?: CompilationConfig): string[] => {
+    if (expectedAddons.length > 0) {
+        return expectedAddons;
+    }
+
+    if (config) {
+        if (target) {
             const { targets = {} } = config;
             return targets[target]?.addons ?? [];
+        } else {
+            return config.addons ?? [];
         }
     }
     return [];
@@ -71,27 +83,29 @@ const getAddonNames = (target?: string, config?: CompilationConfig): string[] =>
 const findAddons = (addonsDir: string, reporter: Reporter, system: ts.System): CompilerAddon[] => {
     const map = new Map<string, CompilerAddon>();
 
-    if (!system.directoryExists(addonsDir)) {
+    if (addonsDir && !system.directoryExists(addonsDir)) {
         reporter.reportDiagnostic(new WarnMessage(`Addons directory "${addonsDir}" does not exist.`));
         return [];
     }
 
-    system
-        .readDirectory(addonsDir)
-        .filter(ad => basename(ad, extname(ad)).toLocaleLowerCase() === "addon")
-        .forEach(it => {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const activator = require(it.replace(extname(it), "")).activate;
-            const name = it
-                .replace(path.sep + basename(it), "")
-                .split(path.sep)
-                .slice(-1)[0];
-            if (name && map.has(name)) {
-                reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${name}" in "${addonsDir}".`));
-            }
-            if (name && activator && !map.has(name)) {
-                map.set(name, { name, activate: activator });
-            }
-        });
+    if (addonsDir) {
+        system
+            .readDirectory(addonsDir)
+            .filter(ad => basename(ad, extname(ad)).toLocaleLowerCase() === "addon")
+            .forEach(it => {
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                const activator = require(it.replace(extname(it), "")).activate;
+                const name = it
+                    .replace(path.sep + basename(it), "")
+                    .split(path.sep)
+                    .slice(-1)[0];
+                if (name && map.has(name)) {
+                    reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${name}" in "${addonsDir}".`));
+                }
+                if (name && activator && !map.has(name)) {
+                    map.set(name, { name, activate: activator });
+                }
+            });
+    }
     return Array.from(map.values());
 };
