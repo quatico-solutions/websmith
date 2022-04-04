@@ -226,6 +226,7 @@ describe("compile", () => {
 describe("report", () => {
     let reporter: ReporterMock;
     beforeEach(() => {
+        testSystem.createDirectory("./addons");
         reporter = new ReporterMock(createSystem());
         testObj = new CompilerTestClass({
             addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),

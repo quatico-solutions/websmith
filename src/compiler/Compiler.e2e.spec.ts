@@ -7,12 +7,13 @@ import { Compiler } from "./Compiler";
 
 describe("end-2-end compile", () => {
     it("should yield compiled file", () => {
+        const options: ts.CompilerOptions = { outDir: "./bin" };
         const system = createBrowserSystem({
-            "tsconfig.json": JSON.stringify({ compilerOptions: { outDir: "./bin" } }),
+            "tsconfig.json": JSON.stringify({ compilerOptions: options }),
             "src/one.ts": `whatever`,
             "src/two.ts": `whatever`,
         });
-        const testObj = createCompiler(system);
+        const testObj = createCompiler(system, options);
 
         const result = testObj.compile();
 
@@ -26,7 +27,6 @@ describe("end-2-end compile", () => {
         const target = jest.fn().mockImplementation((fileName, content) => {
             return content;
         });
-
         const system = createBrowserSystem({
             "tsconfig.json": JSON.stringify({}),
             "src/one.ts": `whatever`,
@@ -41,16 +41,16 @@ describe("end-2-end compile", () => {
     });
 });
 
-const createCompiler = (system: ts.System) => {
+const createCompiler = (system: ts.System, options: ts.CompilerOptions = {}) => {
     const reporter = new ReporterMock(system);
     const result = new Compiler(
         {
             addons: new AddonRegistry({ addonsDir: "./addons", reporter, system }),
             buildDir: "./src",
-            project: {},
+            project: options,
             reporter,
             targets: [],
-            tsconfig: { options: {}, fileNames: [], errors: [] },
+            tsconfig: { options: options, fileNames: system.readDirectory("./src"), errors: [] },
             debug: false,
             sourceMap: false,
             watch: false,
