@@ -13,14 +13,8 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { Reporter } from "../model";
 
-export class NoReporter implements Reporter {
-    public reportDiagnostic(diagnostic: ts.Diagnostic): void {
-        // do nothing
-    }
-
-    public reportWatchStatus(diagnostic: ts.Diagnostic, newLine = ""): void {
-        // do nothing
-    }
+export interface Reporter {
+    reportDiagnostic(diagnostic: ts.Diagnostic): void;
+    reportWatchStatus(diagnostic: ts.Diagnostic, newLine?: string, options?: ts.CompilerOptions, errorCount?: number): void;
 }

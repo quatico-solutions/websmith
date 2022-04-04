@@ -14,9 +14,7 @@
  */
 /* eslint-disable no-console */
 import { Command, program } from "commander";
-import { Compiler, DefaultReporter } from "../compiler";
-import { CompilationConfig } from "../compiler/config";
-import { WarnMessage } from "../model";
+import { CompilationConfig, Compiler, DefaultReporter, WarnMessage } from "../compiler";
 import { compileSystem } from "./compiler-system";
 import { CompilerArguments } from "./CompilerArguments";
 import { createOptions } from "./options";

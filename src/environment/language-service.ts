@@ -13,8 +13,8 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { VersionedFile } from "../model";
 import { createCompileHost } from "./compile-service";
+import type { VersionedFile } from "./VersionedFile";
 
 /**
  * The language service host “abstracts all interactions between the language service

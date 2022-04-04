@@ -16,9 +16,8 @@
 
 import { Command } from "commander";
 import ts from "typescript";
-import { Compiler, NoReporter } from "../compiler";
+import { Compiler, NoReporter, WarnMessage } from "../compiler";
 import { createBrowserSystem } from "../environment";
-import { WarnMessage } from "../model";
 import { addCompileCommand, hasInvalidTargets } from "./command";
 import { createOptions } from "./options";
 

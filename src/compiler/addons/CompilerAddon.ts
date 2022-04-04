@@ -12,8 +12,10 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import ts from "typescript";
 
-export type ProcessorKind = "element" | "styles";
+import { AddonContext } from "../../addon-api";
 
-export type Processor = (context: ts.TransformationContext) => ts.Visitor;
+export interface CompilerAddon {
+    name: string;
+    activate: (context: AddonContext) => void;
+}

@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { aggregateMessages } from "../../model";
+import { aggregateMessages } from "../reporting";
 
 /**
  * Parses tsconfig.json files and creates parsed command line options.

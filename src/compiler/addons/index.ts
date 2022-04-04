@@ -15,6 +15,7 @@
 import { createResolver } from "./addon-resolver";
 import type { AddonActivator } from "./AddonActivator";
 import { AddonRegistry } from "./AddonRegistry";
+import type { CompilerAddon } from "./CompilerAddon";
 
 export { AddonRegistry, createResolver };
-export type { AddonActivator };
+export type { AddonActivator, CompilerAddon };

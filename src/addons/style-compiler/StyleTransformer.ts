@@ -12,8 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { StyleVisitor } from ".";
-import { Reporter } from "../../model/Reporter";
+import { Reporter } from "../../compiler";
+import { StyleVisitor } from "./parse-scss";
 
 // FIXME: StyleTransformer fix API
 export type StyleTransformerKind = "before" | "after";

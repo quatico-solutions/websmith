@@ -16,6 +16,7 @@ import { createBrowserSystem } from "./browser-system";
 import { createCompileHost, createWatchHost, injectTransformers } from "./compile-service";
 import { createLanguageService, createLanguageServiceHost } from "./language-service";
 import { createSystem, createVersionedFile, createVersionedFiles, getVersionedFile, isNodeJs, readFiles, recursiveFindByFilter } from "./system";
+import type { VersionedFile } from "./VersionedFile";
 
 export {
     createBrowserSystem,
@@ -32,3 +33,5 @@ export {
     readFiles,
     recursiveFindByFilter,
 };
+
+export type { VersionedFile };

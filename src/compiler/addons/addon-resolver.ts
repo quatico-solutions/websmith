@@ -13,7 +13,8 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { CompilerAddon, Reporter, WarnMessage } from "../../model";
+import { Reporter, WarnMessage } from "../reporting";
+import type { CompilerAddon } from "./CompilerAddon";
 
 export const ADDONS_FOLDER_NAME = `/addons`;
 

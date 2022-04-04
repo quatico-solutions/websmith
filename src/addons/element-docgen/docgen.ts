@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { Reporter, WarnMessage } from "../../model";
+import { Reporter, WarnMessage } from "../../compiler";
 import { CssProperty, Mixin, Tag } from "./model";
 import { extractCssProperties } from "./scss-extractors/extract-custom-props";
 

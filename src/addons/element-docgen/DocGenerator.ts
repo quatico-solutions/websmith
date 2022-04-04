@@ -22,8 +22,8 @@ import {
     VisibilityKind,
 } from "web-component-analyzer";
 import { AddonContext } from "../../addon-api";
+import { ErrorMessage, Reporter } from "../../compiler";
 import { isScriptFile } from "../../elements";
-import { ErrorMessage, Reporter } from "../../model";
 import { defaultOptions, DocDefaults } from "./defaults";
 import { addCustomPropNames, addMixins, transformTag } from "./docgen";
 import { Element } from "./model";

@@ -1,8 +1,13 @@
 import ts from "typescript";
-import { AddonRegistry, NoReporter, resolveTargets } from "../compiler";
-import { resolveProjectConfig as resolveTsConfig } from "../compiler/config";
-import { resolveCompilationConfig } from "../compiler/config/resolve-compiler-config";
-import { CompilerOptions, Reporter } from "../model";
+import {
+    AddonRegistry,
+    CompilerOptions,
+    NoReporter,
+    Reporter,
+    resolveCompilationConfig,
+    resolveProjectConfig as resolveTsConfig,
+    resolveTargets,
+} from "../compiler";
 import { CompilerArguments } from "./CompilerArguments";
 
 const DEFAULTS = {

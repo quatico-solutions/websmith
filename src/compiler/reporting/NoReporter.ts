@@ -12,9 +12,15 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { CompilationContext } from "../compiler";
+import ts from "typescript";
+import type { Reporter } from "./Reporter";
 
-export interface CompilerAddon {
-    name: string;
-    activate: (context: CompilationContext) => void;
+export class NoReporter implements Reporter {
+    public reportDiagnostic(diagnostic: ts.Diagnostic): void {
+        // do nothing
+    }
+
+    public reportWatchStatus(diagnostic: ts.Diagnostic, newLine = ""): void {
+        // do nothing
+    }
 }

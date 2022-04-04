@@ -1,5 +1,5 @@
 import { createBrowserSystem } from "../../environment";
-import { NoReporter } from "../NoReporter";
+import { NoReporter } from "../reporting";
 import { resolveCompilationConfig } from "./resolve-compiler-config";
 
 const testSystem = createBrowserSystem({});

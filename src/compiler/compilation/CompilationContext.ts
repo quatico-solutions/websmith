@@ -14,9 +14,9 @@
  */
 import ts from "typescript";
 import { AddonContext, Generator, ProjectEmitter, Transformer } from "../../addon-api";
-import { Reporter } from "../../model";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
+import { Reporter } from "../reporting";
 import { createSharedHost } from "./shared-host";
 
 export type CompilationContextOptions = {

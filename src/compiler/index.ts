@@ -17,10 +17,9 @@ import type { CompilationContext } from "./compilation";
 import { Compiler } from "./Compiler";
 import type { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig, resolveCompilationConfig, resolveProjectConfig, resolveTargets } from "./config";
-import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
-import { NoReporter } from "./NoReporter";
 import { createParser, Parser, ParserOptions, Project } from "./Parser";
+import { aggregateMessages, DefaultReporter, ErrorMessage, InfoMessage, messageToString, NoReporter, Reporter, WarnMessage } from "./reporting";
 // TODO: Add support for style processors via addon
 // import {
 //     createStyleCompiler,
@@ -33,10 +32,14 @@ import { createParser, Parser, ParserOptions, Project } from "./Parser";
 
 export {
     AddonRegistry,
-    Compiler,
+    aggregateMessages,
     CompilationConfig,
+    Compiler,
     createParser,
     DefaultReporter,
+    ErrorMessage,
+    InfoMessage,
+    messageToString,
     NoReporter,
     Parser,
     ParserOptions,
@@ -46,6 +49,7 @@ export {
     resolveTargets,
     tsDefaults,
     tsLibDefaults,
+    WarnMessage,
     // TODO: Add support for style processors via addon
     // createStyleCompiler,
     // parseStyles,
@@ -54,4 +58,4 @@ export {
     // visitNode,
     // writeNode,
 };
-export type { CompilerOptions, CompilationContext };
+export type { CompilerOptions, CompilationContext, Reporter };

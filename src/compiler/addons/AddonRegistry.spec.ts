@@ -16,7 +16,7 @@
 import ts from "typescript";
 import { ReporterMock } from "../../../test";
 import { createBrowserSystem } from "../../environment";
-import { WarnMessage } from "../../model";
+import { WarnMessage } from "../reporting";
 import { AddonRegistry } from "./AddonRegistry";
 
 let system: ts.System;

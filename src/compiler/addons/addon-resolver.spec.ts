@@ -16,7 +16,7 @@
 import path from "path";
 import { ReporterMock } from "../../../test";
 import { createBrowserSystem } from "../../environment";
-import { CompilationContext } from "..";
+import { CompilationContext } from "../compilation";
 import { createResolver } from "./addon-resolver";
 
 beforeAll(() => {

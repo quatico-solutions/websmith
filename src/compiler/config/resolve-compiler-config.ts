@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { Reporter, WarnMessage } from "../../model";
+import { Reporter, WarnMessage } from "../reporting";
 import { CompilationConfig } from "./CompilationConfig";
 
 export const resolveCompilationConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilationConfig | undefined => {

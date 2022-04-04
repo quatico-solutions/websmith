@@ -15,9 +15,8 @@
 import merge from "lodash/merge";
 import path from "path";
 import ts from "typescript";
-import { DefaultReporter } from "../compiler";
-import { createVersionedFile } from "../environment";
-import { Reporter, VersionedFile } from "../model";
+import { DefaultReporter, Reporter } from "../compiler";
+import { createVersionedFile, VersionedFile } from "../environment";
 
 /**
  * The TypeScript compiler interacts with the host environment via a compiler host.

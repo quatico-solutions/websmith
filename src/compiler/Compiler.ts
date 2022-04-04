@@ -16,11 +16,11 @@
 import { dirname, extname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
 import { createSystem, recursiveFindByFilter } from "../environment";
-import { CompilerOptions, ErrorMessage, Reporter } from "../model";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost, TargetConfig } from "./compilation";
+import { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig } from "./config";
-import { DefaultReporter } from "./DefaultReporter";
+import { DefaultReporter, ErrorMessage, Reporter } from "./reporting";
 
 export type CompileFragment = {
     version: number;

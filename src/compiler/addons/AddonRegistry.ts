@@ -14,8 +14,9 @@
  */
 import path, { basename, extname } from "path";
 import ts from "typescript";
-import { CompilerAddon, Reporter, WarnMessage } from "../../model";
 import { CompilationConfig } from "../config";
+import { Reporter, WarnMessage } from "../reporting";
+import { CompilerAddon } from "./CompilerAddon";
 
 export type AddonRegistryOptions = {
     addons?: string;

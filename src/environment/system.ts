@@ -15,8 +15,8 @@
 import { join } from "path";
 import ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
-import { VersionedFile } from "../model";
 import { createBrowserSystem } from "./browser-system";
+import type { VersionedFile } from "./VersionedFile";
 
 export const isNodeJs = (): boolean => typeof module !== "undefined" && module.exports;
 
