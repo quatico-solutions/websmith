@@ -13,7 +13,7 @@
  * with Quatico.
  */
 
-import type { CompilationContext } from "../../compiler";
+import { AddonContext } from "../../addon-api";
 import { DocGenerator } from "./DocGenerator";
 
 /**
@@ -22,6 +22,6 @@ import { DocGenerator } from "./DocGenerator";
  *
  * @param context
  */
-export const activate = (context: CompilationContext) => {
+export const activate = (context: AddonContext) => {
     context.registerGenerator(new DocGenerator({ inlineTypes: false, verbose: false, visibility: "public", reporter: context.getReporter() }));
 };
