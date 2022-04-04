@@ -6081,15 +6081,15 @@ typedarray-to-buffer@^3.1.5:
   dependencies:
     is-typedarray "^1.0.0"
 
+typescript@4.5.4:
+  version "4.5.4"
+  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/typescript/-/typescript-4.5.4.tgz#a17d3a0263bf5c8723b9c52f43c5084edf13c2e8"
+  integrity sha1-oX06AmO/XIcjucUvQ8UITt8Twug=
+
 typescript@^3.8.3:
   version "3.9.10"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/typescript/-/typescript-3.9.10.tgz#70f3910ac7a51ed6bef79da7800690b19bf778b8"
   integrity sha1-cPORCselHta+952ngAaQsZv3eLg=
-
-typescript@^4.6.3:
-  version "4.6.3"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/typescript/-/typescript-4.6.3.tgz#eefeafa6afdd31d725584c67a0eaba80f6fc6c6c"
-  integrity sha1-7v6vpq/dMdclWExnoOq6gPb8bGw=
 
 unbox-primitive@^1.0.1:
   version "1.0.1"
