@@ -34,7 +34,7 @@ export class CompilationContext implements AddonContext<any> {
     protected emitTransformers: ts.CustomTransformers;
     protected generators: Generator[];
     protected preEmitTransformers: Transformer[];
-    protected projectEmitters: ProjectEmitter[] = [];
+    protected projectPostEmitters: ProjectEmitter[] = [];
 
     private buildDir: string;
     private cache: FileCache;
@@ -115,8 +115,8 @@ export class CompilationContext implements AddonContext<any> {
         return this;
     }
 
-    public registerProjectEmitter(emitter: ProjectEmitter): this {
-        this.projectEmitters.push(emitter);
+    public registerProjectPostEmitter(emitter: ProjectEmitter): this {
+        this.projectPostEmitters.push(emitter);
         return this;
     }
 
@@ -128,8 +128,8 @@ export class CompilationContext implements AddonContext<any> {
         return this.preEmitTransformers;
     }
 
-    public getProjectEmitters(): ProjectEmitter[] {
-        return this.projectEmitters;
+    public getProjectPostEmitters(): ProjectEmitter[] {
+        return this.projectPostEmitters;
     }
 
     private createLanguageServiceHost({ system, options }: { system: ts.System; options: ts.CompilerOptions }): ts.LanguageServiceHost {

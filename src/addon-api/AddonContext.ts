@@ -33,5 +33,10 @@ export interface AddonContext<O extends TargetConfig = any> {
      */
     registerEmitTransformer(transformer: ts.CustomTransformers): void;
 
-    registerProjectEmitter(projectEmitter: ProjectEmitter): void;
+    /**
+     * Registers an project PostEmitter with this context.
+     *
+     * @param projectEmitter (fileNames: string[]) => void: A function that is executed after the compilation of all files is completed.
+     */
+    registerProjectPostEmitter(projectEmitter: ProjectEmitter): void;
 }

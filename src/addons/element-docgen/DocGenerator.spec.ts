@@ -46,13 +46,13 @@ const testSystem = createBrowserSystem({
 describe("XXX", () => {
     it.skip("XXX", () => {
         const mockContext = {} as any;
-
         const { file } = setup("one.ts", testSystem);
         const reporter = new ReporterMock(createBrowserSystem({}));
-
         const testObj = new DocGenerator({ reporter });
+        // FIXME: we need to implement access to a valid program
+        ts.transform(file!, testObj.getEmitter(mockContext).before as any, {});
 
-        testObj.process(mockContext)(file!);
+        testObj.getProjectPostEmitter(["one.ts"], mockContext);
 
         expect(testObj.getResults()[0].componentDefinitions[0].tagName).toBe("my-element");
     });

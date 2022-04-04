@@ -127,7 +127,8 @@ export class Compiler {
                 }
             }
 
-            ctx.getProjectEmitters().forEach(it => it(this.getRootFiles()));
+            const files = this.getRootFiles();
+            ctx.getProjectPostEmitters().forEach(it => it(files));
         });
 
         // TODO: Add style processors here to generate docs

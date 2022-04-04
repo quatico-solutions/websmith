@@ -31,7 +31,6 @@ import { readCustomPropNames } from "./scss-extractors/extract-custom-prop-names
 import { readMixins } from "./scss-parsers/parse-mixins";
 
 export class DocGenerator {
-    //implements Generator {
     private results: AnalyzerResult[];
     private config: DocDefaults & DocOptions;
 
@@ -44,7 +43,7 @@ export class DocGenerator {
         return this.results;
     }
 
-    public getProjectEmitter(fileNames: string[], ctx: AddonContext) {
+    public getProjectPostEmitter(fileNames: string[], ctx: AddonContext) {
         try {
             const program = ctx.getProgram();
             const system = ctx.getSystem();
@@ -61,18 +60,8 @@ export class DocGenerator {
             generateCustomPropertyDocs(data, this.config.reporter, system);
 
             system.writeFile(this.config.outputFile, JSON.stringify(data, null, 4));
-
-            return {
-                diagnostics: [],
-                emitSkipped: false,
-                emittedFiles: [],
-            };
         } catch (err) {
-            return {
-                diagnostics: [],
-                emitSkipped: true,
-                emittedFiles: [],
-            };
+            ctx.getReporter().reportDiagnostic(new ErrorMessage(err.toString()));
         }
     }
 
@@ -99,48 +88,6 @@ export class DocGenerator {
                 },
             ],
         };
-    }
-
-    public process(program: ts.Program): ts.Visitor {
-        const options: AnalyzerOptions = {
-            program: program as any,
-            verbose: this.config.verbose,
-        };
-        return node => {
-            if (isScriptFile(node)) {
-                this.results.push(analyzeSourceFile(node as any, options));
-            }
-            return node;
-        };
-    }
-
-    public emit(program: ts.Program, system: ts.System): ts.EmitResult {
-        try {
-            const config: TransformerConfig = {
-                inlineTypes: this.config.inlineTypes,
-                visibility: this.config.visibility,
-            };
-            const output = transformAnalyzerResult("json", this.results, program as any, config);
-            const data = JSON.parse(output) as Element;
-
-            extractCustomPropertyDocs(data, this.config.reporter, system);
-            extractMixinDocs(data, this.config.reporter, system);
-            generateCustomPropertyDocs(data, this.config.reporter, system);
-
-            system.writeFile(this.config.outputFile, JSON.stringify(data, null, 4));
-
-            return {
-                diagnostics: [],
-                emitSkipped: false,
-                emittedFiles: [],
-            };
-        } catch (err) {
-            return {
-                diagnostics: [],
-                emitSkipped: true,
-                emittedFiles: [],
-            };
-        }
     }
 }
 

@@ -30,5 +30,5 @@ export const activate = (context: AddonContext) => {
     const docGenerator = new DocGenerator({ inlineTypes: false, verbose: false, visibility: "public", reporter: context.getReporter() });
     // context.registerGenerator((fileName: string, content: string) => docGenerator.getGenerator(fileName, content, context));
     context.registerEmitTransformer(docGenerator.getEmitter(context));
-    context.registerProjectEmitter((fileNames:string[]) => docGenerator.getProjectEmitter(fileNames, context));
+    context.registerProjectPostEmitter((fileNames:string[]) => docGenerator.getProjectPostEmitter(fileNames, context));
 };
