@@ -69,6 +69,10 @@ export class CompilationContext implements AddonContext<any> {
         return this.tsconfig;
     }
 
+    public getReporter(): Reporter {
+        return this.reporter;
+    }
+
     public getTargetConfig(): any {
         return this.config ?? {};
     }

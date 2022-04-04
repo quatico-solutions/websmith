@@ -1,4 +1,5 @@
 import ts from "typescript";
+import { Reporter } from "../model";
 import { Generator } from "./Generator";
 import { TargetConfig } from "./TargetConfig";
 import { Transformer } from "./Transformer";
@@ -6,6 +7,7 @@ import { Transformer } from "./Transformer";
 export interface AddonContext<O extends TargetConfig = any> {
     getSystem(): ts.System;
     getConfig(): ts.ParsedCommandLine;
+    getReporter(): Reporter;
     getTargetConfig(): O;
 
     /**
