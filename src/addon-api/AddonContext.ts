@@ -1,11 +1,13 @@
 import ts from "typescript";
 import { Reporter } from "../model";
 import { Generator } from "./Generator";
+import { ProjectEmitter } from "./ProjectEmitter";
 import { TargetConfig } from "./TargetConfig";
 import { Transformer } from "./Transformer";
 
 export interface AddonContext<O extends TargetConfig = any> {
     getSystem(): ts.System;
+    getProgram(): ts.Program;
     getConfig(): ts.ParsedCommandLine;
     getReporter(): Reporter;
     getTargetConfig(): O;
@@ -30,4 +32,6 @@ export interface AddonContext<O extends TargetConfig = any> {
      * @param transformer A ts.CustomTransformers object merged with all other emit transformers and used during the compilation process.
      */
     registerEmitTransformer(transformer: ts.CustomTransformers): void;
+
+    registerProjectEmitter(projectEmitter: ProjectEmitter): void;
 }

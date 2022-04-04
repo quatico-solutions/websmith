@@ -21,16 +21,17 @@ import {
     TransformerConfig,
     VisibilityKind,
 } from "web-component-analyzer";
+import { AddonContext } from "../../addon-api";
 import { isScriptFile } from "../../elements";
-import { Reporter } from "../../model";
-import { Generator } from "../../addon-api";
+import { ErrorMessage, Reporter } from "../../model";
 import { defaultOptions, DocDefaults } from "./defaults";
 import { addCustomPropNames, addMixins, transformTag } from "./docgen";
 import { Element } from "./model";
 import { readCustomPropNames } from "./scss-extractors/extract-custom-prop-names";
 import { readMixins } from "./scss-parsers/parse-mixins";
 
-export class DocGenerator implements Generator {
+export class DocGenerator {
+    //implements Generator {
     private results: AnalyzerResult[];
     private config: DocDefaults & DocOptions;
 
@@ -41,6 +42,63 @@ export class DocGenerator implements Generator {
 
     public getResults() {
         return this.results;
+    }
+
+    public getProjectEmitter(fileNames: string[], ctx: AddonContext) {
+        try {
+            const program = ctx.getProgram();
+            const system = ctx.getSystem();
+
+            const config: TransformerConfig = {
+                inlineTypes: this.config.inlineTypes,
+                visibility: this.config.visibility,
+            };
+            const output = transformAnalyzerResult("json", this.results, program as any, config);
+            const data = JSON.parse(output) as Element;
+
+            extractCustomPropertyDocs(data, this.config.reporter, system);
+            extractMixinDocs(data, this.config.reporter, system);
+            generateCustomPropertyDocs(data, this.config.reporter, system);
+
+            system.writeFile(this.config.outputFile, JSON.stringify(data, null, 4));
+
+            return {
+                diagnostics: [],
+                emitSkipped: false,
+                emittedFiles: [],
+            };
+        } catch (err) {
+            return {
+                diagnostics: [],
+                emitSkipped: true,
+                emittedFiles: [],
+            };
+        }
+    }
+
+    public getEmitter(ctx: AddonContext): ts.CustomTransformers {
+        const options: AnalyzerOptions = {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            program: ctx.getProgram() as any,
+            verbose: this.config.verbose,
+        };
+
+        return {
+            before: [
+                (): ts.Transformer<ts.SourceFile> => {
+                    return (sf: ts.SourceFile) => {
+                        const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                            if (isScriptFile(node)) {
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                this.results.push(analyzeSourceFile(node as any, options));
+                            }
+                            return node;
+                        };
+                        return ts.visitNode(sf, visitor);
+                    };
+                },
+            ],
+        };
     }
 
     public process(program: ts.Program): ts.Visitor {

@@ -14,14 +14,16 @@
  */
 import { Generator } from "../src/addon-api";
 
-const GeneratorMock = (config: MockConfig = {}): Generator => ({
-    emit: config.emit ?? jest.fn().mockReturnValue({}),
-    process: config.process ?? jest.fn(),
-});
+const GeneratorMock: Generator = jest.fn();
 
-interface MockConfig {
-    emit?: any;
-    process?: any;
-}
+// const GeneratorMock = (config: MockConfig = {}): Generator => ({
+//     emit: config.emit ?? jest.fn().mockReturnValue({}),
+//     process: config.process ?? jest.fn(),
+// });
+
+// interface MockConfig {
+//     emit?: any;
+//     process?: any;
+// }
 
 export { GeneratorMock };

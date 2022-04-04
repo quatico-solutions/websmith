@@ -1,6 +1,7 @@
 import { ReporterMock } from "../../../test";
 import { createBrowserSystem } from "../../environment";
 import { CompilationContext, CompilationContextOptions } from "./CompilationContext";
+import ts from "typescript";
 
 class CompilationContextTestClass extends CompilationContext {
     public constructor(options: CompilationContextOptions) {
@@ -24,12 +25,14 @@ let testObj: CompilationContextTestClass;
 
 beforeEach(() => {
     const testSystem = createBrowserSystem({});
+    const testProgram = ts.createProgram({options:{}, rootNames: []});
     testObj = new CompilationContextTestClass({
         buildDir: "",
         project: {},
         reporter: new ReporterMock(testSystem),
         rootFiles: [],
         system: testSystem,
+        program: testProgram,
         tsconfig: { options: {}, fileNames: [], errors: [] },
     });
 });

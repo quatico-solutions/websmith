@@ -13,8 +13,8 @@
  * with Quatico.
  */
 
-import { AddonContext } from "../../addon-api";
 import { DocGenerator } from "./DocGenerator";
+import type { AddonContext } from "../../addon-api";
 
 /**
  * Addon to generate the custom-elements.json using the WCA
@@ -23,5 +23,12 @@ import { DocGenerator } from "./DocGenerator";
  * @param context
  */
 export const activate = (context: AddonContext) => {
-    context.registerGenerator(new DocGenerator({ inlineTypes: false, verbose: false, visibility: "public", reporter: context.getReporter() }));
+    // eslint-disable-next-line no-console
+    console.error("[element-docgen] activate");
+    // context.registerGenerator(new DocGenerator({ inlineTypes: false, verbose: false, visibility: "public", reporter: context.getReporter() }));
+
+    const docGenerator = new DocGenerator({ inlineTypes: false, verbose: false, visibility: "public", reporter: context.getReporter() });
+    // context.registerGenerator((fileName: string, content: string) => docGenerator.getGenerator(fileName, content, context));
+    context.registerEmitTransformer(docGenerator.getEmitter(context));
+    context.registerProjectEmitter((fileNames:string[]) => docGenerator.getProjectEmitter(fileNames, context));
 };

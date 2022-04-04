@@ -12,12 +12,12 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import ts from "typescript";
+// import ts from "typescript";
 
-export interface Generator {
-    process: (program: ts.Program) => ts.Visitor;
-    emit: (program: ts.Program, system: ts.System) => ts.EmitResult;
-}
+// export interface Generator {
+//     process: (program: ts.Program) => ts.Visitor;
+//     emit: (program: ts.Program, system: ts.System) => ts.EmitResult;
+// }
 
 // FIXME: Seems not to be good enough
-// export type Generator = (fileName: string, content: string) => void;
+export type Generator = (fileName: string, content: string) => void;

@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { AddonContext, Generator, Transformer } from "../../addon-api";
+import { AddonContext, Generator, ProjectEmitter, Transformer } from "../../addon-api";
 import { Reporter } from "../../model";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
@@ -25,6 +25,7 @@ export type CompilationContextOptions = {
     reporter: Reporter;
     rootFiles: string[];
     system: ts.System;
+    program: ts.Program;
     tsconfig: ts.ParsedCommandLine;
     config?: unknown;
 };
@@ -33,6 +34,7 @@ export class CompilationContext implements AddonContext<any> {
     protected emitTransformers: ts.CustomTransformers;
     protected generators: Generator[];
     protected preEmitTransformers: Transformer[];
+    protected projectEmitters: ProjectEmitter[] = [];
 
     private buildDir: string;
     private cache: FileCache;
@@ -41,10 +43,11 @@ export class CompilationContext implements AddonContext<any> {
     private rootFiles: string[];
     private tsconfig: ts.ParsedCommandLine;
     private system: ts.System;
+    private program: ts.Program;
     private config: any;
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, project, rootFiles, system, tsconfig, config } = options;
+        const { buildDir, project, rootFiles, system, program, tsconfig, config } = options;
         this.buildDir = buildDir;
         this.rootFiles = rootFiles;
         this.tsconfig = tsconfig;
@@ -58,6 +61,7 @@ export class CompilationContext implements AddonContext<any> {
         this.cache = new FileCache(system);
         this.reporter = options.reporter;
         this.system = system;
+        this.program = program;
         this.config = config;
     }
 
@@ -71,6 +75,10 @@ export class CompilationContext implements AddonContext<any> {
 
     public getReporter(): Reporter {
         return this.reporter;
+    }
+
+    public getProgram(): ts.Program {
+        return this.program;
     }
 
     public getTargetConfig(): any {
@@ -107,9 +115,21 @@ export class CompilationContext implements AddonContext<any> {
         return this;
     }
 
-    // TODO: We shouldn't make this available to addon implementors.
-    getPreEmitTransformers(): Transformer[] {
+    public registerProjectEmitter(emitter: ProjectEmitter): this {
+        this.projectEmitters.push(emitter);
+        return this;
+    }
+
+    public getGenerators(): Generator[] {
+        return this.generators;
+    }
+
+    public getPreEmitTransformers(): Transformer[] {
         return this.preEmitTransformers;
+    }
+
+    public getProjectEmitters(): ProjectEmitter[] {
+        return this.projectEmitters;
     }
 
     private createLanguageServiceHost({ system, options }: { system: ts.System; options: ts.CompilerOptions }): ts.LanguageServiceHost {

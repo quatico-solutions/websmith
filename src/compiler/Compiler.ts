@@ -12,6 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+
 import { dirname, extname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
 import { createSystem, recursiveFindByFilter } from "../environment";
@@ -102,6 +103,8 @@ export class Compiler {
                 buildDir,
                 project,
                 system: this.system,
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                program: this.program!,
                 tsconfig,
                 rootFiles: this.getRootFiles(),
                 reporter: this.reporter,
@@ -123,6 +126,8 @@ export class Compiler {
                     // FIXME: Report error for source files that cannot be emitted
                 }
             }
+
+            ctx.getProjectEmitters().forEach(it => it(this.getRootFiles()));
         });
 
         // TODO: Add style processors here to generate docs
@@ -164,11 +169,15 @@ export class Compiler {
                 return cache.getCachedFile(filePath, target);
             }
             let content = this.system.readFile(fileName) ?? "";
+
+            ctx.getGenerators().forEach(it => it(fileName, content));
+
             ctx.getPreEmitTransformers().forEach(it => (content = it(fileName, content)));
             cache.updateSource(filePath, content, target);
             this.compilationHost.setLanguageHost(ctx.getLanguageHost());
 
             const output = this.langService.getEmitOutput(fileName);
+
             if (!output.emitSkipped) {
                 cache.updateOutput(fileName, output.outputFiles);
 
