@@ -21,3 +21,5 @@ export abstract class DiagnosticMessage implements MessageConstructor, ts.Diagno
     }
 }
 export type MessageConstructor = new (message: string | ts.DiagnosticMessageChain, source?: ts.SourceFile | string) => ts.Diagnostic;
+
+export const isSourceFile = (source: any): source is ts.SourceFile => source?.kind && ts.isSourceFile(source);

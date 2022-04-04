@@ -1,9 +1,9 @@
 import ts from "typescript";
+import { Reporter } from "../addon-api";
 import {
     AddonRegistry,
     CompilerOptions,
     NoReporter,
-    Reporter,
     resolveCompilationConfig,
     resolveProjectConfig as resolveTsConfig,
     resolveTargets,

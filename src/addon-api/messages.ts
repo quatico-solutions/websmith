@@ -12,7 +12,5 @@ export const messageToString = (message?: string | ts.DiagnosticMessageChain): s
     return isMessage(message) ? message.messageText : message || "";
 };
 
-export const isSourceFile = (source: any): source is ts.SourceFile => source?.kind && ts.isSourceFile(source);
-
 export const isMessage = (data?: string | ts.DiagnosticMessageChain): data is ts.DiagnosticMessageChain =>
     (data as ts.DiagnosticMessageChain)?.messageText !== undefined;

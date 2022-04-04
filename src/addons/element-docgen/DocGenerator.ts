@@ -21,8 +21,8 @@ import {
     TransformerConfig,
     VisibilityKind,
 } from "web-component-analyzer";
-import { AddonContext } from "../../addon-api";
-import { ErrorMessage, Reporter } from "../../compiler";
+import { AddonContext, Reporter } from "../../addon-api";
+import { ErrorMessage } from "../../compiler";
 import { isScriptFile } from "../../elements";
 import { defaultOptions, DocDefaults } from "./defaults";
 import { addCustomPropNames, addMixins, transformTag } from "./docgen";

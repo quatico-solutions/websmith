@@ -12,14 +12,16 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { aggregateMessages, ErrorMessage, InfoMessage, messageToString, WarnMessage } from "../addon-api";
 import { AddonRegistry } from "./addons";
 import type { CompilationContext } from "./compilation";
 import { Compiler } from "./Compiler";
 import type { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig, resolveCompilationConfig, resolveProjectConfig, resolveTargets } from "./config";
+import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
+import { NoReporter } from "./NoReporter";
 import { createParser, Parser, ParserOptions, Project } from "./Parser";
-import { aggregateMessages, DefaultReporter, ErrorMessage, InfoMessage, messageToString, NoReporter, Reporter, WarnMessage } from "./reporting";
 // TODO: Add support for style processors via addon
 // import {
 //     createStyleCompiler,
@@ -58,4 +60,4 @@ export {
     // visitNode,
     // writeNode,
 };
-export type { CompilerOptions, CompilationContext, Reporter };
+export type { CompilerOptions, CompilationContext };

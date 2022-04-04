@@ -1,6 +1,5 @@
 import ts from "typescript";
-import { DiagnosticMessage } from "./DiagnosticMessage";
-import { isSourceFile } from "./messages";
+import { DiagnosticMessage, isSourceFile } from "./DiagnosticMessage";
 
 export class ErrorMessage extends DiagnosticMessage {
     constructor(message: string | ts.DiagnosticMessageChain, source?: ts.SourceFile | string) {

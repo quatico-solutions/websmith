@@ -14,7 +14,8 @@
  */
 import { Node, parse } from "scss-parser";
 import ts from "typescript";
-import { ErrorMessage, Reporter } from "../../../compiler";
+import { ErrorMessage } from "../../../compiler";
+import { Reporter } from "../../../addon-api";
 
 export interface Mixin {
     name: string;

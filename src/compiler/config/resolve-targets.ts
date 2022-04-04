@@ -1,4 +1,4 @@
-import { Reporter, WarnMessage } from "../reporting";
+import { Reporter, WarnMessage } from "../../addon-api";
 import { CompilationConfig } from "./CompilationConfig";
 
 // TODO: Target resolution: Passed targets in CLI vs. specified targets in CompilationConfig

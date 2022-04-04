@@ -17,7 +17,8 @@ import path from "path";
 import sass from "sass";
 import dedent from "ts-dedent";
 import ts from "typescript";
-import { ErrorMessage, Reporter } from "../../../compiler";
+import { ErrorMessage } from "../../../compiler";
+import { Reporter } from "../../../addon-api";
 import { filterAndSortCssProperties } from "./extract-custom-props";
 
 export const IGNORED_FILES = ["**/*.spec.ts", "**/index.ts"];

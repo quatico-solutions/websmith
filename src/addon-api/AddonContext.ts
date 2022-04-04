@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { Reporter } from "../compiler";
+import { Reporter } from "../addon-api";
 import { Generator } from "./Generator";
 import { ProjectEmitter } from "./ProjectEmitter";
 import { TargetConfig } from "./TargetConfig";

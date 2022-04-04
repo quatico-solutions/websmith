@@ -13,8 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import type { Reporter } from "./Reporter";
-import { messageToString } from "./messages";
+import { messageToString, Reporter } from "../addon-api";
 
 export class DefaultReporter implements Reporter {
     public readonly formatHost: ts.FormatDiagnosticsHost;

@@ -15,12 +15,13 @@
 
 import { dirname, extname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
+import { ErrorMessage, Reporter } from "../addon-api";
 import { createSystem, recursiveFindByFilter } from "../environment";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost, TargetConfig } from "./compilation";
 import { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig } from "./config";
-import { DefaultReporter, ErrorMessage, Reporter } from "./reporting";
+import { DefaultReporter } from "./DefaultReporter";
 
 export type CompileFragment = {
     version: number;

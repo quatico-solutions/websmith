@@ -15,8 +15,8 @@
 /* eslint-disable jest/no-mocks-import */
 import ts from "typescript";
 import { ReporterMock } from "../../../test";
+import { WarnMessage } from "../../addon-api";
 import { createBrowserSystem } from "../../environment";
-import { WarnMessage } from "../reporting";
 import { AddonRegistry } from "./AddonRegistry";
 
 let system: ts.System;

@@ -13,7 +13,8 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { ErrorMessage, Reporter } from "../../../compiler";
+import { ErrorMessage } from "../../../compiler";
+import { Reporter } from "../../../addon-api";
 import { parseCustomPropertyNames } from "../scss-parsers/parse-custom-prop-names";
 
 const IGNORED_STATES: string[] = ["override", "type", "state", "default", "value"];

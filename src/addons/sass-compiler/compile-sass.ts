@@ -13,7 +13,8 @@
  * with Quatico.
  */
 import sass from "sass";
-import { ErrorMessage, Reporter } from "../../compiler";
+import { Reporter } from "../../addon-api";
+import { ErrorMessage } from "../../compiler";
 import { defaultOptions } from "./defaults";
 
 export const CONFIG_FILE_NAME_SASS = "sass.config.js";

@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { createSystem } from "../../environment";
+import { createSystem } from "../environment";
 import { DefaultReporter } from "./DefaultReporter";
 
 describe("constructor", () => {

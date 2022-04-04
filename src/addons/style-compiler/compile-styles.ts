@@ -14,8 +14,8 @@
  */
 import sass from "sass";
 import ts from "typescript";
-import { Transformer } from "../../addon-api";
-import { ErrorMessage, InfoMessage, Reporter } from "../../compiler";
+import { Reporter, Transformer } from "../../addon-api";
+import { ErrorMessage, InfoMessage } from "../../compiler";
 import { getBaseName, isScriptFile } from "../../elements";
 import { createSass } from "../sass-compiler";
 import { CustomStyleTransformers } from "./CustomStyleTransformers";

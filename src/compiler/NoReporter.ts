@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import type { Reporter } from "./Reporter";
+import type { Reporter } from "../addon-api/Reporter";
 
 export class NoReporter implements Reporter {
     public reportDiagnostic(diagnostic: ts.Diagnostic): void {
