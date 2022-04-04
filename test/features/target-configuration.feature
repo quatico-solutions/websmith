@@ -4,6 +4,7 @@ Feature: Target configuration
     compiler config file, e.g., "websmith.config.json". For every named
     target active addons and target specific options can be provided.
 
+    @skip
     Scenario: Provide custom configuration input to your addon
         # // websmith.config.json
         # {
@@ -40,7 +41,7 @@ Feature: Target configuration
         And A valid config file named "websmit.config.json" exists in project folder
         And Config file "websmit.config.json" contains target "foobar"
         And Target project contains a module "target.ts" with a function is named "foobar"
-        When User calls command "websmith foobar"
+        When User calls command "websmith --targets foobar"
         Then Output file "target.js" should contain a function named "barfoo"
         And Every call to function "foobar" should be replaced with "barfoo"
 

@@ -5,16 +5,19 @@ Feature: Feature: Addon contribution
     receives a "CompilationContext". Addons can register generator, pre-emit
     transformer or emit transformer functions.
 
+    @skip
     Scenario: Run Compiler with all addons in default directory
         Given Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith"
         Then Addons "bar-addon, foo-addon" should be applied during compilation
 
+    @skip
     Scenario: Use CLI argument to select different addons directory
         Given Folder "./my-addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --addonsDir ./my-addons"
         Then Addons "bar-addon, foo-addon" should be applied during compilation
 
+    @skip
     Scenario: Provide a generator addon in default addons directory
         # // ./addons/doc-generator/addons.ts
         # import { CompilationContext } from "@websmith/addon-api";
@@ -29,8 +32,10 @@ Feature: Feature: Addon contribution
         Then Addons "doc-generator" should be applied during compilation
         And A YAML file is emitted containing names of all exported module members
 
+    @skip
     Scenario: Provide a pre-emit transformer addon in default addons directory
     # TODO: Provide a scenario for a pre-emit transformer example
 
+    @skip
     Scenario: Provide an emit transformer addon in default addons directory
 # TODO: Provide a scenario for a emit transformer example

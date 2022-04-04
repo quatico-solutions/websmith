@@ -3,6 +3,7 @@ Feature: Compiler configuration
     Developers can provide a config (with default name "websmith.config.json") to
     configure addons and targets to be used during compilation.
 
+    @skip
     Scenario: Use CLI argument to select a custom configuration file
         # // ./my-config.json
         # {
