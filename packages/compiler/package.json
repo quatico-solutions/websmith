@@ -1,0 +1,62 @@
+{
+    "name": "@websmith/compiler",
+    "version": "0.0.1",
+    "description": "A frontend for the TypeScript compiler",
+    "author": "Quatico Solutions AG",
+    "license": "SEE LICENSE IN LICENSE",
+    "publishConfig": {
+        "registry": "https://binaries.quatico.com/api/npm/quatico-private-npm/"
+    },
+    "main": "./bin/index.js",
+    "types": "./bin/index.d.ts",
+    "files": [
+        "LICENSE",
+        "README.md",
+        "lib"
+    ],
+    "scripts": {
+        "clean": "rimraf dist bin coverage",
+        "lint": "eslint \"{src,test}/**/*.ts\" --fix --color",
+        "build": "tsc",
+        "watch": "tsc --watch",
+        "test": "jest --verbose --coverage",
+        "test:update-snapshots": "yarn test -u",
+        "test:watch": "jest --watch",
+        "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\"",
+        "prepublishOnly": "yarn dist",
+        "publish-npm": "npm publish --access public",
+        "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags"
+    },
+    "devDependencies": {
+        "@types/jest": "^27.4.1",
+        "@types/lodash": "4.14.181",
+        "@types/node": "16",
+        "@typescript-eslint/eslint-plugin": "^5.17.0",
+        "@typescript-eslint/parser": "^5.17.0",
+        "concurrently": "7.1.0",
+        "cross-env": "7.0.3",
+        "eslint": "^8.12.0",
+        "eslint-config-prettier": "^8.5.0",
+        "eslint-import-resolver-alias": "^1.1.2",
+        "eslint-plugin-import": "^2.22.1",
+        "eslint-plugin-jest": "^26.1.3",
+        "eslint-plugin-prettier": "^4.0.0",
+        "eslint-plugin-testing-library": "^5.2.0",
+        "husky": "7.0.4",
+        "jest": "27.5.1",
+        "prettier": "^2.6.2",
+        "rimraf": "3.0.2",
+        "ts-jest": "27.1.4"
+    },
+    "dependencies": {
+        "@websmith/addon-api": "^0.0.1",
+        "create-hash": "1.2.0",
+        "lodash": "^4.17.20",
+        "path": "0.12.7",
+        "typescript": "4.5.4"
+    },
+    "engines": {
+        "node": ">=16.x",
+        "yarn": ">=1.20.x"
+    }
+}

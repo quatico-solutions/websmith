@@ -1,14 +1,14 @@
 {
     "compilerOptions": {
         /* Basic Options */
-        "target": "es2015" /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019' or 'ESNEXT'. */,
-        "module": "commonjs" /* Specify module code generation: 'none', 'c', 'amd', 'system', 'umd', 'es2015', or 'ESNext'. */,
+        "target": "ESNEXT" /* Specify ECMAScript target version: 'ES3' (default), 'ES5', 'ES2015', 'ES2016', 'ES2017', 'ES2018', 'ES2019' or 'ESNEXT'. */,
+        "module": "ESNEXT" /* Specify module code generation: 'none', 'c', 'amd', 'system', 'umd', 'es2015', or 'ESNext'. */,
         "lib": ["es2015", "es2016", "es2017", "esnext", "dom"] /* Specify library files to be included in the compilation. */,
-        "types": ["node", "jest", "raw-loader", "scss-parser", "lodash"],
+        "types": ["node", "jest"],
         "declaration": true /* Generates corresponding '.d.ts' file. */,
         "declarationMap": true /* Generates a sourcemap for each corresponding '.d.ts' file. */,
         // "outFile": "./",                       /* Concatenate and emit output to single file. */
-        "outDir": "./bin" /* Redirect output structure to the directory. */,
+        // "outDir": "./bin" /* Redirect output structure to the directory. */,
         // "rootDir": "./",                       /* Specify the root directory of input files. Use to control the output directory structure with --outDir. */
         // "composite": true,                     /* Enable project compilation */
         "incremental": true /* Enable incremental compilation */,
@@ -49,7 +49,7 @@
         // "baseUrl": "./",                       /* Base directory to resolve non-absolute module names. */
         // "paths": {},                           /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */
         // "rootDirs": [],                        /* List of root folders whose combined content represents the structure of the project at runtime. */
-        "typeRoots": ["./@types", "./node_modules/@types"] /* List of folders to include type definitions from. */,
+        // "typeRoots": ["packages/compiler/@types", "./node_modules/@types"] /* List of folders to include type definitions from. */,
         // "types": [],                           /* Type declaration files to be included in compilation. */
         "allowSyntheticDefaultImports": true /* Allow default imports from modules with no default export. This does not affect code emit, just typechecking. */,
         "esModuleInterop": true,
@@ -71,7 +71,5 @@
         "emitDecoratorMetadata": true /* Enables experimental support for emitting type metadata for decorators. */,
         "noEmitOnError": true,
         "skipLibCheck": true
-    },
-    "exclude": ["node_modules", "bin"],
-    "include": ["src", "@types"]
+    }
 }

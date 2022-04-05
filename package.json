@@ -1,32 +1,33 @@
 {
-    "name": "@qs/websmith",
+    "name": "websmith",
     "version": "0.0.1",
     "description": "A compiler for web blocks to custom elements",
     "author": "Quatico Solutions AG",
     "license": "SEE LICENSE IN LICENSE",
-    "publishConfig": {
-        "registry": "https://binaries.quatico.com/api/npm/quatico-private-npm/"
-    },
-    "main": "./bin/index.js",
-    "types": "./bin/index.d.ts",
-    "bin": {
-        "websmith": "./bin/cli/bin.js"
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "https://apps.quatico.com/repo/scm/webbloqs/qs-websmith.git"
     },
     "files": [
         "LICENSE",
-        "README.md",
-        "bin"
+        "README.md"
     ],
+    "workspaces": {
+        "packages": [
+            "packages/*"
+        ]
+    },
     "scripts": {
-        "clean": "rimraf dist bin coverage",
-        "lint": "eslint \"{src,test}/**/*.ts\" --fix --color",
-        "build": "tsc",
-        "watch": "tsc --watch",
-        "test": "jest --verbose --coverage",
-        "test:e2e": "jest --config jest.e2e.config.js --color --verbose",
-        "test:update-snapshots": "yarn test -u",
-        "test:watch": "jest --watch",
-        "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\"",
+        "clean": "yarn workspaces foreach run clean",
+        "lint": "yarn workspaces foreach run lint",
+        "build": "yarn workspaces foreach run build",
+        "watch": "yarn workspaces foreach run watch",
+        "test": "yarn workspaces foreach run test",
+        "test:e2e": "yarn workspaces foreach run test:e2e",
+        "test:update-snapshots": "yarn workspaces foreach run test:update-snapshots",
+        "test:watch": "yarn workspaces foreach run test:watch",
+        "dist": "yarn clean && yarn lint && yarn test && cross-env-shell NODE_ENV=production \"yarn build\" && yarn test:e2e",
         "license:check": "license-check-and-add check -f license-config.json",
         "license:add": "license-check-and-add add -f license-config.json",
         "license:remove": "license-check-and-add remove -f license-config.json",
