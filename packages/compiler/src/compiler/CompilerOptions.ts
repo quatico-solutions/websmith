@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { Reporter } from "../../../api/src";
+import { Reporter } from "@websmith/addon-api";
 import { AddonRegistry } from "./addons";
 import { CompilationConfig } from "./config";
 

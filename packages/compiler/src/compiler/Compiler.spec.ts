@@ -19,7 +19,6 @@ import { createBrowserSystem, createSystem } from "../environment";
 import { AddonRegistry } from "./addons";
 import { Compiler } from "./Compiler";
 import { CompilerOptions } from "./CompilerOptions";
-import { Project } from "./Parser";
 
 const testSystem = createBrowserSystem({
     "tsconfig.json": JSON.stringify({
@@ -65,8 +64,6 @@ const testSystem = createBrowserSystem({
 });
 
 class CompilerTestClass extends Compiler {
-    public project?: Project;
-
     constructor(options: CompilerOptions) {
         super(options, testSystem);
     }

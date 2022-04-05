@@ -60,6 +60,36 @@ describe("resolvePath", () => {
     it("returns path with relative file path", () => {
         expect(resolvePath("foo/bar.js")).toBe("/foo/bar.js");
     });
+
+    it("returns path w/ dir path", () => {
+        const testObj = createBrowserSystem();
+
+        expect(testObj.resolvePath("/expected")).toBe("/expected");
+    });
+
+    it("returns path w/ file path", () => {
+        const testObj = createBrowserSystem();
+
+        expect(testObj.resolvePath("/expected/one.js")).toBe("/expected/one.js");
+    });
+
+    it("returns absolute path w/ relative path", () => {
+        const testObj = createBrowserSystem();
+
+        expect(testObj.resolvePath("./expected/one.js")).toBe("/expected/one.js");
+    });
+
+    it("returns absolute path w/ relative parent path", () => {
+        const testObj = createBrowserSystem();
+
+        expect(testObj.resolvePath("../one.js")).toBe("/one.js");
+    });
+
+    it("returns root path w/ empty string", () => {
+        const testObj = createBrowserSystem();
+
+        expect(testObj.resolvePath("")).toBe("/");
+    });
 });
 
 describe("resolveFiles", () => {
@@ -172,94 +202,24 @@ describe("directoryExists", () => {
         expect(testObj.directoryExists("addons.js")).toBe(true);
     });
 
-    it("should return true w/ existing directory name, extension, trailing slash ", () => {
+    it("should return true w/ existing directory name, extension, trailing slash", () => {
         testObj.createDirectory("addons.js");
 
         expect(testObj.directoryExists("addons.js/")).toBe(true);
     });
 
-    it("should return false w/ existing relative file path ", () => {
+    it("should return false w/ existing relative file path", () => {
         testObj.writeFile("addons/file.js", "export const foo = () => {};");
 
         expect(testObj.directoryExists("addons/file.js")).toBe(false);
     });
 
-    it("should return true w/ existing partial file path ", () => {
+    it("should return true w/ existing partial file path", () => {
         testObj.writeFile("addons.js/file.js", "export const foo = () => {};");
 
         expect(testObj.directoryExists("/addons.js")).toBe(true);
     });
-});
 
-describe("createDirectory", () => {
-    let testObj: ts.System;
-    beforeEach(() => {
-        testObj = createBrowserSystem({});
-    });
-
-    it("does nothing, but directed can be read", () => {
-        testObj.createDirectory("expected");
-
-        expect(testObj.readDirectory("expected")).toEqual([]);
-    });
-
-    it("does nothing, but new directory exists", () => {
-        testObj.createDirectory("/expected/");
-
-        expect(testObj.directoryExists("/expected")).toBe(true);
-    });
-
-    it("does nothing, but new file exists", () => {
-        testObj.createDirectory("/expected/");
-        testObj.writeFile("/expected/foobar.ts", "whatever");
-
-        expect(testObj.fileExists("/expected/foobar.ts")).toBe(true);
-    });
-});
-
-describe("write", () => {
-    const orgWarnLog = console.warn;
-    let targetLog: any;
-
-    beforeEach(() => {
-        targetLog = jest.fn();
-        console.warn = targetLog;
-    });
-
-    afterAll(() => {
-        console.warn = orgWarnLog;
-    });
-
-    it("yields error on console log", () => {
-        const testObj = createBrowserSystem();
-
-        testObj.write("whatever");
-
-        expect(targetLog).toHaveBeenCalledWith('write() not supported. Did not write: "whatever".');
-    });
-});
-
-describe("exit", () => {
-    it("returns w/o any exitCode", () => {
-        const testObj = createBrowserSystem();
-
-        expect(() => testObj.exit()).not.toThrow();
-    });
-
-    it("returns with exitCode '0'", () => {
-        const testObj = createBrowserSystem();
-
-        expect(() => testObj.exit(0)).not.toThrow();
-    });
-
-    it("throws error with exitCode greater '0'", () => {
-        const testObj = createBrowserSystem();
-
-        expect(() => testObj.exit(1)).toThrow('websmith exited with code "1".');
-    });
-});
-
-describe("directoryExists", () => {
     it("returns false with empty path", () => {
         const testObj = createBrowserSystem();
 
@@ -338,6 +298,74 @@ describe("directoryExists", () => {
         });
 
         expect(testObj.directoryExists("../expected/")).toBe(true);
+    });
+});
+
+describe("createDirectory", () => {
+    let testObj: ts.System;
+    beforeEach(() => {
+        testObj = createBrowserSystem({});
+    });
+
+    it("does nothing, but directed can be read", () => {
+        testObj.createDirectory("expected");
+
+        expect(testObj.readDirectory("expected")).toEqual([]);
+    });
+
+    it("does nothing, but new directory exists", () => {
+        testObj.createDirectory("/expected/");
+
+        expect(testObj.directoryExists("/expected")).toBe(true);
+    });
+
+    it("does nothing, but new file exists", () => {
+        testObj.createDirectory("/expected/");
+        testObj.writeFile("/expected/foobar.ts", "whatever");
+
+        expect(testObj.fileExists("/expected/foobar.ts")).toBe(true);
+    });
+});
+
+describe("write", () => {
+    const orgWarnLog = console.warn;
+    let targetLog: any;
+
+    beforeEach(() => {
+        targetLog = jest.fn();
+        console.warn = targetLog;
+    });
+
+    afterAll(() => {
+        console.warn = orgWarnLog;
+    });
+
+    it("yields error on console log", () => {
+        const testObj = createBrowserSystem();
+
+        testObj.write("whatever");
+
+        expect(targetLog).toHaveBeenCalledWith('write() not supported. Did not write: "whatever".');
+    });
+});
+
+describe("exit", () => {
+    it("returns w/o any exitCode", () => {
+        const testObj = createBrowserSystem();
+
+        expect(() => testObj.exit()).not.toThrow();
+    });
+
+    it("returns with exitCode '0'", () => {
+        const testObj = createBrowserSystem();
+
+        expect(() => testObj.exit(0)).not.toThrow();
+    });
+
+    it("throws error with exitCode greater '0'", () => {
+        const testObj = createBrowserSystem();
+
+        expect(() => testObj.exit(1)).toThrow('websmith exited with code "1".');
     });
 });
 
@@ -659,38 +687,6 @@ describe("writeFile", () => {
 
         expect(testObj.fileExists("")).toBe(false);
         expect(testObj.readFile("")).toBeUndefined();
-    });
-});
-
-describe("resolvePath", () => {
-    it("returns path w/ dir path", () => {
-        const testObj = createBrowserSystem();
-
-        expect(testObj.resolvePath("/expected")).toBe("/expected");
-    });
-
-    it("returns path w/ file path", () => {
-        const testObj = createBrowserSystem();
-
-        expect(testObj.resolvePath("/expected/one.js")).toBe("/expected/one.js");
-    });
-
-    it("returns absolute path w/ relative path", () => {
-        const testObj = createBrowserSystem();
-
-        expect(testObj.resolvePath("./expected/one.js")).toBe("/expected/one.js");
-    });
-
-    it("returns absolute path w/ relative parent path", () => {
-        const testObj = createBrowserSystem();
-
-        expect(testObj.resolvePath("../one.js")).toBe("/one.js");
-    });
-
-    it("returns root path w/ empty string", () => {
-        const testObj = createBrowserSystem();
-
-        expect(testObj.resolvePath("")).toBe("/");
     });
 });
 

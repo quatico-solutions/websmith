@@ -1,4 +1,4 @@
-import { AddonContext } from "../../../api/src";
+import { AddonContext } from "@websmith/addon-api";
 import { createFoobarReplacerTransformer } from "./foobar-replacer";
 
 export const activate = (ctx: AddonContext): void => {

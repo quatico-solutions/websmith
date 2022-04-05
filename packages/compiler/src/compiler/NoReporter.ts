@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import type { Reporter } from "../../../api/src";
+import type { Reporter } from "@websmith/addon-api";
 
 export class NoReporter implements Reporter {
     public reportDiagnostic(diagnostic: ts.Diagnostic): void {

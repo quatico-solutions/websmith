@@ -1,3 +1,5 @@
+/* eslint-disable jest/no-jasmine-globals */
+/* eslint-disable no-console */
 import { Command } from "commander";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { StepDefinitions } from "jest-cucumber";
@@ -133,7 +135,7 @@ const copyFileSyncFn = (source: string, target: string) => {
 const copyFolderRecursiveSync = (source: string, target: string) => {
     let files = [];
     // Check if folder needs to be created or integrated
-    let targetFolder = join(target, basename(source));
+    const targetFolder = join(target, basename(source));
     if (!existsSync(targetFolder)) {
         mkdirSync(targetFolder);
     }

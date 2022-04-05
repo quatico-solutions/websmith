@@ -15,7 +15,7 @@
 import merge from "lodash/merge";
 import path from "path";
 import ts from "typescript";
-import { Reporter } from "../../../api/src";
+import { Reporter } from "@websmith/addon-api";
 import { DefaultReporter } from "../compiler";
 import { createVersionedFile, VersionedFile } from "../environment";
 

@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { Generator } from "../../api/src";
+import { Generator } from "@websmith/addon-api";
 
 const GeneratorMock: Generator = jest.fn();
 

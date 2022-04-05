@@ -1,6 +1,6 @@
 import { CompilationContext } from "./CompilationContext";
 import { CompilationHost } from "./CompilationHost";
-import type { TargetConfig } from "../../../../api/src";
+import type { TargetConfig } from "@websmith/addon-api";
 import { createSharedHost } from "./shared-host";
 
 export type { TargetConfig };

@@ -15,7 +15,7 @@
 /* eslint-disable jest/no-mocks-import */
 import ts from "typescript";
 import { ReporterMock } from "../../../test";
-import { WarnMessage } from "../../../../api/src";
+import { WarnMessage } from "@websmith/addon-api";
 import { createBrowserSystem } from "../../environment";
 import { AddonRegistry } from "./AddonRegistry";
 
@@ -33,7 +33,7 @@ describe("Ctor", () => {
 
         new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(reporter.reportDiagnostic).toBeCalledWith(new WarnMessage('Addons directory "./addons" does not exist.'));
+        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "./addons" does not exist.'));
     });
 
     it("does not report warning w/ empty addons directory", () => {
@@ -42,7 +42,7 @@ describe("Ctor", () => {
 
         new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(reporter.reportDiagnostic).not.toBeCalled();
+        expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
     });
 
     it("yields addons w/o addons property", () => {
@@ -162,7 +162,7 @@ describe("getAddons", () => {
             system,
         }).getAddons();
 
-        expect(reporter.reportDiagnostic).toBeCalledWith(new WarnMessage('Missing addons: "does-not-exist".'));
+        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "does-not-exist".'));
     });
 
     it("reports warning w/ target config and non-existing addons name", () => {
@@ -176,6 +176,6 @@ describe("getAddons", () => {
             system,
         }).getAddons("target");
 
-        expect(reporter.reportDiagnostic).toBeCalledWith(new WarnMessage('Missing addons for target "target": "does-not-exist".'));
+        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "target": "does-not-exist".'));
     });
 });

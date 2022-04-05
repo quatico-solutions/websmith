@@ -14,7 +14,7 @@
  */
 /* eslint-disable no-console */
 
-import { WarnMessage } from "../../api/src";
+import { WarnMessage } from "@websmith/addon-api";
 import { Compiler, createBrowserSystem, NoReporter } from "@websmith/compiler";
 import { Command } from "commander";
 import ts from "typescript";

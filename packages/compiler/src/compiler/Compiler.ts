@@ -15,7 +15,7 @@
 
 import { dirname, extname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
-import { ErrorMessage, Reporter } from "../../../api/src";
+import { ErrorMessage, Reporter } from "@websmith/addon-api";
 import { createSystem, recursiveFindByFilter } from "../environment";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost, TargetConfig } from "./compilation";
@@ -121,7 +121,7 @@ export class Compiler {
                 if (fragment?.files.length > 0) {
                     result.emittedFiles = concat(
                         result.emittedFiles,
-                        fragment.files.map(it => it.name)
+                        fragment.files.map(cur => cur.name)
                     );
                 } else {
                     // FIXME: Report error for source files that cannot be emitted
@@ -129,7 +129,7 @@ export class Compiler {
             }
 
             const files = this.getRootFiles();
-            ctx.getProjectPostEmitters().forEach(it => it(files));
+            ctx.getProjectPostEmitters().forEach(cur => cur(files));
         });
 
         // TODO: Add style processors here to generate docs
@@ -172,9 +172,9 @@ export class Compiler {
             }
             let content = this.system.readFile(fileName) ?? "";
 
-            ctx.getGenerators().forEach(it => it(fileName, content));
+            ctx.getGenerators().forEach(cur => cur(fileName, content));
 
-            ctx.getPreEmitTransformers().forEach(it => (content = it(fileName, content)));
+            ctx.getPreEmitTransformers().forEach(cur => (content = cur(fileName, content)));
             cache.updateSource(filePath, content, target);
             this.compilationHost.setLanguageHost(ctx.getLanguageHost());
 

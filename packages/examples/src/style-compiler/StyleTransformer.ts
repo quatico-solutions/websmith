@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { Reporter } from "../../../api/src";
+import { Reporter } from "@websmith/addon-api";
 import { StyleVisitor } from "./parse-scss";
 
 // FIXME: StyleTransformer fix API

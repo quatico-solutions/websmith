@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { Reporter, WarnMessage } from "../../../../api/src";
+import { Reporter, WarnMessage } from "@websmith/addon-api";
 import { CompilationConfig } from "./CompilationConfig";
 
 export const resolveCompilationConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilationConfig | undefined => {
