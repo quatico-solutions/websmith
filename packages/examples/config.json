@@ -4,13 +4,13 @@
             "writeFile": true,
             "addons": ["client-function-transform", "export-collector", "foobar-replace-emitter"],
             "config": { "functionsDir": "./src", "debug": true },
-            "options": { "outDir": "./lib/client" }
+            "options": { "outDir": "./lib/client", "noEmit": false }
         },
         "server": {
             "writeFile": true,
             "addons": ["service-function-generate"],
-            "config": { "functionsDir": "./src", "debug": true},
-            "options": { "outDir": "./lib/server" } 
+            "config": { "functionsDir": "./src", "debug": true },
+            "options": { "outDir": "./lib/server", "noEmit": false }
         }
     }
 }

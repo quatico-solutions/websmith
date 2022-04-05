@@ -57,7 +57,7 @@ export class CompilationContext implements AddonContext<any> {
         this.languageHost = this.createLanguageServiceHost({
             system,
             options: project,
-            target
+            target,
         });
         this.cache = new FileCache(system);
         this.reporter = options.reporter;

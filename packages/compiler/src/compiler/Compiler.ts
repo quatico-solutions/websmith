@@ -98,16 +98,16 @@ export class Compiler {
 
         this.options.targets.forEach((target: string) => {
             const { buildDir, config, project, tsconfig } = this.options;
-            const { writeFile, config: targetConfig } = getTargetConfig(target, config);
+            const { writeFile, options, config: targetConfig } = getTargetConfig(target, config);
 
             process.chdir(dirname(config?.configFilePath ?? "."));
             const ctx = new CompilationContext({
                 buildDir,
-                project,
+                project: {...project, ...options},
                 system: this.system,
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 program: this.program!,
-                tsconfig,
+                tsconfig: {...tsconfig, options: {...project, ...options}},
                 rootFiles: this.getRootFiles(),
                 reporter: this.reporter,
                 config: targetConfig,

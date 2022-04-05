@@ -12,8 +12,12 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+
+import ts from "typescript";
+
 export type TargetConfig = {
     addons?: string[];
     writeFile?: boolean;
     config?: unknown;
+    options?: ts.CompilerOptions;
 };
