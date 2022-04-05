@@ -52,6 +52,10 @@ export class FileCache {
         return result;
     }
 
+    public createCacheEntry(fileName: string, target = "") {
+        this.data[getCachedName(fileName, target)] = { version: 0, content: "", files: [], snapshot: ts.ScriptSnapshot.fromString("") };
+    }
+
     public updateOutput(fileName: string, outputFiles: ts.OutputFile[], target = "") {
         const cachedName = getCachedName(fileName, target);
         const cacheFile = this.data[cachedName];

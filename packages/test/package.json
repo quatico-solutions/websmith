@@ -23,16 +23,16 @@
         "@websmith/cli": "^0.0.1",
         "concurrently": "7.1.0",
         "cross-env": "7.0.3",
+        "eslint": "^8.12.0",
         "eslint-config-prettier": "^8.5.0",
         "eslint-import-resolver-alias": "^1.1.2",
         "eslint-plugin-import": "^2.22.1",
         "eslint-plugin-jest": "^26.1.3",
         "eslint-plugin-prettier": "^4.0.0",
         "eslint-plugin-testing-library": "^5.2.0",
-        "eslint": "^8.12.0",
         "husky": "7.0.4",
-        "jest-cucumber": "3.0.1",
         "jest": "27.5.1",
+        "jest-cucumber": "3.0.1",
         "memfs": "^3.4.1",
         "path": "0.12.7",
         "prettier": "^2.6.2",
@@ -44,5 +44,8 @@
     "engines": {
         "node": ">=16.x",
         "yarn": ">=1.20.x"
+    },
+    "dependencies": {
+        "commander": "9.1.0"
     }
 }

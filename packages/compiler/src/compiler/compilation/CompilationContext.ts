@@ -27,6 +27,7 @@ export type CompilationContextOptions = {
     program: ts.Program;
     tsconfig: ts.ParsedCommandLine;
     config?: unknown;
+    target: string;
 };
 
 export class CompilationContext implements AddonContext<any> {
@@ -46,7 +47,7 @@ export class CompilationContext implements AddonContext<any> {
     private config: any;
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, project, rootFiles, system, program, tsconfig, config } = options;
+        const { buildDir, project, rootFiles, system, program, tsconfig, config, target } = options;
         this.buildDir = buildDir;
         this.rootFiles = rootFiles;
         this.tsconfig = tsconfig;
@@ -56,6 +57,7 @@ export class CompilationContext implements AddonContext<any> {
         this.languageHost = this.createLanguageServiceHost({
             system,
             options: project,
+            target
         });
         this.cache = new FileCache(system);
         this.reporter = options.reporter;
@@ -131,10 +133,18 @@ export class CompilationContext implements AddonContext<any> {
         return this.projectPostEmitters;
     }
 
-    private createLanguageServiceHost({ system, options }: { system: ts.System; options: ts.CompilerOptions }): ts.LanguageServiceHost {
+    private createLanguageServiceHost({
+        system,
+        options,
+        target,
+    }: {
+        system: ts.System;
+        options: ts.CompilerOptions;
+        target: string;
+    }): ts.LanguageServiceHost {
         return {
             ...createSharedHost(system),
-            getScriptVersion: (fileName: string) => this.cache.getVersion(fileName).toString(),
+            getScriptVersion: (fileName: string) => `${fileName}:${this.cache.getVersion(fileName).toString()}:${target}`,
             getScriptSnapshot: (fileName: string) => {
                 if (fileName.endsWith(".d.ts")) {
                     const content = system.readFile(fileName);
@@ -156,7 +166,7 @@ export class CompilationContext implements AddonContext<any> {
                     return undefined;
                 }
 
-                this.cache.updateSource(fileName, content);
+                this.cache.createCacheEntry(fileName);
                 return ts.ScriptSnapshot.fromString(content);
             },
             getScriptFileNames: (): string[] => this.rootFiles,

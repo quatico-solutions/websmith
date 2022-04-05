@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import path, { basename, extname } from "path";
+import path, { basename, extname, join } from "path";
 import ts from "typescript";
 import { Reporter, WarnMessage } from "@websmith/addon-api";
 import { CompilationConfig } from "../config";
@@ -95,7 +95,10 @@ const findAddons = (addonsDir: string, reporter: Reporter, system: ts.System): C
             .filter(ad => basename(ad, extname(ad)).toLocaleLowerCase() === "addon")
             .forEach(it => {
                 // eslint-disable-next-line @typescript-eslint/no-var-requires
-                const activator = require(it.replace(extname(it), "")).activate;
+                const activator = require(join(
+                    system.getCurrentDirectory(),
+                    extname(it).match(/jsx?/gi) ? it.replace(extname(it), "") : it
+                )).activate;
                 const name = it
                     .replace(path.sep + basename(it), "")
                     .split(path.sep)

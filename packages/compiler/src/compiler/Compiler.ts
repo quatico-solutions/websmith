@@ -100,6 +100,7 @@ export class Compiler {
             const { buildDir, config, project, tsconfig } = this.options;
             const { writeFile, config: targetConfig } = getTargetConfig(target, config);
 
+            process.chdir(dirname(config?.configFilePath ?? "."));
             const ctx = new CompilationContext({
                 buildDir,
                 project,
@@ -110,6 +111,7 @@ export class Compiler {
                 rootFiles: this.getRootFiles(),
                 reporter: this.reporter,
                 config: targetConfig,
+                target
             });
             this.options.addons.getAddons(target).forEach(addon => {
                 addon.activate(ctx);
@@ -167,15 +169,15 @@ export class Compiler {
         const cache = ctx?.getCache();
 
         if (ctx && cache) {
-            if (!cache.hasChanged(filePath, target)) {
-                return cache.getCachedFile(filePath, target);
+            if (!cache.hasChanged(filePath)) {
+                return cache.getCachedFile(filePath);
             }
             let content = this.system.readFile(fileName) ?? "";
 
             ctx.getGenerators().forEach(cur => cur(fileName, content));
 
-            ctx.getPreEmitTransformers().forEach(cur => (content = cur(fileName, content)));
-            cache.updateSource(filePath, content, target);
+            ctx.getPreEmitTransformers().forEach(it => (content = it(fileName, content)));
+            cache.updateSource(filePath, content);
             this.compilationHost.setLanguageHost(ctx.getLanguageHost());
 
             const output = this.langService.getEmitOutput(fileName);

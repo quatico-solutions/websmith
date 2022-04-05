@@ -48,6 +48,7 @@ beforeEach(() => {
         system: testSystem,
         program: testProgram,
         tsconfig: { options: {}, fileNames: [], errors: [] },
+        target: "test"
     });
 });
 
