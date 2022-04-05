@@ -14,7 +14,22 @@
  */
 // TODO: Add support for style processors via addon
 import { createStyleCompiler, StyleCompilerOptions } from "./compile-styles";
-import { parseStyles, StyleVisitor, visitNode, writeNode, Node } from "./parse-scss";
+import { getBaseName, isElementDeclaration, isProjectFileName, isScriptFile, isScriptFileName, isStyleFile, isStyleFileName } from "./elements";
+import { Node, parseStyles, StyleVisitor, visitNode, writeNode } from "./parse-scss";
 
-export { StyleCompilerOptions, createStyleCompiler, StyleVisitor, parseStyles, visitNode, writeNode };
+export {
+    createStyleCompiler,
+    getBaseName,
+    isElementDeclaration,
+    isProjectFileName,
+    isScriptFile,
+    isScriptFileName,
+    isStyleFile,
+    isStyleFileName,
+    parseStyles,
+    StyleCompilerOptions,
+    StyleVisitor,
+    visitNode,
+    writeNode,
+};
 export type { Node };

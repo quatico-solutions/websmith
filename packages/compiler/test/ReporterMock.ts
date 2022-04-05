@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { DefaultReporter } from "../src/compiler";
+import { DefaultReporter } from "@websmith/compiler";
 
 export class ReporterMock extends DefaultReporter {
     public message?: string = "";

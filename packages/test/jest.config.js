@@ -21,12 +21,10 @@ module.exports = {
             tsconfig: "./tsconfig.test.json",
         },
     },
+    moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
-        "@websmith/addon-api": "<rootDir>/../addon-api/src",
-        "@websmith/compiler": "<rootDir>/../compiler/src",
         "@websmith/cli": "<rootDir>/../cli/src",
     },
-    moduleFileExtensions: ["ts", "js", "json", "node"],
     roots: ["<rootDir>/src/"],
     testEnvironment: "node",
     testMatch: ["**/jest-cucumber-setup.ts", "test/.*test\\.(jsx?|tsx?)$"],

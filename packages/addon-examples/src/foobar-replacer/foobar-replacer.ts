@@ -1,6 +1,6 @@
 import ts from "typescript";
-import type { AddonContext } from "../../../addon-api/src";
-import { ErrorMessage } from "../../../../src/compiler";
+import type { AddonContext } from "@websmith/addon-api";
+import { ErrorMessage } from "@websmith/addon-api";
 
 export const createFoobarReplacerTransformer = (fileName: string, content: string, ctx: AddonContext): string => {
     const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);

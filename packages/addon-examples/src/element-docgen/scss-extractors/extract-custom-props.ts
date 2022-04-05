@@ -12,9 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { ErrorMessage, Reporter } from "@websmith/addon-api";
 import ts from "typescript";
-import { ErrorMessage } from "../../../../../src/compiler";
-import { Reporter } from "../../../../addon-api/src";
 import { parseCustomPropertyNames } from "../scss-parsers/parse-custom-prop-names";
 
 const IGNORED_STATES: string[] = ["override", "type", "state", "default", "value"];

@@ -12,9 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { createBrowserSystem, NoReporter } from "@websmith/compiler";
 import ts from "typescript";
-import { NoReporter } from "../compiler";
-import { createBrowserSystem } from "../environment";
 import { createOptions } from "./options";
 
 let testSystem: ts.System;

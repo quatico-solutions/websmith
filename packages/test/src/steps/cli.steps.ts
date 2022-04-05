@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { StepDefinitions } from "jest-cucumber";
 import { basename, join } from "path";
-import { addCompileCommand } from "../../src/cli";
+import { addCompileCommand } from "@websmith/cli";
 
 console.log = jest.fn();
 

@@ -1,8 +1,8 @@
+import type { AddonContext } from "@websmith/addon-api";
+import { ErrorMessage } from "@websmith/addon-api";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import ts from "typescript";
-import type { AddonContext } from "../../../src/addon-api";
-import { ErrorMessage } from "../../../src/compiler";
 
 export const createExportCollector = (fileName: string, content: string, ctx: AddonContext): void => {
     const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);

@@ -12,7 +12,6 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { aggregateMessages, ErrorMessage, InfoMessage, messageToString, WarnMessage } from "@websmith/addon-api";
 import { AddonRegistry } from "./addons";
 import type { CompilationContext } from "./compilation";
 import { Compiler } from "./Compiler";
@@ -21,7 +20,6 @@ import { CompilationConfig, resolveCompilationConfig, resolveProjectConfig, reso
 import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
 import { NoReporter } from "./NoReporter";
-import { createParser, Parser, ParserOptions, Project } from "./Parser";
 // TODO: Add support for style processors via addon
 // import {
 //     createStyleCompiler,
@@ -34,24 +32,15 @@ import { createParser, Parser, ParserOptions, Project } from "./Parser";
 
 export {
     AddonRegistry,
-    aggregateMessages,
     CompilationConfig,
     Compiler,
-    createParser,
     DefaultReporter,
-    ErrorMessage,
-    InfoMessage,
-    messageToString,
     NoReporter,
-    Parser,
-    ParserOptions,
-    Project,
     resolveCompilationConfig,
     resolveProjectConfig,
     resolveTargets,
     tsDefaults,
     tsLibDefaults,
-    WarnMessage,
     // TODO: Add support for style processors via addon
     // createStyleCompiler,
     // parseStyles,

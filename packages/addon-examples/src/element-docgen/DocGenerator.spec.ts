@@ -13,10 +13,9 @@
  * with Quatico.
  */
 /* eslint-disable jest/no-mocks-import */
+import { createBrowserSystem, createCompileHost, createVersionedFiles, readFiles, tsDefaults } from "@websmith/compiler";
 import ts from "typescript";
-import { ReporterMock } from "../../../test";
-import { tsDefaults } from "../../compiler";
-import { createBrowserSystem, createCompileHost, createVersionedFiles, readFiles } from "../../environment";
+import { ReporterMock } from "../../../compiler/test";
 import { DocGenerator } from "./DocGenerator";
 
 const testSystem = createBrowserSystem({

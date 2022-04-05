@@ -12,9 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { ErrorMessage, Reporter } from "@websmith/addon-api";
 import sass from "sass";
-import { Reporter } from "../../../packages/addon-api/src";
-import { ErrorMessage } from "../../compiler";
 import { defaultOptions } from "./defaults";
 
 export const CONFIG_FILE_NAME_SASS = "sass.config.js";

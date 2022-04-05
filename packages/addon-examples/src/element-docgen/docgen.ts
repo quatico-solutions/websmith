@@ -12,9 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { Reporter, WarnMessage } from "@websmith/addon-api";
 import ts from "typescript";
-import { Reporter } from "../../../addon-api/src";
-import { WarnMessage } from "../../../../src/compiler";
 import { CssProperty, Mixin, Tag } from "./model";
 import { extractCssProperties } from "./scss-extractors/extract-custom-props";
 

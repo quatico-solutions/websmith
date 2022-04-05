@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { createBrowserSystem } from "../environment";
+import { createBrowserSystem } from "@websmith/compiler";
 import { findConfigFile, findSassConfig } from "./find-config";
 
 describe("findConfigFile", () => {

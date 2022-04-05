@@ -14,8 +14,8 @@
  */
 // FIXME: This file can be removed?
 import ts from "typescript";
-import { isProjectFileName, isScriptFileName, isStyleFileName, VALID_STYLE_FILES } from "../elements";
-import { createCompileHost } from "../environment";
+import { isProjectFileName, isScriptFileName, isStyleFileName, VALID_STYLE_FILES } from "./elements";
+import { createCompileHost } from "@websmith/compiler";
 
 export interface ParserOptions {
     compilerOptions: ts.CompilerOptions;

@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { createBrowserSystem, getVersionedFile } from "../../environment";
+import { createBrowserSystem, getVersionedFile } from "@websmith/compiler";
 import { findStylesMethod, getFirstClassDeclaration, getOrCreateStylesMethod, inlineStyles, isStyleImport } from "./inline-styles";
 
 const testSystem = createBrowserSystem({

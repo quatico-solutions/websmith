@@ -12,11 +12,10 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { ErrorMessage, InfoMessage, Reporter, Transformer } from "@websmith/addon-api";
 import sass from "sass";
 import ts from "typescript";
-import { Reporter, Transformer } from "../../../packages/addon-api/src";
-import { ErrorMessage, InfoMessage } from "../../compiler";
-import { getBaseName, isScriptFile } from "../../elements";
+import { getBaseName, isScriptFile } from "../style-compiler";
 import { createSass } from "../sass-compiler";
 import { CustomStyleTransformers } from "./CustomStyleTransformers";
 import { inlineStyles, isStyleImport } from "./inline-styles";

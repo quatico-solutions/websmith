@@ -1,4 +1,4 @@
-import { AddonContext } from "../../../src/addon-api";
+import { AddonContext } from "@websmith/addon-api";
 import { createExportCollector } from "./export-collector";
 
 export const activate = (ctx: AddonContext): void => {

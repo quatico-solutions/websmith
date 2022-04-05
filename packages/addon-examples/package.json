@@ -1,44 +1,51 @@
 {
-    "name": "@websmith/test",
+    "name": "@websmith/addon-examples",
     "version": "0.0.1",
-    "description": "Am end-to-end test package for the websmith compiler",
+    "description": "A example library for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "SEE LICENSE IN LICENSE",
     "private": true,
+    "main": "./lib/index.js",
+    "types": "./lib/index.d.ts",
+    "files": [
+        "LICENSE",
+        "README.md",
+        "lib"
+    ],
     "scripts": {
         "clean": "rimraf dist bin coverage",
         "lint": "eslint \"{src,test}/**/*.ts\" --fix --color",
         "build": "tsc",
         "watch": "tsc --watch",
-        "test:e2e": "jest --color --verbose",
+        "test": "jest --verbose --coverage",
         "test:update-snapshots": "yarn test -u",
-        "test:watch": "jest --watch"
+        "test:watch": "jest --watch",
+        "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\""
     },
     "devDependencies": {
-        "@types/cucumber": "7.0.0",
         "@types/jest": "^27.4.1",
         "@types/node": "16",
         "@typescript-eslint/eslint-plugin": "^5.17.0",
         "@typescript-eslint/parser": "^5.17.0",
-        "@websmith/cli": "^0.0.1",
+        "@websmith/compiler": "^0.0.1",
         "concurrently": "7.1.0",
         "cross-env": "7.0.3",
+        "eslint": "^8.12.0",
         "eslint-config-prettier": "^8.5.0",
         "eslint-import-resolver-alias": "^1.1.2",
         "eslint-plugin-import": "^2.22.1",
         "eslint-plugin-jest": "^26.1.3",
         "eslint-plugin-prettier": "^4.0.0",
         "eslint-plugin-testing-library": "^5.2.0",
-        "eslint": "^8.12.0",
         "husky": "7.0.4",
-        "jest-cucumber": "3.0.1",
         "jest": "27.5.1",
-        "memfs": "^3.4.1",
-        "path": "0.12.7",
         "prettier": "^2.6.2",
         "rimraf": "3.0.2",
-        "ts-dedent": "^2.0.0",
-        "ts-jest": "27.1.4",
+        "ts-jest": "27.1.4"
+    },
+    "dependencies": {
+        "@websmith/addon-api": "^0.0.1",
+        "commander": "^9.1.0",
         "typescript": "4.5.4"
     },
     "engines": {

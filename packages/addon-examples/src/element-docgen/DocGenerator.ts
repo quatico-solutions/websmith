@@ -12,6 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { AddonContext, ErrorMessage, Reporter } from "@websmith/addon-api";
 import ts from "typescript";
 import {
     AnalyzerOptions,
@@ -21,9 +22,7 @@ import {
     TransformerConfig,
     VisibilityKind,
 } from "web-component-analyzer";
-import { AddonContext, Reporter } from "../../../addon-api/src";
-import { ErrorMessage } from "../../../../src/compiler";
-import { isScriptFile } from "../../../../src/elements";
+import { isScriptFile } from "../style-compiler";
 import { defaultOptions, DocDefaults } from "./defaults";
 import { addCustomPropNames, addMixins, transformTag } from "./docgen";
 import { Element } from "./model";

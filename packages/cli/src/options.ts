@@ -1,5 +1,5 @@
 import ts from "typescript";
-import { Reporter } from "../../addon-api/src";
+import { Reporter } from "@websmith/addon-api";
 import {
     AddonRegistry,
     CompilerOptions,

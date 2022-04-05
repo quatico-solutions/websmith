@@ -13,8 +13,9 @@
  * with Quatico.
  */
 /* eslint-disable no-console */
+import { WarnMessage } from "@websmith/addon-api";
+import { CompilationConfig, Compiler, DefaultReporter } from "@websmith/compiler";
 import { Command, program } from "commander";
-import { CompilationConfig, Compiler, DefaultReporter, WarnMessage } from "@websmith/compiler";
 import { compileSystem } from "./compiler-system";
 import { CompilerArguments } from "./CompilerArguments";
 import { createOptions } from "./options";

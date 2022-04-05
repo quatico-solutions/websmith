@@ -13,9 +13,9 @@
  * with Quatico.
  */
 /* eslint-disable jest/no-mocks-import */
+import { createBrowserSystem, getVersionedFile } from "@websmith/compiler";
 import ts from "typescript";
-import { createBrowserSystem, getVersionedFile } from "../../environment";
-import { ReporterMock } from "../../../test";
+import { ReporterMock } from "../../../compiler/test";
 import { createStyleCompiler, resolveStyleImports, tryTransform } from "./compile-styles";
 import { findStylesMethod } from "./inline-styles";
 import { Node } from "./parse-scss";

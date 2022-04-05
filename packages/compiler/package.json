@@ -7,8 +7,8 @@
     "publishConfig": {
         "registry": "https://binaries.quatico.com/api/npm/quatico-private-npm/"
     },
-    "main": "./bin/index.js",
-    "types": "./bin/index.d.ts",
+    "main": "./lib/index.js",
+    "types": "./lib/index.d.ts",
     "files": [
         "LICENSE",
         "README.md",
@@ -44,6 +44,7 @@
         "eslint-plugin-testing-library": "^5.2.0",
         "husky": "7.0.4",
         "jest": "27.5.1",
+        "memfs": "^3.4.1",
         "prettier": "^2.6.2",
         "rimraf": "3.0.2",
         "ts-jest": "27.1.4"

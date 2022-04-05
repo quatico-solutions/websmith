@@ -12,8 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { createBrowserSystem } from "../environment";
-import { resolveProjectConfig } from "./Config";
+import { createBrowserSystem, resolveProjectConfig } from "@websmith/compiler";
 import { createParser, parsePaths } from "./Parser";
 
 const testSystem = createBrowserSystem({

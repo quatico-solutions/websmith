@@ -14,10 +14,10 @@
  */
 /* eslint-disable no-console */
 
+import { WarnMessage } from "@websmith/addon-api";
+import { Compiler, createBrowserSystem, NoReporter } from "@websmith/compiler";
 import { Command } from "commander";
 import ts from "typescript";
-import { Compiler, NoReporter, WarnMessage } from "../compiler";
-import { createBrowserSystem } from "../environment";
 import { addCompileCommand, hasInvalidTargets } from "./command";
 import { createOptions } from "./options";
 
@@ -64,7 +64,7 @@ describe("addCompileCommand", () => {
                 emitDecoratorMetadata: true,
                 noImplicitReturns: true,
                 pretty: true,
-                target: 2,
+                target: 99,
                 declarationMap: true,
                 outDir: expect.stringContaining("/bin"),
                 noImplicitThis: true,
@@ -73,7 +73,7 @@ describe("addCompileCommand", () => {
                 noImplicitAny: true,
                 removeComments: false,
                 configFilePath: expect.stringContaining("/tsconfig.json"),
-                module: 1,
+                module: 99,
                 strict: true,
                 strictBindCallApply: true,
                 noEmitOnError: true,
@@ -88,9 +88,8 @@ describe("addCompileCommand", () => {
                 sourceMap: false,
                 strictNullChecks: true,
                 esModuleInterop: true,
-                typeRoots: [expect.stringContaining("/@types"), expect.stringContaining("/node_modules/@types")],
                 allowSyntheticDefaultImports: true,
-                types: ["node", "jest", "raw-loader", "scss-parser", "lodash"],
+                types: ["node", "jest"],
                 incremental: true,
                 skipLibCheck: true,
                 noEmit: false,
@@ -115,7 +114,7 @@ describe("addCompileCommand", () => {
                     noImplicitAny: true,
                     removeComments: false,
                     configFilePath: expect.stringContaining("/tsconfig.json"),
-                    module: 1,
+                    module: 99,
                     strict: true,
                     strictBindCallApply: true,
                     noEmitOnError: true,
@@ -179,7 +178,7 @@ describe("addCompileCommand", () => {
                         esModuleInterop: true,
                         typeRoots: ["./@types", "./node_modules/@types"],
                         allowSyntheticDefaultImports: true,
-                        types: ["node", "jest", "raw-loader", "scss-parser", "lodash"],
+                        types: ["node", "jest"],
                         incremental: true,
                         skipLibCheck: true,
                         noEmit: false,

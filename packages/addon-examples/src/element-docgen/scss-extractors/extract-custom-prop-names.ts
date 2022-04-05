@@ -12,13 +12,12 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { ErrorMessage, Reporter } from "@websmith/addon-api";
 import glob from "glob";
 import path from "path";
 import sass from "sass";
 import dedent from "ts-dedent";
 import ts from "typescript";
-import { ErrorMessage } from "../../../../../src/compiler";
-import { Reporter } from "../../../../addon-api/src";
 import { filterAndSortCssProperties } from "./extract-custom-props";
 
 export const IGNORED_FILES = ["**/*.spec.ts", "**/index.ts"];

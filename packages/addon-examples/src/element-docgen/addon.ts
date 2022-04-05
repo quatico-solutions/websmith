@@ -13,8 +13,8 @@
  * with Quatico.
  */
 
-import { DocGenerator } from "../../../packages/addon-api/addon-api;
-import type { AddonContext } from "../../addon-api";
+import type { AddonContext } from "@websmith/addon-api";
+import { DocGenerator } from "./DocGenerator";
 
 /**
  * Addon to generate the custom-elements.json using the WCA
@@ -30,5 +30,5 @@ export const activate = (context: AddonContext) => {
     const docGenerator = new DocGenerator({ inlineTypes: false, verbose: false, visibility: "public", reporter: context.getReporter() });
     // context.registerGenerator((fileName: string, content: string) => docGenerator.getGenerator(fileName, content, context));
     context.registerEmitTransformer(docGenerator.getEmitter(context));
-    context.registerProjectPostEmitter((fileNames:string[]) => docGenerator.getProjectPostEmitter(fileNames, context));
+    context.registerProjectPostEmitter((fileNames: string[]) => docGenerator.getProjectPostEmitter(fileNames, context));
 };

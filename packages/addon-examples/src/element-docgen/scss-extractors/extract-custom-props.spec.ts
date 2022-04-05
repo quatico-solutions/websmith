@@ -13,8 +13,8 @@
  * with Quatico.
  */
 /* eslint-disable jest/no-mocks-import */
-import { ReporterMock } from "../../../../test";
-import { createBrowserSystem } from "../../../environment";
+import { ReporterMock } from "../../../../compiler/test";
+import { createBrowserSystem } from "@websmith/compiler";
 import {
     extractImportedStyles,
     customPropertyNameCompareFn,

@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { isStyleFileName } from "../../elements";
+import { isStyleFileName } from "./elements";
 
 const STYLES_METHOD_NAME = "importedStyles";
 
