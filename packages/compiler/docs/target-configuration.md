@@ -1,3 +1,17 @@
+<!--
+ @license
+
+ Copyright (c) 2017-2022 Quatico Solutions AG
+ Förrlibuckstrasse 220, 8005 Zurich, Switzerland
+
+ All Rights Reserved.
+
+ This software is the confidential and proprietary information of
+ Quatico Solutions AG, ("Confidential Information"). You shall not
+ disclose such Confidential Information and shall use it only in
+ accordance with the terms of the license agreement you entered into
+ with Quatico.
+-->
 # Custom compilation targets
 
 websmith supports custom compilation targets. A compilation target is name that configures which addons and additional configuration to apply to a specific compilation target. Add a `websmith.config.json` file next to your `tsconfig.json` and add a `targets` section to it. Name each target and specify the addons and configuration to apply for that target.
