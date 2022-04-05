@@ -100,18 +100,20 @@ export class Compiler {
             const { buildDir, config, project, tsconfig } = this.options;
             const { writeFile, options, config: targetConfig } = getTargetConfig(target, config);
 
-            process.chdir(dirname(config?.configFilePath ?? "."));
+            if (config?.configFilePath) {
+                process.chdir(dirname(config.configFilePath));
+            }
             const ctx = new CompilationContext({
                 buildDir,
-                project: {...project, ...options},
+                project: { ...project, ...options },
                 system: this.system,
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 program: this.program!,
-                tsconfig: {...tsconfig, options: {...project, ...options}},
+                tsconfig: { ...tsconfig, options: { ...project, ...options } },
                 rootFiles: this.getRootFiles(),
                 reporter: this.reporter,
                 config: targetConfig,
-                target
+                target,
             });
             this.options.addons.getAddons(target).forEach(addon => {
                 addon.activate(ctx);
@@ -176,7 +178,7 @@ export class Compiler {
 
             ctx.getGenerators().forEach(cur => cur(fileName, content));
 
-            ctx.getPreEmitTransformers().forEach(it => (content = it(fileName, content)));
+            ctx.getPreEmitTransformers().forEach(cur => (content = cur(fileName, content)));
             cache.updateSource(filePath, content);
             this.compilationHost.setLanguageHost(ctx.getLanguageHost());
 

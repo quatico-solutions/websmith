@@ -34,7 +34,7 @@ export const createExportCollector = (fileName: string, content: string, ctx: Ad
 const createExportCollectorFactory = () => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (sf: ts.SourceFile) => {
-            const exportFileContent = getOrCreateOutputFile(resolve("./output.yaml"));
+            const exportFileContent = getOrCreateOutputFile(resolve("./lib/output.yaml"));
             const foundDeclarations: string[] = [];
 
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
@@ -54,7 +54,7 @@ const createExportCollectorFactory = () => {
 
             sf = ts.visitNode(sf, visitor);
 
-            writeFileSync(resolve("./output.yaml"), getYAMLOutput(exportFileContent, sf.fileName, foundDeclarations));
+            writeFileSync(resolve("./lib/output.yaml"), getYAMLOutput(exportFileContent, sf.fileName, foundDeclarations));
             return sf;
         };
     };
