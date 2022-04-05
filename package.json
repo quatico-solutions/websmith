@@ -15,7 +15,11 @@
     ],
     "workspaces": {
         "packages": [
-            "packages/*"
+            "packages/api",
+            "packages/compiler",
+            "packages/cli",
+            "packages/test",
+            "packages/examples"
         ]
     },
     "scripts": {

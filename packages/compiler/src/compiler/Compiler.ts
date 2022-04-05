@@ -100,9 +100,10 @@ export class Compiler {
             const { buildDir, config, project, tsconfig } = this.options;
             const { writeFile, options, config: targetConfig } = getTargetConfig(target, config);
 
-            if (config?.configFilePath) {
-                process.chdir(dirname(config.configFilePath));
-            }
+            // FIXME: Does not work with current browser system implementation
+            // if (config?.configFilePath) {
+            //     process.chdir(dirname(config.configFilePath));
+            // }
             const ctx = new CompilationContext({
                 buildDir,
                 project: { ...project, ...options },

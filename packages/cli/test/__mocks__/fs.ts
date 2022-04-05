@@ -12,17 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import ts from "typescript";
-import { DefaultReporter } from "../src/compiler";
 
-export class ReporterMock extends DefaultReporter {
-    public message?: string = "";
+import { fs } from "memfs";
 
-    public reportWatchStatus(diagnostic: ts.Diagnostic) {
-        // do nothing
-    }
-
-    protected logProblem(message: any, category: ts.DiagnosticCategory): void {
-        this.message += `${message ?? ""}\n`;
-    }
-}
+module.exports = fs;

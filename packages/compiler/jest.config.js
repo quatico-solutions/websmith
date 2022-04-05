@@ -26,7 +26,7 @@ module.exports = {
     moduleNameMapper: {
         "@websmith/addon-api": "<rootDir>/../api/src",
     },
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+    setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
     testRegex: "src/.*(test|spec)\\.(js|ts)$",
     testURL: "http://localhost/",
     transform: {

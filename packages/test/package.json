@@ -6,7 +6,7 @@
     "license": "SEE LICENSE IN LICENSE",
     "private": true,
     "scripts": {
-        "clean": "rimraf dist bin coverage",
+        "clean": "rimraf lib bin coverage",
         "lint": "eslint \"{src,test}/**/*.ts\" --fix --color",
         "build": "tsc",
         "watch": "tsc --watch",
@@ -20,6 +20,8 @@
         "@types/node": "16",
         "@typescript-eslint/eslint-plugin": "^5.17.0",
         "@typescript-eslint/parser": "^5.17.0",
+        "@websmith/addon-api": "^0.0.1",
+        "@websmith/compiler": "^0.0.1",
         "@websmith/cli": "^0.0.1",
         "concurrently": "7.1.0",
         "cross-env": "7.0.3",

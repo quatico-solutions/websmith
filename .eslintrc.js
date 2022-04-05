@@ -21,6 +21,16 @@ module.exports = {
         jest: {
             version: 27,
         },
+        "import/resolver": {
+            alias: {
+                map: [
+                    ["@websmith/addon-api", __dirname + "/packages/api/src"],
+                    ["@websmith/cli", __dirname + "/packages/cli/src"],
+                    ["@websmith/compiler", __dirname + "/packages/compiler/src"],
+                ],
+                extensions: [".ts", ".js", ".jsx", ".json"],
+            },
+        },
     },
     env: {
         node: true,

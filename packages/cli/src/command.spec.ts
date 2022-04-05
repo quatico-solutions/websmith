@@ -15,7 +15,7 @@
 /* eslint-disable no-console */
 
 import { WarnMessage } from "@websmith/addon-api";
-import { Compiler, createBrowserSystem, NoReporter } from "@websmith/compiler";
+import { Compiler, CompilerAddon, createBrowserSystem, NoReporter } from "@websmith/compiler";
 import { Command } from "commander";
 import ts from "typescript";
 import { addCompileCommand, hasInvalidTargets } from "./command";
@@ -273,7 +273,7 @@ describe("addCompileCommand#addons", () => {
     it("should add addon name to addons w/ --addons cli argument and known name", () => {
         testSystem.writeFile("./addons/expected/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/expected/addon",
+            "/addons/expected/addon.ts",
             () => {
                 return { activate: jest.fn() };
             },
@@ -288,7 +288,7 @@ describe("addCompileCommand#addons", () => {
             target
                 .getOptions()
                 .addons.getAddons()
-                .map(it => it.name)
+                .map((it: CompilerAddon) => it.name)
         ).toEqual(["expected"]);
     });
 
@@ -297,7 +297,7 @@ describe("addCompileCommand#addons", () => {
         testSystem.writeFile("./addons/zap/addon.ts", "export const activate = () => {};");
         testSystem.writeFile("./addons/zup/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/zip/addon",
+            "/addons/zip/addon.ts",
             () => {
                 return { activate: jest.fn() };
             },
@@ -305,7 +305,7 @@ describe("addCompileCommand#addons", () => {
         );
 
         jest.mock(
-            "/addons/zap/addon",
+            "/addons/zap/addon.ts",
             () => {
                 return { activate: jest.fn() };
             },
@@ -313,7 +313,7 @@ describe("addCompileCommand#addons", () => {
         );
 
         jest.mock(
-            "/addons/zup/addon",
+            "/addons/zup/addon.ts",
             () => {
                 return { activate: jest.fn() };
             },
@@ -328,7 +328,7 @@ describe("addCompileCommand#addons", () => {
             target
                 .getOptions()
                 .addons.getAddons()
-                .map(it => it.name)
+                .map((it: CompilerAddon) => it.name)
         ).toEqual(["zip", "zap", "zup"]);
     });
 
@@ -343,7 +343,7 @@ describe("addCompileCommand#addons", () => {
     it("should not add unkonwn addon name to addons w/ --addons cli argument, known and unknown name", () => {
         testSystem.writeFile("./addons/known/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/known/addon",
+            "/addons/known/addon.ts",
             () => {
                 return { activate: jest.fn() };
             },
@@ -358,7 +358,7 @@ describe("addCompileCommand#addons", () => {
             target
                 .getOptions()
                 .addons.getAddons()
-                .map(it => it.name)
+                .map((it: CompilerAddon) => it.name)
         ).toEqual(["known"]);
     });
 
@@ -374,7 +374,7 @@ describe("addCompileCommand#addons", () => {
     it("should show warning w/ --addons cli argument, known and unknown name", () => {
         testSystem.writeFile("./addons/known/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/known/addon",
+            "/addons/known/addon.ts",
             () => {
                 return { activate: jest.fn() };
             },

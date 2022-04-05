@@ -15,7 +15,7 @@
         "lib"
     ],
     "scripts": {
-        "clean": "rimraf dist bin coverage",
+        "clean": "rimraf lib bin coverage",
         "lint": "eslint \"{src,test}/**/*.ts\" --fix --color",
         "build": "tsc",
         "watch": "tsc --watch",

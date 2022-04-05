@@ -16,14 +16,4 @@ import { Generator } from "@websmith/addon-api";
 
 const GeneratorMock: Generator = jest.fn();
 
-// const GeneratorMock = (config: MockConfig = {}): Generator => ({
-//     emit: config.emit ?? jest.fn().mockReturnValue({}),
-//     process: config.process ?? jest.fn(),
-// });
-
-// interface MockConfig {
-//     emit?: any;
-//     process?: any;
-// }
-
 export { GeneratorMock };

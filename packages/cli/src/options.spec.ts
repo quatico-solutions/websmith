@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { createBrowserSystem, NoReporter } from "@websmith/compiler";
+import { CompilerAddon, createBrowserSystem, NoReporter } from "@websmith/compiler";
 import ts from "typescript";
 import { createOptions } from "./options";
 
@@ -54,14 +54,14 @@ describe("createOptions", () => {
         testSystem.writeFile("./tsconfig.json", "{}");
         testSystem.writeFile("./expected/addon-foo/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/expected/addon-foo/addon",
+            "/expected/addon-foo/addon.ts",
             () => {
                 return { activate: jest.fn() };
             },
             { virtual: true }
         );
 
-        const actual = createOptions({ addonsDir: "./expected" }, testReporter, testSystem).addons.getAddons();
+        const actual: CompilerAddon[] = createOptions({ addonsDir: "./expected" }, testReporter, testSystem).addons.getAddons();
 
         expect(actual.map(it => it.name)).toEqual(["addon-foo"]);
     });
