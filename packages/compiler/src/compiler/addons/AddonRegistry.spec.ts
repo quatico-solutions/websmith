@@ -15,7 +15,7 @@
 /* eslint-disable jest/no-mocks-import */
 import ts from "typescript";
 import { ReporterMock } from "../../../test";
-import { WarnMessage } from "@websmith/addon-api";
+import { WarnMessage } from "../../../../api/src";
 import { createBrowserSystem } from "../../environment";
 import { AddonRegistry } from "./AddonRegistry";
 

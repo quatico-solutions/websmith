@@ -24,7 +24,7 @@ module.exports = {
     },
     moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
-        "@websmith/addon-api": "<rootDir>/../addon-api/src",
+        "@websmith/addon-api": "<rootDir>/../api/src",
         "@websmith/compiler": "<rootDir>/../compiler/src",
     },
     testRegex: "src/.*spec\\.(js|ts)$",

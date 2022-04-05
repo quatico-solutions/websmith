@@ -1,4 +1,4 @@
-import { Reporter, WarnMessage } from "@websmith/addon-api";
+import { Reporter, WarnMessage } from "../../../../api/src";
 import { CompilationConfig } from "./CompilationConfig";
 
 // TODO: Target resolution: Passed targets in CLI vs. specified targets in CompilationConfig

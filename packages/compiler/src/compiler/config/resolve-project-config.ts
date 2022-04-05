@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { aggregateMessages } from "@websmith/addon-api";
+import { aggregateMessages } from "../../../../api/src";
 
 /**
  * Parses tsconfig.json files and creates parsed command line options.

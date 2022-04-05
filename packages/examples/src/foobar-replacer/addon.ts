@@ -1,4 +1,4 @@
-import { AddonContext } from "../../../addon-api/src";
+import { AddonContext } from "../../../api/src";
 import { createFoobarReplacerTransformer } from "./foobar-replacer";
 
 export const activate = (ctx: AddonContext): void => {

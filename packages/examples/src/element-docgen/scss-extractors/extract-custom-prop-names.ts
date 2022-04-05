@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { ErrorMessage, Reporter } from "@websmith/addon-api";
+import { ErrorMessage, Reporter } from "../../../../api/src";
 import glob from "glob";
 import path from "path";
 import sass from "sass";

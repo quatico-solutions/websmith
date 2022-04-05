@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { Reporter, WarnMessage } from "@websmith/addon-api";
+import { Reporter, WarnMessage } from "../../../../api/src";
 import type { CompilerAddon } from "./CompilerAddon";
 
 export const ADDONS_FOLDER_NAME = `/addons`;

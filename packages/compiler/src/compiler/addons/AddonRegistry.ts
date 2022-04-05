@@ -14,7 +14,7 @@
  */
 import path, { basename, extname } from "path";
 import ts from "typescript";
-import { Reporter, WarnMessage } from "@websmith/addon-api";
+import { Reporter, WarnMessage } from "../../../../api/src";
 import { CompilationConfig } from "../config";
 import { CompilerAddon } from "./CompilerAddon";
 

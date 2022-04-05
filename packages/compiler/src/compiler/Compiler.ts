@@ -15,7 +15,7 @@
 
 import { dirname, extname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
-import { ErrorMessage, Reporter } from "@websmith/addon-api";
+import { ErrorMessage, Reporter } from "../../../api/src";
 import { createSystem, recursiveFindByFilter } from "../environment";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost, TargetConfig } from "./compilation";

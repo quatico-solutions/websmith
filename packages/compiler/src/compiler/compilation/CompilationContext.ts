@@ -13,7 +13,7 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { AddonContext, Generator, ProjectEmitter, Reporter, Transformer } from "@websmith/addon-api";
+import { AddonContext, Generator, ProjectEmitter, Reporter, Transformer } from "../../../../api/src";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
 import { createSharedHost } from "./shared-host";

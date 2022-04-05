@@ -13,7 +13,7 @@
  * with Quatico.
  */
 
-import { AddonContext } from "@websmith/addon-api";
+import { AddonContext } from "../../../../api/src";
 
 export interface CompilerAddon {
     name: string;
