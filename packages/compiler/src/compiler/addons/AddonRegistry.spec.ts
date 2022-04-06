@@ -17,7 +17,7 @@ import ts from "typescript";
 import { ReporterMock } from "../../../test";
 import { WarnMessage } from "@websmith/addon-api";
 import { createBrowserSystem } from "../../environment";
-import { AddonRegistry } from "./AddonRegistry";
+import { AddonRegistry, getAddonNames } from "./AddonRegistry";
 
 let system: ts.System;
 let reporter: ReporterMock;
@@ -70,7 +70,7 @@ describe("getAddons", () => {
     it("returns addons w/ single addon in addon directory", () => {
         system.writeFile("./addons/expected/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/expected/addon.ts",
+            "/addons/expected/addon",
             () => {
                 return { activate: jest.fn() };
             },
@@ -85,7 +85,7 @@ describe("getAddons", () => {
     it("returns addons w/ multiple addons in addon directory", () => {
         system.writeFile("./addons/one/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/one/addon.ts",
+            "/addons/one/addon",
             () => {
                 return { activate: jest.fn() };
             },
@@ -93,7 +93,7 @@ describe("getAddons", () => {
         );
         system.writeFile("./addons/two/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/two/addon.ts",
+            "/addons/two/addon",
             () => {
                 return { activate: jest.fn() };
             },
@@ -101,7 +101,7 @@ describe("getAddons", () => {
         );
         system.writeFile("./addons/three/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/three/addon.ts",
+            "/addons/three/addon",
             () => {
                 return { activate: jest.fn() };
             },
@@ -116,7 +116,7 @@ describe("getAddons", () => {
     it("returns valid addons w/ invalid and valid addons in addon directory", () => {
         system.writeFile("./addons/expected/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/expected/addon.ts",
+            "/addons/expected/addon",
             () => {
                 return { activate: jest.fn() };
             },
@@ -124,7 +124,7 @@ describe("getAddons", () => {
         );
         system.writeFile("./addons/invalid/addon.ts", "export const whatever = () => {};");
         jest.mock(
-            "/addons/invalid/addon.ts",
+            "/addons/invalid/addon",
             () => {
                 return { whatever: jest.fn() };
             },
@@ -139,7 +139,7 @@ describe("getAddons", () => {
     it("returns no addons w/ empty files in addon directory", () => {
         system.writeFile("./addons/empty/addon.ts", "");
         jest.mock(
-            "/addons/empty/addon.ts",
+            "/addons/empty/addon",
             () => {
                 return {};
             },

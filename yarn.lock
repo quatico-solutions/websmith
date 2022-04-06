@@ -1221,6 +1221,11 @@
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@types/minimatch/-/minimatch-3.0.5.tgz#1001cc5e6a3704b83c236027e77f2f58ea010f40"
   integrity sha1-EAHMXmo3BLg8I2An538vWOoBD0A=
 
+"@types/minimist@^1.2.2":
+  version "1.2.2"
+  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/@types/minimist/-/minimist-1.2.2.tgz#ee771e2ba4b3dc5b372935d549fd9617bf345b8c"
+  integrity sha512-jhuKLIRrhvCPLqwPcx6INqmKeiA5EWrsCOPhrlFSrbrmU4ZMPjj5Ul/oLCMDO98XRUIwVm78xICz4EPCektzeQ==
+
 "@types/node@*":
   version "17.0.8"
   resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/@types/node/-/node-17.0.8.tgz#50d680c8a8a78fe30abe6906453b21ad8ab0ad7b"
@@ -4985,10 +4990,10 @@ minimatch@^3.0.4:
   dependencies:
     brace-expansion "^1.1.7"
 
-minimist@^1.1.1:
+minimist@^1.1.1, minimist@^1.2.6:
   version "1.2.6"
-  resolved "https://binaries.quatico.com:443/api/npm/quatico-npm-proxy/minimist/-/minimist-1.2.6.tgz#8637a5b759ea0d6e98702cfb3a9283323c93af44"
-  integrity sha1-hjelt1nqDW6YcCz7OpKDMjyTr0Q=
+  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/minimist/-/minimist-1.2.6.tgz#8637a5b759ea0d6e98702cfb3a9283323c93af44"
+  integrity sha512-Jsjnk4bw3YJqYzbdyBiNsPWHPfO++UGG749Cxs6peCu5Xg4nrena6OVxOYxrQTqww0Jmwt+Ref8rggumkTLz9Q==
 
 minimist@^1.2.0, minimist@^1.2.5:
   version "1.2.5"

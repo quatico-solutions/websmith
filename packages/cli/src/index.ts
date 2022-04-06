@@ -13,5 +13,6 @@
  * with Quatico.
  */
 import { addCompileCommand } from "./command";
+import { createOptions } from "./options";
 
-export { addCompileCommand };
+export { addCompileCommand, createOptions };

@@ -91,13 +91,13 @@ const findAddons = (addonsDir: string, reporter: Reporter, system: ts.System): C
 
     if (addonsDir) {
         system
-            .readDirectory(addonsDir)
+            .readDirectory(addonsDir, [".js", ".jsx", ".ts", ".tsx"])
             .filter(ad => basename(ad, extname(ad)).toLocaleLowerCase() === "addon")
             .forEach(it => {
                 // eslint-disable-next-line @typescript-eslint/no-var-requires
                 const activator = require(join(
                     system.getCurrentDirectory(),
-                    extname(it).match(/jsx?/gi) ? it.replace(extname(it), "") : it
+                    extname(it).match(/^(?!.*\.d\.tsx?$).*\.[tj]sx?$/g) ? it.replace(extname(it), "") : it
                 )).activate;
                 const name = it
                     .replace(path.sep + basename(it), "")

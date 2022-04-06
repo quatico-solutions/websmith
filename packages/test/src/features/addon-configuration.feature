@@ -17,7 +17,7 @@ Feature: Addon configuration
         # };
         Given Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --addons foo-addon"
-        Then Addons "foo-addon" should be applied during compilation
+        Then Addons "foo-addon" should be activated in compilation
 
     @skip
     Scenario: Use CLI argument to activate multiple addons
@@ -32,7 +32,7 @@ Feature: Addon configuration
         # };
         Given Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --addons foo-addon, bar-addon"
-        Then Addons "foo-addon, bar-addon" should be applied during compilation
+        Then Addons "foo-addon, bar-addon" should be activated in compilation
 
     @skip
     Scenario: Use a config file to select active addons
@@ -54,5 +54,5 @@ Feature: Addon configuration
         And Config file "websmith.config.json" contains "addons" with "foo-addon"
         And Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith"
-        Then Addons "foo-addon" should be applied during compilation
-        And Addons "bar-addon" should not be applied
+        Then Addons "foo-addon" should be activated in compilation
+        And Addons "bar-addon" should not be activated

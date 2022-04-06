@@ -229,7 +229,7 @@ export class Compiler {
 
     private getRootFiles(): string[] {
         // FIXME: Ignores tsx files still
-        return this.options.tsconfig.fileNames
+        return this.options?.tsconfig?.fileNames
             ? this.options.tsconfig.fileNames
             : recursiveFindByFilter(resolve(dirname(this.configPath), "./src"), (path: string) =>
                   ["ts", "js"].some(it => extname(path).includes(it))

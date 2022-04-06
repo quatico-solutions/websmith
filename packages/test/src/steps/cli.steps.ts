@@ -1,14 +1,15 @@
 /* eslint-disable jest/no-jasmine-globals */
 /* eslint-disable no-console */
-import { Command } from "commander";
+import { Compiler } from "@websmith/compiler";
+import { createOptions } from "@websmith/cli";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
 import { StepDefinitions } from "jest-cucumber";
+import parseArgs from "minimist";
 import { basename, join } from "path";
-import { addCompileCommand } from "@websmith/cli";
-
-console.log = jest.fn();
 
 export const cliSteps: StepDefinitions = ({ given, when, then }) => {
+    let compiler: Compiler;
+
     given(/^A valid config file named "(.*)" exists in project folder$/, (configPath: string) => {
         let resolvedPath = configPath;
         if (configPath.startsWith("./")) {
@@ -29,7 +30,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
                 .map(it => it.trim())
                 .filter(it => it.length > 0);
         } else {
-            content[cfgProp] = cfgValue.trim();
+            content[cfgProp] = [cfgValue.trim()];
         }
         writeFileSync(resolvedPath, JSON.stringify(content));
     });
@@ -67,16 +68,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
         }
 
         addons.forEach(addon => {
-            const addonPath = join("/", addonsDir, addon, "addon");
-            console.error("XXX", addonPath);
-            copyFolderRecursiveSync(join(__dirname, "../test-data/addons/", addon), join(resolvedPath, addon));
-            jest.mock(
-                addonPath,
-                () => {
-                    return { activate: jest.fn() };
-                },
-                { virtual: true }
-            );
+            copyFolderRecursiveSync(join(__dirname, "../test-data/addons/", addon), resolvedPath);
         });
     });
 
@@ -99,14 +91,46 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
             .map(it => it.trim())
             .filter(it => it.length > 0);
 
-        addCompileCommand(new Command()).parse(args, { from: "user" });
+        compiler = new Compiler(createOptions(parseArgs(args) as any));
+        compiler.compile();
     });
 
-    then(/^Addons "(.*)" should be applied during compilation$/, (addonName: string) => {
-        expect(console.log).toHaveBeenCalledWith(`Addon "${addonName}" applied.`);
+    then(/^Addons "(.*)" should be activated in compilation$/, (addonNames: string) => {
+        let addons: string[] = [addonNames];
+        if (addonNames.indexOf(",") > -1) {
+            addons = addonNames
+                .split(" ")
+                .map(it => it.trim())
+                .filter(it => it.length > 0);
+        }
+
+        addons.forEach(addon => {
+            expect(
+                compiler
+                    .getOptions()
+                    .addons.getAddons()
+                    .map(it => it.name)
+            ).toContain(addon);
+        });
     });
-    then(/^Addons "(.*)" should not be applied$/, addonName => {
-        expect(console.log).not.toHaveBeenCalledWith(`Addon "${addonName}" applied.`);
+
+    then(/^Addons "(.*)" should not be activated$/, (addonNames: string) => {
+        let addons: string[] = [addonNames];
+        if (addonNames.indexOf(",") > -1) {
+            addons = addonNames
+                .split(" ")
+                .map(it => it.trim())
+                .filter(it => it.length > 0);
+        }
+
+        addons.forEach(addon => {
+            expect(
+                compiler
+                    .getOptions()
+                    .addons.getAddons()
+                    .map(it => it.name)
+            ).not.toContain(addon);
+        });
     });
     then(/^Output file "(.*)" should contain a function named "(.*)"$/, (outFileName: string, funcName: string) => {
         const outFilePath = join(process.cwd(), "bin", outFileName);

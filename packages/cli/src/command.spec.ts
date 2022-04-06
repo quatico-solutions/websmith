@@ -273,7 +273,7 @@ describe("addCompileCommand#addons", () => {
     it("should add addon name to addons w/ --addons cli argument and known name", () => {
         testSystem.writeFile("./addons/expected/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/expected/addon.ts",
+            "/addons/expected/addon",
             () => {
                 return { activate: jest.fn() };
             },
@@ -297,7 +297,7 @@ describe("addCompileCommand#addons", () => {
         testSystem.writeFile("./addons/zap/addon.ts", "export const activate = () => {};");
         testSystem.writeFile("./addons/zup/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/zip/addon.ts",
+            "/addons/zip/addon",
             () => {
                 return { activate: jest.fn() };
             },
@@ -305,7 +305,7 @@ describe("addCompileCommand#addons", () => {
         );
 
         jest.mock(
-            "/addons/zap/addon.ts",
+            "/addons/zap/addon",
             () => {
                 return { activate: jest.fn() };
             },
@@ -313,7 +313,7 @@ describe("addCompileCommand#addons", () => {
         );
 
         jest.mock(
-            "/addons/zup/addon.ts",
+            "/addons/zup/addon",
             () => {
                 return { activate: jest.fn() };
             },
@@ -343,7 +343,7 @@ describe("addCompileCommand#addons", () => {
     it("should not add unkonwn addon name to addons w/ --addons cli argument, known and unknown name", () => {
         testSystem.writeFile("./addons/known/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/known/addon.ts",
+            "/addons/known/addon",
             () => {
                 return { activate: jest.fn() };
             },
@@ -374,7 +374,7 @@ describe("addCompileCommand#addons", () => {
     it("should show warning w/ --addons cli argument, known and unknown name", () => {
         testSystem.writeFile("./addons/known/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/addons/known/addon.ts",
+            "/addons/known/addon",
             () => {
                 return { activate: jest.fn() };
             },

@@ -9,13 +9,13 @@ Feature: Feature: Addon contribution
     Scenario: Run Compiler with all addons in default directory
         Given Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith"
-        Then Addons "bar-addon, foo-addon" should be applied during compilation
+        Then Addons "bar-addon, foo-addon" should be activated in compilation
 
     @skip
     Scenario: Use CLI argument to select different addons directory
         Given Folder "./my-addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --addonsDir ./my-addons"
-        Then Addons "bar-addon, foo-addon" should be applied during compilation
+        Then Addons "bar-addon, foo-addon" should be activated in compilation
 
     @skip
     Scenario: Provide a generator addon in default addons directory
@@ -29,7 +29,7 @@ Feature: Feature: Addon contribution
         # };
         Given Folder "./addons" contains addons "doc-generator"
         When User calls command "websmith"
-        Then Addons "doc-generator" should be applied during compilation
+        Then Addons "doc-generator" should be activated in compilation
         And A YAML file is emitted containing names of all exported module members
 
     @skip

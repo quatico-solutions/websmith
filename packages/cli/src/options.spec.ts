@@ -54,7 +54,7 @@ describe("createOptions", () => {
         testSystem.writeFile("./tsconfig.json", "{}");
         testSystem.writeFile("./expected/addon-foo/addon.ts", "export const activate = () => {};");
         jest.mock(
-            "/expected/addon-foo/addon.ts",
+            "/expected/addon-foo/addon",
             () => {
                 return { activate: jest.fn() };
             },
