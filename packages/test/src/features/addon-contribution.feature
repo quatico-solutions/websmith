@@ -5,7 +5,6 @@ Feature: Feature: Addon contribution
     receives a "CompilationContext". Addons can register generator, pre-emit
     transformer or emit transformer functions.
 
-    @skip
     Scenario: Run Compiler with all addons in default directory
         Given Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith"

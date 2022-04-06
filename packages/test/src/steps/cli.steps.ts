@@ -99,7 +99,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
         let addons: string[] = [addonNames];
         if (addonNames.indexOf(",") > -1) {
             addons = addonNames
-                .split(" ")
+                .split(",")
                 .map(it => it.trim())
                 .filter(it => it.length > 0);
         }

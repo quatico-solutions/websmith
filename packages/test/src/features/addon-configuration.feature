@@ -4,7 +4,6 @@ Feature: Addon configuration
     in the addon folder, and configure via CLI arguments or config file options
     which addons are applied during compilation.
 
-    @skip
     Scenario: Use CLI argument to activate a specific addon
         # // ./addons/foo-addon/addon.ts
         # export const activate = () => {
@@ -19,7 +18,6 @@ Feature: Addon configuration
         When User calls command "websmith --addons foo-addon"
         Then Addons "foo-addon" should be activated in compilation
 
-    @skip
     Scenario: Use CLI argument to activate multiple addons
         # // ./addons/foo-addon/addon.ts
         # export const activate = () => {
@@ -34,7 +32,6 @@ Feature: Addon configuration
         When User calls command "websmith --addons foo-addon, bar-addon"
         Then Addons "foo-addon, bar-addon" should be activated in compilation
 
-    @skip
     Scenario: Use a config file to select active addons
         # // ./addons/foo-addon/addon.ts
         # export const activate = () => {
