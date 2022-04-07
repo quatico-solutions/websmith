@@ -22,6 +22,11 @@ module.exports = {
         },
     },
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+    moduleNameMapper: {
+        "@websmith/addon-api": "<rootDir>/packages/api/src",
+        "@websmith/cli": "<rootDir>/packages/cli/src",
+        "@websmith/compiler": "<rootDir>/packages/compiler/src",
+    },
     preset: "ts-jest",
     setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
     testRegex: "src/.*(test|spec)\\.(tsx?)$",
