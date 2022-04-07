@@ -1,14 +1,26 @@
 /* eslint-disable jest/no-jasmine-globals */
 /* eslint-disable no-console */
-import { Compiler } from "@websmith/compiler";
 import { createOptions } from "@websmith/cli";
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { Compiler } from "@websmith/compiler";
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { StepDefinitions } from "jest-cucumber";
 import parseArgs from "minimist";
 import { basename, join } from "path";
 
 export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     let compiler: Compiler;
+
+    afterEach(() => {
+        if (existsSync("./addons")) {
+            rmSync("./addons", { recursive: true });
+        }
+        if (existsSync("./websmith.config.json")) {
+            rmSync("./websmith.config.json");
+        }
+        if (existsSync("./my-config.json")) {
+            rmSync("./my-config.json");
+        }
+    });
 
     given(/^A valid config file named "(.*)" exists in project folder$/, (configPath: string) => {
         let resolvedPath = configPath;
@@ -91,7 +103,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
             .map(it => it.trim())
             .filter(it => it.length > 0);
 
-        compiler = new Compiler(createOptions(parseArgs(args) as any));
+        compiler = new Compiler({ ...createOptions(parseArgs(args) as any), ...{ project: { rootDir: "./test-source" } } });
         compiler.compile();
     });
 
@@ -161,7 +173,7 @@ const copyFolderRecursiveSync = (source: string, target: string) => {
     // Check if folder needs to be created or integrated
     const targetFolder = join(target, basename(source));
     if (!existsSync(targetFolder)) {
-        mkdirSync(targetFolder);
+        mkdirSync(targetFolder, { recursive: true });
     }
     // Copy
     if (lstatSync(source).isDirectory()) {

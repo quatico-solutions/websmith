@@ -7,7 +7,7 @@ coverage
 # production
 bin
 lib
-storybook-static
+packages/test/addons
 
 # misc
 *.log
