@@ -20,7 +20,7 @@ import {
     analyzeSourceFile,
     transformAnalyzerResult,
     TransformerConfig,
-    VisibilityKind
+    VisibilityKind,
 } from "web-component-analyzer";
 import { isScriptFile } from "../style-compiler";
 import { defaultOptions, DocDefaults } from "./defaults";

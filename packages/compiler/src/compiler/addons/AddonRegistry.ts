@@ -12,9 +12,9 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import path, { basename, extname, join } from "path";
-import ts from "typescript";
 import { Reporter, WarnMessage } from "@websmith/addon-api";
+import path, { basename, extname } from "path";
+import ts from "typescript";
 import { CompilationConfig } from "../config";
 import { CompilerAddon } from "./CompilerAddon";
 
@@ -29,7 +29,7 @@ export type AddonRegistryOptions = {
 export class AddonRegistry {
     private addons: string[];
     private config?: CompilationConfig;
-    private availableAddons: CompilerAddon[];
+    private availableAddons: Map<string, CompilerAddon>;
     private reporter: Reporter;
 
     constructor(options: AddonRegistryOptions) {
@@ -48,13 +48,13 @@ export class AddonRegistry {
         const expected = getAddonNames(target, this.addons, this.config);
         if (expected.length > 0) {
             this.reportMissingAddons(target, expected);
-            return this.availableAddons.filter(addon => expected.includes(addon.name));
+            return expected.map(it => this.availableAddons.get(it)).filter(it => it !== undefined) as CompilerAddon[];
         }
-        return this.availableAddons;
+        return Array.from(this.availableAddons.values());
     }
 
     private reportMissingAddons(target: string | undefined, expected: string[]): void {
-        const missing = expected.filter(name => !this.availableAddons.some(addon => addon.name === name));
+        const missing = expected.filter(name => !this.availableAddons.has(name));
         if (missing.length > 0) {
             if (target && target !== "*") {
                 this.reporter.reportDiagnostic(new WarnMessage(`Missing addons for target "${target}": "${missing.join(", ")}".`));
@@ -81,12 +81,12 @@ const getAddonNames = (target: string | undefined, expectedAddons: string[], con
     return [];
 };
 
-const findAddons = (addonsDir: string, reporter: Reporter, system: ts.System): CompilerAddon[] => {
+const findAddons = (addonsDir: string, reporter: Reporter, system: ts.System): Map<string, CompilerAddon> => {
     const map = new Map<string, CompilerAddon>();
 
     if (addonsDir && !system.directoryExists(addonsDir)) {
         reporter.reportDiagnostic(new WarnMessage(`Addons directory "${addonsDir}" does not exist.`));
-        return [];
+        return map;
     }
 
     if (addonsDir) {
@@ -94,11 +94,11 @@ const findAddons = (addonsDir: string, reporter: Reporter, system: ts.System): C
             .readDirectory(addonsDir, [".js", ".jsx", ".ts", ".tsx"])
             .filter(ad => basename(ad, extname(ad)).toLocaleLowerCase() === "addon")
             .forEach(it => {
+                const importPath = system.resolvePath(it);
                 // eslint-disable-next-line @typescript-eslint/no-var-requires
-                const activator = require(join(
-                    system.getCurrentDirectory(),
-                    extname(it).match(/^(?!.*\.d\.tsx?$).*\.[tj]sx?$/g) ? it.replace(extname(it), "") : it
-                )).activate;
+                const activator = require(extname(importPath).match(/^(?!.*\.d\.tsx?$).*\.[tj]sx?$/g)
+                    ? importPath.replace(extname(importPath), "")
+                    : importPath).activate;
                 const name = it
                     .replace(path.sep + basename(it), "")
                     .split(path.sep)
@@ -111,5 +111,5 @@ const findAddons = (addonsDir: string, reporter: Reporter, system: ts.System): C
                 }
             });
     }
-    return Array.from(map.values());
+    return map;
 };

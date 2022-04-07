@@ -37,8 +37,8 @@ Feature: Target configuration
         #     // TBD put actual implementation here
         # };
 
-        Given Folder "./addons" contains addons "foobar-transformer"
-        And A valid config file named "websmit.config.json" exists in project folder
+        Given A valid config file named "websmit.config.json" exists in project folder
+        And Folder "./addons" contains addons "foobar-transformer"
         And Config file "websmit.config.json" contains target "foobar"
         And Target project contains a module "target.ts" with a function is named "foobar"
         When User calls command "websmith --targets foobar"

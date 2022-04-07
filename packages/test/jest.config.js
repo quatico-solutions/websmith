@@ -29,9 +29,8 @@ module.exports = {
     },
     roots: ["<rootDir>/src/"],
     testEnvironment: "node",
-    testMatch: ["**/jest-cucumber-setup.ts", "test/.*test\\.(jsx?|tsx?)$"],
+    testMatch: ["**/cucumber.test.ts", "test/.*test\\.(jsx?|tsx?)$"],
     transform: {
         "^.+\\.(js|ts)$": "ts-jest",
     },
-    resetMocks: true,
 };

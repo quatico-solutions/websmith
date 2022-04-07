@@ -14,7 +14,7 @@ Feature: Addon configuration
         # export const activate = () => {
         #     console.log('bar-addon activated');
         # };
-        Given Folder "./addons" contains addons "foo-addon, bar-addon"
+        And Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --addons foo-addon"
         Then Addons "foo-addon" should be activated in compilation
 
@@ -28,7 +28,7 @@ Feature: Addon configuration
         # export const activate = () => {
         #     console.log('bar-addon activated');
         # };
-        Given Folder "./addons" contains addons "foo-addon, bar-addon"
+        And Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --addons foo-addon, bar-addon"
         Then Addons "foo-addon, bar-addon" should be activated in compilation
 

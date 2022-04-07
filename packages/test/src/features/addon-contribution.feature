@@ -10,7 +10,6 @@ Feature: Feature: Addon contribution
         When User calls command "websmith"
         Then Addons "bar-addon, foo-addon" should be activated in compilation
 
-    @skip
     Scenario: Use CLI argument to select different addons directory
         Given Folder "./my-addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --addonsDir ./my-addons"
@@ -32,9 +31,9 @@ Feature: Feature: Addon contribution
         And A YAML file is emitted containing names of all exported module members
 
     @skip
-    Scenario: Provide a pre-emit transformer addon in default addons directory
+    Scenario: Provide a processor addon in default addons directory
     # TODO: Provide a scenario for a pre-emit transformer example
 
     @skip
-    Scenario: Provide an emit transformer addon in default addons directory
+    Scenario: Provide an transformer addon in default addons directory
 # TODO: Provide a scenario for a emit transformer example

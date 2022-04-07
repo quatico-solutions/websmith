@@ -5,36 +5,60 @@ import { Compiler } from "@websmith/compiler";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { StepDefinitions } from "jest-cucumber";
 import parseArgs from "minimist";
-import { basename, join } from "path";
+import { basename, isAbsolute, join, resolve } from "path";
 
 export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     let compiler: Compiler;
+    let projectDir: string;
+    let rootDir: string;
+    beforeAll(() => {
+        projectDir = resolve("./test-source");
+        rootDir = process.cwd();
+    });
+
+    beforeEach(() => {
+        if (!existsSync(projectDir)) {
+            mkdirSync(projectDir);
+        }
+        process.chdir(projectDir);
+        writeFileSync(
+            "./websmith.config.json",
+            JSON.stringify({
+                addonsDir: "./addons",
+            })
+        );
+        writeFileSync(
+            "./tsconfig.json",
+            JSON.stringify({
+                compilerOptions: {
+                    target: "ESNEXT",
+                    module: "ESNEXT",
+                    lib: ["es2017", "es7", "es6", "dom"],
+                    declaration: true,
+                    outDir: "dist",
+                    strict: true,
+                    esModuleInterop: true,
+                },
+                include: ["src"],
+                exclude: ["node_modules", "dist"],
+            })
+        );
+    });
 
     afterEach(() => {
-        if (existsSync("./addons")) {
-            rmSync("./addons", { recursive: true });
-        }
-        if (existsSync("./websmith.config.json")) {
-            rmSync("./websmith.config.json");
-        }
-        if (existsSync("./my-config.json")) {
-            rmSync("./my-config.json");
+        process.chdir(rootDir);
+        if (existsSync(projectDir)) {
+            rmSync(projectDir, { recursive: true });
         }
     });
 
     given(/^A valid config file named "(.*)" exists in project folder$/, (configPath: string) => {
-        let resolvedPath = configPath;
-        if (configPath.startsWith("./")) {
-            resolvedPath = join(process.cwd(), configPath);
-        }
-        writeFileSync(resolvedPath, "{}");
+        const resolvedPath = resolvePath(projectDir, configPath);
+        writeFileSync(resolvedPath, JSON.stringify({ addonsDir: join(projectDir, "addons") }));
     });
 
     given(/^Config file "(.*)" contains "(.*)" with "(.*)"$/, (configPath: string, cfgProp: string, cfgValue: string) => {
-        let resolvedPath = configPath;
-        if (configPath.startsWith("./")) {
-            resolvedPath = join(process.cwd(), configPath);
-        }
+        const resolvedPath = resolvePath(projectDir, configPath);
         const content = JSON.parse(readFileSync(resolvedPath, "utf-8").toString());
         if (cfgValue.indexOf(",") > -1) {
             content[cfgProp] = cfgValue
@@ -48,10 +72,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     given(/^Config file "(.*)" contains target "(.*)"$/, (configPath: string, targetNames: string) => {
-        let resolvedPath = configPath;
-        if (configPath.startsWith("./")) {
-            resolvedPath = join(process.cwd(), configPath);
-        }
+        const resolvedPath = resolvePath(projectDir, configPath);
         const content = JSON.parse(readFileSync(resolvedPath, "utf-8").toString());
         let targets: string[] = [targetNames];
         if (targetNames.indexOf(",") > -1) {
@@ -66,11 +87,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     given(/^Folder "(.*)" contains addons "(.*)"$/, (addonsDir: string, addonNames: string) => {
-        let resolvedPath = addonsDir;
-        if (addonsDir.startsWith("./")) {
-            resolvedPath = join(process.cwd(), addonsDir);
-        }
-
+        const resolvedPath = resolvePath(projectDir, addonsDir);
         let addons: string[] = [addonNames];
         if (addonNames.indexOf(",") > -1) {
             addons = addonNames
@@ -85,7 +102,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     given(/^Target project contains a module "(.*)" with a function is named "(.*)"$/, (moduleName: string, funcName: string) => {
-        const modulePath = join(process.cwd(), "src", moduleName);
+        const modulePath = resolvePath(projectDir, "src", moduleName);
         writeFileSync(modulePath, `export const ${funcName} = () => {}`);
     });
 
@@ -103,7 +120,9 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
             .map(it => it.trim())
             .filter(it => it.length > 0);
 
-        compiler = new Compiler({ ...createOptions(parseArgs(args) as any), ...{ project: { rootDir: "./test-source" } } });
+        const params = parseArgs(args) as any;
+
+        compiler = new Compiler(createOptions({ ...params, buildDir: projectDir }));
         compiler.compile();
     });
 
@@ -116,14 +135,12 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
                 .filter(it => it.length > 0);
         }
 
-        addons.forEach(addon => {
-            expect(
-                compiler
-                    .getOptions()
-                    .addons.getAddons()
-                    .map(it => it.name)
-            ).toContain(addon);
-        });
+        expect(
+            compiler
+                .getOptions()
+                .addons.getAddons()
+                .map(it => it.name)
+        ).toEqual(addons);
     });
 
     then(/^Addons "(.*)" should not be activated$/, (addonNames: string) => {
@@ -144,8 +161,9 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
             ).not.toContain(addon);
         });
     });
+
     then(/^Output file "(.*)" should contain a function named "(.*)"$/, (outFileName: string, funcName: string) => {
-        const outFilePath = join(process.cwd(), "bin", outFileName);
+        const outFilePath = resolvePath(projectDir, `dist/${outFileName}`);
         expect(readFileSync(outFilePath, "utf-8").toString()).toContain(funcName);
     });
 
@@ -187,4 +205,12 @@ const copyFolderRecursiveSync = (source: string, target: string) => {
             }
         });
     }
+};
+
+const resolvePath = (buildDir: string, ...configPath: string[]) => {
+    let resolvedPath = join(...configPath);
+    if (!isAbsolute(resolvedPath)) {
+        resolvedPath = join(buildDir, ...configPath);
+    }
+    return resolvedPath;
 };

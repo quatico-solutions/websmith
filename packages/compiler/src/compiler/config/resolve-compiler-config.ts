@@ -12,8 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import ts from "typescript";
 import { Reporter, WarnMessage } from "@websmith/addon-api";
+import ts from "typescript";
 import { CompilationConfig } from "./CompilationConfig";
 
 export const resolveCompilationConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilationConfig | undefined => {

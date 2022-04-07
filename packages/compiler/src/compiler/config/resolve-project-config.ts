@@ -12,8 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import ts from "typescript";
 import { aggregateMessages } from "@websmith/addon-api";
+import ts from "typescript";
 
 /**
  * Parses tsconfig.json files and creates parsed command line options.
