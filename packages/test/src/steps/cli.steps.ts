@@ -11,6 +11,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     let compiler: Compiler;
     let projectDir: string;
     let rootDir: string;
+
     beforeAll(() => {
         projectDir = resolve("./test-source");
         rootDir = process.cwd();
@@ -53,12 +54,12 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     given(/^A valid config file named "(.*)" exists in project folder$/, (configPath: string) => {
-        const resolvedPath = resolvePath(projectDir, configPath);
+        const resolvedPath = resolvePath(configPath);
         writeFileSync(resolvedPath, JSON.stringify({ addonsDir: join(projectDir, "addons") }));
     });
 
     given(/^Config file "(.*)" contains "(.*)" with "(.*)"$/, (configPath: string, cfgProp: string, cfgValue: string) => {
-        const resolvedPath = resolvePath(projectDir, configPath);
+        const resolvedPath = resolvePath(configPath);
         const content = JSON.parse(readFileSync(resolvedPath, "utf-8").toString());
         if (cfgValue.indexOf(",") > -1) {
             content[cfgProp] = cfgValue
@@ -72,7 +73,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     given(/^Config file "(.*)" contains target "(.*)"$/, (configPath: string, targetNames: string) => {
-        const resolvedPath = resolvePath(projectDir, configPath);
+        const resolvedPath = resolvePath(configPath);
         const content = JSON.parse(readFileSync(resolvedPath, "utf-8").toString());
         let targets: string[] = [targetNames];
         if (targetNames.indexOf(",") > -1) {
@@ -87,7 +88,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     given(/^Folder "(.*)" contains addons "(.*)"$/, (addonsDir: string, addonNames: string) => {
-        const resolvedPath = resolvePath(projectDir, addonsDir);
+        const resolvedPath = resolvePath(addonsDir);
         let addons: string[] = [addonNames];
         if (addonNames.indexOf(",") > -1) {
             addons = addonNames
@@ -102,7 +103,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     given(/^Target project contains a module "(.*)" with a function is named "(.*)"$/, (moduleName: string, funcName: string) => {
-        const modulePath = resolvePath(projectDir, "src", moduleName);
+        const modulePath = resolvePath("src", moduleName);
         writeFileSync(modulePath, `export const ${funcName} = () => {}`);
     });
 
@@ -120,9 +121,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
             .map(it => it.trim())
             .filter(it => it.length > 0);
 
-        const params = parseArgs(args) as any;
-
-        compiler = new Compiler(createOptions({ ...params, buildDir: projectDir }));
+        compiler = new Compiler(createOptions({ ...(parseArgs(args) as any), buildDir: projectDir }));
         compiler.compile();
     });
 
@@ -163,7 +162,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     then(/^Output file "(.*)" should contain a function named "(.*)"$/, (outFileName: string, funcName: string) => {
-        const outFilePath = resolvePath(projectDir, `dist/${outFileName}`);
+        const outFilePath = resolvePath(`dist/${outFileName}`);
         expect(readFileSync(outFilePath, "utf-8").toString()).toContain(funcName);
     });
 
@@ -207,10 +206,10 @@ const copyFolderRecursiveSync = (source: string, target: string) => {
     }
 };
 
-const resolvePath = (buildDir: string, ...configPath: string[]) => {
+const resolvePath = (...configPath: string[]) => {
     let resolvedPath = join(...configPath);
     if (!isAbsolute(resolvedPath)) {
-        resolvedPath = join(buildDir, ...configPath);
+        resolvedPath = join(process.cwd(), ...configPath);
     }
     return resolvedPath;
 };
