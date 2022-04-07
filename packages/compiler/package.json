@@ -20,6 +20,7 @@
         "build": "tsc",
         "watch": "tsc --watch",
         "test": "jest --verbose --coverage",
+        "test:e2e": "echo 'No e2e tests yet'",
         "test:update-snapshots": "yarn test -u",
         "test:watch": "jest --watch",
         "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\"",
