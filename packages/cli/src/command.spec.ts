@@ -71,7 +71,7 @@ describe("addCompileCommand", () => {
 
         expect(actual.addons).toEqual(
             expect.objectContaining({
-                availableAddons: [],
+                availableAddons: new Map(),
             })
         );
         expect(actual.buildDir).toEqual(expect.stringContaining("/")), expect(actual.watch).toBe(false);
