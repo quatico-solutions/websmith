@@ -20,7 +20,7 @@ import {
     analyzeSourceFile,
     transformAnalyzerResult,
     TransformerConfig,
-    VisibilityKind,
+    VisibilityKind
 } from "web-component-analyzer";
 import { isScriptFile } from "../style-compiler";
 import { defaultOptions, DocDefaults } from "./defaults";
@@ -42,7 +42,7 @@ export class DocGenerator {
         return this.results;
     }
 
-    public getProjectPostEmitter(fileNames: string[], ctx: AddonContext) {
+    public getTargetPostTransformer(fileNames: string[], ctx: AddonContext) {
         try {
             const program = ctx.getProgram();
             const system = ctx.getSystem();
@@ -64,7 +64,7 @@ export class DocGenerator {
         }
     }
 
-    public getEmitter(ctx: AddonContext): ts.CustomTransformers {
+    public getTransformer(ctx: AddonContext): ts.CustomTransformers {
         const options: AnalyzerOptions = {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             program: ctx.getProgram() as any,

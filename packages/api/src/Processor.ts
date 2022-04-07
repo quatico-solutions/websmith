@@ -12,4 +12,5 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-export type ProjectEmitter = (fileNames: string[]) => void;
+
+export type Processor = (fileName: string, content: string) => string | never;

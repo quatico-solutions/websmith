@@ -13,8 +13,8 @@
  * with Quatico.
  */
 import { AddonContext } from "@websmith/addon-api";
-import { createFoobarReplacerTransformer } from "./foobar-replacer";
+import { createFoobarReplacerProcessor } from "./foobar-replacer";
 
 export const activate = (ctx: AddonContext): void => {
-    ctx.registerPreEmitTransformer((fileName, content) => createFoobarReplacerTransformer(fileName, content, ctx));
+    ctx.registerProcessor((fileName, content) => createFoobarReplacerProcessor(fileName, content, ctx));
 };

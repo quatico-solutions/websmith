@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import type { CompilationContext, CompilerOptions } from "./compiler";
+import type { CompilationContext, CompilerAddon, CompilerOptions } from "./compiler";
 import {
     AddonRegistry,
     CompilationConfig,
@@ -32,6 +32,7 @@ export {
     AddonRegistry,
     CompilationConfig,
     Compiler,
+    CompilerAddon,
     createBrowserSystem,
     createCompileHost,
     createSystem,

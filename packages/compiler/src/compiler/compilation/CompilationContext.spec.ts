@@ -22,12 +22,12 @@ class CompilationContextTestClass extends CompilationContext {
         super(options);
     }
 
-    public getEmitTransformers() {
-        return this.emitTransformers;
+    public getTransformers() {
+        return this.transformers;
     }
 
-    public getPreEmitTransformers() {
-        return this.preEmitTransformers;
+    public getProcessors() {
+        return this.processors;
     }
 
     public getGenerators() {
@@ -52,38 +52,38 @@ beforeEach(() => {
     });
 });
 
-describe("registerEmitTransformer", () => {
+describe("registerTransformer", () => {
     it("yields new transformer with before", () => {
         const target = jest.fn();
 
-        testObj.registerEmitTransformer({ before: [target] });
+        testObj.registerTransformer({ before: [target] });
 
-        expect(testObj.getEmitTransformers().before).toEqual([target]);
+        expect(testObj.getTransformers().before).toEqual([target]);
     });
 
     it("yields new transformer with after", () => {
         const target = jest.fn();
 
-        testObj.registerEmitTransformer({ after: [target] });
+        testObj.registerTransformer({ after: [target] });
 
-        expect(testObj.getEmitTransformers().after).toEqual([target]);
+        expect(testObj.getTransformers().after).toEqual([target]);
     });
 
     it("registers same transformer twice for same kind", () => {
         const target = jest.fn();
 
-        testObj.registerEmitTransformer({ after: [target] }).registerEmitTransformer({ after: [target] });
+        testObj.registerTransformer({ after: [target] }).registerTransformer({ after: [target] });
 
-        expect(testObj.getEmitTransformers().after).toEqual([target, target]);
+        expect(testObj.getTransformers().after).toEqual([target, target]);
     });
 
     it("registers same transformer twice for different kinds", () => {
         const target = jest.fn();
 
-        testObj.registerEmitTransformer({ before: [target] }).registerEmitTransformer({ after: [target] });
+        testObj.registerTransformer({ before: [target] }).registerTransformer({ after: [target] });
 
-        expect(testObj.getEmitTransformers().after).toEqual([target]);
-        expect(testObj.getEmitTransformers().before).toEqual([target]);
+        expect(testObj.getTransformers().after).toEqual([target]);
+        expect(testObj.getTransformers().before).toEqual([target]);
     });
 });
 
@@ -113,20 +113,20 @@ describe("registerGenerator", () => {
     });
 });
 
-describe("registerPreEmitTransformer", () => {
+describe("registerProcessor", () => {
     it("yields new processor with valid transformer", () => {
         const target = jest.fn()();
 
-        testObj.registerPreEmitTransformer(target);
+        testObj.registerProcessor(target);
 
-        expect(testObj.getPreEmitTransformers()).toEqual([target]);
+        expect(testObj.getProcessors()).toEqual([target]);
     });
 
     it("registers same transformer twice", () => {
         const target = jest.fn()();
 
-        testObj.registerPreEmitTransformer(target).registerPreEmitTransformer(target);
+        testObj.registerProcessor(target).registerProcessor(target);
 
-        expect(testObj.getPreEmitTransformers()).toEqual([target, target]);
+        expect(testObj.getProcessors()).toEqual([target, target]);
     });
 });

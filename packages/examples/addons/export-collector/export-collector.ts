@@ -15,12 +15,11 @@
 import type { AddonContext } from "@websmith/addon-api";
 import { ErrorMessage } from "@websmith/addon-api";
 import { existsSync, readFileSync, writeFileSync } from "fs";
-import { resolve } from "path";
 import ts from "typescript";
 
 export const createExportCollector = (fileName: string, content: string, ctx: AddonContext): void => {
     const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
-    const transformResult = ts.transform(sf, [createExportCollectorFactory()], ctx.getConfig().options);
+    const transformResult = ts.transform(sf, [createExportCollectorFactory(ctx.getSystem())], ctx.getConfig().options);
 
     if (transformResult.diagnostics && transformResult.diagnostics.length > 0) {
         transformResult.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, sf)));
@@ -31,10 +30,10 @@ export const createExportCollector = (fileName: string, content: string, ctx: Ad
     }
 };
 
-const createExportCollectorFactory = () => {
+const createExportCollectorFactory = (sys: ts.System) => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (sf: ts.SourceFile) => {
-            const exportFileContent = getOrCreateOutputFile(resolve("./lib/output.yaml"));
+            const exportFileContent = getOrCreateOutputFile(sys.resolvePath("lib/output.yaml"));
             const foundDeclarations: string[] = [];
 
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
@@ -54,7 +53,7 @@ const createExportCollectorFactory = () => {
 
             sf = ts.visitNode(sf, visitor);
 
-            writeFileSync(resolve("./lib/output.yaml"), getYAMLOutput(exportFileContent, sf.fileName, foundDeclarations));
+            writeFileSync(sys.resolvePath("lib/output.yaml"), getYAMLOutput(exportFileContent, sf.fileName, foundDeclarations));
             return sf;
         };
     };

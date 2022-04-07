@@ -12,9 +12,9 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { AddonContext } from "@websmith/addon-api";
+import { createFoobarReplacerFactory } from "../foobar-replacer/foobar-replacer";
 
-// import ts from "typescript";
-// export type Transformer = (ctx: ts.TransformationContext) => ts.Transformer<ts.SourceFile>;
-
-// FIXME: Seems not to be good enough
-export type Transformer = (fileName: string, content: string) => string | never;
+export const activate = (ctx: AddonContext): void => {
+    ctx.registerTransformer({ before: [createFoobarReplacerFactory()] });
+};

@@ -12,8 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { AddonContext, Generator, Processor, Reporter, TargetPostTransformer } from "@websmith/addon-api";
 import ts from "typescript";
-import { AddonContext, Generator, ProjectEmitter, Reporter, Transformer } from "@websmith/addon-api";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
 import { createSharedHost } from "./shared-host";
@@ -31,10 +31,10 @@ export type CompilationContextOptions = {
 };
 
 export class CompilationContext implements AddonContext<any> {
-    protected emitTransformers: ts.CustomTransformers;
     protected generators: Generator[];
-    protected preEmitTransformers: Transformer[];
-    protected projectPostEmitters: ProjectEmitter[] = [];
+    protected processors: Processor[];
+    protected transformers: ts.CustomTransformers;
+    protected targetPostTransformers: TargetPostTransformer[] = [];
 
     private buildDir: string;
     private cache: FileCache;
@@ -51,8 +51,8 @@ export class CompilationContext implements AddonContext<any> {
         this.buildDir = buildDir;
         this.rootFiles = rootFiles;
         this.tsconfig = tsconfig;
-        this.emitTransformers = {};
-        this.preEmitTransformers = [];
+        this.transformers = {};
+        this.processors = [];
         this.generators = [];
         this.languageHost = this.createLanguageServiceHost({
             system,
@@ -98,16 +98,16 @@ export class CompilationContext implements AddonContext<any> {
         return Object.keys(this.tsconfig.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? this.buildDir;
     }
 
-    public registerEmitTransformer(transformers: ts.CustomTransformers): this {
+    public registerTransformer(transformers: ts.CustomTransformers): this {
         Object.keys(transformers).forEach(kind => {
             // @ts-ignore ts.CustomTransformers defines too many implicit any
-            this.emitTransformers[kind] = concat(this.emitTransformers[kind], transformers[kind]);
+            this.transformers[kind] = concat(this.transformers[kind], transformers[kind]);
         });
         return this;
     }
 
-    public registerPreEmitTransformer(transformer: Transformer): this {
-        this.preEmitTransformers.push(transformer);
+    public registerProcessor(processor: Processor): this {
+        this.processors.push(processor);
         return this;
     }
 
@@ -116,8 +116,8 @@ export class CompilationContext implements AddonContext<any> {
         return this;
     }
 
-    public registerProjectPostEmitter(emitter: ProjectEmitter): this {
-        this.projectPostEmitters.push(emitter);
+    public registerTargetPostTransformer(emitter: TargetPostTransformer): this {
+        this.targetPostTransformers.push(emitter);
         return this;
     }
 
@@ -125,12 +125,12 @@ export class CompilationContext implements AddonContext<any> {
         return this.generators;
     }
 
-    public getPreEmitTransformers(): Transformer[] {
-        return this.preEmitTransformers;
+    public getProcessors(): Processor[] {
+        return this.processors;
     }
 
-    public getProjectPostEmitters(): ProjectEmitter[] {
-        return this.projectPostEmitters;
+    public getTargetPostTransformers(): TargetPostTransformer[] {
+        return this.targetPostTransformers;
     }
 
     private createLanguageServiceHost({
@@ -171,7 +171,7 @@ export class CompilationContext implements AddonContext<any> {
             },
             getScriptFileNames: (): string[] => this.rootFiles,
             getCompilationSettings: () => options,
-            getCustomTransformers: (): ts.CustomTransformers => this.emitTransformers,
+            getCustomTransformers: (): ts.CustomTransformers => this.transformers,
         };
     }
 }

@@ -17,12 +17,12 @@
 
 Inside your addons directory, create a directory that contains a file `addon.ts`. This file is called the addon activator and it requires a function `activate(ctx: CompilationContext)`. The activator is called before the compilation process to register the addon in the appropriate step during the compilation process.
 
-You can register several kinds of addons: `Generator`, `Processor`, `Transformer` and `ProjectPostTransformer`
+You can register several kinds of addons: `Generator`, `Processor`, `Transformer` and `TargetPostTransformer`
 
 - `Generators` can be used to create additional files (eg documentation) based on your source code files.
 - `Processor` can be used to alter a source input file during the compilation.
 - `Transformer` can be used to alter the generated JavaScript result during the JS emission phase.
-- `ProjectPostTransformer` can be used to execute project wide functionality after the compilation has finished and all `Transformers` have been executed.
+- `TargetPostTransformer` can be used to execute project wide functionality after the compilation has finished and all `Transformers` have been executed.
 
 ... your addon can use external dependencies ...
 
@@ -56,7 +56,7 @@ loop for each source code file
     compiler -> transformers: merge
     transformers --> compiler: mergedTransformers
     compiler -> TypeScript: emit(fileName, mergedTransformers)
-    compiler -> projectPostTransformers: transform(allSourceFileNames)
+    compiler -> targetPostTransformers: transform(allSourceFileNames)
 end
 @enduml
 ```
@@ -227,7 +227,7 @@ export const createFoobarReplacerFactory = () => {
 
 Transformer follow the standard TypeScript `ts.CustomTransformers` approach, providing a factory that takes in a TransformationContext and returning a Transformer for SourceFiles.
 
-**foobarReplaceEmitter/addon.ts**
+**foobarReplaceTransformer/addon.ts**
 
 ```javascript
 import { AddonContext } from "@websmith/addon-api";

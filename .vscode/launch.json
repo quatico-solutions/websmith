@@ -6,10 +6,46 @@
     "configurations": [
         {
             "type": "node",
+            "name": "vscode-jest-tests",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "disableOptimisticBPs": true,
+            "program": "node_modules/.bin/jest",
+            "cwd": "/",
+            "args": [
+                "-config",
+                "jest.config.js",
+                "--runInBand",
+                "--watchAll=false"
+            ]
+        },
+        {
+            "type": "node",
+            "name": "vscode-jest-tests-e2e",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "disableOptimisticBPs": true,
+            "program": "node_modules/.bin/jest",
+            "cwd": "/",
+            "args": [
+                "-config",
+                "jest.e2e.config.js",
+                "--runInBand",
+                "--watchAll=false"
+            ]
+        },
+        {
+            "type": "node",
             "name": "Debug Examples",
             "request": "launch",
             "runtimeExecutable": "node",
-            "runtimeArgs": ["--nolazy", "-r", "ts-node/register/transpile-only"],
+            "runtimeArgs": [
+                "--nolazy",
+                "-r",
+                "ts-node/register/transpile-only"
+            ],
             "args": [
                 "src/bin.ts",
                 "--project",
@@ -26,8 +62,10 @@
             "console": "integratedTerminal",
             "internalConsoleOptions": "openOnSessionStart",
             "disableOptimisticBPs": true,
-            "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
-            // "program": "${workspaceFolder}/node_modules/.bin/ts-node"
-        }
+            "skipFiles": [
+                "<node_internals>/**",
+                "**/node_modules/**"
+            ]
+        },
     ]
 }

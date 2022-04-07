@@ -101,9 +101,9 @@ export class Compiler {
             const { writeFile, options, config: targetConfig } = getTargetConfig(target, config);
 
             // FIXME: Does not work with current browser system implementation
-            // if (config?.configFilePath) {
-            //     process.chdir(dirname(config.configFilePath));
-            // }
+            if (config?.configFilePath) {
+                process.chdir(dirname(config.configFilePath));
+            }
             const ctx = new CompilationContext({
                 buildDir,
                 project: { ...project, ...options },
@@ -134,7 +134,7 @@ export class Compiler {
             }
 
             const files = this.getRootFiles();
-            ctx.getProjectPostEmitters().forEach(cur => cur(files));
+            ctx.getTargetPostTransformers().forEach(cur => cur(files));
         });
 
         // TODO: Add style processors here to generate docs
@@ -179,7 +179,7 @@ export class Compiler {
 
             ctx.getGenerators().forEach(cur => cur(fileName, content));
 
-            ctx.getPreEmitTransformers().forEach(cur => (content = cur(fileName, content)));
+            ctx.getProcessors().forEach(cur => (content = cur(fileName, content)));
             cache.updateSource(filePath, content);
             this.compilationHost.setLanguageHost(ctx.getLanguageHost());
 

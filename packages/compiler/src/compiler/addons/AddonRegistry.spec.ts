@@ -13,11 +13,11 @@
  * with Quatico.
  */
 /* eslint-disable jest/no-mocks-import */
+import { WarnMessage } from "@websmith/addon-api";
 import ts from "typescript";
 import { ReporterMock } from "../../../test";
-import { WarnMessage } from "@websmith/addon-api";
 import { createBrowserSystem } from "../../environment";
-import { AddonRegistry, getAddonNames } from "./AddonRegistry";
+import { AddonRegistry } from "./AddonRegistry";
 
 let system: ts.System;
 let reporter: ReporterMock;

@@ -15,9 +15,9 @@
 import ts from "typescript";
 import { Reporter } from "./Reporter";
 import { Generator } from "./Generator";
-import { ProjectEmitter } from "./ProjectEmitter";
+import { TargetPostTransformer } from "./TargetPostTransformer";
 import { TargetConfig } from "./TargetConfig";
-import { Transformer } from "./Transformer";
+import { Processor } from "./Processor";
 
 export interface AddonContext<O extends TargetConfig = any> {
     getSystem(): ts.System;
@@ -34,23 +34,23 @@ export interface AddonContext<O extends TargetConfig = any> {
     registerGenerator(generator: Generator): void;
 
     /**
-     * Registers a preEmit Transformer with this context.
+     * Registers a processor with this context.
      *
-     * @param transformer (fileName: string, content:string) => transformedContent: string function that transformes the provided source code content.
+     * @param processor (fileName: string, content:string) => transformedContent: string function that transformes the provided source code content.
      */
-    registerPreEmitTransformer(transformer: Transformer): void;
+    registerProcessor(processor: Processor): void;
 
     /**
-     * Registers an emitTransformer with this context.
+     * Registers an transformer with this context.
      *
-     * @param transformer A ts.CustomTransformers object merged with all other emit transformers and used during the compilation process.
+     * @param transformer A ts.CustomTransformers object merged with all other transformers and used during the compilation process.
      */
-    registerEmitTransformer(transformer: ts.CustomTransformers): void;
+    registerTransformer(transformer: ts.CustomTransformers): void;
 
     /**
-     * Registers an project PostEmitter with this context.
+     * Registers an target post transformer with this context.
      *
-     * @param projectEmitter (fileNames: string[]) => void: A function that is executed after the compilation of all files is completed.
+     * @param targetPostTransformer (fileNames: string[]) => void: A function that is executed after the compilation of all files is completed.
      */
-    registerProjectPostEmitter(projectEmitter: ProjectEmitter): void;
+    registerTargetPostTransformer(targetPostTransformer: TargetPostTransformer): void;
 }

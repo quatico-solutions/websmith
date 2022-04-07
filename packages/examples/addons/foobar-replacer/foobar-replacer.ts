@@ -15,7 +15,7 @@
 import { AddonContext, ErrorMessage } from "@websmith/addon-api";
 import ts from "typescript";
 
-export const createFoobarReplacerTransformer = (fileName: string, content: string, ctx: AddonContext): string => {
+export const createFoobarReplacerProcessor = (fileName: string, content: string, ctx: AddonContext): string => {
     const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
     const transformResult = ts.transform(sf, [createFoobarReplacerFactory()], ctx.getConfig().options);
     if (transformResult.diagnostics && transformResult.diagnostics.length > 0) {

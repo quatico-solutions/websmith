@@ -12,9 +12,4 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { AddonContext } from "@websmith/addon-api";
-import { createFoobarReplacerFactory } from "../foobar-replacer/foobar-replacer";
-
-export const activate = (ctx: AddonContext): void => {
-    ctx.registerEmitTransformer({ before: [createFoobarReplacerFactory()] });
-};
+export type TargetPostTransformer = (fileNames: string[]) => void;

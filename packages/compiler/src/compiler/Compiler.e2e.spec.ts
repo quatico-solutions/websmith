@@ -33,7 +33,7 @@ describe("end-2-end compile", () => {
         });
         const testObj = createCompiler(system);
 
-        testObj.getContext()!.registerEmitTransformer({ before: [target] });
+        testObj.getContext()!.registerTransformer({ before: [target] });
         testObj.compile();
 
         expect(target).toHaveBeenCalledWith(expect.objectContaining({ fileName: "src/one.ts" }));

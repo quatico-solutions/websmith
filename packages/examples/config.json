@@ -2,7 +2,7 @@
     "targets": {
         "client": {
             "writeFile": true,
-            "addons": ["client-function-transform", "export-collector", "foobar-replace-emitter"],
+            "addons": ["client-function-transform", "export-collector", "foobar-replace-transformer"],
             "config": { "functionsDir": "./src", "debug": true },
             "options": { "outDir": "./lib/client", "noEmit": false }
         },

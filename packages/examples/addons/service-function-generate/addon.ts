@@ -4,5 +4,5 @@ import { createTransformer } from "./ServerAddon";
 
 export const activate = (ctx: AddonContext<TargetConfig>) => {
     validateRuntimeLibrary("@qs/magellan-server");
-    ctx.registerPreEmitTransformer((name: string, content: string) => createTransformer(name, content, ctx));
+    ctx.registerProcessor((name: string, content: string) => createTransformer(name, content, ctx));
 };

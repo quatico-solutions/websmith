@@ -26,13 +26,13 @@ export const createTransformer = (fileName: string, content: string, ctx: AddonC
         return content;
     }
     if (!ctx.getSystem().fileExists(fileName)) {
-        throw new Error(`ClientAddon.preEmit(${fileName}) could not find source file`);
+        throw new Error(`client-function-transform (${fileName}) could not find source file`);
     }
 
     const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? (ts.ScriptTarget.Latest as any), true);
     const compilationOptions = ctx.getTargetConfig() as MagellanConfig;
     if (!compilationOptions) {
-        throw new Error("MagellanConfig is missing");
+        throw new Error("client-function-transform targetConfig is missing");
     }
 
     const transformResults = ts.transform(

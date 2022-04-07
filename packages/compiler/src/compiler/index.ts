@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { AddonRegistry } from "./addons";
+import { AddonRegistry, CompilerAddon } from "./addons";
 import type { CompilationContext } from "./compilation";
 import { Compiler } from "./Compiler";
 import type { CompilerOptions } from "./CompilerOptions";
@@ -32,6 +32,7 @@ import { NoReporter } from "./NoReporter";
 
 export {
     AddonRegistry,
+    CompilerAddon,
     CompilationConfig,
     Compiler,
     DefaultReporter,
