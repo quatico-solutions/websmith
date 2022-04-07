@@ -423,6 +423,16 @@ describe("fileExists", () => {
 
         expect(testObj.fileExists("/expected")).toBe(false);
     });
+
+    it("returns true with existing relative file path", () => {
+        const testObj = createBrowserSystem({
+            "./expected/one.js": `{
+                export class One {}
+            }`,
+        });
+
+        expect(testObj.fileExists("/expected/one.js")).toBe(true);
+    });
 });
 
 describe("getCurrentDirectory", () => {
@@ -466,6 +476,12 @@ describe("getDirectories", () => {
 
     it("returns dir path w/ single nested file in root folder", () => {
         const testObj = createBrowserSystem({ "/expected/one.js": "" });
+
+        expect(testObj.getDirectories("/")).toEqual(["expected"]);
+    });
+
+    it("returns dir path w/ single nested file in root relative folder", () => {
+        const testObj = createBrowserSystem({ "./expected/one.js": "" });
 
         expect(testObj.getDirectories("/")).toEqual(["expected"]);
     });
@@ -557,6 +573,16 @@ describe("readDirectory", () => {
         expect(testObj.readDirectory("one.js")).toEqual([]);
     });
 
+    it("returns file path w/ nested relative file name", () => {
+        const testObj = createBrowserSystem({
+            "./expected/one.js": "",
+            "./expected/two.js": "",
+            "./expected/three.js": "",
+        });
+
+        expect(testObj.readDirectory("/expected")).toEqual(["/expected/one.js", "/expected/two.js", "/expected/three.js"]);
+    });
+
     it("returns file path w/ nested file name", () => {
         const testObj = createBrowserSystem({
             "/expected/one.js": "",
@@ -585,7 +611,7 @@ describe("readFile", () => {
         expect(testObj.readFile("doesnotexist")).toBeUndefined();
     });
 
-    it("returns undefined w/ existing file path", () => {
+    it("returns file content w/ existing file path", () => {
         const testObj = createBrowserSystem({
             "one.js": `{
                 export class One {}
@@ -597,7 +623,7 @@ describe("readFile", () => {
             }`);
     });
 
-    it("returns undefined w/ existing absolute file path", () => {
+    it("returns file content w/ existing absolute file path", () => {
         const testObj = createBrowserSystem({
             "/one.js": `{
                 export class One {}
@@ -609,9 +635,21 @@ describe("readFile", () => {
             }`);
     });
 
-    it("returns undefined w/ existing dir path", () => {
+    it("returns file content w/ existing dir path", () => {
         const testObj = createBrowserSystem({
             "/expected/one.js": `{
+                export class One {}
+            }`,
+        });
+
+        expect(testObj.readFile("/expected/one.js")).toBe(`{
+                export class One {}
+            }`);
+    });
+
+    it("returns file content w/ existing relative dir path", () => {
+        const testObj = createBrowserSystem({
+            "./expected/one.js": `{
                 export class One {}
             }`,
         });
@@ -667,6 +705,22 @@ describe("writeFile", () => {
 
         expect(testObj.fileExists("../expected/one.js")).toBe(true);
         expect(testObj.readFile("../expected/one.js")).toBe(`{
+                export class One {}
+            }`);
+    });
+
+    it("yields file in system w/ relative subdirectory path name", () => {
+        const testObj = createBrowserSystem();
+
+        testObj.writeFile(
+            "./expected/one.js",
+            `{
+                export class One {}
+            }`
+        );
+
+        expect(testObj.fileExists("/expected/one.js")).toBe(true);
+        expect(testObj.readFile("/expected/one.js")).toBe(`{
                 export class One {}
             }`);
     });

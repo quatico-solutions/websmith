@@ -22,6 +22,7 @@ import { CompilationContext, CompilationHost, createSharedHost, TargetConfig } f
 import { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
+import { existsSync } from "fs";
 
 export type CompileFragment = {
     version: number;
@@ -100,8 +101,9 @@ export class Compiler {
             const { buildDir, config, project, tsconfig } = this.options;
             const { writeFile, options, config: targetConfig } = getTargetConfig(target, config);
 
-            // FIXME: Does not work with current browser system implementation
-            if (config?.configFilePath) {
+            // FIXME: We would want to change the working directory of the current system, but ts.System does not expose control.
+            // TODO: Implement a ts.System facade + expand BrowserSystem to offer a setCwd(path) to extract this properly
+            if (config?.configFilePath && existsSync(dirname(config?.configFilePath))) {
                 process.chdir(dirname(config.configFilePath));
             }
             const ctx = new CompilationContext({
@@ -231,8 +233,8 @@ export class Compiler {
         // FIXME: Ignores tsx files still
         return this.options?.tsconfig?.fileNames
             ? this.options.tsconfig.fileNames
-            : recursiveFindByFilter(resolve(dirname(this.configPath), "./src"), (path: string) =>
-                  ["ts", "js"].some(it => extname(path).includes(it))
+            : recursiveFindByFilter(this.system.resolvePath(join(dirname(this.configPath), "./src")), (path: string) =>
+                  ["ts", "tsx", "js", "jsx"].some(it => extname(path).includes(it))
               );
     }
 
