@@ -29,11 +29,6 @@ beforeEach(() => {
     testSystem.writeFile("./tsconfig.json", "{}");
 });
 
-// afterEach(() => {
-//     rmSync(testSystem.resolvePath("./addons"), { recursive: true });
-//     testSystem.deleteFile?.("./tsconfig.json") ?? rmSync(testSystem.resolvePath("./tsconfig.json"));
-// });
-
 describe("addCompileCommand", () => {
     it("should warn w/ unknown argument", () => {
         const testObj = addCompileCommand(new Command(), new Compiler(createOptions({}, new NoReporter())));

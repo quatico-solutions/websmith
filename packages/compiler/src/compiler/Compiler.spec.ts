@@ -13,12 +13,14 @@
  * with Quatico.
  */
 /* eslint-disable jest/no-mocks-import */
+import { TargetConfig } from "@websmith/addon-api/src";
 import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createBrowserSystem, createSystem } from "../environment";
 import { AddonRegistry } from "./addons";
 import { Compiler } from "./Compiler";
 import { CompilerOptions } from "./CompilerOptions";
+import { CompilationConfig } from "./config";
 
 const testSystem = createBrowserSystem({
     "tsconfig.json": JSON.stringify({
@@ -133,6 +135,25 @@ describe("compile", () => {
         testObj.compile();
 
         expect(target).toHaveBeenCalled();
+    });
+
+    it("updates the CompilerOptions with the target specific overrides", () => {
+        const config: CompilationConfig = testObj.getOptions().config ?? { configFilePath: "./websmith.config.json", targets: { "*": {} } };
+        const targetConfig: TargetConfig = {
+            ...config.targets?.["*"],
+            options: { outDir: testObj.getSystem().resolvePath("./lib/expected") },
+        };
+        testObj.setOptions({
+            ...testObj.getOptions(),
+            config: {
+                ...config,
+                targets: { "*": targetConfig },
+            },
+        });
+
+        testObj.compile();
+
+        expect(testObj.getContext("*")?.getConfig()).toEqual(expect.objectContaining({options: { outDir: "/lib/expected"}}));
     });
 });
 

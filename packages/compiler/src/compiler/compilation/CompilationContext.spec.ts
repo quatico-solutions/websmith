@@ -33,6 +33,10 @@ class CompilationContextTestClass extends CompilationContext {
     public getGenerators() {
         return this.generators;
     }
+
+    public getTargetPostTransformers() {
+        return this.targetPostTransformers;
+    }
 }
 
 let testObj: CompilationContextTestClass;
@@ -49,6 +53,23 @@ beforeEach(() => {
         program: testProgram,
         tsconfig: { options: {}, fileNames: [], errors: [] },
         target: "test"
+    });
+});
+
+describe("registerTargetPostTransformer", () => {
+    it("yields new targetPostTransformer with existing targetPostTransformer", () => {
+        const target = jest.fn();
+
+        testObj.registerTargetPostTransformer(target);
+
+        expect(testObj.getTargetPostTransformers()).toEqual([target]);
+    });
+    it("registers same targetPostTransformer twice", () => {
+        const target = jest.fn();
+
+        testObj.registerTargetPostTransformer(target).registerTargetPostTransformer(target);
+
+        expect(testObj.getTargetPostTransformers()).toEqual([target, target]);
     });
 });
 
