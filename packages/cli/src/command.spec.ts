@@ -17,16 +17,33 @@
 import { WarnMessage } from "@websmith/addon-api";
 import { Compiler, CompilerAddon, createBrowserSystem, NoReporter } from "@websmith/compiler";
 import { Command } from "commander";
-import { resolve } from "path";
+import { join, normalize, resolve } from "path";
 import ts from "typescript";
 import { addCompileCommand, hasInvalidTargets } from "./command";
 import { createOptions } from "./options";
 
 let testSystem: ts.System;
+let origCwd: string;
+
+beforeAll(() => {
+    origCwd = process.cwd();
+});
+
 beforeEach(() => {
     testSystem = createBrowserSystem({});
     testSystem.createDirectory("./addons");
     testSystem.writeFile("./tsconfig.json", "{}");
+
+    // TODO: Find a better approach. We need to do this with the virtual test system to ensure, that we do not use the websmith tsconfig.json as they will resolve dozens to hundreds of filenames
+    let testDir = normalize(join(process.cwd(), "test"));
+    if (!testDir.includes(join("cli", "test"))) {
+        testDir = testDir.replace(testDir.slice(testDir.indexOf("test")), join("packages", "cli", testDir.slice(testDir.indexOf("test"))));
+    }
+    process.chdir(testDir);
+});
+
+afterEach(() => {
+    process.chdir(origCwd);
 });
 
 describe("addCompileCommand", () => {
@@ -66,7 +83,7 @@ describe("addCompileCommand", () => {
             pretty: true,
             target: 99,
             declarationMap: true,
-            outDir: resolve("./bin"),
+            outDir: "./lib",
             noImplicitThis: true,
             declaration: true,
             experimentalDecorators: true,
@@ -74,7 +91,7 @@ describe("addCompileCommand", () => {
             removeComments: false,
             configFilePath: resolve("./tsconfig.json"),
             inlineSources: undefined,
-            module: 1,
+            module: 99,
             strict: true,
             strictBindCallApply: true,
             noEmitOnError: true,
@@ -93,7 +110,7 @@ describe("addCompileCommand", () => {
             types: ["node", "jest"],
             incremental: true,
             skipLibCheck: true,
-            noEmit: false,
+            noEmit: true,
             downlevelIteration: true,
             alwaysStrict: true,
             allowJs: true,
@@ -108,27 +125,55 @@ describe("addCompileCommand", () => {
                 exclude: [],
                 enable: false,
             },
-            fileNames: [
-                resolve("./src/CompilerArguments.ts"),
-                resolve("./src/bin.ts"),
-                resolve("./src/command.ts"),
-                resolve("./src/compiler-system.ts"),
-                resolve("./src/find-config.ts"),
-                resolve("./src/index.ts"),
-                resolve("./src/options.ts"),
-            ],
+            fileNames: expect.arrayContaining([
+                // resolve("./src/CompilerArguments.ts"),
+                // resolve("./src/bin.ts"),
+                // resolve("./src/command.ts"),
+                // resolve("./src/compiler-system.ts"),
+                // resolve("./src/find-config.ts"),
+                // resolve("./src/index.ts"),
+                // resolve("./src/options.ts"),
+                expect.stringContaining("__mocks__/fs.ts"),
+            ]),
             compileOnSave: false,
             projectReferences: undefined,
             raw: {
-                compileOnSave: undefined,
-                include: ["src/**/*.ts"],
                 compilerOptions: {
-                    module: "CommonJS",
-                    noEmit: false,
-                    outDir: "./bin",
+                    noEmit: true,
+                    module: "ESNEXT",
+                    moduleResolution: "node",
+                    allowJs: true,
+                    allowSyntheticDefaultImports: true,
+                    alwaysStrict: true,
+                    declaration: true,
+                    declarationMap: true,
+                    downlevelIteration: true,
+                    emitDecoratorMetadata: true,
+                    esModuleInterop: true,
+                    experimentalDecorators: true,
+                    importHelpers: true,
+                    incremental: true,
+                    inlineSources: true,
+                    lib: ["es2015", "es2016", "es2017", "esnext", "dom"],
+                    noEmitOnError: true,
+                    noImplicitAny: true,
+                    noImplicitReturns: true,
+                    noImplicitThis: true,
+                    noUnusedLocals: true,
+                    pretty: true,
+                    removeComments: false,
+                    resolveJsonModule: true,
+                    skipLibCheck: true,
+                    sourceMap: true,
+                    strict: true,
+                    strictBindCallApply: true,
+                    strictFunctionTypes: true,
+                    strictNullChecks: true,
+                    strictPropertyInitialization: true,
+                    target: "ESNEXT",
+                    types: ["node", "jest"],
+                    useUnknownInCatchVariables: false,
                 },
-                exclude: ["src/**/*.spec.ts"],
-                extends: "../../tsconfig.json",
             },
             watchOptions: undefined,
             wildcardDirectories: {},
@@ -396,6 +441,7 @@ describe("addCompileCommand#targets", () => {
         testSystem.writeFile("./websmith.config.json", '{ "targets": {"known": { "addons": ["missing"]}} }');
         const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
         target.getReporter().reportDiagnostic = jest.fn();
+        expect(testSystem.fileExists("./tsconfig.json")).toBe(true);
 
         addCompileCommand(new Command(), target).parse(["--targets", "known"], { from: "user" });
 
