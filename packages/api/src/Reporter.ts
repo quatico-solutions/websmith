@@ -15,6 +15,11 @@
 import ts from "typescript";
 
 export interface Reporter {
+    /**
+     * Reports a diagnostic object.
+     * 
+     * @param diagnostic The diagnostic to report.
+     */
     reportDiagnostic(diagnostic: ts.Diagnostic): void;
     reportWatchStatus(diagnostic: ts.Diagnostic, newLine?: string, options?: ts.CompilerOptions, errorCount?: number): void;
 }

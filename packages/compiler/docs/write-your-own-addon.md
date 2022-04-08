@@ -44,26 +44,49 @@ You can register several kinds of addons: `Generator`, `Processor`, `Transformer
 ```plantuml
 @startuml
 participant compiler
+collections target
 entity sourceCode
+collections sourceFiles
 collections generators
+collections processors
 collections transformers
-collections emitters
-loop for each source code file
+collections targetPostTransformers
+boundary TypeScript
+boundary System
+
     create sourceCode
-    compiler -> sourceCode: read
-    compiler -> generators: apply(fileName, sourceCode)
-    compiler -> processors: sourceCode = apply(fileName, sourceCode)
-    compiler -> transformers: merge
+    create target
+    compiler -> target: create
+    activate target
+    compiler -> target: compile
+loop for each source code file
+    target -> sourceCode: read
+    sourceCode -> target: sourceFile
+    create sourceFiles
+    target -> sourceFiles: compile
+    activate sourceFiles
+    sourceFiles -> generators: generate(fileName, sourceCode)
+    sourceFiles -> processors: sourceCode = processor(fileName, sourceCode)
+    processors --> compiler: updatedSourceCode
+    sourceFiles -> transformers: merge
     transformers --> compiler: mergedTransformers
-    compiler -> TypeScript: emit(fileName, mergedTransformers)
-    compiler -> targetPostTransformers: transform(allSourceFileNames)
+    sourceFiles -> TypeScript: emit(fileName, mergedTransformers)
+    TypeScript -> System: writeOutput()
+    TypeScript --> sourceFiles: OutputFiles[]
+    sourceFiles --> target: OutputFiles[]
+    deactivate sourceFiles
 end
+    compiler -> target: executePostTransformers
+    target -> targetPostTransformers: transform(allSourceFiles)
+    targetPostTransformers -> System: writeOutput()
+    target --> compiler: OutputFiles[]
+    deactivate target
 @enduml
 ```
 
 ### Generator
 
-- `Generators` are executed before the compilation and enable you to act upon the unaltered input source code.
+`Generators` allow you to generate additional information **per file** with the unprocessed, untransformed input source files and persist them on the system (ctx.getSystem().writeFile(fileName)) for other addons that are executed later on (ctx.getSystem.readFile(fileName)).
 
 #### Example: export-yaml-generator
 
@@ -82,7 +105,6 @@ import { createTransformer, resetOutput } from "./export-transformer";
  * @param ctx AddonContext for the compilation.
  */
 export const activate = (ctx: AddonContext): void => {
-    resetOutput(ctx);
     ctx.registerGenerator(createGenerator(ctx));
 };
 
@@ -93,26 +115,24 @@ export const activate = (ctx: AddonContext): void => {
  * @returns A websmith generator factory function.
  */
 const createGenerator =
-(ctx: AddonContext): Generator =>
-(fileName: string, fileContent: string): void => {
-    const file = ts.createSourceFile(fileName, fileContent, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
-    const result = ts.transform(file, [createTransformer(ctx.getSystem())], ctx.getConfig().options);
-    
-    if (result.diagnostics && result.diagnostics.length > 0) {
-        result.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, file)));
-    }
-    
-    if (result.transformed.length < 1) {
-        ctx.getReporter().reportDiagnostic(new ErrorMessage(`exportCollector failed for ${fileName} without identifiable error.`, file));
-    }
-};
+    (ctx: AddonContext): Generator =>
+    (fileName: string, fileContent: string): void => {
+        const file = ts.createSourceFile(fileName, fileContent, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
+        const result = ts.transform(file, [createTransformer(ctx.getSystem())], ctx.getConfig().options);
 
+        if (result.diagnostics && result.diagnostics.length > 0) {
+            result.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, file)));
+        }
+
+        if (result.transformed.length < 1) {
+            ctx.getReporter().reportDiagnostic(new ErrorMessage(`exportCollector failed for ${fileName} without identifiable error.`, file));
+        }
+    };
 ```
 
 **export-yaml-generator/export-transformer.ts**
 
 ```javascript
-import { AddonContext } from "@websmith/addon-api";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import ts from "typescript";
@@ -204,11 +224,6 @@ const getOrCreateFile = (filePath: string): string => {
     }
     return readFileSync(filePath).toString();
 };
-
-export const resetOutput = (ctx: AddonContext): void => {
-    ctx.getSystem().writeFile(ctx.getSystem().resolvePath(OUTPUT_FILE_PATH), "");
-};
-
 ```
 
 ### Processors
@@ -252,7 +267,6 @@ const createProcessor =
         ctx.getReporter().reportDiagnostic(new ErrorMessage(`Foobar-Replacer failed for ${fileName} without identifiable error.`, file));
         return "";
     };
-
 ```
 
 **foobar-replace-processor/foobar-transformer.ts**
@@ -289,7 +303,6 @@ export const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
         };
     };
 };
-
 ```
 
 ### Transformer
@@ -337,7 +350,6 @@ export const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
         };
     };
 };
-
 ```
 
 ### TargetPostTransformer
@@ -350,28 +362,13 @@ The difference is that they are executed executed only once **per target**, not 
 **tag-collector-transformer/addon.ts**
 
 ```javascript
-import { AddonContext } from "@websmith/addon-api";
-import { createTargetPostTransformer } from "./target-post-transformer";
+import { AddonContext, TargetPostTransformer } from "@websmith/addon-api";
+import ts from "typescript";
+import { createTransformerFactory, getOutputFilePath } from "./target-post-transformer";
 
 export const activate = (ctx: AddonContext) => {
-    ctx.registerTargetPostTransformer((fileNames: string[]) => createTargetPostTransformer(fileNames, ctx));
+    ctx.registerTargetPostTransformer(createTargetPostTransformer(ctx));
 };
-```
-
-**tag-collector-transformer/target-post-transformer.ts**
-
-```javascript
-import { AddonContext } from "@websmith/addon-api";
-import { join } from "path";
-import ts from "typescript";
-
-/**
- * Gets the output file path for the given output directory.
- *
- * @param outDir The output directory for the generated files.
- * @returns The output file path.
- */
-const getOutputFilePath = (outDir: string) => join(outDir, "annotatedFunctions.yaml");
 
 /**
  * Creates a TargetPostProcessor that collects all functions and arrow functions with a // @service() comment.
@@ -380,16 +377,33 @@ const getOutputFilePath = (outDir: string) => join(outDir, "annotatedFunctions.y
  * @param ctx The addon context for the compilation.
  * @returns A websmith TargetPostTransformer factory function.
  */
-export const createTargetPostTransformer = (fileNames: string[], ctx: AddonContext) => {
-    const outDir = ctx.getConfig().options.outDir ?? process.cwd();
-    ctx.getSystem().writeFile(join(outDir, "serviceFunctions.yaml"), "");
-    fileNames
-        .filter(fn => fn.match(/\.tsx?/gi))
-        .map(fn => {
-            const sf = ts.createSourceFile(fn, ctx.getFileContent(fn), ctx.getConfig().options.target ?? ts.ScriptTarget.Latest);
-            ts.transform(sf, [createTransformerFactory(ctx.getSystem(), outDir)], ctx.getConfig().options);
-        });
-};
+const createTargetPostTransformer =
+    (ctx: AddonContext): TargetPostTransformer =>
+    (fileNames: string[]): void => {
+        const outDir = ctx.getConfig().options.outDir ?? process.cwd();
+        ctx.getSystem().writeFile(getOutputFilePath(outDir), "");
+        fileNames
+            .filter(fn => fn.match(/\.tsx?/gi))
+            .map(fn => {
+                const sf = ts.createSourceFile(fn, ctx.getFileContent(fn), ctx.getConfig().options.target ?? ts.ScriptTarget.Latest);
+                ts.transform(sf, [createTransformerFactory(ctx.getSystem(), outDir)], ctx.getConfig().options);
+            });
+    };
+```
+
+**tag-collector-transformer/target-post-transformer.ts**
+
+```javascript
+import { join } from "path";
+import ts from "typescript";
+
+/**
+ * Gets the output file path for the given output directory.
+ *
+ * @param outputDirectory The output directory for the generated files.
+ * @returns The output file path.
+ */
+export const getOutputFilePath = (outputDirectory: string) => join(outputDirectory, "annotatedFunctions.yaml");
 
 /**
  * Create a transformer that collects all functions and arrow functions with a // @service() comment.
@@ -398,7 +412,7 @@ export const createTargetPostTransformer = (fileNames: string[], ctx: AddonConte
  * @param outDir The output directory for the generated files.
  * @returns A TS TransformerFactory.
  */
-const createTransformerFactory = (sys: ts.System, outDir: string): ts.TransformerFactory<ts.SourceFile> => {
+export const createTransformerFactory = (sys: ts.System, outDir: string): ts.TransformerFactory<ts.SourceFile> => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (sf: ts.SourceFile) => {
             const output =
@@ -433,7 +447,7 @@ const createTransformerFactory = (sys: ts.System, outDir: string): ts.Transforme
 
 /**
  * Checks if the given node is annotated with a // @annotated() comment.
- * 
+ *
  * @param node The node to check.
  * @param sf The source file that contains the node.
  * @returns True if the node is annotated with a @annotated() comment.
@@ -462,9 +476,9 @@ But we must keep in mind, that `Processor` addons are executed after TypeScript 
 For the input
 
 ```javascript
-export const foobar1 = ():string => {
+export const foobar1 = (): string => {
     return "foobar1";
-}
+};
 ```
 
 both Processor and Transformer addons yield the following JavaScript output
@@ -472,7 +486,7 @@ both Processor and Transformer addons yield the following JavaScript output
 ```javascript
 export const barfoo1 = () => {
     return "foobar1";
-}
+};
 ```
 
 but the Processor Addon will yield
@@ -507,41 +521,182 @@ Websmith uses a `Reporter` to communicate info, warning and error messages while
 
 ```javascript
 export const createTransformer = (fileName: string, content: string, ctx: AddonContext): string => {
-    if(content === "") {
+    if (content === "") {
         ctx.getReporter().reportDiagnostic(new ErrorMessage(`No content to transform for ${fileName}`));
         return "";
     }
 
     return executeTransformation(fileName, content, ctx);
-}
+};
 ```
 
-### API
+## API
 
-```javascript
+### Logging from addons: The reporter and messages
+
+Websmith provides a global diagnostic reporter that you can use for addons both in the command line as well as the browser.
+
+Out of the box, Websmith provides 3 default message types: `InfoMessage`, `WarnMessage` and `ErrorMessage`, which your addons can use to communicate diagnostic information.
+
+```typescript
 interface Reporter {
-    reportDiagnostic(DiagnosticMessage): void
+    /**
+    * Reports a diagnostic object.
+    *
+    * @param diagnostic The diagnostic to report.
+    */
+    reportDiagnostic(diagnostic: ts.Diagnostic): void
 }
 
-// Possible types of DiagnosticMessages you can create
-class InfoMessage extends DiangnosticMessage { constructor(message: string) }
-class WarnMessage extends DiagnosticMessage { constructor(message: string) }
-class ErrorMessage extends DiagnostcMessage { constructor(message: string) }
+export type MessageConstructor = new (message: string | ts.DiagnosticMessageChain, source?: ts.SourceFile | string) => ts.Diagnostic;
+
+class DiagnosticMessage implements MessageConstructor, ts.Diagnostic {}
+
+// Reports a Suggestion to the user. InfoMessages are only reported when in debug mode
+class InfoMessage extends DiagnosticMessage { constructor(...) }
+// Reports a Warning to the user
+class WarnMessage extends DiagnosticMessage { constructor(...) }
+// Reports an Error to the user
+class ErrorMessage extends DiagnosticMessage { constructor(...) }
 ```
 
-## How to interact with the compiler: AddonContext explained
+#### Example
+
+**example-generator/addon.ts**
+
+```typescript
+import { AddonContext, Generator, InfoMessage } from "@websmith/addon-api";
+import ts from "typescript";
+
+export const activate = (ctx: AddonContext) => {
+    ctx.registerGenerator(createGenerator(ctx));
+}
+
+const createGenerator = (ctx: AddonContext): Generator =>
+    (fileName: string, fileContent: string): void => {
+        const sf = ts.createSourceFile(fileName, fileContent, ctx.getConfig().options?.target ?? ts.ScriptTarget.Latest);
+        ctx.getReporter().reportDiagnostic(new InfoMessage(`Example Addon processing ${fileName}`, sf));
+    }
+```
+
+### Interacting with Websmith: The AddonContext explained
+
+Websmith addons receive the `AddonContext` in the `activate` function.
+The `AddonContext` provides the necessary API for addons to access
+
+- the file system
+- the current compilation program
+- the reporter
+
+as well as requesting
+
+- the configuration of the current compilation
+- the current target
+- the up to date input file content.
 
 ```javascript
-interface AddonContext<O extends TargetConfig> {
+export interface AddonContext<O extends TargetConfig = any> {
+    /**
+     * The system to use for the interaction with the file system.
+     */
     getSystem(): ts.System;
-    getProgram(): ts.Program;
-    getConfig(): ts.ParsedCommandLine;
-    getReporter(): Reporter;
-    getTargetConfig(): O
 
-    registerGenerator((fileName, fileContent) => void);
-    registerProcessor((fileName, fileContent) => transformedFileContent);
-    registerTransformer(ts.CustomTransformers);
-    registerTargetPostTransformer((fileNames) => void)
+    /**
+     * The program executing the current compilation process.
+     */
+    getProgram(): ts.Program;
+
+    /**
+     * The compiler command line options for the current compilation process.
+     */
+    getConfig(): ts.ParsedCommandLine;
+
+    /**
+     * The reporter to use for reporting error, warning and info messages.
+     */
+    getReporter(): Reporter;
+
+    /**
+     * The specific configuration of the current target.
+     */
+    getTargetConfig(): O;
+
+    /**
+     * Gets the file content for the given file name if the file is part of the compilation process, otherwise ""
+     *
+     * @param fileName The file name for which we want to get the potentially transformed source content within the current target.
+     * @returns The content of the file. This is untransformed in Generators and Processors but transformed afterwards
+     */
+    getFileContent(fileName: string): string;
+
+    /**
+     * Registers a generator with this context.
+     *
+     * @param generator (fileName:string, content:string) => void function that generates additional output files for the provided source code file.
+     */
+    registerGenerator(generator: Generator): void;
+
+    /**
+     * Registers a processor with this context.
+     *
+     * @param processor (fileName: string, content:string) => transformedContent: string function that transformes the provided source code content.
+     */
+    registerProcessor(processor: Processor): void;
+
+    /**
+     * Registers an transformer with this context.
+     *
+     * @param transformer A ts.CustomTransformers object merged with all other transformers and used during the compilation process.
+     */
+    registerTransformer(transformer: ts.CustomTransformers): void;
+
+    /**
+     * Registers an target post transformer with this context.
+     *
+     * @param targetPostTransformer (fileNames: string[]) => void: A function that is executed after the compilation of all files is completed.
+     */
+    registerTargetPostTransformer(targetPostTransformer: TargetPostTransformer): void;
 }
+```
+
+### Interacting with the file system
+
+To enable your addons to work locally as well in the browser environment, it is important to not use the filesystem but use the provided ts.System instead!
+
+You can get access to the system through ctx.getSystem() and execute your file operations from any addon:
+
+**generator/addon.ts**
+
+```typescript
+import { AddonContext, Generator } from "@websmith/addon-api";
+import path from "path";
+
+export const activate = (ctx: AddonContext) => {
+    ctx.registerGenerator(createGenerator(ctx));
+};
+
+const createGenerator =
+    (ctx: AddonContext): Generator =>
+    (fileName: string, fileContent: string): void => {
+        ctx.getSystem().writeFile(fileName.replace(path.extname(fileName), "genX"), `file updated: ${new Date().toISOString()}`);
+    };
+```
+
+**processor/addon.ts**
+
+```typescript
+import { AddonContext, Processor } from "@websmith/addon-api";
+import path from "path";
+
+export const activate = (ctx: AddonContext) => {
+    ctx.registerProcessor(createProcessor(ctx));
+};
+
+const createProcessor =
+    (ctx: AddonContext): Processor =>
+    (fileName: string, content: string): string => {
+        const content = ctx.getSystem().readFile(fileName.replace(path.extname(fileName), "genX"));
+        const generatorTimestamp = content.replace("file updated: ").trim();
+        console.log(`${fileName} generator was executed ${Date.parse(generatorTimestamp)}ms ago`);
+    };
 ```

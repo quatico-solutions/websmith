@@ -20,11 +20,37 @@ import { TargetConfig } from "./TargetConfig";
 import { Processor } from "./Processor";
 
 export interface AddonContext<O extends TargetConfig = any> {
+    /**
+     * The system to use for the interaction with the file system.
+     */
     getSystem(): ts.System;
+
+    /**
+     * The program executing the current compilation process.
+     */
     getProgram(): ts.Program;
+
+    /**
+     * The compiler command line options for the current compilation process.
+     */
     getConfig(): ts.ParsedCommandLine;
+
+    /**
+     * The reporter to use for reporting error, warning and info messages.
+     */
     getReporter(): Reporter;
+
+    /**
+     * The specific configuration of the current target.
+     */
     getTargetConfig(): O;
+
+    /**
+     * Gets the file content for the given file name if the file is part of the compilation process, otherwise ""
+     *
+     * @param fileName The file name for which we want to get the potentially transformed source content within the current target.
+     * @returns The content of the file. This is untransformed in Generators and Processors but transformed afterwards
+     */
     getFileContent(fileName: string): string;
 
     /**
