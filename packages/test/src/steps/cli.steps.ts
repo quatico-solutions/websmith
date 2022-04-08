@@ -54,51 +54,37 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     given(/^A valid config file named "(.*)" exists in project folder$/, (configPath: string) => {
-        const resolvedPath = resolvePath(configPath);
-        writeFileSync(resolvedPath, JSON.stringify({ addonsDir: join(projectDir, "addons") }));
+        const resolvedConfigPath = resolvePath(configPath);
+        writeFileSync(resolvedConfigPath, JSON.stringify({ addonsDir: "./addons" }));
     });
 
     given(/^Config file "(.*)" contains "(.*)" with "(.*)"$/, (configPath: string, cfgProp: string, cfgValue: string) => {
-        const resolvedPath = resolvePath(configPath);
-        const content = JSON.parse(readFileSync(resolvedPath, "utf-8").toString());
-        if (cfgValue.indexOf(",") > -1) {
-            content[cfgProp] = cfgValue
-                .split(",")
-                .map(it => it.trim())
-                .filter(it => it.length > 0);
-        } else {
-            content[cfgProp] = [cfgValue.trim()];
-        }
-        writeFileSync(resolvedPath, JSON.stringify(content));
+        const resolvedConfigPath = resolvePath(configPath);
+        const content = JSON.parse(readFileSync(resolvedConfigPath, "utf-8").toString());
+        content[cfgProp] = stringToList(cfgValue);
+        writeFileSync(resolvedConfigPath, JSON.stringify(content));
     });
 
     given(/^Config file "(.*)" contains target "(.*)"$/, (configPath: string, targetNames: string) => {
-        const resolvedPath = resolvePath(configPath);
-        const content = JSON.parse(readFileSync(resolvedPath, "utf-8").toString());
-        let targets: string[] = [targetNames];
-        if (targetNames.indexOf(",") > -1) {
-            targets = targetNames
-                .split(",")
-                .map(it => it.trim())
-                .filter(it => it.length > 0);
-        }
+        const resolvedConfigPath = resolvePath(configPath);
+        const content = JSON.parse(readFileSync(resolvedConfigPath, "utf-8").toString());
+        const targets: string[] = stringToList(targetNames);
 
         content.targets = { ...(content.targets ?? {}), ...targets.map(it => ({ [it]: {} })) };
-        writeFileSync(resolvedPath, JSON.stringify(content));
+        writeFileSync(resolvedConfigPath, JSON.stringify(content));
     });
 
     given(/^Folder "(.*)" contains addons "(.*)"$/, (addonsDir: string, addonNames: string) => {
-        const resolvedPath = resolvePath(addonsDir);
-        let addons: string[] = [addonNames];
-        if (addonNames.indexOf(",") > -1) {
-            addons = addonNames
-                .split(",")
-                .map(it => it.trim())
-                .filter(it => it.length > 0);
-        }
+        const addonsDirPath = resolvePath(addonsDir);
+        stringToList(addonNames).forEach(addon => {
+            copyFolderRecursiveSync(join(__dirname, "../test-data/addons/", addon), addonsDirPath);
+        });
+    });
 
-        addons.forEach(addon => {
-            copyFolderRecursiveSync(join(__dirname, "../test-data/addons/", addon), resolvedPath);
+    given(/^Folder "(.*)" contains addon examples "(.*)"$/, (addonsDir: string, addonNames: string) => {
+        const addonsDirPath = resolvePath(addonsDir);
+        stringToList(addonNames).forEach(addon => {
+            copyFolderRecursiveSync(join(__dirname, "../../../examples/addons/", addon), addonsDirPath);
         });
     });
 
@@ -126,13 +112,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     then(/^Addons "(.*)" should be activated in compilation$/, (addonNames: string) => {
-        let addons: string[] = [addonNames];
-        if (addonNames.indexOf(",") > -1) {
-            addons = addonNames
-                .split(",")
-                .map(it => it.trim())
-                .filter(it => it.length > 0);
-        }
+        const addons: string[] = stringToList(addonNames);
 
         expect(
             compiler
@@ -143,13 +123,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     then(/^Addons "(.*)" should not be activated$/, (addonNames: string) => {
-        let addons: string[] = [addonNames];
-        if (addonNames.indexOf(",") > -1) {
-            addons = addonNames
-                .split(" ")
-                .map(it => it.trim())
-                .filter(it => it.length > 0);
-        }
+        const addons = stringToList(addonNames);
 
         addons.forEach(addon => {
             expect(
@@ -212,4 +186,15 @@ const resolvePath = (...configPath: string[]) => {
         resolvedPath = join(process.cwd(), ...configPath);
     }
     return resolvedPath;
+};
+
+const stringToList = (stringValue: string): string[] => {
+    let result: string[] = [stringValue];
+    if (stringValue.indexOf(",") > -1) {
+        result = stringValue
+            .split(",")
+            .map(it => it.trim())
+            .filter(it => it.length > 0);
+    }
+    return result;
 };
