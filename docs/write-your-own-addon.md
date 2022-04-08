@@ -19,7 +19,7 @@ Inside your addons directory, create a directory that contains a file `addon.ts`
 
 You can register several kinds of addons: `Generator`, `Processor`, `Transformer` and `TargetPostTransformer`
 
-- `Generators` can be used to create additional files (eg documentation) based on your source code files.
+- `Generator` can be used to create additional files (eg documentation) based on your source code files.
 - `Processor` can be used to alter a source input file during the compilation.
 - `Transformer` can be used to alter the generated JavaScript result during the JS emission phase.
 - `TargetPostTransformer` can be used to execute project wide functionality after the compilation has finished.
