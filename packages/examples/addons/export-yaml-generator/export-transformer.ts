@@ -12,7 +12,6 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { AddonContext } from "@websmith/addon-api";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import ts from "typescript";
@@ -103,8 +102,4 @@ const getOrCreateFile = (filePath: string): string => {
         writeFileSync(filePath, "");
     }
     return readFileSync(filePath).toString();
-};
-
-export const resetOutput = (ctx: AddonContext): void => {
-    ctx.getSystem().writeFile(ctx.getSystem().resolvePath(OUTPUT_FILE_PATH), "");
 };

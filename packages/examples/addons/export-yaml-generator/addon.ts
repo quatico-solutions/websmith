@@ -14,7 +14,7 @@
  */
 import { AddonContext, ErrorMessage, Generator } from "@websmith/addon-api";
 import ts from "typescript";
-import { createTransformer, resetOutput } from "./export-transformer";
+import { createTransformer } from "./export-transformer";
 
 /**
  * Registers the generator for the given addon context.
@@ -22,7 +22,6 @@ import { createTransformer, resetOutput } from "./export-transformer";
  * @param ctx AddonContext for the compilation.
  */
 export const activate = (ctx: AddonContext): void => {
-    resetOutput(ctx);
     ctx.registerGenerator(createGenerator(ctx));
 };
 

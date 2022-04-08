@@ -12,35 +12,16 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { AddonContext } from "@websmith/addon-api";
 import { join } from "path";
 import ts from "typescript";
 
 /**
  * Gets the output file path for the given output directory.
  *
- * @param outDir The output directory for the generated files.
+ * @param outputDirectory The output directory for the generated files.
  * @returns The output file path.
  */
-const getOutputFilePath = (outDir: string) => join(outDir, "annotatedFunctions.yaml");
-
-/**
- * Creates a TargetPostProcessor that collects all functions and arrow functions with a // @service() comment.
- *
- * @param fileNames The file names of the current target to process.
- * @param ctx The addon context for the compilation.
- * @returns A websmith TargetPostTransformer factory function.
- */
-export const createTargetPostTransformer = (fileNames: string[], ctx: AddonContext) => {
-    const outDir = ctx.getConfig().options.outDir ?? process.cwd();
-    ctx.getSystem().writeFile(join(outDir, "serviceFunctions.yaml"), "");
-    fileNames
-        .filter(fn => fn.match(/\.tsx?/gi))
-        .map(fn => {
-            const sf = ts.createSourceFile(fn, ctx.getFileContent(fn), ctx.getConfig().options.target ?? ts.ScriptTarget.Latest);
-            ts.transform(sf, [createTransformerFactory(ctx.getSystem(), outDir)], ctx.getConfig().options);
-        });
-};
+export const getOutputFilePath = (outputDirectory: string) => join(outputDirectory, "annotatedFunctions.yaml");
 
 /**
  * Create a transformer that collects all functions and arrow functions with a // @service() comment.
@@ -49,7 +30,7 @@ export const createTargetPostTransformer = (fileNames: string[], ctx: AddonConte
  * @param outDir The output directory for the generated files.
  * @returns A TS TransformerFactory.
  */
-const createTransformerFactory = (sys: ts.System, outDir: string): ts.TransformerFactory<ts.SourceFile> => {
+export const createTransformerFactory = (sys: ts.System, outDir: string): ts.TransformerFactory<ts.SourceFile> => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (sf: ts.SourceFile) => {
             const output =
