@@ -2,7 +2,7 @@
     "targets": {
         "client": {
             "writeFile": true,
-            "addons": ["export-yaml-generator", "foobar-replace-transformer"],
+            "addons": ["export-yaml-generator", "foobar-replace-transformer", "tag-collector-transformer"],
             "config": { "functionsDir": "./src", "debug": true },
             "options": { "outDir": "./lib/client", "noEmit": false }
         },
