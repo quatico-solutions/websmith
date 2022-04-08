@@ -22,7 +22,14 @@ You can register several kinds of addons: `Generator`, `Processor`, `Transformer
 - `Generators` can be used to create additional files (eg documentation) based on your source code files.
 - `Processor` can be used to alter a source input file during the compilation.
 - `Transformer` can be used to alter the generated JavaScript result during the JS emission phase.
-- `TargetPostTransformer` can be used to execute project wide functionality after the compilation has finished and all `Transformers` have been executed.
+- `TargetPostTransformer` can be used to execute project wide functionality after the compilation has finished.
+
+## Choose your addon kind
+
+- `Generators` (**per file**) are executed first. Generators can not alter the source code, giving every Generator the guarantee that they have unmodified source code as created by the developer.
+- `Processors` (**per file**) are executed after `Generators` but before the standard TypeScript compilation and allow you to alter the source code to alter aspects that with TypeScripts CustomTransformers can no longer be altered.
+- `Transformers` (**per file**) are executed after `Processors` and are [standard TypeScript CustomTransformers](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) that allow you to modify the code as the TypeScript to JavaScript transpilation takes place.
+- `TargetPostTransformers` (**per compilation target**) are executed after the compilation has finished. `TargetPostTransformers` can not alter the source code but have access to the transformed source code and compilation results.
 
 ### Rule of thumb
 
@@ -33,13 +40,6 @@ You can register several kinds of addons: `Generator`, `Processor`, `Transformer
 > Use a `Transformer` addon, when you want to change what existing code does!
 >
 > Use a `TargetPostTransformer` addon, when you want to execute an operation for a target as a whole with the transformed state.
-
-## Choose your addon kind
-
-- `Generators` (**per file**) are executed first. `Generators` can not alter the source code, giving every `Generator` the guarantee that they have unmodified source code as created by the developer.
-- `Processors` (**per file**) are executed after `Generators` but before the standard TypeScript compilation and allow you to alter the source code to alter aspects that with TypeScripts CustomTransformers are not able to change anymore. Examples: adding and removing imports, exports or functions.
-- `Transformers` (**per file**) are [standard TypeScript CustomTransformers](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) that allow you to modify the code as the TypeScript to JavaScript transpilation takes place. By their nature, CustomTransformers executed during TypeScript compilation can not alter the signature of existing code anymore. If you wish to do that, you can use your transformer with the ts.Transform function in a `Processors`.
-- `TargetPostTransformers` (**per compilation target**) are executed after the compilation has finished. `TargetPostTransformers` can not alter the source code and only have access to the transformed source code.
 
 ### Generator
 
@@ -684,7 +684,6 @@ const createProcessor =
         console.log(`${fileName} generator was executed ${Date.parse(generatorTimestamp)}ms ago`);
     };
 ```
-
 
 ## Addon execution flow
 

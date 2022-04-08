@@ -14,7 +14,7 @@
 -->
 # Custom compilation targets
 
-websmith supports custom compilation targets. A compilation target is name that configures which addons and additional configuration to apply to a specific compilation target. Add a `websmith.config.json` file next to your `tsconfig.json` and add a `targets` section to it. Name each target and specify the addons and configuration to apply for that target.
+websmith supports custom compilation targets. A compilation target is a name that configures which addons and additional configuration to apply to a specific compilation target. Add a `websmith.config.json` file next to your `tsconfig.json` and add a `targets` section to it. Name each target and specify the addons and configuration to apply for that target.
 
 ```json
 // websmith.config.json
@@ -31,4 +31,9 @@ websmith supports custom compilation targets. A compilation target is name that 
 }
 ```
 
-Run websmith with the CLI argument `--target` to select a specific target.
+Run websmith with the CLI argument `--targets` to select a specific target.
+
+```bash
+# Assumes that the configuration above is present in ./websmith.config.json
+websmith --targets "one"
+```
