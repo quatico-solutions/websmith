@@ -24,65 +24,22 @@ You can register several kinds of addons: `Generator`, `Processor`, `Transformer
 - `Transformer` can be used to alter the generated JavaScript result during the JS emission phase.
 - `TargetPostTransformer` can be used to execute project wide functionality after the compilation has finished and all `Transformers` have been executed.
 
-... your addon can use external dependencies ...
+### Rule of thumb
 
-- import dependencies and add them as devDependencies to your package.json.
-  - those are not included in the compilation of your target code
-
-... The structure of your addon folder is up to you, websmith interacts only with the addon activator ...
-
-... The addon directory is not subject to the websmith compilation process ...
+> Use a `Generator` addon, when you want to generate information for a later addon, for your bundler, your deployment pipeline or your deployment environment.
+>
+> Use a `Processor` addon, when you want to change what code is present! In particular: imports and exports!
+>
+> Use a `Transformer` addon, when you want to change what existing code does!
+>
+> Use a `TargetPostTransformer` addon, when you want to execute an operation for a target as a whole with the transformed state.
 
 ## Choose your addon kind
 
-- `Generators` are executed first. They can not alter the source code, ensuring that the generators can act upon the unmodified code as created by the developer.
-- `Processors` are executed after `Generators` but before the standard TypeScript compilation and allow you to alter the source code to alter aspects that with TypeScripts CustomTransformers are not able to change anymore. Examples: adding and removing imports, exports or functions.
-- `Transformers` are [standard TypeScript CustomTransformers](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) that allow you to modify the code as the TypeScript to JavaScript transpilation takes place. By their nature, CustomTransformers executed during TypeScript compilation can not alter the signature of existing code anymore. If you wish to do that, you can use your transformer with the ts.Transform function in a `Processors`.
-
-### Addon execution flow
-
-```plantuml
-@startuml
-participant compiler
-collections target
-entity sourceCode
-collections sourceFiles
-collections generators
-collections processors
-collections transformers
-collections targetPostTransformers
-boundary TypeScript
-boundary System
-
-    create sourceCode
-    create target
-    compiler -> target: create
-    activate target
-    compiler -> target: compile
-loop for each source code file
-    target -> sourceCode: read
-    sourceCode -> target: sourceFile
-    create sourceFiles
-    target -> sourceFiles: compile
-    activate sourceFiles
-    sourceFiles -> generators: generate(fileName, sourceCode)
-    sourceFiles -> processors: sourceCode = processor(fileName, sourceCode)
-    processors --> compiler: updatedSourceCode
-    sourceFiles -> transformers: merge
-    transformers --> compiler: mergedTransformers
-    sourceFiles -> TypeScript: emit(fileName, mergedTransformers)
-    TypeScript -> System: writeOutput()
-    TypeScript --> sourceFiles: OutputFiles[]
-    sourceFiles --> target: OutputFiles[]
-    deactivate sourceFiles
-end
-    compiler -> target: executePostTransformers
-    target -> targetPostTransformers: transform(allSourceFiles)
-    targetPostTransformers -> System: writeOutput()
-    target --> compiler: OutputFiles[]
-    deactivate target
-@enduml
-```
+- `Generators` (**per file**) are executed first. `Generators` can not alter the source code, giving every `Generator` the guarantee that they have unmodified source code as created by the developer.
+- `Processors` (**per file**) are executed after `Generators` but before the standard TypeScript compilation and allow you to alter the source code to alter aspects that with TypeScripts CustomTransformers are not able to change anymore. Examples: adding and removing imports, exports or functions.
+- `Transformers` (**per file**) are [standard TypeScript CustomTransformers](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) that allow you to modify the code as the TypeScript to JavaScript transpilation takes place. By their nature, CustomTransformers executed during TypeScript compilation can not alter the signature of existing code anymore. If you wish to do that, you can use your transformer with the ts.Transform function in a `Processors`.
+- `TargetPostTransformers` (**per compilation target**) are executed after the compilation has finished. `TargetPostTransformers` can not alter the source code and only have access to the transformed source code.
 
 ### Generator
 
@@ -94,7 +51,7 @@ The goal of the export collector is to collect all exported functions and list t
 
 **export-yaml-generator/addon.ts**
 
-```javascript
+```typescript
 import { AddonContext, ErrorMessage, Generator } from "@websmith/addon-api";
 import ts from "typescript";
 import { createTransformer, resetOutput } from "./export-transformer";
@@ -132,7 +89,7 @@ const createGenerator =
 
 **export-yaml-generator/export-transformer.ts**
 
-```javascript
+```typescript
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname } from "path";
 import ts from "typescript";
@@ -231,13 +188,11 @@ const getOrCreateFile = (filePath: string): string => {
 `Processors` are execute before the TypeScript compilation step and allow you to alter all aspects of the code. `Processors` are in required in particular to add or remove imports, functions or dependencies on other modules. While this can in theory be done in `Transformers`, the TypeScript compilation will not be able to resolve such changes anymore yielding failing code when adding module dependencies and incorrect D.TS output files.
 It is possible to use ts.Transform in `Processors` to reuse existing TypeScript CustomTransformers in this setup to achieve the desired code transformations.
 
-> Note: Processors are executed one by one unlike Transformers, that are merged and yield a single TypeScript execution.
-
 #### Example: foobar-replace-processor
 
 **foobar-replace-processor/addon.ts**
 
-```javascript
+```typescript
 import { AddonContext, ErrorMessage, Processor } from "@websmith/addon-api";
 import ts from "typescript";
 import { createTransformer } from "./foobar-transformer";
@@ -271,7 +226,7 @@ const createProcessor =
 
 **foobar-replace-processor/foobar-transformer.ts**
 
-```javascript
+```typescript
 import ts from "typescript";
 
 /**
@@ -309,11 +264,15 @@ export const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
 
 Transformer follow the standard TypeScript `ts.CustomTransformers` approach, providing a factory that takes in a TransformationContext and returning a Transformer for SourceFiles.
 
+#### Important Note
+
+> While `Processors` are executed one by one, `Transformers` are merged. All **before** of all `Transformers` are executed together, all **after** are executed together and all **afterDeclarations** are executed together.
+
 #### Example: foobar-replace-transformer
 
 **foobar-replace-transformer/addon.ts**
 
-```javascript
+```typescript
 import { AddonContext } from "@websmith/addon-api";
 import ts from "typescript";
 
@@ -352,6 +311,45 @@ export const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
 };
 ```
 
+#### Important Note
+
+The same TypeScript TransformerFactories we used in the `Processor` and `Generator` addons can also be used as `Transformer` addons.
+But we must keep in mind, that `Transformer` addons are executed after TypeScript has processed the structure of codee and in essence generated the D.TS file!
+When using a `Processor` transformer in a `Transformer` addon, the resulting transformed JavaScript code will be identical to the `Processor` addon, but because we rewrite the signature of the functions (foobar1 to barfoo1 in above examples), the generated D.TS file will no longer match.
+
+For the input
+
+```typescript
+export const foobar1 = (): string => {
+    return "foobar1";
+};
+```
+
+both Processor and Transformer addons yield the following JavaScript output
+
+```typescript
+export const barfoo1 = () => {
+    return "foobar1";
+};
+```
+
+but the Processor Addon will yield
+
+**Processor .d.ts**
+
+```typescript
+export declare const barfoo1: () => string;
+```
+
+while the Transformer Addon will yield
+
+**Transformer .d.ts**
+
+```typescript
+// The signature of foobar has not been transformed.
+export declare const foobar1: () => string;
+```
+
 ### TargetPostTransformer
 
 TargetPostTransformer follow the same approach as `Generator` but are executed after the compilation has been finished.
@@ -361,7 +359,7 @@ The difference is that they are executed executed only once **per target**, not 
 
 **tag-collector-transformer/addon.ts**
 
-```javascript
+```typescript
 import { AddonContext, TargetPostTransformer } from "@websmith/addon-api";
 import ts from "typescript";
 import { createTransformerFactory, getOutputFilePath } from "./target-post-transformer";
@@ -393,7 +391,7 @@ const createTargetPostTransformer =
 
 **tag-collector-transformer/target-post-transformer.ts**
 
-```javascript
+```typescript
 import { join } from "path";
 import ts from "typescript";
 
@@ -409,17 +407,13 @@ export const getOutputFilePath = (outputDirectory: string) => join(outputDirecto
  * Create a transformer that collects all functions and arrow functions with a // @service() comment.
  *
  * @param sys The ts.System for the transformation.
- * @param outDir The output directory for the generated files.
+ * @param outputDirectory The output directory for the generated files.
  * @returns A TS TransformerFactory.
  */
-export const createTransformerFactory = (sys: ts.System, outDir: string): ts.TransformerFactory<ts.SourceFile> => {
+export const createTransformerFactory = (sys: ts.System, outputDirectory: string): ts.TransformerFactory<ts.SourceFile> => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (sf: ts.SourceFile) => {
-            const output =
-                sys
-                    .readFile(getOutputFilePath(outDir))
-                    ?.split("\n")
-                    .filter(line => line !== undefined && line.length > 0) ?? [];
+            const outputNames = readOutputNames(sys, outputDirectory);
 
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
                 if (ts.isSourceFile(node)) {
@@ -427,11 +421,7 @@ export const createTransformerFactory = (sys: ts.System, outDir: string): ts.Tra
                 }
 
                 if (isAnnotated(node, sf)) {
-                    if (ts.isFunctionDeclaration(node)) {
-                        output.push(`- ${node.name?.getText(sf) ?? "unknown"}`);
-                    } else if (ts.isVariableStatement(node)) {
-                        output.push(`- ${getVariableName(node, sf)}`);
-                    }
+                    addFunctionNameToOutput(node, outputNames, sf);
                 }
 
                 return node;
@@ -439,7 +429,7 @@ export const createTransformerFactory = (sys: ts.System, outDir: string): ts.Tra
 
             sf = ts.visitNode(sf, visitor);
 
-            sys.writeFile(getOutputFilePath(outDir), `${output.join("\n")}`);
+            sys.writeFile(getOutputFilePath(outputDirectory), `${outputNames.join("\n")}`);
             return sf;
         };
     };
@@ -466,44 +456,38 @@ const isAnnotated = (node: ts.Node, sf: ts.SourceFile) => {
 const getVariableName = (variableStatement: ts.VariableStatement, sf: ts.SourceFile): string => {
     return variableStatement.declarationList.declarations[0].name.getText(sf);
 };
-```
 
-#### Important Note
-
-The same TypeScript TransformerFactories we used in the `Processor` and `Generator` addons above can also be used as `Transformer` addons as we did above.
-But we must keep in mind, that `Processor` addons are executed after TypeScript has parsed the code and in essence generated the D.TS file. When using the foobarReplacer Factory for an `Transformer` addon as shown above, the resulting transformed JavaScript code will be identical to the `Processor` addon, but because we rewrite the signature of the functions (foobar1 to barfoo1), the generated D.TS file will no longer match.
-
-For the input
-
-```javascript
-export const foobar1 = (): string => {
-    return "foobar1";
+/**
+ * Gets the name of the given function node and adds it to the output name array.
+ *
+ * @param node The node to get the name from.
+ * @param outputNames The outputNames array to add the name to.
+ * @param sf The source file that contains the node.
+ */
+const addFunctionNameToOutput = (node: ts.Node, outputNames: string[], sf: ts.SourceFile) => {
+    if (ts.isFunctionDeclaration(node)) {
+        outputNames.push(`- ${node.name?.getText(sf) ?? "unknown"}`);
+    } else if (ts.isVariableStatement(node)) {
+        outputNames.push(`- ${getVariableName(node, sf)}`);
+    }
 };
-```
 
-both Processor and Transformer addons yield the following JavaScript output
+/**
+ * Reads the output names from the given output file in the output directory.
+ * 
+ * @param sys The ts.System for the file system access.
+ * @param outputDirectory The output directory for the generated files.
+ * @returns The output names array read from the output file if it exists.
+ */
+function readOutputNames(sys: ts.System, outputDirectory: string): string[] {
+    return (
+        sys
+            .readFile(getOutputFilePath(outputDirectory))
+            ?.split("\n")
+            .filter(line => line !== undefined && line.length > 0) ?? []
+    );
+}
 
-```javascript
-export const barfoo1 = () => {
-    return "foobar1";
-};
-```
-
-but the Processor Addon will yield
-
-**Processor .d.ts**
-
-```javascript
-export declare const barfoo1: () => string;
-```
-
-while the Transformer Addon will yield
-
-**Transformer .d.ts**
-
-```javascript
-// The signature of foobar has not been transformed.
-export declare const foobar1: () => string;
 ```
 
 ## Additional Examples and Information
@@ -519,7 +503,7 @@ VisualStudio Code users can leverage the extension [TypeScript AST Explorer](htt
 
 Websmith uses a `Reporter` to communicate info, warning and error messages while respecting the current debug option. `context.getReporter()` can be used on the context in your activate function to access this reporter.
 
-```javascript
+```typescript
 export const createTransformer = (fileName: string, content: string, ctx: AddonContext): string => {
     if (content === "") {
         ctx.getReporter().reportDiagnostic(new ErrorMessage(`No content to transform for ${fileName}`));
@@ -594,7 +578,7 @@ as well as requesting
 - the current target
 - the up to date input file content.
 
-```javascript
+```typescript
 export interface AddonContext<O extends TargetConfig = any> {
     /**
      * The system to use for the interaction with the file system.
@@ -699,4 +683,53 @@ const createProcessor =
         const generatorTimestamp = content.replace("file updated: ").trim();
         console.log(`${fileName} generator was executed ${Date.parse(generatorTimestamp)}ms ago`);
     };
+```
+
+
+## Addon execution flow
+
+```plantuml
+@startuml
+participant compiler
+collections AddonContext
+entity sourceCode
+collections sourceFiles
+collections generators
+collections processors
+collections transformers
+collections targetPostTransformers
+boundary TypeScript
+boundary System
+
+    create sourceCode
+    create AddonContext
+    compiler -> AddonContext: compile
+    activate AddonContext
+    loop for each target
+        loop for each source code file
+            AddonContext -> AddonContext: read(fileName)
+            create sourceFiles
+            AddonContext -> sourceFiles: create 
+            activate sourceFiles
+            loop for each Generator
+                sourceFiles -> generators: generate(fileName, sourceCode)
+            end
+            loop for each Processor
+                sourceFiles -> processors: sourceCode = processor(fileName, sourceCode)
+            end
+            processors --> AddonContext: updatedSourceCode
+            loop for each Transformer
+                sourceFiles -> transformers: merge(mergedTransformers, transformer)
+            end
+            transformers --> AddonContext: mergedTransformers
+            sourceFiles -> TypeScript: emit(fileName, mergedTransformers)
+            TypeScript --> AddonContext: OutputFiles[]
+            AddonContext -> System: writeOutput()
+            deactivate sourceFiles
+        end
+        AddonContext -> targetPostTransformers: executePostTransformers(allSourceFiles)
+        AddonContext --> compiler: OutputFiles[]
+    end
+    deactivate AddonContext
+@enduml
 ```

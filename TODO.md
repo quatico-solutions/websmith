@@ -24,7 +24,7 @@
 ## Development
 
 -   [ ] Fix Warn / Error messages (diagnostic does not provide them in CLI mode)
--   [ ] Reimplement Watch Mode
+-   [ ] Reimplement Watch Mode (does not compile; watches files multiple times)
 
 ## Documentation
 
