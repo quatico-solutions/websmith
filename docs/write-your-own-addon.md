@@ -726,7 +726,9 @@ boundary System
             AddonContext -> System: writeOutput()
             deactivate sourceFiles
         end
-        AddonContext -> targetPostTransformers: executePostTransformers(allSourceFiles)
+        loop for each TargetPostTransformer
+            AddonContext -> targetPostTransformers: executePostTransformers(allSourceFiles)
+        end
         AddonContext --> compiler: OutputFiles[]
     end
     deactivate AddonContext

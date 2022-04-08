@@ -28,7 +28,6 @@
         "@types/node": "16",
         "@typescript-eslint/eslint-plugin": "^5.17.0",
         "@typescript-eslint/parser": "^5.17.0",
-        "@qs/magellan-compiler": "0.3.1",
         "@websmith/addon-api": "^0.0.1",
         "@websmith/compiler": "^0.0.1",
         "concurrently": "7.1.0",

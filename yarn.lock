@@ -904,29 +904,6 @@
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/@protobufjs/utf8/-/utf8-1.1.0.tgz#a777360b5b39a1a2e5106f8e858f2fd2d060c570"
   integrity sha1-p3c2C1s5oaLlEG+OhY8v0tBgxXA=
 
-"@qs/magellan-client@^0.3.1":
-  version "0.3.1"
-  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/@qs/magellan-client/-/@qs/magellan-client-0.3.1.tgz#1f0602fee5b3913878d347fc37a030cbfaaf1759"
-  integrity sha1-HwYC/uWzkTh400f8N6Awy/qvF1k=
-  dependencies:
-    "@qs/magellan-shared" "^0.3.1"
-
-"@qs/magellan-compiler@0.3.1":
-  version "0.3.1"
-  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/@qs/magellan-compiler/-/@qs/magellan-compiler-0.3.1.tgz#cce138dc7495f788a7f3d64ad0b7a12678f8e6d0"
-  integrity sha1-zOE43HSV94in89ZK0LehJnj45tA=
-  dependencies:
-    "@qs/magellan-client" "^0.3.1"
-    tslib "^2.3.1"
-    typescript "~4.4.4"
-
-"@qs/magellan-shared@^0.3.1":
-  version "0.3.1"
-  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/@qs/magellan-shared/-/@qs/magellan-shared-0.3.1.tgz#74e1cd4d7e83b10efd76d90ca9d003abff74c10d"
-  integrity sha1-dOHNTX6DsQ79dtkMqdADq/90wQ0=
-  dependencies:
-    sializer "0.2.0"
-
 "@sinonjs/commons@^1.7.0":
   version "1.8.3"
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/@sinonjs/commons/-/commons-1.8.3.tgz#3802ddd21a50a949b6721ddd72da36e67e7f1b2d"
@@ -1557,11 +1534,6 @@ balanced-match@^1.0.0:
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/balanced-match/-/balanced-match-1.0.2.tgz#e83e3a7e3f300b34cb9d87f615fa0cbf357690ee"
   integrity sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==
 
-base64-js@^1.3.1:
-  version "1.5.1"
-  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
-  integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
-
 base@^0.11.1:
   version "0.11.2"
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/base/-/base-0.11.2.tgz#7bde5ced145b6d551a90db87f83c558b4eb48a8f"
@@ -1645,14 +1617,6 @@ buffer-from@^1.0.0:
   version "1.1.2"
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/buffer-from/-/buffer-from-1.1.2.tgz#2b146a6fd72e80b4f55d255f35ed59a3a9a41bd5"
   integrity sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==
-
-buffer@^5.6.0:
-  version "5.7.1"
-  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/buffer/-/buffer-5.7.1.tgz#ba62e7c13133053582197160851a8f648e99eed0"
-  integrity sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==
-  dependencies:
-    base64-js "^1.3.1"
-    ieee754 "^1.1.13"
 
 cache-base@^1.0.1:
   version "1.0.1"
@@ -3059,11 +3023,6 @@ iconv-lite@0.4.24:
   integrity sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==
   dependencies:
     safer-buffer ">= 2.1.2 < 3"
-
-ieee754@^1.1.13:
-  version "1.2.1"
-  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/ieee754/-/ieee754-1.2.1.tgz#8eb7a10a63fff25d15a57b001586d177d1b0d352"
-  integrity sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==
 
 ignore@^5.1.1, ignore@^5.1.2, ignore@^5.1.8, ignore@^5.2.0:
   version "5.2.0"
@@ -5453,14 +5412,6 @@ shellwords@^0.1.1:
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/shellwords/-/shellwords-0.1.1.tgz#d6b9181c1a48d397324c84871efbcfc73fc0654b"
   integrity sha512-vFwSUfQvqybiICwZY5+DAWIPLKsWO31Q91JSKl3UYv+K5c2QRPzn0qzec6QPu1Qc9eHYItiP3NdJqNVqetYAww==
 
-sializer@0.2.0:
-  version "0.2.0"
-  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/sializer/-/sializer-0.2.0.tgz#fb470dbaf39543f0859243a296ac8cc752bc3e08"
-  integrity sha512-GUc4IFhycUCd8xzlo/7Jci0fu1KMDNu05CTjigVv07svKAeLRQrV+wlmO4gHEyTHcIm7vCc3rwy4S1Yi5dSz+w==
-  dependencies:
-    buffer "^5.6.0"
-    utfz-lib "^0.2.0"
-
 side-channel@^1.0.4:
   version "1.0.4"
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/side-channel/-/side-channel-1.0.4.tgz#efce5c8fdc104ee751b25c58d4290011fa5ea2cf"
@@ -5941,7 +5892,7 @@ tslib@^1.8.1, tslib@^1.9.0:
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/tslib/-/tslib-1.14.1.tgz#cf2d38bdc34a134bcaf1091c41f6619e2f672d00"
   integrity sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==
 
-tslib@^2.0.3, tslib@^2.3.1:
+tslib@^2.0.3:
   version "2.3.1"
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/tslib/-/tslib-2.3.1.tgz#e8a335add5ceae51aa261d32a490158ef042ef01"
   integrity sha512-77EbyPPpMz+FRFRuAFlWMtmgUWGe9UOG2Z25NqCwiIjRhOf5iKGuzSe5P2w1laq+FkRy4p+PCuVkJSGkzTEKVw==
@@ -6019,11 +5970,6 @@ typescript@^3.8.3:
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/typescript/-/typescript-3.9.10.tgz#70f3910ac7a51ed6bef79da7800690b19bf778b8"
   integrity sha512-w6fIxVE/H1PkLKcCPsFqKE7Kv7QUwhU8qQY2MueZXWx5cPZdwFupLgKK3vntcK98BtNHZtAF4LA/yl2a7k8R6Q==
 
-typescript@~4.4.4:
-  version "4.4.4"
-  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/typescript/-/typescript-4.4.4.tgz#2cd01a1a1f160704d3101fd5a58ff0f9fcb8030c"
-  integrity sha512-DqGhF5IKoBl8WNf8C1gu8q0xZSInh9j1kJJMqT3a94w1JzVaBU4EXOSMrz9yDqMT0xt3selp83fuFMQ0uzv6qA==
-
 unbox-primitive@^1.0.1:
   version "1.0.1"
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/unbox-primitive/-/unbox-primitive-1.0.1.tgz#085e215625ec3162574dc8859abee78a59b14471"
@@ -6080,11 +6026,6 @@ use@^3.1.0:
   version "3.1.1"
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/use/-/use-3.1.1.tgz#d50c8cac79a19fbc20f2911f56eb973f4e10070f"
   integrity sha512-cwESVXlO3url9YWlFW/TA9cshCEhtu7IKJ/p5soJ/gGpj7vbvFrAY/eIioQ6Dw23KjZhYgiIo8HOs1nQ2vr/oQ==
-
-utfz-lib@^0.2.0:
-  version "0.2.0"
-  resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/utfz-lib/-/utfz-lib-0.2.0.tgz#b5cb799d72ced7e0600684465bd1f8ec10f620c5"
-  integrity sha512-wQhMpAJhwFesoBEkGg44GsDL4Hi09tXvSWLIwh5HKXZkSN1Tc30ZlDH24DEoISz+fKoJTsLjcwd2zM6lAhXQvA==
 
 util-arity@^1.1.0:
   version "1.1.0"
