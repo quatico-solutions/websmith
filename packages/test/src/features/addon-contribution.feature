@@ -25,9 +25,9 @@ Feature: Feature: Addon contribution
         # export const activate = (ctx: CompilationContext) => {
         #     // TODO: Provide implementation
         # };
-        Given Folder "./addons" contains addon examples "foobar-replacer"
+        Given Folder "./addons" contains addon examples "export-yaml-generator"
         When User calls command "websmith"
-        Then Addons "foobar-replacer" should be activated in compilation
+        Then Addons "export-yaml-generator" should be activated in compilation
         And A YAML file is emitted containing names of all exported module members
 
     @skip
