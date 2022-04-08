@@ -12,7 +12,9 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { AddonContext } from "@websmith/addon-api";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { dirname } from "path";
 import ts from "typescript";
 
 /**
@@ -94,8 +96,15 @@ const getName = (node: ts.Node): string => {
  * @returns The content of the file or empty string if the file does not exist.
  */
 const getOrCreateFile = (filePath: string): string => {
+    if (!existsSync(dirname(filePath))) {
+        mkdirSync(dirname(filePath), { recursive: true });
+    }
     if (!existsSync(filePath)) {
         writeFileSync(filePath, "");
     }
     return readFileSync(filePath).toString();
+};
+
+export const resetOutput = (ctx: AddonContext): void => {
+    ctx.getSystem().writeFile(ctx.getSystem().resolvePath(OUTPUT_FILE_PATH), "");
 };
