@@ -19,3 +19,16 @@
 -   [ ] Depict scope: injectStyles, generate-docs (mixins, properties), generate-snippets (scss, css), optimize CSS styles
 -   [ ] Picture compilation process w/ targets, transformers, plugins
 -   [ ] Describe API for AST Transformers
+ 
+
+## Development
+
+-   [ ] Fix Warn / Error messages (diagnostic does not provide them in CLI mode)
+-   [ ] Reimplement Watch Mode
+
+## Documentation
+
+-   [ ] Getting started with devDependencies etc
+-   [ ] CompilerConfig
+-   [ ] CompilationConfig
+-   [ ] TargetConfig and how to access it through AddonContext
