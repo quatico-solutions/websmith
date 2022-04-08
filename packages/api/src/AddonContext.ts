@@ -25,6 +25,7 @@ export interface AddonContext<O extends TargetConfig = any> {
     getConfig(): ts.ParsedCommandLine;
     getReporter(): Reporter;
     getTargetConfig(): O;
+    getFileContent(fileName: string): string;
 
     /**
      * Registers a generator with this context.

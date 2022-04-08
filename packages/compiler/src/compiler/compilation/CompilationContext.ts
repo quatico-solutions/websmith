@@ -86,6 +86,10 @@ export class CompilationContext implements AddonContext<any> {
         return this.config ?? {};
     }
 
+    public getFileContent(fileName: string): string {
+        return this.cache.getCachedFile(fileName).content;
+    }
+
     public getCache(): FileCache {
         return this.cache;
     }

@@ -37,6 +37,11 @@ class CompilationContextTestClass extends CompilationContext {
     public getTargetPostTransformers() {
         return this.targetPostTransformers;
     }
+
+    public addFile(fileName: string, content: string):this {
+        this.getCache().updateSource(fileName, content);
+        return this;
+    }
 }
 
 let testObj: CompilationContextTestClass;
@@ -70,6 +75,22 @@ describe("registerTargetPostTransformer", () => {
         testObj.registerTargetPostTransformer(target).registerTargetPostTransformer(target);
 
         expect(testObj.getTargetPostTransformers()).toEqual([target, target]);
+    });
+});
+
+describe('getFileContent', () => {
+    it('should be "expected" w/ file in cache', () => {
+       testObj.addFile("test.ts", "expected");
+
+       const actual = testObj.getFileContent("test.ts");
+
+       expect(actual).toBe("expected");
+    });
+
+    it('should be empty w/o file in cache', () => {
+        const actual = testObj.getFileContent("test.ts");
+
+        expect(actual).toBe("");
     });
 });
 
