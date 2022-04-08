@@ -2,7 +2,7 @@ Feature: Feature: Addon contribution
 
     Developers can provide compiler addons by placing ES modules with an "addon.ts"
     in the addons folder. Every addon needs to export an "activate" function that
-    receives a "CompilationContext". Addons can register generator, pre-emit
+    receives a "AddonContext". Addons can register generator, pre-emit
     transformer or emit transformer functions.
 
     Scenario: Run Compiler with all addons in default directory
@@ -17,14 +17,6 @@ Feature: Feature: Addon contribution
 
     @skip
     Scenario: Provide a generator addon in default addons directory
-        # // ./addons/doc-generator/addons.ts
-        # import { CompilationContext } from "@websmith/addon-api";
-        # /**
-        #  * Generates a YAML file with all exported module members
-        #  */
-        # export const activate = (ctx: CompilationContext) => {
-        #     // TODO: Provide implementation
-        # };
         Given Folder "./addons" contains addon examples "export-yaml-generator"
         And A test project "test-project-one" is provided
         When User calls command "websmith"

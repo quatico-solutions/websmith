@@ -16,11 +16,10 @@
 import path from "path";
 import { ReporterMock } from "../../../test";
 import { createBrowserSystem } from "../../environment";
-import { CompilationContext } from "../compilation";
 import { createResolver } from "./addon-resolver";
 
 beforeAll(() => {
-    jest.mock(path.normalize(`${__dirname}/../addons/one/addon`), () => ({ activate: (context: CompilationContext) => undefined }), {
+    jest.mock(path.normalize(`${__dirname}/../addons/one/addon`), () => ({ activate: () => undefined }), {
         virtual: true,
     });
 

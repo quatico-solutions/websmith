@@ -12,8 +12,8 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { CompilationContext } from "../compilation";
+import { AddonContext } from "@websmith/addon-api";
 
 export interface AddonActivator {
-    (ctx: CompilationContext): void;
+    (ctx: AddonContext): void;
 }

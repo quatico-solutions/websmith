@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import type { TargetConfig } from "../compilation";
+import type { TargetConfig } from "@websmith/addon-api";
 
 export type CompilationConfig = {
     // TODO: Rename to CompilationConfig

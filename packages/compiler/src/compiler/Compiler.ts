@@ -13,16 +13,16 @@
  * with Quatico.
  */
 
+import { ErrorMessage, Reporter, TargetConfig } from "@websmith/addon-api";
+import { existsSync } from "fs";
 import { dirname, extname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
-import { ErrorMessage, Reporter } from "@websmith/addon-api";
 import { createSystem, recursiveFindByFilter } from "../environment";
 import { concat } from "./collections";
-import { CompilationContext, CompilationHost, createSharedHost, TargetConfig } from "./compilation";
+import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
 import { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
-import { existsSync } from "fs";
 
 export type CompileFragment = {
     version: number;
@@ -168,7 +168,6 @@ export class Compiler {
     }
 
     protected emitSourceFile(fileName: string, target: string, writeFile = false): CompileFragment {
-        // FIXME: CompilationContext <=> LanguageServiceHost <=> CompilationTarget
         const filePath = resolve(fileName);
         const ctx = this.contextMap.get(target);
         const cache = ctx?.getCache();

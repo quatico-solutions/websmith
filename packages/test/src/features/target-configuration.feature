@@ -20,9 +20,9 @@ Feature: Target configuration
         # }
         #
         # // ./addons/foobar-transformer/addon.ts
-        # import { CompilationContext } from "@websmith/addon-api";
+        # import { AddonContext } from "@websmith/addon-api";
         #
-        # export const activate = (ctx: CompilationContext<FoobarTransformerConfig>) => {
+        # export const activate = (ctx: AddonContext<FoobarTransformerConfig>) => {
         #     const { substitute } = ctx.getTargetConfig();
         #     ctx.registerEmitTransformer({
         #         before: [createFoobarTransformer(substitute)],

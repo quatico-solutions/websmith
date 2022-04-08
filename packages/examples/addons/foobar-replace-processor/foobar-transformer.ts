@@ -33,9 +33,6 @@ export const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
                     if (identifier.match(/foobar/gi)) {
                         return ctx.factory.createIdentifier(identifier.replace(/foobar/gi, "barfoo"));
                     }
-                    if (identifier.match(/barfoo/gi)) {
-                        return ctx.factory.createIdentifier(identifier.replace(/barfoo/gi, "foobar"));
-                    }
                 }
                 return ts.visitEachChild(node, visitor, ctx);
             };

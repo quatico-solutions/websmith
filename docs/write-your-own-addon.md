@@ -15,7 +15,7 @@
 
 # Write your own addon
 
-Inside your addons directory, create a directory that contains a file `addon.ts`. This file is called the addon activator and it requires a function `activate(ctx: CompilationContext)`. The activator is called before the compilation process to register the addon in the appropriate step during the compilation process.
+Inside your addons directory, create a directory that contains a file `addon.ts`. This file is called the addon activator and it requires a function `activate(ctx: AddonContext)`. The activator is called before the compilation process to register the addon in the appropriate step during the compilation process.
 
 You can register several kinds of addons: `Generator`, `Processor`, `Transformer` and `TargetPostTransformer`
 

@@ -35,14 +35,14 @@ Addons can be used to define additional source code transformations, to integrat
 
 ### Nature of an addon
 
-An addon is an JavaScript module that is a directory containing a file named `addon.ts` or `addon.js`. This file must have an exported function named `activate` that takes a `CompilationContext` as its only parameter. The `activate` function is called when the compilation process is started.
+An addon is an JavaScript module that is a directory containing a file named `addon.ts` or `addon.js`. This file must have an exported function named `activate` that takes a `AddonContext` as its only parameter. The `activate` function is called when the compilation process is started.
 
 ```javascript
 // ./addons/foobar-transformer/addon.ts
-import { CompilationContext } from '@websmith/addon-api';
+import { AddonContext } from '@websmith/addon-api';
 import ts from "typescript";
 
-export const activate = (ctx: CompilationContext) => {
+export const activate = (ctx: AddonContext) => {
     // e.g. add a new transformer
     ctx.registerTransformer("before", () => (sf: ts.SourceFile): ts.SourceFile => {
         return ts.visitNode(sf, (node) => {
