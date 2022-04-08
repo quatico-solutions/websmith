@@ -26,9 +26,10 @@ Feature: Feature: Addon contribution
         #     // TODO: Provide implementation
         # };
         Given Folder "./addons" contains addon examples "export-yaml-generator"
+        And A test project "test-project-one" is provided
         When User calls command "websmith"
         Then Addons "export-yaml-generator" should be activated in compilation
-        And A YAML file is emitted containing names of all exported module members
+        And A file "./dist/output.yaml" exists containing names "one, two, three"
 
     @skip
     Scenario: Provide a processor addon in default addons directory

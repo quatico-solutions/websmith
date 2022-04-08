@@ -1,7 +1,7 @@
 {
     "name": "websmith",
     "version": "0.0.1",
-    "description": "A compiler for web blocks to custom elements",
+    "description": "This project is a compiler frontend for the tsc.",
     "author": "Quatico Solutions AG",
     "license": "SEE LICENSE IN LICENSE",
     "private": true,

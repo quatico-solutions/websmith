@@ -16,7 +16,7 @@
 * **Compilation Options**: A set of parameters that control a `Compilation Target`
 * **Target Options**: A set of parameters specific to a `Compilation Target` that are part of the `Compilation Options` and that are available to addons of a `Compilation Target`.
 
-## Addon Terminilogy
+## Addon Terminology
 
 * **Addon Registry**: A repository containing the set of available `Addons` and an optionally defined map of `Compilation Target` to `Addons`
 * **Addon**: Is an addition to the `Compilation` process that applies its transformer(s) based on a compilation target.
@@ -26,4 +26,4 @@
 * **Generator** Is a source code procession that receives a source file name and content and generates additional information based on the input.
 * **Processor** Is a source to source transformation that receives a source file name and content and returns modified source file content.
 * **Transformer**: Is a TypeScript ScriptFile to ScriptFile transformation that receives a ScriptFile and returns the modified ScriptFile.
-* **TargetPostTransformer**: Is a transformation that receives the list of all source files of a target  and generates additional information for the target. 
+* **TargetPostTransformer**: Is a transformation that receives the list of all source files of a target  and generates additional information for the target.

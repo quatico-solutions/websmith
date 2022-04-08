@@ -19,7 +19,7 @@ import ts from "typescript";
 /**
  * Target file path for the generated export file.
  */
-const OUTPUT_FILE_PATH = "lib/output.yaml";
+const OUTPUT_FILE_PATH = "dist/output.yaml";
 
 /**
  * Creates a transformer that collects all names of exported functions and variables.

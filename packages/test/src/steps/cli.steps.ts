@@ -93,6 +93,10 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
         writeFileSync(modulePath, `export const ${funcName} = () => {}`);
     });
 
+    given(/^A test project "(.*)" is provided$/, (projectName: string) => {
+        copyFolderRecursiveSync(join(__dirname, "../test-data/projects/", projectName), join(projectDir));
+    });
+
     when(/^User calls command "(.*)"$/, cliCommand => {
         let command: string = cliCommand;
         if (command === "websmith") {
@@ -145,6 +149,16 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
     then("A YAML file is emitted containing names of all exported module members", () => {
         fail("Not implemented");
+    });
+
+    then(/^A file "(.*)" exists containing names "(.*)"$/, (fileName: string, contents: string) => {
+        const filePath = resolvePath(fileName);
+        const expectedElements = stringToList(contents);
+
+        const actualContent = readFileSync(filePath, "utf-8").toString();
+        expectedElements.forEach(element => {
+            expect(actualContent).toContain(element);
+        });
     });
 };
 
