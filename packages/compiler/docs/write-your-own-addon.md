@@ -65,79 +65,122 @@ end
 
 - `Generators` are executed before the compilation and enable you to act upon the unaltered input source code.
 
-#### Example: export-collector
+#### Example: export-yaml-generator
 
 The goal of the export collector is to collect all exported functions and list them in a YAML. This output can be consumed by other tools as part of a delivery process for security audit, generating additional data like processing (s)css or documentation.
 
-**exportCollector/addon.ts**
+**export-yaml-generator/addon.ts**
 
 ```javascript
-import type { AddonContext } from "@websmith/addon-api";
-import { createExportCollector } from "./export-collector";
-
-export const activate = (ctx: AddonContext) => {
-    ctx.registerGenerator((fileName, content) => createExportCollector(fileName, content, ctx));
-}
-```
-
-**exportCollector/export-collector.ts**
-
-```javascript
-import { existsSync, readFileSync, writeFileSync } from "fs";
-import { resolve } from "path";
+import { AddonContext, ErrorMessage, Generator } from "@websmith/addon-api";
 import ts from "typescript";
-import type { AddonContext } from "@websmith/addon-api";
-import { ErrorMessage } from "@websmith/addon-api"; 
+import { createTransformer, resetOutput } from "./export-transformer";
 
-export const createExportCollector = (fileName: string, content: string, ctx: AddonContext): void => {
-    const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
-    const transformResult = ts.transform(sf, [createExportCollectorFactory()], ctx.getConfig().options);
+/**
+ * Registers the generator for the given addon context.
+ *
+ * @param ctx AddonContext for the compilation.
+ */
+export const activate = (ctx: AddonContext): void => {
+    resetOutput(ctx);
+    ctx.registerGenerator(createGenerator(ctx));
+};
 
-    if (transformResult.diagnostics && transformResult.diagnostics.length > 0) {
-        transformResult.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, sf)));
+/**
+ * Generator for the export-yaml-generator addon.
+ *
+ * @param ctx
+ * @returns A websmith generator factory function.
+ */
+const createGenerator =
+(ctx: AddonContext): Generator =>
+(fileName: string, fileContent: string): void => {
+    const file = ts.createSourceFile(fileName, fileContent, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
+    const result = ts.transform(file, [createTransformer(ctx.getSystem())], ctx.getConfig().options);
+    
+    if (result.diagnostics && result.diagnostics.length > 0) {
+        result.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, file)));
     }
-
-    if (transformResult.transformed.length < 1) {
-        ctx.getReporter().reportDiagnostic(new ErrorMessage(`exportCollector failed for ${fileName} without identifiable error.`, sf));
+    
+    if (result.transformed.length < 1) {
+        ctx.getReporter().reportDiagnostic(new ErrorMessage(`exportCollector failed for ${fileName} without identifiable error.`, file));
     }
 };
 
-const createExportCollectorFactory = () => {
+```
+
+**export-yaml-generator/export-transformer.ts**
+
+```javascript
+import { AddonContext } from "@websmith/addon-api";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { dirname } from "path";
+import ts from "typescript";
+
+/**
+ * Target file path for the generated export file.
+ */
+const OUTPUT_FILE_PATH = "lib/output.yaml";
+
+/**
+ * Creates a transformer that collects all names of exported functions and variables.
+ *
+ * @param system The TS system to use.
+ * @returns A TS transformer factory.
+ */
+export const createTransformer = (system: ts.System): ts.TransformerFactory<ts.SourceFile> => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
-        return (sf: ts.SourceFile) => {
-            const exportFileContent = getOrCreateOutputFile(resolve("./output.yaml"));
-            const foundDeclarations: string[] = [];
+        return (input: ts.SourceFile): ts.SourceFile => {
+            const foundDecls: string[] = [];
 
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                // Visit child nodes of source files
                 if (ts.isSourceFile(node)) {
                     return ts.visitEachChild(node, visitor, ctx);
                 }
 
+                // Collect node identifier if it is exported and a function or variable
                 if (
                     node.modifiers?.some(it => it.kind === ts.SyntaxKind.ExportKeyword) &&
                     (ts.isVariableStatement(node) || ts.isFunctionDeclaration(node))
                 ) {
-                    foundDeclarations.push(getIdentifier(node));
+                    foundDecls.push(getName(node));
                 }
 
                 return node;
             };
 
-            sf = ts.visitNode(sf, visitor);
+            input = ts.visitNode(input, visitor);
 
-            writeFileSync(resolve("./output.yaml"), getYAMLOutput(exportFileContent, sf.fileName, foundDeclarations));
-            return sf;
+            // Write collected identifiers to hard coded output file
+            writeFileSync(system.resolvePath(OUTPUT_FILE_PATH), createFileContent(input.fileName, foundDecls, system));
+            return input;
         };
     };
 };
 
-const getYAMLOutput = (exportFileContent: string, fileName: string, foundDeclarations: string[]): string => {
-    const existingFileContent = exportFileContent ? exportFileContent + "\n" : "";
-    const exportedDeclarations = foundDeclarations.length > 0 ? `\nexports: [${foundDeclarations.join(",")}]\n` : "";
-    return `${existingFileContent}-file: "${fileName}"${exportedDeclarations}`;
+/**
+ * Appends the given names to the output file.
+ *
+ * @param filePath The path to the file.
+ * @param names The names to append.
+ * @param system The TS system to use.
+ * @returns The new content to append to the file.
+ */
+const createFileContent = (filePath: string, names: string[], system: ts.System): string => {
+    const fileContent = getOrCreateFile(system.resolvePath(OUTPUT_FILE_PATH));
+    const existingFileContent = fileContent ? `${fileContent}\n` : "";
+    const exports = names.length > 0 ? `\nexports: [${names.join(",")}]\n` : "";
+    return `${existingFileContent}-file: "${filePath}"${exports}`;
 };
 
-const getIdentifier = (node: ts.FunctionDeclaration | ts.VariableStatement): string => {
+/**
+ * Returns identifier for function or variable declaration, or empty string for nodes of different types.
+ *
+ * @param node The node to get the name from.
+ * @returns Node name or empty string.
+ */
+const getName = (node: ts.Node): string => {
     if (ts.isFunctionDeclaration(node)) {
         return node.name?.getText() ?? "unknown";
     } else if (ts.isVariableStatement(node)) {
@@ -146,12 +189,26 @@ const getIdentifier = (node: ts.FunctionDeclaration | ts.VariableStatement): str
     return "";
 };
 
-const getOrCreateOutputFile = (fileName: string): string => {
-    if (!existsSync(fileName)) {
-        writeFileSync(fileName, "");
+/**
+ * Returns the content of the file or creates a new file if it does not exist.
+ *
+ * @param filePath The path to the file.
+ * @returns The content of the file or empty string if the file does not exist.
+ */
+const getOrCreateFile = (filePath: string): string => {
+    if (!existsSync(dirname(filePath))) {
+        mkdirSync(dirname(filePath), { recursive: true });
     }
-    return readFileSync(fileName).toString();
+    if (!existsSync(filePath)) {
+        writeFileSync(filePath, "");
+    }
+    return readFileSync(filePath).toString();
 };
+
+export const resetOutput = (ctx: AddonContext): void => {
+    ctx.getSystem().writeFile(ctx.getSystem().resolvePath(OUTPUT_FILE_PATH), "");
+};
+
 ```
 
 ### Processors
@@ -161,49 +218,62 @@ It is possible to use ts.Transform in `Processors` to reuse existing TypeScript 
 
 > Note: Processors are executed one by one unlike Transformers, that are merged and yield a single TypeScript execution.
 
-**foobarReplacer/addon.ts**
+#### Example: foobar-replace-processor
+
+**foobar-replace-processor/addon.ts**
 
 ```javascript
-import type { AddonContext } from "@websmith/addon-api";
-import { createFoobarReplacerTransformer } from "./foobar-replacer";
+import { AddonContext, ErrorMessage, Processor } from "@websmith/addon-api";
+import ts from "typescript";
+import { createTransformer } from "./foobar-transformer";
 
 export const activate = (ctx: AddonContext): void => {
-    ctx.registerProcessor((fileName, content) => createFoobarReplacerProcessor(fileName, content, ctx));
+    ctx.registerProcessor(createProcessor(ctx));
 };
+
+/**
+ * Creates a processor that uses a TS transformer to replace every found "foobar" identifier with "barfoo".
+ *
+ * @param ctx The addon context for the compilation.
+ * @returns A websmith processor factory function.
+ */
+const createProcessor =
+    (ctx: AddonContext): Processor =>
+    (fileName: string, content: string): string => {
+        const file = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
+        const result = ts.transform(file, [createTransformer()], ctx.getConfig().options);
+        if (result.diagnostics && result.diagnostics.length > 0) {
+            result.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, file)));
+            return "";
+        }
+        if (result.transformed.length > 0) {
+            return ts.createPrinter().printFile(result.transformed[0]);
+        }
+        ctx.getReporter().reportDiagnostic(new ErrorMessage(`Foobar-Replacer failed for ${fileName} without identifiable error.`, file));
+        return "";
+    };
 
 ```
 
-**foobarReplacer/foobar-replacer.ts**
+**foobar-replace-processor/foobar-transformer.ts**
 
 ```javascript
 import ts from "typescript";
-import type { AddonContext } from "@websmith/addon-api";
-import { ErrorMessage } from "@websmith/addon-api"; 
 
-export const createFoobarReplacerProcessor = (fileName: string, content: string, ctx: AddonContext): string => {
-    const sf = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
-    const transformResult = ts.transform(sf, [createFoobarReplacerFactory()], ctx.getConfig().options);
-    if (transformResult.diagnostics && transformResult.diagnostics.length > 0) {
-        transformResult.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, sf)));
-        return "";
-    }
-
-    if (transformResult.transformed.length > 0) {
-        return ts.createPrinter().printFile(transformResult.transformed[0]);
-    }
-
-    ctx.getReporter().reportDiagnostic(new ErrorMessage(`foobarReplacer failed for ${fileName} without identifiable error.`, sf));
-    return "";
-};
-
-export const createFoobarReplacerFactory = () => {
+/**
+ * Create a transformer that replaces every "foobar" identifier with "barfoo".
+ *
+ * @returns A TS transformer factory.
+ */
+export const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (sf: ts.SourceFile) => {
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                // Visit child nodes of source files
                 if (ts.isSourceFile(node)) {
                     return ts.visitEachChild(node, visitor, ctx);
                 }
-
+                // Replace foobar with barfoo identifiers
                 if (ts.isIdentifier(node)) {
                     const identifier = node.getText();
                     if (identifier.match(/foobar/gi)) {
@@ -213,40 +283,175 @@ export const createFoobarReplacerFactory = () => {
                         return ctx.factory.createIdentifier(identifier.replace(/barfoo/gi, "foobar"));
                     }
                 }
-
                 return ts.visitEachChild(node, visitor, ctx);
             };
-
             return ts.visitNode(sf, visitor);
         };
     };
 };
+
 ```
 
 ### Transformer
 
 Transformer follow the standard TypeScript `ts.CustomTransformers` approach, providing a factory that takes in a TransformationContext and returning a Transformer for SourceFiles.
 
-**foobarReplaceTransformer/addon.ts**
+#### Example: foobar-replace-transformer
+
+**foobar-replace-transformer/addon.ts**
 
 ```javascript
 import { AddonContext } from "@websmith/addon-api";
-import { createFoobarReplacerFactory } from "../foobarReplacer/foobar-replacer";
+import ts from "typescript";
 
 export const activate = (ctx: AddonContext): void => {
-    ctx.registerTransformer({ before: [createFoobarReplacerFactory()] });
+    ctx.registerTransformer({ before: [createTransformer()] });
 };
+
+/**
+ * Create a transformer that replaces every "foobar" identifier with "barfoo".
+ *
+ * @returns A TS transformer factory.
+ */
+export const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
+    return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
+        return (sf: ts.SourceFile) => {
+            const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                // Visit child nodes of source files
+                if (ts.isSourceFile(node)) {
+                    return ts.visitEachChild(node, visitor, ctx);
+                }
+                // Replace foobar with barfoo identifiers
+                if (ts.isIdentifier(node)) {
+                    const identifier = node.getText();
+                    if (identifier.match(/foobar/gi)) {
+                        return ctx.factory.createIdentifier(identifier.replace(/foobar/gi, "barfoo"));
+                    }
+                    if (identifier.match(/barfoo/gi)) {
+                        return ctx.factory.createIdentifier(identifier.replace(/barfoo/gi, "foobar"));
+                    }
+                }
+                return ts.visitEachChild(node, visitor, ctx);
+            };
+            return ts.visitNode(sf, visitor);
+        };
+    };
+};
+
 ```
 
 ### TargetPostTransformer
-**targetAddon/addon.ts**
+
+TargetPostTransformer follow the same approach as `Generator` but are executed after the compilation has been finished.
+The difference is that they are executed executed only once **per target**, not once **per file**.
+
+#### Example: tag-collector-transformer
+
+**tag-collector-transformer/addon.ts**
+
 ```javascript
-// FIXME: TO BE ADDED
+import { AddonContext } from "@websmith/addon-api";
+import { createTargetPostTransformer } from "./target-post-transformer";
+
+export const activate = (ctx: AddonContext) => {
+    ctx.registerTargetPostTransformer((fileNames: string[]) => createTargetPostTransformer(fileNames, ctx));
+};
 ```
 
-**targetAddon/targetProcessor.ts**
+**tag-collector-transformer/target-post-transformer.ts**
+
 ```javascript
-// FIXME: TO BE ADDED
+import { AddonContext } from "@websmith/addon-api";
+import { join } from "path";
+import ts from "typescript";
+
+/**
+ * Gets the output file path for the given output directory.
+ *
+ * @param outDir The output directory for the generated files.
+ * @returns The output file path.
+ */
+const getOutputFilePath = (outDir: string) => join(outDir, "annotatedFunctions.yaml");
+
+/**
+ * Creates a TargetPostProcessor that collects all functions and arrow functions with a // @service() comment.
+ *
+ * @param fileNames The file names of the current target to process.
+ * @param ctx The addon context for the compilation.
+ * @returns A websmith TargetPostTransformer factory function.
+ */
+export const createTargetPostTransformer = (fileNames: string[], ctx: AddonContext) => {
+    const outDir = ctx.getConfig().options.outDir ?? process.cwd();
+    ctx.getSystem().writeFile(join(outDir, "serviceFunctions.yaml"), "");
+    fileNames
+        .filter(fn => fn.match(/\.tsx?/gi))
+        .map(fn => {
+            const sf = ts.createSourceFile(fn, ctx.getFileContent(fn), ctx.getConfig().options.target ?? ts.ScriptTarget.Latest);
+            ts.transform(sf, [createTransformerFactory(ctx.getSystem(), outDir)], ctx.getConfig().options);
+        });
+};
+
+/**
+ * Create a transformer that collects all functions and arrow functions with a // @service() comment.
+ *
+ * @param sys The ts.System for the transformation.
+ * @param outDir The output directory for the generated files.
+ * @returns A TS TransformerFactory.
+ */
+const createTransformerFactory = (sys: ts.System, outDir: string): ts.TransformerFactory<ts.SourceFile> => {
+    return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
+        return (sf: ts.SourceFile) => {
+            const output =
+                sys
+                    .readFile(getOutputFilePath(outDir))
+                    ?.split("\n")
+                    .filter(line => line !== undefined && line.length > 0) ?? [];
+
+            const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                if (ts.isSourceFile(node)) {
+                    ts.visitEachChild(node, visitor, ctx);
+                }
+
+                if (isAnnotated(node, sf)) {
+                    if (ts.isFunctionDeclaration(node)) {
+                        output.push(`- ${node.name?.getText(sf) ?? "unknown"}`);
+                    } else if (ts.isVariableStatement(node)) {
+                        output.push(`- ${getVariableName(node, sf)}`);
+                    }
+                }
+
+                return node;
+            };
+
+            sf = ts.visitNode(sf, visitor);
+
+            sys.writeFile(getOutputFilePath(outDir), `${output.join("\n")}`);
+            return sf;
+        };
+    };
+};
+
+/**
+ * Checks if the given node is annotated with a // @annotated() comment.
+ * 
+ * @param node The node to check.
+ * @param sf The source file that contains the node.
+ * @returns True if the node is annotated with a @annotated() comment.
+ */
+const isAnnotated = (node: ts.Node, sf: ts.SourceFile) => {
+    return node.getFullText(sf).match(/\/\/.*@annotated\(.*\)/gi);
+};
+
+/**
+ * Gets the name of the given variable statement.
+ *
+ * @param variableStatement The TS VariableStatement to get the name from.
+ * @param sf The TS SourceFile that contains this variable statement.
+ * @returns The name of the variable in the given statement.
+ */
+const getVariableName = (variableStatement: ts.VariableStatement, sf: ts.SourceFile): string => {
+    return variableStatement.declarationList.declarations[0].name.getText(sf);
+};
 ```
 
 #### Important Note
@@ -312,6 +517,7 @@ export const createTransformer = (fileName: string, content: string, ctx: AddonC
 ```
 
 ### API
+
 ```javascript
 interface Reporter {
     reportDiagnostic(DiagnosticMessage): void

@@ -1,3 +1,17 @@
+/*
+ * @license
+ *
+ * Copyright (c) 2017-2022 Quatico Solutions AG
+ * Förrlibuckstrasse 220, 8005 Zurich, Switzerland
+ *
+ * All Rights Reserved.
+ *
+ * This software is the confidential and proprietary information of
+ * Quatico Solutions AG, ("Confidential Information"). You shall not
+ * disclose such Confidential Information and shall use it only in
+ * accordance with the terms of the license agreement you entered into
+ * with Quatico.
+ */
 import { AddonContext } from "@websmith/addon-api";
 import { join } from "path";
 import ts from "typescript";
@@ -68,6 +82,13 @@ const createTransformerFactory = (sys: ts.System, outDir: string): ts.Transforme
     };
 };
 
+/**
+ * Checks if the given node is annotated with a // @annotated() comment.
+ * 
+ * @param node The node to check.
+ * @param sf The source file that contains the node.
+ * @returns True if the node is annotated with a @annotated() comment.
+ */
 const isAnnotated = (node: ts.Node, sf: ts.SourceFile) => {
     return node.getFullText(sf).match(/\/\/.*@annotated\(.*\)/gi);
 };
