@@ -95,7 +95,7 @@ const addFunctionNameToOutput = (node: ts.Node, outputNames: string[], sf: ts.So
 
 /**
  * Reads the output names from the given output file in the output directory.
- * 
+ *
  * @param sys The ts.System for the file system access.
  * @param outputDirectory The output directory for the generated files.
  * @returns The output names array read from the output file if it exists.

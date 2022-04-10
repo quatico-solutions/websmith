@@ -13,4 +13,13 @@
  * with Quatico.
  */
 
+/**
+ * Generators consume the unmodified source file and can create
+ * additional source input or other output files unrelated to the
+ * following compilation process. Generators are executed before all
+ * other Addon types and thus before the actual compilation.
+ *
+ * Use this generator function to create additional files, such as
+ * documentation based on your source code.
+ */
 export type Generator = (fileName: string, content: string) => void;

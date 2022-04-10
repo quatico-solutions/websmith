@@ -34,11 +34,11 @@ class CompilationContextTestClass extends CompilationContext {
         return this.generators;
     }
 
-    public getTargetPostTransformers() {
-        return this.targetPostTransformers;
+    public getResultProcessors() {
+        return this.ResultProcessors;
     }
 
-    public addFile(fileName: string, content: string):this {
+    public addFile(fileName: string, content: string): this {
         this.getCache().updateSource(fileName, content);
         return this;
     }
@@ -48,7 +48,7 @@ let testObj: CompilationContextTestClass;
 
 beforeEach(() => {
     const testSystem = createBrowserSystem({});
-    const testProgram = ts.createProgram({options:{}, rootNames: []});
+    const testProgram = ts.createProgram({ options: {}, rootNames: [] });
     testObj = new CompilationContextTestClass({
         buildDir: "",
         project: {},
@@ -57,37 +57,37 @@ beforeEach(() => {
         system: testSystem,
         program: testProgram,
         tsconfig: { options: {}, fileNames: [], errors: [] },
-        target: "test"
+        target: "test",
     });
 });
 
-describe("registerTargetPostTransformer", () => {
-    it("yields new targetPostTransformer with existing targetPostTransformer", () => {
+describe("registerResultProcessor", () => {
+    it("yields new ResultProcessor with existing ResultProcessor", () => {
         const target = jest.fn();
 
-        testObj.registerTargetPostTransformer(target);
+        testObj.registerResultProcessor(target);
 
-        expect(testObj.getTargetPostTransformers()).toEqual([target]);
+        expect(testObj.getResultProcessors()).toEqual([target]);
     });
-    it("registers same targetPostTransformer twice", () => {
+    it("registers same ResultProcessor twice", () => {
         const target = jest.fn();
 
-        testObj.registerTargetPostTransformer(target).registerTargetPostTransformer(target);
+        testObj.registerResultProcessor(target).registerResultProcessor(target);
 
-        expect(testObj.getTargetPostTransformers()).toEqual([target, target]);
+        expect(testObj.getResultProcessors()).toEqual([target, target]);
     });
 });
 
-describe('getFileContent', () => {
+describe("getFileContent", () => {
     it('should be "expected" w/ file in cache', () => {
-       testObj.addFile("test.ts", "expected");
+        testObj.addFile("test.ts", "expected");
 
-       const actual = testObj.getFileContent("test.ts");
+        const actual = testObj.getFileContent("test.ts");
 
-       expect(actual).toBe("expected");
+        expect(actual).toBe("expected");
     });
 
-    it('should be empty w/o file in cache', () => {
+    it("should be empty w/o file in cache", () => {
         const actual = testObj.getFileContent("test.ts");
 
         expect(actual).toBe("");

@@ -15,7 +15,7 @@
 import ts from "typescript";
 import { Reporter } from "./Reporter";
 import { Generator } from "./Generator";
-import { TargetPostTransformer } from "./TargetPostTransformer";
+import { ResultProcessor } from "./ResultProcessor";
 import { TargetConfig } from "./TargetConfig";
 import { Processor } from "./Processor";
 
@@ -85,10 +85,10 @@ export interface AddonContext<O extends TargetConfig = any> {
     registerTransformer(transformer: ts.CustomTransformers): void;
 
     /**
-     * Registers a target post transformer function with this context. Use a `TargetPostTransformer` to manipulate the compiled output after
+     * Registers a result generator function with this context. Use a `ResultProcessor` to manipulate the compiled output after
      * the actual compilation.
      *
-     * @param transformer Function `(fileNames: string[]) => void` that is executed after the compilation of all files. Must not be null.
+     * @param generator Function `(fileNames: string[]) => void` that is executed after the compilation of all files. Must not be null.
      */
-    registerTargetPostTransformer(transformer: TargetPostTransformer): void;
+    registerResultProcessor(generator: ResultProcessor): void;
 }

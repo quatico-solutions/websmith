@@ -1,29 +1,35 @@
 # websmith
 
-This project is a compiler frontend for the [tsc](https://github.com/microsoft/TypeScript). It provides a more powerful API for applying Addons during compilation but uses the original TypeScript compiler to transpile the source files.
+This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It provides a powerful API for customizing the compilation process of the original TypeScript compiler to transpile the source files.
 
-1. Install the packages
-To install Websmith, execute the following command in your command line environment.
+## Getting started
+
+### Installation
+
+Install the following packages to add websmith to your TypeScript project. For example, execute the following command in your command line environment using `yarn`:
 
 ```bash
-yarn add typescript @websmith/compiler @websmith/cli @websmith/addon-api --dev
+yarn add typescript @websmith/cli @websmith/addon-api --dev
 ```
 
-2. Update your package.json
+### Add websmith to package.json
+
+In your package.json, add the `websmith` command as your build target to the `scripts` section:
 
  ```json
  {
-     ...
-     "scripts" :{
-         ...
+     //...
+     "scripts": {
          "build": "websmith",
-         ...
+         //...
      },
-     ...
+     //...
  }
  ```
 
-3. Build your project
+### Build your project
+
+The default configuration uses your `tsconfig.json` file to compile the TypeScript files and looks for compiler addons in the `./addons` directory.
 
 ```bash
 yarn build
@@ -31,11 +37,11 @@ yarn build
 
 ## Custom compiler addons
 
-Addons can be used to define additional source code transformations, to integrate with other compilers such as Sass or to generate extra documentation for your TS code. Addons can modify your source files before they are transpiled by the original TypeScript compiler, or simply generated additional files during the compilation process.
+websmith's compiler addons are a powerful mechanism to generate new source files or restructure module dependencies before the compilation, or transform source code during the actual compilation process. You can use it to process non TypeScript files with e.g. with Sass or PostCSS, generate documentation files for e.g. Storybook, or post process your transpiled output. Addons can modify source files before, during or after they are transpiled by the original TypeScript compiler, or consume them as input to generated additional files non-compilation related files.
 
 ### Nature of an addon
 
-An addon is an JavaScript module that is a directory containing a file named `addon.ts` or `addon.js`. This file must have an exported function named `activate` that takes a `AddonContext` as its only parameter. The `activate` function is called when the compilation process is started.
+An addon is a directory containing a JavaScript module named `addon.ts` or `addon.js`. This file must have an exported function named `activate` that takes a `AddonContext` as its only parameter. The `activate` function is called when the compilation process is started.
 
 ```javascript
 // ./addons/foobar-transformer/addon.ts
@@ -43,21 +49,21 @@ import { AddonContext } from '@websmith/addon-api';
 import ts from "typescript";
 
 export const activate = (ctx: AddonContext) => {
-    // e.g. add a new transformer
-    ctx.registerTransformer("before", () => (sf: ts.SourceFile): ts.SourceFile => {
-        return ts.visitNode(sf, (node) => {
-            if (ts.isIdentifier(node) && node.text === "foobar") {
-                return ts.createIdentifier("barfoo");
-            }
-            return node;
-        });
+    
+    // Use one of the register methods to add a generator, processor or transformer to the compilation process.
+    ctx.registerGenerator((fileName: string, content: string): void => {
+        // for example, register a source generator
+    });
+    
+    ctx.registerProcessor((fileName: string, content: string): string | never => {
+        // or, register a source processor
     });
 }
 ```
 
-### Where to place your addon code
+### Where to place your addon code?
 
-Your addon can be placed in any directory in the `./addons` directory. The `addons` directory is located in the root of the project, i.e. next to your `tsconfig.json`. The `addons` directory is not part of the TypeScript compilation process. You specify a different location for your addons with the CLI argument `--addonsDir`.
+Place your addon in a separate folder in the `./addons` directory. The folder name is used as addon name, if no explicit name is provided. The `addons` directory should be located in the root of the project, i.e. next to your `tsconfig.json`. The `addons` directory is not part of the TypeScript compilation process. You can specify a different location for your addons using the CLI argument `--addonsDir`.
 
 ### Configure which addons to use
 
@@ -67,9 +73,9 @@ By default all addons found in the addon directory are applied.
 
 ### Use the websmith configuration file
 
-websmith looks for a `websmith.config.json` file in the root of your project. If it exists, it is used to configure the compilation process. The configuration file can be used to specify which addons to use, or which compilation targets are known to apply different addons.
+websmith looks for a `websmith.config.json` file in the root of your project. If it exists, it is used to configure the compilation process. The configuration file can be used to specify which addons to use. Provide a lists of addon names or define compilation targets with addons names to apply different addons for different targets.
 
-Add an "addons" section to the `websmith.config.json` with a default addon list to apply. Use the addon directory names in the list to apply them during the compilation process.
+Add an "addons" section to the `websmith.config.json` with the addon names to apply. This default list of addons will be applied for every compilation. The addon name is the addon directory name if not specified otherwise:
 
 ```json
 // websmith.config.json
@@ -79,7 +85,7 @@ Add an "addons" section to the `websmith.config.json` with a default addon list 
 }
 ```
 
-You can also specify different lists of addons for dedicated targets
+You can also define compilation targets in the config file and specify a different list of addons for every target:
 
 ```json
 // websmith.config.json
@@ -96,33 +102,47 @@ You can also specify different lists of addons for dedicated targets
 }
 ```
 
-If you select a specific target `websmith --targets one,two`, the generic addons list will be replaced.
-
-### Apply different addons for different targets
-
-Add the CLI argument `--targets` with a comma seperated list of target names to select a specific list of addons per target.
-
-### Writing your own addon
-
-[write-your-own-addon](write-your-own-addon.md) contains detailed instructions and examples on how to write your own addons.
+Run the websmith compiler with selected targets `websmith --targets one, two` to apply specific addons during compilation. If a target specific addon list is provided, the default addons list will be replaced, i.e., the no addon of the defaults list will be applied.
 
 ## Custom compilation targets
 
-websmith supports custom compilation targets. A compilation target is name that configures which addons and additional configuration to apply to a specific compilation target. Add a `websmith.config.json` file next to your `tsconfig.json` and add a `targets` section to it. Name each target and specify the addons and configuration to apply for that target.
+websmith supports custom configurations for different compilation targets. A compilation target is a set of options that specify the environment for a compilation output. You can define a custom compilation target by adding a `targets` section to the `websmith.config.json` file. The `targets` section contains a unique target `name` and a set of options. The `name` is used to specify the target when calling the websmith compiler. The options are used to configure the compilation process. The options contain the following sections:
+
+- `addons`: a list of addon names to apply for this target
+- `writeFile`: a boolean value that specifies whether the output file should be written to disk
+- `config`: target specific configuration properties defined by your addon
+- `options`: a set of compiler options for the TypeScript compiler to use for this target
+
+An example for a custom compilation target could be:
 
 ```json
 // websmith.config.json
 {
     "targets": {
         "one": {
-            "addons": ["addon-foo", "addon-bar"],
-            "writeFile": false,
+            "addons": ["addon-zip", "addon-zap"],
+            "config": {
+                "foo": "bar",
+                "baz": "qux"
+            },
+            "options": {
+                "outDir": "../dist/one",
+                "module": "commonjs",
+                "target": "es5",
+            }
         },
         "two": {
             "addons": ["addon-zip"],
+            "writeFile": false,
         }
     }
 }
 ```
 
-Run websmith with the CLI argument `--target` to select a specific target.
+### Apply different addons for different targets
+
+Run websmith with the CLI argument `--targets` to select a specific target. You can specify a single target or multiple targets by separating them with a comma. If multiple targets are specified, the compiler will build the targets in the specified order.
+
+## Writing your own addon
+
+See [Write your own addon](docs/write-your-own-addon.md) for detailed instructions and examples on how to write your own addon.

@@ -28,6 +28,4 @@ export interface CompilerOptions {
     sourceMap: boolean;
     targets: string[];
     watch: boolean;
-    // TODO: Add support for style processors via addon
-    // sassOptions?: sass.Options<"sync">;
 }

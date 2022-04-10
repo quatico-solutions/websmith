@@ -42,7 +42,7 @@ export class DocGenerator {
         return this.results;
     }
 
-    public getTargetPostTransformer(fileNames: string[], ctx: AddonContext) {
+    public getResultProcessor(fileNames: string[], ctx: AddonContext) {
         try {
             const program = ctx.getProgram();
             const system = ctx.getSystem();

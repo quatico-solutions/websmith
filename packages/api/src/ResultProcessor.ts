@@ -12,4 +12,4 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-export type TargetPostTransformer = (fileNames: string[]) => void;
+export type ResultProcessor = (fileNames: string[]) => void;

@@ -61,7 +61,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 command.help({ error: true });
             }
 
-            // TODO: Add support for style processors via addon
+            // TODO: Styles: Add support for style processors via addon
             // process.stdout.write(`\nCompiling with configuration:\n`);
             // process.stdout.write(`  + Config File: "${configPath}"\n`);
             // let sassOptions: any = {};

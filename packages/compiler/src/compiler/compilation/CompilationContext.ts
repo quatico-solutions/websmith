@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { AddonContext, Generator, Processor, Reporter, TargetPostTransformer } from "@websmith/addon-api";
+import { AddonContext, Generator, Processor, Reporter, ResultProcessor } from "@websmith/addon-api";
 import ts from "typescript";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
@@ -34,7 +34,7 @@ export class CompilationContext implements AddonContext<any> {
     protected generators: Generator[];
     protected processors: Processor[];
     protected transformers: ts.CustomTransformers;
-    protected targetPostTransformers: TargetPostTransformer[] = [];
+    protected ResultProcessors: ResultProcessor[] = [];
 
     private buildDir: string;
     private cache: FileCache;
@@ -120,8 +120,8 @@ export class CompilationContext implements AddonContext<any> {
         return this;
     }
 
-    public registerTargetPostTransformer(emitter: TargetPostTransformer): this {
-        this.targetPostTransformers.push(emitter);
+    public registerResultProcessor(emitter: ResultProcessor): this {
+        this.ResultProcessors.push(emitter);
         return this;
     }
 
@@ -133,8 +133,8 @@ export class CompilationContext implements AddonContext<any> {
         return this.processors;
     }
 
-    public getTargetPostTransformers(): TargetPostTransformer[] {
-        return this.targetPostTransformers;
+    public getResultProcessors(): ResultProcessor[] {
+        return this.ResultProcessors;
     }
 
     private createLanguageServiceHost({

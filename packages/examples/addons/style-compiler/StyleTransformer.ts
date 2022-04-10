@@ -15,7 +15,7 @@
 import { Reporter } from "@websmith/addon-api";
 import { StyleVisitor } from "./parse-scss";
 
-// FIXME: StyleTransformer fix API
+// TODO: Styles: StyleTransformer fix API
 export type StyleTransformerKind = "before" | "after";
 
 export interface StyleTransformer {

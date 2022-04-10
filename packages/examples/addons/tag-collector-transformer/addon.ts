@@ -12,23 +12,23 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { AddonContext, TargetPostTransformer } from "@websmith/addon-api";
+import { AddonContext, ResultProcessor } from "@websmith/addon-api";
 import ts from "typescript";
-import { createTransformerFactory, getOutputFilePath } from "./target-post-transformer";
+import { createTransformerFactory, getOutputFilePath } from "./result-processor";
 
 export const activate = (ctx: AddonContext) => {
-    ctx.registerTargetPostTransformer(createTargetPostTransformer(ctx));
+    ctx.registerResultProcessor(createResultProcessor(ctx));
 };
 
 /**
- * Creates a TargetPostProcessor that collects all functions and arrow functions with a // @service() comment.
+ * Creates a generator that collects all functions and arrow functions with a // @service() comment.
  *
  * @param fileNames The file names of the current target to process.
  * @param ctx The addon context for the compilation.
- * @returns A websmith TargetPostTransformer factory function.
+ * @returns A websmith ResultProcessor factory function.
  */
-const createTargetPostTransformer =
-    (ctx: AddonContext): TargetPostTransformer =>
+const createResultProcessor =
+    (ctx: AddonContext): ResultProcessor =>
     (fileNames: string[]): void => {
         const outDir = ctx.getConfig().options.outDir ?? process.cwd();
         ctx.getSystem().writeFile(getOutputFilePath(outDir), "");

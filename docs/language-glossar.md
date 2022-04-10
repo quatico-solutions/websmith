@@ -26,4 +26,4 @@
 * **Generator** Is a source code procession that receives a source file name and content and generates additional information based on the input.
 * **Processor** Is a source to source transformation that receives a source file name and content and returns modified source file content.
 * **Transformer**: Is a TypeScript ScriptFile to ScriptFile transformation that receives a ScriptFile and returns the modified ScriptFile.
-* **TargetPostTransformer**: Is a transformation that receives the list of all source files of a target  and generates additional information for the target.
+* **ResultProcessor**: Is a processors that receives the list of all output files of a target and generates additional information for the target.

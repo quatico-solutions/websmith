@@ -42,7 +42,7 @@ export class Compiler {
     private reporter!: Reporter;
     private system!: ts.System;
 
-    // TODO: Add support for style processors via addon
+    // TODO: Styles: Add support for style processors via addon
     // private compileImportedStyles: Transformer;
 
     constructor(options: CompilerOptions, system?: ts.System) {
@@ -51,7 +51,7 @@ export class Compiler {
         this.system = system ?? createSystem();
         this.setOptions(options);
 
-        // TODO: Add support for style processors via addon
+        // TODO: Styles: Add support for style processors via addon
         // this.compileImportedStyles = createStyleCompiler(
         //     { sassOptions: options.sassOptions, reporter: this.reporter, system: this.system },
         //     this.addons.styleTransformers
@@ -120,10 +120,10 @@ export class Compiler {
             }
 
             const files = this.getRootFiles();
-            ctx.getTargetPostTransformers().forEach(cur => cur(files));
+            ctx.getResultProcessors().forEach(cur => cur(files));
         });
 
-        // TODO: Add style processors here to generate docs
+        // TODO: Styles: Add style processors here to generate docs
         // eslint-disable-next-line no-console
         // stylePaths.filter(cur => cur.endsWith(".scss")).forEach(cur => console.log(`Style: ${cur}`));
 
@@ -248,7 +248,6 @@ export class Compiler {
     // }
 
     private getRootFiles(): string[] {
-        // FIXME: Ignores tsx files still
         return this.options?.tsconfig?.fileNames
             ? this.options.tsconfig.fileNames
             : recursiveFindByFilter(this.system.resolvePath(join(dirname(this.configPath), "./src")), (path: string) =>

@@ -20,7 +20,7 @@ import { CompilationConfig, resolveCompilationConfig, resolveProjectConfig, reso
 import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
 import { NoReporter } from "./NoReporter";
-// TODO: Add support for style processors via addon
+// TODO: Styles: Add support for style processors via addon
 // import {
 //     createStyleCompiler,
 //     parseStyles,
@@ -42,7 +42,7 @@ export {
     resolveTargets,
     tsDefaults,
     tsLibDefaults,
-    // TODO: Add support for style processors via addon
+    // TODO: Styles: Add support for style processors via addon
     // createStyleCompiler,
     // parseStyles,
     // StyleCompilerOptions,

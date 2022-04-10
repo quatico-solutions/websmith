@@ -15,6 +15,10 @@
 import ts from "typescript";
 import { DiagnosticMessage, isSourceFile } from "./DiagnosticMessage";
 
+/**
+ * This type represents an warning message object of the reporter API. Use it
+ * to report warnings in your addon code.
+ */
 export class WarnMessage extends DiagnosticMessage {
     constructor(message: string | ts.DiagnosticMessageChain, source?: ts.SourceFile | string) {
         super({

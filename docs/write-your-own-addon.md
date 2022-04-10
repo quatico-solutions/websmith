@@ -17,19 +17,19 @@
 
 Inside your addons directory, create a directory that contains a file `addon.ts`. This file is called the addon activator and it requires a function `activate(ctx: AddonContext)`. The activator is called before the compilation process to register the addon in the appropriate step during the compilation process.
 
-You can register several kinds of addons: `Generator`, `Processor`, `Transformer` and `TargetPostTransformer`
+You can register several kinds of addons: `Generator`, `Processor`, `Transformer` and `ResultProcessor`
 
 - `Generator` can be used to create additional files (eg documentation) based on your source code files.
 - `Processor` can be used to alter a source input file during the compilation.
 - `Transformer` can be used to alter the generated JavaScript result during the JS emission phase.
-- `TargetPostTransformer` can be used to execute project wide functionality after the compilation has finished.
+- `ResultProcessor` can be used to execute project wide functionality after the compilation has finished.
 
 ## Choose your addon kind
 
 - `Generators` (**per file**) are executed first. Generators can not alter the source code, giving every Generator the guarantee that they have unmodified source code as created by the developer.
 - `Processors` (**per file**) are executed after `Generators` but before the standard TypeScript compilation and allow you to alter the source code to alter aspects that with TypeScripts CustomTransformers can no longer be altered.
 - `Transformers` (**per file**) are executed after `Processors` and are [standard TypeScript CustomTransformers](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) that allow you to modify the code as the TypeScript to JavaScript transpilation takes place.
-- `TargetPostTransformers` (**per compilation target**) are executed after the compilation has finished. `TargetPostTransformers` can not alter the source code but have access to the transformed source code and compilation results.
+- `ResultProcessors` (**per compilation target**) are executed after the compilation has finished. `ResultProcessors` can not alter the source code but have access to the transformed source code and compilation results.
 
 ### Rule of thumb
 
@@ -39,7 +39,7 @@ You can register several kinds of addons: `Generator`, `Processor`, `Transformer
 >
 > Use a `Transformer` addon, when you want to change what existing code does!
 >
-> Use a `TargetPostTransformer` addon, when you want to execute an operation for a target as a whole with the transformed state.
+> Use a `ResultProcessor` addon, when you want to execute an operation for a target as a whole with the transformed state.
 
 ### Generator
 
@@ -270,6 +270,19 @@ Transformer follow the standard TypeScript `ts.CustomTransformers` approach, pro
 
 #### Example: foobar-replace-transformer
 
+```javascript
+export const activate = (ctx: AddonContext) => {
+    // e.g. register a new transformer
+    ctx.registerTransformer("before", () => (sf: ts.SourceFile): ts.SourceFile => {
+        return ts.visitNode(sf, (node) => {
+            if (ts.isIdentifier(node) && node.text === "foobar") {
+                return ts.createIdentifier("barfoo");
+            }
+            return node;
+        });
+    });
+```
+
 **foobar-replace-transformer/addon.ts**
 
 ```typescript
@@ -350,9 +363,9 @@ while the Transformer Addon will yield
 export declare const foobar1: () => string;
 ```
 
-### TargetPostTransformer
+### ResultProcessor
 
-TargetPostTransformer follow the same approach as `Generator` but are executed after the compilation has been finished.
+ResultProcessor follow the same approach as `Generator` but are executed after the compilation has been finished.
 The difference is that they are executed executed only once **per target**, not once **per file**.
 
 #### Example: tag-collector-transformer
@@ -360,23 +373,23 @@ The difference is that they are executed executed only once **per target**, not 
 **tag-collector-transformer/addon.ts**
 
 ```typescript
-import { AddonContext, TargetPostTransformer } from "@websmith/addon-api";
+import { AddonContext, ResultProcessor } from "@websmith/addon-api";
 import ts from "typescript";
-import { createTransformerFactory, getOutputFilePath } from "./target-post-transformer";
+import { createTransformerFactory, getOutputFilePath } from "./post-generator";
 
 export const activate = (ctx: AddonContext) => {
-    ctx.registerTargetPostTransformer(createTargetPostTransformer(ctx));
+    ctx.registerResultProcessor(createResultProcessor(ctx));
 };
 
 /**
- * Creates a TargetPostProcessor that collects all functions and arrow functions with a // @service() comment.
+ * Creates a PostProcessor that collects all functions and arrow functions with a // @service() comment.
  *
  * @param fileNames The file names of the current target to process.
  * @param ctx The addon context for the compilation.
- * @returns A websmith TargetPostTransformer factory function.
+ * @returns A websmith ResultProcessor factory function.
  */
-const createTargetPostTransformer =
-    (ctx: AddonContext): TargetPostTransformer =>
+const createResultProcessor =
+    (ctx: AddonContext): ResultProcessor =>
     (fileNames: string[]): void => {
         const outDir = ctx.getConfig().options.outDir ?? process.cwd();
         ctx.getSystem().writeFile(getOutputFilePath(outDir), "");
@@ -389,7 +402,7 @@ const createTargetPostTransformer =
     };
 ```
 
-**tag-collector-transformer/target-post-transformer.ts**
+**tag-collector-transformer/post-generator.ts**
 
 ```typescript
 import { join } from "path";
@@ -635,11 +648,11 @@ export interface AddonContext<O extends TargetConfig = any> {
     registerTransformer(transformer: ts.CustomTransformers): void;
 
     /**
-     * Registers an target post transformer with this context.
+     * Registers a result generator with this context.
      *
-     * @param targetPostTransformer (fileNames: string[]) => void: A function that is executed after the compilation of all files is completed.
+     * @param ResultProcessor (fileNames: string[]) => void: A function that is executed after the compilation of all files is completed.
      */
-    registerTargetPostTransformer(targetPostTransformer: TargetPostTransformer): void;
+    registerResultProcessor(generator: ResultProcessor): void;
 }
 ```
 
@@ -696,7 +709,7 @@ collections sourceFiles
 collections generators
 collections processors
 collections transformers
-collections targetPostTransformers
+collections ResultProcessors
 boundary TypeScript
 boundary System
 
@@ -726,8 +739,8 @@ boundary System
             AddonContext -> System: writeOutput()
             deactivate sourceFiles
         end
-        loop for each TargetPostTransformer
-            AddonContext -> targetPostTransformers: executePostTransformers(allSourceFiles)
+        loop for each ResultProcessor
+            AddonContext -> ResultProcessors: executeResultProcessors(allSourceFiles)
         end
         AddonContext --> compiler: OutputFiles[]
     end

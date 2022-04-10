@@ -20,8 +20,8 @@ import { aggregateMessages, messageToString } from "./messages";
 import type { Processor } from "./Processor";
 import type { Reporter } from "./Reporter";
 import type { TargetConfig } from "./TargetConfig";
-import type { TargetPostTransformer } from "./TargetPostTransformer";
+import type { ResultProcessor } from "./ResultProcessor";
 import { WarnMessage } from "./WarnMessage";
 
-export type { AddonContext, Generator, TargetConfig, TargetPostTransformer, Processor, Reporter };
+export type { AddonContext, Generator, TargetConfig, ResultProcessor, Processor, Reporter };
 export { ErrorMessage, WarnMessage, InfoMessage, aggregateMessages, messageToString };
