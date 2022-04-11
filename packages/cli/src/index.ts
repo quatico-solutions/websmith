@@ -14,5 +14,7 @@
  */
 import { addCompileCommand } from "./command";
 import { createOptions } from "./options";
+import type { CompilerArguments } from "./CompilerArguments";
 
 export { addCompileCommand, createOptions };
+export type { CompilerArguments };

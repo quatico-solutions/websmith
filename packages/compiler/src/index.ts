@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import type { CompilationContext, CompilerAddon, CompilerOptions } from "./compiler";
+import type { CompilationContext, CompileFragment, CompilerAddon, CompilerOptions } from "./compiler";
 import {
     AddonRegistry,
     CompilationConfig,
@@ -25,8 +25,7 @@ import {
     tsDefaults,
     tsLibDefaults,
 } from "./compiler";
-
-import { createSystem, createBrowserSystem, createCompileHost, getVersionedFile, createVersionedFiles, readFiles } from "./environment";
+import { createBrowserSystem, createCompileHost, createSystem, createVersionedFiles, getVersionedFile, readFiles } from "./environment";
 
 export {
     AddonRegistry,
@@ -47,4 +46,4 @@ export {
     tsDefaults,
     tsLibDefaults,
 };
-export type { CompilerOptions, CompilationContext };
+export type { CompileFragment, CompilerOptions, CompilationContext };

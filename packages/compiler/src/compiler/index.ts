@@ -14,6 +14,7 @@
  */
 import { AddonRegistry, CompilerAddon } from "./addons";
 import type { CompilationContext } from "./compilation";
+import type { CompileFragment } from "./Compiler";
 import { Compiler } from "./Compiler";
 import type { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig, resolveCompilationConfig, resolveProjectConfig, resolveTargets } from "./config";
@@ -50,4 +51,4 @@ export {
     // visitNode,
     // writeNode,
 };
-export type { CompilerOptions, CompilationContext };
+export type { CompileFragment, CompilerOptions, CompilationContext };
