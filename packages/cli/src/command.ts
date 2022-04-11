@@ -19,6 +19,7 @@ import { Command, program } from "commander";
 import { compileSystem } from "./compiler-system";
 import { CompilerArguments } from "./CompilerArguments";
 import { createOptions } from "./options";
+import parseArgs from "minimist";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
     parent
@@ -51,17 +52,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             }
         })
         .action((args: CompilerArguments, command: Command) => {
-            const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
-            if (unknownArgs?.length > 0) {
-                unknownArgs.forEach(arg =>
-                    console.error(
-                        `Unknown Argument "${arg}".` + `\nIf this is a tsc command, please configure it in your typescript configuration file.\n`
-                    )
-                );
-                command.help({ error: true });
-            }
-
-            // TODO: Styles: Add support for style processors via addon
+            // TODO: Add support for style processors via addon
             // process.stdout.write(`\nCompiling with configuration:\n`);
             // process.stdout.write(`  + Config File: "${configPath}"\n`);
             // let sassOptions: any = {};
@@ -77,6 +68,10 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             // TODO: Add files from CLI argument
             const system = compiler?.getSystem() ?? compileSystem();
             const options = createOptions(args, compiler?.getReporter() ?? new DefaultReporter(system), system);
+            const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
+            if (unknownArgs?.length > 0) {
+                options.additionalArguments = parseUnknownArguments(unknownArgs);
+            }
             if (hasInvalidTargets(options.targets, options.config)) {
                 options.reporter.reportDiagnostic(
                     new WarnMessage(
@@ -110,3 +105,24 @@ export const hasInvalidTargets = (targets?: string[], config?: CompilationConfig
 
     return !targets.every(it => definedTargets.includes(it));
 };
+
+const parseUnknownArguments = (unknownArgs: string[]): Map<string, unknown> => {
+    const result = new Map<string, unknown>();
+    const args = parseArgs(unknownArgs);
+    for (const key in args) {
+        if (key === "_") {
+            if (args[key].length > 0) {
+                result.set(
+                    "undefined",
+                    args[key].map(cur => (isPotentiallyJson(cur) ? JSON.parse(cur) : cur))
+                );
+            }
+        } else {
+            result.set(key, isPotentiallyJson(args[key]) ? JSON.parse(args[key]) : args[key]);
+        }
+    }
+    return result;
+};
+
+const isPotentiallyJson = (arg: string): boolean =>
+    typeof arg !== "string" ? false : (arg.startsWith("{") && arg.endsWith("}")) || (arg.startsWith("[") && arg.endsWith("]"));

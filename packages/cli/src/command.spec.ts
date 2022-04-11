@@ -47,18 +47,30 @@ afterEach(() => {
 });
 
 describe("addCompileCommand", () => {
-    it("should warn w/ unknown argument", () => {
-        const testObj = addCompileCommand(new Command(), new Compiler(createOptions({}, new NoReporter())));
+    it("should create additionalArguments map w/ unknown argument", () => {
+        const target = new Compiler(createOptions({}, new NoReporter()));
+        const testObj = addCompileCommand(new Command(), target);
 
-        // @ts-ignore
-        testObj.help = jest.fn();
-        console.error = jest.fn();
+        testObj.parse(
+            [
+                "--unknown",
+                "{\"key1\":13, \"key2\":{\"key1\":\"expected\", \"key2\":false}}",
+                "--port",
+                "3000",
+                "--hostname",
+                "http://localhost",
+                "--booleanFlag",
+            ],
+            { from: "user" }
+        );
 
-        testObj.parse(["unknown"], { from: "user" });
-
-        expect(testObj.help).toHaveBeenCalledWith({ error: true });
-        expect(console.error).toHaveBeenCalledWith(
-            'Unknown Argument "unknown".\nIf this is a tsc command, please configure it in your typescript configuration file.\n'
+        expect(target.getOptions().additionalArguments).toEqual(
+            new Map<string, unknown>([
+                ["unknown", { key1: 13, key2: { key1: "expected", key2: false } }],
+                ["port", 3000],
+                ["hostname", "http://localhost"],
+                ["booleanFlag", true],
+            ])
         );
     });
 
@@ -218,6 +230,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().debug).toBe(true);
     });
 
+    // FIXME: This test is failing because the compiler watch support is broken.
     it.skip("should set watch compiler option w/ --watch cli argument", () => {
         const target = new Compiler(createOptions({}, new NoReporter()));
 
@@ -235,7 +248,8 @@ describe("addCompileCommand", () => {
         expect(target.compile).toHaveBeenCalled();
     });
 
-    it("should inform CLI user about tsconfig usage for unsupported command line arguments", () => {
+    // FIXME: This test requires a decision regarding our explicit logic for additional cmdline arguments - do provide them through the CompilerOptions or do we reject them.
+    it.skip("should inform CLI user about tsconfig usage for unsupported command line arguments", () => {
         console.error = line => {
             throw new Error(line.toString());
         };
