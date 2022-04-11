@@ -1233,6 +1233,20 @@
     "@typescript-eslint/types" "5.18.0"
     eslint-visitor-keys "^3.0.0"
 
+"@websmith/addon-api@link:packages/api":
+  version "0.0.1"
+  dependencies:
+    typescript "4.5.4"
+
+"@websmith/compiler@link:packages/compiler":
+  version "0.0.1"
+  dependencies:
+    "@websmith/addon-api" "link:packages/api"
+    create-hash "1.2.0"
+    lodash "^4.17.20"
+    path "0.12.7"
+    typescript "4.5.4"
+
 abab@^2.0.3, abab@^2.0.5:
   version "2.0.5"
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/abab/-/abab-2.0.5.tgz#c0b678fb32d60fc1219c784d6a826fe385aeb79a"
