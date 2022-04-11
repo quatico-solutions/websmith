@@ -14,7 +14,7 @@
  */
 import { Reporter, WarnMessage } from "@websmith/addon-api";
 import ts from "typescript";
-import { CssProperty, Mixin, Tag } from "./model";
+import { CssProperty, Mixin, Tag } from "./scss-parsers/model";
 import { extractCssProperties } from "./scss-extractors/extract-custom-props";
 
 const IGNORED_STATES: string[] = ["override", "type", "state", "default", "value"];

@@ -12,10 +12,10 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import { ErrorMessage, InfoMessage, Reporter, Transformer } from "@websmith/addon-api";
+import { ErrorMessage, InfoMessage, Processor, Reporter } from "@websmith/addon-api";
 import sass from "sass";
 import ts from "typescript";
-import { getBaseName, isScriptFile } from ".";
+import { getBaseName, isScriptFile } from "./elements";
 import { createSass } from "../sass-compiler";
 import { CustomStyleTransformers } from "./CustomStyleTransformers";
 import { inlineStyles, isStyleImport } from "./inline-styles";
@@ -28,7 +28,7 @@ export interface StyleCompilerOptions {
     system: ts.System;
 }
 
-export const createStyleCompiler = (options: StyleCompilerOptions, transformers: CustomStyleTransformers): Transformer => {
+export const createStyleCompiler = (options: StyleCompilerOptions, transformers: CustomStyleTransformers): Processor => {
     const { sassOptions, reporter, system } = options;
 
     const compileSass = createSass(sassOptions ?? {}, reporter);

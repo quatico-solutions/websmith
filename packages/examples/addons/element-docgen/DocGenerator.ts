@@ -22,10 +22,10 @@ import {
     TransformerConfig,
     VisibilityKind,
 } from "web-component-analyzer";
-import { isScriptFile } from "../style-compiler";
-import { defaultOptions, DocDefaults } from "./defaults";
+import { isScriptFile } from "../style-compiler/elements";
+import { defaultOptions, DocDefaults } from "./scss-parsers/defaults";
 import { addCustomPropNames, addMixins, transformTag } from "./docgen";
-import { Element } from "./model";
+import { Element } from "../element-docgen/scss-parsers/model";
 import { readCustomPropNames } from "./scss-extractors/extract-custom-prop-names";
 import { readMixins } from "./scss-parsers/parse-mixins";
 

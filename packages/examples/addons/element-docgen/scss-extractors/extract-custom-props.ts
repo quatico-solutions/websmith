@@ -14,7 +14,7 @@
  */
 import { ErrorMessage, Reporter } from "@websmith/addon-api";
 import ts from "typescript";
-import { parseCustomPropertyNames } from "../scss-parsers/parse-custom-prop-names";
+import { parseCustomPropertyNames } from "../../scss-parsers/parse-custom-prop-names";
 
 const IGNORED_STATES: string[] = ["override", "type", "state", "default", "value"];
 

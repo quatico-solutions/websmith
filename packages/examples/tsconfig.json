@@ -2,8 +2,8 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "outDir": "./lib",
-        "noEmit": true 
+        "noEmit": true
     },
     "exclude": ["src/**/*.spec.ts"],
-    "include": ["src/**/*.ts"]
+    "include": ["src/**/*.ts", "addons/**/*.ts"]
 }

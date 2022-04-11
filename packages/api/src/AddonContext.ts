@@ -13,11 +13,11 @@
  * with Quatico.
  */
 import ts from "typescript";
-import { Reporter } from "./Reporter";
 import { Generator } from "./Generator";
+import { Processor } from "./Processor";
+import { Reporter } from "./Reporter";
 import { ResultProcessor } from "./ResultProcessor";
 import { TargetConfig } from "./TargetConfig";
-import { Processor } from "./Processor";
 
 /**
  * This type represents the context for the current compilation in which this addon is being used.
@@ -85,10 +85,10 @@ export interface AddonContext<O extends TargetConfig = any> {
     registerTransformer(transformer: ts.CustomTransformers): void;
 
     /**
-     * Registers a result generator function with this context. Use a `ResultProcessor` to manipulate the compiled output after
+     * Registers a result processor function with this context. Use a `ResultProcessor` to manipulate the compiled output after
      * the actual compilation.
      *
-     * @param generator Function `(fileNames: string[]) => void` that is executed after the compilation of all files. Must not be null.
+     * @param processor Function `(fileNames: string[]) => void` that is executed after the compilation of all files. Must not be null.
      */
-    registerResultProcessor(generator: ResultProcessor): void;
+    registerResultProcessor(processor: ResultProcessor): void;
 }

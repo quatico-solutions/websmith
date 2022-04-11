@@ -648,7 +648,7 @@ export interface AddonContext<O extends TargetConfig = any> {
     registerTransformer(transformer: ts.CustomTransformers): void;
 
     /**
-     * Registers a result generator with this context.
+     * Registers a result processor with this context.
      *
      * @param ResultProcessor (fileNames: string[]) => void: A function that is executed after the compilation of all files is completed.
      */
