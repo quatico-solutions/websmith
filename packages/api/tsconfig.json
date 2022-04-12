@@ -3,7 +3,8 @@
     "compilerOptions": {
         "outDir": "./lib",
         "noEmit": false,
-        "moduleResolution": "node"
+        "moduleResolution": "node",
+        "module": "commonjs"
     },
     "exclude": ["src/**/*.spec.ts"],
     "include": ["src/**/*.ts"]
