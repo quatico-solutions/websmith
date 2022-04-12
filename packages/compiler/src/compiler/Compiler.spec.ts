@@ -18,7 +18,7 @@ import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createBrowserSystem, createSystem } from "../environment";
 import { AddonRegistry } from "./addons";
-import { Compiler } from "./Compiler";
+import { CompileFragment, Compiler } from "./Compiler";
 import { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig } from "./config";
 
@@ -63,6 +63,9 @@ const testSystem = createBrowserSystem({
         @customElement("my-seven")
         export class Seven {}
     }`,
+    "src/arrow.ts": `
+        export const computeDate = async (): Promise<Date> => new Date();
+    `,
 });
 
 class CompilerTestClass extends Compiler {
@@ -72,6 +75,14 @@ class CompilerTestClass extends Compiler {
 
     public report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         return super.report(program, result);
+    }
+
+    public emitSourceFile(fileName: string, target: string, writeFile: boolean): CompileFragment {
+        return super.emitSourceFile(fileName, target, writeFile);
+    }
+
+    public createTargetContextsIfNecessary(): this {
+        return super.createTargetContextsIfNecessary();
     }
 }
 
@@ -153,7 +164,35 @@ describe("compile", () => {
 
         testObj.compile();
 
-        expect(testObj.getContext("*")?.getConfig()).toEqual(expect.objectContaining({options: { outDir: "/lib/expected"}}));
+        expect(testObj.getContext("*")?.getConfig()).toEqual(expect.objectContaining({ options: { outDir: "/lib/expected" } }));
+    });
+});
+
+describe("emitSourceFile", () => {
+    it("yields modified client function w/ annotated arrow function", () => {
+        testObj = testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest },
+            reporter,
+            targets: [],
+            tsconfig: { options: {}, fileNames: ["src/arrow.ts"], errors: [] },
+            debug: false,
+            sourceMap: false,
+            watch: false,
+        }).createTargetContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("src/arrow.ts", "*", false);
+
+        expect(actual.files.find(file => file.name.match(/\.js(x?)$/i))!.text).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+
+        expect(actual.files.find(file => file.name.match(/\.d\.ts$/i))!.text).toMatchInlineSnapshot(`
+            "export declare const computeDate: () => Promise<Date>;
+            "
+        `);
     });
 });
 

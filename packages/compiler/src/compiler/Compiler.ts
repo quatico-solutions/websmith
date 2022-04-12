@@ -152,8 +152,12 @@ export class Compiler {
         });
     }
 
-    protected createTargetContextsIfNecessary() {
+    protected createTargetContextsIfNecessary(): this {
         this.options.targets.forEach((target: string) => {
+            if (this.contextMap.has(target)) {
+                return;
+            }
+            
             const { buildDir, config, project, tsconfig } = this.options;
             const { options, config: targetConfig } = getTargetConfig(target, config);
 
@@ -179,10 +183,11 @@ export class Compiler {
             });
             this.contextMap.set(target, ctx);
         });
+        return this;
     }
 
     protected emitSourceFile(fileName: string, target: string, writeFile = false): CompileFragment {
-        const filePath = resolve(fileName);
+        const filePath = this.system.resolvePath(fileName);
         const ctx = this.contextMap.get(target);
         const cache = ctx?.getCache();
 

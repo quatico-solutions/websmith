@@ -148,8 +148,12 @@ export class CompilationContext implements AddonContext<any> {
     }): ts.LanguageServiceHost {
         return {
             ...createSharedHost(system),
-            getScriptVersion: (fileName: string) => `${fileName}:${this.cache.getVersion(fileName).toString()}:${target}`,
+            getScriptVersion: (fileName: string) => {
+                fileName = system.resolvePath(fileName);
+                return `${fileName}:${this.cache.getVersion(fileName).toString()}:${target}`;
+            },
             getScriptSnapshot: (fileName: string) => {
+                fileName = system.resolvePath(fileName);
                 if (fileName.endsWith(".d.ts")) {
                     const content = system.readFile(fileName);
                     if (!content) {
