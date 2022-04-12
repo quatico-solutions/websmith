@@ -15,7 +15,7 @@
 
 import { ErrorMessage, Reporter, TargetConfig } from "@websmith/addon-api";
 import { existsSync } from "fs";
-import path, { dirname, extname, isAbsolute, join, resolve } from "path";
+import { dirname, extname, isAbsolute, join, resolve, sep } from "path";
 import ts from "typescript";
 import { createSystem, recursiveFindByFilter } from "../environment";
 import { concat } from "./collections";
@@ -157,7 +157,7 @@ export class Compiler {
             if (this.contextMap.has(target)) {
                 return;
             }
-            
+
             const { buildDir, config, project, tsconfig } = this.options;
             const { options, config: targetConfig } = getTargetConfig(target, config);
 
@@ -260,7 +260,7 @@ export class Compiler {
         for (const cur of emitOutput.outputFiles) {
             const filename = this.getFilePath(cur.name);
             const target = dirname(filename);
-            recursivelyCreateDirIfNeeded(target, this.system);
+            recursivelyCreateDirIfNeeded(target, this.system, sep);
             this.system.writeFile(filename, cur.text);
         }
     }
@@ -288,10 +288,10 @@ const getTargetConfig = (target: string, config?: CompilationConfig): TargetConf
     return {};
 };
 
-const recursivelyCreateDirIfNeeded = (target: string, system: ts.System) => {
-    const segments = target.split(path.sep);
+const recursivelyCreateDirIfNeeded = (target: string, system: ts.System, sep: string) => {
+    const segments = target.split(sep);
     for (let i = 0; i < segments.length; i++) {
-        const cur = segments.slice(0, i + 1).join(path.sep);
+        const cur = segments.slice(0, i + 1).join(sep);
         if (!system.directoryExists(cur)) {
             system.createDirectory(cur);
         }
