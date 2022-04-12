@@ -21,7 +21,7 @@ export const activate = (ctx: AddonContext) => {
 };
 
 /**
- * Creates a generator that collects all functions and arrow functions with a // @service() comment.
+ * Creates a processor that collects all functions and arrow functions with a // @service() comment.
  *
  * @param fileNames The file names of the current target to process.
  * @param ctx The addon context for the compilation.

@@ -41,7 +41,7 @@ websmith's compiler addons are a powerful mechanism to generate new source files
 
 ### Nature of an addon
 
-An addon is a directory containing a JavaScript module named `addon.ts` or `addon.js`. This file must have an exported function named `activate` that takes a `AddonContext` as its only parameter. The `activate` function is called when the compilation process is started.
+An addon is a directory containing an ES module named `addon.ts` or `addon.js`. This file must have an exported function named `activate` that takes an `AddonContext` as its only parameter. The `activate` function is called when the compilation process is started.
 
 ```javascript
 // ./addons/foobar-transformer/addon.ts

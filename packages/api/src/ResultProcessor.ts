@@ -22,5 +22,7 @@
  *
  * Use this result processor function to create additional output, such as
  * other compilation results or documentation based on your output.
+ *
+ * @param filePaths The paths of the output files.
  */
-export type ResultProcessor = (fileNames: string[]) => void;
+export type ResultProcessor = (filePaths: string[]) => void;

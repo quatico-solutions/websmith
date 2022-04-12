@@ -21,5 +21,8 @@
  *
  * Use this processor function to modify input files before the actual
  * compilation.
+ *
+ * @param filePath The path of the source file that is being compiled.
+ * @param fileContent The content of the source file.
  */
-export type Processor = (fileName: string, content: string) => string | never;
+export type Processor = (filePath: string, fileContent: string) => string | never;

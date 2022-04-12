@@ -1,6 +1,6 @@
 // ./addons/input-file-generator/addon.ts
 import { AddonContext, InfoMessage } from "@websmith/addon-api";
-import { basename, dirname, join } from "path";
+import { basename } from "path";
 
 /**
  * Example addon with a generator that creates additional input
@@ -14,14 +14,15 @@ import { basename, dirname, join } from "path";
  * @param ctx The compilation context for this addon.
  */
 export const activate = (ctx: AddonContext) => {
-    ctx.registerGenerator((filePath: string, fileContent: string): void => {
-        if (filePath.includes("foo")) {
-            const dirName = dirname(filePath);
-            const fileName = `${basename(filePath)}-added.ts`;
-            // Write the additional file to disk.
-            ctx.getSystem().writeFile(join(dirName, fileName), fileContent);
+    const comment = (filePath: string) => `// ${basename(filePath)} was compiled by the websmith compiler\n`;
+
+    ctx.registerResultProcessor((filePaths: string[]): void => {
+        filePaths.forEach(curPath => {
+            const content = ctx.getSystem().readFile(curPath);
+            // Inject a comment as the first line into the file.
+            ctx.getSystem().writeFile(curPath, comment(curPath) + content);
             // Report info message to the console.
-            ctx.getReporter().reportDiagnostic(new InfoMessage(`Example generator processing ${fileName}`));
-        }
+            ctx.getReporter().reportDiagnostic(new InfoMessage(`Example result processor ${curPath}`));
+        });
     });
 };

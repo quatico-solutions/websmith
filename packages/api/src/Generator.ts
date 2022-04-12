@@ -21,5 +21,8 @@
  *
  * Use this generator function to create additional files, such as
  * documentation based on your source code.
+ *
+ * @param filePath The path of the source file that is being compiled.
+ * @param fileContent The content of the source file.
  */
-export type Generator = (fileName: string, content: string) => void;
+export type Generator = (filePath: string, fileContent: string) => void;
