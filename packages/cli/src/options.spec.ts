@@ -91,4 +91,44 @@ describe("createOptions", () => {
             targets: { whatever: { addons: ["one", "two", "three"], writeFile: true } },
         });
     });
+
+    it("should return config w/ valid addonsDir, addons in compiler config json", () => {
+        testSystem.writeFile("./tsconfig.json", "{}");
+        testSystem.writeFile("/expected/one/addon.ts", "export const activate = () => {};");
+        jest.mock(
+            "/expected/one/addon",
+            () => {
+                return { activate: jest.fn() };
+            },
+            { virtual: true }
+        );
+
+        testSystem.writeFile("websmith.config.json", '{ "addons":["one", "two"], "addonsDir":"./expected" }');
+
+        const actual = createOptions({ config: "./websmith.config.json" }, testReporter, testSystem).addons;
+
+        expect(actual).toMatchInlineSnapshot(`
+            AddonRegistry {
+              "addons": Array [
+                "one",
+                "two",
+              ],
+              "availableAddons": Map {
+                "one" => Object {
+                  "activate": [MockFunction],
+                  "name": "one",
+                },
+              },
+              "config": Object {
+                "addons": Array [
+                  "one",
+                  "two",
+                ],
+                "addonsDir": "./expected",
+                "configFilePath": "/websmith.config.json",
+              },
+              "reporter": NoReporter {},
+            }
+        `);
+    });
 });
