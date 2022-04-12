@@ -287,10 +287,10 @@ const getTargetConfig = (target: string, config?: CompilationConfig): TargetConf
     return {};
 };
 
-const recursivelyCreateDirIfNeeded = (target: string, system: ts.System, sep: string) => {
-    const segments = target.split(sep);
+const recursivelyCreateDirIfNeeded = (target: string, system: ts.System, separator: string) => {
+    const segments = target.split(separator);
     for (let i = 0; i < segments.length; i++) {
-        const cur = segments.slice(0, i + 1).join(sep);
+        const cur = segments.slice(0, i + 1).join(separator);
         if (!system.directoryExists(cur)) {
             system.createDirectory(cur);
         }
