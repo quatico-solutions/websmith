@@ -375,6 +375,45 @@ describe("addCompileCommand#addons", () => {
 
         expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
     });
+
+    it("should use addonsDir and addons from compiler config w/o cli argument override", () => {
+        testSystem.writeFile("/expected/one/addon.ts", "export const activate = () => {};");
+        jest.mock(
+            "/expected/one/addon",
+            () => {
+                return { activate: () => undefined };
+            },
+            { virtual: true }
+        );
+        testSystem.writeFile("websmith.config.json", '{ "addons":["one", "two"], "addonsDir":"./expected" }');
+        const target = new Compiler(createOptions({}, new NoReporter()), testSystem);
+
+        addCompileCommand(new Command(), target).parse([], { from: "user" });
+
+        expect(target.getOptions().addons).toMatchInlineSnapshot(`
+            AddonRegistry {
+              "addons": Array [
+                "one",
+                "two",
+              ],
+              "availableAddons": Map {
+                "one" => Object {
+                  "activate": [Function],
+                  "name": "one",
+                },
+              },
+              "config": Object {
+                "addons": Array [
+                  "one",
+                  "two",
+                ],
+                "addonsDir": "./expected",
+                "configFilePath": "/websmith.config.json",
+              },
+              "reporter": NoReporter {},
+            }
+        `);
+    });
 });
 
 describe("addCompileCommand#targets", () => {
