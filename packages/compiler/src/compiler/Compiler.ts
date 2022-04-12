@@ -15,7 +15,7 @@
 
 import { ErrorMessage, Reporter, TargetConfig } from "@websmith/addon-api";
 import { existsSync } from "fs";
-import { dirname, extname, isAbsolute, join, resolve } from "path";
+import path, { dirname, extname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
 import { createSystem, recursiveFindByFilter } from "../environment";
 import { concat } from "./collections";
@@ -96,32 +96,16 @@ export class Compiler {
 
     public compile(): ts.EmitResult {
         const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
+        this.createTargetContextsIfNecessary();
 
         this.options.targets.forEach((target: string) => {
-            const { buildDir, config, project, tsconfig } = this.options;
-            const { writeFile, options, config: targetConfig } = getTargetConfig(target, config);
+            const { config } = this.options;
+            const { writeFile } = getTargetConfig(target, config);
+            const ctx = this.contextMap.get(target);
 
-            // FIXME: We would want to change the working directory of the current system, but ts.System does not expose control.
-            // TODO: Implement a ts.System facade + expand BrowserSystem to offer a setCwd(path) to extract this properly
-            if (config?.configFilePath && existsSync(dirname(config?.configFilePath))) {
-                process.chdir(dirname(config.configFilePath));
+            if (!ctx) {
+                return;
             }
-            const ctx = new CompilationContext({
-                buildDir,
-                project: { ...project, ...options },
-                system: this.system,
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                program: this.program!,
-                tsconfig: { ...tsconfig, options: { ...project, ...options } },
-                rootFiles: this.getRootFiles(),
-                reporter: this.reporter,
-                config: targetConfig,
-                target,
-            });
-            this.options.addons.getAddons(target).forEach(addon => {
-                addon.activate(ctx);
-            });
-            this.contextMap.set(target, ctx);
 
             for (const fileName of this.getRootFiles()) {
                 const fragment = this.emitSourceFile(fileName, target, writeFile);
@@ -155,6 +139,7 @@ export class Compiler {
     }
 
     public watch() {
+        this.createTargetContextsIfNecessary();
         this.options.targets.forEach((target: string) => {
             const { writeFile } = getTargetConfig(target, this.options.config);
             if (typeof this.system.watchFile === "function") {
@@ -164,6 +149,35 @@ export class Compiler {
             } else {
                 this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
             }
+        });
+    }
+
+    protected createTargetContextsIfNecessary() {
+        this.options.targets.forEach((target: string) => {
+            const { buildDir, config, project, tsconfig } = this.options;
+            const { options, config: targetConfig } = getTargetConfig(target, config);
+
+            // FIXME: We would want to change the working directory of the current system, but ts.System does not expose control.
+            // TODO: Implement a ts.System facade + expand BrowserSystem to offer a setCwd(path) to extract this properly
+            if (config?.configFilePath && existsSync(dirname(config?.configFilePath))) {
+                process.chdir(dirname(config.configFilePath));
+            }
+            const ctx = new CompilationContext({
+                buildDir,
+                project: { ...project, ...options },
+                system: this.system,
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                program: this.program!,
+                tsconfig: { ...tsconfig, options: { ...project, ...options } },
+                rootFiles: this.getRootFiles(),
+                reporter: this.reporter,
+                config: targetConfig,
+                target,
+            });
+            this.options.addons.getAddons(target).forEach(addon => {
+                addon.activate(ctx);
+            });
+            this.contextMap.set(target, ctx);
         });
     }
 
@@ -241,9 +255,7 @@ export class Compiler {
         for (const cur of emitOutput.outputFiles) {
             const filename = this.getFilePath(cur.name);
             const target = dirname(filename);
-            if (!this.system.directoryExists(target)) {
-                this.system.createDirectory(target);
-            }
+            recursivelyCreateDirIfNeeded(target, this.system);
             this.system.writeFile(filename, cur.text);
         }
     }
@@ -269,4 +281,14 @@ const getTargetConfig = (target: string, config?: CompilationConfig): TargetConf
         return targets[target] ?? {};
     }
     return {};
+};
+
+const recursivelyCreateDirIfNeeded = (target: string, system: ts.System) => {
+    const segments = target.split(path.sep);
+    for (let i = 0; i < segments.length; i++) {
+        const cur = segments.slice(0, i + 1).join(path.sep);
+        if (!system.directoryExists(cur)) {
+            system.createDirectory(cur);
+        }
+    }
 };

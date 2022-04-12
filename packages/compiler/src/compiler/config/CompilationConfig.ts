@@ -15,7 +15,6 @@
 import type { TargetConfig } from "@websmith/addon-api";
 
 export type CompilationConfig = {
-    // TODO: Rename to CompilationConfig
     configFilePath: string;
     addonsDir?: string;
     addons?: string[];
