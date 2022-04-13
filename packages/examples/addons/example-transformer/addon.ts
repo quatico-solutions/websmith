@@ -15,18 +15,24 @@
 import { AddonContext } from "@websmith/addon-api";
 import ts from "typescript";
 
+/**
+ * Find all "foobar" identifiers in the source file and replace them with the
+ * string "barfoo".
+ */
 export const activate = (ctx: AddonContext): void => {
     ctx.registerTransformer({
         before: [
-            () =>
-                (sf: ts.SourceFile): ts.SourceFile => {
-                    return ts.visitNode(sf, node => {
+            (context: ts.TransformationContext) => {
+                return (sourceFile: ts.SourceFile): ts.SourceFile => {
+                    const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
                         if (ts.isIdentifier(node) && node.text === "foobar") {
                             return ts.factory.createIdentifier("barfoo");
                         }
-                        return node;
-                    });
-                },
+                        return ts.visitEachChild(node, visitor, context);
+                    };
+                    return ts.visitNode(sourceFile, visitor);
+                };
+            },
         ],
     });
 };

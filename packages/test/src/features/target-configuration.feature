@@ -42,6 +42,6 @@ Feature: Target configuration
         And Config file "websmit.config.json" contains target "foobar"
         And Target project contains a module "target.ts" with a function is named "foobar"
         When User calls command "websmith --targets foobar"
-        Then Output file "target.js" should contain a function named "barfoo"
+        Then A file "./dist/target.js" exists containing string "barfoo"
         And Every call to function "foobar" should be replaced with "barfoo"
 

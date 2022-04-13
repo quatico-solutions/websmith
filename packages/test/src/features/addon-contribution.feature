@@ -15,18 +15,37 @@ Feature: Feature: Addon contribution
         When User calls command "websmith --addonsDir ./my-addons"
         Then Addons "bar-addon, foo-addon" should be activated in compilation
 
-    @skip
-    Scenario: Provide a generator addon in default addons directory
+    Scenario: Provide example generator addon in default addons directory
+        Given Folder "./addons" contains addon examples "example-generator"
+        And A test project "test-project-foo" is provided
+        When User calls command "websmith"
+        Then Addons "example-generator" should be activated in compilation
+        And A file "./src/foo-added.ts" exists containing string "const foo = ()"
+
+    Scenario: Provide example processor addon in default addons directory
+        Given Folder "./addons" contains addon examples "example-processor"
+        And A test project "test-project-foobar" is provided
+        When User calls command "websmith"
+        Then Addons "example-processor" should be activated in compilation
+        And A file "./src/foobar.ts" exists containing string "export const foobar = ()"
+
+    Scenario: Provide example transformer addon in default addons directory
+        Given Folder "./addons" contains addon examples "example-transformer"
+        And A test project "test-project-foobar" is provided
+        When User calls command "websmith"
+        Then Addons "example-transformer" should be activated in compilation
+        And A file content "./src/foobar.ts" exists containing "const barfoo = ()"
+
+    Scenario: Provide example result processor addon in default addons directory
+        Given Folder "./addons" contains addon examples "example-result-processor"
+        And A test project "test-project-one" is provided
+        When User calls command "websmith"
+        Then Addons "example-result-processor" should be activated in compilation
+        And A file "./dist/one.js" exists containing string "was compiled by the websmith compiler"
+
+    Scenario: Provide a complex generator addon in default addons directory
         Given Folder "./addons" contains addon examples "export-yaml-generator"
         And A test project "test-project-one" is provided
         When User calls command "websmith"
         Then Addons "export-yaml-generator" should be activated in compilation
         And A file "./dist/output.yaml" exists containing names "one, two, three"
-
-    @skip
-    Scenario: Provide a processor addon in default addons directory
-    # TODO: Provide a scenario for a pre-emit transformer example
-
-    @skip
-    Scenario: Provide an transformer addon in default addons directory
-# TODO: Provide a scenario for a emit transformer example

@@ -49,6 +49,13 @@ The following example shows how to implement a Generator that generates an addit
 // ./addons/example-generator/addon.ts
 ```
 
+### Important Note
+
+- The `Generator` is executed before all other Addon types and before the actual compilation.
+- The `Generator` is executed once per file, not once per target.
+- The `Generator` consumes the unmodified source file, regardless of how many other generators are executed before.
+- The `Generator` can add new input files to the compilation process, using the `ctx.addInputFile()` method.
+
 ## Implement a Processor
 
 `Processors` are executed **per file** before the TypeScript compilation step and allow you to alter all aspects of the code. `Processors` are in required in particular to add or remove imports, functions or dependencies on other modules. While this in theory can be done in `Transformers`, the TypeScript compilation will not be able to resolve such changes anymore yielding failing code when adding module dependencies and incorrect D.TS output files.
@@ -59,6 +66,13 @@ It is possible to use ts.Transform in `Processors` to reuse existing TypeScript 
 ```typescript
 // ./addons/example-processor/addon.ts
 ```
+
+## Important Note
+
+- The `Processor` is executed after all `Generators` and before the standard TypeScript compilation.
+- The `Processor` is executed once per file, not once per target.
+- The `Processor` can modify the input files before the actual compilation.
+- The `Processor` can change module dependencies and modify imports/exports.
 
 ## Implement a Transformer
 
@@ -77,8 +91,13 @@ VisualStudio Code users can leverage the extension [TypeScript AST Explorer](htt
 
 ### Important Note
 
+- The `Transformer` is executed after all `Processors` as part of the standard TypeScript compilation.
+- All `Transformers` are merged (before, after, afterDeclarations) and executed all together once per file, not once per target.
+- The `Transformer` can modify the source code, but cannot change module dependencies or modify imports/exports.
+- The `Transformer` follows the standard TypeScript API `ts.CustomTransformers`, providing a factory that takes in a `ts.TransformationContext` and returning a Transformer for SourceFiles.
+
 The same TypeScript TransformerFactories we used in the `Processor` and `Generator` addons can also be used as `Transformer` addons.
-But we must keep in mind, that `Transformer` addons are executed after TypeScript has processed the structure of codee and in essence generated the D.TS file!
+But we must keep in mind, that `Transformer` addons are executed after TypeScript has processed the structure of code and in essence generated the D.TS file!
 When using a `Processor` transformer in a `Transformer` addon, the resulting transformed JavaScript code will be identical to the `Processor` addon, but because we rewrite the signature of the functions (foobar1 to barfoo1 in above examples), the generated D.TS file will no longer match.
 
 For the input
@@ -124,6 +143,13 @@ The difference is that they are executed executed only once **per target**, not 
 ```typescript
 // ./addons/example-result-processor/addon.ts
 ```
+
+### Important Note
+
+- The `ResultProcessor` is executed the compilation process is completed.
+- The `ResultProcessor` is executed once per target, not once per file.
+- The `ResultProcessor` can access the processed source file content, possibly modified by processors with `ctx.getFileContent()`
+- The `ResultProcessor` can access the unmodified source file content with `ctx.getSystem().readFile()`
 
 ## Error reporting
 

@@ -33,11 +33,6 @@ export const createTransformer = (system: ts.System): ts.TransformerFactory<ts.S
             const foundDecls: string[] = [];
 
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
-                // Visit child nodes of source files
-                if (ts.isSourceFile(node)) {
-                    return ts.visitEachChild(node, visitor, ctx);
-                }
-
                 // Collect node identifier if it is exported and a function or variable
                 if (
                     node.modifiers?.some(it => it.kind === ts.SyntaxKind.ExportKeyword) &&
@@ -46,7 +41,7 @@ export const createTransformer = (system: ts.System): ts.TransformerFactory<ts.S
                     foundDecls.push(getName(node));
                 }
 
-                return node;
+                return ts.visitEachChild(node, visitor, ctx);
             };
 
             input = ts.visitNode(input, visitor);

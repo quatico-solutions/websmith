@@ -1,16 +1,19 @@
 /* eslint-disable jest/no-jasmine-globals */
 /* eslint-disable no-console */
 import { createOptions } from "@websmith/cli";
-import { Compiler } from "@websmith/compiler";
+import { CompilationContext, Compiler } from "@websmith/compiler";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { StepDefinitions } from "jest-cucumber";
 import parseArgs from "minimist";
-import { basename, isAbsolute, join, resolve } from "path";
+import { basename, dirname, isAbsolute, join, resolve } from "path";
+
+const cleanWorkspace = true;
 
 export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     let compiler: Compiler;
     let projectDir: string;
     let rootDir: string;
+    let context: CompilationContext;
 
     beforeAll(() => {
         projectDir = resolve("./test-source");
@@ -48,7 +51,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
 
     afterEach(() => {
         process.chdir(rootDir);
-        if (existsSync(projectDir)) {
+        if (cleanWorkspace && existsSync(projectDir)) {
             rmSync(projectDir, { recursive: true });
         }
     });
@@ -94,7 +97,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     given(/^A test project "(.*)" is provided$/, (projectName: string) => {
-        copyFolderRecursiveSync(join(__dirname, "../test-data/projects/", projectName), join(projectDir));
+        copyFolderRecursiveSync(join(__dirname, "../test-data/projects/", projectName), join(projectDir), "files");
     });
 
     when(/^User calls command "(.*)"$/, cliCommand => {
@@ -113,6 +116,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
 
         compiler = new Compiler(createOptions({ ...(parseArgs(args) as any), buildDir: projectDir }));
         compiler.compile();
+        context = compiler.getContext()!;
     });
 
     then(/^Addons "(.*)" should be activated in compilation$/, (addonNames: string) => {
@@ -139,16 +143,14 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
         });
     });
 
-    then(/^Output file "(.*)" should contain a function named "(.*)"$/, (outFileName: string, funcName: string) => {
-        const outFilePath = resolvePath(`dist/${outFileName}`);
+    then(/^A file "(.*)" exists containing string "(.*)"$/, (outFileName: string, funcName: string) => {
+        const outFilePath = resolvePath(`${outFileName}`);
         expect(readFileSync(outFilePath, "utf-8").toString()).toContain(funcName);
     });
 
-    then(/^Every call to function "(.*)" should be replaced with "(.*)"$/, (oldFuncName: string, newFuncName: string) => {
-        fail("Not implemented");
-    });
-    then("A YAML file is emitted containing names of all exported module members", () => {
-        fail("Not implemented");
+    then(/^A file content "(.*)" exists containing "(.*)"$/, (outFileName: string, funcName: string) => {
+        const outFilePath = resolvePath(`${outFileName}`);
+        expect(context.getFileContent(outFilePath)).toContain(funcName);
     });
 
     then(/^A file "(.*)" exists containing names "(.*)"$/, (fileName: string, contents: string) => {
@@ -159,6 +161,10 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
         expectedElements.forEach(element => {
             expect(actualContent).toContain(element);
         });
+    });
+
+    then(/^Every call to function "(.*)" should be replaced with "(.*)"$/, (oldFuncName: string, newFuncName: string) => {
+        fail("Not implemented");
     });
 };
 
@@ -173,10 +179,13 @@ const copyFileSyncFn = (source: string, target: string) => {
     writeFileSync(targetFile, readFileSync(source));
 };
 
-const copyFolderRecursiveSync = (source: string, target: string) => {
+const copyFolderRecursiveSync = (source: string, target: string, kind: "folder" | "files" = "folder") => {
     let files = [];
     // Check if folder needs to be created or integrated
-    const targetFolder = join(target, basename(source));
+    let targetFolder = join(target, basename(source));
+    if (kind === "files") {
+        targetFolder = join(dirname(target), "test-source");
+    }
     if (!existsSync(targetFolder)) {
         mkdirSync(targetFolder, { recursive: true });
     }
