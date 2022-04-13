@@ -1,5 +1,6 @@
 // ./addons/input-file-generator/addon.ts
 import { AddonContext, InfoMessage } from "@websmith/addon-api";
+import { readFileSync } from "fs";
 import { basename } from "path";
 
 /**
@@ -14,7 +15,6 @@ export const activate = (ctx: AddonContext) => {
         filePaths.forEach(curPath => {
             // processed input file content
             const modifiedContent = ctx.getFileContent(curPath);
-
             // Inject a comment as the first line into the file.
             ctx.getSystem().writeFile(curPath, comment(curPath) + modifiedContent);
             // Report info message to the console.

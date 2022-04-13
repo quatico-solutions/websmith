@@ -34,7 +34,7 @@ Feature: Feature: Addon contribution
         And A test project "test-project-foobar" is provided
         When User calls command "websmith"
         Then Addons "example-transformer" should be activated in compilation
-        And A file content "./src/foobar.ts" exists containing "const barfoo = ()"
+        And A file "./dist/foobar.js" exists containing string "const barfoo = () =>"
 
     Scenario: Provide example result processor addon in default addons directory
         Given Folder "./addons" contains addon examples "example-result-processor"

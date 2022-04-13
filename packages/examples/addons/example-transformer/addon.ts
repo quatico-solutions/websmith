@@ -25,8 +25,11 @@ export const activate = (ctx: AddonContext): void => {
             (context: ts.TransformationContext) => {
                 return (sourceFile: ts.SourceFile): ts.SourceFile => {
                     const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
-                        if (ts.isIdentifier(node) && node.text === "foobar") {
-                            return ts.factory.createIdentifier("barfoo");
+                        if (ts.isIdentifier(node)) {
+                            const identifier = node.getText();
+                            if (identifier.match(/foobar/gi)) {
+                                return context.factory.createIdentifier(identifier.replace(/foobar/gi, "barfoo"));
+                            }
                         }
                         return ts.visitEachChild(node, visitor, context);
                     };

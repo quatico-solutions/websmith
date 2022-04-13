@@ -100,7 +100,7 @@ export class Compiler {
 
         this.options.targets.forEach((target: string) => {
             const { config } = this.options;
-            const { writeFile } = getTargetConfig(target, config);
+            const { writeFile = true } = getTargetConfig(target, config);
             const ctx = this.contextMap.get(target);
 
             if (!ctx) {
@@ -186,7 +186,7 @@ export class Compiler {
         return this;
     }
 
-    protected emitSourceFile(fileName: string, target: string, writeFile = false): CompileFragment {
+    protected emitSourceFile(fileName: string, target: string, writeFile = true): CompileFragment {
         const filePath = this.system.resolvePath(fileName);
         const ctx = this.contextMap.get(target);
         const cache = ctx?.getCache();

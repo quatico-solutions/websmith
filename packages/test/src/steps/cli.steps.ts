@@ -97,7 +97,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
     });
 
     given(/^A test project "(.*)" is provided$/, (projectName: string) => {
-        copyFolderRecursiveSync(join(__dirname, "../test-data/projects/", projectName), join(projectDir), "files");
+        copyFolderRecursiveSync(join(__dirname, "../test-data/projects/", projectName), projectDir, "files");
     });
 
     when(/^User calls command "(.*)"$/, cliCommand => {
@@ -114,7 +114,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
             .map(it => it.trim())
             .filter(it => it.length > 0);
 
-        compiler = new Compiler(createOptions({ ...(parseArgs(args) as any), buildDir: projectDir }));
+        compiler = new Compiler(createOptions({ ...(parseArgs(args) as any), buildDir: "./dist", project: "./tsconfig.json" }));
         compiler.compile();
         context = compiler.getContext()!;
     });
@@ -148,7 +148,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
         expect(readFileSync(outFilePath, "utf-8").toString()).toContain(funcName);
     });
 
-    then(/^A file content "(.*)" exists containing "(.*)"$/, (outFileName: string, funcName: string) => {
+    then(/^A file content "(.*)" exists containing string "(.*)"$/, (outFileName: string, funcName: string) => {
         const outFilePath = resolvePath(`${outFileName}`);
         expect(context.getFileContent(outFilePath)).toContain(funcName);
     });

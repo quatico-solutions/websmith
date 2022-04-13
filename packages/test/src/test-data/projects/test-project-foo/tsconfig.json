@@ -4,10 +4,11 @@
         "module": "ESNEXT",
         "lib": ["es2017", "es7", "es6", "dom"],
         "declaration": true,
-        "outDir": "dist",
+        "outDir": "./dist",
         "strict": true,
         "esModuleInterop": true,
-        "noEmit": false
+        "noEmit": false,
+        "skipLibCheck": true
     },
     "include": ["src"],
     "exclude": ["node_modules", "dist"]

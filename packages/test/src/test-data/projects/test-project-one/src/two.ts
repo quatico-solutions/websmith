@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
-export const two = () => {
+export const two = (): string => {
     console.log("two");
+    return "two";
 };

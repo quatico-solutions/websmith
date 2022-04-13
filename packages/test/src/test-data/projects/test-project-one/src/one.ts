@@ -1,4 +1,4 @@
 /* eslint-disable no-console */
-export const one = () => {
+export const one = (): void => {
     console.log("one");
 };

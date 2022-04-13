@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-console */
-const whatever = () => {
+const whatever = (): void => {
     console.log("whatever");
 };
