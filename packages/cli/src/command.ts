@@ -28,7 +28,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .showHelpAfterError("Add --help for additional information.")
         .description("Compiles typescript source code and applies addons to transform source before or after emit.")
         .option("-a, --addons <addons>", "Comma-separated list of addons to apply. All found addons will be applied by default.")
-        .option("-f, --addonsDir <directoryPath>", 'Directory path to the "addons" folder.')
+        .option("-f, --addonsDir <directoryPath>", 'Directory path to the "addons" folder.', "./addons")
         .option("-c, --config <filePath>", 'File path to the "websmith.config.json".', "./websmith.config.json")
         .option("-d, --debug", "Enable the output of debug information.", false)
         .option("-p, --project <projectPath>", 'Path to the configuration file, or to a folder with a "tsconfig.json".', "./tsconfig.json")
