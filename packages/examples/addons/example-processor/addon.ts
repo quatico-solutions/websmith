@@ -29,7 +29,7 @@ export const activate = (ctx: AddonContext) => {
                                     node.body
                                 );
                             }
-                            ts.visitEachChild(node, visitor, context);
+                            return ts.visitEachChild(node, visitor, context);
                         };
                         return ts.visitNode(curFile, visitor);
                     };

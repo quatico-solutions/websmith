@@ -12,14 +12,11 @@ export const activate = (ctx: AddonContext) => {
 
     ctx.registerResultProcessor((filePaths: string[]): void => {
         filePaths.forEach(curPath => {
-            // unmodified source file content from input
-            const content = ctx.getSystem().readFile(curPath);
-
             // processed input file content
-            const modified = ctx.getFileContent(curPath);
+            const modifiedContent = ctx.getFileContent(curPath);
 
             // Inject a comment as the first line into the file.
-            ctx.getSystem().writeFile(curPath, comment(curPath) + content);
+            ctx.getSystem().writeFile(curPath, comment(curPath) + modifiedContent);
             // Report info message to the console.
             ctx.getReporter().reportDiagnostic(new InfoMessage(`Example result processor ${curPath}`));
         });
