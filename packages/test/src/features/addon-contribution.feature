@@ -15,35 +15,37 @@ Feature: Feature: Addon contribution
         When User calls command "websmith --addonsDir ./my-addons"
         Then Addons "bar-addon, foo-addon" should be activated in compilation
 
-    Scenario: Provide example generator addon in default addons directory
+    Scenario: Provide generator addon to create additional input files
         Given Folder "./addons" contains addon examples "example-generator"
         And A test project "test-project-foo" is provided
         When User calls command "websmith"
         Then Addons "example-generator" should be activated in compilation
-        And A file "./src/foo-added.ts" exists containing string "const foo = ()"
+        And A file "./dist/foo-added.js" exists containing string "const foo = ()"
 
-    Scenario: Provide example processor addon in default addons directory
+    Scenario: Provide processor addon to modify module exports
         Given Folder "./addons" contains addon examples "example-processor"
         And A test project "test-project-foobar" is provided
         When User calls command "websmith"
         Then Addons "example-processor" should be activated in compilation
-        And A file "./src/foobar.ts" exists containing string "export const foobar = ()"
+        And A file "./dist/foobar.js" exists containing string "export function foobar() {"
+        And A file "./dist/whatever.js" exists containing string "function whatever() {"
 
-    Scenario: Provide example transformer addon in default addons directory
+    Scenario: Provide transformer addon to rename some functions
         Given Folder "./addons" contains addon examples "example-transformer"
         And A test project "test-project-foobar" is provided
         When User calls command "websmith"
         Then Addons "example-transformer" should be activated in compilation
-        And A file "./dist/foobar.js" exists containing string "const barfoo = () =>"
+        And A file "./dist/foobar.js" exists containing string "function barfoo() {"
+        And A file "./dist/whatever.js" exists containing string "function whatever() {"
 
-    Scenario: Provide example result processor addon in default addons directory
+    Scenario: Provide result processor addon to modify generated files
         Given Folder "./addons" contains addon examples "example-result-processor"
         And A test project "test-project-one" is provided
         When User calls command "websmith"
         Then Addons "example-result-processor" should be activated in compilation
         And A file "./dist/one.js" exists containing string "was compiled by the websmith compiler"
 
-    Scenario: Provide a complex generator addon in default addons directory
+    Scenario: Provide a YAML generator addon to create additional documentation
         Given Folder "./addons" contains addon examples "export-yaml-generator"
         And A test project "test-project-one" is provided
         When User calls command "websmith"

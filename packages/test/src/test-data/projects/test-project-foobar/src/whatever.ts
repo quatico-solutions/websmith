@@ -1,4 +1,4 @@
 /* eslint-disable no-console */
-const whatever = (): void => {
+function whatever(): void {
     console.log("whatever");
-};
+}

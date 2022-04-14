@@ -1,10 +1,11 @@
-// ./addons/input-file-generator/addon.ts
 import { AddonContext, InfoMessage } from "@websmith/addon-api";
-import { readFileSync } from "fs";
 import { basename } from "path";
 
 /**
- * TODO: Add description.
+ * Example addon with a result processor that modifies the result from
+ * compilation.
+ *
+ * This addon adds an extra comment line to every compiled file.
  *
  * @param ctx The compilation context for this addon.
  */

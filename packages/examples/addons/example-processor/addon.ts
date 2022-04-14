@@ -1,10 +1,13 @@
-// ./addons/input-generator/addon.ts
 import { AddonContext } from "@websmith/addon-api";
 import ts from "typescript";
 
 /**
- * Find all non exported "foobar" functions and add export statement.
- * @param ctx
+ * Example addon with a processor that modifies the exports of ES modules.
+ *
+ * This addons finds all non exported "foobar" functions and adds an export
+ * modifier to the function declaration.
+ *
+ * @param ctx The compilation context for this addon.
  */
 export const activate = (ctx: AddonContext) => {
     ctx.registerProcessor((filePath: string, fileContent: string): string => {
@@ -16,7 +19,7 @@ export const activate = (ctx: AddonContext) => {
                     return (curFile: ts.SourceFile) => {
                         const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
                             // Replace non exported foobar function with exported function.
-                            if (ts.isFunctionDeclaration(node) && node.name && node.name.getText() === "foobar") {
+                            if (ts.isFunctionDeclaration(node) && node.name?.text === "foobar") {
                                 return ts.factory.updateFunctionDeclaration(
                                     node,
                                     node.decorators,

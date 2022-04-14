@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
-const foobar = (): void => {
+function foobar(): string {
     console.log("foobar");
-};
+    return "foobar";
+}

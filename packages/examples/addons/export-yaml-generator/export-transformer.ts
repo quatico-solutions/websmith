@@ -17,12 +17,12 @@ import { dirname } from "path";
 import ts from "typescript";
 
 /**
- * Target file path for the generated export file.
+ * Output file path for the generated export file.
  */
 const OUTPUT_FILE_PATH = "dist/output.yaml";
 
 /**
- * Creates a transformer that collects all names of exported functions and variables.
+ * Creates a TS custom transformer that collects all names of exported functions and variables.
  *
  * @param system The TS system to use.
  * @returns A TS transformer factory.

@@ -16,8 +16,13 @@ import { AddonContext } from "@websmith/addon-api";
 import ts from "typescript";
 
 /**
- * Find all "foobar" identifiers in the source file and replace them with the
- * string "barfoo".
+ * Example addon with a transformer that modifies the source code inside a
+ * module.
+ *
+ * This addon finds all "foobar" identifiers in the source file and
+ * replaces them with the string "barfoo".
+ *
+ * @param ctx The compilation context for this addon.
  */
 export const activate = (ctx: AddonContext): void => {
     ctx.registerTransformer({

@@ -1,4 +1,3 @@
-// ./addons/input-file-generator/addon.ts
 import { AddonContext, InfoMessage } from "@websmith/addon-api";
 import { basename, dirname, extname, join } from "path";
 
