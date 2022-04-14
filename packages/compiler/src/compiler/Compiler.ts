@@ -292,7 +292,7 @@ const recursivelyCreateDirIfNeeded = (target: string, system: ts.System, separat
     const segments = target.split(separator);
     for (let i = 0; i < segments.length; i++) {
         const cur = segments.slice(0, i + 1).join(separator);
-        if (!system.directoryExists(cur)) {
+        if (!["","/"].includes(cur) && !system.directoryExists(cur)) {
             system.createDirectory(cur);
         }
     }
