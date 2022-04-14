@@ -15,208 +15,244 @@
 
 # Write your own addon
 
-The websmith compiler frontend provides an addon API to customize the compilation process of the underlying TypeScript compiler. An addon is an ES module named `addon.ts` or `addon.js` with an exported function named `activate`. The `activate` function  takes an `AddonContext` as its only parameter and is called when the compilation process is started. The `AddonContext` provides access to the underlying TypeScript compiler and API to register different kinds of transformers, processors or generators.
-All addons must be located in separate folders inside the dedicated "addons" directory. The folder name is used as addon name, if no explicit name is provided. The "addons" directory should be located in the root of the project, i.e. next to your "tsconfig.json". The "addons" directory is not part of the TypeScript compilation process. You can specify a different location for your addons using the CLI argument `--addonsDir`.
+The websmith compiler frontend provides an addon API to customize the compilation process of the underlying TypeScript compiler. An addon is an ES module named `addon.ts` or `addon.js` with an exported function named `activate`. The `activate` function takes an `AddonContext` as its only parameter and is called when the compilation process is started. The `AddonContext` provides access to the underlying TypeScript compiler and API to register different kinds of transformers, processors or generators.
 
-## Different kinds of addons
+All addons must be located in separate folders inside the dedicated *"addons"* directory. The folder name is used as addon name, if no explicit name is provided. The *"addons"* directory should be located in the root of the project, i.e. next to your `tsconfig.json`. The *"addons"* directory is not part of the TypeScript compilation process. You can specify a different location for your addons using the CLI argument `--addonsDir`.
 
-The `AddonContext` provides several register methods to add different kinds of transformers, processors or generators to the compilation process. It's important to understand what kind to use for your purpose:
+## 1 Different kinds of addons
 
-- `Generators` consume the unmodified source file and can create additional source input or other output files unrelated to the compilation process. They cannot alter the source code, giving every Generator the guarantee that they have unmodified source code as created by the developer.  Generators are executed per file, before all other Addon types and thus before the actual compilation.
-- `Processors` consume source files possibly modified by prior processors, and input files created
-by Generators. They are executed per file, after the `Generators` but before the standard TypeScript compilation. Processors allow you to alter aspects of the source that with TypeScripts CustomTransformers cannot be altered. A processor can modify the input files before the actual compilation, i.e., it can change module dependencies or add additional imports/exports.
-- `Transformers` can be used to alter the generated JavaScript result during the JS emission phase. They are executed per file, after the `Processors` and are [standard TypeScript CustomTransformers](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) that allow you to modify the code as the TypeScript to JavaScript transpilation takes place.
-- `ResultProcessors` consume output files from the compilation process and can create additional files. They cannot alter the output files, but have access to the transformed source code and compilation results. ResultProcessors are executed after all other Addon types and the actual compilation is completed. All ResultProcessors are executed in order of their registration once for every target.
+Depending on the purpose of your addon, you can use generators, processors or transformers. Each of them has different capabilities and is executed at a different point in the compilation process. It's important to understand what kind to use for your purpose:
 
-### What kind to use?
+- `Generators` are executed before everything else and receive an unmodified source file, regardless of how many other generators are executed before. They can create additional source input or other output files that are not processed by the TypeScript compiler. `Generators` cannot alter the source code, giving every Generator the guarantee to receive the unmodified source as created by the developer. `Generators` are executed once per file, before all other processors or transformers.
+- `Processors` can consume source files, possibly modified by prior processors, and input files created by `Generators`. They can modify all aspects of an input file, even change module dependencies and modify imports/exports. `Processors` are executed once per file, after all `Generators` but before the standard TypeScript compilation.
+- `ResultProcessors` have access to **all** unmodified and transformed source files from the compilation process. They cannot alter the source files, but can consume to the processed source code and compilation results. `ResultProcessors` are executed once per target after the actual compilation is completed.
+- `Transformers` can be used to alter the generated JavaScript result during the transpilation. They are merged ("before", "after", "afterDeclarations") and executed together once per file, after the `Processors`. `Transformers` are standard TypeScript [CustomTransformers](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) that allow you to modify the code as the TypeScript to JavaScript transpilation takes place.
 
-When implementing an addon, you should use the appropriate register method. For example, if you want to add a `Generator` to the compilation process, you should use the `registerGenerator` method. However, how to decide which kind to use? We recommend the following rule ot thumb:
+### 1.1 What kind to use?
 
-- Use a `Generator` in your addon, when you want to generate information for a later addon, for your bundler, your deployment pipeline or the compiler itself. Generators are your choice if you need additional input files, or want to make sure you consume unmodified input files.
-- Use a `Processor` in your addon, when you want to change the code that is passed into the compilation In particular, when you want to modify imports and exports. Processors are your choice if you need to modify existing input files or their dependencies before the actual compilation.
-- Use a `Transformer` in your addon, when you want to change what the existing code in an input file does. Transformers are your choice if you need to modify code behavior.
-- Use a `ResultProcessor` in your addon, when you want to post process the compilation output. Result processors are your choice if you need to create additional output files or an additional compilation result based on the based on your compilation output.
+The following list should help you to decide what kind to use for your purpose:
 
-## Implement a Generator
+- Use a `Generator` in your addon, if you need additional input files, or want to make sure you consume unmodified input files, e.g. for a later addon, your bundler, your deployment pipeline or the compiler itself.
+- Use a `Processor` in your addon, if you need to modify existing input files or their dependencies before the actual compilation, e.g. to change imports and exports.
+- Use a `ResultProcessor` in your addon, if you need to create additional output files based on multiple files, e.g, to generate documentation data.
+- Use `Transformers` in your addon, if you need to modify code behavior (what the code does) or when reusing a standard TypeScript transformer.
 
-`Generators` allow you to generate additional information **per file** with the unprocessed, untransformed input source files and persist them on the system (ctx.getSystem().writeFile(fileName)) for other addons that are executed later on (ctx.getSystem.readFile(fileName)).
+## 2 Implement a Generator
 
-### Example Generator
+`Generators` allow you to generate additional information **per file** with the unprocessed input source files and persist them on the system (`ctx.getSystem().writeFile(filePath)`) for other addons that are executed later on (`ctx.getSystem.readFile(filePath)`). You can even add a newly written file to the compilation process with `ctx.addInputFile(filePath)`.
 
-The following example shows how to implement a Generator that generates an additional input file for the compiler:
+### 2.1 Example Generator
+
+The following example shows how to implement a `Generator` that creates additional input files for the compilation:
 
 ```typescript
 // ./addons/example-generator/addon.ts
+import { AddonContext, InfoMessage } from "@websmith/addon-api";
+import { basename, dirname, extname, join } from "path";
+
+export const activate = (ctx: AddonContext) => {
+    ctx.registerGenerator((filePath: string, fileContent: string): void => {
+        if (filePath.includes("foo")) {
+            const dirName = dirname(filePath);
+            const fileName = `${basename(filePath, extname(filePath))}-added.ts`;
+            if (!filePath.endsWith("-added.ts")) {
+                // Write the additional file to disk.
+                ctx.getSystem().writeFile(join(dirName, fileName), fileContent);
+
+                //Add the additional file to the compilation.
+                ctx.addInputFile(join(dirName, fileName));
+            }
+
+            // Report info message to the console.
+            ctx.getReporter().reportDiagnostic(new InfoMessage(`Example generator processing ${fileName}`));
+        }
+    });
+};
+
 ```
 
-### Important Note
+## 3 Implement a Processor
 
-- The `Generator` is executed before all other Addon types and before the actual compilation.
-- The `Generator` is executed once per file, not once per target.
-- The `Generator` consumes the unmodified source file, regardless of how many other generators are executed before.
-- The `Generator` can add new input files to the compilation process, using the `ctx.addInputFile()` method.
+`Processors` are executed once **per file** after all `Generators` and the TypeScript compilation step. They allow you to alter all aspects of the code, in particular to add or remove imports, functions or dependencies on other modules. While this in theory can be done in `Transformers`, the TypeScript compilation will not be able to resolve such changes anymore yielding failing code when adding module dependencies and incorrect D.TS output files. It is possible to call `ts.transform()` in `Processors` and reuse existing standard `CustomTransformers` in this setup to achieve the desired code transformations.
 
-## Implement a Processor
+### 3.1 Example Processor
 
-`Processors` are executed **per file** before the TypeScript compilation step and allow you to alter all aspects of the code. `Processors` are in required in particular to add or remove imports, functions or dependencies on other modules. While this in theory can be done in `Transformers`, the TypeScript compilation will not be able to resolve such changes anymore yielding failing code when adding module dependencies and incorrect D.TS output files.
-It is possible to use ts.Transform in `Processors` to reuse existing TypeScript CustomTransformers in this setup to achieve the desired code transformations.
-
-### Example Processor
+The following example shows how to implement a `Processor` that modifies the exports of "foobar" functions:
 
 ```typescript
 // ./addons/example-processor/addon.ts
+import { AddonContext } from "@websmith/addon-api";
+import ts from "typescript";
+
+export const activate = (ctx: AddonContext) => {
+    ctx.registerProcessor((filePath: string, fileContent: string): string => {
+        const sf = ts.createSourceFile(filePath, fileContent, ctx.getConfig().options?.target ?? ts.ScriptTarget.Latest);
+        const result = ts.transform(
+            sf,
+            [
+                (context: ts.TransformationContext) => {
+                    return (curFile: ts.SourceFile) => {
+                        const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                            // Replace non exported foobar function with exported function.
+                            if (ts.isFunctionDeclaration(node) && node.name?.text === "foobar") {
+                                return ts.factory.updateFunctionDeclaration(
+                                    node,
+                                    node.decorators,
+                                    [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword), ...(node.modifiers ?? [])],
+                                    node.asteriskToken,
+                                    node.name,
+                                    node.typeParameters,
+                                    node.parameters,
+                                    node.type,
+                                    node.body
+                                );
+                            }
+                            return ts.visitEachChild(node, visitor, context);
+                        };
+                        return ts.visitNode(curFile, visitor);
+                    };
+                },
+            ],
+            ctx.getConfig().options
+        );
+        return ts.createPrinter().printFile(result.transformed[0]);
+    });
+};
+
 ```
 
-## Important Note
+## 4 Implement a ResultProcessor
 
-- The `Processor` is executed after all `Generators` and before the standard TypeScript compilation.
-- The `Processor` is executed once per file, not once per target.
-- The `Processor` can modify the input files before the actual compilation.
-- The `Processor` can change module dependencies and modify imports/exports.
+`ResultProcessors` follow the same approach as `Generator` but are executed after the compilation is completed. They are executed once per target, not once per file. A `ResultProcessor` can access the processed source file content, possibly modified by processors with `ctx.getFileContent()`, and the unmodified source file content with `ctx.getSystem().readFile()`. `ResultProcessors` are executed executed only once **per target**, not once **per file**.
 
-## Implement a Transformer
+### 4.1 Example ResultProcessor
 
-Transformers follow the standard TypeScript API `ts.CustomTransformers`, providing a factory that takes in a `ts.TransformationContext` and returning a Transformer for SourceFiles. While `Processors` are executed one by one, `Transformers` are merged. All **before** of all `Transformers` are executed together, all **after** are executed together and all **afterDeclarations** are executed together.
+The following example shows how to implement a `ResultProcessor` that creates JSON data with found function names:
+
+```typescript
+// ./addons/example-result-processor/addon.ts
+import { AddonContext, InfoMessage } from "@websmith/addon-api";
+import { basename, extname, join } from "path";
+import ts from "typescript";
+
+export const activate = (ctx: AddonContext) => {
+    ctx.registerResultProcessor((filePaths: string[]): void => {
+        const result: Record<string, string[]> = {};
+
+        filePaths.forEach(curPath => {
+            const content = ctx.getFileContent(curPath);
+            const target = ctx.getConfig().options.target ?? ts.ScriptTarget.Latest;
+
+            ts.transform(
+                ts.createSourceFile(curPath, content, target),
+                [
+                    (context: ts.TransformationContext) => (curFile: ts.SourceFile) => {
+                        const funcNames: string[] = [];
+
+                        const visitor: ts.Visitor = (node: ts.Node) => {
+                            if (ts.isFunctionDeclaration(node) && node.name?.text) {
+                                funcNames.push(node.name.text);
+                            } else if (ts.isVariableStatement(node)) {
+                                const decl = node.declarationList.declarations[0];
+                                if (ts.isArrowFunction(decl)) {
+                                    funcNames.push(node.declarationList?.declarations[0]?.name?.getText(curFile));
+                                }
+                            }
+                            return ts.visitEachChild(node, visitor, context);
+                        };
+
+                        curFile = ts.visitNode(curFile, visitor);
+                        result[basename(curPath, extname(curPath))] = funcNames;
+
+                        return curFile;
+                    },
+                ],
+                ctx.getConfig().options
+            );
+            // Report info message to the console.
+            ctx.getReporter().reportDiagnostic(new InfoMessage(`Example result processor: processed "${curPath}"`));
+        });
+
+        // Write the result to the output JSON file.
+        ctx.getSystem().writeFile(join(ctx.getConfig()?.options?.outDir ?? "", "named-functions.json"), JSON.stringify(result));
+    });
+};
+
+```
+
+## 5 Implement a Transformer
+
+`Transformers` follow the standard TypeScript API `ts.CustomTransformers`, providing a factory that takes in a `ts.TransformationContext` and returning a Transformer for SourceFiles. A `Transformer` is executed after all `Processors` as part of the standard TypeScript compilation.  While `Processors` are executed one by one, `Transformers` are merged. All **before** of all `Transformers` are executed together, all **after** are executed together and all **afterDeclarations** are executed together. A `Transformer` can modify the source code, but cannot change module dependencies or modify imports/exports.
 
 The official TypeScript has good examples for implementing a transformer, such as the [delint Transformer documentation](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter). Further examples and in-depth explanations for TypeScript code transformation can be found in the [TypeScript Transformer Handbook](https://github.com/madou/typescript-transformer-handbook).
 
 When writing ts.Transform or Transformer based addons, we recommend to use [the AST Explorer](https://astexplorer.net/) and [the TS Creator](https://ts-creator.js.org/) as tools to aid your development.
 VisualStudio Code users can leverage the extension [TypeScript AST Explorer](https://marketplace.visualstudio.com/items?itemName=krizzdewizz.vscode-typescript-ast-explorer).
 
-#### Example Transformer
+### 5.1 Example Transformer
+
+The following example shows how to implement a `Transformer` that modifies the source code inside a module:
 
 ```typescript
 // ./addons/example-transformer/addon.ts
-```
-
-### Important Note
-
-- The `Transformer` is executed after all `Processors` as part of the standard TypeScript compilation.
-- All `Transformers` are merged (before, after, afterDeclarations) and executed all together once per file, not once per target.
-- The `Transformer` can modify the source code, but cannot change module dependencies or modify imports/exports.
-- The `Transformer` follows the standard TypeScript API `ts.CustomTransformers`, providing a factory that takes in a `ts.TransformationContext` and returning a Transformer for SourceFiles.
-
-The same TypeScript TransformerFactories we used in the `Processor` and `Generator` addons can also be used as `Transformer` addons.
-But we must keep in mind, that `Transformer` addons are executed after TypeScript has processed the structure of code and in essence generated the D.TS file!
-When using a `Processor` transformer in a `Transformer` addon, the resulting transformed JavaScript code will be identical to the `Processor` addon, but because we rewrite the signature of the functions (foobar1 to barfoo1 in above examples), the generated D.TS file will no longer match.
-
-For the input
-
-```typescript
-export const foobar1 = (): string => {
-    return "foobar1";
-};
-```
-
-both Processor and Transformer addons yield the following JavaScript output
-
-```typescript
-export const barfoo1 = () => {
-    return "foobar1";
-};
-```
-
-but the Processor Addon will yield
-
-**Processor .d.ts**
-
-```typescript
-export declare const barfoo1: () => string;
-```
-
-while the Transformer Addon will yield
-
-**Transformer .d.ts**
-
-```typescript
-// The signature of foobar has not been transformed.
-export declare const foobar1: () => string;
-```
-
-## Implement a ResultProcessor
-
-ResultProcessor follow the same approach as `Generator` but are executed after the compilation has been finished.
-The difference is that they are executed executed only once **per target**, not once **per file**.
-
-### Example ResultProcessor
-
-```typescript
-// ./addons/example-result-processor/addon.ts
-```
-
-### Important Note
-
-- The `ResultProcessor` is executed the compilation process is completed.
-- The `ResultProcessor` is executed once per target, not once per file.
-- The `ResultProcessor` can access the processed source file content, possibly modified by processors with `ctx.getFileContent()`
-- The `ResultProcessor` can access the unmodified source file content with `ctx.getSystem().readFile()`
-
-## Error reporting
-
-Websmith uses a `Reporter` to communicate info, warning and error messages while respecting the current debug option. `context.getReporter()` can be used on the context in your activate function to access this reporter.
-
-```typescript
-export const createTransformer = (fileName: string, content: string, ctx: AddonContext): string => {
-    if (content === "") {
-        ctx.getReporter().reportDiagnostic(new ErrorMessage(`No content to transform for ${fileName}`));
-        return "";
-    }
-
-    return executeTransformation(fileName, content, ctx);
-};
-```
-
-## API
-
-### Logging from addons: The reporter and messages
-
-Websmith provides a global diagnostic reporter that you can use for addons both in the command line as well as the browser.
-
-Out of the box, Websmith provides 3 default message types: `InfoMessage`, `WarnMessage` and `ErrorMessage`, which your addons can use to communicate diagnostic information.
-
-#### Example
-
-**example-generator/addon.ts**
-
-```typescript
-import { AddonContext, Generator, InfoMessage } from "@websmith/addon-api";
+import { AddonContext } from "@websmith/addon-api";
 import ts from "typescript";
 
-export const activate = (ctx: AddonContext) => {
-    ctx.registerGenerator(createGenerator(ctx));
-}
-
-const createGenerator = (ctx: AddonContext): Generator =>
-    (fileName: string, fileContent: string): void => {
-        const sf = ts.createSourceFile(fileName, fileContent, ctx.getConfig().options?.target ?? ts.ScriptTarget.Latest);
-        ctx.getReporter().reportDiagnostic(new InfoMessage(`Example Addon processing ${fileName}`, sf));
-    }
+export const activate = (ctx: AddonContext): void => {
+    ctx.registerTransformer({
+        before: [
+            (context: ts.TransformationContext) => {
+                return (sourceFile: ts.SourceFile): ts.SourceFile => {
+                    const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                        if (ts.isIdentifier(node)) {
+                            const identifier = node.getText();
+                            if (identifier.match(/foobar/gi)) {
+                                return context.factory.createIdentifier(identifier.replace(/foobar/gi, "barfoo"));
+                            }
+                        }
+                        return ts.visitEachChild(node, visitor, context);
+                    };
+                    return ts.visitNode(sourceFile, visitor);
+                };
+            },
+        ],
+    });
+};
 ```
 
-### Interacting with Websmith: The AddonContext explained
+The same TypeScript TransformerFactories we used in `Processors` and `Generators` can also be used as `Transformer`. Please keep in mind, that `Transformers` are executed after the TypeScript compiler has processed the structure of code and in essence the D.TS file generated. When using a `Transformer` instead of a `Processor`, the resulting transformed JavaScript code will be identical, but the function signatures ("foobar" to "barfoo" from the example above) will not be reflected in the generated D.TS file.
 
-Websmith addons receive the `AddonContext` in the `activate` function.
-The `AddonContext` provides the necessary API for addons to access
+## 6 Addon Context API
 
-- the file system
-- the current compilation program
-- the reporter
+### 6.1 Interacting with Websmith: The AddonContext explained
 
-as well as requesting
+Websmith addons receive the `AddonContext` in the `activate` function. The `AddonContext` provides API for addons to access:
 
-- the configuration of the current compilation
-- the current target
-- the up to date input file content.
+- the file system (`ctx.getSystem()`)
+- the current compilation program (`ctx.getProgram()`)
+- the reporter (`ctx.getReporter()`)
+- the command-line options used to run the compiler (`ctx.getConfig()`)
+- the configuration specific for this compilation target (`ctx.getTargetConfig()`)
+- the up to date input file content (`ctx.getFileContent(filePath)`)
 
-### Interacting with the file system
+### 6.2 Error reporting
 
-To enable your addons to work locally as well in the browser environment, it is important to not use the filesystem but use the provided ts.System instead!
+Websmith uses a `Reporter` to display *"info"*, *"warning"* and *"error"* messages while respecting the current debug option. Access the report with `ctx.getReporter()` from the `AddonContext`. Use the `reportDiagnostic` method to report messages from your addon:
 
-You can get access to the system through ctx.getSystem() and execute your file operations from any addon:
+```typescript
+export const activate = (ctx: AddonContext) => {
+    //...
+    ctx.getReporter().reportDiagnostic(new ErrorMessage(`My error message`));
+}
+```
 
-TBD
+Websmith provides three message types: `InfoMessage`, `WarnMessage` and `ErrorMessage`, which your addons can use to communicate diagnostic information.
 
-## Addon execution flow
+### 6.3 Interacting with the file system
+
+Websmith brings its own file system API to compilation even in the browser environment. **Do not use** the `fs` package for accessing files from your disk, use `ctx.getSystem()` instead. Read the original file content from the file system with `ctx.getSystem().readFile(filePath)` or the processed and potentially modified content with `ctx.getFileContent(filePath)`. Write new files to the file system with `ctx.getSystem().writeFile(filePath, content)`.
+
+## 7 Addon execution flow
 
 ```plantuml
 @startuml

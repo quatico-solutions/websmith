@@ -3,7 +3,7 @@ import { basename, extname, join } from "path";
 import ts from "typescript";
 
 /**
- * Example addon with a result processor that create JSON data with
+ * Example addon with a result processor that creates JSON data with found
  * function names.
  *
  * This addon consumes all processed source files to find function declarations
