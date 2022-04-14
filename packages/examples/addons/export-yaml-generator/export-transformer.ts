@@ -12,14 +12,10 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import { AddonContext } from "@websmith/addon-api";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { dirname } from "path";
+import { dirname, join } from "path";
 import ts from "typescript";
-
-/**
- * Output file path for the generated export file.
- */
-const OUTPUT_FILE_PATH = "dist/output.yaml";
 
 /**
  * Creates a TS custom transformer that collects all names of exported functions and variables.
@@ -27,7 +23,7 @@ const OUTPUT_FILE_PATH = "dist/output.yaml";
  * @param system The TS system to use.
  * @returns A TS transformer factory.
  */
-export const createTransformer = (system: ts.System): ts.TransformerFactory<ts.SourceFile> => {
+export const createTransformer = (context: AddonContext): ts.TransformerFactory<ts.SourceFile> => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (input: ts.SourceFile): ts.SourceFile => {
             const foundDecls: string[] = [];
@@ -46,8 +42,9 @@ export const createTransformer = (system: ts.System): ts.TransformerFactory<ts.S
 
             input = ts.visitNode(input, visitor);
 
+            const outPath = join(context.getConfig()?.options?.outDir ?? "", "output.yaml");
             // Write collected identifiers to hard coded output file
-            writeFileSync(system.resolvePath(OUTPUT_FILE_PATH), createFileContent(input.fileName, foundDecls, system));
+            writeFileSync(outPath, createFileContent(input.fileName, foundDecls, outPath));
             return input;
         };
     };
@@ -58,11 +55,11 @@ export const createTransformer = (system: ts.System): ts.TransformerFactory<ts.S
  *
  * @param filePath The path to the file.
  * @param names The names to append.
- * @param system The TS system to use.
+ * @param outPath The path to the output file.
  * @returns The new content to append to the file.
  */
-const createFileContent = (filePath: string, names: string[], system: ts.System): string => {
-    const fileContent = getOrCreateFile(system.resolvePath(OUTPUT_FILE_PATH));
+const createFileContent = (filePath: string, names: string[], outPath: string): string => {
+    const fileContent = getOrCreateFile(outPath);
     const existingFileContent = fileContent ? `${fileContent}\n` : "";
     const exports = names.length > 0 ? `\nexports: [${names.join(",")}]\n` : "";
     return `${existingFileContent}-file: "${filePath}"${exports}`;

@@ -11,10 +11,12 @@ Feature: Compiler configuration
         And A file "./dist/three.js" exists containing string "const three = () =>"
 
     Scenario: Use CLI argument to select a custom configuration file
-        Given A valid config file named "my-config.json" exists in project folder
+        Given A test project "test-project-one" is provided
+        And A valid config file named "my-config.json" exists in project folder
         And Config file "my-config.json" contains "addons" with "foo-addon"
         And Folder "./addons" contains addons "foo-addon, bar-addon"
         When User calls command "websmith --config my-config.json"
         Then Addons "foo-addon" should be activated in compilation
         And Addons "bar-addon" should not be activated
+# TODO: And A file "./lib/one.js" exists containing string "const one = () =>"
 

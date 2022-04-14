@@ -1,6 +1,12 @@
 # websmith
 
-This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It provides a powerful API for customizing the compilation process of the original TypeScript compiler to transpile the source files.
+This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It provides additional API for customizing the compilation process of the original compiler. You can provide your own compiler addons to modify the compilation input before the actual compilation process. Addons can
+
+* consume the unmodified source files to generate additional information based on the original source code,
+* create additional new input files and add them to the compilation process, or
+* modify input files to change module dependencies and modify imports/exports.
+
+An addon can also access all processed source files as whole and reason about the entire compilation target. Standard API for TypeScript transformers is fully integrated, thus existing `ts.CustomTransformers` can be simply called from within every addon.
 
 ## Getting started
 
@@ -108,10 +114,10 @@ Run the websmith compiler with selected targets `websmith --targets one, two` to
 
 websmith supports custom configurations for different compilation targets. A compilation target is a set of options that specify the environment for a compilation output. You can define a custom compilation target by adding a `targets` section to the `websmith.config.json` file. The `targets` section contains a unique target `name` and a set of options. The `name` is used to specify the target when calling the websmith compiler. The options are used to configure the compilation process. The options contain the following sections:
 
-- `addons`: a list of addon names to apply for this target
-- `writeFile`: a boolean value that specifies whether the output file should be written to disk
-- `config`: target specific configuration properties defined by your addon
-- `options`: a set of compiler options for the TypeScript compiler to use for this target
+* `addons`: a list of addon names to apply for this target
+* `writeFile`: a boolean value that specifies whether the output file should be written to disk
+* `config`: target specific configuration properties defined by your addon
+* `options`: a set of compiler options for the TypeScript compiler to use for this target
 
 An example for a custom compilation target could be:
 
