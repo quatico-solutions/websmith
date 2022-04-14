@@ -17,11 +17,13 @@ export const activate = (ctx: AddonContext) => {
         if (filePath.includes("foo")) {
             const dirName = dirname(filePath);
             const fileName = `${basename(filePath, extname(filePath))}-added.ts`;
-            // Write the additional file to disk.
-            ctx.getSystem().writeFile(join(dirName, fileName), fileContent);
+            if (!filePath.endsWith("-added.ts")) {
+                // Write the additional file to disk.
+                ctx.getSystem().writeFile(join(dirName, fileName), fileContent);
 
-            // TODO: Add the additional file to the compilation.
-            // ctx.addInputFile(join(dirName, fileName));
+                //Add the additional file to the compilation.
+                ctx.addInputFile(join(dirName, fileName));
+            }
 
             // Report info message to the console.
             ctx.getReporter().reportDiagnostic(new InfoMessage(`Example generator processing ${fileName}`));

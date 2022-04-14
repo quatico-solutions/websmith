@@ -86,8 +86,15 @@ export class CompilationContext implements AddonContext<any> {
         return this.config ?? {};
     }
 
-    public getFileContent(fileName: string): string {
-        return this.cache.getCachedFile(fileName).content;
+    public addInputFile(filePath: string): void {
+        // TODO: Should only be allowed for Generators
+        if (!this.rootFiles.includes(filePath)) {
+            this.rootFiles.push(filePath);
+        }
+    }
+
+    public getFileContent(filePath: string): string {
+        return this.cache.getCachedFile(filePath).content;
     }
 
     public getCache(): FileCache {

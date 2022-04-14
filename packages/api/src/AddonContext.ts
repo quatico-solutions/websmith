@@ -51,14 +51,20 @@ export interface AddonContext<O extends TargetConfig = any> {
     getTargetConfig(): O;
 
     /**
+     * Adds a new file to the compilation input. The file will be compiled with the same options
+     * as original files.
+     */
+    addInputFile(filePath: string): void;
+
+    /**
      * Returns the content of the given file name, if the file is part of the compilation process. Use this function
      * to access the potentially transformed content. For `Generator` and `Processor` addons returned content is
      * unmodified.
      *
-     * @param fileName Name of the file for
+     * @param filePath Name of the file for
      * @returns The content of the file or empty string, if the file is not part of the compilation process.
      */
-    getFileContent(fileName: string): string;
+    getFileContent(filePath: string): string;
 
     /**
      * Registers a generator function with this context. Use a `Generator` to generate additional source input before
