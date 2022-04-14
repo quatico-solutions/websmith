@@ -207,6 +207,7 @@ export class Compiler {
 
             if (!output.emitSkipped) {
                 cache.updateOutput(fileName, output.outputFiles);
+                this.version++;
 
                 if (writeFile) {
                     this.writeOutputFiles(output);
