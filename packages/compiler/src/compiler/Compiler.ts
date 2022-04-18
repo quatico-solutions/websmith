@@ -15,7 +15,7 @@
 
 import { ErrorMessage, Reporter, TargetConfig } from "@websmith/addon-api";
 import { existsSync } from "fs";
-import { dirname, extname, isAbsolute, join, resolve, sep } from "path";
+import { dirname, extname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
 import { createSystem, recursiveFindByFilter } from "../environment";
 import { concat } from "./collections";
@@ -259,8 +259,6 @@ export class Compiler {
     private writeOutputFiles(emitOutput: ts.EmitOutput) {
         for (const cur of emitOutput.outputFiles) {
             const filename = this.getFilePath(cur.name);
-            const target = dirname(filename);
-            recursivelyCreateDirIfNeeded(target, this.system, sep);
             this.system.writeFile(filename, cur.text);
         }
     }
@@ -286,14 +284,4 @@ const getTargetConfig = (target: string, config?: CompilationConfig): TargetConf
         return targets[target] ?? {};
     }
     return {};
-};
-
-const recursivelyCreateDirIfNeeded = (target: string, system: ts.System, separator: string) => {
-    const segments = target.split(separator);
-    for (let i = 0; i < segments.length; i++) {
-        const cur = segments.slice(0, i + 1).join(separator);
-        if (!["","/"].includes(cur) && !system.directoryExists(cur)) {
-            system.createDirectory(cur);
-        }
-    }
 };
