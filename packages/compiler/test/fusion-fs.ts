@@ -12,7 +12,7 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
-import fs, { MakeDirectoryOptions, ObjectEncodingOptions, PathLike, PathOrFileDescriptor, Stats } from "fs";
+import fs, { MakeDirectoryOptions, ObjectEncodingOptions, PathLike, PathOrFileDescriptor, Stats, WatchFileOptions } from "fs";
 import { createFsFromVolume, vol } from "memfs";
 import Dirent from "memfs/lib/Dirent";
 import { TDataOut } from "memfs/lib/encoding";
@@ -133,13 +133,30 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
         unlinkSync: memfs.unlinkSync,
         realpathSync: (path: PathLike, options?: { encoding?: BufferEncoding | null } | BufferEncoding | null): string | TDataOut | Buffer =>
             memfs.existsSync(path) ? memfs.realpathSync(path, options as any) : actualFs.realpathSync(path, options),
-        openSync: (path: PathLike, flags: string | number, mode?: string | number): number =>
-            memfs.existsSync(path) ? memfs.openSync(path, flags, mode) : actualFs.openSync(path, flags, mode),
+        openSync: (path: PathLike, flags: string | number, mode?: string | number): number => {
+            if (!memfs.existsSync(path) && actualFs.existsSync(path)) {
+                memfs.writeFileSync(path, actualFs.readFileSync(path));
+            } else {
+                memfs.mkdirSync(dirname(path.toString()), { recursive: true });
+                memfs.writeFileSync(path, "");
+            }
+            return memfs.openSync(path, flags, mode);
+        },
         closeSync: memfs.closeSync,
         watch: (path: PathLike, options?: IWatchOptions | string, listener?: (eventType: string, filename: string) => void): fs.FSWatcher =>
             memfs.existsSync(path) ? memfs.watch(path, options, listener) : actualFs.watch(path, options as any, listener),
-        watchFile: (path: PathLike, listener: (curr: Stats, prev: Stats) => void): StatWatcher =>
-            memfs.existsSync(path) ? (memfs.watchFile(path, listener as any) as any) : actualFs.watchFile(path, listener),
+        watchFile: (
+            path: PathLike,
+            options:
+                | (WatchFileOptions & {
+                      bigint: true;
+                  })
+                | undefined,
+            listener: (curr: Stats, prev: Stats) => void
+        ): StatWatcher =>
+            memfs.existsSync(path)
+                ? (memfs.watchFile(path, options as any, listener as any) as any)
+                : actualFs.watchFile(path, options as any, listener),
         unwatchFile: (path: PathLike, listener?: (curr: Stats, prev: Stats) => void): void =>
             memfs.existsSync(path) ? memfs.unwatchFile(path, listener as any) : actualFs.unwatchFile(path, listener),
     } as any;
