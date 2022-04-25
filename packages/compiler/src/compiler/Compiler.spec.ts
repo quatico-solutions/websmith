@@ -14,6 +14,8 @@
  */
 /* eslint-disable jest/no-mocks-import */
 import { TargetConfig } from "@websmith/addon-api/src";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createBrowserSystem, createSystem } from "../environment";
@@ -356,9 +358,87 @@ describe("report", () => {
     });
 });
 
-// FIXME: Test watch mode
-describe.skip("watch", () => {
-    it("should", () => {
+// FIXME: Update with BrowserSystem testSystem when BrowserSystem supports watch
+describe("watch", () => {
+    let testObj: Compiler;
+
+    const builddir = join(__dirname, "__test__", "src");
+    const exportedFileName = join(builddir, "arrow.ts");
+    const outDir = join(__dirname, "__test__", "lib");
+
+    beforeEach(() => {
+        exportFile(testSystem, "src/arrow.ts", exportedFileName);
+    });
+
+    afterEach(() => {
+        testObj.closeAllWatchers();
+        rmSync(join(__dirname, "__test__"), { recursive: true, force: true });
+    });
+
+    it("should output to buildDir w/ buildDir set", () => {
+        testObj = new Compiler(
+            {
+                addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+                buildDir: "./src",
+                config: { configFilePath: join(__dirname, "magellan.config.json"), targets: { "*": { writeFile: true } } },
+                project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest },
+                reporter,
+                targets: [],
+                tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
+                debug: false,
+                sourceMap: false,
+                watch: true,
+            },
+            ts.sys
+        );
+
         testObj.watch();
+
+        expect(readFileSync(join(builddir, "arrow.js")).toString()).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+        expect(readFileSync(join(builddir, "arrow.d.ts")).toString()).toMatchInlineSnapshot(`
+            "export declare const computeDate: () => Promise<Date>;
+            "
+        `);
+    });
+
+    it("should output to tsconfig outdir w/ target outDir override", () => {
+        testObj = new Compiler(
+            {
+                addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+                buildDir: ts.sys.getCurrentDirectory(),
+                config: { configFilePath: join(__dirname, "magellan.config.json"), targets: { "*": { writeFile: true, options: { outDir } } } },
+                project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest },
+                reporter,
+                targets: [],
+                tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
+                debug: false,
+                sourceMap: false,
+                watch: true,
+            },
+            ts.sys
+        );
+
+        testObj.watch();
+
+        expect(readFileSync(join(outDir, "arrow.js")).toString()).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+        expect(readFileSync(join(outDir, "arrow.d.ts")).toString()).toMatchInlineSnapshot(`
+            "export declare const computeDate: () => Promise<Date>;
+            "
+        `);
     });
 });
+
+const exportFile = (testSystem: ts.System, fileName: string, exportedFileName: string) => {
+    if (!testSystem.fileExists(fileName)) {
+        throw new Error(`File ${fileName} does not exist`);
+    }
+
+    mkdirSync(dirname(exportedFileName), { recursive: true });
+    writeFileSync(exportedFileName, testSystem.readFile(fileName)!);
+};

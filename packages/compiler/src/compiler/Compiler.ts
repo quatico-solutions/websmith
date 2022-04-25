@@ -138,18 +138,27 @@ export class Compiler {
         return this.report(this.langService.getProgram()!, result);
     }
 
+    private fileWatchers: ts.FileWatcher[] = [];
+
     public watch() {
         this.createTargetContextsIfNecessary();
         this.options.targets.forEach((target: string) => {
             const { writeFile } = getTargetConfig(target, this.options.config);
-            if (typeof this.system.watchFile === "function") {
-                this.getRootFiles().forEach(cur =>
-                    this.system.watchFile!(cur, (fileName, event) => this.emitSourceFile(fileName, target, writeFile))
-                );
-            } else {
-                this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
+            if (writeFile) {
+                if (typeof this.system.watchFile === "function") {
+                    this.getRootFiles().forEach(cur => {
+                        this.emitSourceFile(cur, target, writeFile);
+                        this.fileWatchers.push(this.system.watchFile!(cur, (fileName: string) => this.emitSourceFile(fileName, target, writeFile)));
+                    });
+                } else {
+                    this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
+                }
             }
         });
+    }
+
+    public closeAllWatchers() {
+        this.fileWatchers.forEach(cur => cur.close());
     }
 
     protected createTargetContextsIfNecessary(): this {
