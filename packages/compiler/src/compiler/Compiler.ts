@@ -142,19 +142,20 @@ export class Compiler {
 
     public watch() {
         this.createTargetContextsIfNecessary();
-        this.options.targets.forEach((target: string) => {
-            const { writeFile } = getTargetConfig(target, this.options.config);
-            if (writeFile) {
-                if (typeof this.system.watchFile === "function") {
-                    this.getRootFiles().forEach(cur => {
-                        this.emitSourceFile(cur, target, writeFile);
-                        this.fileWatchers.push(this.system.watchFile!(cur, (fileName: string) => this.emitSourceFile(fileName, target, writeFile)));
-                    });
-                } else {
-                    this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
-                }
-            }
-        });
+
+        if (typeof this.system.watchFile === "function") {
+            this.getRootFiles().forEach(cur => {
+                const emitTargets: string[] = this.getWritingTargets();
+
+                this.fileWatchers.push(
+                    this.system.watchFile!(cur, (fileName: string) => emitTargets.forEach(target => this.emitSourceFile(fileName, target, true)))
+                );
+                emitTargets.forEach(target => this.emitSourceFile(cur, target, true));
+
+            });
+        } else {
+            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
+        }
     }
 
     public closeAllWatchers() {
@@ -284,6 +285,17 @@ export class Compiler {
 
     private getBasePath(fileName: string, projectDir: string): string {
         return Object.keys(this.options.project.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? projectDir;
+    }
+
+    private getWritingTargets() {
+        const writingTargets: string[] = [];
+        this.options.targets.forEach((target: string) => {
+            const { writeFile } = getTargetConfig(target, this.options.config);
+            if (writeFile) {
+                writingTargets.push(target);
+            }
+        });
+        return writingTargets;
     }
 }
 

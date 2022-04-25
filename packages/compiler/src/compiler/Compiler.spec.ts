@@ -14,7 +14,7 @@
  */
 /* eslint-disable jest/no-mocks-import */
 import { TargetConfig } from "@websmith/addon-api/src";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import ts from "typescript";
 import { ReporterMock } from "../../test";
@@ -362,8 +362,8 @@ describe("report", () => {
 describe("watch", () => {
     let testObj: Compiler;
 
-    const builddir = join(__dirname, "__test__", "src");
-    const exportedFileName = join(builddir, "arrow.ts");
+    const buildDir = join(__dirname, "__test__", "src");
+    const exportedFileName = join(buildDir, "arrow.ts");
     const outDir = join(__dirname, "__test__", "lib");
 
     beforeEach(() => {
@@ -375,11 +375,11 @@ describe("watch", () => {
         rmSync(join(__dirname, "__test__"), { recursive: true, force: true });
     });
 
-    it("should output to buildDir w/ buildDir set", () => {
+    it("should output to buildDir w/o outDir override", async () => {
         testObj = new Compiler(
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
-                buildDir: "./src",
+                buildDir,
                 config: { configFilePath: join(__dirname, "magellan.config.json"), targets: { "*": { writeFile: true } } },
                 project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest },
                 reporter,
@@ -394,17 +394,23 @@ describe("watch", () => {
 
         testObj.watch();
 
-        expect(readFileSync(join(builddir, "arrow.js")).toString()).toMatchInlineSnapshot(`
+        expect(readFileSync(join(buildDir, "arrow.js")).toString()).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
-        expect(readFileSync(join(builddir, "arrow.d.ts")).toString()).toMatchInlineSnapshot(`
+        expect(readFileSync(join(buildDir, "arrow.d.ts")).toString()).toMatchInlineSnapshot(`
             "export declare const computeDate: () => Promise<Date>;
             "
         `);
+
+        writeFileSync(exportedFileName, "");
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+        expect(readFileSync(join(buildDir, "arrow.js")).toString()).toBe("");
+        expect(readFileSync(join(buildDir, "arrow.d.ts")).toString()).toBe("");
     });
 
-    it("should output to tsconfig outdir w/ target outDir override", () => {
+    it("should output to outDir w/ target outDir override", async () => {
         testObj = new Compiler(
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
@@ -431,6 +437,60 @@ describe("watch", () => {
             "export declare const computeDate: () => Promise<Date>;
             "
         `);
+
+        writeFileSync(exportedFileName, "");
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+        expect(readFileSync(join(outDir, "arrow.js")).toString()).toBe("");
+        expect(readFileSync(join(outDir, "arrow.d.ts")).toString()).toBe("");
+    });
+
+    it("should output to multiple targets outDir w/ multiple targets and outDir override", async () => {
+        testObj = new Compiler(
+            {
+                addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+                buildDir: ts.sys.getCurrentDirectory(),
+                config: {
+                    configFilePath: join(__dirname, "magellan.config.json"),
+                    targets: {
+                        target1: { writeFile: true, options: { outDir: join(outDir, "target1") } },
+                        target2: { writeFile: true, options: { outDir: join(outDir, "target2"), declaration: false } },
+                    },
+                },
+                project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest },
+                reporter,
+                targets: ["target1", "target2"],
+                tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
+                debug: false,
+                sourceMap: false,
+                watch: true,
+            },
+            ts.sys
+        );
+
+        testObj.watch();
+
+        expect(readFileSync(join(outDir, "target1", "arrow.js")).toString()).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+        expect(readFileSync(join(outDir, "target1", "arrow.d.ts")).toString()).toMatchInlineSnapshot(`
+            "export declare const computeDate: () => Promise<Date>;
+            "
+        `);
+        expect(readFileSync(join(outDir, "target2", "arrow.js")).toString()).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+        expect(existsSync(join(outDir, "target2", "arrow.d.ts"))).toBe(false);
+
+        writeFileSync(exportedFileName, "");
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+        expect(readFileSync(join(outDir, "target1", "arrow.js")).toString()).toBe("");
+        expect(readFileSync(join(outDir, "target1", "arrow.d.ts")).toString()).toBe("");
+        expect(readFileSync(join(outDir, "target2", "arrow.js")).toString()).toBe("");
+        expect(existsSync(join(outDir, "target2", "arrow.d.ts"))).toBe(false);
     });
 });
 
