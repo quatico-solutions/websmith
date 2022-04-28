@@ -75,7 +75,8 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             if (hasInvalidTargets(options.targets, options.config)) {
                 options.reporter.reportDiagnostic(
                     new WarnMessage(
-                        `Custom target configuration found, but no target provided.\nSome custom addons may not be applied during compilation.`
+                        `Custom target configuration "${options.targets.join(",")}" found, but no target provided.\n` +
+                            `\tSome custom addons may not be applied during compilation.`
                     )
                 );
             }

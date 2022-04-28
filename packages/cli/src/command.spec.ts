@@ -54,7 +54,7 @@ describe("addCompileCommand", () => {
         testObj.parse(
             [
                 "--unknown",
-                "{\"key1\":13, \"key2\":{\"key1\":\"expected\", \"key2\":false}}",
+                '{"key1":13, "key2":{"key1":"expected", "key2":false}}',
                 "--port",
                 "3000",
                 "--hostname",
@@ -454,7 +454,9 @@ describe("addCompileCommand#targets", () => {
         addCompileCommand(new Command(), target).parse(["--targets", "unknown"], { from: "user" });
 
         expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
-            new WarnMessage("Custom target configuration found, but no target provided.\nSome custom addons may not be applied during compilation.")
+            new WarnMessage(
+                'Custom target configuration "unknown" found, but no target provided.\n\tSome custom addons may not be applied during compilation.'
+            )
         );
     });
 
@@ -486,7 +488,9 @@ describe("addCompileCommand#targets", () => {
         addCompileCommand(new Command(), target).parse(["--targets", "unknown, known"], { from: "user" });
 
         expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
-            new WarnMessage("Custom target configuration found, but no target provided.\nSome custom addons may not be applied during compilation.")
+            new WarnMessage(
+                'Custom target configuration "unknown,known" found, but no target provided.\n\tSome custom addons may not be applied during compilation.'
+            )
         );
     });
 
