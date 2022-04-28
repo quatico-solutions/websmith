@@ -26,7 +26,7 @@ export class FileCache {
 
     public getCachedFile(fileName: string, target = ""): CacheFile {
         const cachedName = getCachedName(fileName, target);
-        return this.data[cachedName] ?? <CacheFile>{ version: 0, content: "", files: [], snapshot: ts.ScriptSnapshot.fromString("") };
+        return this.data[cachedName] ?? <CacheFile>{ version: 0, content: "", files: [] };
     }
 
     public hasChanged(fileName: string, target = ""): boolean {
@@ -53,7 +53,7 @@ export class FileCache {
     }
 
     public createCacheEntry(fileName: string, target = "") {
-        this.data[getCachedName(fileName, target)] = { version: 0, content: "", files: [], snapshot: ts.ScriptSnapshot.fromString("") };
+        this.data[getCachedName(fileName, target)] = { version: 0, content: "", files: [] };
     }
 
     public updateOutput(fileName: string, outputFiles: ts.OutputFile[], target = "") {
