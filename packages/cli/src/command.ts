@@ -16,10 +16,10 @@
 import { WarnMessage } from "@websmith/addon-api";
 import { CompilationConfig, Compiler, DefaultReporter } from "@websmith/compiler";
 import { Command, program } from "commander";
+import parseArgs from "minimist";
 import { compileSystem } from "./compiler-system";
 import { CompilerArguments } from "./CompilerArguments";
 import { createOptions } from "./options";
-import parseArgs from "minimist";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
     parent
@@ -80,6 +80,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                     )
                 );
             }
+
             if (compiler === undefined) {
                 compiler = new Compiler(options, system);
             } else {

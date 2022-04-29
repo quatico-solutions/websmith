@@ -14,7 +14,6 @@
  */
 
 import { ErrorMessage, Reporter, TargetConfig } from "@websmith/addon-api";
-import { existsSync } from "fs";
 import { dirname, extname, isAbsolute, join, resolve } from "path";
 import ts from "typescript";
 import { createSystem, recursiveFindByFilter } from "../environment";
@@ -151,7 +150,6 @@ export class Compiler {
                     this.system.watchFile!(cur, (fileName: string) => emitTargets.forEach(target => this.emitSourceFile(fileName, target, true)))
                 );
                 emitTargets.forEach(target => this.emitSourceFile(cur, target, true));
-
             });
         } else {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
@@ -171,11 +169,6 @@ export class Compiler {
             const { buildDir, config, project, tsconfig } = this.options;
             const { options, config: targetConfig } = getTargetConfig(target, config);
 
-            // FIXME: We would want to change the working directory of the current system, but ts.System does not expose control.
-            // TODO: Implement a ts.System facade + expand BrowserSystem to offer a setCwd(path) to extract this properly
-            if (config?.configFilePath && existsSync(dirname(config?.configFilePath))) {
-                process.chdir(dirname(config.configFilePath));
-            }
             const ctx = new CompilationContext({
                 buildDir,
                 project: { ...project, ...options },
