@@ -20,9 +20,9 @@ import {
     resolveCompilationConfig,
     resolveProjectConfig as resolveTsConfig,
     resolveTargets,
-    updateCompilerOptions
+    updateCompilerOptions,
 } from "@websmith/compiler";
-import { dirname } from "path";
+import { dirname, join } from "path";
 import ts from "typescript";
 import { CompilerArguments } from "./CompilerArguments";
 
@@ -38,12 +38,15 @@ const DEFAULTS = {
 };
 
 export const createOptions = (args: CompilerArguments, reporter: Reporter = new NoReporter(), system: ts.System = ts.sys): CompilerOptions => {
-    const tsconfig = resolveTsConfig(args.project ?? DEFAULTS.project, system);
+    const tsconfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
     const compilationConfig = resolveCompilationConfig(args.config ?? DEFAULTS.config, reporter, system);
 
+    const projectDirectory =
+        (compilationConfig && dirname(compilationConfig.configFilePath)) ??
+        (tsconfig.raw && tsconfig.raw.configFilePath && dirname(tsconfig.raw?.configFilePath));
     tsconfig.options.outDir = args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir;
-    if (compilationConfig) {
-        tsconfig.options = updateCompilerOptions(tsconfig.options, system, dirname(compilationConfig.configFilePath));
+    if (projectDirectory) {
+        tsconfig.options = updateCompilerOptions(tsconfig.options, system, projectDirectory);
     }
 
     if (args.sourceMap !== undefined) {
@@ -52,6 +55,8 @@ export const createOptions = (args: CompilerArguments, reporter: Reporter = new 
             tsconfig.options.inlineSources = undefined;
         }
     }
+
+    args = { ...args, ...(args.addonsDir && projectDirectory && { addonsDir: system.resolvePath(join(projectDirectory, args.addonsDir)) }) };
 
     return {
         addons: new AddonRegistry({

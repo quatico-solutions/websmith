@@ -39,7 +39,7 @@ export const resolveCompilationConfig = (configFilePath: string, reporter: Repor
 const updatePaths = (config: CompilationConfig, system: ts.System, basePath: string): CompilationConfig => {
     return {
         ...config,
-        addonsDir: config.addonsDir ? resolvePath(config.addonsDir, system, basePath) : undefined,
+        ...(config.addonsDir && { addonsDir: resolvePath(config.addonsDir, system, basePath) }),
         ...(config.targets && {
             targets: Object.fromEntries(
                 Object.entries(config.targets).map(([name, target]) => [name, updateTargetConfigs(target, system, basePath)])

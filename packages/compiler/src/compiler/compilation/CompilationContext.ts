@@ -38,6 +38,7 @@ export class CompilationContext implements AddonContext<any> {
     protected transformers: ts.CustomTransformers;
     protected ResultProcessors: ResultProcessor[] = [];
 
+    // @ts-ignore
     private buildDir: string;
     private cache: FileCache;
     private languageHost: ts.LanguageServiceHost;
