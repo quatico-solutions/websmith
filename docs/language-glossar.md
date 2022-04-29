@@ -5,15 +5,15 @@
 
 * **Project**: A typescript environment.
 * **Project Configuration**: A set of parameters to configure the `Project`
-* **Compiler Configuration**: A set of parameters to configure the `Compiler` eg. activated `Addons` and `Compilation Options` per `Target`.
-* **Configuration File**: A file that defines a set of compiler parameters.
-* **Compiler**: A program that receives a number of source files and performs a `Compilation` per file.
-* **Compiler Options**: A merged and resolved truth by `Project Configuration` and `Compiler Configuration` to control the `Compilation` processes.
+* **Compiler Configuration**: A set of parameters to configure the `Compiler`, e.g. activated `Compilation Options`, `Addons`, `Target` etc.
+* **Configuration File**: A file that defines a set of options.
+* **Compiler**: A program that receives a number of source files, a configuration and (optionally) a target, and then performs a `Compilation` per file.
+* **Compiler Options**: A resolved and merged truth from `CLI Arguments`, `Project Configuration` and `Compiler Configuration` to control the `Compilation` process.
 * **Compilation**: The process of transforming and transpiling a single source file to a collection of outputs.
-* **Compilation Context**: A context in which a `Compilation` for a `Target` is executed with `Compilation Options` and `Compiler Options`
-* **Compilation Host**: A ts.LanguageServiceHost abstraction allowing `Compilation Context` to control the `Compilation` per `Compilation Target`.
-* **Compilation Target**: An optional argument that controls the applied `Addons` to the `Compilation` process.
-* **Compilation Options**: A set of parameters that control a `Compilation Target`
+* **Compilation Context**: A context in which a `Compilation` for a `Target` is executed with `Compiler Options` and `Target Options`.
+* **Compilation Host**: A ts.LanguageServiceHost abstraction allowing the `Compilation Context` to control the `Compilation` process per `Compilation Target`.
+* **Compilation Target**: An optional argument that controls the applied `Addons` and used configuration to the `Compilation` process.
+* **Compilation Options**: A set of parameters that controls a `Compilation Target`
 * **Target Options**: A set of parameters specific to a `Compilation Target` that are part of the `Compilation Options` and that are available to addons of a `Compilation Target`.
 
 ## Addon Terminology

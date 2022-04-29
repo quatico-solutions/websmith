@@ -25,15 +25,18 @@ Feature: Feature: Addon contribution
     Scenario: Provide processor addon to modify 'foobar' module exports
         Given Folder "./addons" contains addon examples "example-processor"
         And A test project "test-project-foobar" is provided
+        And A file "./src/foobar.ts" exists containing string "function foobar(): string {"
         When User calls command "websmith"
         Then Addons "example-processor" should be activated in compilation
+        And A file content "./src/foobar.ts" exists containing string "export function foobar(): string {"
         And A file "./dist/foobar.js" exists containing string "export function foobar() {"
-        And A file content "./src/foobar.ts" exists containing string "export function foobar()"
+        And A file "./dist/foobar.d.ts" exists containing string "export declare function foobar(): string;"
         And A file "./dist/whatever.js" exists containing string "function whatever()"
 
-    Scenario: Provide transformer addon to rename 'foobar' functions
+    Scenario: Provide transformer addon to rename 'foobar' functions to 'barfoo'
         Given Folder "./addons" contains addon examples "example-transformer"
         And A test project "test-project-foobar" is provided
+        And A file "./src/foobar.ts" exists containing string "function foobar(): string {"
         When User calls command "websmith"
         Then Addons "example-transformer" should be activated in compilation
         And A file "./dist/foobar.js" exists containing string "function barfoo() {"
