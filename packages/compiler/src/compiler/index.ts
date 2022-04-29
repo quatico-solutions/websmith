@@ -17,7 +17,7 @@ import type { CompilationContext } from "./compilation";
 import type { CompileFragment } from "./Compiler";
 import { Compiler } from "./Compiler";
 import type { CompilerOptions } from "./CompilerOptions";
-import { CompilationConfig, resolveCompilationConfig, resolveProjectConfig, resolveTargets } from "./config";
+import { CompilationConfig, resolveCompilationConfig, resolveProjectConfig, resolveTargets, updateCompilerOptions } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
 import { NoReporter } from "./NoReporter";
@@ -43,6 +43,7 @@ export {
     resolveTargets,
     tsDefaults,
     tsLibDefaults,
+    updateCompilerOptions,
     // TODO: Styles: Add support for style processors via addon
     // createStyleCompiler,
     // parseStyles,

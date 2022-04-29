@@ -24,6 +24,7 @@ import {
     resolveTargets,
     tsDefaults,
     tsLibDefaults,
+    updateCompilerOptions
 } from "./compiler";
 import { createBrowserSystem, createCompileHost, createSystem, createVersionedFiles, getVersionedFile, readFiles } from "./environment";
 
@@ -45,5 +46,6 @@ export {
     resolveTargets,
     tsDefaults,
     tsLibDefaults,
+    updateCompilerOptions
 };
 export type { CompileFragment, CompilerOptions, CompilationContext };

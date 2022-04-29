@@ -421,7 +421,7 @@ describe("addCompileCommand#addons", () => {
                   "one",
                   "two",
                 ],
-                "addonsDir": "./expected",
+                "addonsDir": "/expected",
                 "configFilePath": "/websmith.config.json",
               },
               "reporter": NoReporter {},

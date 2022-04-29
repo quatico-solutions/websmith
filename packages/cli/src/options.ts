@@ -20,7 +20,9 @@ import {
     resolveCompilationConfig,
     resolveProjectConfig as resolveTsConfig,
     resolveTargets,
+    updateCompilerOptions
 } from "@websmith/compiler";
+import { dirname } from "path";
 import ts from "typescript";
 import { CompilerArguments } from "./CompilerArguments";
 
@@ -40,6 +42,9 @@ export const createOptions = (args: CompilerArguments, reporter: Reporter = new 
     const compilationConfig = resolveCompilationConfig(args.config ?? DEFAULTS.config, reporter, system);
 
     tsconfig.options.outDir = args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir;
+    if (compilationConfig) {
+        tsconfig.options = updateCompilerOptions(tsconfig.options, system, dirname(compilationConfig.configFilePath));
+    }
 
     if (args.sourceMap !== undefined) {
         tsconfig.options.sourceMap = args.sourceMap;

@@ -14,7 +14,7 @@
  */
 
 import { ErrorMessage, Reporter, TargetConfig } from "@websmith/addon-api";
-import { dirname, extname, isAbsolute, join, resolve } from "path";
+import { dirname, extname, join } from "path";
 import ts from "typescript";
 import { createSystem, recursiveFindByFilter } from "../environment";
 import { concat } from "./collections";
@@ -172,6 +172,7 @@ export class Compiler {
             const ctx = new CompilationContext({
                 buildDir,
                 project: { ...project, ...options },
+                projectDir: dirname(config?.configFilePath ?? tsconfig.raw?.configFilePath ?? this.system.getCurrentDirectory()),
                 system: this.system,
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 program: this.program!,
@@ -260,25 +261,26 @@ export class Compiler {
     }
 
     private writeOutputFiles(emitOutput: ts.EmitOutput) {
-        for (const cur of emitOutput.outputFiles) {
-            const filename = this.getFilePath(cur.name);
-            this.system.writeFile(filename, cur.text);
-        }
+        emitOutput.outputFiles.forEach(cur => this.system.writeFile(cur.name, cur.text));
+        // for (const cur of emitOutput.outputFiles) {
+        //     const fileName = this.getFilePath(cur.name);
+        //     this.system.writeFile(fileName, cur.text);
+        // }
     }
 
-    private getFilePath(fileName: string): string {
-        const projectDir = dirname(this.options.buildDir);
-        const basePath = this.getBasePath(fileName, projectDir);
-        const outDir = this.options.project.outDir;
-        if (!outDir) {
-            return !isAbsolute(fileName) ? join(basePath, fileName) : fileName;
-        }
-        return fileName.includes(outDir) ? fileName : fileName.replace(basePath, resolve(projectDir, outDir));
-    }
+    // private getFilePath(fileName: string): string {
+    //     const projectDir = dirname(this.options.buildDir);
+    //     const basePath = this.getBasePath(fileName, projectDir);
+    //     const outDir = this.options.project.outDir;
+    //     if (!outDir) {
+    //         return !isAbsolute(fileName) ? join(basePath, fileName) : fileName;
+    //     }
+    //     return fileName.includes(outDir) ? fileName : fileName.replace(basePath, resolve(projectDir, outDir));
+    // }
 
-    private getBasePath(fileName: string, projectDir: string): string {
-        return Object.keys(this.options.project.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? projectDir;
-    }
+    // private getBasePath(fileName: string, projectDir: string): string {
+    //     return Object.keys(this.options.project.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? projectDir;
+    // }
 
     private getWritingTargets() {
         const writingTargets: string[] = [];

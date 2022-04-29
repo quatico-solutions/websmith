@@ -28,6 +28,7 @@ export type CompilationContextOptions = {
     tsconfig: ts.ParsedCommandLine;
     config?: unknown;
     target: string;
+    projectDir: string;
 };
 
 export class CompilationContext implements AddonContext<any> {
@@ -43,14 +44,16 @@ export class CompilationContext implements AddonContext<any> {
     private rootFiles: string[];
     private tsconfig: ts.ParsedCommandLine;
     private system: ts.System;
+    private projectDir: string;
     private program: ts.Program;
     private config: any;
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, project, rootFiles, system, program, tsconfig, config, target } = options;
+        const { buildDir, project, rootFiles, system, program, tsconfig, config, projectDir, target } = options;
         this.buildDir = buildDir;
         this.rootFiles = rootFiles;
         this.tsconfig = tsconfig;
+        this.projectDir = projectDir;
         this.transformers = {};
         this.processors = [];
         this.generators = [];

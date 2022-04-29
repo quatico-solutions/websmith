@@ -52,6 +52,7 @@ beforeEach(() => {
     testObj = new CompilationContextTestClass({
         buildDir: "",
         project: {},
+        projectDir: testSystem.getCurrentDirectory(),
         reporter: new ReporterMock(testSystem),
         rootFiles: [],
         system: testSystem,

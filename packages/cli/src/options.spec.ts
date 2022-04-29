@@ -124,7 +124,7 @@ describe("createOptions", () => {
                   "one",
                   "two",
                 ],
-                "addonsDir": "./expected",
+                "addonsDir": "/expected",
                 "configFilePath": "/websmith.config.json",
               },
               "reporter": NoReporter {},

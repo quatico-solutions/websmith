@@ -13,9 +13,9 @@
  * with Quatico.
  */
 import type { CompilationConfig } from "./CompilationConfig";
-import { resolveCompilationConfig } from "./resolve-compiler-config";
+import { resolveCompilationConfig, updateCompilerOptions } from "./resolve-compiler-config";
 import { resolveProjectConfig } from "./resolve-project-config";
 import { resolveTargets } from "./resolve-targets";
 
-export { resolveProjectConfig, resolveCompilationConfig, resolveTargets };
+export { resolveProjectConfig, resolveCompilationConfig, resolveTargets, updateCompilerOptions };
 export type { CompilationConfig };

@@ -12,7 +12,9 @@
  * accordance with the terms of the license agreement you entered into
  * with Quatico.
  */
+import type { TargetConfig } from "@websmith/addon-api";
 import { Reporter, WarnMessage } from "@websmith/addon-api";
+import { dirname, isAbsolute, join } from "path";
 import ts from "typescript";
 import { CompilationConfig } from "./CompilationConfig";
 
@@ -27,9 +29,44 @@ export const resolveCompilationConfig = (configFilePath: string, reporter: Repor
                 const config = JSON.parse(content ?? "{}");
 
                 // TODO: Do we need further validation for the config per target?
-                return { ...config, configFilePath: resolvedPath };
+                return { ...updatePaths(config, system, dirname(resolvedPath)), configFilePath: resolvedPath };
             }
         }
     }
     return undefined;
+};
+
+const updatePaths = (config: CompilationConfig, system: ts.System, basePath: string): CompilationConfig => {
+    return {
+        ...config,
+        addonsDir: config.addonsDir ? resolvePath(config.addonsDir, system, basePath) : undefined,
+        ...(config.targets && {
+            targets: Object.fromEntries(
+                Object.entries(config.targets).map(([name, target]) => [name, updateTargetConfigs(target, system, basePath)])
+            ),
+        }),
+    };
+};
+
+const updateTargetConfigs = (target: TargetConfig, system: ts.System, basePath: string): TargetConfig => {
+    return {
+        ...target,
+        ...(target.options && { options: updateCompilerOptions(target.options, system, basePath) }),
+    };
+};
+
+export const updateCompilerOptions = (options: ts.CompilerOptions, system: ts.System, basePath: string): ts.CompilerOptions => {
+    return {
+        ...options,
+        ...(options.outDir && { outDir: resolvePath(options.outDir, system, basePath) }),
+        ...(options.paths && {
+            paths: Object.fromEntries(
+                Object.entries(options.paths).map(value => [value[0], value[1].map(cur => resolvePath(cur, system, basePath))])
+            ),
+        }),
+    };
+};
+
+const resolvePath = (path: string, system: ts.System, basePath: string): string => {
+    return isAbsolute(path) ? path : system.resolvePath(join(basePath, path));
 };
