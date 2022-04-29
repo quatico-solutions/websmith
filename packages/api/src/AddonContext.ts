@@ -57,6 +57,11 @@ export interface AddonContext<O extends TargetConfig = any> {
     addInputFile(filePath: string): void;
 
     /**
+     * Resolves the given path relative to the current compilation's project directory, if a relative path was provided.
+     */
+    resolvePath(path: string): string;
+
+    /**
      * Returns the content of the given file name, if the file is part of the compilation process. Use this function
      * to access the potentially transformed content. For `Generator` and `Processor` addons returned content is
      * unmodified.

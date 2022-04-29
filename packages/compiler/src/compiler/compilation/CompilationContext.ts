@@ -13,6 +13,7 @@
  * with Quatico.
  */
 import { AddonContext, Generator, Processor, Reporter, ResultProcessor } from "@websmith/addon-api";
+import { isAbsolute, join } from "path";
 import ts from "typescript";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
@@ -96,6 +97,10 @@ export class CompilationContext implements AddonContext<any> {
         }
     }
 
+    public resolvePath(path: string): string {
+        return isAbsolute(path) ? path : this.system.resolvePath(join(this.projectDir, path));
+    }
+
     public getFileContent(filePath: string): string {
         return this.cache.getCachedFile(filePath).content;
     }
@@ -108,9 +113,9 @@ export class CompilationContext implements AddonContext<any> {
         return this.languageHost;
     }
 
-    public getBasePath(fileName: string): string {
-        return Object.keys(this.tsconfig.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? this.buildDir;
-    }
+    // public getBasePath(fileName: string): string {
+    //     return Object.keys(this.tsconfig.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? this.buildDir;
+    // }
 
     public registerTransformer(transformers: ts.CustomTransformers): this {
         Object.keys(transformers).forEach(kind => {
