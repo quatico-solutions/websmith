@@ -380,7 +380,7 @@ describe("watch", () => {
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
                 buildDir,
-                config: { configFilePath: join(__dirname, "magellan.config.json"), targets: { "*": { writeFile: true } } },
+                config: { configFilePath: join(__dirname, "websmith.config.json"), targets: { "*": { writeFile: true } } },
                 project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest },
                 reporter,
                 targets: [],
@@ -415,7 +415,7 @@ describe("watch", () => {
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
                 buildDir: ts.sys.getCurrentDirectory(),
-                config: { configFilePath: join(__dirname, "magellan.config.json"), targets: { "*": { writeFile: true, options: { outDir } } } },
+                config: { configFilePath: join(__dirname, "websmith.config.json"), targets: { "*": { writeFile: true, options: { outDir } } } },
                 project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest },
                 reporter,
                 targets: [],
@@ -451,7 +451,7 @@ describe("watch", () => {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
                 buildDir: ts.sys.getCurrentDirectory(),
                 config: {
-                    configFilePath: join(__dirname, "magellan.config.json"),
+                    configFilePath: join(__dirname, "websmith.config.json"),
                     targets: {
                         target1: { writeFile: true, options: { outDir: join(outDir, "target1") } },
                         target2: { writeFile: true, options: { outDir: join(outDir, "target2"), declaration: false } },

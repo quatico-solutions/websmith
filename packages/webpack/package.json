@@ -1,0 +1,64 @@
+{
+    "name": "@websmith/webpack",
+    "description": "Webpack loader for @websmith/compiler",
+    "version": "0.0.1",
+    "author": "Quatico Solutions AG",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "license": "SEE LICENSE IN LICENSE",
+    "files": [
+        "LICENSE",
+        "README.md",
+        "lib"
+    ],
+    "publishConfig": {
+        "registry": "https://binaries.quatico.com/api/npm/quatico-private-npm/"
+    },
+    "scripts": {
+        "clean": "rimraf lib coverage test/__data__/**/.build/",
+        "lint": "eslint \"{src,test}/**/*.{js,ts,tsx}\" --fix --color",
+        "build": "tsc",
+        "watch": "tsc --watch",
+        "test": "jest --verbose --coverage",
+        "test:watch": "jest --color --watch",
+        "test:e2e": "jest -c jest.e2e.config.js --color --verbose",
+        "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\"",
+        "prepublishOnly": "yarn dist",
+        "publish-npm": "npm publish --access public",
+        "pre-commit": "yarn clean && yarn build"
+    },
+    "devDependencies": {
+        "@types/jest": "^27.0.2",
+        "@types/node": "16",
+        "@types/react": "17.0.0",
+        "@types/react-dom": "17.0.0",
+        "@types/webpack": "^5.28.0",
+        "@typescript-eslint/eslint-plugin": "^4.18.0",
+        "@typescript-eslint/parser": "^4.18.0",
+        "eslint": "^7.22.0",
+        "eslint-config-prettier": "^7.2.0",
+        "eslint-import-resolver-alias": "^1.1.2",
+        "eslint-plugin-flowtype": "^5.4.0",
+        "eslint-plugin-import": "^2.22.1",
+        "eslint-plugin-jest": "^24.3.1",
+        "eslint-plugin-prettier": "^3.3.1",
+        "eslint-plugin-testing-library": "^3.9.2",
+        "jest": "^27.3.1",
+        "prettier": "^2.4.1",
+        "react": "17.0.2",
+        "react-dom": "17.0.2",
+        "rimraf": "^3.0.2",
+        "ts-jest": "^27.0.7",
+        "typescript": "~4.6.3",
+        "webpack": "^5.72.0",
+        "webpack-cli": "^4.9.1"
+    },
+    "dependencies": {
+        "@websmith/cli": "link:../cli",
+        "@websmith/compiler": "link:../compiler"
+    },
+    "engines": {
+        "node": ">=16.x",
+        "yarn": ">=1.20.x"
+    }
+}

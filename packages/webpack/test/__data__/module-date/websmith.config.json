@@ -1,0 +1,10 @@
+{
+    "addonsDir": "../../../../examples/addons",
+    "targets": {
+        "client": {
+            "writeFile": false,
+            "addons": ["export-yaml-generator"],
+            "config": { "functionsDir": "./src/functions" }
+        }
+    }
+}

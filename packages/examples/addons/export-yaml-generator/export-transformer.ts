@@ -61,7 +61,7 @@ export const createTransformer = (context: AddonContext): ts.TransformerFactory<
 const createFileContent = (filePath: string, names: string[], outPath: string): string => {
     const fileContent = getOrCreateFile(outPath);
     const existingFileContent = fileContent ? `${fileContent}\n` : "";
-    const exports = names.length > 0 ? `\nexports: [${names.join(",")}]\n` : "";
+    const exports = names.length > 0 ? `\nexports: [${names.join(",")}]\n` : "\nexports: []\n";
     return `${existingFileContent}-file: "${filePath}"${exports}`;
 };
 
