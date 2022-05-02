@@ -56,12 +56,17 @@ export const createOptions = (args: CompilerArguments, reporter: Reporter = new 
         }
     }
 
-    args = { ...args, ...(args.addonsDir && projectDirectory && { addonsDir: system.resolvePath(join(projectDirectory, args.addonsDir)) }) };
+    args = {
+        ...args,
+        ...(args.addonsDir &&
+            projectDirectory &&
+            args.addonsDir !== DEFAULTS.addonsDir && { addonsDir: system.resolvePath(join(projectDirectory, args.addonsDir)) }),
+    };
 
     return {
         addons: new AddonRegistry({
             addons: args.addons ?? compilationConfig?.addons?.join(","),
-            addonsDir: args.addonsDir && args.addonsDir !== system.resolvePath(DEFAULTS.addonsDir) ? args.addonsDir : compilationConfig?.addonsDir ?? DEFAULTS.addonsDir,
+            addonsDir: args.addonsDir && args.addonsDir !== DEFAULTS.addonsDir ? args.addonsDir : compilationConfig?.addonsDir ?? DEFAULTS.addonsDir,
             config: compilationConfig,
             reporter,
             system,
