@@ -6,5 +6,6 @@
         "json",
         "websmith"
     ],
-    "jest.jestCommandLine": "node_modules/.bin/jest -config jest.config.js"
+    "jest.jestCommandLine": "node_modules/.bin/jest -config jest.config.js",
+    "typescript.tsdk": "node_modules/typescript/lib"
 }
