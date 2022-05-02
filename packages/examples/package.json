@@ -13,9 +13,10 @@
         "lib"
     ],
     "scripts": {
-        "clean": "rimraf lib dist bin coverage output.yaml",
+        "clean": "rimraf lib dist bin coverage",
         "lint": "eslint \"{src,test}/**/*.ts\" --fix --color",
         "build": "tsc",
+        "execute": "websmith --addons example-generator,example-processor,example-transformer,example-result-processor -p tsconfig.execute.json",
         "watch": "tsc --watch",
         "test": "jest --verbose --coverage --passWithNoTests",
         "test:e2e": "echo 'No e2e tests yet'",
