@@ -1,4 +1,4 @@
-import path, { resolve } from "path";
+import { resolve } from "path";
 import { WebsmithPlugin } from "../../../src";
 
 const sourceDir = resolve(__dirname, "src");
@@ -8,11 +8,11 @@ module.exports = {
     devtool: "source-map",
     mode: "development",
     entry: {
-        main: path.resolve(sourceDir, "index.tsx"),
-        functions: path.resolve(sourceDir, "functions","getDate.ts"),
+        main: resolve(sourceDir, "index.tsx"),
+        functions: resolve(sourceDir, "functions", "getDate.ts"),
     },
     output: {
-        path: path.resolve(__dirname, ".build/lib"),
+        path: resolve(__dirname, ".build/lib"),
         publicPath: "/",
     },
     resolve: {
@@ -20,8 +20,8 @@ module.exports = {
     },
     plugins: [
         new WebsmithPlugin({
-            project: path.resolve(__dirname, "tsconfig.json"),
-            config: path.resolve(__dirname, "websmith.config.json"),
+            project: resolve(__dirname, "tsconfig.json"),
+            config: resolve(__dirname, "websmith.config.json"),
             targets: "noWrite",
             webpackTarget: "noWrite",
         }),

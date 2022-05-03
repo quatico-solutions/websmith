@@ -22,7 +22,8 @@ module.exports = {
         new MagellanPlugin({
             project: resolve(__dirname, "tsconfig.json"),
             config: resolve(__dirname, "websmith.config.json"),
-            targets: "client,server",
+            targets: "noWrite",
+            webpackTarget: "noWrite",
         }),
     ],
     module: {

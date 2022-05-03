@@ -1,7 +1,7 @@
 /*
  * @license
  *
- * Copyright (c) 2017-2021 Quatico Solutions AG
+ * Copyright (c) 2017-2022 Quatico Solutions AG
  * Förrlibuckstrasse 220, 8005 Zurich, Switzerland
  *
  * All Rights Reserved.
@@ -28,11 +28,10 @@ module.exports = {
         "@websmith/cli": "<rootDir>/../cli/src",
         "@websmith/compiler": "<rootDir>/../compiler/src",
     },
+    roots: ["<rootDir>/src/"],
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
     testEnvironment: "node",
     testRegex: "(test|src)/.*\\.spec\\.ts$",
-    testTimeout: 60000,
-    // setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
     transform: {
         "^.+\\.(js|jsx|ts|tsx)$": "ts-jest",
     },

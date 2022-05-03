@@ -1,12 +1,12 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "baseUrl": "./" /* Base directory to resolve non-absolute module names. */,
+        "baseUrl": "./",
         "paths": {
             "@websmith/addon-api": ["../api/src"],
             "@websmith/cli": ["../cli/src"],
             "@websmith/compiler": ["../compiler/src"]
-        } 
+        }
     },
 
     "include": ["src/**/*.ts", "test/**/*.ts"]

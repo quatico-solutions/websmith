@@ -18,17 +18,14 @@ describe("WebsmithPlugin", () => {
             })
             .catch(({ errors }) => {
                 // eslint-disable-next-line jest/no-conditional-expect
-                expect(
-                    errors instanceof Error ? [errors.message] : errors instanceof Array ? errors.map(cur => cur.message) : errors.toString()
-                ).toContain('No target found for "noWrite"');
-                // .toContain('WebsmithPlugin: webpackTarget "noWrite" not found in targets "writeOnly".');
+                expect(errors).toContain('No target found for "noWrite"');
             })
             .finally(() => webpack && webpack.close(() => undefined));
     });
 
     it("should bundle using the first target w/ writeFile false w/o webpackTarget set", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
-        
+
         const { compiler } = await createWebpackCompiler({ ...require(join(projectDir, "webpack_noWebpackTarget.config.ts")) }, projectDir);
 
         expect(lstatSync(target).isFile()).toBe(true);

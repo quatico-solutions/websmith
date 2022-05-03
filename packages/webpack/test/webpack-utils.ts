@@ -1,12 +1,12 @@
 import { existsSync } from "fs";
 import { resolve } from "path";
-import webpack, { Compiler, Configuration, Stats, StatsError } from "webpack";
+import webpack, { Compiler, Configuration, Stats } from "webpack";
 import { WebsmithPlugin } from "../src";
 
 export const createWebpackCompiler = (
     options: Configuration,
     projectDir: string
-): Promise<{ stats?: Stats; errors?: Error | StatsError[]; compiler: Compiler }> => {
+): Promise<{ stats?: Stats; errors?: string[]; compiler: Compiler }> => {
     options = {
         ...{
             entry: {
@@ -46,10 +46,10 @@ export const createWebpackCompiler = (
 
     const compiler = webpack(options);
 
-    return new Promise<{ stats?: Stats; errors?: Error | webpack.StatsError[]; compiler: Compiler }>((resolve, reject) =>
+    return new Promise<{ stats?: Stats; errors?: string[]; compiler: Compiler }>((resolve, reject) =>
         compiler.run((err, stats) => {
             if (err || (stats && stats.hasErrors())) {
-                const resolvedErrors = err ? [err] : stats && stats.toJson("errors-only").errors;
+                const resolvedErrors = err ? [err.message] : stats?.toJson("errors-only").errors?.map(cur => cur.message) ?? [];
                 reject({ errors: resolvedErrors, compiler });
             }
             resolve({ stats: stats as unknown as Stats, compiler });

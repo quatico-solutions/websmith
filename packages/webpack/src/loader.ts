@@ -1,7 +1,7 @@
 /*
  * @license
  *
- * Copyright (c) 2017-2021 Quatico Solutions AG
+ * Copyright (c) 2017-2022 Quatico Solutions AG
  * Förrlibuckstrasse 220, 8005 Zurich, Switzerland
  *
  * All Rights Reserved.
@@ -16,22 +16,22 @@
 import { createOptions } from "@websmith/cli";
 import { CompileFragment, CompilerOptions } from "@websmith/compiler";
 import ts from "typescript";
-import webpack, { WebpackError } from "webpack";
+import webpack from "webpack";
 import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
 import type { PluginOptions } from "./plugin";
 import { WebsmithLoaderContext } from "./plugin";
 import { TsCompiler } from "./TsCompiler";
 
-function loader(this: WebsmithLoaderContext): void {
+export default function loader(this: WebsmithLoaderContext): void {
     const compilerOptions: CompilerOptions = createOptions(this.pluginConfig);
-    const module = this._module;
+    // const module = this._module;
     const instance = initializeInstance(this, compilerOptions);
 
-    const diagnostics = instance.getProgram()?.getOptionsDiagnostics();
-    if (diagnostics && diagnostics.length > 0 && module) {
-        diagnostics.map(cur => module.addError(new WebpackError(cur.messageText.toString())));
-        this.callback(new Error("Compiler options error detected"));
-    }
+    // const diagnostics = instance.getProgram()?.getOptionsDiagnostics();
+    // if (diagnostics && diagnostics.length > 0 && module) {
+    //     diagnostics.map(cur => module.addError(new WebpackError(cur.messageText.toString())));
+    //     this.callback(new Error("Compiler options error detected"));
+    // }
 
     const fragment = buildTargets(compilerOptions, instance, this.resourcePath);
 
@@ -43,7 +43,7 @@ function loader(this: WebsmithLoaderContext): void {
     processResultAndFinish(this, fragment, compilerOptions);
 }
 
-const initializeInstance = (loader: webpack.LoaderContext<PluginOptions>, options: CompilerOptions): TsCompiler => {
+export const initializeInstance = (loader: webpack.LoaderContext<PluginOptions>, options: CompilerOptions): TsCompiler => {
     const compiler = loader._compiler || ({} as webpack.Compiler);
     let instance = getInstanceFromCache(compiler, loader);
     if (!instance) {
@@ -54,24 +54,22 @@ const initializeInstance = (loader: webpack.LoaderContext<PluginOptions>, option
     return instance;
 };
 
-const makeSourceMap = (outputText: string, sourceMapText?: string) => {
-    if (sourceMapText === undefined) {
-        return { output: outputText, sourceMap: undefined };
-    }
-
+export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
     return {
         output: outputText.replace(/^\/\/# sourceMappingURL=[^\r\n]*/gm, ""),
-        sourceMap: JSON.parse(sourceMapText),
+        ...(sourceMapText && { sourceMap: JSON.parse(sourceMapText) }),
     };
 };
 
-const processResultAndFinish = (loader: webpack.LoaderContext<PluginOptions>, fragment: CompileFragment, compilerOptions: CompilerOptions) => {
+export const processResultAndFinish = (loader: webpack.LoaderContext<PluginOptions>, fragment: CompileFragment, compilerOptions: CompilerOptions) => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const outputText = fragment.files.find((cur: ts.OutputFile) => cur.name.match(/\.jsx?$/i))?.text;
     const sourceMapText = fragment.files.find((cur: ts.OutputFile) => cur.name.match(/\.jsx?\.map$/i))?.text;
 
     if (!outputText) {
-        return loader.callback(new Error(`No processed output found for ${loader.resourcePath} with targets ${compilerOptions.targets.join(",")}`));
+        return loader.callback(
+            new Error(`No processed output found for "${loader.resourcePath}" with targets "${compilerOptions.targets.join(",")}"`)
+        );
     } else {
         const { output, sourceMap } = makeSourceMap(outputText, sourceMapText);
         loader.callback(undefined, output, sourceMap);
@@ -81,5 +79,3 @@ const processResultAndFinish = (loader: webpack.LoaderContext<PluginOptions>, fr
 const buildTargets = (_compilerOptions: CompilerOptions, compiler: TsCompiler, resourcePath: string) => {
     return compiler.build(resourcePath);
 };
-
-module.exports = loader;
