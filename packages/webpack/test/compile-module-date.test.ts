@@ -15,44 +15,45 @@
 
 import { readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
-import { Compiler, Configuration, NormalModule, Stats } from "webpack";
+import { Configuration, NormalModule } from "webpack";
 import { createWebpackCompiler } from "./webpack-utils";
 
-describe("WebsmithPlugin", () => {
+describe("project bundling", () => {
     const projectDir = resolve(__dirname, "__data__", "module-date");
     let config: Configuration;
-    let webpack: Compiler;
-    let actual: Stats;
 
     beforeAll(() => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         config = require("./__data__/module-date/webpack.config.ts") as Configuration;
     });
 
-    beforeEach(async () => {
-        const { stats, compiler } = await createWebpackCompiler(config, projectDir);
-        webpack = compiler;
-        actual = stats;
-    });
-
     afterEach(() => {
-        webpack.close(() => undefined);
         rmSync(resolve(projectDir, ".build"), { recursive: true, force: true });
     });
 
     it("yields modules", async () => {
+        const { stats, compiler } = await createWebpackCompiler(config, projectDir);
+
         expect(
-            Array.from(actual.compilation.modules.values())
+            Array.from(stats.compilation.modules.values())
                 .filter(mod => mod instanceof NormalModule && mod.rawRequest.includes(resolve(projectDir, "src")))
                 .map(mod => (mod as NormalModule).rawRequest)
         ).toEqual(expect.arrayContaining([resolve(projectDir, "src", "index.tsx"), resolve(projectDir, "src", "functions", "getDate.ts")]));
+
+        compiler.close(() => undefined);
     });
 
     it("yields chunks", async () => {
-        expect(Array.from(actual.compilation.chunks.values()).map(cur => cur.name)).toEqual(expect.arrayContaining(["functions", "main"]));
+        const { stats, compiler } = await createWebpackCompiler(config, projectDir);
+
+        expect(Array.from(stats.compilation.chunks.values()).map(cur => cur.name)).toEqual(expect.arrayContaining(["functions", "main"]));
+
+        compiler.close(() => undefined);
     });
 
     it("yields bundled output", async () => {
+        const { compiler } = await createWebpackCompiler(config, projectDir);
+
         expect(readdirSync(resolve(__dirname, "./__data__/module-date/.build/lib")).filter(it => it.includes("."))).toEqual([
             "functions.js",
             "functions.js.map",
@@ -68,6 +69,8 @@ describe("WebsmithPlugin", () => {
             `-file: "/Users/marcschaerer/quatico/qs-websmith/packages/webpack/test/__data__/module-date/src/model/index.ts"\nexports: []`,
             `-file: "/Users/marcschaerer/quatico/qs-websmith/packages/webpack/test/__data__/module-date/src/model/test.ts"\nexports: [createTest]`,
         ].forEach(it => expect(expected).toContain(it));
+
+        compiler.close(() => undefined);
     });
 
     // FIXME: Update the file correctly to verify that the generated server code matches the expectation

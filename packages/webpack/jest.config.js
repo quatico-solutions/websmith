@@ -24,6 +24,7 @@ module.exports = {
         },
     },
     moduleNameMapper: {
+        "@websmith/addon-api": "<rootDir>/../api/src",
         "@websmith/cli": "<rootDir>/../cli/src",
         "@websmith/compiler": "<rootDir>/../compiler/src",
     },

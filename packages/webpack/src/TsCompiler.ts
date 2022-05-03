@@ -22,10 +22,11 @@ import uPath from "./Upath";
 
 export class TsCompiler extends Compiler {
     public fragment?: CompileFragment;
-    public pluginConfig?: PluginOptions;
+    public pluginConfig: PluginOptions;
 
-    constructor(options: CompilerOptions) {
+    constructor(options: CompilerOptions, protected webpackTarget: string = "*") {
         super(options, ts.sys);
+        this.pluginConfig = { config: "", webpackTarget };
         super.createTargetContextsIfNecessary();
     }
 
@@ -33,29 +34,30 @@ export class TsCompiler extends Compiler {
         return this.program as any;
     }
 
-    public buildClient(resourcePath: string): CompileFragment {
+    public build(resourcePath: string): CompileFragment {
         if (this.getSystem() !== ts.sys) {
-            throw new Error("TsCompiler.buildClient() called with wrong system");
+            throw new Error("TsCompiler.build() not called with ts.sys as the active ts.System");
         }
 
         const fileName = uPath.normalize(resourcePath);
-        const result = super.emitSourceFile(fileName, "client", false);
-        if (result.files.length === 0) {
-            this.langService
-                .getSemanticDiagnostics(fileName)
-                .forEach(cur => this.pluginConfig?.error?.(new WebpackError(cur.messageText.toString())));
-        }
-        return result;
-    }
 
-    public buildServer(resourcePath: string): CompileFragment {
-        const fileName = uPath.normalize(resourcePath);
-        const result = super.emitSourceFile(fileName, "server", true);
-        if (result.files.length === 0) {
-            this.langService
-                .getSemanticDiagnostics(fileName)
-                .forEach(cur => this.pluginConfig?.error?.(new WebpackError(cur.messageText.toString())));
+        const result = this.emitSourceFile(fileName, this.getFragmentTarget(this.webpackTarget), false);
+
+        if (result.diagnostics && result.diagnostics.length > 0) {
+            result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
+                const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
+                // eslint-disable-next-line no-console
+                this.pluginConfig?.error?.(new WebpackError(message)) ?? console.error(message);
+            });
         }
+        super
+            .getWritingTargets()
+            .filter((target: string) => target !== this.webpackTarget)
+            .forEach((target: string) => {
+                super.emitSourceFile(fileName, target, true);
+            });
+
+        this.fragment = result;
         return result;
     }
 
@@ -64,6 +66,22 @@ export class TsCompiler extends Compiler {
             return;
         }
         this.outputFilesToAsset(this.fragment.files, compilation, (file: ts.OutputFile) => !file.name.match(/\.d.ts$/i));
+    }
+
+    protected emitSourceFile(fileName: string, target: string, writeFile: boolean): CompileFragment {
+        return super.emitSourceFile(fileName, target, writeFile);
+    }
+
+    private getFragmentTarget(webpackTarget: string): string {
+        const fragmentTargets = super.getNonWritingTargets();
+        const target = fragmentTargets.length === 0 || fragmentTargets.includes(webpackTarget) ? webpackTarget : fragmentTargets[0];
+        fragmentTargets
+            .filter((cur: string) => cur !== target)
+            .forEach((target: string) => {
+                this.pluginConfig.warn?.(new WebpackError(`Target ${target} is not used by the WebsmithPlugin.`));
+            });
+
+        return target;
     }
 
     private outputFileToAsset(outputFile: ts.OutputFile, compilation: webpack.Compilation) {

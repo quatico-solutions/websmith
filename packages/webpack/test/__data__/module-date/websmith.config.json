@@ -1,10 +1,12 @@
 {
     "addonsDir": "../../../../examples/addons",
     "targets": {
-        "client": {
+        "noWrite": {
             "writeFile": false,
-            "addons": ["export-yaml-generator"],
-            "config": { "functionsDir": "./src/functions" }
+            "addons": ["export-yaml-generator"]
+        },
+        "writeOnly": {
+            "writeFile": true
         }
     }
 }

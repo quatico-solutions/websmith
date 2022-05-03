@@ -3,6 +3,7 @@
     "compilerOptions": {
         "baseUrl": "./" /* Base directory to resolve non-absolute module names. */,
         "paths": {
+            "@websmith/addon-api": ["../api/src"],
             "@websmith/cli": ["../cli/src"],
             "@websmith/compiler": ["../compiler/src"]
         } 

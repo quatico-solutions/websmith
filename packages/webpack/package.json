@@ -21,7 +21,7 @@
         "watch": "tsc --watch",
         "test": "jest --verbose --coverage",
         "test:watch": "jest --color --watch",
-        "test:e2e": "jest -c jest.e2e.config.js --color --verbose",
+        "test:e2e": "jest -c jest.e2e.config.js --color --verbose --runInBand",
         "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\"",
         "prepublishOnly": "yarn dist",
         "publish-npm": "npm publish --access public",
@@ -49,7 +49,7 @@
         "react-dom": "17.0.2",
         "rimraf": "^3.0.2",
         "ts-jest": "^27.0.7",
-        "typescript": "~4.6.3",
+        "typescript": "4.5.4",
         "webpack": "^5.72.0",
         "webpack-cli": "^4.9.1"
     },

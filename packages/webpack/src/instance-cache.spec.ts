@@ -60,7 +60,7 @@ describe("getInstanceFromCache", () => {
     it("should return undefined if no previously cached instance exists", () => {
         const actual = getInstanceFromCache(compiler, context);
 
-        expect(actual).toBe(undefined);
+        expect(actual).toBeUndefined();
     });
 });
 

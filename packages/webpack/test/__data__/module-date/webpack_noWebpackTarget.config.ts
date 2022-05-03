@@ -23,7 +23,6 @@ module.exports = {
             project: path.resolve(__dirname, "tsconfig.json"),
             config: path.resolve(__dirname, "websmith.config.json"),
             targets: "noWrite",
-            webpackTarget: "noWrite",
         }),
     ],
     module: {

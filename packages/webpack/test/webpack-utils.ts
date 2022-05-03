@@ -19,6 +19,7 @@ export const createWebpackCompiler = (options: Configuration, projectDir: string
                 addonsDir: resolve(__dirname, "..", "addons", "lib"),
                 config: resolve(projectDir, "websmith.config.json"),
                 project: resolve(projectDir, "tsconfig.json"),
+                webpackTarget: "*",
             }),
         ],
         mode: "development",

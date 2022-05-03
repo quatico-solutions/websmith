@@ -30,6 +30,7 @@ export interface PluginArguments {
     project?: string;
     sourceMap?: boolean;
     targets?: string;
+    webpackTarget?: string;
 }
 
 export type PluginOptions = PluginArguments & {
@@ -39,11 +40,14 @@ export type PluginOptions = PluginArguments & {
 
 export type WebsmithLoaderContext = webpack.LoaderContext<PluginArguments> & { pluginConfig: PluginOptions };
 
+
 export class WebsmithPlugin {
     public static loader = uPath.join(__dirname, "loader");
     public static PLUGIN_NAME = "WebsmithPlugin";
 
-    constructor(protected config: PluginOptions) {}
+    constructor(protected config: PluginOptions) {
+        this.config = { ...this.config, webpackTarget: this.config.webpackTarget ?? "*" };
+    }
 
     public apply(compiler: Compiler): void {
         const compilationQueueContributor = contribute();
@@ -71,16 +75,31 @@ export class WebsmithPlugin {
         // eslint-disable-next-line @typescript-eslint/ban-types
         compilation.hooks.normalModuleLoader.tap(WebsmithPlugin.PLUGIN_NAME, (context: object) => {
             const loaderContext = context as WebsmithLoaderContext;
+            const websmithConfig = readFileSync(this.config.config).toString();
             const config = {
-                ...JSON.parse(readFileSync(this.config.config).toString()),
+                ...JSON.parse(websmithConfig),
                 ...this.config,
                 ...(loaderContext._module && { warn: (err: WebpackError) => loaderContext._module?.addWarning(err) }),
                 ...(loaderContext._module && { error: (err: WebpackError) => loaderContext._module?.addError(err) }),
             };
+            const options = createOptions(config);
+
+            if (this.config.webpackTarget && this.config.webpackTarget !== "*" && !options.targets.includes(this.config.webpackTarget)) {
+                compilation.errors.push(
+                    new WebpackError(
+                        `WebsmithPlugin: webpackTarget "${this.config.webpackTarget}" not found in targets ${options.targets.join(", ")}`
+                    )
+                );
+                return;
+            }
+
             loaderContext.pluginConfig = config;
 
             if (loaderContext) {
-                const instance = getInstanceFromCache(compilation.compiler, loaderContext) ?? new TsCompiler(createOptions(config));
+                const instance =
+                    getInstanceFromCache(compilation.compiler, loaderContext) ??
+                    new TsCompiler(createOptions(config), this.config.webpackTarget);
+                loaderContext.pluginConfig = config;
                 setInstanceInCache(compilation.compiler, loaderContext, instance);
             }
         });

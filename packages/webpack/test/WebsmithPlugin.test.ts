@@ -1,7 +1,6 @@
 import { lstatSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import { Configuration } from "webpack";
-import { WebsmithPlugin } from "../src";
 import { createWebpackCompiler } from "./webpack-utils";
 
 const projectDir = resolve(__dirname, "__data__", "module-date");
@@ -17,13 +16,25 @@ afterEach(() => {
 });
 
 describe("WebsmithPlugin", () => {
-    it("should be a function", () => {
-        expect(WebsmithPlugin).toBeInstanceOf(Function);
+    it.todo("should bundle the target configured as webpackTarget");
+
+    it("should bundle the first target w/ writeFile false w/o webpackTarget set", async () => {
+        const target = resolve(projectDir, ".build", "lib", "main.js");
+        const { compiler } = await createWebpackCompiler(
+            { ...require("./__data__/module-date/webpack_noWebpackTarget.config.ts"), watch: true },
+            projectDir
+        );
+
+        expect(lstatSync(target).isFile()).toBe(true); 
+
+        compiler.close(() => undefined);
     });
 
-    it.todo("executes loader only once per file");
+    it.todo("should write an error if no target w/ writeFile false is specified");
 
-    it("recompiles the file w/ the file content change in watch mode", async () => {
+    it.todo("should write a warning if more than one target w/ writeFile false is specified");
+
+    it("should rebundle the file in watch mode w/ the file content change", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
         const { compiler } = await createWebpackCompiler({ ...config, watch: true }, projectDir);
 

@@ -26,6 +26,7 @@ import { DefaultReporter } from "./DefaultReporter";
 export type CompileFragment = {
     version: number;
     files: ts.OutputFile[];
+    diagnostics?: ts.Diagnostic[];
 };
 
 export class Compiler {
@@ -161,6 +162,7 @@ export class Compiler {
     }
 
     protected createTargetContextsIfNecessary(): this {
+        // eslint-disable-next-line no-console
         this.options.targets.forEach((target: string) => {
             if (this.contextMap.has(target)) {
                 return;
@@ -207,7 +209,7 @@ export class Compiler {
             cache.updateSource(filePath, content);
             this.compilationHost.setLanguageHost(ctx.getLanguageHost());
 
-            const output = this.langService.getEmitOutput(fileName);
+            const output: ts.EmitOutput & { diagnostics?: ts.Diagnostic[] } = this.langService.getEmitOutput(fileName);
 
             if (!output.emitSkipped) {
                 cache.updateOutput(fileName, output.outputFiles);
@@ -217,6 +219,8 @@ export class Compiler {
                     this.writeOutputFiles(output);
                 }
                 return { version: cache.getVersion(fileName), files: output.outputFiles };
+            } else {
+                return { version: cache.getVersion(fileName), files: [], diagnostics: output.diagnostics };
             }
         }
 
@@ -282,15 +286,12 @@ export class Compiler {
     //     return Object.keys(this.options.project.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? projectDir;
     // }
 
-    private getWritingTargets() {
-        const writingTargets: string[] = [];
-        this.options.targets.forEach((target: string) => {
-            const { writeFile } = getTargetConfig(target, this.options.config);
-            if (writeFile) {
-                writingTargets.push(target);
-            }
-        });
-        return writingTargets;
+    protected getNonWritingTargets(): string[] {
+        return this.options.targets.filter(cur => getTargetConfig(cur, this.options.config).writeFile === false);
+    }
+
+    protected getWritingTargets(): string[] {
+        return this.options.targets.filter(cur => getTargetConfig(cur, this.options.config).writeFile);
     }
 }
 

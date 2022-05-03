@@ -37,7 +37,7 @@ function loader(this: WebsmithLoaderContext): void {
     const fragment = buildTargets(compilerOptions, instance, this.resourcePath);
 
     if (!fragment) {
-        this.callback(new Error(`No valid target "client" or "server" found for ${this.resourcePath}`));
+        this.callback(new Error(`No valid webpackTarget or target with writeFile: false found for ${this.resourcePath}`));
         return;
     }
 
@@ -89,11 +89,7 @@ const processResultAndFinish = (loader: webpack.LoaderContext<PluginArguments>, 
 
     // TODO: If we find files added in root files we do not have in webpack, we must handle the addition and emission of these dependencies
     if (!outputText) {
-        return loader.callback(
-            compilerOptions.targets.includes("client")
-                ? new Error(`No processed and compiled output found for ${loader.resourcePath} and target "client"`)
-                : new Error(`No processed output found for ${loader.resourcePath} in targets ${compilerOptions.targets}`)
-        );
+        return loader.callback(new Error(`No processed output found for ${loader.resourcePath} with targets ${compilerOptions.targets.join(",")}`));
     } else {
         const { output, sourceMap } = makeSourceMap(outputText, sourceMapText);
         loader.callback(undefined, output, sourceMap);
@@ -101,11 +97,12 @@ const processResultAndFinish = (loader: webpack.LoaderContext<PluginArguments>, 
 };
 
 const buildTargets = (compilerOptions: CompilerOptions, compiler: TsCompiler, resourcePath: string) => {
-    const fragment = compilerOptions.targets.includes("client") ? compiler.buildClient(resourcePath) : { files: [], version: 0 };
-    if (compilerOptions.targets.includes("server")) {
-        compiler.buildServer(resourcePath);
-    }
-    return fragment;
+    return compiler.build(resourcePath);
+    // const fragment = compilerOptions.targets.includes("client") ? compiler.build(resourcePath) : { files: [], version: 0 };
+    // if (compilerOptions.targets.includes("server")) {
+    //     compiler.build(resourcePath);
+    // }
+    // return fragment;
 };
 
 module.exports = loader;
