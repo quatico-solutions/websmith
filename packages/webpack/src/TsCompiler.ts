@@ -16,7 +16,7 @@
 // import { ErrorMessage } from "@websmith/addon-api";
 import { CompileFragment, Compiler, CompilerOptions } from "@websmith/compiler";
 import ts from "typescript";
-import webpack, { sources, WebpackError } from "webpack";
+import { WebpackError } from "webpack";
 import { PluginOptions } from "./plugin";
 import uPath from "./Upath";
 
@@ -62,13 +62,6 @@ export class TsCompiler extends Compiler {
         return result;
     }
 
-    public provideDeclarationFilesToWebpack(compilation: webpack.Compilation): void {
-        if (!this.fragment) {
-            return;
-        }
-        this.outputFilesToAsset(this.fragment.files, compilation, (file: ts.OutputFile) => !file.name.match(/\.d.ts$/i));
-    }
-
     protected emitSourceFile(fileName: string, target: string, writeFile: boolean): CompileFragment {
         return super.emitSourceFile(fileName, target, writeFile);
     }
@@ -99,22 +92,5 @@ export class TsCompiler extends Compiler {
             });
 
         return target;
-    }
-
-    private outputFileToAsset(outputFile: ts.OutputFile, compilation: webpack.Compilation) {
-        const assetPath = uPath.relative(compilation.compiler.outputPath, outputFile.name);
-        compilation.assets[assetPath] = new sources.RawSource(outputFile.text);
-    }
-
-    private outputFilesToAsset<T extends ts.OutputFile>(
-        outputFiles: T[] | IterableIterator<T>,
-        compilation: webpack.Compilation,
-        skipOutputFile?: (outputFile: T) => boolean
-    ) {
-        for (const outputFile of outputFiles) {
-            if (!skipOutputFile || !skipOutputFile(outputFile)) {
-                this.outputFileToAsset(outputFile, compilation);
-            }
-        }
     }
 }

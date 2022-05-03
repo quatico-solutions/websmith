@@ -72,36 +72,4 @@ describe("project bundling", () => {
 
         compiler.close(() => undefined);
     });
-
-    // FIXME: Update the file correctly to verify that the generated server code matches the expectation
-    // it.skip("yields updated source files with watch mode", async () => {
-    //     const fileNameIn = resolve(__dirname, "./_data__/module-date/src/functions/getDate.ts");
-    //     const fileNameOut = resolve(__dirname, "./__data__/module-date/.build/server-esm/getDate.js");
-
-    //     await watch;
-
-    //     expect(readFileSync(fileNameOut).toString()).toMatchInlineSnapshot(`
-    //         "\\"use strict\\";
-    //         Object.defineProperty(exports, \\"__esModule\\", { value: true });
-    //         exports.getDate = void 0;
-    //         // @service()
-    //         const getDate = async ({}) => new Date();
-    //         exports.getDate = getDate;
-    //         //# sourceMappingURL=getDate.js.map"
-    //     `);
-
-    //     writeFileSync(fileNameIn, "// @service()\nexport const expected = async () => { return new Date(); }\n");
-    //     watchInstance.invalidate();
-    //     await new Promise(resolve => setTimeout(resolve, 1000));
-
-    //     expect(readFileSync(fileNameOut).toString()).toMatchInlineSnapshot(`
-    //         "\\"use strict\\";
-    //         Object.defineProperty(exports, \\"__esModule\\", { value: true });
-    //         exports.expected = void 0;
-    //         // @service()
-    //         const expected = async ({}) => { return new Date(); };
-    //         exports.expected = expected;
-    //         //# sourceMappingURL=getDate.js.map"
-    //     `);
-    // });
 });

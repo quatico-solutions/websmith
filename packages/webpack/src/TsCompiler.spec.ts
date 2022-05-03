@@ -14,11 +14,11 @@
  */
 
 /* eslint-disable no-console */
+import { Reporter } from "@websmith/addon-api";
 import { AddonRegistry, CompileFragment, CompilerOptions, NoReporter } from "@websmith/compiler";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import ts from "typescript";
-import { Compilation } from "webpack";
 import { PluginOptions } from "./plugin";
 import { TsCompiler } from "./TsCompiler";
 
@@ -48,14 +48,17 @@ class TestCompiler extends TsCompiler {
         super.emitSourceFile = func;
     }
 }
+let testObj: TestCompiler;
+let expected: string;
+let reporter: Reporter;
+
+beforeEach(() => {
+    expected = resolve("./__data__/one.ts");
+    reporter = new NoReporter();
+});
 
 describe("TsCompiler", () => {
-    let testObj: TestCompiler;
-    let expected: string;
-
     beforeEach(() => {
-        expected = resolve("./__data__/one.ts");
-        const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter: reporter, system: ts.sys }),
@@ -110,16 +113,18 @@ describe("TsCompiler", () => {
 
         rmSync(resolve("./__data__"), { recursive: true, force: true });
     });
+});
 
-    it('should provide transpiled compilation fragment w/ build, "*" target and source code', () => {
+describe("Transpilation", () => {
+    it('should provide transpiled compilation fragment w/ build, default "*" target and source code', () => {
         const expected = resolve("./__data__/one.ts");
         createSource(expected, "export const one = () => 1;");
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
-                addons: new AddonRegistry({ addonsDir: "./addons", reporter: reporter, system: ts.sys }),
+                addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: ts.sys }),
                 buildDir: resolve("./__data__/.build"),
-                project: { declaration: true, target: 99 },
+                project: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
                 targets: [],
                 tsconfig: { options: { declaration: true, target: 99 }, fileNames: [expected], errors: [] },
@@ -146,7 +151,7 @@ describe("TsCompiler", () => {
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
-                addons: new AddonRegistry({ addonsDir: "./addons", reporter: reporter, system: ts.sys }),
+                addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: ts.sys }),
                 buildDir: resolve("./__data__/.build"),
                 config: {
                     configFilePath: resolve("./__data__/websmith.config.json"),
@@ -155,7 +160,7 @@ describe("TsCompiler", () => {
                         write: { writeFile: true, options: { module: 1, target: 1 } },
                     },
                 },
-                project: { target: 99, outDir: resolve("./__data__/.build") },
+                project: { target: 99, outDir: resolve("./__data__/.build"), noEmitOnError: true },
                 reporter,
                 targets: ["fragment", "write"],
                 tsconfig: { options: { target: 99 }, fileNames: [expected], errors: [] },
@@ -184,34 +189,6 @@ describe("TsCompiler", () => {
 
         rmSync(resolve("./__data__"), { recursive: true, force: true });
     });
-
-    it("should add compilation fragment to compilation output assets", () => {
-        const target = { assets: {}, compiler: { outputPath: "./lib" } } as Compilation;
-        const expected = { version: 11, files: [{ name: "./src/one.d.ts", text: "declare const expected: (): void", writeByteOrderMark: false }] };
-        testObj.fragment = expected;
-
-        testObj.provideDeclarationFilesToWebpack(target);
-
-        expect(target).toEqual({
-            assets: {
-                "../src/one.d.ts": {
-                    _value: "declare const expected: (): void",
-                    _valueAsBuffer: undefined,
-                    _valueAsString: "declare const expected: (): void",
-                    _valueIsBuffer: false,
-                },
-            },
-            compiler: { outputPath: "./lib" },
-        });
-    });
-
-    it("should not attempt to add to compilation output assets w/o compilation fragment", () => {
-        const target = { assets: {}, compiler: { outputPath: "./lib" } } as Compilation;
-
-        testObj.provideDeclarationFilesToWebpack(target);
-
-        expect(target).toEqual({ assets: {}, compiler: { outputPath: "./lib" } });
-    });
 });
 
 const createSource = (fileName: string, text: string) => {
@@ -222,58 +199,3 @@ const createSource = (fileName: string, text: string) => {
 
     writeFileSync(fileName, text);
 };
-
-// export class TsCompiler extends Compiler {
-//     public fragment?: CompileFragment;
-//     public pluginConfig?: PluginOptions;
-
-//     public buildClient(resourcePath: string): CompileFragment {
-//         if (this.getSystem() !== ts.sys) {
-//             throw new Error("TsCompiler.buildClient() called with wrong system");
-//         }
-
-//         const fileName = uPath.normalize(resourcePath);
-//         const result = super.emitSourceFile(fileName, "client", false);
-//         if (result.files.length === 0) {
-//             this.langService
-//                 .getSemanticDiagnostics(fileName)
-//                 .forEach(cur => this.pluginConfig?.error?.(new WebpackError(cur.messageText.toString())));
-//         }
-//         return result;
-//     }
-
-//     public buildServer(resourcePath: string): CompileFragment {
-//         const fileName = uPath.normalize(resourcePath);
-//         const result = super.emitSourceFile(fileName, "server", true);
-//         if (result.files.length === 0) {
-//             this.langService
-//                 .getSemanticDiagnostics(fileName)
-//                 .forEach(cur => this.pluginConfig?.error?.(new WebpackError(cur.messageText.toString())));
-//         }
-//         return result;
-//     }
-
-//     public provideDeclarationFilesToWebpack(compilation: webpack.Compilation): void {
-//         if (!this.fragment) {
-//             return;
-//         }
-//         this.outputFilesToAsset(this.fragment.files, compilation, (file: ts.OutputFile) => !file.name.match(/\.d.ts$/i));
-//     }
-
-//     private outputFileToAsset(outputFile: ts.OutputFile, compilation: webpack.Compilation) {
-//         const assetPath = uPath.relative(compilation.compiler.outputPath, outputFile.name);
-//         compilation.assets[assetPath] = new sources.RawSource(outputFile.text);
-//     }
-
-//     private outputFilesToAsset<T extends ts.OutputFile>(
-//         outputFiles: T[] | IterableIterator<T>,
-//         compilation: webpack.Compilation,
-//         skipOutputFile?: (outputFile: T) => boolean
-//     ) {
-//         for (const outputFile of outputFiles) {
-//             if (!skipOutputFile || !skipOutputFile(outputFile)) {
-//                 this.outputFileToAsset(outputFile, compilation);
-//             }
-//         }
-//     }
-// }

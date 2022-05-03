@@ -1,15 +1,9 @@
 import { lstatSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
-import { Compiler, Configuration, WebpackError } from "webpack";
+import { Compiler, WebpackError } from "webpack";
 import { createWebpackCompiler } from "../test/webpack-utils";
 
 const projectDir = resolve(__dirname, "..", "test", "__data__", "module-date");
-let config: Configuration;
-
-beforeAll(() => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    config = require("../test/__data__/module-date/webpack.config.ts") as Configuration;
-});
 
 afterEach(() => {
     rmSync(resolve(projectDir, ".build"), { recursive: true, force: true });
@@ -34,6 +28,7 @@ describe("WebsmithPlugin", () => {
 
     it("should bundle using the first target w/ writeFile false w/o webpackTarget set", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
+        
         const { compiler } = await createWebpackCompiler({ ...require(join(projectDir, "webpack_noWebpackTarget.config.ts")) }, projectDir);
 
         expect(lstatSync(target).isFile()).toBe(true);
@@ -50,7 +45,6 @@ describe("WebsmithPlugin", () => {
         );
 
         expect(lstatSync(target).isFile()).toBe(true);
-        // expect(stats?.compilation.getWarnings()).toEqual([]);
 
         compiler.close(() => undefined);
     });
@@ -79,6 +73,7 @@ describe("WebsmithPlugin", () => {
 
     it("should write a warning if more than one target w/ writeFile false is specified", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
+
         const { stats, compiler } = await createWebpackCompiler(
             { ...require(join(projectDir, "webpack_multipleNoWriteTargets.config.ts")) },
             projectDir
@@ -92,10 +87,10 @@ describe("WebsmithPlugin", () => {
 
     it("should rebundle the file in watch mode w/ the file content change", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
-        const { compiler } = await createWebpackCompiler({ ...config, watch: true }, projectDir);
+
+        const { compiler } = await createWebpackCompiler({ ...require(join(projectDir, "webpack.config.ts")), watch: true }, projectDir);
 
         const expected = lstatSync(resolve(projectDir, ".build", "lib", "main.js")).mtimeMs;
-
         writeFileSync(target, readFileSync(target).toString());
 
         expect(lstatSync(resolve(projectDir, ".build", "lib", "main.js")).mtimeMs).toBeGreaterThan(expected);

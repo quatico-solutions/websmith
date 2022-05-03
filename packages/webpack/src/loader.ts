@@ -19,7 +19,7 @@ import ts from "typescript";
 import webpack, { WebpackError } from "webpack";
 import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
 import type { PluginOptions } from "./plugin";
-import { WebsmithLoaderContext, WebsmithPlugin } from "./plugin";
+import { WebsmithLoaderContext } from "./plugin";
 import { TsCompiler } from "./TsCompiler";
 
 function loader(this: WebsmithLoaderContext): void {
@@ -49,20 +49,9 @@ const initializeInstance = (loader: webpack.LoaderContext<PluginOptions>, option
     if (!instance) {
         instance = new TsCompiler(options);
         setInstanceInCache(compiler, loader, instance);
-        if (loader._compiler) {
-            loader._compiler.hooks.afterCompile.tap(WebsmithPlugin.PLUGIN_NAME, handleAfterCompile(instance));
-        }
     }
 
     return instance;
-};
-
-const handleAfterCompile = (instance: TsCompiler) => {
-    return (compilation: webpack.Compilation): void => {
-        if (!compilation.compiler.isChild()) {
-            instance.provideDeclarationFilesToWebpack(compilation);
-        }
-    };
 };
 
 const makeSourceMap = (outputText: string, sourceMapText?: string) => {
