@@ -30,7 +30,7 @@ module.exports = {
     },
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
     testEnvironment: "node",
-    testRegex: "(test|src)/.*spec\\.ts$",
+    testRegex: "(test|src)/.*\\.spec\\.ts$",
     testTimeout: 60000,
     // setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
     transform: {

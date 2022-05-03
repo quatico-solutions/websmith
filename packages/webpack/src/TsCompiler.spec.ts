@@ -19,15 +19,15 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import ts from "typescript";
 import { Compilation } from "webpack";
+import { PluginOptions } from "./plugin";
 import { TsCompiler } from "./TsCompiler";
 
 class TestCompiler extends TsCompiler {
     private sys: ts.System | undefined;
 
-    constructor(options: CompilerOptions, webpackTarget = "*") {
-        super(options, webpackTarget);
+    constructor(options: CompilerOptions, pluginOptions?: PluginOptions, webpackTarget = "*") {
+        super(options, pluginOptions, webpackTarget);
         this.sys = super.getSystem();
-        super.createTargetContextsIfNecessary();
     }
 
     public setProgram(program: ts.Program): this {
@@ -68,6 +68,7 @@ describe("TsCompiler", () => {
                 sourceMap: false,
                 watch: false,
             },
+            undefined,
             "*"
         );
     });
@@ -87,7 +88,7 @@ describe("TsCompiler", () => {
         expect(() => testObj.build("./src/one.ts")).toThrow(new Error("TsCompiler.build() not called with ts.sys as the active ts.System"));
     });
 
-    it.only('should provide transpiled compilation fragment w/ build, default config, "*" target and source code', () => {
+    it('should provide transpiled compilation fragment w/ build, default config, "*" target and source code', () => {
         const expected = { version: 42, files: [{ name: "expected.ts", text: "expected" }] };
         const target = jest.fn().mockReturnValue(expected);
         testObj.stubEmitSourceFile(target);
@@ -126,6 +127,7 @@ describe("TsCompiler", () => {
                 sourceMap: false,
                 watch: false,
             },
+            undefined,
             "*"
         );
 
@@ -157,10 +159,11 @@ describe("TsCompiler", () => {
                 reporter,
                 targets: ["fragment", "write"],
                 tsconfig: { options: { target: 99 }, fileNames: [expected], errors: [] },
-                debug: true,
+                debug: false,
                 sourceMap: false,
                 watch: false,
             },
+            undefined,
             "fragment"
         );
 

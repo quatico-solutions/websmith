@@ -22,7 +22,6 @@ import type { PluginArguments } from "./plugin";
 import { WebsmithPlugin, WebsmithLoaderContext } from "./plugin";
 import { TsCompiler } from "./TsCompiler";
 
-// TODO: Add content: string parameter and use that to update the cache
 function loader(this: WebsmithLoaderContext): void {
     const compilerOptions: CompilerOptions = createOptions(this.pluginConfig);
     const module = this._module;
@@ -87,7 +86,6 @@ const processResultAndFinish = (loader: webpack.LoaderContext<PluginArguments>, 
     const outputText = fragment.files.find((cur: ts.OutputFile) => cur.name.match(/\.jsx?$/i))?.text;
     const sourceMapText = fragment.files.find((cur: ts.OutputFile) => cur.name.match(/\.jsx?\.map$/i))?.text;
 
-    // TODO: If we find files added in root files we do not have in webpack, we must handle the addition and emission of these dependencies
     if (!outputText) {
         return loader.callback(new Error(`No processed output found for ${loader.resourcePath} with targets ${compilerOptions.targets.join(",")}`));
     } else {
@@ -98,11 +96,6 @@ const processResultAndFinish = (loader: webpack.LoaderContext<PluginArguments>, 
 
 const buildTargets = (compilerOptions: CompilerOptions, compiler: TsCompiler, resourcePath: string) => {
     return compiler.build(resourcePath);
-    // const fragment = compilerOptions.targets.includes("client") ? compiler.build(resourcePath) : { files: [], version: 0 };
-    // if (compilerOptions.targets.includes("server")) {
-    //     compiler.build(resourcePath);
-    // }
-    // return fragment;
 };
 
 module.exports = loader;

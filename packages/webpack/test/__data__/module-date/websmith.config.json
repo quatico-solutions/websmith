@@ -5,8 +5,13 @@
             "writeFile": false,
             "addons": ["export-yaml-generator"]
         },
+        "noWrite2": {
+            "writeFile": false,
+            "addons": ["export-yaml-generator"]
+        },
         "writeOnly": {
-            "writeFile": true
+            "writeFile": true,
+            "addons": ["export-yaml-generator"]
         }
     }
 }

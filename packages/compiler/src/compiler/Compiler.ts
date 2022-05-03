@@ -287,7 +287,7 @@ export class Compiler {
     // }
 
     protected getNonWritingTargets(): string[] {
-        return this.options.targets.filter(cur => getTargetConfig(cur, this.options.config).writeFile === false);
+        return this.options.targets.filter(cur => !getTargetConfig(cur, this.options.config).writeFile);
     }
 
     protected getWritingTargets(): string[] {

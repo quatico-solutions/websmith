@@ -35,7 +35,7 @@ describe("project bundling", () => {
         const { stats, compiler } = await createWebpackCompiler(config, projectDir);
 
         expect(
-            Array.from(stats.compilation.modules.values())
+            Array.from(stats!.compilation.modules.values())
                 .filter(mod => mod instanceof NormalModule && mod.rawRequest.includes(resolve(projectDir, "src")))
                 .map(mod => (mod as NormalModule).rawRequest)
         ).toEqual(expect.arrayContaining([resolve(projectDir, "src", "index.tsx"), resolve(projectDir, "src", "functions", "getDate.ts")]));
@@ -46,7 +46,7 @@ describe("project bundling", () => {
     it("yields chunks", async () => {
         const { stats, compiler } = await createWebpackCompiler(config, projectDir);
 
-        expect(Array.from(stats.compilation.chunks.values()).map(cur => cur.name)).toEqual(expect.arrayContaining(["functions", "main"]));
+        expect(Array.from(stats!.compilation.chunks.values()).map(cur => cur.name)).toEqual(expect.arrayContaining(["functions", "main"]));
 
         compiler.close(() => undefined);
     });

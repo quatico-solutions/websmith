@@ -15,10 +15,10 @@
 import { createOptions } from "@websmith/cli";
 import { readFileSync } from "fs";
 import webpack, { Compiler, Stats, WebpackError } from "webpack";
-import uPath from "./Upath";
 import { contribute } from "./CompilationQueue";
 import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
 import { TsCompiler } from "./TsCompiler";
+import uPath from "./Upath";
 import Compilation = webpack.Compilation;
 
 export interface PluginArguments {
@@ -39,7 +39,6 @@ export type PluginOptions = PluginArguments & {
 };
 
 export type WebsmithLoaderContext = webpack.LoaderContext<PluginArguments> & { pluginConfig: PluginOptions };
-
 
 export class WebsmithPlugin {
     public static loader = uPath.join(__dirname, "loader");
@@ -79,27 +78,17 @@ export class WebsmithPlugin {
             const config = {
                 ...JSON.parse(websmithConfig),
                 ...this.config,
+
                 ...(loaderContext._module && { warn: (err: WebpackError) => loaderContext._module?.addWarning(err) }),
                 ...(loaderContext._module && { error: (err: WebpackError) => loaderContext._module?.addError(err) }),
             };
-            const options = createOptions(config);
-
-            if (this.config.webpackTarget && this.config.webpackTarget !== "*" && !options.targets.includes(this.config.webpackTarget)) {
-                compilation.errors.push(
-                    new WebpackError(
-                        `WebsmithPlugin: webpackTarget "${this.config.webpackTarget}" not found in targets ${options.targets.join(", ")}`
-                    )
-                );
-                return;
-            }
 
             loaderContext.pluginConfig = config;
 
             if (loaderContext) {
                 const instance =
                     getInstanceFromCache(compilation.compiler, loaderContext) ??
-                    new TsCompiler(createOptions(config), this.config.webpackTarget);
-                loaderContext.pluginConfig = config;
+                    new TsCompiler(createOptions(config), config, this.config.webpackTarget);
                 setInstanceInCache(compilation.compiler, loaderContext, instance);
             }
         });
