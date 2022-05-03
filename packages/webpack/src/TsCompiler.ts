@@ -81,7 +81,7 @@ export class TsCompiler extends Compiler {
             this.pluginConfig.warn?.(new WebpackError(error));
 
             const writingTargets = super.getWritingTargets();
-            if (writingTargets.includes(webpackTarget) || webpackTarget == "*" ) {
+            if (writingTargets.includes(webpackTarget) || webpackTarget == "*") {
                 return writingTargets.length > 0 ? writingTargets[0] : webpackTarget;
             }
             const noTargetError = `No target found for "${webpackTarget}"`;

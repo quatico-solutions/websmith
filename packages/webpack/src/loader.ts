@@ -18,8 +18,8 @@ import { CompileFragment, CompilerOptions } from "@websmith/compiler";
 import ts from "typescript";
 import webpack, { WebpackError } from "webpack";
 import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
-import type { PluginArguments } from "./plugin";
-import { WebsmithPlugin, WebsmithLoaderContext } from "./plugin";
+import type { PluginOptions } from "./plugin";
+import { WebsmithLoaderContext, WebsmithPlugin } from "./plugin";
 import { TsCompiler } from "./TsCompiler";
 
 function loader(this: WebsmithLoaderContext): void {
@@ -35,11 +35,6 @@ function loader(this: WebsmithLoaderContext): void {
 
     const fragment = buildTargets(compilerOptions, instance, this.resourcePath);
 
-    if (!fragment) {
-        this.callback(new Error(`No valid webpackTarget or target with writeFile: false found for ${this.resourcePath}`));
-        return;
-    }
-
     this.version = instance.version;
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -48,7 +43,7 @@ function loader(this: WebsmithLoaderContext): void {
     processResultAndFinish(this, fragment, compilerOptions);
 }
 
-const initializeInstance = (loader: webpack.LoaderContext<PluginArguments>, options: CompilerOptions): TsCompiler => {
+const initializeInstance = (loader: webpack.LoaderContext<PluginOptions>, options: CompilerOptions): TsCompiler => {
     const compiler = loader._compiler || ({} as webpack.Compiler);
     let instance = getInstanceFromCache(compiler, loader);
     if (!instance) {
@@ -81,7 +76,7 @@ const makeSourceMap = (outputText: string, sourceMapText?: string) => {
     };
 };
 
-const processResultAndFinish = (loader: webpack.LoaderContext<PluginArguments>, fragment: CompileFragment, compilerOptions: CompilerOptions) => {
+const processResultAndFinish = (loader: webpack.LoaderContext<PluginOptions>, fragment: CompileFragment, compilerOptions: CompilerOptions) => {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const outputText = fragment.files.find((cur: ts.OutputFile) => cur.name.match(/\.jsx?$/i))?.text;
     const sourceMapText = fragment.files.find((cur: ts.OutputFile) => cur.name.match(/\.jsx?\.map$/i))?.text;
@@ -94,7 +89,7 @@ const processResultAndFinish = (loader: webpack.LoaderContext<PluginArguments>, 
     }
 };
 
-const buildTargets = (compilerOptions: CompilerOptions, compiler: TsCompiler, resourcePath: string) => {
+const buildTargets = (_compilerOptions: CompilerOptions, compiler: TsCompiler, resourcePath: string) => {
     return compiler.build(resourcePath);
 };
 

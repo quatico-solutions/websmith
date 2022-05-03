@@ -38,7 +38,7 @@ export type PluginOptions = PluginArguments & {
     error?: (err: WebpackError) => void;
 };
 
-export type WebsmithLoaderContext = webpack.LoaderContext<PluginArguments> & { pluginConfig: PluginOptions };
+export type WebsmithLoaderContext = webpack.LoaderContext<PluginOptions> & { pluginConfig: PluginOptions };
 
 export class WebsmithPlugin {
     public static loader = uPath.join(__dirname, "loader");
