@@ -5,7 +5,7 @@
     "author": "Quatico Solutions AG",
     "license": "SEE LICENSE IN LICENSE",
     "publishConfig": {
-        "registry": "https://binaries.quatico.com/api/npm/quatico-private-npm/"
+        "registry": "https://binaries.quatico.com/artifactory/api/npm/quatico-private-npm/"
     },
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
@@ -24,8 +24,7 @@
         "test:watch": "jest --color --watch",
         "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\"",
         "prepublishOnly": "yarn dist",
-        "publish-npm": "npm publish --access public",
-        "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags"
+        "publish-npm": "npm publish --access public"
     },
     "devDependencies": {
         "@types/jest": "^27.4.1",

@@ -12,7 +12,7 @@
         "lib"
     ],
     "publishConfig": {
-        "registry": "https://binaries.quatico.com/api/npm/quatico-private-npm/"
+        "registry": "https://binaries.quatico.com/artifactory/api/npm/quatico-private-npm/"
     },
     "scripts": {
         "clean": "rimraf lib coverage test/__data__/**/.build/",
@@ -24,8 +24,7 @@
         "test:e2e": "jest -c jest.e2e.config.js --color --verbose --runInBand",
         "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build && yarn test:e2e\"",
         "prepublishOnly": "yarn dist",
-        "publish-npm": "npm publish --access public",
-        "pre-commit": "yarn clean && yarn build"
+        "publish-npm": "npm publish --access public"
     },
     "devDependencies": {
         "@types/jest": "^27.0.2",
