@@ -54,8 +54,8 @@
         "webpack-cli": "^4.9.1"
     },
     "dependencies": {
-        "@websmith/cli": "link:../cli",
-        "@websmith/compiler": "link:../compiler"
+        "@websmith/cli": "^0.0.1",
+        "@websmith/compiler": "^0.0.1"
     },
     "engines": {
         "node": ">=16.x",

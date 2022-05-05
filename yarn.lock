@@ -2435,29 +2435,6 @@
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/@webpack-cli/serve/-/serve-1.6.1.tgz#0de2875ac31b46b6c5bb1ae0a7d7f0ba5678dffe"
   integrity sha512-gNGTiTrjEVQ0OcVnzsRSqTxaBSr+dmTfm+qJsCDluky8uhdLWep7Gcr62QsAKHTMxjCS/8nEITsmFAhfIx+QSw==
 
-"@websmith/addon-api@link:packages/api":
-  version "0.0.1"
-  dependencies:
-    typescript "4.5.4"
-
-"@websmith/cli@link:packages/cli":
-  version "0.0.1"
-  dependencies:
-    "@websmith/addon-api" "link:packages/api"
-    "@websmith/compiler" "link:packages/compiler"
-    commander "^9.1.0"
-    ts-node "10.7.0"
-    typescript "4.5.4"
-
-"@websmith/compiler@link:packages/compiler":
-  version "0.0.1"
-  dependencies:
-    "@websmith/addon-api" "link:packages/api"
-    create-hash "1.2.0"
-    lodash "^4.17.20"
-    path "0.12.7"
-    typescript "4.5.4"
-
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/@xtuc/ieee754/-/ieee754-1.2.0.tgz#eef014a3145ae477a1cbc00cd1e552336dceb790"
@@ -6659,7 +6636,7 @@ knuth-shuffle-seeded@^1.0.6:
   dependencies:
     seed-random "~2.2.0"
 
-lerna@4.0.0:
+lerna@^4.0.0:
   version "4.0.0"
   resolved "https://binaries.quatico.com/api/npm/quatico-npm-proxy/lerna/-/lerna-4.0.0.tgz#b139d685d50ea0ca1be87713a7c2f44a5b678e9e"
   integrity sha512-DD/i1znurfOmNJb0OBw66NmNqiM8kF6uIrzrJ0wGE3VNdzeOhz9ziWLYiRaZDGGwgbcjOo6eIfcx9O5Qynz+kg==
