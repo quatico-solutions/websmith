@@ -18,10 +18,9 @@
         "build": "tsc",
         "execute": "websmith --addons example-generator,example-processor,example-transformer,example-result-processor -p tsconfig.execute.json",
         "watch": "tsc --watch",
-        "test": "jest --verbose --coverage --passWithNoTests",
-        "test:e2e": "echo 'No e2e tests yet'",
+        "test": "jest --color --verbose --coverage --passWithNoTests",
         "test:update-snapshots": "yarn test -u",
-        "test:watch": "jest --watch",
+        "test:watch": "jest --color --watch",
         "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\""
     },
     "devDependencies": {
