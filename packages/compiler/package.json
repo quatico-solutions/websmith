@@ -1,6 +1,6 @@
 {
     "name": "@websmith/compiler",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "A frontend for the TypeScript compiler",
     "author": "Quatico Solutions AG",
     "license": "SEE LICENSE IN LICENSE",
@@ -49,7 +49,7 @@
         "ts-jest": "27.1.4"
     },
     "dependencies": {
-        "@websmith/addon-api": "^0.0.1",
+        "@websmith/addon-api": "^0.0.2",
         "create-hash": "1.2.0",
         "lodash": "^4.17.20",
         "path": "0.12.7",

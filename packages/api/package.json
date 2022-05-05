@@ -1,6 +1,6 @@
 {
     "name": "@websmith/addon-api",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Addon API library for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "SEE LICENSE IN LICENSE",

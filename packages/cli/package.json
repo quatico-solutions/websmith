@@ -1,6 +1,6 @@
 {
     "name": "@websmith/cli",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "A CLI for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "SEE LICENSE IN LICENSE",
@@ -52,8 +52,8 @@
         "ts-jest": "27.1.4"
     },
     "dependencies": {
-        "@websmith/addon-api": "^0.0.1",
-        "@websmith/compiler": "^0.0.1",
+        "@websmith/addon-api": "^0.0.2",
+        "@websmith/compiler": "^0.0.2",
         "commander": "^9.1.0",
         "ts-node": "10.7.0",
         "typescript": "4.5.4"
