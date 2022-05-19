@@ -1,5 +1,5 @@
 const { resolve } = require("path");
-const { MagellanPlugin } = require("../../../lib");
+const { WebsmithPlugin } = require("../../../lib");
 
 const sourceDir = resolve(__dirname, "src");
 
@@ -19,7 +19,7 @@ module.exports = {
         extensions: [".js", ".ts", ".tsx"],
     },
     plugins: [
-        new MagellanPlugin({
+        new WebsmithPlugin({
             project: resolve(__dirname, "tsconfig.json"),
             config: resolve(__dirname, "websmith.config.json"),
             targets: "noWrite",
@@ -32,7 +32,7 @@ module.exports = {
                 test: /\.[j|t]sx?$/,
                 include: [sourceDir],
                 exclude: [/\.spec\.tsx?$/, /node_modules/],
-                loader: MagellanPlugin.loader,
+                loader: WebsmithPlugin.loader,
             },
         ],
     },
