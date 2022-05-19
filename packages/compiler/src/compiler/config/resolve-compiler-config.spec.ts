@@ -4,11 +4,12 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import ts from "typescript";
 import { createBrowserSystem } from "../../environment";
 import { NoReporter } from "../NoReporter";
 import { resolveCompilationConfig } from "./resolve-compiler-config";
 
-const testSystem = createBrowserSystem({});
+const testSystem = createBrowserSystem({}, ts.sys.useCaseSensitiveFileNames);
 
 describe("resolveCompilationConfig", () => {
     it("should return undefined w/ empty path", () => {

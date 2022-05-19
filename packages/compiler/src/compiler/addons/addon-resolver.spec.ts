@@ -6,6 +6,7 @@
  */
 /* eslint-disable jest/no-mocks-import */
 import path from "path";
+import ts from "typescript";
 import { ReporterMock } from "../../../test";
 import { createBrowserSystem } from "../../environment";
 import { createResolver } from "./addon-resolver";
@@ -24,7 +25,7 @@ beforeAll(() => {
     );
 });
 
-const testSystem = createBrowserSystem({});
+const testSystem = createBrowserSystem({}, ts.sys.useCaseSensitiveFileNames);
 testSystem.readDirectory = jest.fn().mockReturnValue(["one"]);
 
 describe("createResolver", () => {

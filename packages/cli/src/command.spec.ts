@@ -22,7 +22,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-    testSystem = createBrowserSystem({});
+    testSystem = createBrowserSystem({}, ts.sys.useCaseSensitiveFileNames);
     testSystem.createDirectory("./addons");
     testSystem.writeFile("./tsconfig.json", "{}");
 

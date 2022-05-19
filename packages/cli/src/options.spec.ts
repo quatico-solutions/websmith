@@ -13,7 +13,7 @@ const testReporter = new NoReporter();
 
 describe("createOptions", () => {
     beforeEach(() => {
-        testSystem = createBrowserSystem({});
+        testSystem = createBrowserSystem({}, ts.sys.useCaseSensitiveFileNames);
     });
 
     it("should return defaults w/o any param", () => {
