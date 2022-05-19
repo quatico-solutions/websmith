@@ -1,0 +1,11 @@
+{
+    "cSpell.words": [
+        "addon",
+        "addons",
+        "barfoo",
+        "json",
+        "websmith"
+    ],
+    "jest.jestCommandLine": "node_modules/.bin/jest -config jest.config.js",
+    "typescript.tsdk": "node_modules/typescript/lib"
+}

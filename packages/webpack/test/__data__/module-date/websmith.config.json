@@ -1,0 +1,17 @@
+{
+    "addonsDir": "../../../../examples/addons",
+    "targets": {
+        "noWrite": {
+            "writeFile": false,
+            "addons": ["export-yaml-generator"]
+        },
+        "noWrite2": {
+            "writeFile": false,
+            "addons": ["export-yaml-generator"]
+        },
+        "writeOnly": {
+            "writeFile": true,
+            "addons": ["export-yaml-generator"]
+        }
+    }
+}

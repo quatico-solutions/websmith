@@ -1,0 +1,76 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "name": "vscode-jest-tests",
+            "request": "launch",
+            "program": "${workspaceFolder}/node_modules/.bin/jest",
+            "args": [
+                "--runInBand",
+                "--watchAll=false",
+                "--testNamePattern",
+                "${jest.testNamePattern}",
+                "--runTestsByPath",
+                "${jest.testFile}"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "disableOptimisticBPs": true,
+            "windows": {
+                "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+            }
+        },
+        {
+            "type": "node",
+            "name": "vscode-jest-tests-e2e",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "disableOptimisticBPs": true,
+            "program": "node_modules/.bin/jest",
+            "cwd": "/",
+            "args": [
+                "-config",
+                "jest.e2e.config.js",
+                "--runInBand",
+                "--watchAll=false"
+            ]
+        },
+        {
+            "type": "node",
+            "name": "Debug Examples",
+            "request": "launch",
+            "runtimeExecutable": "node",
+            "runtimeArgs": [
+                "--nolazy",
+                "-r",
+                "ts-node/register/transpile-only"
+            ],
+            "args": [
+                "src/bin.ts",
+                "--project",
+                "../examples/tsconfig.json",
+                "--addonsDir",
+                "../examples/addons",
+                "--config",
+                "../examples/config.json",
+                "--targets",
+                "client,server",
+                "--debug"
+            ],
+            "cwd": "${workspaceRoot}/packages/cli",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "openOnSessionStart",
+            "disableOptimisticBPs": true,
+            "skipFiles": [
+                "<node_internals>/**",
+                "**/node_modules/**"
+            ]
+        },
+    ]
+}

@@ -1,0 +1,92 @@
+{
+    "name": "@quatico/websmith",
+    "version": "0.0.1",
+    "description": "A compiler frontend for the TypeScript compiler",
+    "keywords": [
+        "typescript",
+        "compiler",
+        "addons",
+        "code generators",
+        "code transformers"
+    ],
+    "author": "Quatico Solutions AG",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/quatico-solutions/websmith.git"
+    },
+    "bugs": {
+        "url": "https://github.com/quatico-solutions/websmith/issues"
+    },
+    "homepage": "https://github.com/quatico-solutions/websmith#readme",
+    "private": true,
+    "files": [
+        "LICENSE",
+        "README.md"
+    ],
+    "workspaces": {
+        "packages": [
+            "packages/api",
+            "packages/compiler",
+            "packages/cli",
+            "packages/webpack",
+            "packages/test",
+            "packages/examples"
+        ]
+    },
+    "scripts": {
+        "clean": "lerna run --stream clean",
+        "lint": "lerna run --stream lint",
+        "build": "lerna run --stream build && lerna link",
+        "watch": "lerna run --parallel --stream watch",
+        "test": "lerna run --stream test",
+        "test:e2e": "lerna run --stream test:e2e",
+        "test:update-snapshots": "lerna run --stream test:update-snapshots",
+        "test:watch": "lerna run --parallel --stream test:watch",
+        "dist": "yarn clean && yarn lint && yarn test && cross-env-shell NODE_ENV=production \"yarn build\" && yarn test:e2e",
+        "license:check": "license-check-and-add check -f license-config.json",
+        "license:add": "license-check-and-add add -f license-config.json",
+        "license:remove": "license-check-and-add remove -f license-config.json",
+        "publish-npm": "lerna run publish-npm",
+        "version-and-publish-npm": "lerna version --force-publish '*' && lerna run publish-npm",
+        "prepublishOnly": "yarn dist",
+        "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags"
+    },
+    "devDependencies": {
+        "@types/glob": "^7.1.3",
+        "@types/jest": "^27.4.1",
+        "@types/lodash": "4.14.182",
+        "@types/node": "16",
+        "@typescript-eslint/eslint-plugin": "^5.17.0",
+        "@typescript-eslint/parser": "^5.17.0",
+        "concurrently": "7.1.0",
+        "cross-env": "7.0.3",
+        "eslint": "^8.12.0",
+        "eslint-config-prettier": "^8.5.0",
+        "eslint-import-resolver-alias": "^1.1.2",
+        "eslint-plugin-import": "^2.22.1",
+        "eslint-plugin-jest": "^26.1.3",
+        "eslint-plugin-prettier": "^4.0.0",
+        "eslint-plugin-testing-library": "^5.2.0",
+        "husky": "7.0.4",
+        "jest": "27.5.1",
+        "jest-cucumber": "3.0.1",
+        "lerna": "^4.0.0",
+        "license-check-and-add": "4.0.5",
+        "memfs": "^3.4.1",
+        "prettier": "^2.6.2",
+        "rimraf": "3.0.2",
+        "ts-jest": "27.1.4",
+        "ts-node": "10.7.0"
+    },
+    "dependencies": {
+        "commander": "^9.1.0",
+        "create-hash": "1.2.0",
+        "path": "0.12.7",
+        "typescript": "4.6.4"
+    },
+    "engines": {
+        "node": ">=16.x",
+        "yarn": ">=1.20.x"
+    }
+}

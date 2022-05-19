@@ -1,0 +1,13 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "baseUrl": "./",
+        "paths": {
+            "@quatico/websmith-api": ["../api/src"],
+            "@quatico/websmith-cli": ["../cli/src"],
+            "@quatico/websmith-compiler": ["../compiler/src"]
+        }
+    },
+
+    "include": ["src/**/*.ts", "test/**/*.ts"]
+}

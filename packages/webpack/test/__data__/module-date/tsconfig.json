@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "allowSyntheticDefaultImports": true,
+        "declaration": true,
+        "jsx": "react-jsx",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "outDir": ".build/lib",
+        "removeComments": true,
+        "sourceMap": true,
+        "target": "ESNext",
+    },
+    "exclude": ["node_modules", ".build", "**/*.spec.ts", "**/*.spec.tsx", "**/*.d.ts"],
+    "include": ["src"]
+}
