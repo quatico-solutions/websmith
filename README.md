@@ -5,6 +5,7 @@
  ---------------------------------------------------------------------------------------------
 -->
 # @quatico/websmith
+[![Stable branch Continuous Integration](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml/badge.svg)](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml)
 
 This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It provides additional API for customizing the compilation process of the original compiler. You can provide your own compiler addons to modify the compilation input before the actual compilation process. Addons can
 
