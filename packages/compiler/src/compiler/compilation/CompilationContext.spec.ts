@@ -45,7 +45,7 @@ let testSystem: ts.System;
 let testProgram: ts.Program;
 
 beforeEach(() => {
-    testSystem = createBrowserSystem({});
+    testSystem = createBrowserSystem({}, ts.sys.useCaseSensitiveFileNames);
     testProgram = ts.createProgram({ options: {}, rootNames: [] });
     testObj = new CompilationContextTestClass({
         buildDir: "",

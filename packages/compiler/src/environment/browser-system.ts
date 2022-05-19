@@ -10,7 +10,7 @@ import { extname, isAbsolute, join, normalize } from "path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
 
-export const createBrowserSystem = (files?: Record<string, string>): ts.System => {
+export const createBrowserSystem = (files?: Record<string, string>, useCaseSensitiveFileNames = false): ts.System => {
     const knownFiles = Object.entries({ ...(files ?? tsLibDefaults) }).reduce((acc: Record<string, string>, [name, content]) => {
         acc[resolvePath(name)] = content;
         return acc;
@@ -19,7 +19,7 @@ export const createBrowserSystem = (files?: Record<string, string>): ts.System =
     return {
         args: [],
         newLine: "\n",
-        useCaseSensitiveFileNames: false,
+        useCaseSensitiveFileNames: useCaseSensitiveFileNames,
         createDirectory: (dirPath: string): void => {
             let resolved = resolvePath(dirPath);
             if (!resolved.endsWith("/")) {

@@ -60,7 +60,7 @@ const testSystem = createBrowserSystem({
     "src/arrow.ts": `
         export const computeDate = async (): Promise<Date> => new Date();
     `,
-});
+}, ts.sys.useCaseSensitiveFileNames);
 
 class CompilerTestClass extends Compiler {
     constructor(options: CompilerOptions) {

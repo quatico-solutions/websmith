@@ -19,7 +19,7 @@ const testSystem = createBrowserSystem({
     "folder/one.js": `class One {}`,
     "folder/two.js": `class Two {}`,
     "folder/foo/three.js": `class Three {}`,
-});
+}, ts.sys.useCaseSensitiveFileNames);
 
 describe("createCompileHost", () => {
     let expected: ts.CompilerHost;
@@ -80,7 +80,6 @@ describe("createCompileHost", () => {
             const actual = target.getCanonicalFileName("./FooBar/Something.js");
 
             expect(actual).toBe(expected.getCanonicalFileName("./FooBar/Something.js"));
-            expect(actual).toBe("./foobar/something.js");
         });
 
         it("returns normalized filename with file name", () => {
@@ -137,7 +136,6 @@ describe("createCompileHost", () => {
             const actual = target.useCaseSensitiveFileNames();
 
             expect(actual).toEqual(expected.useCaseSensitiveFileNames());
-            expect(actual).toBe(false);
         });
     });
 
@@ -314,7 +312,7 @@ describe("createWatchHost", () => {
 
     describe("useCaseSensitiveFileNames", () => {
         it("return same value", () => {
-            expect(target.useCaseSensitiveFileNames()).toBe(false);
+            expect(target.useCaseSensitiveFileNames()).toBe(ts.sys.useCaseSensitiveFileNames);
         });
     });
 
