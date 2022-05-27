@@ -1,6 +1,6 @@
 {
     "name": "@quatico/websmith-examples",
-    "version": "0.0.2",
+    "version": "0.1.0",
     "description": "A library of example addons for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
@@ -24,14 +24,14 @@
         "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\""
     },
     "devDependencies": {
+        "@quatico/websmith-api": "^0.1.0",
+        "@quatico/websmith-compiler": "^0.1.0",
         "@types/jest": "^27.4.1",
         "@types/node": "16",
         "@types/react": "17.0.8",
         "@types/react-dom": "17.0.0",
         "@typescript-eslint/eslint-plugin": "^5.17.0",
         "@typescript-eslint/parser": "^5.17.0",
-        "@quatico/websmith-api": "^0.0.2",
-        "@quatico/websmith-compiler": "^0.0.2",
         "concurrently": "7.1.0",
         "cross-env": "7.0.3",
         "eslint": "^8.12.0",
