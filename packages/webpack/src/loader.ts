@@ -16,15 +16,7 @@ import { TsCompiler } from "./TsCompiler";
 
 export default function loader(this: WebsmithLoaderContext): void {
     const compilerOptions: CompilerOptions = createOptions(this.pluginConfig);
-    // const module = this._module;
     const instance = initializeInstance(this, compilerOptions);
-
-    // const diagnostics = instance.getProgram()?.getOptionsDiagnostics();
-    // if (diagnostics && diagnostics.length > 0 && module) {
-    //     diagnostics.map(cur => module.addError(new WebpackError(cur.messageText.toString())));
-    //     this.callback(new Error("Compiler options error detected"));
-    // }
-
     const fragment = buildTargets(compilerOptions, instance, this.resourcePath);
 
     this.version = instance.version;
