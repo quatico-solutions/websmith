@@ -5,7 +5,6 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-// import { ErrorMessage } from "@quatico/websmith-api";
 import { CompileFragment, Compiler, CompilerOptions } from "@quatico/websmith-compiler";
 import ts from "typescript";
 import { WebpackError } from "webpack";

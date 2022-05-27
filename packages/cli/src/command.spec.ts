@@ -222,8 +222,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().debug).toBe(true);
     });
 
-    // FIXME: This test is failing because the compiler watch support is broken.
-    it.skip("should set watch compiler option w/ --watch cli argument", () => {
+    it("should set watch compiler option w/ --watch cli argument", () => {
         const target = new Compiler(createOptions({}, new NoReporter()));
 
         addCompileCommand(new Command(), target).parse(["--watch"], { from: "user" });
