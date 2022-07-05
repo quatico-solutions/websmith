@@ -25,7 +25,7 @@
             "internalConsoleOptions": "neverOpen",
             "program": "${workspaceFolder}/node_modules/.bin/jest",
             "cwd": "${workspaceFolder}/packages/webpack",
-            "args": ["-config", "packages/webpack/jest.e2e.config.js", "--runInBand"],
+            "args": ["-c", "${workspaceFolder}/packages/webpack/jest.e2e.config.js", "--runInBand", "-o", "--all"],
             "windows": {
                 "program": "${workspaceFolder}/node_modules/jest/bin/jest"
             }

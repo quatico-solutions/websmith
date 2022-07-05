@@ -10,7 +10,8 @@ import uPath from "../src/Upath";
 
 export const createWebpackCompiler = (
     options: Configuration,
-    projectDir: string
+    projectDir: string,
+    callback?: (err?: Error | null, stats?: webpack.Stats) => void
 ): Promise<{ stats?: Stats; errors?: string[]; compiler: Compiler }> => {
     // We don't want displayDone to polute the test run output.
     // eslint-disable-next-line no-console
@@ -50,15 +51,17 @@ export const createWebpackCompiler = (
         ...options,
     };
 
-    const compiler = webpack(options);
+    const compiler = callback ? webpack(options, callback) : webpack(options);
 
-    return new Promise<{ stats?: Stats; errors?: string[]; compiler: Compiler }>((resolve, reject) =>
-        compiler.run((err, stats) => {
-            if (err || (stats && stats.hasErrors())) {
-                const resolvedErrors = err ? [err.message] : stats?.toJson("errors-only").errors?.map(cur => cur.message) ?? [];
-                reject({ errors: resolvedErrors, compiler });
-            }
-            resolve({ stats: stats as unknown as Stats, compiler });
-        })
-    );
+    return callback
+        ? Promise.resolve({ compiler })
+        : new Promise<{ stats?: Stats; errors?: string[]; compiler: Compiler }>((resolve, reject) =>
+              compiler.run((err, stats) => {
+                  if (err || (stats && stats.hasErrors())) {
+                      const resolvedErrors = err ? [err.message] : stats?.toJson("errors-only").errors?.map(cur => cur.message) ?? [];
+                      reject({ errors: resolvedErrors, compiler });
+                  }
+                  resolve({ stats: stats as unknown as Stats, compiler });
+              })
+          );
 };
