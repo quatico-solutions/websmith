@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -14,12 +15,16 @@ import uPath from "./Upath";
 export class TsCompiler extends Compiler {
     public fragment?: CompileFragment;
     public pluginConfig: PluginOptions;
+    public targets: string[];
+    public webpackTarget: string;
 
-    constructor(options: CompilerOptions, pluginOptions?: PluginOptions, protected webpackTarget: string = "*") {
+    constructor(options: CompilerOptions, pluginOptions?: PluginOptions) {
+        pluginOptions = pluginOptions ? { webpackTarget: "*", ...pluginOptions } : { config: "", webpackTarget: "*" };
         super(options, ts.sys);
-        this.pluginConfig = pluginOptions ?? { config: "", webpackTarget };
+        this.pluginConfig = pluginOptions;
         super.createTargetContextsIfNecessary();
-        this.webpackTarget = this.getFragmentTarget(this.webpackTarget);
+        this.targets = options.targets;
+        this.webpackTarget = this.getFragmentTarget(pluginOptions.webpackTarget!);
     }
 
     public getProgram(): ts.Program | undefined {
@@ -39,7 +44,7 @@ export class TsCompiler extends Compiler {
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
                 const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
                 // eslint-disable-next-line no-console
-                this.pluginConfig?.error?.(new WebpackError(message)) ?? console.error(message);
+                this.pluginConfig?.error ? this.pluginConfig?.error(new WebpackError(message)) : console.error(message);
             });
         }
         super

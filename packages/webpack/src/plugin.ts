@@ -6,12 +6,12 @@
  */
 import { createOptions } from "@quatico/websmith-cli";
 import { readFileSync } from "fs";
-import webpack, { Compiler, Stats, WebpackError } from "webpack";
+import { Compilation, Compiler, LoaderContext, NormalModule, Stats, WebpackError } from "webpack";
 import { contribute } from "./CompilationQueue";
-import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
+import { getInstanceFromCache, initializeInstance, setInstanceInCache } from "./instance-cache";
 import { TsCompiler } from "./TsCompiler";
-import uPath from "./Upath";
-import Compilation = webpack.Compilation;
+
+const LOADER_NAME = "websmith-loader";
 
 export interface PluginArguments {
     addons?: string;
@@ -30,62 +30,43 @@ export type PluginOptions = PluginArguments & {
     error?: (err: WebpackError) => void;
 };
 
-export type WebsmithLoaderContext = webpack.LoaderContext<PluginOptions> & { pluginConfig: PluginOptions };
+export const addCompilationHooks = (compiler: Compiler, options: PluginOptions) => {
+    const makeCompilation = (compilation: Compilation, options: PluginOptions): void => {
+        // eslint-disable-next-line @typescript-eslint/ban-types
+        NormalModule.getCompilationHooks(compilation).loader.tap(LOADER_NAME, (ctx: object) => {
+            const context: LoaderContext<PluginOptions> = ctx as LoaderContext<PluginOptions>;
 
-export class WebsmithPlugin {
-    public static loader = uPath.join(__dirname, "loader");
-    public static PLUGIN_NAME = "WebsmithPlugin";
+            if (context) {
+                initializeInstance(context, options);
+                const instance = getInstanceFromCache(compilation.compiler, context) ?? new TsCompiler(createOptions(options), options);
+                instance.pluginConfig = JSON.parse(readFileSync(options.config).toString());
+                setInstanceInCache(compilation.compiler, context, instance);
+            }
+        });
+    };
 
-    constructor(protected config: PluginOptions) {
-        this.config = { ...this.config, webpackTarget: this.config.webpackTarget ?? "*" };
-    }
-
-    public apply(compiler: Compiler): void {
+    if (compiler.hooks) {
         const compilationQueueContributor = contribute();
-        compiler.hooks.beforeRun.tap(WebsmithPlugin.PLUGIN_NAME, () => {
+        compiler.hooks.beforeRun.tap(LOADER_NAME, () => {
             compilationQueueContributor.inProgress();
         });
-        compiler.hooks.watchRun.tap(WebsmithPlugin.PLUGIN_NAME, () => {
+        compiler.hooks.watchRun.tap(LOADER_NAME, () => {
             compilationQueueContributor.inProgress();
         });
-        compiler.hooks.done.tap(WebsmithPlugin.PLUGIN_NAME, () => {
+        compiler.hooks.done.tap(LOADER_NAME, () => {
             compilationQueueContributor.done();
         });
 
-        compiler.hooks.thisCompilation.tap(WebsmithPlugin.PLUGIN_NAME, compilation => this.tapCompilation(compilation));
+        compiler.hooks.compilation.tap(LOADER_NAME, compilation => makeCompilation(compilation, options));
 
-        compiler.hooks.done.tapAsync(WebsmithPlugin.PLUGIN_NAME, (stats, callback) => {
+        compiler.hooks.done.tapAsync(LOADER_NAME, (stats, callback) => {
             callback();
             if (compiler.options.watch) {
                 displayDone(stats);
             }
         });
     }
-
-    private tapCompilation(compilation: Compilation): void {
-        // eslint-disable-next-line @typescript-eslint/ban-types
-        compilation.hooks.normalModuleLoader.tap(WebsmithPlugin.PLUGIN_NAME, (context: object) => {
-            const loaderContext = context as WebsmithLoaderContext;
-            const websmithConfig = readFileSync(this.config.config).toString();
-            const config = {
-                ...JSON.parse(websmithConfig),
-                ...this.config,
-
-                ...(loaderContext._module && { warn: (err: WebpackError) => loaderContext._module?.addWarning(err) }),
-                ...(loaderContext._module && { error: (err: WebpackError) => loaderContext._module?.addError(err) }),
-            };
-
-            loaderContext.pluginConfig = config;
-
-            if (loaderContext) {
-                const instance =
-                    getInstanceFromCache(compilation.compiler, loaderContext) ??
-                    new TsCompiler(createOptions(config), config, this.config.webpackTarget);
-                setInstanceInCache(compilation.compiler, loaderContext, instance);
-            }
-        });
-    }
-}
+};
 
 const displayDone = (stats: Stats) => {
     if (!stats.hasErrors() && stats.startTime && stats.endTime) {

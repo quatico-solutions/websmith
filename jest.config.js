@@ -28,4 +28,5 @@ module.exports = {
     },
     transformIgnorePatterns: ["node_modules"],
     resetMocks: true,
+    watchman: false,
 };

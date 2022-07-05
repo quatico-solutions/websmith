@@ -1,3 +1,4 @@
+const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 const createCommonConfig = require("./webpack.common.config");
 
 module.exports = () => {
@@ -8,5 +9,6 @@ module.exports = () => {
 
     return {
         ...commonBrowserConfig,
+        plugins: [new ForkTsCheckerWebpackPlugin(), ...(commonBrowserConfig.plugins ?? [])],
     };
 };

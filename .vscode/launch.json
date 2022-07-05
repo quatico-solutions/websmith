@@ -9,48 +9,46 @@
             "name": "vscode-jest-tests",
             "request": "launch",
             "program": "${workspaceFolder}/node_modules/.bin/jest",
-            "args": [
-                "--runInBand",
-                "--watchAll=false",
-                "--testNamePattern",
-                "${jest.testNamePattern}",
-                "--runTestsByPath",
-                "${jest.testFile}"
-            ],
+            "args": ["--runInBand", "--watchAll=false", "--testNamePattern", "${jest.testNamePattern}", "--runTestsByPath", "${jest.testFile}"],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
-            "disableOptimisticBPs": true,
             "windows": {
                 "program": "${workspaceFolder}/node_modules/jest/bin/jest"
             }
         },
         {
             "type": "node",
-            "name": "vscode-jest-tests-e2e",
+            "name": "compiler-jest-tests-e2e",
             "request": "launch",
             "console": "integratedTerminal",
             "internalConsoleOptions": "neverOpen",
-            "disableOptimisticBPs": true,
-            "program": "node_modules/.bin/jest",
-            "cwd": "/",
-            "args": [
-                "-config",
-                "jest.e2e.config.js",
-                "--runInBand",
-                "--watchAll=false"
-            ]
+            "program": "${workspaceFolder}/node_modules/.bin/jest",
+            "cwd": "${workspaceFolder}/packages/compiler",
+            "args": ["-config", "packages/compiler/jest.e2e.config.js", "--runInBand"],
+            "windows": {
+                "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+            }
+        },
+        {
+            "type": "node",
+            "name": "webpack-tests-e2e",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "program": "${workspaceFolder}/node_modules/.bin/jest",
+            "cwd": "${workspaceFolder}/packages/webpack",
+            "args": ["-config", "packages/webpack/jest.e2e.config.js", "--runInBand"],
+            "windows": {
+                "program": "${workspaceFolder}/node_modules/jest/bin/jest"
+            }
         },
         {
             "type": "node",
             "name": "Debug Examples",
             "request": "launch",
             "runtimeExecutable": "node",
-            "runtimeArgs": [
-                "--nolazy",
-                "-r",
-                "ts-node/register/transpile-only"
-            ],
+            "runtimeArgs": ["--nolazy", "-r", "ts-node/register/transpile-only"],
             "args": [
                 "src/bin.ts",
                 "--project",
@@ -66,11 +64,7 @@
             "cwd": "${workspaceRoot}/packages/cli",
             "console": "integratedTerminal",
             "internalConsoleOptions": "openOnSessionStart",
-            "disableOptimisticBPs": true,
-            "skipFiles": [
-                "<node_internals>/**",
-                "**/node_modules/**"
-            ]
-        },
+            "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+        }
     ]
 }
