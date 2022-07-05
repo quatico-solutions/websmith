@@ -6,42 +6,36 @@
  */
 import { createOptions } from "@quatico/websmith-cli";
 import { readFileSync } from "fs";
-import { Compilation, Compiler, LoaderContext, NormalModule, Stats, WebpackError } from "webpack";
+import { Compilation, Compiler, LoaderContext, Stats } from "webpack";
 import { contribute } from "./CompilationQueue";
 import { getInstanceFromCache, initializeInstance, setInstanceInCache } from "./instance-cache";
+import { PluginOptions } from "./loader-options";
 import { TsCompiler } from "./TsCompiler";
 
 const LOADER_NAME = "websmith-loader";
 
-export interface PluginArguments {
-    addons?: string;
-    addonsDir?: string;
-    buildDir?: string;
-    config: string;
-    debug?: boolean;
-    project?: string;
-    sourceMap?: boolean;
-    targets?: string;
-    webpackTarget?: string;
-}
-
-export type PluginOptions = PluginArguments & {
-    warn?: (err: WebpackError) => void;
-    error?: (err: WebpackError) => void;
-};
-
 export const addCompilationHooks = (compiler: Compiler, options: PluginOptions) => {
-    const makeCompilation = (compilation: Compilation, options: PluginOptions): void => {
-        // eslint-disable-next-line @typescript-eslint/ban-types
-        NormalModule.getCompilationHooks(compilation).loader.tap(LOADER_NAME, (ctx: object) => {
-            const context: LoaderContext<PluginOptions> = ctx as LoaderContext<PluginOptions>;
+    const makeCompilation = () => {
+        return (compilation: Compilation, options: PluginOptions): void => {
+            // eslint-disable-next-line @typescript-eslint/ban-types
+            // NormalModule.getCompilationHooks(compilation).loader.tap(LOADER_NAME, (ctx: object) => {
+            compilation.hooks.normalModuleLoader.tap(LOADER_NAME, (ctx: object) => {
+                const context: LoaderContext<PluginOptions> = ctx as LoaderContext<PluginOptions>;
 
-            if (context) {
-                initializeInstance(context, options);
-                const instance = getInstanceFromCache(compilation.compiler, context) ?? new TsCompiler(createOptions(options), options);
-                instance.pluginConfig = JSON.parse(readFileSync(options.config).toString());
-                setInstanceInCache(compilation.compiler, context, instance);
-            }
+                if (context) {
+                    initializeInstance(context, options);
+                    const instance = getInstanceFromCache(compilation.compiler, context) ?? new TsCompiler(createOptions(options), options);
+                    instance.pluginConfig = JSON.parse(readFileSync(options.config).toString());
+                    setInstanceInCache(compilation.compiler, context, instance);
+                }
+            });
+        };
+    };
+
+    const cachedMakeCompilation = makeCompilation();
+    const makeCompilationCallback = (compilation: Compilation, loaderOptions: PluginOptions) => {
+        compilation.hooks.processAssets.tap({ name: LOADER_NAME, stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL }, () => {
+            cachedMakeCompilation(compilation, loaderOptions);
         });
     };
 
@@ -57,7 +51,7 @@ export const addCompilationHooks = (compiler: Compiler, options: PluginOptions) 
             compilationQueueContributor.done();
         });
 
-        compiler.hooks.compilation.tap(LOADER_NAME, compilation => makeCompilation(compilation, options));
+        compiler.hooks.compilation.tap(LOADER_NAME, compilation => makeCompilationCallback(compilation, options));
 
         compiler.hooks.done.tapAsync(LOADER_NAME, (stats, callback) => {
             callback();

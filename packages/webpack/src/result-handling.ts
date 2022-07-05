@@ -8,7 +8,7 @@
 import { CompileFragment } from "@quatico/websmith-compiler";
 import type typescript from "typescript";
 import { LoaderContext } from "webpack";
-import { PluginOptions } from "./plugin";
+import { PluginOptions } from "./loader-options";
 
 export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
     return {

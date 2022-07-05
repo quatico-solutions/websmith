@@ -7,8 +7,9 @@
 
 import { createOptions } from "@quatico/websmith-cli";
 import webpack, { LoaderContext } from "webpack";
-import { addCompilationHooks, PluginOptions } from "./plugin";
+import { PluginOptions } from "./loader-options";
 import { TsCompiler } from "./TsCompiler";
+import { addCompilationHooks } from "./webpack-hooks";
 
 // Some loaders (e.g. thread-loader) will limit the access to (loader) context information.
 // To ensure that the WeakMap key still works as it expected, we keep a global "marker" object to use and avoid runtime errors.
@@ -45,7 +46,6 @@ export const initializeInstance = (loader: LoaderContext<PluginOptions>, options
     }
     instance.pluginConfig = options;
     setInstanceInCache(compiler, loader, instance);
-    addCompilationHooks(compiler, options);
     return instance;
 };
 

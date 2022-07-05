@@ -11,7 +11,7 @@ import { AddonRegistry, CompileFragment, CompilerOptions, NoReporter } from "@qu
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import ts from "typescript";
-import { PluginOptions } from "./plugin";
+import { PluginOptions } from "./loader-options";
 import { TsCompiler } from "./TsCompiler";
 
 class TestCompiler extends TsCompiler {

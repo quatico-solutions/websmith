@@ -19,19 +19,6 @@
         },
         {
             "type": "node",
-            "name": "compiler-jest-tests-e2e",
-            "request": "launch",
-            "console": "integratedTerminal",
-            "internalConsoleOptions": "neverOpen",
-            "program": "${workspaceFolder}/node_modules/.bin/jest",
-            "cwd": "${workspaceFolder}/packages/compiler",
-            "args": ["-config", "packages/compiler/jest.e2e.config.js", "--runInBand"],
-            "windows": {
-                "program": "${workspaceFolder}/node_modules/jest/bin/jest"
-            }
-        },
-        {
-            "type": "node",
             "name": "webpack-tests-e2e",
             "request": "launch",
             "console": "integratedTerminal",
