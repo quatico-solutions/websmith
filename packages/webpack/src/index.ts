@@ -7,10 +7,10 @@
 
 import { LoaderContext } from "webpack";
 import { initializeInstance, setInstanceInCache } from "./instance-cache";
-import { getLoaderOptions } from "./loader-options";
-import { PluginOptions } from "./plugin";
+import { getLoaderOptions, PluginOptions } from "./loader-options";
 import { processResultAndFinish } from "./result-handling";
 import { TsCompiler } from "./TsCompiler";
+
 
 function loader(this: LoaderContext<PluginOptions>): void {
     const loaderOptions = getLoaderOptions(this);

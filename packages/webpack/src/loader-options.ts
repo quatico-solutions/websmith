@@ -7,8 +7,24 @@
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { LoaderContext, WebpackError } from "webpack";
-import { PluginOptions } from "./plugin";
 import Upath from "./Upath";
+
+export interface PluginArguments {
+    addons?: string;
+    addonsDir?: string;
+    buildDir?: string;
+    config: string;
+    debug?: boolean;
+    project?: string;
+    sourceMap?: boolean;
+    targets?: string;
+    webpackTarget?: string;
+}
+
+export type PluginOptions = PluginArguments & {
+    warn?: (err: WebpackError) => void;
+    error?: (err: WebpackError) => void;
+};
 
 export const getLoaderOptions = (loader: LoaderContext<PluginOptions>): PluginOptions => {
     const options: PluginOptions = loader.getOptions();
