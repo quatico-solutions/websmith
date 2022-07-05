@@ -17,8 +17,8 @@ import { TsCompiler } from "./TsCompiler";
 class TestCompiler extends TsCompiler {
     private sys: ts.System | undefined;
 
-    constructor(options: CompilerOptions, pluginOptions?: PluginOptions, webpackTarget = "*") {
-        super(options, pluginOptions, webpackTarget);
+    constructor(options: CompilerOptions, pluginOptions?: PluginOptions) {
+        super(options, pluginOptions);
         this.sys = super.getSystem();
     }
 
@@ -63,8 +63,7 @@ describe("TsCompiler", () => {
                 sourceMap: false,
                 watch: false,
             },
-            undefined,
-            "*"
+            undefined
         );
     });
 
@@ -124,8 +123,7 @@ describe("Transpilation", () => {
                 sourceMap: false,
                 watch: false,
             },
-            undefined,
-            "*"
+            undefined
         );
 
         const actual = testObj.build(expected);
@@ -160,8 +158,7 @@ describe("Transpilation", () => {
                 sourceMap: false,
                 watch: false,
             },
-            undefined,
-            "fragment"
+            { config: resolve("__data__", "websmith.config.json"), webpackTarget: "fragment" }
         );
 
         const actual = testObj.build(expected);

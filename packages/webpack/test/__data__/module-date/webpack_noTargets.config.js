@@ -1,9 +1,9 @@
+const { join } = require("path");
 const createCommonConfig = require("./webpack.common.config");
 
 module.exports = () => {
     const commonBrowserConfig = createCommonConfig({
-        targets: "noWrite",
-        webpackTarget: "noWrite",
+        config: join(__dirname, "websmith_notargets.config.json"),
     });
 
     return {

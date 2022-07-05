@@ -7,14 +7,16 @@
 import { AddonRegistry, NoReporter } from "@quatico/websmith-compiler";
 import { randomUUID } from "crypto";
 import { rmSync } from "fs";
+import { join } from "path";
 import ts from "typescript";
 import webpack, { Compilation, Compiler, LoaderContext } from "webpack";
-import { getCacheName, getInstanceFromCache, setInstanceInCache } from "./instance-cache";
+import { getCacheName, getInstanceFromCache, initializeInstance, setInstanceInCache } from "./instance-cache";
 import { TsCompiler } from "./TsCompiler";
 
 let compiler: Compiler;
 let context: LoaderContext<any>;
 let tsCompiler: TsCompiler;
+const projectDir = join(__dirname, "..", "test", "__data__", "module-date");
 
 beforeEach(() => {
     compiler = webpack({});
@@ -39,6 +41,16 @@ afterEach(() => {
     rmSync("./.build", { recursive: true, force: true });
 });
 
+describe("initializeInstance", () => {
+    it("should create a TsCompiler instance w/o instance in cache", () => {
+        const target = { _compiler: {} as Compiler } as LoaderContext<any>;
+
+        const actual = initializeInstance(target, { config: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json") });
+
+        expect(actual).toEqual(getInstanceFromCache(target._compiler!, target));
+    });
+});
+
 describe("getInstanceFromCache", () => {
     it("should return the previously cached instance", () => {
         const expected = tsCompiler;
@@ -57,12 +69,37 @@ describe("getInstanceFromCache", () => {
 });
 
 describe("setInstanceInCache", () => {
-    it("should cache the instance", () => {
+    it("should cache the instance w/ cache key", () => {
         const expected = tsCompiler;
 
         setInstanceInCache(compiler, context, expected);
 
         expect(getInstanceFromCache(compiler, context)).toBe(expected);
+    });
+
+    it("should cache the instance with a global identifier w/o cache key", () => {
+        const expected = tsCompiler;
+
+        setInstanceInCache(undefined, context, expected);
+
+        expect(getInstanceFromCache(undefined, context)).toBe(expected);
+    });
+
+    it("should cache only the last instance w/o cache key", () => {
+        const expected = tsCompiler;
+
+        setInstanceInCache(undefined, context, expected);
+
+        const firstInstance = getInstanceFromCache(undefined, context);
+        expect(firstInstance).toBe(expected);
+
+        const target = {} as TsCompiler;
+
+        setInstanceInCache(undefined, context, target);
+
+        const secondInstance = getInstanceFromCache(undefined, context);
+        expect(secondInstance).not.toBe(firstInstance);
+        expect(secondInstance).toBe(target);
     });
 });
 

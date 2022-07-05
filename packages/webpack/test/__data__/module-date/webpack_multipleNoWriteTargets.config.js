@@ -2,7 +2,7 @@ const createCommonConfig = require("./webpack.common.config");
 
 module.exports = () => {
     const commonBrowserConfig = createCommonConfig({
-        targets: "noWrite",
+        targets: "noWrite,noWrite2",
         webpackTarget: "noWrite",
     });
 

@@ -17,7 +17,6 @@ module.exports = {
     preset: "ts-jest",
     collectCoverageFrom: ["./src/**/*.{ts,tsx}"],
     coverageDirectory: "coverage",
-    coveragePathIgnorePatterns: ["index.ts", "test/*"],
     globals: {
         "ts-jest": {
             tsconfig: "./tsconfig.test.json",

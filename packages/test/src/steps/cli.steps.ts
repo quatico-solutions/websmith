@@ -129,7 +129,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
             compiler
                 .getOptions()
                 .addons.getAddons()
-                .map(it => it.name)
+                .map(cur => cur.name)
         ).toEqual(addons);
     });
 
@@ -141,7 +141,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
                 compiler
                     .getOptions()
                     .addons.getAddons()
-                    .map(it => it.name)
+                    .map(cur => cur.name)
             ).not.toContain(addon);
         });
     });
@@ -225,8 +225,8 @@ const stringToList = (stringValue: string): string[] => {
     if (stringValue.indexOf(",") > -1) {
         result = stringValue
             .split(",")
-            .map(it => it.trim())
-            .filter(it => it.length > 0);
+            .map(cur => cur.trim())
+            .filter(cur => cur.length > 0);
     }
     return result;
 };

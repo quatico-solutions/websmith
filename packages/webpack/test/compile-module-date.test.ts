@@ -16,7 +16,7 @@ describe("project bundling", () => {
 
     beforeAll(() => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        config = require("./__data__/module-date/webpack.config.ts") as Configuration;
+        config = require("./__data__/module-date/webpack.config.js")() as Configuration;
     });
 
     afterEach(() => {

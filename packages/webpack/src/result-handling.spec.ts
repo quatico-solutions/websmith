@@ -5,27 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { createOptions } from "@quatico/websmith-cli";
-import { CompilerOptions } from "@quatico/websmith-compiler";
-import { join, resolve } from "path";
-import { Compiler, LoaderContext } from "webpack";
-import { getInstanceFromCache } from "./instance-cache";
-import { initializeInstance, makeSourceMap, processResultAndFinish } from "./loader";
-
-const projectDir = resolve(__dirname, "..", "test", "__data__", "module-date");
-
-describe("initializeInstance", () => {
-    it("should create a TsCompiler instance w/o instance in cache", () => {
-        const target = { _compiler: {} as Compiler } as LoaderContext<any>;
-
-        const actual = initializeInstance(
-            target,
-            createOptions({ config: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json") })
-        );
-
-        expect(actual).toEqual(getInstanceFromCache(target._compiler!, target));
-    });
-});
+import { LoaderContext } from "webpack";
+import { makeSourceMap, processResultAndFinish } from "./result-handling";
 
 describe("makeSourceMap", () => {
     it("should only provide output w/o sourceMap", () => {
@@ -47,7 +28,7 @@ describe("processResultAndFinish", () => {
     it("should report an error w/o outputText", () => {
         const testObj = { callback: jest.fn(), resourcePath: "/expected/test.ts" } as unknown as LoaderContext<any>;
 
-        processResultAndFinish(testObj, { version: 0, files: [] }, { targets: ["expected"] } as CompilerOptions);
+        processResultAndFinish(testObj, { version: 0, files: [] }, ["expected"]);
 
         expect(testObj.callback).toHaveBeenCalledWith(new Error('No processed output found for "/expected/test.ts" with targets "expected"'));
     });
@@ -65,7 +46,7 @@ describe("processResultAndFinish", () => {
                     { name: "/expected/test.js.map", text: JSON.stringify(expected), writeByteOrderMark: false },
                 ],
             },
-            { targets: ["expected"] } as CompilerOptions
+            ["expected"]
         );
 
         expect(testObj.callback).toHaveBeenCalledWith(undefined, "expected-js-output", expected);

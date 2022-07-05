@@ -5,33 +5,27 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { existsSync } from "fs";
-import { resolve } from "path";
 import webpack, { Compiler, Configuration, Stats } from "webpack";
-import { WebsmithPlugin } from "../src";
+import uPath from "../src/Upath";
 
 export const createWebpackCompiler = (
     options: Configuration,
     projectDir: string
 ): Promise<{ stats?: Stats; errors?: string[]; compiler: Compiler }> => {
+    // We don't want displayDone to polute the test run output.
+    // eslint-disable-next-line no-console
+    console.info = () => undefined;
     options = {
         ...{
             entry: {
-                main: existsSync(resolve(projectDir, "src", "index.ts"))
-                    ? resolve(projectDir, "src", "index.ts")
-                    : resolve(projectDir, "src", "index.tsx"),
-                functions: resolve(projectDir, "src", "functions", "getDate.ts"),
+                main: existsSync(uPath.resolve(projectDir, "src", "index.ts"))
+                    ? uPath.resolve(projectDir, "src", "index.ts")
+                    : uPath.resolve(projectDir, "src", "index.tsx"),
+                functions: uPath.resolve(projectDir, "src", "functions", "getDate.ts"),
             },
             output: {
-                path: resolve(projectDir, ".build", "lib"),
+                path: uPath.resolve(projectDir, ".build", "lib"),
             },
-            plugins: [
-                new WebsmithPlugin({
-                    addonsDir: resolve(__dirname, "..", "addons", "lib"),
-                    config: resolve(projectDir, "websmith.config.json"),
-                    project: resolve(projectDir, "tsconfig.json"),
-                    webpackTarget: "*",
-                }),
-            ],
             mode: "development",
             resolve: {
                 extensions: [".js", ".ts", ".tsx"],
@@ -40,9 +34,15 @@ export const createWebpackCompiler = (
                 rules: [
                     {
                         test: /\.tsx?$/,
-                        include: [resolve(projectDir, "src")],
-                        exclude: [/\.spec\.tsx?$/, /node_modules/],
-                        loader: `${WebsmithPlugin.loader}.ts`,
+                        include: [uPath.resolve(projectDir, "src")],
+                        exclude: [/\.spec\.tsx?$/],
+                        loader: "@quatico/websmith-webpack",
+                        options: {
+                            addonsDir: uPath.resolve(__dirname, "..", "addons", "lib"),
+                            config: uPath.resolve(projectDir, "websmith.config.json"),
+                            project: uPath.resolve(projectDir, "tsconfig.json"),
+                            webpackTarget: "*",
+                        },
                     },
                 ],
             },
