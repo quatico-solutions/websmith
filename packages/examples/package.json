@@ -1,6 +1,6 @@
 {
     "name": "@quatico/websmith-examples",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "A library of example addons for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",

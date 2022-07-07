@@ -1,6 +1,6 @@
 {
     "name": "@quatico/websmith-test",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Am end-to-end test package for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
