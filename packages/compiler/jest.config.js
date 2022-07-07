@@ -20,6 +20,7 @@ module.exports = {
     },
     setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
     testRegex: "src/.*(test|spec)\\.(js|ts)$",
+    testTimeout: 15000,
     testURL: "http://localhost/",
     transform: {
         "^.+\\.(js|ts)$": "ts-jest",
