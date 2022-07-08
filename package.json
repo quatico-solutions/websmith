@@ -26,12 +26,7 @@
     ],
     "workspaces": {
         "packages": [
-            "packages/api",
-            "packages/compiler",
-            "packages/cli",
-            "packages/webpack",
-            "packages/test",
-            "packages/examples"
+            "packages/*"
         ]
     },
     "scripts": {

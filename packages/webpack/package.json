@@ -51,8 +51,8 @@
         "webpack-cli": "^4.9.1"
     },
     "dependencies": {
-        "@quatico/websmith-cli": "^0.1.0",
-        "@quatico/websmith-compiler": "^0.1.0"
+        "@quatico/websmith-cli": "^0.2.1",
+        "@quatico/websmith-compiler": "^0.2.1"
     },
     "peerDependencies": {
         "webpack": "^5.73.0"

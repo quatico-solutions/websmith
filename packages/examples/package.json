@@ -24,8 +24,8 @@
         "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\""
     },
     "devDependencies": {
-        "@quatico/websmith-api": "^0.1.0",
-        "@quatico/websmith-compiler": "^0.1.0",
+        "@quatico/websmith-api": "^0.2.1",
+        "@quatico/websmith-compiler": "^0.2.1",
         "@types/jest": "^27.4.1",
         "@types/node": "16",
         "@types/react": "17.0.8",
