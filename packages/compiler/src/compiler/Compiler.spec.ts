@@ -8,10 +8,12 @@
 import { TargetConfig } from "@quatico/websmith-api/src";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
+import type { Program, LanguageService } from "typescript";
 import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createBrowserSystem, createSystem } from "../environment";
 import { AddonRegistry } from "./addons";
+import { CompilationContext } from "./compilation";
 import { CompileFragment, Compiler } from "./Compiler";
 import { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig } from "./config";
@@ -78,15 +80,32 @@ class CompilerTestClass extends Compiler {
     public createTargetContextsIfNecessary(): this {
         return super.createTargetContextsIfNecessary();
     }
+
+    public getProgram(): Program | undefined {
+        return this.program;
+    }
+
+    public getLanguageService(): LanguageService {
+        return this.langService;
+    }
+
+    public getOptions(): CompilerOptions {
+        return this.options;
+    }
+
+    public createCompilationContext(baseOptions: CompilerOptions, target: string): CompilationContext {
+        return super.createCompilationContext(baseOptions, target);
+    }
 }
 
 class CompilerMockClass extends CompilerTestClass {}
 
 let testObj: CompilerTestClass;
+let config: CompilerOptions;
 const reporter = new ReporterMock(testSystem);
 
 beforeEach(() => {
-    testObj = new CompilerTestClass({
+    config = {
         addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
         buildDir: "./src",
         project: {},
@@ -96,7 +115,8 @@ beforeEach(() => {
         debug: false,
         sourceMap: false,
         watch: false,
-    });
+    };
+    testObj = new CompilerTestClass(config);
 });
 
 describe("getSystem", () => {
@@ -114,6 +134,33 @@ describe("setOptions", () => {
         } as any);
 
         expect(testObj.getOptions().project).toEqual({ react: 1 });
+    });
+});
+
+describe("createCompilationContext", () => {
+    it("initializes the CompilationContext meeting to AddonContext API requirements", () => {
+        const expected = { field: "expected", path: "expected.json" };
+
+        const actual = testObj.createCompilationContext(
+            {
+                ...config,
+                config: {
+                    configFilePath: "expected",
+                    targets: {
+                        "*": {
+                            config: expected,
+                        },
+                    },
+                },
+            },
+            "*"
+        );
+
+        expect(actual.getProgram()).toBeDefined();
+        expect(actual.getSystem()).toBeDefined();
+        expect(actual.getConfig()).toBeDefined();
+        expect(actual.getReporter()).toStrictEqual(reporter);
+        expect(actual.getTargetConfig()).toStrictEqual(expected);
     });
 });
 
@@ -189,90 +236,6 @@ describe("emitSourceFile", () => {
         `);
     });
 });
-
-/// TODO: Migrate emit() tests to use compile() or compileSourceFile()?
-// describe("emit", () => {
-//     it("calls emit on program", () => {
-//         const target = jest.fn();
-//         const mockProgram = { emit: target } as any;
-
-//         testObj.emit(mockProgram);
-
-//         expect(target).toHaveBeenCalled();
-//     });
-
-//     it("calls emit on every generator", () => {
-//         const mockProgram = {
-//             emit: jest.fn().mockReturnValue({}),
-//         } as any;
-//         const target = jest.fn().mockReturnValue({});
-//         const generator = GeneratorMock({ emit: target });
-//         testObj.getContext()!.registerGenerator("docs", generator);
-
-//         testObj.emit(mockProgram);
-
-//         expect(target).toHaveBeenCalled();
-//     });
-
-//     it("yields message from performed generators", () => {
-//         const mockProgram = {
-//             emit: jest.fn().mockReturnValue({}),
-//         } as any;
-//         const target = jest.fn().mockReturnValue({ diagnostics: [{ messageText: "Passed" }] });
-//         const generator = GeneratorMock({ emit: target });
-//         testObj.getContext()!.registerGenerator("docs", generator);
-
-//         const actual = testObj.emit(mockProgram);
-
-//         expect(actual.diagnostics.reduce((res, cur) => (res += cur.messageText), "")).toBe("Passed");
-//         expect(actual.emitSkipped).toBe(false);
-//         expect(actual.emittedFiles).toEqual([]);
-//     });
-
-//     it("yields error message from generators that throws error", () => {
-//         const mockProgram = {
-//             emit: jest.fn().mockReturnValue({}),
-//         } as any;
-//         const target = jest.fn().mockImplementation(() => {
-//             throw new Error("Expected");
-//         });
-//         const generator = GeneratorMock({ emit: target });
-//         testObj.getContext()!.registerGenerator("docs", generator);
-
-//         const actual = testObj.emit(mockProgram);
-
-//         expect(actual.diagnostics.reduce((res, cur) => (res += cur.messageText), "")).toBe("Expected");
-//         expect(actual.emitSkipped).toBe(true);
-//         expect(actual.emittedFiles).toEqual([]);
-//     });
-
-//     it("yields error message from generators that throws error with one failing generators", () => {
-//         const mockProgram = {
-//             emit: jest.fn().mockReturnValue({}),
-//         } as any;
-//         const target = jest.fn().mockImplementation(() => {
-//             throw new Error("Expected");
-//         });
-//         const generator = GeneratorMock({ emit: target });
-//         testObj
-//             .getContext()!
-//             .registerGenerator("docs", generator)
-//             .registerGenerator(
-//                 "docs",
-//                 (() => {
-//                     const result: any = jest.fn();
-//                     result.emit = jest.fn().mockReturnValue({});
-//                     return result;
-//                 })()
-//             );
-
-//         const actual = testObj.emit(mockProgram);
-
-//         expect(actual.diagnostics.reduce((res, cur) => (res += cur.messageText), "")).toBe("Expected");
-//         expect(actual.emitSkipped).toBe(true);
-//         expect(actual.emittedFiles).toEqual([]);
-//     });
-// });
 
 describe("report", () => {
     let reporter: ReporterMock;
