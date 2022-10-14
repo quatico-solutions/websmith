@@ -75,6 +75,7 @@ export class Compiler {
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
         this.compilationHost = new CompilationHost(createSharedHost(this.system) as ts.LanguageServiceHost);
         this.langService = ts.createLanguageService(this.compilationHost, ts.createDocumentRegistry());
+        this.program = this.langService.getProgram();
 
         if (!options.debug) {
             // eslint-disable-next-line no-console
@@ -161,28 +162,31 @@ export class Compiler {
                 return;
             }
 
-            const { buildDir, config, project, tsconfig } = this.options;
-            const { options, config: targetConfig } = getTargetConfig(target, config);
-
-            const ctx = new CompilationContext({
-                buildDir,
-                project: { ...project, ...options },
-                projectDir: dirname(config?.configFilePath ?? tsconfig.raw?.configFilePath ?? this.system.getCurrentDirectory()),
-                system: this.system,
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                program: this.program!,
-                tsconfig: { ...tsconfig, options: { ...project, ...options } },
-                rootFiles: this.getRootFiles(),
-                reporter: this.reporter,
-                config: targetConfig,
-                target,
-            });
+            const ctx = this.createCompilationContext(this.options, target);
             this.options.addons.getAddons(target).forEach(addon => {
                 addon.activate(ctx);
             });
             this.contextMap.set(target, ctx);
         });
         return this;
+    }
+
+    protected createCompilationContext(compileOptions: CompilerOptions, target: string): CompilationContext {
+        const { buildDir, config, project, tsconfig } = compileOptions;
+        const { options, config: targetConfig } = getTargetConfig(target, config);
+        return new CompilationContext({
+            buildDir,
+            project: { ...project, ...options },
+            projectDir: dirname(config?.configFilePath ?? tsconfig.raw?.configFilePath ?? this.system.getCurrentDirectory()),
+            system: this.system,
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            program: this.program!,
+            tsconfig: { ...tsconfig, options: { ...project, ...options } },
+            rootFiles: this.getRootFiles(),
+            reporter: this.reporter,
+            config: targetConfig,
+            target,
+        });
     }
 
     protected emitSourceFile(fileName: string, target: string, writeFile = true): CompileFragment {
