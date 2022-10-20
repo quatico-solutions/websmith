@@ -6,6 +6,14 @@
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/quatico-solutions/websmith.git"
+    },
+    "bugs": {
+        "url": "https://github.com/quatico-solutions/websmith/issues"
+    },
+    "homepage": "https://github.com/quatico-solutions/websmith#readme",
     "files": [
         "LICENSE",
         "README.md",
