@@ -22,24 +22,30 @@ export class FileCache {
 
     public getCachedFile(fileName: string, target = ""): CacheFile {
         const cachedName = getCachedName(fileName, target);
-        return this.data[cachedName] ?? <CacheFile>{ version: 0, content: "", files: [] };
+        return this.data[cachedName] ?? this.createEmptyCacheFile();
     }
 
     public hasChanged(fileName: string, target = ""): boolean {
-        const { content } = this.getCachedFile(fileName, target);
-        const update = this.system.readFile(fileName) ?? "";
-        return !this.system.fileExists(fileName) || content !== update;
+        const { modifiedTime, content, files } = this.getCachedFile(fileName, target);
+        return (
+            modifiedTime === undefined ||
+            content === undefined ||
+            files === undefined ||
+            !this.system.getModifiedTime ||
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.system.getModifiedTime(fileName)! > modifiedTime
+        );
     }
 
     public updateSource(fileName: string, content: string, target = ""): boolean {
         let result = false;
         const file = this.getCachedFile(fileName);
-        if (!file.snapshot || content !== file.content) {
+        if (!file.snapshot || this.hasChanged(fileName, target)) {
             const newFile: CacheFile = {
                 version: file.version + 1,
-                files: [],
                 content,
                 snapshot: ts.ScriptSnapshot.fromString(content),
+                modifiedTime: new Date(),
             };
             this.data[getCachedName(fileName, target)] = newFile;
             result = true;
@@ -49,7 +55,7 @@ export class FileCache {
     }
 
     public createCacheEntry(fileName: string, target = "") {
-        this.data[getCachedName(fileName, target)] = { version: 0, content: "", files: [] };
+        this.data[getCachedName(fileName, target)] = this.createEmptyCacheFile();
     }
 
     public updateOutput(fileName: string, outputFiles: ts.OutputFile[], target = "") {
@@ -66,5 +72,9 @@ export class FileCache {
 
     public getSnapshot(fileName: string, target = ""): ts.IScriptSnapshot | undefined {
         return this.getCachedFile(fileName, target)?.snapshot;
+    }
+
+    private createEmptyCacheFile(): CacheFile {
+        return { version: 0, files: [] };
     }
 }
