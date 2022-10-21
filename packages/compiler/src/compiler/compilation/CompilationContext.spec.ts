@@ -209,7 +209,7 @@ describe("removeOutputFile", () => {
 
         expect(testObj.getRootFiles()).not.toContain("/unexpected/test.ts");
         expect(testObj.getFileContent("/unexpected/test.ts")).toBe("");
-        expect(testObj.getCache().getCachedFile("/unexpected/test.ts")).toEqual({ content: "", files: [], version: 0 });
+        expect(testObj.getCache().getCachedFile("/unexpected/test.ts")).toEqual({ files: [], version: 0 });
         expect(testSystem.readFile("/expected/one.ts")).toBe('export const expected = () => "expected";');
     });
 });
@@ -220,12 +220,11 @@ describe("addVirtualFile", () => {
 
         expect(testObj.getRootFiles()).toContain("/unexpected/test.ts");
         expect(testObj.getFileContent("/unexpected/test.ts")).toBe('export const expected = () => "expected";');
-        expect(testObj.getCache().getCachedFile("/unexpected/test.ts")).toEqual({
+        expect(testObj.getCache().getCachedFile("/unexpected/test.ts")).toEqual(expect.objectContaining({
             content: 'export const expected = () => "expected";',
-            files: [],
             version: 1,
             snapshot: ts.ScriptSnapshot.fromString('export const expected = () => "expected";'),
-        });
+        }));
         expect(testSystem.fileExists("/unexpected/test.ts")).toBe(false);
     });
 });
