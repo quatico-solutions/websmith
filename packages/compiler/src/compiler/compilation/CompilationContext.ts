@@ -109,7 +109,7 @@ export class CompilationContext implements AddonContext {
     }
 
     public getFileContent(filePath: string): string {
-        return this.cache.getCachedFile(filePath).content;
+        return this.cache.getCachedFile(filePath).content ?? "";
     }
 
     public getCache(): FileCache {

@@ -196,7 +196,7 @@ export class Compiler {
 
         if (ctx && cache) {
             if (!cache.hasChanged(filePath)) {
-                return cache.getCachedFile(filePath);
+                return { files: [], content: "", ...cache.getCachedFile(filePath) };
             }
             let content = this.system.readFile(fileName) ?? ctx.getCache().getCachedFile(fileName)?.content ?? "";
 
