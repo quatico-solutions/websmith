@@ -10,7 +10,7 @@ assignees: ''
 # Bug Report
 
 <!--
-  Please fill in each section completely. Thank you!
+  Please fill in a reproducible description, including preconditions.
 -->
 
 ### 🔎 Search Terms
