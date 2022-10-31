@@ -10,7 +10,7 @@ assignees: ''
 # Suggestion
 
 <!--
-  Please fill in each section completely. Thank you!
+  Your reason or motivation to create this proposal.
 -->
 
 ## ✅ Viability Checklist
