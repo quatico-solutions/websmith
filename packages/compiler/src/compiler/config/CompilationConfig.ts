@@ -11,4 +11,5 @@ export type CompilationConfig = {
     addonsDir?: string;
     addons?: string[];
     targets?: Record<string, TargetConfig>;
+    transpileOnly?: boolean;
 };

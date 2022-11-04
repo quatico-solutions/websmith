@@ -97,10 +97,7 @@ export class Compiler {
             for (const fileName of this.getRootFiles()) {
                 const fragment = this.emitSourceFile(fileName, target, writeFile);
                 if (fragment?.files.length > 0) {
-                    result.emittedFiles = concat(
-                        result.emittedFiles,
-                        fragment.files.map(cur => cur.name)
-                    );
+                    result.emittedFiles = (result.emittedFiles ?? []).concat(fragment.files.map(cur => cur.name));
                 } else {
                     // FIXME: Report error for source files that cannot be emitted
                     fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
@@ -226,9 +223,32 @@ export class Compiler {
             ctx.getGenerators().forEach(cur => cur(fileName, content));
             ctx.getProcessors().forEach(cur => (content = cur(fileName, content)));
             cache.updateSource(filePath, content);
+            let output: (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined;
 
-            this.compilationHost.setLanguageHost(ctx.getLanguageHost());
-            const output: ts.EmitOutput & { diagnostics?: ts.Diagnostic[] } = this.langService.getEmitOutput(fileName);
+            if (this.options.transpileOnly) {
+                if (fileName.endsWith(".d.ts")) {
+                    output = undefined;
+                } else {
+                    const isSourceFile = (name: string) => name.match(/g/g);
+                    const isSourceMap = (name: string) => name.match(/g/g);
+                    const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
+                        compilerOptions: ctx.getConfig().options,
+                        fileName,
+                        transformers: ctx.getTransformers(),
+                    });
+                    const fileNames = ts.getOutputFileNames(this.options.tsconfig, fileName, !this.system.useCaseSensitiveFileNames);
+                    output = {
+                        outputFiles: [{ name: fileNames.find(isSourceFile)!, text: outputText, writeByteOrderMark: false }].concat(
+                            sourceMapText ? [{ name: fileNames.find(isSourceMap)!, text: sourceMapText, writeByteOrderMark: false }] : []
+                        ),
+                        diagnostics,
+                        emitSkipped: diagnostics !== undefined && diagnostics.length > 0,
+                    };
+                }
+            } else {
+                this.compilationHost.setLanguageHost(ctx.getLanguageHost());
+                output = this.langService.getEmitOutput(fileName);
+            }
 
             if (output && !output.emitSkipped) {
                 cache.updateOutput(fileName, output.outputFiles);
@@ -240,9 +260,10 @@ export class Compiler {
                 return {
                     version: cache.getVersion(fileName),
                     files: output.outputFiles,
+                    diagnostics: output.diagnostics,
                 };
             } else {
-                return { version: cache.getVersion(fileName), files: [], diagnostics: output.diagnostics };
+                return { version: cache.getVersion(fileName), files: [], diagnostics: output?.diagnostics };
             }
         }
 

@@ -262,17 +262,6 @@ describe("addInputFile", () => {
 describe("addAssetDependency", () => {
     it("registers dependency with dependency function w/o dependency callback function provided", () => {
         const target = jest.fn();
-        testObj = new CompilationContextTestClass({
-            buildDir: "",
-            project: {},
-            projectDir: testSystem.getCurrentDirectory(),
-            reporter: new ReporterMock(testSystem),
-            rootFiles: [],
-            system: testSystem,
-            program: testProgram,
-            tsconfig: { options: {}, fileNames: [], errors: [] },
-            target: "test",
-        });
         testObj.registerDependency = target;
 
         testObj.addAssetDependency("test.scss", "test.ts");

@@ -7,7 +7,7 @@
 /* eslint-disable jest/no-mocks-import */
 import { TargetConfig } from "@quatico/websmith-api/src";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
+import { basename, dirname, join } from "path";
 import type { LanguageService, Program } from "typescript";
 import * as ts from "typescript";
 import { ReporterMock } from "../../test";
@@ -134,10 +134,10 @@ beforeEach(() => {
         tsconfig: { options: {}, fileNames: [], errors: [] },
         debug: false,
         sourceMap: false,
+        transpileOnly: false,
         watch: false,
     };
     testObj = new CompilerTestClass(config);
-    // exportFile(testSystem, join("addons", "fake-scss", "addon.ts"), join(__dirname, "__test__", "addons", "fake-scss", "addon.ts"));
 });
 
 describe("getSystem", () => {
@@ -196,6 +196,7 @@ describe("compile", () => {
             tsconfig: { options: {}, fileNames: [], errors: [] },
             debug: false,
             sourceMap: false,
+            transpileOnly: false,
             watch: false,
         });
         CompilerMockClass.prototype.report = jest.fn();
@@ -241,6 +242,7 @@ describe("emitSourceFile", () => {
             tsconfig: { options: {}, fileNames: ["src/arrow.ts"], errors: [] },
             debug: false,
             sourceMap: false,
+            transpileOnly: false,
             watch: false,
         }).createTargetContextsIfNecessary();
 
@@ -255,6 +257,90 @@ describe("emitSourceFile", () => {
             "export declare const computeDate: () => Promise<Date>;
             "
         `);
+    });
+
+    it("yields modified client function, no declaration, no sourceMap w/ transpileOnly, declarations: false, sourceMap: false", () => {
+        const project = { declaration: false, sourceMap: false, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest };
+        testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            project,
+            reporter,
+            targets: [],
+            tsconfig: { options: project, fileNames: ["src/arrow.ts"], errors: [] },
+            debug: false,
+            sourceMap: false,
+            transpileOnly: false,
+            watch: false,
+        }).createTargetContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("src/arrow.ts", "*", false);
+
+        expect(actual.files.map(cur => complexFileExtension(cur.name))).toMatchObject([".js"]);
+        [".d.ts", ".d.ts.map", ".map"].map(ext => expect(actual.files.map(cur => complexFileExtension(cur.name))).not.toContain(ext));
+    });
+
+    it("yields modified client function, declaration, no declaration map, no sourceMap w/ transpileOnly, declaration: true, declarationMap: false, sourceMap: false", () => {
+        const project = { declaration: true, declarationMap: false, sourceMap: false, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest };
+        testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            project,
+            reporter,
+            targets: [],
+            tsconfig: { options: project, fileNames: ["src/arrow.ts"], errors: [] },
+            debug: false,
+            sourceMap: true,
+            transpileOnly: false,
+            watch: false,
+        }).createTargetContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("src/arrow.ts", "*", false);
+
+        expect(actual.files.map(cur => complexFileExtension(cur.name))).toMatchObject([".js", ".d.ts"]);
+        [".d.ts.map", ".map"].map(ext => expect(actual.files.map(cur => complexFileExtension(cur.name))).not.toContain(ext));
+    });
+
+    it("yields modified client function, declaration, declaration map, no sourceMap w/ transpileOnly, declaration: true, declarationMap: true, sourceMap: false", () => {
+        const project = { declaration: true, declarationMap: true, sourceMap: false, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest };
+        testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            project,
+            reporter,
+            targets: [],
+            tsconfig: { options: project, fileNames: ["src/arrow.ts"], errors: [] },
+            debug: false,
+            sourceMap: true,
+            transpileOnly: false,
+            watch: false,
+        }).createTargetContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("src/arrow.ts", "*", false);
+
+        expect(actual.files.map(cur => complexFileExtension(cur.name))).toMatchObject([".js", ".d.ts.map", ".d.ts"]);
+        [".map"].map(ext => expect(actual.files.map(cur => complexFileExtension(cur.name))).not.toContain(ext));
+    });
+
+    it("yields modified client function, no declaration, sourceMap w/ transpileOnly, declaration: false, declarationMap: false, sourceMap: true", () => {
+        const project = { declaration: false, declarationMap: false, sourceMap: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest };
+        testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            project,
+            reporter,
+            targets: [],
+            tsconfig: { options: project, fileNames: ["src/arrow.ts"], errors: [] },
+            debug: false,
+            sourceMap: true,
+            transpileOnly: false,
+            watch: false,
+        }).createTargetContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("src/arrow.ts", "*", false);
+
+        expect(actual.files.map(cur => complexFileExtension(cur.name))).toMatchObject([".js.map", ".js"]);
+        [".d.ts", ".d.ts.map"].map(ext => expect(actual.files.map(cur => complexFileExtension(cur.name))).not.toContain(ext));
     });
 });
 
@@ -272,6 +358,7 @@ describe("report", () => {
             tsconfig: { options: {}, fileNames: [], errors: [] },
             debug: false,
             sourceMap: false,
+            transpileOnly: false,
             watch: false,
         });
     });
@@ -363,6 +450,7 @@ describe("watch", () => {
                 tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
                 debug: false,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: true,
             },
             ts.sys
@@ -398,6 +486,7 @@ describe("watch", () => {
                 tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
                 debug: false,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: true,
             },
             ts.sys
@@ -439,6 +528,7 @@ describe("watch", () => {
                 tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
                 debug: false,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: true,
             },
             ts.sys
@@ -493,6 +583,7 @@ describe("watch", () => {
                 },
                 debug: false,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: true,
             },
             ts.sys
@@ -546,6 +637,7 @@ describe("watch", () => {
                 },
                 debug: false,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: true,
             },
             ts.sys
@@ -570,4 +662,7 @@ const exportFile = (testSystem: ts.System, fileName: string, exportedFileName: s
 
     mkdirSync(dirname(exportedFileName), { recursive: true });
     writeFileSync(exportedFileName, testSystem.readFile(fileName)!);
+};
+const complexFileExtension = (name: string): string => {
+    return basename(name).replace(basename(name).split(".")[0], "");
 };
