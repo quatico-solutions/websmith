@@ -4,10 +4,10 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import merge from "lodash/merge";
-import path from "path";
-import ts from "typescript";
 import { Reporter } from "@quatico/websmith-api";
+import merge from "lodash/merge";
+import { join } from "path";
+import ts from "typescript";
 import { DefaultReporter } from "../compiler";
 import { createVersionedFile, VersionedFile } from "../environment";
 
@@ -26,10 +26,11 @@ export const createCompileHost = (options: ts.CompilerOptions, system: ts.System
     const knownFiles: { [name: string]: VersionedFile } = {};
     return {
         ...system,
-        getCanonicalFileName: fileName => {
+        getCanonicalFileName: (fileName: string): string => {
             return system.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase();
         },
-        getDefaultLibFileName: (compOptions: ts.CompilerOptions) => path.join("/", getDefaultLibFileName0(compOptions)),
+        // getDefaultLibFileName: (options: ts.CompilerOptions) => join(dirname(ts.getDefaultLibFilePath(options)), ts.getDefaultLibFileName(options)),
+        getDefaultLibFileName: (compOptions: ts.CompilerOptions) => join("/", getDefaultLibFileName0(compOptions)),
         getDirectories: (dirPath: string) => system.getDirectories(dirPath),
         getNewLine: () => system.newLine,
         getSourceFile: fileName => {
@@ -106,7 +107,7 @@ export const injectTransformers = (
  * using `createSemanticDiagnosticsBuilderProgram` may be more desirable.
  */
 const createProgram = ts.createSemanticDiagnosticsBuilderProgram;
-
+// @ts-ignore
 const getDefaultLibFileName0 = (options: ts.CompilerOptions): string => {
     switch (options.target) {
         case 99 /* ESNext */:

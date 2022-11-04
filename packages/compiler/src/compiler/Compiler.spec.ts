@@ -7,8 +7,8 @@
 /* eslint-disable jest/no-mocks-import */
 import { TargetConfig } from "@quatico/websmith-api/src";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
-import type { Program, LanguageService } from "typescript";
+import { basename, dirname, join } from "path";
+import type { LanguageService, Program } from "typescript";
 import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createBrowserSystem, createSystem } from "../environment";
@@ -18,51 +18,54 @@ import { CompileFragment, Compiler } from "./Compiler";
 import { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig } from "./config";
 
-const testSystem = createBrowserSystem({
-    "tsconfig.json": JSON.stringify({
-        compilerOptions: {
-            target: "ESNEXT",
-            outDir: "./.build",
-        },
-    }),
-    "src/one.js": `{
+const testSystem = createBrowserSystem(
+    {
+        "tsconfig.json": JSON.stringify({
+            compilerOptions: {
+                target: "ESNEXT",
+                outDir: "./.build",
+            },
+        }),
+        "src/one.js": `{
         export class One {}
     }`,
-    "src/two.ts": `{
+        "src/two.ts": `{
         export class Two {}
     }`,
-    "src/three.tsx": `{
+        "src/three.tsx": `{
         export class Three {}
     }`,
-    "src/_four.css": `{
+        "src/_four.css": `{
         .four {
             display: none;
         }
     }`,
-    "src/_five.scss": `{
+        "src/_five.scss": `{
         .five {
             display: none;
         }
     }`,
-    "src/six.scss": `{
+        "src/six.scss": `{
         .five {
             display: none;
         }
     }`,
-    "src/seven.scss": `{
+        "src/seven.scss": `{
         .seven {
             display: none;
         }
     }`,
-    "src/seven.ts": `{
+        "src/seven.ts": `{
         import "./seven.scss";
         @customElement("my-seven")
         export class Seven {}
     }`,
-    "src/arrow.ts": `
+        "src/arrow.ts": `
         export const computeDate = async (): Promise<Date> => new Date();
     `,
-}, ts.sys.useCaseSensitiveFileNames);
+    },
+    ts.sys.useCaseSensitiveFileNames
+);
 
 class CompilerTestClass extends Compiler {
     constructor(options: CompilerOptions) {
@@ -114,6 +117,7 @@ beforeEach(() => {
         tsconfig: { options: {}, fileNames: [], errors: [] },
         debug: false,
         sourceMap: false,
+        transpileOnly: false,
         watch: false,
     };
     testObj = new CompilerTestClass(config);
@@ -175,6 +179,7 @@ describe("compile", () => {
             tsconfig: { options: {}, fileNames: [], errors: [] },
             debug: false,
             sourceMap: false,
+            transpileOnly: false,
             watch: false,
         });
         CompilerMockClass.prototype.report = jest.fn();
@@ -211,7 +216,7 @@ describe("compile", () => {
 
 describe("emitSourceFile", () => {
     it("yields modified client function w/ annotated arrow function", () => {
-        testObj = testObj = new CompilerTestClass({
+        testObj = new CompilerTestClass({
             addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
             buildDir: "./src",
             project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest },
@@ -220,6 +225,7 @@ describe("emitSourceFile", () => {
             tsconfig: { options: {}, fileNames: ["src/arrow.ts"], errors: [] },
             debug: false,
             sourceMap: false,
+            transpileOnly: false,
             watch: false,
         }).createTargetContextsIfNecessary();
 
@@ -234,6 +240,90 @@ describe("emitSourceFile", () => {
             "export declare const computeDate: () => Promise<Date>;
             "
         `);
+    });
+
+    it("yields modified client function, no declaration, no sourceMap w/ transpileOnly, declarations: false, sourceMap: false", () => {
+        const project = { declaration: false, sourceMap: false, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest };
+        testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            project,
+            reporter,
+            targets: [],
+            tsconfig: { options: project, fileNames: ["src/arrow.ts"], errors: [] },
+            debug: false,
+            sourceMap: false,
+            transpileOnly: false,
+            watch: false,
+        }).createTargetContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("src/arrow.ts", "*", false);
+
+        expect(actual.files.map(cur => complexFileExtension(cur.name))).toMatchObject([".js"]);
+        [".d.ts", ".d.ts.map", ".map"].map(ext => expect(actual.files.map(cur => complexFileExtension(cur.name))).not.toContain(ext));
+    });
+
+    it("yields modified client function, declaration, no declaration map, no sourceMap w/ transpileOnly, declaration: true, declarationMap: false, sourceMap: false", () => {
+        const project = { declaration: true, declarationMap: false, sourceMap: false, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest };
+        testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            project,
+            reporter,
+            targets: [],
+            tsconfig: { options: project, fileNames: ["src/arrow.ts"], errors: [] },
+            debug: false,
+            sourceMap: true,
+            transpileOnly: false,
+            watch: false,
+        }).createTargetContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("src/arrow.ts", "*", false);
+
+        expect(actual.files.map(cur => complexFileExtension(cur.name))).toMatchObject([".js", ".d.ts"]);
+        [".d.ts.map", ".map"].map(ext => expect(actual.files.map(cur => complexFileExtension(cur.name))).not.toContain(ext));
+    });
+
+    it("yields modified client function, declaration, declaration map, no sourceMap w/ transpileOnly, declaration: true, declarationMap: true, sourceMap: false", () => {
+        const project = { declaration: true, declarationMap: true, sourceMap: false, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest };
+        testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            project,
+            reporter,
+            targets: [],
+            tsconfig: { options: project, fileNames: ["src/arrow.ts"], errors: [] },
+            debug: false,
+            sourceMap: true,
+            transpileOnly: false,
+            watch: false,
+        }).createTargetContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("src/arrow.ts", "*", false);
+
+        expect(actual.files.map(cur => complexFileExtension(cur.name))).toMatchObject([".js", ".d.ts.map", ".d.ts"]);
+        [".map"].map(ext => expect(actual.files.map(cur => complexFileExtension(cur.name))).not.toContain(ext));
+    });
+
+    it("yields modified client function, no declaration, sourceMap w/ transpileOnly, declaration: false, declarationMap: false, sourceMap: true", () => {
+        const project = { declaration: false, declarationMap: false, sourceMap: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest };
+        testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: "./src",
+            project,
+            reporter,
+            targets: [],
+            tsconfig: { options: project, fileNames: ["src/arrow.ts"], errors: [] },
+            debug: false,
+            sourceMap: true,
+            transpileOnly: false,
+            watch: false,
+        }).createTargetContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("src/arrow.ts", "*", false);
+
+        expect(actual.files.map(cur => complexFileExtension(cur.name))).toMatchObject([".js.map", ".js"]);
+        [".d.ts", ".d.ts.map"].map(ext => expect(actual.files.map(cur => complexFileExtension(cur.name))).not.toContain(ext));
     });
 });
 
@@ -251,6 +341,7 @@ describe("report", () => {
             tsconfig: { options: {}, fileNames: [], errors: [] },
             debug: false,
             sourceMap: false,
+            transpileOnly: false,
             watch: false,
         });
     });
@@ -342,6 +433,7 @@ describe("watch", () => {
                 tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
                 debug: false,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: true,
             },
             ts.sys
@@ -377,6 +469,7 @@ describe("watch", () => {
                 tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
                 debug: false,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: true,
             },
             ts.sys
@@ -418,6 +511,7 @@ describe("watch", () => {
                 tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
                 debug: false,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: true,
             },
             ts.sys
@@ -456,4 +550,7 @@ const exportFile = (testSystem: ts.System, fileName: string, exportedFileName: s
 
     mkdirSync(dirname(exportedFileName), { recursive: true });
     writeFileSync(exportedFileName, testSystem.readFile(fileName)!);
+};
+const complexFileExtension = (name: string): string => {
+    return basename(name).replace(basename(name).split(".")[0], "");
 };

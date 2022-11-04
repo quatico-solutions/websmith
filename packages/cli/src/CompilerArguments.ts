@@ -14,5 +14,6 @@ export interface CompilerArguments {
     project?: string;
     sourceMap?: boolean;
     targets?: string;
+    transpileOnly?: boolean;
     watch?: boolean;
 }

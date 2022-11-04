@@ -42,10 +42,17 @@ export interface AddonContext<O = unknown> {
     getTargetConfig(): O;
 
     /**
-     * Adds a new file to the compilation input. The file will be compiled with the same options
-     * as original files.
+     * Adds a new code file to the compilation input. The file will be compiled with the same options as all other code files.
+     * @param filePath: Path to the code file to add. Must have a ts(x), js(x), m[tj]s or c[tj]s file extension
      */
     addInputFile(filePath: string): void;
+
+    /**
+     * Adds a new asset dependency.
+     * @param childPath: Path to the file that is introduced as new dependency. Must not have a ts(x), js(x), m[tj]s or c[tj]s file extension.
+     * @param parentPath: Path to the file that depends on the file at childPath and that requires to be updated when childPath changes.
+     */
+    addAssetDependency(childPath: string, parentPath: string): void;
 
     /**
      * Adds a new file virtually to the compilation input. The file will be compiled with the same options

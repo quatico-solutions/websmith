@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { AddonContext, Generator, Processor, Reporter, ResultProcessor } from "@quatico/websmith-api";
-import { isAbsolute, join } from "path";
+import { extname, isAbsolute, join } from "path";
 import ts from "typescript";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
@@ -22,6 +22,8 @@ export type CompilationContextOptions = {
     system: ts.System;
     target: string;
     tsconfig: ts.ParsedCommandLine;
+    watchCallback?: (filePath: string) => void;
+    registerDependencyCallback?: (filePath: string) => void;
 };
 
 export class CompilationContext implements AddonContext {
@@ -41,9 +43,15 @@ export class CompilationContext implements AddonContext {
     private projectDir: string;
     private program: ts.Program;
     private config: unknown;
+    private watchCallback: (filePath: string) => void;
+    private registerDependencyCb?: (filePath: string) => void;
+
+    private assetAssetDependency: Map<string, string> = new Map();
+    private assetCodeDependency: Map<string, string> = new Map();
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, config, program, project, projectDir, rootFiles, system, target, tsconfig } = options;
+        const { buildDir, config, program, project, projectDir, rootFiles, system, target, tsconfig, watchCallback, registerDependencyCallback } =
+            options;
         this.buildDir = buildDir;
         this.rootFiles = rootFiles;
         this.tsconfig = tsconfig;
@@ -61,6 +69,8 @@ export class CompilationContext implements AddonContext {
         this.system = system;
         this.program = program;
         this.config = config;
+        this.watchCallback = watchCallback ?? (() => undefined);
+        this.registerDependencyCb = registerDependencyCallback;
     }
 
     public getSystem(): ts.System {
@@ -83,14 +93,87 @@ export class CompilationContext implements AddonContext {
         return this.config ?? {};
     }
 
+    protected isCodeFileExtension(filePath: string): boolean {
+        // List of supported extensions by TypeScript: ts.Extension
+        return !!filePath.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/);
+    }
+
     public addInputFile(filePath: string): void {
+        if (!this.isCodeFileExtension(filePath)) {
+            // eslint-disable-next-line no-console
+            console.error(`Only code files are supported for addInputFile. ${extname(filePath)} of ${filePath} is no valid code file extension.`);
+            return;
+        }
+
         // TODO: Should only be allowed for Generators
         if (!this.rootFiles.includes(filePath)) {
             this.rootFiles.push(filePath);
         }
+        if (this.watchCallback) {
+            // eslint-disable-next-line no-console
+            console.error(`add ${filePath} to watch`);
+            this.watchCallback(filePath);
+        }
+    }
+
+    // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
+    public resolveDependency(dependencyPath?: string): string {
+        if (dependencyPath !== undefined) {
+            const resolvedDependency = this.assetAssetDependency.has(dependencyPath)
+                ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  this.resolveDependency(this.assetAssetDependency.get(dependencyPath)!)
+                : this.assetCodeDependency.has(dependencyPath)
+                ? this.assetCodeDependency.get(dependencyPath)
+                : undefined;
+
+            if (resolvedDependency) {
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                return this.assetCodeDependency.get(dependencyPath)!;
+            }
+        }
+        throw new Error(`Cannot resolve dependency "${dependencyPath ?? "undefined"}."`);
+    }
+
+    public addAssetDependency(childPath: string, parentPath: string): void {
+        const registerForWatch = () => {
+            if (this.watchCallback) {
+                // eslint-disable-next-line no-console
+                console.error(`add ${childPath} to watch`);
+                this.watchCallback(childPath);
+            }
+        };
+        // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
+        if (this.isCodeFileExtension(childPath)) {
+            // eslint-disable-next-line no-console
+            console.error(
+                `Only non-code files are supported for addAssetDependency. ${extname(childPath)} of ${childPath} is a code file extension.`
+            );
+            return;
+        }
+
+        if (this.registerDependencyCb) {
+            this.registerDependencyCb(childPath);
+        } else {
+            if (this.isCodeFileExtension(parentPath)) {
+                if (!this.assetCodeDependency.has(childPath)) {
+                    registerForWatch();
+                }
+                this.assetCodeDependency.set(childPath, parentPath);
+            } else {
+                if (!this.assetAssetDependency.has(childPath)) {
+                    registerForWatch();
+                }
+                this.assetAssetDependency.set(childPath, parentPath);
+            }
+        }
     }
 
     public addVirtualFile(filePath: string, fileContent: string): void {
+        if (!this.isCodeFileExtension(filePath)) {
+            // eslint-disable-next-line no-console
+            console.error(`Only code files are supported for addInputFile. ${extname(filePath)} of ${filePath} is no valid code file extension.`);
+            return;
+        }
         if (!this.rootFiles.includes(filePath)) {
             this.rootFiles.push(filePath);
         }
@@ -153,6 +236,10 @@ export class CompilationContext implements AddonContext {
 
     public getProcessors(): Processor[] {
         return this.processors;
+    }
+
+    public getTransformers(): ts.CustomTransformers {
+        return this.transformers; 
     }
 
     public getResultProcessors(): ResultProcessor[] {

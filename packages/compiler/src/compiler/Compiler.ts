@@ -7,9 +7,8 @@
 
 import { ErrorMessage, Reporter, TargetConfig } from "@quatico/websmith-api";
 import { dirname, extname, join } from "path";
-import ts from "typescript";
-import { createSystem, recursiveFindByFilter } from "../environment";
-import { concat } from "./collections";
+import ts, { WatchDirectoryKind, WatchFileKind } from "typescript";
+import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
 import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
 import { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig } from "./config";
@@ -33,21 +32,14 @@ export class Compiler {
     private configPath!: string;
     private reporter!: Reporter;
     private system!: ts.System;
+    private dependencyCallback?: (filePath: string) => void;
 
-    // TODO: Styles: Add support for style processors via addon
-    // private compileImportedStyles: Transformer;
-
-    constructor(options: CompilerOptions, system?: ts.System) {
+    constructor(options: CompilerOptions, system?: ts.System, dependencyCallback?: (filePath: string) => void) {
         this.version = 0;
         this.contextMap = new Map();
         this.system = system ?? createSystem();
         this.setOptions(options);
-
-        // TODO: Styles: Add support for style processors via addon
-        // this.compileImportedStyles = createStyleCompiler(
-        //     { sassOptions: options.sassOptions, reporter: this.reporter, system: this.system },
-        //     this.addons.styleTransformers
-        // );
+        this.dependencyCallback = dependencyCallback;
     }
 
     public getContext(target?: string): CompilationContext | undefined {
@@ -90,7 +82,10 @@ export class Compiler {
     public compile(): ts.EmitResult {
         const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
         this.createTargetContextsIfNecessary();
-
+        const diagnostics = ts.getPreEmitDiagnostics(this.program!);
+        if (diagnostics && diagnostics.length > 0) {
+            return { diagnostics, emitSkipped: true };
+        }
         this.options.targets.forEach((target: string) => {
             const { config } = this.options;
             const { writeFile = true } = getTargetConfig(target, config);
@@ -103,12 +98,10 @@ export class Compiler {
             for (const fileName of this.getRootFiles()) {
                 const fragment = this.emitSourceFile(fileName, target, writeFile);
                 if (fragment?.files.length > 0) {
-                    result.emittedFiles = concat(
-                        result.emittedFiles,
-                        fragment.files.map(cur => cur.name)
-                    );
+                    result.emittedFiles = (result.emittedFiles ?? []).concat(fragment.files.map(cur => cur.name));
                 } else {
                     // FIXME: Report error for source files that cannot be emitted
+                    fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
                 }
             }
 
@@ -116,19 +109,9 @@ export class Compiler {
             ctx.getResultProcessors().forEach(cur => cur(files));
         });
 
-        // TODO: Styles: Add style processors here to generate docs
-        // eslint-disable-next-line no-console
-        // stylePaths.filter(cur => cur.endsWith(".scss")).forEach(cur => console.log(`Style: ${cur}`));
-
-        /// Create single LanguageService with a dedicated CompilationHost and default LanguageServiceHost
-        /// Receive targets, go though each target
-        /// Create compilation per target with single CompilationContext per target
-        /// Create single LanguageServiceHost inside CompilationHost (if necessary)
-        /// Resolve addons for target
-        /// Go through all root files and apply all addons
-
         // TODO: Return ts.EmitResult with diagnostics
-        return this.report(this.langService.getProgram()!, result);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return this.report(this.contextMap.get(this.options.targets[0])!.getProgram(), result);
     }
 
     private fileWatchers: ts.FileWatcher[] = [];
@@ -137,18 +120,36 @@ export class Compiler {
         this.createTargetContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {
+            const emitTargets: string[] = this.getWritingTargets();
             this.getRootFiles().forEach(cur => {
-                const emitTargets: string[] = this.getWritingTargets();
-
-                this.fileWatchers.push(
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    this.system.watchFile!(cur, fileName => emitTargets.forEach(target => this.emitSourceFile(fileName, target, true)))
-                );
                 emitTargets.forEach(target => this.emitSourceFile(cur, target, true));
+                this.registerWatch(cur, emitTargets);
             });
         } else {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
         }
+    }
+
+    public registerWatch(filePath: string, emitTargets: string[]) {
+        this.fileWatchers.push(
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.system.watchFile!(
+                filePath,
+                fileName =>
+                    emitTargets.forEach(target =>
+                        fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
+                            ? this.emitSourceFile(fileName, target, true)
+                            : this.contextMap.has(target) &&
+                              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                              this.emitSourceFile(this.contextMap.get(target)!.resolveDependency(fileName), target, true, true)
+                    ),
+                undefined,
+                {
+                    watchFile: WatchFileKind.UseFsEvents,
+                    watchDirectory: WatchDirectoryKind.UseFsEvents,
+                }
+            )
+        );
     }
 
     public closeAllWatchers() {
@@ -162,7 +163,7 @@ export class Compiler {
                 return;
             }
 
-            const ctx = this.createCompilationContext(this.options, target);
+            const ctx = this.createCompilationContext(this.options, target, this.dependencyCallback);
             this.options.addons.getAddons(target).forEach(addon => {
                 addon.activate(ctx);
             });
@@ -171,8 +172,12 @@ export class Compiler {
         return this;
     }
 
-    protected createCompilationContext(compileOptions: CompilerOptions, target: string): CompilationContext {
-        const { buildDir, config, project, tsconfig } = compileOptions;
+    protected createCompilationContext(
+        compileOptions: CompilerOptions,
+        target: string,
+        registerDependencyCallback?: (filePath: string) => void
+    ): CompilationContext {
+        const { buildDir, config, project, tsconfig, watch } = compileOptions;
         const { options, config: targetConfig } = getTargetConfig(target, config);
         return new CompilationContext({
             buildDir,
@@ -180,48 +185,76 @@ export class Compiler {
             projectDir: dirname(config?.configFilePath ?? tsconfig.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            program: this.program!,
+            program: ts.createProgram({ rootNames: this.getRootFiles(), options: project, host: createCompileHost(project, this.system) }),
             tsconfig: { ...tsconfig, options: { ...project, ...options } },
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,
             config: targetConfig,
             target,
+            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.getWritingTargets()) }),
+            registerDependencyCallback,
         });
     }
 
-    protected emitSourceFile(fileName: string, target: string, writeFile = true): CompileFragment {
+    protected emitSourceFile(fileName: string, target: string, writeFile = true, skipCache = false): CompileFragment {
         const filePath = this.system.resolvePath(fileName);
         const ctx = this.contextMap.get(target);
         const cache = ctx?.getCache();
 
         if (ctx && cache) {
-            if (!cache.hasChanged(filePath)) {
+            if (!skipCache && !cache.hasChanged(filePath)) {
                 return { files: [], content: "", ...cache.getCachedFile(filePath) };
             }
             let content = this.system.readFile(fileName) ?? ctx.getCache().getCachedFile(fileName)?.content ?? "";
 
             ctx.getGenerators().forEach(cur => cur(fileName, content));
-
             ctx.getProcessors().forEach(cur => (content = cur(fileName, content)));
             cache.updateSource(filePath, content);
-            this.compilationHost.setLanguageHost(ctx.getLanguageHost());
+            let output: (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined;
 
-            const output: ts.EmitOutput & { diagnostics?: ts.Diagnostic[] } = this.langService.getEmitOutput(fileName);
-
-            if (!output.emitSkipped) {
-                cache.updateOutput(fileName, output.outputFiles);
-                this.version++;
-
-                if (writeFile) {
-                    this.writeOutputFiles(output);
+            if (this.options.transpileOnly) {
+                if (fileName.endsWith(".d.ts")) {
+                    output = undefined;
+                } else {
+                    const isSourceFile = (name: string) => name.match(/g/g);
+                    const isSourceMap = (name: string) => name.match(/g/g);
+                    const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
+                        compilerOptions: ctx.getConfig().options,
+                        fileName,
+                        transformers: ctx.getTransformers(),
+                    });
+                    const fileNames = ts.getOutputFileNames(this.options.tsconfig, fileName, !this.system.useCaseSensitiveFileNames);
+                    output = {
+                        outputFiles: [{ name: fileNames.find(isSourceFile)!, text: outputText, writeByteOrderMark: false }].concat(
+                            sourceMapText ? [{ name: fileNames.find(isSourceMap)!, text: sourceMapText, writeByteOrderMark: false }] : []
+                        ),
+                        diagnostics,
+                        emitSkipped: diagnostics !== undefined && diagnostics.length > 0,
+                    };
                 }
-                return { version: cache.getVersion(fileName), files: output.outputFiles };
             } else {
-                return { version: cache.getVersion(fileName), files: [], diagnostics: output.diagnostics };
+                this.compilationHost.setLanguageHost(ctx.getLanguageHost());
+                output = this.langService.getEmitOutput(fileName);
+            }
+
+            if (output && !output.emitSkipped) {
+                cache.updateOutput(fileName, output.outputFiles);
+
+                this.version++;
+                if (writeFile && output.outputFiles) {
+                    this.writeOutputFiles(output.outputFiles);
+                }
+                return {
+                    version: cache.getVersion(fileName),
+                    files: output.outputFiles,
+                    diagnostics: output.diagnostics,
+                };
+            } else {
+                return { version: cache.getVersion(fileName), files: [], diagnostics: output?.diagnostics };
             }
         }
 
-        return { version: 0, files: this.langService.getEmitOutput(fileName).outputFiles };
+        throw new Error(`No target ${target} configured`);
     }
 
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
@@ -232,27 +265,6 @@ export class Compiler {
         return result;
     }
 
-    // FIXME: compile and watch don't return proper ts.EmitResult(s)
-    // private tryEmit(emit: () => ts.EmitResult): ts.EmitResult {
-    //     try {
-    //         return emit();
-    //     } catch (err) {
-    //         return {
-    //             diagnostics: [
-    //                 {
-    //                     category: 1 /* Error */,
-    //                     code: 0,
-    //                     file: undefined,
-    //                     length: 0,
-    //                     messageText: err.message,
-    //                     start: 0,
-    //                 },
-    //             ],
-    //             emitSkipped: true,
-    //         };
-    //     }
-    // }
-
     private getRootFiles(): string[] {
         return this.options?.tsconfig?.fileNames
             ? this.options.tsconfig.fileNames
@@ -261,27 +273,9 @@ export class Compiler {
               );
     }
 
-    private writeOutputFiles(emitOutput: ts.EmitOutput) {
-        emitOutput.outputFiles.forEach(cur => this.system.writeFile(cur.name, cur.text));
-        // for (const cur of emitOutput.outputFiles) {
-        //     const fileName = this.getFilePath(cur.name);
-        //     this.system.writeFile(fileName, cur.text);
-        // }
+    private writeOutputFiles(files: ts.OutputFile[]) {
+        files.forEach(cur => this.system.writeFile(cur.name, cur.text));
     }
-
-    // private getFilePath(fileName: string): string {
-    //     const projectDir = dirname(this.options.buildDir);
-    //     const basePath = this.getBasePath(fileName, projectDir);
-    //     const outDir = this.options.project.outDir;
-    //     if (!outDir) {
-    //         return !isAbsolute(fileName) ? join(basePath, fileName) : fileName;
-    //     }
-    //     return fileName.includes(outDir) ? fileName : fileName.replace(basePath, resolve(projectDir, outDir));
-    // }
-
-    // private getBasePath(fileName: string, projectDir: string): string {
-    //     return Object.keys(this.options.project.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? projectDir;
-    // }
 
     protected getNonWritingTargets(): string[] {
         return this.options.targets.filter(cur => !getTargetConfig(cur, this.options.config).writeFile);

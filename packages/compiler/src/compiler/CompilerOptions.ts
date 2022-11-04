@@ -19,6 +19,7 @@ export interface CompilerOptions {
     reporter: Reporter;
     sourceMap: boolean;
     targets: string[];
+    transpileOnly: boolean;
     watch: boolean;
     additionalArguments?: Map<string, unknown>;
     // TODO: Add support for style processors via addon

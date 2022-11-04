@@ -22,7 +22,7 @@ module.exports = {
     roots: ["<rootDir>/src/"],
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
     testEnvironment: "node",
-    testRegex: "(test|src)/.*\\.spec\\.ts$",
+    testRegex: "(test|src)/.+\\.spec\\.ts$",
     transform: {
         "^.+\\.(js|jsx|ts|tsx)$": "ts-jest",
     },

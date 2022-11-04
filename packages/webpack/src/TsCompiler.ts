@@ -18,9 +18,9 @@ export class TsCompiler extends Compiler {
     public targets: string[];
     public webpackTarget: string;
 
-    constructor(options: CompilerOptions, pluginOptions?: PluginOptions) {
+    constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, pluginOptions?: PluginOptions) {
         pluginOptions = pluginOptions ? { webpackTarget: "*", ...pluginOptions } : { config: "", webpackTarget: "*" };
-        super(options, ts.sys);
+        super(options, ts.sys, dependencyCallback);
         this.pluginConfig = pluginOptions;
         super.createTargetContextsIfNecessary();
         this.targets = options.targets;
@@ -51,7 +51,7 @@ export class TsCompiler extends Compiler {
             .getWritingTargets()
             .filter((target: string) => target !== this.webpackTarget)
             .forEach((target: string) => {
-                super.emitSourceFile(fileName, target, true);
+                this.emitSourceFile(fileName, target, true);
             });
 
         this.fragment = result;
@@ -59,7 +59,7 @@ export class TsCompiler extends Compiler {
     }
 
     protected emitSourceFile(fileName: string, target: string, writeFile: boolean): CompileFragment {
-        return super.emitSourceFile(fileName, target, writeFile);
+        return super.emitSourceFile(fileName, target, writeFile, true);
     }
 
     private getFragmentTarget(webpackTarget: string): string {

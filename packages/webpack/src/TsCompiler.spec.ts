@@ -18,7 +18,7 @@ class TestCompiler extends TsCompiler {
     private sys: ts.System | undefined;
 
     constructor(options: CompilerOptions, pluginOptions?: PluginOptions) {
-        super(options, pluginOptions);
+        super(options, path => console.info(`dependency ${path} added`), pluginOptions);
         this.sys = super.getSystem();
     }
 
@@ -61,6 +61,7 @@ describe("TsCompiler", () => {
                 tsconfig: { options: {}, fileNames: [expected], errors: [] },
                 debug: true,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: false,
             },
             undefined
@@ -121,6 +122,7 @@ describe("Transpilation", () => {
                 tsconfig: { options: { declaration: true, target: 99 }, fileNames: [expected], errors: [] },
                 debug: true,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: false,
             },
             undefined
@@ -156,6 +158,7 @@ describe("Transpilation", () => {
                 tsconfig: { options: { target: 99 }, fileNames: [expected], errors: [] },
                 debug: false,
                 sourceMap: false,
+                transpileOnly: false,
                 watch: false,
             },
             { config: resolve("__data__", "websmith.config.json"), webpackTarget: "fragment" }
