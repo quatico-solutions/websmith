@@ -229,21 +229,32 @@ export class Compiler {
                 if (fileName.endsWith(".d.ts")) {
                     output = undefined;
                 } else {
-                    const isSourceFile = (name: string) => name.match(/g/g);
-                    const isSourceMap = (name: string) => name.match(/g/g);
-                    const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
-                        compilerOptions: ctx.getConfig().options,
-                        fileName,
-                        transformers: ctx.getTransformers(),
-                    });
-                    const fileNames = ts.getOutputFileNames(this.options.tsconfig, fileName, !this.system.useCaseSensitiveFileNames);
-                    output = {
-                        outputFiles: [{ name: fileNames.find(isSourceFile)!, text: outputText, writeByteOrderMark: false }].concat(
-                            sourceMapText ? [{ name: fileNames.find(isSourceMap)!, text: sourceMapText, writeByteOrderMark: false }] : []
-                        ),
-                        diagnostics,
-                        emitSkipped: diagnostics !== undefined && diagnostics.length > 0,
-                    };
+                    const isSourceFile = (name: string) => name.match(/\.([cm]?ts|tsx)$/i);
+                    if (!isSourceFile(fileName)) {
+                        // JSON are only output by TypoScript if an outDir is provided.
+                        if (this.options.project.outDir !== undefined) {
+                            const fileNames = ts.getOutputFileNames(this.options.tsconfig, fileName, !this.system.useCaseSensitiveFileNames);
+                            output = { outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }], emitSkipped: false };
+                        } else {
+                            output = { outputFiles: [], emitSkipped: false };
+                        }
+                    } else {
+                        const isTranspiledSourceFile = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)$/i);
+                        const isSourceMap = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)\.map$/i);
+                        const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
+                            compilerOptions: ctx.getConfig().options,
+                            fileName,
+                            transformers: ctx.getTransformers(),
+                        });
+                        const fileNames = ts.getOutputFileNames(this.options.tsconfig, fileName, !this.system.useCaseSensitiveFileNames);
+                        output = {
+                            outputFiles: this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText).concat(
+                                this.extractOutputFile(fileNames, isSourceMap, sourceMapText)
+                            ),
+                            diagnostics,
+                            emitSkipped: diagnostics !== undefined && diagnostics.length > 0,
+                        };
+                    }
                 }
             } else {
                 this.compilationHost.setLanguageHost(ctx.getLanguageHost());
@@ -268,6 +279,11 @@ export class Compiler {
         }
 
         throw new Error(`No target ${target} configured`);
+    }
+
+    private extractOutputFile(fileNames: readonly string[], fileFilter: (name: string) => boolean, content?: string) {
+        const fileName = fileNames.find(fileFilter);
+        return fileName && content ? [<ts.OutputFile>{ name: fileName, text: content, writeByteOrderMark: false }] : [];
     }
 
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
