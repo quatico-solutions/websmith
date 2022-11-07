@@ -9,6 +9,7 @@ import { ErrorMessage, Reporter, TargetConfig } from "@quatico/websmith-api";
 import { dirname, extname, join } from "path";
 import ts, { WatchDirectoryKind, WatchFileKind } from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
+import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
 import { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig } from "./config";
@@ -80,13 +81,15 @@ export class Compiler {
     }
 
     public compile(): ts.EmitResult {
-        const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
         this.createTargetContextsIfNecessary();
         const diagnostics = ts.getPreEmitDiagnostics(this.program!);
         if (diagnostics && diagnostics.length > 0) {
             return { diagnostics, emitSkipped: true };
         }
+
+        const results: ts.EmitResult[] = [];
         this.options.targets.forEach((target: string) => {
+            const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
             const { config } = this.options;
             const { writeFile = true } = getTargetConfig(target, config);
             const ctx = this.contextMap.get(target);
@@ -107,11 +110,15 @@ export class Compiler {
 
             const files = this.getRootFiles();
             ctx.getResultProcessors().forEach(cur => cur(files));
+
+            results.push(this.report(ctx.getProgram(), result));
         });
 
-        // TODO: Return ts.EmitResult with diagnostics
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return this.report(this.contextMap.get(this.options.targets[0])!.getProgram(), result);
+        return {
+            emitSkipped: !!results.find(cur => cur.emitSkipped) ?? true,
+            emittedFiles: concat(results.flatMap(cur => cur.emittedFiles ?? [])),
+            diagnostics: concat(results.flatMap(cur => cur.diagnostics)),
+        };
     }
 
     private fileWatchers: ts.FileWatcher[] = [];

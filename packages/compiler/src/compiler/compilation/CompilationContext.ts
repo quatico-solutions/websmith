@@ -128,7 +128,7 @@ export class CompilationContext implements AddonContext {
 
             if (resolvedDependency) {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                return this.assetCodeDependency.get(dependencyPath)!;
+                return resolvedDependency;
             }
         }
         throw new Error(`Cannot resolve dependency "${dependencyPath ?? "undefined"}."`);
