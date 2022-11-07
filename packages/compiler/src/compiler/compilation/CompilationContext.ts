@@ -135,13 +135,6 @@ export class CompilationContext implements AddonContext {
     }
 
     public addAssetDependency(childPath: string, parentPath: string): void {
-        const registerForWatch = () => {
-            if (this.watchCallback) {
-                // eslint-disable-next-line no-console
-                console.error(`add ${childPath} to watch`);
-                this.watchCallback(childPath);
-            }
-        };
         // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
         if (this.isCodeFileExtension(childPath)) {
             // eslint-disable-next-line no-console
@@ -154,17 +147,7 @@ export class CompilationContext implements AddonContext {
         if (this.registerDependencyCb) {
             this.registerDependencyCb(childPath);
         } else {
-            if (this.isCodeFileExtension(parentPath)) {
-                if (!this.assetCodeDependency.has(childPath)) {
-                    registerForWatch();
-                }
-                this.assetCodeDependency.set(childPath, parentPath);
-            } else {
-                if (!this.assetAssetDependency.has(childPath)) {
-                    registerForWatch();
-                }
-                this.assetAssetDependency.set(childPath, parentPath);
-            }
+            this.registerDependency(childPath, parentPath);
         }
     }
 
@@ -239,7 +222,7 @@ export class CompilationContext implements AddonContext {
     }
 
     public getTransformers(): ts.CustomTransformers {
-        return this.transformers; 
+        return this.transformers;
     }
 
     public getResultProcessors(): ResultProcessor[] {
@@ -290,5 +273,25 @@ export class CompilationContext implements AddonContext {
             getCompilationSettings: () => options,
             getCustomTransformers: (): ts.CustomTransformers => this.transformers,
         };
+    }
+
+    protected registerDependency(childPath: string, parentPath: string) {
+        const registerForWatch = () => {
+            if (this.watchCallback) {
+                this.watchCallback(childPath);
+            }
+        };
+
+        if (this.isCodeFileExtension(parentPath)) {
+            if (!this.assetCodeDependency.has(childPath)) {
+                registerForWatch();
+            }
+            this.assetCodeDependency.set(childPath, parentPath);
+        } else {
+            if (!this.assetAssetDependency.has(childPath)) {
+                registerForWatch();
+            }
+            this.assetAssetDependency.set(childPath, parentPath);
+        }
     }
 }

@@ -41,6 +41,10 @@ class CompilationContextTestClass extends CompilationContext {
     public isCodeFileExtension(filePath: string): boolean {
         return super.isCodeFileExtension(filePath);
     }
+
+    public registerDependency(childPath: string, parentPath: string): void {
+        super.registerDependency(childPath, parentPath);
+    }
 }
 
 let testObj: CompilationContextTestClass;
@@ -256,14 +260,44 @@ describe("addInputFile", () => {
 });
 
 describe("addAssetDependency", () => {
-    it("write an error when adding an ts file", () => {
+    it("registers dependency with dependency function w/o dependency callback function provided", () => {
         const target = jest.fn();
-        // eslint-disable-next-line no-console
-        console.error = target;
+        testObj = new CompilationContextTestClass({
+            buildDir: "",
+            project: {},
+            projectDir: testSystem.getCurrentDirectory(),
+            reporter: new ReporterMock(testSystem),
+            rootFiles: [],
+            system: testSystem,
+            program: testProgram,
+            tsconfig: { options: {}, fileNames: [], errors: [] },
+            target: "test",
+        });
+        testObj.registerDependency = target;
 
         testObj.addAssetDependency("test.scss", "test.ts");
 
-        expect(target).toHaveBeenNthCalledWith(1, "add test.scss to watch");
+        expect(target).toHaveBeenCalledWith("test.scss", "test.ts");
+    });
+
+    it("registers dependency with dependency callback function w/ dependency callback function provided", () => {
+        const target = jest.fn();
+        testObj = new CompilationContextTestClass({
+            buildDir: "",
+            project: {},
+            projectDir: testSystem.getCurrentDirectory(),
+            reporter: new ReporterMock(testSystem),
+            rootFiles: [],
+            system: testSystem,
+            program: testProgram,
+            tsconfig: { options: {}, fileNames: [], errors: [] },
+            target: "test",
+            registerDependencyCallback: target,
+        });
+
+        testObj.addAssetDependency("test.scss", "test.ts");
+
+        expect(target).toHaveBeenCalledWith("test.scss");
     });
 });
 
