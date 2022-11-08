@@ -6,7 +6,7 @@
  */
 import { createOptions } from "@quatico/websmith-cli";
 import { readFileSync } from "fs";
-import { Compilation, Compiler, LoaderContext, Stats } from "webpack";
+import { Compilation, Compiler, LoaderContext, NormalModule, Stats } from "webpack";
 import { contribute } from "./CompilationQueue";
 import { getInstanceFromCache, initializeInstance, setInstanceInCache } from "./instance-cache";
 import { PluginOptions } from "./loader-options";
@@ -19,11 +19,12 @@ export const addCompilationHooks = (compiler: Compiler, options: PluginOptions, 
         return (compilation: Compilation, options: PluginOptions): void => {
             // eslint-disable-next-line @typescript-eslint/ban-types
             // NormalModule.getCompilationHooks(compilation).loader.tap(LOADER_NAME, (ctx: object) => {
-                compilation.hooks.processAssets.tap(LOADER_NAME, assets =>{
-                    // eslint-disable-next-line no-console
-                    console.error(`processAssets for ${JSON.stringify(assets)}`);
-                });
-            compilation.hooks.normalModuleLoader.tap(LOADER_NAME, (ctx: object) => {
+            compilation.hooks.processAssets.tap(LOADER_NAME, assets => {
+                // eslint-disable-next-line no-console
+                console.error(`processAssets for ${JSON.stringify(assets)}`);
+            });
+
+            NormalModule.getCompilationHooks(compilation)?.loader?.tap(LOADER_NAME, (ctx: object) => {
                 const context: LoaderContext<PluginOptions> = ctx as LoaderContext<PluginOptions>;
 
                 if (context) {
