@@ -11,12 +11,11 @@
 
 > In Development
 
-### TBD
+### Performance Improvement
 
-- Breaking :fire::
-- Feature ✨
-- Bugfix :pill::
-- Improvement :gift_heart::
+- Improvement :gift_heart:: Upgrade Module loader implementation to Webpack 5.
+- Feature ✨: Support transpile only in webpack and cli, speeding up compile and watch by a factor of 20.
+-
 
 ## v0.2.0
 
@@ -34,3 +33,14 @@
 - Feature ✨ ClI package for running the compiler of configurable CLI.
 - Feature ✨ Webpack plugin for running the compiler as part of a webpack build.
 - Documentation 🔖 New 'Getting started' and 'Writing your own addons' documentation added
+
+## vX.Y.Z
+
+> In Development
+
+### TBA
+
+- Breaking :fire::
+- Feature ✨
+- Bugfix :pill::
+- Improvement :gift_heart::
