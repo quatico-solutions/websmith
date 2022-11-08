@@ -82,10 +82,6 @@ export class Compiler {
 
     public compile(): ts.EmitResult {
         this.createTargetContextsIfNecessary();
-        const diagnostics = ts.getPreEmitDiagnostics(this.program!);
-        if (diagnostics && diagnostics.length > 0) {
-            return { diagnostics, emitSkipped: true };
-        }
 
         const results: ts.EmitResult[] = [];
         this.options.targets.forEach((target: string) => {
@@ -101,7 +97,10 @@ export class Compiler {
             for (const fileName of this.getRootFiles()) {
                 const fragment = this.emitSourceFile(fileName, target, writeFile);
                 if (fragment?.files.length > 0) {
-                    result.emittedFiles = (result.emittedFiles ?? []).concat(fragment.files.map(cur => cur.name));
+                    result.emittedFiles = concat(
+                        result.emittedFiles,
+                        fragment.files.map(cur => cur.name)
+                    );
                 } else {
                     // FIXME: Report error for source files that cannot be emitted
                     fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
@@ -114,11 +113,13 @@ export class Compiler {
             results.push(this.report(ctx.getProgram(), result));
         });
 
-        return {
-            emitSkipped: !!results.find(cur => cur.emitSkipped) ?? true,
-            emittedFiles: concat(results.flatMap(cur => cur.emittedFiles ?? [])),
-            diagnostics: concat(results.flatMap(cur => cur.diagnostics)),
-        };
+        return results.filter(cur => !!cur).length < 1
+            ? { emitSkipped: true, diagnostics: [] }
+            : {
+                  emitSkipped: !!results.find(cur => cur.emitSkipped) ?? false,
+                  emittedFiles: concat(results.flatMap(cur => cur.emittedFiles ?? [])),
+                  diagnostics: concat(results.flatMap(cur => cur.diagnostics)),
+              };
     }
 
     private fileWatchers: ts.FileWatcher[] = [];
@@ -242,7 +243,8 @@ export class Compiler {
                         });
                         const fileNames = ts.getOutputFileNames(this.options.tsconfig, fileName, !this.system.useCaseSensitiveFileNames);
                         output = {
-                            outputFiles: this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText).concat(
+                            outputFiles: concat(
+                                this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText),
                                 this.extractOutputFile(fileNames, isSourceMap, sourceMapText)
                             ),
                             diagnostics,
