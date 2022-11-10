@@ -10,9 +10,7 @@
         "lint": "eslint \"{src,test}/**/*.ts\" --fix --color",
         "build": "tsc",
         "watch": "tsc --watch",
-        "test:e2e": "jest --color --verbose",
-        "test:update-snapshots": "yarn test -u",
-        "test:watch": "jest --watch"
+        "test:e2e": "jest --color --verbose"
     },
     "devDependencies": {
         "@quatico/websmith-api": "^0.2.2",

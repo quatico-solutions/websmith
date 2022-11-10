@@ -18,7 +18,7 @@ class TestCompiler extends TsCompiler {
     private sys: ts.System | undefined;
 
     constructor(options: CompilerOptions, pluginOptions?: PluginOptions) {
-        super(options, pluginOptions);
+        super(options, path => console.info(`dependency ${path} added`), pluginOptions);
         this.sys = super.getSystem();
     }
 

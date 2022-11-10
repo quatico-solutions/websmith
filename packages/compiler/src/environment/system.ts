@@ -57,7 +57,7 @@ export const getVersionedFile = (filePath: string, system: ts.System): ts.Source
 export const createVersionedFile = (name: string, content: string, options: ts.CompilerOptions): VersionedFile => {
     const scriptKind = name.endsWith(".ts") ? undefined : ts.ScriptKind.Deferred;
     return {
-        ...ts.createSourceFile(name, content, options.target || ts.ScriptTarget.Latest, undefined, scriptKind),
+        ...ts.createSourceFile(name, content, options.target || ts.ScriptTarget.Latest, true, scriptKind),
         version: 0,
     };
 };

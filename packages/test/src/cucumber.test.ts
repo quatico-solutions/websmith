@@ -9,3 +9,7 @@ import { cliSteps } from "./steps/cli.steps";
 
 const features = loadFeatures("src/features/**/*.feature", { tagFilter: "not @skip" });
 autoBindSteps(features, [cliSteps]);
+
+describe.skip("empty", () => {
+    it.skip("empty", () => undefined);
+});

@@ -35,13 +35,17 @@ export function setInstanceInCache(key: webpack.Compiler | undefined, loader: we
     cache.set(compiler, instances);
 }
 
-export const initializeInstance = (loader: LoaderContext<PluginOptions>, options: PluginOptions): TsCompiler => {
+export const initializeInstance = (
+    loader: LoaderContext<PluginOptions>,
+    options: PluginOptions,
+    dependencyCallback: (filePath: string) => void
+): TsCompiler => {
     const compiler = loader._compiler ?? marker;
     let instance = getInstanceFromCache(compiler, loader);
     if (!instance) {
-        instance = new TsCompiler(createOptions(options), options);
+        instance = new TsCompiler(createOptions(options), dependencyCallback, options);
         if (compiler !== marker) {
-            addCompilationHooks(compiler, options);
+            addCompilationHooks(compiler, options, dependencyCallback);
         }
     }
     instance.pluginConfig = options;

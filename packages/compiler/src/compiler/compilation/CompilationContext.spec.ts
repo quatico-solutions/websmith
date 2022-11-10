@@ -38,6 +38,13 @@ class CompilationContextTestClass extends CompilationContext {
         this.getCache().updateSource(fileName, content);
         return this;
     }
+    public isCodeFileExtension(filePath: string): boolean {
+        return super.isCodeFileExtension(filePath);
+    }
+
+    public registerDependency(childPath: string, parentPath: string): void {
+        super.registerDependency(childPath, parentPath);
+    }
 }
 
 let testObj: CompilationContextTestClass;
@@ -209,8 +216,88 @@ describe("removeOutputFile", () => {
 
         expect(testObj.getRootFiles()).not.toContain("/unexpected/test.ts");
         expect(testObj.getFileContent("/unexpected/test.ts")).toBe("");
-        expect(testObj.getCache().getCachedFile("/unexpected/test.ts")).toEqual({ files: [], version: 0 });
+        expect(testObj.getCache().getCachedFile("/unexpected/test.ts")).toEqual(expect.objectContaining({ files: [], version: 0 }));
         expect(testSystem.readFile("/expected/one.ts")).toBe('export const expected = () => "expected";');
+    });
+});
+
+describe("isCodeFileExtension", () => {
+    it.each([
+        ["expected.ts", true],
+        ["expected.d.tsx", true],
+        ["expected.cts", true],
+        ["expected.d.cts", true],
+        ["expected.cjs", true],
+        // TODO: Implement
+        // ["expected.d.cjs", false],
+        ["expected.mts", true],
+        ["expected.d.mts", true],
+        ["expected.mjs", true],
+        // TODO: Implement
+        // ["expected.d.mjs", false],
+        ["expected.scss", false],
+        ["expected.json", false],
+    ])("isCodeFileExtension(%s)=%s", (input, expected) => {
+        const actual = testObj.isCodeFileExtension(input);
+
+        expect(actual).toBe(expected);
+    });
+});
+
+describe("addInputFile", () => {
+    it("write an error when adding an scss file", () => {
+        const target = jest.fn();
+        // eslint-disable-next-line no-console
+        console.error = target;
+
+        testObj.addInputFile("expected.scss");
+
+        expect(target).toHaveBeenNthCalledWith(
+            1,
+            "Only code files are supported for addInputFile. .scss of expected.scss is no valid code file extension."
+        );
+    });
+});
+
+describe("addAssetDependency", () => {
+    it("registers dependency with dependency function w/o dependency callback function provided", () => {
+        const target = jest.fn();
+        testObj = new CompilationContextTestClass({
+            buildDir: "",
+            project: {},
+            projectDir: testSystem.getCurrentDirectory(),
+            reporter: new ReporterMock(testSystem),
+            rootFiles: [],
+            system: testSystem,
+            program: testProgram,
+            tsconfig: { options: {}, fileNames: [], errors: [] },
+            target: "test",
+        });
+        testObj.registerDependency = target;
+
+        testObj.addAssetDependency("test.scss", "test.ts");
+
+        expect(target).toHaveBeenCalledWith("test.scss", "test.ts");
+    });
+
+    it("registers dependency with dependency callback function w/ dependency callback function provided", () => {
+        const target = jest.fn();
+        testObj = new CompilationContextTestClass({
+            buildDir: "",
+            project: {},
+            projectDir: testSystem.getCurrentDirectory(),
+            reporter: new ReporterMock(testSystem),
+            rootFiles: [],
+            system: testSystem,
+            program: testProgram,
+            tsconfig: { options: {}, fileNames: [], errors: [] },
+            target: "test",
+            registerDependencyCallback: target,
+        });
+
+        testObj.addAssetDependency("test.scss", "test.ts");
+
+        expect(target).toHaveBeenCalledWith("test.scss");
     });
 });
 
@@ -220,11 +307,13 @@ describe("addVirtualFile", () => {
 
         expect(testObj.getRootFiles()).toContain("/unexpected/test.ts");
         expect(testObj.getFileContent("/unexpected/test.ts")).toBe('export const expected = () => "expected";');
-        expect(testObj.getCache().getCachedFile("/unexpected/test.ts")).toEqual(expect.objectContaining({
-            content: 'export const expected = () => "expected";',
-            version: 1,
-            snapshot: ts.ScriptSnapshot.fromString('export const expected = () => "expected";'),
-        }));
+        expect(testObj.getCache().getCachedFile("/unexpected/test.ts")).toEqual(
+            expect.objectContaining({
+                content: 'export const expected = () => "expected";',
+                version: 1,
+                snapshot: ts.ScriptSnapshot.fromString('export const expected = () => "expected";'),
+            })
+        );
         expect(testSystem.fileExists("/unexpected/test.ts")).toBe(false);
     });
 });
