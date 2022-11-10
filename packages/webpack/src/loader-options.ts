@@ -17,6 +17,7 @@ export interface PluginArguments {
     debug?: boolean;
     project?: string;
     sourceMap?: boolean;
+    transpileOnly?: boolean;
     targets?: string;
     webpackTarget?: string;
 }

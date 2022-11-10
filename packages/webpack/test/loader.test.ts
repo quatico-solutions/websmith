@@ -102,6 +102,19 @@ describe("webpack loader", () => {
         expect(output).toContain('/***/ "./test/__data__/module-date/src/model/index.ts":');
     });
 
+    it("should bundle invalid TypeScript file w/ transpileOnly being used", async () => {
+        const target = resolve(projectDir, ".build", "lib", "main.js");
+
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_transpileOnly.config.js"), projectDir);
+        cleanupCompiler = compiler;
+
+        expect(statSync(target).isFile()).toBe(true);
+        expect(stats?.compilation.getWarnings()).toEqual([]);
+        const output = readFileSync(target).toString();
+        expect(output).toContain('/***/ "./test/__data__/module-date/src/invalid.ts":');
+    });
+
     it("should bundle the file w/ fork-ts-checker-webpack-plugin being used", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
