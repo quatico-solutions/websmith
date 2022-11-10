@@ -59,7 +59,7 @@ describe("project bundling", () => {
             `-file: "${resolve(__dirname, "__data__/module-date/src/index.tsx")}"\nexports: [render]`,
             `-file: "${resolve(__dirname, "__data__/module-date/src/functions/getDate.ts")}"\nexports: [getDate]`,
             `-file: "${resolve(__dirname, "__data__/module-date/src/model/index.ts")}"\nexports: []`,
-            `-file: "${resolve(__dirname, "__data__/module-date/src/model/test.ts")}"\nexports: [createTest]`,
+            `-file: "${resolve(__dirname, "__data__/module-date/src/model/create-message.ts")}"\nexports: [createMessage]`,
         ].forEach(it => expect(expected).toContain(it));
 
         compiler.close(() => undefined);
