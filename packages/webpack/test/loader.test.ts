@@ -162,7 +162,7 @@ const waitFor = (fn: () => boolean, tag: string, maximum = 80) => {
                 clearInterval(interval);
                 reject(false);
             }
-        }, 100);
+        }, 200);
     });
 };
 

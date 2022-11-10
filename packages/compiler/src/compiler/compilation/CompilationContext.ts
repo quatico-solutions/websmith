@@ -46,8 +46,8 @@ export class CompilationContext implements AddonContext {
     private watchCallback: (filePath: string) => void;
     private registerDependencyCb?: (filePath: string) => void;
 
-    private assetAssetDependency: Map<string, string> = new Map();
-    private assetCodeDependency: Map<string, string> = new Map();
+    private assetAssetDependency: Map<string, string[]> = new Map();
+    private assetCodeDependency: Map<string, string[]> = new Map();
 
     constructor(options: CompilationContextOptions) {
         const { buildDir, config, program, project, projectDir, rootFiles, system, target, tsconfig, watchCallback, registerDependencyCallback } =
@@ -117,11 +117,12 @@ export class CompilationContext implements AddonContext {
     }
 
     // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
-    public resolveDependency(dependencyPath?: string): string {
+    public resolveDependency(dependencyPath?: string): string[] {
         if (dependencyPath !== undefined) {
             const resolvedDependency = this.assetAssetDependency.has(dependencyPath)
                 ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  this.resolveDependency(this.assetAssetDependency.get(dependencyPath)!)
+                  this.assetAssetDependency.get(dependencyPath)?.flatMap(cur => this.resolveDependency(cur))
+                   // this.resolveDependency(this.assetAssetDependency.get(dependencyPath)!)
                 : this.assetCodeDependency.has(dependencyPath)
                 ? this.assetCodeDependency.get(dependencyPath)
                 : undefined;
@@ -286,12 +287,22 @@ export class CompilationContext implements AddonContext {
             if (!this.assetCodeDependency.has(childPath)) {
                 registerForWatch();
             }
-            this.assetCodeDependency.set(childPath, parentPath);
+
+            const dependencies = this.assetCodeDependency.get(childPath) ?? [];
+            if (!dependencies.includes(parentPath)) {
+                dependencies.push(parentPath);
+            }
+            this.assetCodeDependency.set(childPath, dependencies);
         } else {
             if (!this.assetAssetDependency.has(childPath)) {
                 registerForWatch();
             }
-            this.assetAssetDependency.set(childPath, parentPath);
+
+            const dependencies = this.assetAssetDependency.get(childPath) ?? [];
+            if (!dependencies.includes(parentPath)) {
+                dependencies.push(parentPath);
+            }
+            this.assetAssetDependency.set(childPath, dependencies);
         }
     }
 }

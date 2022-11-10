@@ -6,10 +6,10 @@
  */
 /* eslint-disable jest/no-mocks-import */
 import { TargetConfig } from "@quatico/websmith-api/src";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
 import { basename, dirname, join } from "path";
 import type { LanguageService, Program } from "typescript";
-import ts from "typescript";
+import * as ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createBrowserSystem, createSystem } from "../environment";
 import { AddonRegistry } from "./addons";
@@ -69,21 +69,32 @@ const testSystem = createBrowserSystem(
             export = content;
         }
         `,
+        "src/shared.scss": `{
+            .shared {
+                display: none;
+            }
+        }`,
+        "src/shared1.ts": `import "./shared.scss";
+        @customElement("shared-one")
+        export class Shared1 {}`,
+        "src/shared2.ts": `import "./shared.scss";
+        @customElement("shared-two")
+        export class Shared2 {}`,
     },
     ts.sys.useCaseSensitiveFileNames
 );
 
 class CompilerTestClass extends Compiler {
-    constructor(options: CompilerOptions) {
-        super(options, testSystem);
+    constructor(options: CompilerOptions, system?: ts.System) {
+        super(options, system ?? testSystem);
     }
 
     public report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         return super.report(program, result);
     }
 
-    public emitSourceFile(fileName: string, target: string, writeFile: boolean): CompileFragment {
-        return super.emitSourceFile(fileName, target, writeFile);
+    public emitSourceFile(fileName: string, target: string, writeFile: boolean, skipCache = false): CompileFragment {
+        return super.emitSourceFile(fileName, target, writeFile, skipCache);
     }
 
     public createTargetContextsIfNecessary(): this {
@@ -127,6 +138,7 @@ beforeEach(() => {
         watch: false,
     };
     testObj = new CompilerTestClass(config);
+    // exportFile(testSystem, join("addons", "fake-scss", "addon.ts"), join(__dirname, "__test__", "addons", "fake-scss", "addon.ts"));
 });
 
 describe("getSystem", () => {
@@ -796,6 +808,148 @@ describe("watch", () => {
         expect(readFileSync(join(outDir, "target1", "arrow.d.ts")).toString()).toBe("");
         expect(readFileSync(join(outDir, "target2", "arrow.js")).toString()).toBe("");
         expect(existsSync(join(outDir, "target2", "arrow.d.ts"))).toBe(false);
+    });
+
+    it("should output to multiple targets outDir w/ multiple targets, transpileOnly and outDir override", async () => {
+        testObj = new Compiler(
+            {
+                addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+                buildDir: ts.sys.getCurrentDirectory(),
+                config: {
+                    configFilePath: join(__dirname, "websmith.config.json"),
+                    targets: {
+                        target1: { writeFile: true, options: { outDir: join(outDir, "target1"), configFilePath: "./tsconfig.json" } },
+                        target2: {
+                            writeFile: true,
+                            options: { outDir: join(outDir, "target2"), declaration: false, configFilePath: "./tsconfig.json" },
+                        },
+                    },
+                },
+                project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest, configFilePath: "./tsconfig.json" },
+                reporter,
+                targets: ["target1", "target2"],
+                tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
+                debug: false,
+                sourceMap: false,
+                transpileOnly: true,
+                watch: true,
+            },
+            ts.sys
+        );
+
+        testObj.watch();
+
+        expect(readFileSync(join(outDir, "target1", "arrow.js")).toString()).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+        expect(readFileSync(join(outDir, "target2", "arrow.js")).toString()).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+        writeFileSync(exportedFileName, "");
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+        expect(readFileSync(join(outDir, "target1", "arrow.js")).toString()).toBe("");
+        expect(readFileSync(join(outDir, "target2", "arrow.js")).toString()).toBe("");
+    });
+
+    it("yields multiple code transpilations w/ a shared asset dependency", async () => {
+        exportFile(testSystem, "src/shared1.ts", join(buildDir, "shared1.ts"));
+        exportFile(testSystem, "src/shared2.ts", join(buildDir, "shared2.ts"));
+        exportFile(testSystem, "src/shared.scss", join(buildDir, "shared.scss"));
+        testObj = new CompilerTestClass(
+            {
+                addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+                buildDir: ts.sys.getCurrentDirectory(),
+                config: {
+                    configFilePath: join(__dirname, "websmith.config.json"),
+                    targets: {
+                        target1: { writeFile: true, options: { outDir: join(outDir, "target1") } },
+                    },
+                },
+                project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest, configFilePath: "./tsconfig.json" },
+                reporter,
+                targets: ["target1"],
+                tsconfig: {
+                    options: { outDir },
+                    fileNames: [join(__dirname, "__test__", "src", "shared1.ts"), join(__dirname, "__test__", "src", "shared2.ts")],
+                    errors: [],
+                },
+                debug: false,
+                sourceMap: false,
+                transpileOnly: false,
+                watch: true,
+            },
+            ts.sys
+        ).createTargetContextsIfNecessary();
+        Array.from(testObj.contextMap.values()).forEach(cur => {
+            cur.addAssetDependency(join(buildDir, "shared.scss"), join(buildDir, "shared1.ts"));
+            cur.addAssetDependency(join(buildDir, "shared.scss"), join(buildDir, "shared2.ts"));
+        });
+        const target = jest.fn();
+        // eslint-disable-next-line no-console
+        console.log = target;
+
+        testObj.watch();
+
+        const timeStamps = [statSync(join(outDir, "target1", "shared1.js")).mtimeMs, statSync(join(outDir, "target1", "shared2.js")).mtimeMs];
+        expect(target).toHaveBeenCalledTimes(2);
+
+        target.mockClear();
+        writeFileSync(
+            join(buildDir, "shared.scss"),
+            `{
+            .shared {
+                display: block;
+            }
+        }`,
+            {}
+        );
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        const actual = [statSync(join(outDir, "target1", "shared1.js")).mtimeMs, statSync(join(outDir, "target1", "shared2.js")).mtimeMs];
+        expect(actual[0] > timeStamps[0]).toBe(true);
+        expect(actual[1] > timeStamps[1]).toBe(true);
+
+        expect(target).toHaveBeenCalledTimes(2);
+        expect(target).toHaveBeenNthCalledWith(1, `Emit: ${join(buildDir, "shared1.ts")} for target1`);
+        expect(target).toHaveBeenNthCalledWith(2, `Emit: ${join(buildDir, "shared2.ts")} for target1`);
+    });
+
+    it("yields a single emitSourceFile invocation per file change", async () => {
+        testObj = new CompilerTestClass({
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+            buildDir: ts.sys.getCurrentDirectory(),
+            config: {
+                configFilePath: join(__dirname, "websmith.config.json"),
+                targets: {
+                    target1: { writeFile: true, options: { outDir: join(outDir, "target1") } },
+                },
+            },
+            project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest, configFilePath: "./tsconfig.json" },
+            reporter,
+            targets: ["target1"],
+            tsconfig: {
+                options: { outDir },
+                fileNames: [join(__dirname, "__test__", "src", "arrow.ts")],
+                errors: [],
+            },
+            debug: false,
+            sourceMap: false,
+            transpileOnly: false,
+            watch: true,
+        }, ts.sys).createTargetContextsIfNecessary();
+        const target = jest.fn();
+        (testObj as CompilerTestClass).emitSourceFile = target;
+
+        testObj.watch();
+        target.mockClear();
+
+        writeFileSync(join(buildDir, "arrow.ts"), `const a = 3;`, {});
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        expect(target).toHaveBeenCalledWith(join(__dirname, "__test__", "src", "arrow.ts"), "target1", true, true);
     });
 });
 

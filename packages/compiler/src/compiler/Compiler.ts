@@ -7,7 +7,7 @@
 
 import { ErrorMessage, Reporter, TargetConfig } from "@quatico/websmith-api";
 import { dirname, extname, join } from "path";
-import ts, { WatchDirectoryKind, WatchFileKind } from "typescript";
+import ts, { PollingWatchKind, WatchFileKind } from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
@@ -139,22 +139,30 @@ export class Compiler {
     }
 
     public registerWatch(filePath: string, emitTargets: string[]) {
+        if (!this.system.watchFile) {
+            return;
+        }
+
         this.fileWatchers.push(
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            this.system.watchFile!(
+            this.system.watchFile(
                 filePath,
                 fileName =>
                     emitTargets.forEach(target =>
                         fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                            ? this.emitSourceFile(fileName, target, true)
+                            ? this.emitSourceFile(fileName, target, true, true)
                             : this.contextMap.has(target) &&
                               // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                              this.emitSourceFile(this.contextMap.get(target)!.resolveDependency(fileName), target, true, true)
+                              this.contextMap
+                                  .get(target)!
+                                  .resolveDependency(fileName)
+                                  .map(cur => this.emitSourceFile(cur, target, true, true))
                     ),
-                undefined,
+                50,
                 {
-                    watchFile: WatchFileKind.UseFsEvents,
-                    watchDirectory: WatchDirectoryKind.UseFsEvents,
+                    // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
+                    // In addition, the ts.System.getModifiedTime will report incorrect timeStamps, making it impossible to prevent the double firing.
+                    watchFile: WatchFileKind.PriorityPollingInterval,
+                    fallbackPolling: PollingWatchKind.FixedInterval,
                 }
             )
         );
@@ -220,6 +228,8 @@ export class Compiler {
             cache.updateSource(filePath, content);
             let output: (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined;
 
+            // eslint-disable-next-line no-console
+            console.log(`Emit: ${fileName} for ${target}`);
             if (this.options.transpileOnly) {
                 if (fileName.endsWith(".d.ts")) {
                     output = undefined;
@@ -228,7 +238,7 @@ export class Compiler {
                     if (!isSourceFile(fileName)) {
                         // JSON are only output by TypoScript if an outDir is provided.
                         if (this.options.project.outDir !== undefined) {
-                            const fileNames = ts.getOutputFileNames(this.options.tsconfig, fileName, !this.system.useCaseSensitiveFileNames);
+                            const fileNames = ts.getOutputFileNames(ctx.getConfig(), fileName, !this.system.useCaseSensitiveFileNames);
                             output = { outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }], emitSkipped: false };
                         } else {
                             output = { outputFiles: [], emitSkipped: false };
@@ -241,7 +251,7 @@ export class Compiler {
                             fileName,
                             transformers: ctx.getTransformers(),
                         });
-                        const fileNames = ts.getOutputFileNames(this.options.tsconfig, fileName, !this.system.useCaseSensitiveFileNames);
+                        const fileNames = ts.getOutputFileNames(ctx.getConfig(), fileName, !this.system.useCaseSensitiveFileNames);
                         output = {
                             outputFiles: concat(
                                 this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText),
@@ -279,7 +289,7 @@ export class Compiler {
 
     private extractOutputFile(fileNames: readonly string[], fileFilter: (name: string) => boolean, content?: string) {
         const fileName = fileNames.find(fileFilter);
-        return fileName && content ? [<ts.OutputFile>{ name: fileName, text: content, writeByteOrderMark: false }] : [];
+        return fileName ? [<ts.OutputFile>{ name: fileName, text: content ?? "", writeByteOrderMark: false }] : [];
     }
 
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
