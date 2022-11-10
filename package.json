@@ -30,8 +30,8 @@
         ]
     },
     "scripts": {
-        "clean": "lerna run --stream clean",
-        "lint": "lerna run --stream lint",
+        "clean": "lerna run --stream --parallel clean",
+        "lint": "lerna run --stream --parallel lint",
         "build": "lerna run --stream build && lerna link",
         "watch": "lerna run --parallel --stream watch",
         "test": "lerna run --stream test",

@@ -23,17 +23,20 @@ beforeEach(() => {
     context = { _compilation: { hash: randomUUID() } as Compilation } as LoaderContext<any>;
 
     const reporter = new NoReporter();
-    tsCompiler = new TsCompiler({
-        addons: new AddonRegistry({ addonsDir: "./addons", reporter: reporter, system: ts.sys }),
-        buildDir: "./src",
-        project: {},
-        reporter,
-        targets: [],
-        tsconfig: { options: { outDir: ".build" }, fileNames: [], errors: [] },
-        debug: false,
-        sourceMap: false,
-        watch: false,
-    });
+    tsCompiler = new TsCompiler(
+        {
+            addons: new AddonRegistry({ addonsDir: "./addons", reporter: reporter, system: ts.sys }),
+            buildDir: "./src",
+            project: {},
+            reporter,
+            targets: [],
+            tsconfig: { options: { outDir: ".build" }, fileNames: [], errors: [] },
+            debug: false,
+            sourceMap: false,
+            watch: false,
+        },
+        _ => undefined
+    );
 });
 
 afterEach(() => {
@@ -45,7 +48,12 @@ describe("initializeInstance", () => {
     it("should create a TsCompiler instance w/o instance in cache", () => {
         const target = { _compiler: {} as Compiler } as LoaderContext<any>;
 
-        const actual = initializeInstance(target, { config: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json") });
+        const actual = initializeInstance(
+            target,
+            { config: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json") },
+            // eslint-disable-next-line no-console
+            path => console.info(`dependency ${path} added`)
+        );
 
         expect(actual).toEqual(getInstanceFromCache(target._compiler!, target));
     });
