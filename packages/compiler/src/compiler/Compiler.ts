@@ -228,6 +228,8 @@ export class Compiler {
             cache.updateSource(filePath, content);
             let output: (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined;
 
+            // eslint-disable-next-line no-console
+            console.log(`Emit: ${fileName} for ${target}`);
             if (this.options.transpileOnly) {
                 if (fileName.endsWith(".d.ts")) {
                     output = undefined;
@@ -236,7 +238,7 @@ export class Compiler {
                     if (!isSourceFile(fileName)) {
                         // JSON are only output by TypoScript if an outDir is provided.
                         if (this.options.project.outDir !== undefined) {
-                            const fileNames = ts.getOutputFileNames(this.options.tsconfig, fileName, !this.system.useCaseSensitiveFileNames);
+                            const fileNames = ts.getOutputFileNames(ctx.getConfig(), fileName, !this.system.useCaseSensitiveFileNames);
                             output = { outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }], emitSkipped: false };
                         } else {
                             output = { outputFiles: [], emitSkipped: false };
@@ -249,7 +251,7 @@ export class Compiler {
                             fileName,
                             transformers: ctx.getTransformers(),
                         });
-                        const fileNames = ts.getOutputFileNames(this.options.tsconfig, fileName, !this.system.useCaseSensitiveFileNames);
+                        const fileNames = ts.getOutputFileNames(ctx.getConfig(), fileName, !this.system.useCaseSensitiveFileNames);
                         output = {
                             outputFiles: concat(
                                 this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText),
@@ -287,7 +289,7 @@ export class Compiler {
 
     private extractOutputFile(fileNames: readonly string[], fileFilter: (name: string) => boolean, content?: string) {
         const fileName = fileNames.find(fileFilter);
-        return fileName && content ? [<ts.OutputFile>{ name: fileName, text: content, writeByteOrderMark: false }] : [];
+        return fileName ? [<ts.OutputFile>{ name: fileName, text: content ?? "", writeByteOrderMark: false }] : [];
     }
 
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {

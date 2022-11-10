@@ -809,6 +809,50 @@ describe("watch", () => {
         expect(existsSync(join(outDir, "target2", "arrow.d.ts"))).toBe(false);
     });
 
+    it("should output to multiple targets outDir w/ multiple targets, transpileOnly and outDir override", async () => {
+        testObj = new Compiler(
+            {
+                addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: testSystem }),
+                buildDir: ts.sys.getCurrentDirectory(),
+                config: {
+                    configFilePath: join(__dirname, "websmith.config.json"),
+                    targets: {
+                        target1: { writeFile: true, options: { outDir: join(outDir, "target1"), configFilePath: "./tsconfig.json" } },
+                        target2: {
+                            writeFile: true,
+                            options: { outDir: join(outDir, "target2"), declaration: false, configFilePath: "./tsconfig.json" },
+                        },
+                    },
+                },
+                project: { declaration: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest, configFilePath: "./tsconfig.json" },
+                reporter,
+                targets: ["target1", "target2"],
+                tsconfig: { options: { outDir }, fileNames: [join(__dirname, "__test__", "src", "arrow.ts")], errors: [] },
+                debug: false,
+                sourceMap: false,
+                transpileOnly: true,
+                watch: true,
+            },
+            ts.sys
+        );
+
+        testObj.watch();
+
+        expect(readFileSync(join(outDir, "target1", "arrow.js")).toString()).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+        expect(readFileSync(join(outDir, "target2", "arrow.js")).toString()).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+        writeFileSync(exportedFileName, "");
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+        expect(readFileSync(join(outDir, "target1", "arrow.js")).toString()).toBe("");
+        expect(readFileSync(join(outDir, "target2", "arrow.js")).toString()).toBe("");
+    });
+
     it("yields multiple code transpilations w/ a shared asset dependency", async () => {
         exportFile(testSystem, "src/shared1.ts", join(buildDir, "shared1.ts"));
         exportFile(testSystem, "src/shared2.ts", join(buildDir, "shared2.ts"));
