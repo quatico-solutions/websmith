@@ -265,7 +265,6 @@ export class Compiler {
             } else {
                 const isSourceFile = (name: string) => name.match(/\.([cm]?ts|tsx)$/i);
                 if (!isSourceFile(fileName)) {
-                    // JSON are only output by TypoScript if an outDir is provided.
                     return this.transpileJson(compilationFragment);
                 }
                 return this.transpileSourceCode(compilationFragment);
@@ -296,6 +295,7 @@ export class Compiler {
     }
 
     private transpileJson({ ctx, fileName, content }: CompilationFragment) {
+        // JSON are only output by TypoScript if an outDir is provided, otherwise they are ignored.
         if (this.options.project.outDir !== undefined) {
             const fileNames = ts.getOutputFileNames(ctx.getConfig(), fileName, !this.system.useCaseSensitiveFileNames);
             return { outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }], emitSkipped: false };
