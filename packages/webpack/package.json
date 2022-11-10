@@ -24,7 +24,7 @@
         "lint": "eslint \"{src,test}/**/*.{js,ts,tsx}\" --fix --color",
         "build": "tsc",
         "watch": "tsc --watch",
-        "test": "jest --color --verbose --coverage --passWithNoTests",
+        "test": "jest --color --verbose --coverage",
         "test:watch": "jest --color --watch",
         "test:e2e": "jest -c jest.e2e.config.js --color --verbose --runInBand",
         "dist": "yarn clean && yarn lint && yarn test && cross-env-shell NODE_ENV=production \"yarn build\" && yarn test:e2e",
