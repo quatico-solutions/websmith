@@ -9,6 +9,7 @@ import { ErrorMessage, Reporter, TargetConfig } from "@quatico/websmith-api";
 import { dirname, extname, join } from "path";
 import ts, { PollingWatchKind, WatchFileKind } from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
+import { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
 import { CompilerOptions } from "./CompilerOptions";
@@ -227,26 +228,84 @@ export class Compiler {
             ctx.getProcessors().forEach(cur => (content = cur(fileName, content)));
             cache.updateSource(filePath, content);
 
-            this.compilationHost.setLanguageHost(ctx.getLanguageHost());
-            const output: ts.EmitOutput & { diagnostics?: ts.Diagnostic[] } = this.langService.getEmitOutput(fileName);
-
-            if (output && !output.emitSkipped) {
-                cache.updateOutput(fileName, output.outputFiles);
-
-                this.version++;
-                if (writeFile && output.outputFiles) {
-                    this.writeOutputFiles(output.outputFiles);
-                }
-                return {
-                    version: cache.getVersion(fileName),
-                    files: output.outputFiles,
-                };
-            } else {
-                return { version: cache.getVersion(fileName), files: [], diagnostics: output.diagnostics };
-            }
+            return this.processOutput(cache, this.transpile({ fileName, ctx, content }), writeFile, fileName);
         }
 
         throw new Error(`No target ${target} configured`);
+    }
+
+    private processOutput(
+        cache: FileCache,
+        output: (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined,
+        writeFile: boolean,
+        fileName: string
+    ) {
+        if (output && !output.emitSkipped) {
+            cache.updateOutput(fileName, output.outputFiles);
+
+            this.version++;
+            if (writeFile && output.outputFiles) {
+                this.writeOutputFiles(output.outputFiles);
+            }
+            return {
+                version: cache.getVersion(fileName),
+                files: output.outputFiles,
+                diagnostics: output.diagnostics,
+            };
+        } else {
+            return { version: cache.getVersion(fileName), files: [], diagnostics: output?.diagnostics };
+        }
+    }
+
+    private transpile(compilationFragment: CompilationFragment) {
+        const { fileName, ctx } = compilationFragment;
+        if (this.options.transpileOnly) {
+            if (fileName.endsWith(".d.ts")) {
+                return undefined;
+            } else {
+                const isSourceFile = (name: string) => name.match(/\.([cm]?ts|tsx)$/i);
+                if (!isSourceFile(fileName)) {
+                    return this.transpileJson(compilationFragment);
+                }
+                return this.transpileSourceCode(compilationFragment);
+            }
+        }
+
+        this.compilationHost.setLanguageHost(ctx.getLanguageHost());
+        return this.langService.getEmitOutput(fileName);
+    }
+
+    private transpileSourceCode({ content, ctx, fileName }: CompilationFragment) {
+        const isTranspiledSourceFile = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)$/i);
+        const isSourceMap = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)\.map$/i);
+        const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
+            compilerOptions: ctx.getConfig().options,
+            fileName,
+            transformers: ctx.getTransformers(),
+        });
+        const fileNames = ts.getOutputFileNames(ctx.getConfig(), fileName, !this.system.useCaseSensitiveFileNames);
+        return {
+            outputFiles: concat(
+                this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText),
+                this.extractOutputFile(fileNames, isSourceMap, sourceMapText)
+            ),
+            diagnostics,
+            emitSkipped: diagnostics !== undefined && diagnostics.length > 0,
+        };
+    }
+
+    private transpileJson({ ctx, fileName, content }: CompilationFragment) {
+        // JSON are only output by TypoScript if an outDir is provided, otherwise they are ignored.
+        if (this.options.project.outDir !== undefined) {
+            const fileNames = ts.getOutputFileNames(ctx.getConfig(), fileName, !this.system.useCaseSensitiveFileNames);
+            return { outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }], emitSkipped: false };
+        }
+        return { outputFiles: [], emitSkipped: false };
+    }
+
+    private extractOutputFile(fileNames: readonly string[], fileFilter: (name: string) => boolean, content?: string) {
+        const fileName = fileNames.find(fileFilter);
+        return fileName ? [<ts.OutputFile>{ name: fileName, text: content ?? "", writeByteOrderMark: false }] : [];
     }
 
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
@@ -284,4 +343,10 @@ const getTargetConfig = (target: string, config?: CompilationConfig): TargetConf
         return targets[target] ?? {};
     }
     return {};
+};
+
+type CompilationFragment = {
+    ctx: CompilationContext;
+    fileName: string;
+    content: string;
 };

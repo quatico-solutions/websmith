@@ -13,20 +13,9 @@ import { CompilationConfig, resolveCompilationConfig, resolveProjectConfig, reso
 import { DefaultReporter } from "./DefaultReporter";
 import { tsDefaults, tsLibDefaults } from "./defaults";
 import { NoReporter } from "./NoReporter";
-// TODO: Styles: Add support for style processors via addon
-// import {
-//     createStyleCompiler,
-//     parseStyles,
-//     StyleCompilerOptions,
-//     StyleVisitor,
-//     visitNode,
-//     writeNode,
-// } from "../addons/style-compiler";
 
 export {
     AddonRegistry,
-    CompilerAddon,
-    CompilationConfig,
     Compiler,
     DefaultReporter,
     NoReporter,
@@ -36,12 +25,5 @@ export {
     tsDefaults,
     tsLibDefaults,
     updateCompilerOptions,
-    // TODO: Styles: Add support for style processors via addon
-    // createStyleCompiler,
-    // parseStyles,
-    // StyleCompilerOptions,
-    // StyleVisitor,
-    // visitNode,
-    // writeNode,
 };
-export type { CompileFragment, CompilerOptions, CompilationContext };
+export type { CompilerAddon, CompilationConfig, CompileFragment, CompilerOptions, CompilationContext };

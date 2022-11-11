@@ -16,15 +16,13 @@ import {
     resolveTargets,
     tsDefaults,
     tsLibDefaults,
-    updateCompilerOptions
+    updateCompilerOptions,
 } from "./compiler";
 import { createBrowserSystem, createCompileHost, createSystem, createVersionedFiles, getVersionedFile, readFiles } from "./environment";
 
 export {
     AddonRegistry,
-    CompilationConfig,
     Compiler,
-    CompilerAddon,
     createBrowserSystem,
     createCompileHost,
     createSystem,
@@ -38,6 +36,6 @@ export {
     resolveTargets,
     tsDefaults,
     tsLibDefaults,
-    updateCompilerOptions
+    updateCompilerOptions,
 };
-export type { CompileFragment, CompilerOptions, CompilationContext };
+export type { CompilerAddon, CompileFragment, CompilationConfig, CompilerOptions, CompilationContext };

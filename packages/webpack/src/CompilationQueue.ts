@@ -59,4 +59,5 @@ const defaultQueue = new CompilationQueue();
 const contribute = () => defaultQueue.contribute();
 const whenDone = (callback: CompilationQueueCallback) => defaultQueue.whenDone(callback);
 
-export { CompilationQueue, CompilationQueueCallback, CompilationQueueContributor, contribute, whenDone };
+export type { CompilationQueueCallback, CompilationQueueContributor };
+export { CompilationQueue, contribute, whenDone };

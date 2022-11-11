@@ -73,6 +73,7 @@ export const createOptions = (args: CompilerArguments, reporter: Reporter = new 
         reporter,
         sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
         targets: resolveTargets(args.targets || DEFAULTS.targets, compilationConfig, reporter),
+        transpileOnly: args.transpileOnly ?? compilationConfig?.transpileOnly ?? false,
         watch: args.watch ?? DEFAULTS.watch,
     };
 };

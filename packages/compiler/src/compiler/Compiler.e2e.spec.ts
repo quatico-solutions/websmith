@@ -60,6 +60,7 @@ const createCompiler = (system: ts.System, options: ts.CompilerOptions = {}) => 
             reporter,
             sourceMap: false,
             targets: [],
+            transpileOnly: false,
             tsconfig: { options: options, fileNames: system.readDirectory("./src"), errors: [] },
             watch: false,
         },

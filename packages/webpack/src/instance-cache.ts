@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-
 import { createOptions } from "@quatico/websmith-cli";
 import webpack, { LoaderContext } from "webpack";
 import { PluginOptions } from "./loader-options";
@@ -14,7 +13,6 @@ import { addCompilationHooks } from "./webpack-hooks";
 // Some loaders (e.g. thread-loader) will limit the access to (loader) context information.
 // To ensure that the WeakMap key still works as it expected, we keep a global "marker" object to use and avoid runtime errors.
 const marker: webpack.Compiler = {} as webpack.Compiler;
-
 const cache: WeakMap<webpack.Compiler, Map<string, TsCompiler>> = new WeakMap();
 
 export function getInstanceFromCache(key: webpack.Compiler | undefined, loader: webpack.LoaderContext<PluginOptions>): TsCompiler | undefined {

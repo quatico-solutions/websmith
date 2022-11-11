@@ -33,6 +33,7 @@ beforeEach(() => {
             tsconfig: { options: { outDir: ".build" }, fileNames: [], errors: [] },
             debug: false,
             sourceMap: false,
+            transpileOnly: false,
             watch: false,
         },
         _ => undefined

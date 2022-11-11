@@ -14,7 +14,8 @@
 ### Performance Improvement
 
 - Improvement :gift_heart:: Upgrade Module loader implementation to Webpack 5.
-- Feature ✨: Asset dependencies can now be registered through the AddonContext
+- Feature ✨: Asset dependencies can now be registered through the AddonContext.
+- Feature ✨: Support transpile only in webpack and cli, speeding up compile and watch by a factor of 20.
 -
 
 ## v0.2.0

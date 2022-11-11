@@ -4,16 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-export interface CompilerArguments {
-    addons?: string;
-    addonsDir?: string;
-    buildDir?: string;
-    config?: string;
-    debug?: boolean;
-    files?: string[];
-    project?: string;
-    sourceMap?: boolean;
-    targets?: string;
-    transpileOnly?: boolean;
-    watch?: boolean;
-}
+import { typecheck } from "./edit-check";
+
+export { typecheck };

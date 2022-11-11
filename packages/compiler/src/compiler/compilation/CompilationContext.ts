@@ -120,9 +120,7 @@ export class CompilationContext implements AddonContext {
     public resolveDependency(dependencyPath?: string): string[] {
         if (dependencyPath !== undefined) {
             const resolvedDependency = this.assetAssetDependency.has(dependencyPath)
-                ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  this.assetAssetDependency.get(dependencyPath)?.flatMap(cur => this.resolveDependency(cur))
-                   // this.resolveDependency(this.assetAssetDependency.get(dependencyPath)!)
+                ? this.assetAssetDependency.get(dependencyPath)?.flatMap(cur => this.resolveDependency(cur))
                 : this.assetCodeDependency.has(dependencyPath)
                 ? this.assetCodeDependency.get(dependencyPath)
                 : undefined;
