@@ -407,18 +407,18 @@ describe("addCompileCommand#addons", () => {
 
         expect(target.getOptions().addons).toMatchInlineSnapshot(`
             AddonRegistry {
-              "addons": Array [
+              "addons": [
                 "one",
                 "two",
               ],
               "availableAddons": Map {
-                "one" => Object {
+                "one" => {
                   "activate": [Function],
                   "name": "one",
                 },
               },
-              "config": Object {
-                "addons": Array [
+              "config": {
+                "addons": [
                   "one",
                   "two",
                 ],

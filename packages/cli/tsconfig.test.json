@@ -3,7 +3,7 @@
     "compilerOptions": {
         "allowJs": true,
         "resolveJsonModule": true,
-        "baseUrl": "./",
+        "baseUrl": ".",
         "paths": {
             "@quatico/websmith-api": ["../api/src"],
             "@quatico/websmith-compiler": ["../compiler/src"]

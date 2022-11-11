@@ -476,7 +476,7 @@ describe("emitSourceFile", () => {
 
         const actual = testObj.emitSourceFile("src/config.json", "*", false);
 
-        expect(actual.files.find(cur => complexFileExtension(cur.name) === ".json")?.text).toMatchInlineSnapshot(`"{\\"name\\":\\"test\\"}"`);
+        expect(actual.files.find(cur => complexFileExtension(cur.name) === ".json")?.text).toMatchInlineSnapshot(`"{"name":"test"}"`);
     });
 
     it("yields transpiled client function w/o transpileOnly", () => {
@@ -558,7 +558,7 @@ describe("emitSourceFile", () => {
         const actual = testObj.emitSourceFile("src/config.json", "*", false);
 
         expect(actual.files.find(cur => complexFileExtension(cur.name) === ".json")?.text).toMatchInlineSnapshot(`
-            "{ \\"name\\": \\"test\\" }
+            "{ "name": "test" }
             "
         `);
     });

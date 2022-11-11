@@ -119,6 +119,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
 
         compiler = new Compiler(createOptions({ ...parseArgs(args), buildDir: "./dist", project: "./tsconfig.json" }));
         compiler.compile();
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         context = compiler.getContext()!;
     });
 
