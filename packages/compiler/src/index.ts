@@ -11,5 +11,5 @@ import type { CompilerArguments } from "./CompilerArguments";
 export { addCompileCommand, createOptions };
 export type { CompilerArguments };
 
-export { Compiler, NoReporter } from "@quatico/websmith-core";
+export { Compiler, NoReporter, DefaultReporter } from "@quatico/websmith-core";
 export type { CompilerOptions } from "@quatico/websmith-core";
