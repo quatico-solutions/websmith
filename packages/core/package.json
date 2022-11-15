@@ -1,9 +1,10 @@
 {
-    "name": "@quatico/websmith-compiler",
+    "name": "@quatico/websmith-core",
     "version": "0.2.2",
     "description": "A frontend for the TypeScript compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
+    "private": true,
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
     "repository": {

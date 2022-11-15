@@ -20,7 +20,7 @@ module.exports = {
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-cli": "<rootDir>/../cli/src",
-        "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
+        "@quatico/websmith-core": "<rootDir>/../core/src",
     },
     roots: ["<rootDir>/test/"],
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],

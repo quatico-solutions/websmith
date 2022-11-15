@@ -6,7 +6,7 @@
  */
 /* eslint-disable no-console */
 import { WarnMessage } from "@quatico/websmith-api";
-import { CompilationConfig, Compiler, DefaultReporter } from "@quatico/websmith-compiler";
+import { CompilationConfig, Compiler, DefaultReporter } from "@quatico/websmith-core";
 import { Command, program } from "commander";
 import parseArgs from "minimist";
 import { compileSystem } from "./compiler-system";

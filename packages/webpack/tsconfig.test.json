@@ -5,7 +5,7 @@
         "paths": {
             "@quatico/websmith-api": ["../api/src"],
             "@quatico/websmith-cli": ["../cli/src"],
-            "@quatico/websmith-compiler": ["../compiler/src"]
+            "@quatico/websmith-core": ["../core/src"]
         }
     },
 

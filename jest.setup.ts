@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
-import { createFs, resetFs } from "./packages/compiler/test/fusion-fs";
-import { tsLibMocks } from "./packages/compiler/test/tsLibMocks";
+import { createFs, resetFs } from "./packages/core/test/fusion-fs";
+import { tsLibMocks } from "./packages/core/test/tsLibMocks";
 import { readE2eTestData } from "./packages/test/src/test-data-helper";
 
 tsLibMocks();

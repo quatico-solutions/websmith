@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { createBrowserSystem } from "@quatico/websmith-compiler";
+import { createBrowserSystem } from "@quatico/websmith-core";
 import { findConfigFile, findSassConfig } from "./find-config";
 
 describe("findConfigFile", () => {

@@ -6,7 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { CompileFragment, Compiler, CompilerOptions } from "@quatico/websmith-compiler";
+import { CompileFragment, Compiler, CompilerOptions } from "@quatico/websmith-core";
 import ts from "typescript";
 import { WebpackError } from "webpack";
 import { PluginOptions } from "./loader-options";

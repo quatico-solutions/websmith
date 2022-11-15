@@ -13,7 +13,7 @@ import {
     resolveProjectConfig as resolveTsConfig,
     resolveTargets,
     updateCompilerOptions,
-} from "@quatico/websmith-compiler";
+} from "@quatico/websmith-core";
 import { dirname, join } from "path";
 import ts from "typescript";
 import { CompilerArguments } from "./CompilerArguments";

@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { AddonRegistry, NoReporter } from "@quatico/websmith-compiler";
+import { AddonRegistry, NoReporter } from "@quatico/websmith-core";
 import { randomUUID } from "crypto";
 import { rmSync } from "fs";
 import { join } from "path";

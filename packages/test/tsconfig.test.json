@@ -6,7 +6,7 @@
         "baseUrl": "./",
         "paths": {
             "@quatico/websmith-api": ["../api/src"],
-            "@quatico/websmith-compiler": ["../compiler/src"],
+            "@quatico/websmith-core": ["../core/src"],
             "@quatico/websmith-cli": ["../cli/src"]
         } /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */
     },

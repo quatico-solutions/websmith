@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { createSystem } from "@quatico/websmith-compiler";
+import { createSystem } from "@quatico/websmith-core";
 import ts from "typescript";
 
 export const compileSystem = (files?: { [name: string]: string }): ts.System => {

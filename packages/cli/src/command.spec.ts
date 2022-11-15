@@ -7,7 +7,7 @@
 /* eslint-disable no-console */
 
 import { WarnMessage } from "@quatico/websmith-api";
-import { Compiler, CompilerAddon, createBrowserSystem, NoReporter } from "@quatico/websmith-compiler";
+import { Compiler, CompilerAddon, createBrowserSystem, NoReporter } from "@quatico/websmith-core";
 import { Command } from "commander";
 import { join, normalize, resolve } from "path";
 import ts from "typescript";

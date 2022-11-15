@@ -7,7 +7,7 @@
 
 /* eslint-disable no-console */
 import { Reporter } from "@quatico/websmith-api";
-import { AddonRegistry, CompileFragment, CompilerOptions, NoReporter } from "@quatico/websmith-compiler";
+import { AddonRegistry, CompileFragment, CompilerOptions, NoReporter } from "@quatico/websmith-core";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import ts from "typescript";
