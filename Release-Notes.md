@@ -17,6 +17,13 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - Asset dependencies can now be registered through AddonContext using addAssetDependency.
 - Support transpile only in webpack and cli, speeding up compile and watch by a factor of 20.
 
+### Changed
+
+- The package @quatico/websmith-cli is now @quatico/websmith-compiler.
+- The original @quatico/websmith-compiler dependency is now bundled.
+- Expose API required for custom implementations through @quatico/websmith-compiler and @quatico/websmith-webpack.
+- Upgrade Module loader implementation to Webpack 5.
+
 ### Fixed
 
 - Upgrade Module loader implementation to Webpack 5.
