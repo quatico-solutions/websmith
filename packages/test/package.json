@@ -14,7 +14,7 @@
     },
     "devDependencies": {
         "@quatico/websmith-api": "^0.2.2",
-        "@quatico/websmith-cli": "^0.2.2",
+        "@quatico/websmith-compiler": "^0.2.2",
         "@quatico/websmith-core": "^0.2.2",
         "@swc/core": "1.3.14",
         "@swc/jest": "0.2.23",

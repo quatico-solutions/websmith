@@ -28,8 +28,8 @@ beforeEach(() => {
 
     // TODO: Find a better approach. We need to do this with the virtual test system to ensure, that we do not use the websmith tsconfig.json as they will resolve dozens to hundreds of filenames
     let testDir = normalize(join(process.cwd(), "test"));
-    if (!testDir.includes(join("cli", "test"))) {
-        testDir = testDir.replace(testDir.slice(testDir.indexOf("test")), join("packages", "cli", testDir.slice(testDir.indexOf("test"))));
+    if (!testDir.includes(join("compiler", "test"))) {
+        testDir = testDir.replace(testDir.slice(testDir.indexOf("test")), join("packages", "compiler", testDir.slice(testDir.indexOf("test"))));
     }
     process.chdir(testDir);
 });

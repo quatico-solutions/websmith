@@ -12,13 +12,13 @@ module.exports = {
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-core": "<rootDir>/../core/src",
-        "@quatico/websmith-cli": "<rootDir>/../cli/src",
+        "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
     },
     roots: ["<rootDir>/src/"],
     testEnvironment: "node",
-    testMatch: ["**/cucumber.test.ts", "test/.*test\\.(jsx?|tsx?)$"],
+    testMatch: ["**/cucumber.test.ts", "test/.*\\.test\\.(j|t)sx?$"],
     transform: {
-        "^.+\\.(js|ts)$":[
+        "^.+\\.(j|t)s$":[
             "@swc/jest",
             {
                 jsc: {

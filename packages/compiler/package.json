@@ -1,5 +1,5 @@
 {
-    "name": "@quatico/websmith-cli",
+    "name": "@quatico/websmith-compiler",
     "version": "0.2.2",
     "description": "A CLI for the websmith compiler",
     "author": "Quatico Solutions AG",
