@@ -2,7 +2,7 @@
 
 Webpack loader extension to provide websmith configurations to integrate it with the build, bundle and chunking process.
 
-Visit the [websmith github repository](https://github.com/websmith) for more information and examples.
+Visit the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
 
 ## Getting started
 
