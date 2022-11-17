@@ -3,8 +3,10 @@
     "compilerOptions": {
         "module": "CommonJS",
         "outDir": "./bin",
-        "noEmit": false
+        "noEmit": false,
+        "baseUrl": ".",
+        "paths": { "@quatico/websmith-core": ["../core"] }
     },
     "exclude": ["src/**/*.spec.ts"],
-    "include": ["src/**/*.ts"]
+    "include": ["src/**/*.ts", "../webpack/options.spec copy.ts"]
 }
