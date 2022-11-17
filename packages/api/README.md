@@ -1,6 +1,8 @@
 # websmith-api
 
-Write custom addons to enrich and expand your websmith powered TypeScript compilation and bundling.
+Websmith addon API providing interfaces and functionality to implement custom websmith addons.
+
+Visit the [websmith github repository](https://github.com/websmith) for more information and examples.
 
 ## Getting started
 

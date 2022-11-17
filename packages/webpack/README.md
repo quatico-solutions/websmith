@@ -1,6 +1,8 @@
 # websmith-webpack
 
-Empower your webpack bundling processes with powerful addon and transformer capabilities working with your TypeScript source code.
+Webpack loader extension to provide websmith configurations to integrate it with the build, bundle and chunking process.
+
+Visit the [websmith github repository](https://github.com/websmith) for more information and examples.
 
 ## Getting started
 
@@ -21,7 +23,8 @@ With websmith-webpack installed, you need to prepare a websmith configuration fo
 {
     "targets": {
         "executeAddons": {
-            "addons": ["addon-myOwn"],
+            "addons": ["my-addon"],
+            "writeFile": false,
         },
     }
 }
@@ -35,59 +38,31 @@ Now we can use the `@quatico/websmith-webpack` loader and the websmith configura
 // webpack.config.js
 const { join } = require("path");
 
-const createConfig= ({
-    sourceDir = join(__dirname, "src"),
-    config = join(__dirname, "websmith.config.json"),
-    preLoaders = [],
-    postLoaders = [],
-    targets = "executeAddons",
-    webpackTarget = "executeAddons",
-}) => {
-    const websmithLoaderOptions = {
-        project: join(__dirname, "tsconfig.json"),
-        config,
-        targets,
-        ...(!!webpackTarget && { webpackTarget }),
-    };
-
-    return {
-        target: "web",
-        devtool: "source-map",
-        mode: "development",
-        entry: {
-            main: join(sourceDir, "index.ts"),
-        },
-        output: {
-            path: join(__dirname, "lib"),
-            publicPath: "/",
-        },
-        resolve: {
-            extensions: [".js", ".ts", ".tsx"],
-        },
-        module: {
-            rules: [
-                {
-                    test: /\.(?:[j|t]sx?|scss)$/,
-                    include: [sourceDir],
-                    exclude: [/\.spec\.tsx?$/, /node_modules/],
-                    use: [
-                        ...preLoaders,
-                        {
-                            loader: "@quatico/websmith-webpack",
-                            options: websmithLoaderOptions,
+module.exports = {
+    ...
+    module: {
+        rules: [
+            ...,
+            {
+                test: /\.(?:[j|t]sx?)$/,
+                include: [sourceDir],
+                exclude: [/\.spec\.tsx?$/, /node_modules/],
+                use: [
+                    {
+                        loader: "@quatico/websmith-webpack",
+                        options: {
+                            project: join(__dirname, "tsconfig.json"),
+                            config,
+                            targets: "executeAddons",
+                            webpackTarget: "executeAddons",
                         },
-                        ...postLoaders,
-                    ],
-                },
-            ],
-        },
-    };
-}
-
-module.exports = createConfig({
-    targets: "executeAddons",
-    webpackTarget: "executeAddons",
-});
+                    },
+                ],
+            },
+            ...
+        ],
+    },
+};
 ```
 
 ### Bundle your TypeScript project

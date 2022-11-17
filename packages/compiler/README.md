@@ -1,6 +1,8 @@
 # websmith-compiler
 
-Empower your Typescript compilation with powerful addon and transformer capabilities working with your TypeScript source code.
+Commandline tool to execute the addon based code processing and typescript compilation.
+
+Visit the [websmith github repository](https://github.com/websmith) for more information and examples.
 
 ## Getting started
 
@@ -27,3 +29,5 @@ If you used ts-loader for webpack before, you probably used the `transpileOnly` 
 ```sh
 websmith --transpileOnly --watch
 ```
+
+If you use webpack, you can integrate [@quatico/websmith-webpack](https://github.com/quatico-solutions/websmith/tree/develop/packages/webpack/README.md) into your current webpack setup.
