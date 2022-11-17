@@ -3,8 +3,9 @@
     "version": "1.0.0",
     "main": ".build/lib/index.js",
     "license": "MIT",
+    "private": true,
     "devDependencies": {
-        "@quatico/websmith-webpack": "link:../../..",
+        "@quatico/websmith-webpack": "../../../lib",
         "@types/react": "17.0.0",
         "@types/react-dom": "17.0.0",
         "fork-ts-checker-webpack-plugin": "^7.2.13",
