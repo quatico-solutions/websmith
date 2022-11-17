@@ -16,9 +16,9 @@ import {
 } from "@quatico/websmith-core";
 import { dirname, join } from "path";
 import ts from "typescript";
-import { CompilerArguments } from "./CompilerArguments";
+import { PluginOptions } from "./loader-options";
 
-const DEFAULTS = {
+export const DEFAULTS = {
     addonsDir: "./addons",
     config: "./websmith.config.json",
     debug: false,
@@ -26,10 +26,9 @@ const DEFAULTS = {
     project: "./tsconfig.json",
     sourceMap: false,
     targets: "*",
-    watch: false,
 };
 
-export const createOptions = (args: CompilerArguments, reporter: Reporter = new NoReporter(), system: ts.System = ts.sys): CompilerOptions => {
+export const createOptions = (args: Partial<PluginOptions>, reporter: Reporter = new NoReporter(), system: ts.System = ts.sys): CompilerOptions => {
     const tsconfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
     const compilationConfig = resolveCompilationConfig(args.config ?? DEFAULTS.config, reporter, system);
 
@@ -72,6 +71,6 @@ export const createOptions = (args: CompilerArguments, reporter: Reporter = new 
         sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
         targets: resolveTargets(args.targets || DEFAULTS.targets, compilationConfig, reporter),
         transpileOnly: args.transpileOnly ?? compilationConfig?.transpileOnly ?? false,
-        watch: args.watch ?? DEFAULTS.watch,
+        watch: false,
     };
 };

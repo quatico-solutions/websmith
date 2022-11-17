@@ -65,13 +65,6 @@ describe("createOptions", () => {
         expect(actual).toEqual(expect.objectContaining({ debug: true }));
     });
 
-    it("should return watch path w/ watch true", () => {
-        testSystem.writeFile("./tsconfig.json", "{}");
-        const actual = createOptions({ watch: true }, testReporter, testSystem);
-
-        expect(actual).toEqual(expect.objectContaining({ watch: true }));
-    });
-
     it("should return config w/ valid compiler config json", () => {
         testSystem.writeFile("./tsconfig.json", "{}");
         testSystem.writeFile("websmith.config.json", '{ "targets": { "whatever": { "addons": [ "one", "two", "three" ], "writeFile": true } } }');

@@ -8,5 +8,5 @@
         "paths": { "@quatico/websmith-core": ["../core"] }
     },
     "exclude": ["src/**/*.spec.ts"],
-    "include": ["src/**/*.ts", "../webpack/options.spec copy.ts"]
+    "include": ["src/**/*.ts"]
 }
