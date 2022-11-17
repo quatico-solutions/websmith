@@ -1,7 +1,7 @@
 {
     "name": "@quatico/websmith-webpack",
     "description": "Webpack loader for @quatico/websmith-compiler",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "author": "Quatico Solutions AG",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
@@ -61,8 +61,8 @@
         "webpack-cli": "^4.9.1"
     },
     "dependencies": {
-        "@quatico/websmith-compiler": "^0.2.2",
-        "@quatico/websmith-core":"^0.2.2",
+        "@quatico/websmith-compiler": "^0.3.0",
+        "@quatico/websmith-core": "^0.3.0",
         "webpack": "^5.75.0"
     },
     "bundledDependencies": [
