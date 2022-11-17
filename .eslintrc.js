@@ -25,8 +25,8 @@ module.exports = {
             alias: {
                 map: [
                     ["@quatico/websmith-api", __dirname + "/packages/api/src"],
-                    ["@quatico/websmith-cli", __dirname + "/packages/cli/src"],
                     ["@quatico/websmith-compiler", __dirname + "/packages/compiler/src"],
+                    ["@quatico/websmith-core", __dirname + "/packages/core/src"],
                 ],
                 extensions: [".ts", ".js", ".jsx", ".json"],
             },

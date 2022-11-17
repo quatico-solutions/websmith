@@ -6,19 +6,19 @@
  */
 module.exports = {
     preset: "ts-jest",
-    collectCoverageFrom: ["./src/**/*.ts"],
+    collectCoverageFrom: ["./src/**/*.{ts,tsx}"],
     coverageDirectory: "coverage",
     coveragePathIgnorePatterns: ["index.ts"],
     moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
-        "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
     },
-    testRegex: "src/.*spec\\.(js|ts)$",
     setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
+    testRegex: "src/.*(test|spec)\\.(js|ts)$",
+    testTimeout: 15000,
     testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
-        "^.+\\.(js|ts)$":[
+        "^.+\\.(js|ts)$": [
             "@swc/jest",
             {
                 jsc: {
@@ -32,7 +32,8 @@ module.exports = {
                     },
                 },
             },
-        ] 
+        ],
     },
+    transformIgnorePatterns: ["node_modules"],
     resetMocks: true,
 };

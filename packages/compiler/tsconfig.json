@@ -1,12 +1,10 @@
 {
     "extends": "../../tsconfig.json",
     "compilerOptions": {
-        "outDir": "./lib",
-        "typeRoots": ["@types", "./node_modules/@types", "../../node_modules/@types"] /* List of folders to include type definitions from. */,
-        "noEmit": false,
-        "moduleResolution": "node",
-        "module": "commonjs",
+        "module": "CommonJS",
+        "outDir": "./bin",
+        "noEmit": false
     },
-    "exclude": ["src/**/*.spec.ts", "test/**/*.ts"],
+    "exclude": ["src/**/*.spec.ts"],
     "include": ["src/**/*.ts"]
 }

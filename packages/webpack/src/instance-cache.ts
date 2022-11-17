@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { createOptions } from "@quatico/websmith-cli";
+import { createOptions } from "@quatico/websmith-compiler";
 import webpack, { LoaderContext } from "webpack";
 import { PluginOptions } from "./loader-options";
 import { TsCompiler } from "./TsCompiler";

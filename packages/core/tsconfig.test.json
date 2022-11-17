@@ -1,0 +1,12 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "allowJs": true,
+        "resolveJsonModule": true,
+        "baseUrl": ".",
+        "paths": {
+            "@quatico/websmith-api": ["../api/src"]
+        }
+    },
+    "include": ["src/**/*.ts", "test/**/*.ts"]
+}

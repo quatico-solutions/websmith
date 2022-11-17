@@ -4,9 +4,9 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { addCompileCommand } from "./command";
-import { createOptions } from "./options";
-import type { CompilerArguments } from "./CompilerArguments";
+import { createResolver } from "./addon-resolver";
+import { AddonRegistry } from "./AddonRegistry";
+import type { CompilerAddon } from "./CompilerAddon";
 
-export { addCompileCommand, createOptions };
-export type { CompilerArguments };
+export { AddonRegistry, createResolver };
+export type { CompilerAddon };

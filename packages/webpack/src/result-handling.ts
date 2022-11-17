@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { CompileFragment } from "@quatico/websmith-compiler";
+import { CompileFragment } from "@quatico/websmith-core";
 import type typescript from "typescript";
 import { LoaderContext } from "webpack";
 import { PluginOptions } from "./loader-options";

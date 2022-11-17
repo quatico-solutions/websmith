@@ -11,8 +11,8 @@ module.exports = {
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/packages/api/src",
-        "@quatico/websmith-cli": "<rootDir>/packages/cli/src",
         "@quatico/websmith-compiler": "<rootDir>/packages/compiler/src",
+        "@quatico/websmith-core": "<rootDir>/packages/core/src",
     },
     preset: "ts-jest",
     setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],

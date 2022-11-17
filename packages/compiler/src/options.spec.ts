@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { CompilerAddon, createBrowserSystem, NoReporter } from "@quatico/websmith-compiler";
+import { CompilerAddon, createBrowserSystem, NoReporter } from "@quatico/websmith-core";
 import ts from "typescript";
 import { createOptions } from "./options";
 

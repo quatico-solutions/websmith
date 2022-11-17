@@ -7,7 +7,7 @@
 /* eslint-disable no-console */
 
 import { WarnMessage } from "@quatico/websmith-api";
-import { Compiler, CompilerAddon, createBrowserSystem, NoReporter } from "@quatico/websmith-compiler";
+import { Compiler, CompilerAddon, createBrowserSystem, NoReporter } from "@quatico/websmith-core";
 import { Command } from "commander";
 import { join, normalize, resolve } from "path";
 import ts from "typescript";
@@ -28,8 +28,8 @@ beforeEach(() => {
 
     // TODO: Find a better approach. We need to do this with the virtual test system to ensure, that we do not use the websmith tsconfig.json as they will resolve dozens to hundreds of filenames
     let testDir = normalize(join(process.cwd(), "test"));
-    if (!testDir.includes(join("cli", "test"))) {
-        testDir = testDir.replace(testDir.slice(testDir.indexOf("test")), join("packages", "cli", testDir.slice(testDir.indexOf("test"))));
+    if (!testDir.includes(join("compiler", "test"))) {
+        testDir = testDir.replace(testDir.slice(testDir.indexOf("test")), join("packages", "compiler", testDir.slice(testDir.indexOf("test"))));
     }
     process.chdir(testDir);
 });

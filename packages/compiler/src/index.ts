@@ -4,38 +4,12 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import type { CompilationContext, CompileFragment, CompilerAddon, CompilerOptions } from "./compiler";
-import {
-    AddonRegistry,
-    CompilationConfig,
-    Compiler,
-    DefaultReporter,
-    NoReporter,
-    resolveCompilationConfig,
-    resolveProjectConfig,
-    resolveTargets,
-    tsDefaults,
-    tsLibDefaults,
-    updateCompilerOptions,
-} from "./compiler";
-import { createBrowserSystem, createCompileHost, createSystem, createVersionedFiles, getVersionedFile, readFiles } from "./environment";
+import { addCompileCommand } from "./command";
+import { createOptions } from "./options";
+import type { CompilerArguments } from "./CompilerArguments";
 
-export {
-    AddonRegistry,
-    Compiler,
-    createBrowserSystem,
-    createCompileHost,
-    createSystem,
-    createVersionedFiles,
-    DefaultReporter,
-    getVersionedFile,
-    NoReporter,
-    readFiles,
-    resolveCompilationConfig,
-    resolveProjectConfig,
-    resolveTargets,
-    tsDefaults,
-    tsLibDefaults,
-    updateCompilerOptions,
-};
-export type { CompilerAddon, CompileFragment, CompilationConfig, CompilerOptions, CompilationContext };
+export { addCompileCommand, createOptions };
+export type { CompilerArguments };
+
+export { Compiler, NoReporter, DefaultReporter } from "@quatico/websmith-core";
+export type { CompilerOptions } from "@quatico/websmith-core";

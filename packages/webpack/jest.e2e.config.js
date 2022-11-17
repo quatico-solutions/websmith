@@ -19,8 +19,8 @@ module.exports = {
     coverageDirectory: "coverage",
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
-        "@quatico/websmith-cli": "<rootDir>/../cli/src",
         "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
+        "@quatico/websmith-core": "<rootDir>/../core/src",
     },
     roots: ["<rootDir>/test/"],
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
@@ -28,7 +28,7 @@ module.exports = {
     testRegex: ".+\\.test\\.ts",
     testTimeout: 25000,
     transform: {
-        "^.+\\.(js|ts)$":[
+        "^.+\\.(j|t)s$":[
             "@swc/jest",
             {
                 jsc: {

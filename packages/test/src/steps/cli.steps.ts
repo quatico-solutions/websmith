@@ -1,7 +1,7 @@
 /* eslint-disable jest/no-jasmine-globals */
 /* eslint-disable no-console */
-import { createOptions } from "@quatico/websmith-cli";
-import { CompilationContext, Compiler } from "@quatico/websmith-compiler";
+import { createOptions } from "@quatico/websmith-compiler";
+import { CompilationContext, Compiler } from "@quatico/websmith-core";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { StepDefinitions } from "jest-cucumber";
 import parseArgs from "minimist";
