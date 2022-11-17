@@ -4,44 +4,34 @@
    Licensed under the MIT License. See LICENSE in the project root for license information.
  ---------------------------------------------------------------------------------------------
 -->
+<!-- markdownlint-disable MD024 -->
 
 # Releases
 
-## v0.3.0
+Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/) format.
 
-> In Development
+## [Unreleased]
 
-### Performance Improvement
+### Added
 
-- Improvement :gift_heart:: Upgrade Module loader implementation to Webpack 5.
-- Feature ✨: Asset dependencies can now be registered through the AddonContext.
-- Feature ✨: Support transpile only in webpack and cli, speeding up compile and watch by a factor of 20.
--
+- Asset dependencies can now be registered through AddonContext using addAssetDependency.
+- Support transpile only in webpack and cli, speeding up compile and watch by a factor of 20.
 
-## v0.2.0
+### Fixed
 
-> 2022-07-07
+- Upgrade Module loader implementation to Webpack 5.
 
-### Multi-fork for thread-loader
+## [0.2.0] - 2022-07-07
 
-- Feature ✨ Support for thread-loader and fork-ts-checker-webpack-plugin
+### Added
 
-## v0.1.0
+- Support for thread-loader and fork-ts-checker-webpack-plugin
 
-> 2022-05-27
+## [0.1.0] - 2022-05-27
 
-- Feature ✨ Addon based processing pipeline with Generator, Processor, Transformer and Result Processor stages.
-- Feature ✨ ClI package for running the compiler of configurable CLI.
-- Feature ✨ Webpack plugin for running the compiler as part of a webpack build.
-- Documentation 🔖 New 'Getting started' and 'Writing your own addons' documentation added
+### Added
 
-## vX.Y.Z
-
-> In Development
-
-### TBA
-
-- Breaking :fire::
-- Feature ✨
-- Bugfix :pill::
-- Improvement :gift_heart::
+- Addon based processing pipeline with Generator, Processor, Transformer and Result Processor stages.
+- ClI package for running the compiler of configurable CLI.
+- Webpack plugin for running the compiler as part of a webpack build.
+- Documentation: New 'Getting started' and 'Writing your own addons' documentation added
