@@ -62,10 +62,10 @@
     },
     "dependencies": {
         "@quatico/websmith-compiler": "^0.3.0",
-        "@quatico/websmith-core": "^0.3.0",
+        "@quatico/websmith-core": "file:../core",
         "webpack": "^5.75.0"
     },
-    "bundledDependencies": [
+    "bundleDependencies": [
         "@quatico/websmith-core"
     ],
     "peerDependencies": {
