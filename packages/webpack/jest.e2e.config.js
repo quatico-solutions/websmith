@@ -17,11 +17,6 @@ module.exports = {
     preset: "ts-jest",
     collectCoverageFrom: ["./src/**/*.{ts,tsx}"],
     coverageDirectory: "coverage",
-    globals: {
-        "ts-jest": {
-            tsconfig: "./tsconfig.test.json",
-        },
-    },
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-cli": "<rootDir>/../cli/src",
@@ -33,7 +28,21 @@ module.exports = {
     testRegex: ".+\\.test\\.ts",
     testTimeout: 25000,
     transform: {
-        "^.+\\.(js|jsx|ts|tsx)$": "ts-jest",
+        "^.+\\.(js|ts)$":[
+            "@swc/jest",
+            {
+                jsc: {
+                    parser: {
+                        syntax: "typescript",
+                    },
+                    transform: {
+                        react: {
+                            runtime: "automatic",
+                        },
+                    },
+                },
+            },
+        ] 
     },
     resetMocks: true,
 };

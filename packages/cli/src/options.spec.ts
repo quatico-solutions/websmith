@@ -101,18 +101,18 @@ describe("createOptions", () => {
 
         expect(actual).toMatchInlineSnapshot(`
             AddonRegistry {
-              "addons": Array [
+              "addons": [
                 "one",
                 "two",
               ],
               "availableAddons": Map {
-                "one" => Object {
+                "one" => {
                   "activate": [MockFunction],
                   "name": "one",
                 },
               },
-              "config": Object {
-                "addons": Array [
+              "config": {
+                "addons": [
                   "one",
                   "two",
                 ],

@@ -170,8 +170,8 @@ describe("Transpilation", () => {
         expect(actual.files.find(f => f.name.endsWith(".js"))?.text).toBe("export const one = () => 1;\n");
         expect(actual.files.find(f => f.name.endsWith(".d.ts"))?.text).toBe("export declare const one: () => number;\n");
         expect(readFileSync(resolve("./__data__/.build/one.js"), "utf8")).toMatchInlineSnapshot(`
-            "\\"use strict\\";
-            Object.defineProperty(exports, \\"__esModule\\", { value: true });
+            ""use strict";
+            Object.defineProperty(exports, "__esModule", { value: true });
             exports.one = void 0;
             var one = function () { return 1; };
             exports.one = one;

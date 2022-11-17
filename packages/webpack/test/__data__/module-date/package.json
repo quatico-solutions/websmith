@@ -7,12 +7,15 @@
         "@quatico/websmith-webpack": "link:../../..",
         "@types/react": "17.0.0",
         "@types/react-dom": "17.0.0",
-        "fork-ts-checker-webpack-plugin": "7.2.11",
+        "fork-ts-checker-webpack-plugin": "^7.2.13",
         "react": "17.0.2",
         "react-dom": "17.0.2",
         "react-is": "17.0.2",
         "thread-loader": "3.0.4",
-        "webpack": "5.72.0",
+        "webpack": "^5.75.0",
         "webpack-cli": "4.9.2"
+    },
+    "peerDependencies": {
+        "webpack": "^5.75.0"
     }
 }
