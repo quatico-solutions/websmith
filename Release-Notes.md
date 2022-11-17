@@ -12,6 +12,12 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+### Changed
+
+- TBA
+
+## [0.3.0] - 2022-11-17
+
 ### Added
 
 - Asset dependencies can now be registered through AddonContext using addAssetDependency.
