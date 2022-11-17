@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { AddonContext } from "@quatico/websmith-api";
+import { AddonContext } from "./";
 
 export interface AddonActivator {
     (ctx: AddonContext): void;
