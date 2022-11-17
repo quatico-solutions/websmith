@@ -12,18 +12,86 @@ Install the websmith webpack package using npm:
 npm i -D @quatico/websmith-webpack
 ```
 
-## Examples
+### Add websmith configuration
 
-### Standard bundling and transpilation
+With websmith-webpack installed, you need to prepare a websmith configuration for usage in webpack.
 
-```sh
-websmith 
+```json
+// websmith.config.json
+{
+    "targets": {
+        "executeAddons": {
+            "addons": ["addon-myOwn"],
+        },
+    }
+}
 ```
 
-### High performance watch mode
+### Add webpack configuration
 
-If you used ts-loader for webpack before, you probably used the `transpileOnly` option. Websmith provides you this same ability in the CLI:
+Now we can use the `@quatico/websmith-webpack` loader and the websmith configuration to configure webpack.
+
+```javascript
+// webpack.config.js
+const { join } = require("path");
+
+const createConfig= ({
+    sourceDir = join(__dirname, "src"),
+    config = join(__dirname, "websmith.config.json"),
+    preLoaders = [],
+    postLoaders = [],
+    targets = "executeAddons",
+    webpackTarget = "executeAddons",
+}) => {
+    const websmithLoaderOptions = {
+        project: join(__dirname, "tsconfig.json"),
+        config,
+        targets,
+        ...(!!webpackTarget && { webpackTarget }),
+    };
+
+    return {
+        target: "web",
+        devtool: "source-map",
+        mode: "development",
+        entry: {
+            main: join(sourceDir, "index.ts"),
+        },
+        output: {
+            path: join(__dirname, "lib"),
+            publicPath: "/",
+        },
+        resolve: {
+            extensions: [".js", ".ts", ".tsx"],
+        },
+        module: {
+            rules: [
+                {
+                    test: /\.(?:[j|t]sx?|scss)$/,
+                    include: [sourceDir],
+                    exclude: [/\.spec\.tsx?$/, /node_modules/],
+                    use: [
+                        ...preLoaders,
+                        {
+                            loader: "@quatico/websmith-webpack",
+                            options: websmithLoaderOptions,
+                        },
+                        ...postLoaders,
+                    ],
+                },
+            ],
+        },
+    };
+}
+
+module.exports = createConfig({
+    targets: "executeAddons",
+    webpackTarget: "executeAddons",
+});
+```
+
+### Bundle your TypeScript project
 
 ```sh
-websmith --transpileOnly --watch
+webpack
 ```
