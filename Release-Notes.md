@@ -16,7 +16,7 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
-## [0.3.1] - 2022-11-17
+## [0.3.1] - 2022-11-18
 
 ### Fixed
 
