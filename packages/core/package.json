@@ -4,7 +4,6 @@
     "description": "A frontend for the TypeScript compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
-    "private": true,
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
     "repository": {
