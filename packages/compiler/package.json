@@ -31,7 +31,6 @@
         "test:update-snapshots": "yarn test -u",
         "test:watch": "jest --color --watch",
         "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\"",
-        "prepublishOnly": "yarn dist",
         "publish-npm": "npm publish --access public"
     },
     "devDependencies": {

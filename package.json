@@ -44,7 +44,6 @@
         "license:remove": "license-check-and-add remove -f license-config.json",
         "publish-npm": "lerna run publish-npm",
         "version-and-publish-npm": "lerna version --force-publish '*' && lerna run publish-npm",
-        "prepublishOnly": "yarn dist",
         "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags",
         "prepare": "husky install"
     },
