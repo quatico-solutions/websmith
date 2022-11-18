@@ -16,6 +16,12 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.3.3] - 2022-11-18
+
+### Fixes
+
+- @quatico/websmith-core is public again and no longer bundled due to yarn 1.x inability to install bundled dependencies correctly.
+
 ## [0.3.1] - 2022-11-18
 
 ### Fixed
