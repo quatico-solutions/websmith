@@ -4,8 +4,6 @@
         "module": "CommonJS",
         "outDir": "./bin",
         "noEmit": false,
-        "baseUrl": ".",
-        "paths": { "@quatico/websmith-core": ["../core"] }
     },
     "exclude": ["src/**/*.spec.ts"],
     "include": ["src/**/*.ts"]
