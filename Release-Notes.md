@@ -16,6 +16,13 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.3.1] - 2022-11-17
+
+### Fixed
+
+- Corrects bundling of websmith-core in websmith-compiler and websmith-webpack.
+- Webpack module correctly processes webpack config options.
+
 ## [0.3.0] - 2022-11-17
 
 ### Added

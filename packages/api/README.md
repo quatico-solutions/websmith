@@ -2,7 +2,7 @@
 
 Websmith addon API providing interfaces and functionality to implement custom websmith addons.
 
-Visit the [websmith github repository](https://github.com/websmith) for more information and examples.
+Visit the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
 
 ## Getting started
 

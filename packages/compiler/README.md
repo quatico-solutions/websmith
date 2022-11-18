@@ -2,7 +2,7 @@
 
 Commandline tool to execute the addon based code processing and typescript compilation.
 
-Visit the [websmith github repository](https://github.com/websmith) for more information and examples.
+Visit the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
 
 ## Getting started
 
