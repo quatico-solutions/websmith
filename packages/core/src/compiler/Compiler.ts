@@ -98,20 +98,18 @@ export class Compiler {
             for (const fileName of this.getRootFiles()) {
                 const fragment = this.emitSourceFile(fileName, target, writeFile);
                 if (fragment?.files.length > 0) {
-                    result.emittedFiles = concat(
-                        result.emittedFiles,
-                        fragment.files.map(cur => cur.name)
-                    );
+                    result.emittedFiles = fragment.files.map(cur => cur.name);
                 } else {
-                    // FIXME: Report error for source files that cannot be emitted
                     fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
+                    result.diagnostics = fragment.diagnostics ?? [];
+                    result.emitSkipped = !!fragment.diagnostics && fragment.diagnostics.length > 0 ? true : false;
                 }
             }
 
             const files = this.getRootFiles();
             ctx.getResultProcessors().forEach(cur => cur(files));
 
-            results.push(this.report(ctx.getProgram(), result));
+            results.push(this.options.transpileOnly ? result : this.report(ctx.getProgram(), result));
         });
 
         return results.filter(cur => !!cur).length < 1
