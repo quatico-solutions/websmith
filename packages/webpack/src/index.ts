@@ -33,5 +33,5 @@ const buildTargets = (compiler: TsCompiler, resourcePath: string) => {
 
 export default loader;
 
-export { Compiler, NoReporter, DefaultReporter } from "@quatico/websmith-core";
+export { Compiler, createBrowserSystem, DefaultReporter, getVersionedFile, NoReporter } from "@quatico/websmith-core";
 export type { CompilerOptions } from "@quatico/websmith-core";

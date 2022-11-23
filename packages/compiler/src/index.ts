@@ -5,11 +5,10 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { addCompileCommand } from "./command";
-import { createOptions } from "./options";
 import type { CompilerArguments } from "./CompilerArguments";
+import { createOptions } from "./options";
 
+export { Compiler, createBrowserSystem, DefaultReporter, getVersionedFile, NoReporter } from "@quatico/websmith-core";
+export type { CompilerOptions } from "@quatico/websmith-core";
 export { addCompileCommand, createOptions };
 export type { CompilerArguments };
-
-export { Compiler, NoReporter, DefaultReporter } from "@quatico/websmith-core";
-export type { CompilerOptions } from "@quatico/websmith-core";
