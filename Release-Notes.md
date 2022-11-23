@@ -16,6 +16,12 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.3.4] - 2022-11-24
+
+### Fixes
+
+- No longer collect preEmitDiagnostics with transpileOnly active
+
 ## [0.3.3] - 2022-11-18
 
 ### Fixes
