@@ -30,14 +30,14 @@
         ]
     },
     "scripts": {
-        "clean": "lerna run --stream --parallel clean",
-        "lint": "lerna run --stream --parallel lint",
-        "build": "lerna run --stream build && lerna link",
-        "watch": "lerna run --parallel --stream watch",
-        "test": "lerna run --stream test",
-        "test:e2e": "lerna run --stream test:e2e",
-        "test:update-snapshots": "lerna run --stream test:update-snapshots",
-        "test:watch": "lerna run --parallel --stream test:watch",
+        "clean": "nx run-many --target=clean",
+        "lint": "nx run-many --target=lint",
+        "build": "nx run-many --target=build && lerna link",
+        "watch": "nx run-many --target=watch --parallel=10",
+        "test": "nx run-many --target=test",
+        "test:e2e": "nx run-many --target=e2e",
+        "test:update-snapshots": "nx run-many --target=test:update-snapshots",
+        "test:watch": "nx run-many --target=test:watch --parallel=10",
         "dist": "yarn clean && yarn lint && yarn test && cross-env-shell NODE_ENV=production \"yarn build\" && yarn test:e2e",
         "license:check": "license-check-and-add check -f license-config.json",
         "license:add": "license-check-and-add add -f license-config.json",
@@ -73,7 +73,9 @@
         "prettier": "^2.6.2",
         "rimraf": "3.0.2",
         "ts-jest": "^29.0.3",
-        "ts-node": "^10.9.1"
+        "ts-node": "^10.9.1",
+        "nx": "^15.2.1",
+        "@nrwl/nx-cloud": "latest"
     },
     "dependencies": {
         "commander": "^9.4.1",
