@@ -9,7 +9,7 @@
 import { WarnMessage } from "@quatico/websmith-api";
 import { Compiler, CompilerAddon, createBrowserSystem, NoReporter } from "@quatico/websmith-core";
 import { Command } from "commander";
-import { join, normalize, resolve } from "path";
+import path, { join, normalize, resolve } from "path";
 import ts from "typescript";
 import { addCompileCommand, hasInvalidTargets } from "./command";
 import { createOptions } from "./options";
@@ -19,8 +19,8 @@ let origCwd: string;
 
 beforeAll(() => {
     origCwd = process.cwd();
+    process.chdir(join(__dirname, ".."));
 });
-
 beforeEach(() => {
     testSystem = createBrowserSystem({}, ts.sys.useCaseSensitiveFileNames);
     testSystem.createDirectory("./addons");
@@ -31,10 +31,9 @@ beforeEach(() => {
     if (!testDir.includes(join("compiler", "test"))) {
         testDir = testDir.replace(testDir.slice(testDir.indexOf("test")), join("packages", "compiler", testDir.slice(testDir.indexOf("test"))));
     }
-    process.chdir(testDir);
 });
 
-afterEach(() => {
+afterAll(() => {
     process.chdir(origCwd);
 });
 
@@ -78,50 +77,51 @@ describe("addCompileCommand", () => {
                 availableAddons: new Map(),
             })
         );
-        expect(actual.buildDir).toEqual(expect.stringContaining("/")), expect(actual.watch).toBe(false);
+        expect(actual.buildDir).toEqual(expect.stringContaining(path.sep));
+        expect(actual.watch).toBe(false);
         expect(actual.config).toBeUndefined();
         expect(actual.debug).toBe(false);
         const compilerOptions = {
-            emitDecoratorMetadata: true,
-            noImplicitReturns: true,
-            pretty: true,
-            target: 99,
-            declarationMap: true,
-            outDir: "./lib",
-            noImplicitThis: true,
+            allowJs: true,
+            allowSyntheticDefaultImports: true,
+            alwaysStrict: true,
+            configFilePath: resolve("tsconfig.json"),
             declaration: true,
+            declarationMap: true,
+            downlevelIteration: true,
+            emitDecoratorMetadata: true,
+            esModuleInterop: true,
             experimentalDecorators: true,
-            noImplicitAny: true,
-            removeComments: false,
-            configFilePath: resolve("./tsconfig.json"),
+            importHelpers: true,
+            incremental: true,
             inlineSources: undefined,
-            module: 99,
+            lib: ["lib.es2015.d.ts", "lib.es2016.d.ts", "lib.es2017.d.ts", "lib.esnext.d.ts", "lib.dom.d.ts"],
+            module: 1,
+            moduleResolution: 2,
+            noEmit: false,
+            noEmitOnError: true,
+            noImplicitAny: true,
+            noImplicitReturns: true,
+            noImplicitThis: true,
+            noUnusedLocals: true,
+            outDir: join(__dirname, "..", "bin"),
+            pretty: true,
+            removeComments: false,
+            resolveJsonModule: true,
+            skipLibCheck: false,
+            sourceMap: false,
             strict: true,
             strictBindCallApply: true,
-            noEmitOnError: true,
-            resolveJsonModule: true,
-            useUnknownInCatchVariables: false,
-            lib: ["lib.es2015.d.ts", "lib.es2016.d.ts", "lib.es2017.d.ts", "lib.esnext.d.ts", "lib.dom.d.ts"],
             strictFunctionTypes: true,
-            noUnusedLocals: true,
-            strictPropertyInitialization: true,
-            moduleResolution: 2,
-            importHelpers: true,
-            sourceMap: false,
             strictNullChecks: true,
-            esModuleInterop: true,
-            allowSyntheticDefaultImports: true,
+            strictPropertyInitialization: true,
+            target: 99,
             types: ["node", "jest"],
-            incremental: true,
-            skipLibCheck: true,
-            noEmit: true,
-            downlevelIteration: true,
-            alwaysStrict: true,
-            allowJs: true,
+            useUnknownInCatchVariables: true,
         };
         expect(actual.project).toEqual(compilerOptions);
 
-        expect({ ...actual.tsconfig, wildcardDirectories: {} }).toEqual({
+        expect({ wildcardDirectories: {}, ...actual.tsconfig }).toEqual({
             options: compilerOptions,
             errors: [],
             typeAcquisition: {
@@ -129,58 +129,30 @@ describe("addCompileCommand", () => {
                 exclude: [],
                 enable: false,
             },
-            fileNames: expect.arrayContaining([
-                // resolve("./src/CompilerArguments.ts"),
-                // resolve("./src/bin.ts"),
-                // resolve("./src/command.ts"),
-                // resolve("./src/compiler-system.ts"),
-                // resolve("./src/find-config.ts"),
-                // resolve("./src/index.ts"),
-                // resolve("./src/options.ts"),
-                expect.stringContaining("__mocks__/fs.ts"),
-            ]),
+            fileNames: [
+                `${join(__dirname, "CompilerArguments.ts")}`,
+                `${join(__dirname, "bin.ts")}`,
+                `${join(__dirname, "command.ts")}`,
+                `${join(__dirname, "compiler-system.ts")}`,
+                `${join(__dirname, "find-config.ts")}`,
+                `${join(__dirname, "index.ts")}`,
+                `${join(__dirname, "options.ts")}`,
+            ],
             compileOnSave: false,
             projectReferences: undefined,
             raw: {
+                compileOnSave: undefined,
                 compilerOptions: {
-                    noEmit: true,
-                    module: "ESNEXT",
-                    moduleResolution: "node",
-                    allowJs: true,
-                    allowSyntheticDefaultImports: true,
-                    alwaysStrict: true,
-                    declaration: true,
-                    declarationMap: true,
-                    downlevelIteration: true,
-                    emitDecoratorMetadata: true,
-                    esModuleInterop: true,
-                    experimentalDecorators: true,
-                    importHelpers: true,
-                    incremental: true,
-                    inlineSources: true,
-                    lib: ["es2015", "es2016", "es2017", "esnext", "dom"],
-                    noEmitOnError: true,
-                    noImplicitAny: true,
-                    noImplicitReturns: true,
-                    noImplicitThis: true,
-                    noUnusedLocals: true,
-                    pretty: true,
-                    removeComments: false,
-                    resolveJsonModule: true,
-                    skipLibCheck: true,
-                    sourceMap: true,
-                    strict: true,
-                    strictBindCallApply: true,
-                    strictFunctionTypes: true,
-                    strictNullChecks: true,
-                    strictPropertyInitialization: true,
-                    target: "ESNEXT",
-                    types: ["node", "jest"],
-                    useUnknownInCatchVariables: false,
+                    module: "CommonJS",
+                    noEmit: false,
+                    outDir: "./bin",
                 },
+                exclude: ["src/**/*.spec.ts"],
+                extends: "../../tsconfig.json",
+                include: ["src/**/*.ts"],
             },
             watchOptions: undefined,
-            wildcardDirectories: {},
+            wildcardDirectories: {[join(__dirname, "..", "src").toLowerCase()]:1},
         });
         expect(actual.reporter).toBeDefined();
         expect(actual.sourceMap).toBe(false);

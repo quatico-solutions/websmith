@@ -6,10 +6,8 @@
  */
 import { Reporter } from "@quatico/websmith-api";
 import merge from "lodash/merge";
-import { join } from "path";
 import * as ts from "typescript";
 import { DefaultReporter } from "../compiler";
-import { createVersionedFile, VersionedFile } from "../environment";
 
 /**
  * The TypeScript compiler interacts with the host environment via a compiler host.
@@ -22,29 +20,8 @@ import { createVersionedFile, VersionedFile } from "../environment";
  * @param sourceFiles
  * @param system
  */
-export const createCompileHost = (options: ts.CompilerOptions, system: ts.System): ts.CompilerHost => {
-    const knownFiles: { [name: string]: VersionedFile } = {};
-    return {
-        ...system,
-        getCanonicalFileName: (fileName: string): string => {
-            return system.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase();
-        },
-        getDefaultLibFileName: (compOptions: ts.CompilerOptions) => join("/", getDefaultLibFileName0(compOptions)),
-        getDirectories: (dirPath: string) => system.getDirectories(dirPath),
-        getNewLine: () => system.newLine,
-        getSourceFile: fileName => {
-            let result = knownFiles[fileName];
-            if (!result) {
-                const content = system.readFile(fileName);
-                if (content) {
-                    result = createVersionedFile(fileName, content, options);
-                    knownFiles[fileName] = result;
-                }
-            }
-            return result;
-        },
-        useCaseSensitiveFileNames: () => system.useCaseSensitiveFileNames,
-    };
+export const createCompileHost = (options: ts.CompilerOptions): ts.CompilerHost => {
+    return ts.createCompilerHost(options, true);
 };
 
 export const createWatchHost = (
@@ -107,6 +84,7 @@ export const injectTransformers = (
  */
 const createProgram = ts.createSemanticDiagnosticsBuilderProgram;
 
+// @ts-ignore
 const getDefaultLibFileName0 = (options: ts.CompilerOptions): string => {
     switch (options.target) {
         case 99 /* ESNext */:

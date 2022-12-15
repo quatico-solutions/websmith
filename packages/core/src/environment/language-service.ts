@@ -5,7 +5,6 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { createCompileHost } from "./compile-service";
 import type { VersionedFile } from "./VersionedFile";
 
 /**
@@ -78,4 +77,4 @@ export const createLanguageService = (
     options: ts.CompilerOptions,
     system: ts.System,
     transformers?: ts.CustomTransformers
-) => ts.createLanguageService(createLanguageServiceHost(sourceFiles, options, createCompileHost(options, system), system, transformers));
+) => ts.createLanguageService(createLanguageServiceHost(sourceFiles, options, ts.createCompilerHost(options), system, transformers));

@@ -12,9 +12,15 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+With this version, the usage of the BrowserSystem (createBrowserSystem) is deprecated. It is planned to remove it with version 0.4.0 which will cease support for a system based virtual filesystem.
+
 ### Changed
 
 - Mono repository internal dependency now use single pinned versions.
+
+### Bugfix
+
+- Removal of custom ts.CompilerHost to address compile error logging regarding typescript lib.d.ts files and resulting type resolution lookups.
 
 ## [0.3.4] - 2022-11-24
 
