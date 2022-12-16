@@ -54,7 +54,7 @@
         "ts-jest": "^29.0.3"
     },
     "dependencies": {
-        "@quatico/websmith-api": "^0.3.4",
+        "@quatico/websmith-api": "0.3.4",
         "create-hash": "1.2.0",
         "lodash": "^4.17.21",
         "path": "0.12.7",

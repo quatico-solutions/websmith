@@ -14,7 +14,7 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
-- TBA
+- Mono repository internal dependency now use single pinned versions.
 
 ## [0.3.4] - 2022-11-24
 
