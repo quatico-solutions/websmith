@@ -10,6 +10,8 @@ import { extname, isAbsolute, join, normalize } from "path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
 
+
+  /** @deprecated the browser system will be removed with 0.4.0, please do not use this any longer */
 export const createBrowserSystem = (files?: Record<string, string>, useCaseSensitiveFileNames = false): ts.System => {
     const knownFiles = Object.entries({ ...(files ?? tsLibDefaults) }).reduce((acc: Record<string, string>, [name, content]) => {
         acc[resolvePath(name)] = content;
