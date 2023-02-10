@@ -1,6 +1,6 @@
 {
     "name": "@quatico/websmith",
-    "version": "0.3.4",
+    "version": "0.3.5",
     "description": "A compiler frontend for the TypeScript compiler",
     "keywords": [
         "typescript",
@@ -49,6 +49,7 @@
     },
     "devDependencies": {
         "@cucumber/gherkin": "^25.0.2",
+        "@nrwl/nx-cloud": "latest",
         "@swc/core": "1.3.14",
         "@swc/jest": "0.2.23",
         "@types/glob": "^7.1.3",
@@ -70,12 +71,11 @@
         "lerna": "^6.0.3",
         "license-check-and-add": "4.0.5",
         "memfs": "^3.4.1",
+        "nx": "^15.2.1",
         "prettier": "^2.6.2",
         "rimraf": "3.0.2",
         "ts-jest": "^29.0.3",
-        "ts-node": "^10.9.1",
-        "nx": "^15.2.1",
-        "@nrwl/nx-cloud": "latest"
+        "ts-node": "^10.9.1"
     },
     "dependencies": {
         "commander": "^9.4.1",
