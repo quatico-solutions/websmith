@@ -13,7 +13,7 @@ import ts from "typescript";
  */
 export const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
-        return (sf: ts.SourceFile) => {
+        return (sf: ts.SourceFile): ts.SourceFile => {
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
                 // Visit child nodes of source files
                 if (ts.isSourceFile(node)) {
@@ -28,7 +28,7 @@ export const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
                 }
                 return ts.visitEachChild(node, visitor, ctx);
             };
-            return ts.visitNode(sf, visitor);
+            return ts.visitNode(sf, visitor, ts.isSourceFile);
         };
     };
 };

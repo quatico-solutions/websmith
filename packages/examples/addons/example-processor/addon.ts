@@ -23,12 +23,11 @@ export const activate = (ctx: AddonContext) => {
             [
                 (context: ts.TransformationContext) => {
                     return (curFile: ts.SourceFile) => {
-                        const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                        const visitor = (node: ts.Node): ts.Node => {
                             // Replace non exported foobar function with exported function.
                             if (ts.isFunctionDeclaration(node) && node.name?.text === "foobar") {
                                 return ts.factory.updateFunctionDeclaration(
                                     node,
-                                    node.decorators,
                                     [ts.factory.createModifier(ts.SyntaxKind.ExportKeyword), ...(node.modifiers ?? [])],
                                     node.asteriskToken,
                                     node.name,
@@ -40,7 +39,7 @@ export const activate = (ctx: AddonContext) => {
                             }
                             return ts.visitEachChild(node, visitor, context);
                         };
-                        return ts.visitNode(curFile, visitor);
+                        return ts.visitNode(curFile, visitor, ts.isSourceFile);
                     };
                 },
             ],
