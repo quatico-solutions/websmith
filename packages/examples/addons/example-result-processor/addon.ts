@@ -28,26 +28,27 @@ export const activate = (ctx: AddonContext) => {
             ts.transform(
                 ts.createSourceFile(curPath, content, target),
                 [
-                    (context: ts.TransformationContext) => (curFile: ts.SourceFile) => {
-                        const funcNames: string[] = [];
+                    (context: ts.TransformationContext) =>
+                        (curFile: ts.SourceFile): ts.SourceFile => {
+                            const funcNames: string[] = [];
 
-                        const visitor: ts.Visitor = (node: ts.Node) => {
-                            if (ts.isFunctionDeclaration(node) && node.name?.text) {
-                                funcNames.push(node.name.text);
-                            } else if (ts.isVariableStatement(node)) {
-                                const decl = node.declarationList.declarations[0];
-                                if (ts.isArrowFunction(decl)) {
-                                    funcNames.push(node.declarationList?.declarations[0]?.name?.getText(curFile));
+                            const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
+                                if (ts.isFunctionDeclaration(node) && node.name?.text) {
+                                    funcNames.push(node.name.text);
+                                } else if (ts.isVariableStatement(node)) {
+                                    const decl = node.declarationList.declarations[0];
+                                    if (ts.isArrowFunction(decl)) {
+                                        funcNames.push(node.declarationList?.declarations[0]?.name?.getText(curFile));
+                                    }
                                 }
-                            }
-                            return ts.visitEachChild(node, visitor, context);
-                        };
+                                return ts.visitEachChild(node, visitor, context);
+                            };
 
-                        curFile = ts.visitNode(curFile, visitor);
-                        result[basename(curPath, extname(curPath))] = funcNames;
+                            curFile = ts.visitNode(curFile, visitor, ts.isSourceFile);
+                            result[basename(curPath, extname(curPath))] = funcNames;
 
-                        return curFile;
-                    },
+                            return curFile;
+                        },
                 ],
                 ctx.getConfig().options
             );

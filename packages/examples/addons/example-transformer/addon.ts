@@ -30,7 +30,7 @@ export const activate = (ctx: AddonContext): void => {
                         }
                         return ts.visitEachChild(node, visitor, context);
                     };
-                    return ts.visitNode(sourceFile, visitor);
+                    return ts.visitNode(sourceFile, visitor, ts.isSourceFile);
                 };
             },
         ],

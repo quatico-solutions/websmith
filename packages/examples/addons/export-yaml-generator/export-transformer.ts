@@ -19,12 +19,11 @@ export const createTransformer = (context: AddonContext): ts.TransformerFactory<
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (input: ts.SourceFile): ts.SourceFile => {
             const foundDecls: string[] = [];
-
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
                 // Collect node identifier if it is exported and a function or variable
                 if (
-                    node.modifiers?.some(it => it.kind === ts.SyntaxKind.ExportKeyword) &&
-                    (ts.isVariableStatement(node) || ts.isFunctionDeclaration(node))
+                    (ts.isVariableStatement(node) || ts.isFunctionDeclaration(node)) &&
+                    node.modifiers?.some(it => it.kind === ts.SyntaxKind.ExportKeyword)
                 ) {
                     foundDecls.push(getName(node));
                 }
@@ -32,7 +31,7 @@ export const createTransformer = (context: AddonContext): ts.TransformerFactory<
                 return ts.visitEachChild(node, visitor, ctx);
             };
 
-            input = ts.visitNode(input, visitor);
+            input = ts.visitNode(input, visitor, ts.isSourceFile);
 
             const outPath = join(context.getConfig()?.options?.outDir ?? "", "output.yaml");
             // Write collected identifiers to hard coded output file
