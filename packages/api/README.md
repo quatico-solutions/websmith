@@ -1,6 +1,6 @@
 # websmith-api
 
-Websmith addon API providing interfaces and functionality to implement custom websmith addons.
+The websmith API package provides interfaces and functionality to implement custom **addons** for the websmith compiler.
 
 Visit the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
 
@@ -8,7 +8,7 @@ Visit the [websmith github repository](https://github.com/quatico-solutions/webs
 
 ### Installation
 
-Install the websmith api package using npm:
+Install the `websmith-api` package using npm:
 
 ```sh
 npm i -D @quatico/websmith-api
@@ -16,7 +16,7 @@ npm i -D @quatico/websmith-api
 
 ### Create an addon
 
-websmith addons expect a named folder containing a module `addon` with an activate function implementing the `AddonActivator` interface.
+websmith addons are located by default within the `addons` folder. Add a named folder using your addon name, e.g., `addon-foo` and place within this folder an ES module called `addon.ts` with an activate function implementing the `AddonActivator` interface.
 
 ```typescript
 // ./addons/addon-foo/addon.ts
@@ -40,6 +40,8 @@ export const activate: AddonActivator = (ctx: AddonContext) => {
 ```
 
 ### Integrate the addon in the websmith configuration
+
+Register your addon by adding a config file `websmith.config.json` to your project folder. Add a `targets` definition for your project with an `addons` property mentioning your addon:
 
 ```json
 // websmith.config.json

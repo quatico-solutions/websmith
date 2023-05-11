@@ -8,7 +8,7 @@ import { AddonContext } from "@quatico/websmith-api";
 import ts from "typescript";
 
 /**
- * Example addon with a processor that modifies the exports of ES modules.
+ * Example addon with a processor that modifies all exports of ES modules.
  *
  * This addons finds all non exported "foobar" functions and adds an export
  * modifier to the function declaration.
