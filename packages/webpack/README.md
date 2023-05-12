@@ -1,6 +1,6 @@
 # websmith-webpack
 
-Webpack loader extension to provide websmith configurations to integrate it with the build, bundle and chunking process.
+A custom webpack loader to add the websmith compiler to your build and bundling process.
 
 Visit the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
 
@@ -8,7 +8,7 @@ Visit the [websmith github repository](https://github.com/quatico-solutions/webs
 
 ### Installation
 
-Install the websmith webpack package using npm:
+Install the websmith webpack loader using npm:
 
 ```sh
 npm i -D @quatico/websmith-webpack
@@ -16,7 +16,7 @@ npm i -D @quatico/websmith-webpack
 
 ### Add websmith configuration
 
-With websmith-webpack installed, you need to prepare a websmith configuration for usage in webpack.
+A `websmith.config.json` file is needed to configure which addons should be used by websmith during the webpack compilation process:
 
 ```json
 // websmith.config.json
@@ -29,6 +29,8 @@ With websmith-webpack installed, you need to prepare a websmith configuration fo
     }
 }
 ```
+
+**Note:** The webpack loader will expect a target called `executeAddons` which we need to configure in the webpack configuration.
 
 ### Add webpack configuration
 
@@ -65,7 +67,9 @@ module.exports = {
 };
 ```
 
-### Bundle your TypeScript project
+### Bundle your project
+
+You can run webpack in one of your build targets with:
 
 ```sh
 webpack
