@@ -17,6 +17,21 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - TBA
 -
 
+## [0.4.0] - 2023-05-12
+
+In this version, we've improved the documentation of published packages. Most importantly we ship an overview of working examples on how to write websmith addons for different use cases.
+
+### Changed
+
+- README.md of compiler package to improve compiler usage documentation.
+- README.md of api package to introduction to websmith api.
+- README.md of webpack package to improve webpack usage documentation.
+- README.md of core package to clearify the purpose of the package.
+
+### Added
+
+- README.md of examples package to provide an overview of working examples on how to write websmith addons for different use cases.
+
 ## [0.3.5] - 2023-02-1
 
 With this version, the usage of the BrowserSystem (createBrowserSystem) is deprecated. It is planned to remove it with version 0.4.0 which will cease support for a system based virtual filesystem.
