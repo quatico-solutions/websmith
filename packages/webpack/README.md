@@ -30,7 +30,7 @@ A `websmith.config.json` file is needed to configure which addons should be used
 }
 ```
 
-**Note:** The webpack loader expected a target called `executeAddons`.
+**Note:** The webpack loader will expect a target called `executeAddons` which we need to configure in the webpack configuration.
 
 ### Add webpack configuration
 
