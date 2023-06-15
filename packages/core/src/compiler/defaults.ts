@@ -10,8 +10,8 @@ export const tsDefaults: ts.CompilerOptions = {
     ...ts.getDefaultCompilerOptions(),
     esModuleInterop: true,
     jsx: ts.JsxEmit.React,
-    module: ts.ModuleKind.ES2015,
-    moduleResolution: ts.ModuleResolutionKind.NodeJs,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.NodeNext,
     strict: true,
     target: ts.ScriptTarget.Latest,
 };
