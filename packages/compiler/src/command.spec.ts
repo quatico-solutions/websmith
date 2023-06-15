@@ -95,7 +95,6 @@ describe("addCompileCommand", () => {
             importHelpers: true,
             incremental: true,
             inlineSources: undefined,
-            lib: ["lib.es2015.d.ts", "lib.es2016.d.ts", "lib.es2017.d.ts", "lib.esnext.d.ts", "lib.dom.d.ts"],
             module: 1,
             moduleResolution: 2,
             noEmit: false,

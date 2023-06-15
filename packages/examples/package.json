@@ -19,7 +19,7 @@
         "execute": "websmith --addons example-generator,example-processor,example-transformer,example-result-processor -p tsconfig.execute.json",
         "watch": "tsc --watch",
         "watch:test": "jest --watch",
-        "test": "jest --coverage",
+        "test": "jest --coverage --passWithNoTests",
         "test:update-snapshots": "yarn test -u",
         "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\""
     },
