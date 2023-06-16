@@ -15,7 +15,21 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 ### Changed
 
 - TBA
--
+- 
+
+## [0.4.1] - 2023-06-16
+
+In this version, we've improved the dependencies and build process of all packages. We updated the defaults to use EsNext modules by default. We also improved the test setup and execution.
+
+### Changed
+
+- Target "watch:test" now runs tests in watch mode.
+- Change defaults of websmith to use ESNext modules by default.
+- jest runs tests without verbose output.
+
+### Removed
+
+- Removes paths configs from tsconfig.json of all packages.
 
 ## [0.4.0] - 2023-05-12
 
