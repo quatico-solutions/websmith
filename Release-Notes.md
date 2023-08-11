@@ -10,12 +10,20 @@
 
 Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/) format.
 
+## [0.4.2]
+
+### Version upgrade of project dependencies
+
+- Major version upgrade of all package dependencies.
+- Replace dependency on `typescript` with peer dependency.
+- Unifies build commands across packages.
+
 ## [Unreleased]
 
 ### Changed
 
 - TBA
-- 
+-
 
 ## [0.4.1] - 2023-06-16
 
