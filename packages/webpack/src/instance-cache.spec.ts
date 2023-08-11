@@ -36,7 +36,7 @@ beforeEach(() => {
             transpileOnly: false,
             watch: false,
         },
-        _ => undefined
+        () => undefined
     );
 });
 

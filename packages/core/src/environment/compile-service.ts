@@ -83,25 +83,3 @@ export const injectTransformers = (
  * using `createSemanticDiagnosticsBuilderProgram` may be more desirable.
  */
 const createProgram = ts.createSemanticDiagnosticsBuilderProgram;
-
-// @ts-ignore
-const getDefaultLibFileName0 = (options: ts.CompilerOptions): string => {
-    switch (options.target) {
-        case 99 /* ESNext */:
-            return "lib.esnext.full.d.ts";
-        case 7 /* ES2020 */:
-            return "lib.es2020.full.d.ts";
-        case 6 /* ES2019 */:
-            return "lib.es2019.full.d.ts";
-        case 5 /* ES2018 */:
-            return "lib.es2018.full.d.ts";
-        case 4 /* ES2017 */:
-            return "lib.es2017.full.d.ts";
-        case 3 /* ES2016 */:
-            return "lib.es2016.full.d.ts";
-        case 2 /* ES2015 */:
-            return "lib.es6.d.ts"; // We don't use lib.es2015.full.d.ts due to breaking change.
-        default:
-            return "lib.d.ts";
-    }
-};
