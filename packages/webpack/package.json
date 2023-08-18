@@ -27,8 +27,7 @@
         "watch:test": "jest --watch",
         "test": "jest --coverage",
         "test:e2e": "jest -c jest.e2e.config.js --runInBand",
-        "dist": "yarn clean && yarn lint && yarn test && cross-env-shell NODE_ENV=production \"yarn build\" && yarn test:e2e",
-        "publish-npm": "npm publish --access public"
+        "dist": "yarn clean && yarn lint && yarn test && cross-env-shell NODE_ENV=production \"yarn build\" && yarn test:e2e"
     },
     "dependencies": {
         "@quatico/websmith-api": "^0.4.2",

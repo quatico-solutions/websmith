@@ -42,9 +42,6 @@
         "license:check": "license-check-and-add check -f license-config.json",
         "license:add": "license-check-and-add add -f license-config.json",
         "license:remove": "license-check-and-add remove -f license-config.json",
-        "publish-npm": "lerna run publish-npm",
-        "version-and-publish-npm": "lerna version --force-publish '*' && lerna run publish-npm",
-        "postpublish": "PACKAGE_VERSION=$(cat package.json | grep \\\"version\\\" | head -1 | awk -F: '{ print $2 }' | sed 's/[\",]//g' | tr -d '[[:space:]]') && git tag v$PACKAGE_VERSION && git push --tags",
         "prepare": "husky install"
     },
     "devDependencies": {

@@ -30,8 +30,7 @@
         "watch:test": "jest --watch",
         "test": "jest --coverage",
         "test:update-snapshots": "yarn test -u",
-        "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\"",
-        "publish-npm": "npm publish --access public"
+        "dist": "cross-env-shell NODE_ENV=production \"yarn clean && yarn lint && yarn test && yarn build\""
     },
     "devDependencies": {
         "@swc/core": "1.3.76",
