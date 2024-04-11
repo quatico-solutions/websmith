@@ -1,11 +1,11 @@
 # This workflow will run tests using node whenever a commit is pushed to develop or main
 # For more information see: https://docs.github.com/en/actions/using-workflows/about-workflows
 
-name: CI 
+name: CI
 
 on:
     push:
-    # List all branches that shall be tested and are not protected by requiring pull requests to commit to.
+        # List all branches that shall be tested and are not protected by requiring pull requests to commit to.
         branches:
             - "develop"
             - "main"
@@ -20,7 +20,7 @@ jobs:
             - name: setup
               uses: actions/setup-node@v3
               with:
-                  node-version: 16
+                  node-version: 20
 
             - name: install
               run: yarn install --frozen-lockfile
