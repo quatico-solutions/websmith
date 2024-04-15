@@ -16,7 +16,7 @@ import { TsCompiler } from "./TsCompiler";
 let compiler: Compiler;
 let context: LoaderContext<any>;
 let tsCompiler: TsCompiler;
-const projectDir = join(__dirname, "..", "test", "__data__", "module-date");
+const projectDir = join(__dirname, "..", "test", "__data__");
 
 beforeEach(() => {
     compiler = webpack({});
