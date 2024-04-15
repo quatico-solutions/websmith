@@ -36,7 +36,6 @@ export const createWebpackCompiler = (
                     {
                         test: /\.tsx?$/,
                         include: [uPath.resolve(projectDir, "src")],
-                        exclude: [/\.spec\.tsx?$/],
                         loader: "@quatico/websmith-webpack",
                         options: {
                             addonsDir: uPath.resolve(__dirname, "addons", "lib"),
