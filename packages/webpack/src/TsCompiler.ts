@@ -10,7 +10,7 @@ import { CompileFragment, Compiler, CompilerOptions } from "@quatico/websmith-co
 import ts from "typescript";
 import { WebpackError } from "webpack";
 import { PluginOptions } from "./loader-options";
-import uPath from "./Upath";
+import { Upath as uPath } from "./Upath";
 
 export class TsCompiler extends Compiler {
     public fragment?: CompileFragment;
