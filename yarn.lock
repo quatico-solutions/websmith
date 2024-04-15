@@ -1647,32 +1647,6 @@
   resolved "https://registry.npmjs.org/@types/prettier/-/prettier-2.7.3.tgz#3e51a17e291d01d17d3fc61422015a933af7a08f"
   integrity sha512-+68kP9yzs4LMp7VNh8gdzMSPZFL44MLGqiHWvttYJe+6qnuVr4Ek9wSBQoveqY/r+LwjCcU29kNVkidwim+kYA==
 
-"@types/prop-types@*":
-  version "15.7.5"
-  resolved "https://registry.npmjs.org/@types/prop-types/-/prop-types-15.7.5.tgz#5f19d2b85a98e9558036f6a3cacc8819420f05cf"
-  integrity sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==
-
-"@types/react-dom@18.2.7":
-  version "18.2.7"
-  resolved "https://registry.npmjs.org/@types/react-dom/-/react-dom-18.2.7.tgz#67222a08c0a6ae0a0da33c3532348277c70abb63"
-  integrity sha512-GRaAEriuT4zp9N4p1i8BDBYmEyfo+xQ3yHjJU4eiK5NDa1RmUZG+unZABUTK4/Ox/M+GaHwb6Ow8rUITrtjszA==
-  dependencies:
-    "@types/react" "*"
-
-"@types/react@ 18.2.20", "@types/react@*", "@types/react@18.2.20":
-  version "18.2.20"
-  resolved "https://registry.npmjs.org/@types/react/-/react-18.2.20.tgz#1605557a83df5c8a2cc4eeb743b3dfc0eb6aaeb2"
-  integrity sha512-WKNtmsLWJM/3D5mG4U84cysVY31ivmyw85dE84fOCk5Hx78wezB/XEjVPWl2JTZ5FkEeaTJf+VgUAUn3PE7Isw==
-  dependencies:
-    "@types/prop-types" "*"
-    "@types/scheduler" "*"
-    csstype "^3.0.2"
-
-"@types/scheduler@*":
-  version "0.16.3"
-  resolved "https://registry.npmjs.org/@types/scheduler/-/scheduler-0.16.3.tgz#cef09e3ec9af1d63d2a6cc5b383a737e24e6dcf5"
-  integrity sha512-5cJ8CB4yAx7BH1oMvdU0Jh9lrEXyPkar6F9G/ERswkCuvP4KQZfZkSjcMbAICCpQTN4OuZn8tz0HiKv9TGZgrQ==
-
 "@types/semver@^7.3.12", "@types/semver@^7.5.0":
   version "7.5.0"
   resolved "https://registry.npmjs.org/@types/semver/-/semver-7.5.0.tgz#591c1ce3a702c45ee15f47a42ade72c2fd78978a"
@@ -3222,11 +3196,6 @@ cssstyle@^2.3.0:
   integrity sha512-AZL67abkUzIuvcHqk7c09cezpGNcxUxU4Ioi/05xHk4DQeTkWmGYftIE6ctU6AEt+Gn4n1lDStOtj7FKycP71A==
   dependencies:
     cssom "~0.3.6"
-
-csstype@^3.0.2:
-  version "3.1.2"
-  resolved "https://registry.npmjs.org/csstype/-/csstype-3.1.2.tgz#1d4bf9d572f11c14031f0436e1c10bc1f571f50b"
-  integrity sha512-I7K1Uu0MBPzaFKg4nI5Q7Vs2t+3gWWW648spaF+Rg7pI9ds18Ugn+lvg4SHczUdKlHI5LWBXyqfS8+DufyBsgQ==
 
 cucumber-messages@8.0.0:
   version "8.0.0"
