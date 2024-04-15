@@ -61,9 +61,5 @@
     },
     "peerDependencies": {
         "typescript": "5.x"
-    },
-    "engines": {
-        "node": ">=16.x",
-        "yarn": ">=1.20.x"
     }
 }
