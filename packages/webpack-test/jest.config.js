@@ -14,7 +14,6 @@
  */
 
 module.exports = {
-    preset: "ts-jest",
     collectCoverageFrom: ["./src/**/*.{ts,tsx}"],
     coverageDirectory: "coverage",
     moduleNameMapper: {

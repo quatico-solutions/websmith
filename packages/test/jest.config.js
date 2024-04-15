@@ -5,9 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-// @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 module.exports = {
-    preset: "ts-jest",
     moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",

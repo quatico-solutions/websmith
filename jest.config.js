@@ -14,7 +14,6 @@ module.exports = {
         "@quatico/websmith-compiler": "<rootDir>/packages/compiler/src",
         "@quatico/websmith-core": "<rootDir>/packages/core/src",
     },
-    preset: "ts-jest",
     setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
     testRegex: "src/.*(test|spec)\\.(tsx?)$",
     testEnvironmentOptions: { url: "http://localhost/" },
