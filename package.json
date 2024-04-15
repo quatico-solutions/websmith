@@ -67,7 +67,6 @@
         "eslint-plugin-testing-library": "^5.11.1",
         "husky": "8.0.3",
         "jest": "^29.6.2",
-        "lerna": "^7.1.5",
         "license-check-and-add": "4.0.5",
         "memfs": "^4.2.1",
         "nx": "^16.6.0",
