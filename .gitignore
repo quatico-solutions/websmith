@@ -19,6 +19,7 @@ packages/test/test-source
 .env.test.local
 .env.production.local
 .nx-cache
+.nx
 
 # intellij
 .idea/*
