@@ -671,7 +671,7 @@ describe("report", () => {
     });
 });
 
-// FIXME: Update with BrowserSystem testSystem when BrowserSystem supports watch
+// TODO: Update with BrowserSystem testSystem when BrowserSystem supports watch
 describe("watch", () => {
     let testObj: Compiler;
 

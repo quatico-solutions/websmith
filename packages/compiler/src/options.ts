@@ -12,7 +12,7 @@ import {
     resolveCompilationConfig,
     resolveProjectConfig as resolveTsConfig,
     resolveTargets,
-    updateCompilerOptions
+    updateCompilerOptions,
 } from "@quatico/websmith-core";
 import { dirname, join } from "path";
 import ts from "typescript";
@@ -66,7 +66,7 @@ export const createOptions = (args: CompilerArguments, reporter: Reporter = new 
         buildDir: args.buildDir ?? system.getCurrentDirectory(),
         config: compilationConfig,
         debug: args.debug ?? DEFAULTS.debug,
-        // FIXME: Do we need lib files, or is injecting them into the system sufficient?
+        // TODO: Do we need lib files, or is injecting them into the system sufficient?
         // files?: Record<string, string>;
         tsconfig,
         project: tsconfig.options,

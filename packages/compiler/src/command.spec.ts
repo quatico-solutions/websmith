@@ -193,7 +193,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().debug).toBe(true);
     });
 
-    // FIXME: This test is failing because the compiler watch support is broken.
+    // TODO: This test is failing because the compiler watch support is broken.
     it.skip("should set watch compiler option w/ --watch cli argument", () => {
         const target = new Compiler(createOptions({}, new NoReporter()));
 
@@ -220,7 +220,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().transpileOnly).toBe(true);
     });
 
-    // FIXME: This test requires a decision regarding our explicit logic for additional cmdline arguments - do provide them through the CompilerOptions or do we reject them.
+    // TODO: This test requires a decision regarding our explicit logic for additional cmdline arguments - do provide them through the CompilerOptions or do we reject them.
     it.skip("should inform CLI user about tsconfig usage for unsupported command line arguments", () => {
         console.error = line => {
             throw new Error(line.toString());
