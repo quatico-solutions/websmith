@@ -45,7 +45,7 @@ let expected: string;
 let reporter: Reporter;
 
 beforeEach(() => {
-    expected = resolve("./__data__/one.ts");
+    expected = resolve("./__TEMP__/one.ts");
     reporter = new NoReporter();
 });
 
@@ -54,7 +54,7 @@ describe("TsCompiler", () => {
         testObj = new TestCompiler(
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter: reporter, system: ts.sys }),
-                buildDir: resolve("./__data__/.build"),
+                buildDir: resolve("./__TEMP__/.build"),
                 project: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
                 targets: [],
@@ -103,19 +103,19 @@ describe("TsCompiler", () => {
 
         expect(target).toHaveBeenCalledWith("Variable declaration expected.");
 
-        rmSync(resolve("./__data__"), { recursive: true, force: true });
+        rmSync(resolve("./__TEMP__"), { recursive: true, force: true });
     });
 });
 
 describe("Transpilation", () => {
     it('should provide transpiled compilation fragment w/ build, default "*" target and source code', () => {
-        const expected = resolve("./__data__/one.ts");
+        const expected = resolve("./__TEMP__/one.ts");
         createSource(expected, "export const one = () => 1;");
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: ts.sys }),
-                buildDir: resolve("./__data__/.build"),
+                buildDir: resolve("./__TEMP__/.build"),
                 project: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
                 targets: [],
@@ -130,29 +130,29 @@ describe("Transpilation", () => {
 
         const actual = testObj.build(expected);
 
-        expect(actual.files.map(f => f.name)).toEqual([resolve("./__data__/one.js"), resolve("./__data__/one.d.ts")]);
+        expect(actual.files.map(f => f.name)).toEqual([resolve("./__TEMP__/one.js"), resolve("./__TEMP__/one.d.ts")]);
         expect(actual.files.find(f => f.name.endsWith(".js"))?.text).toBe("export const one = () => 1;\n");
         expect(actual.files.find(f => f.name.endsWith(".d.ts"))?.text).toBe("export declare const one: () => number;\n");
 
-        rmSync(resolve("./__data__"), { recursive: true, force: true });
+        rmSync(resolve("./__TEMP__"), { recursive: true, force: true });
     });
 
     it('should provide transpiled compilation fragment w/ build, "fragment" and "write" target and source code', () => {
-        const expected = resolve("./__data__/one.ts");
+        const expected = resolve("./__TEMP__/one.ts");
         createSource(expected, "export const one = () => 1;");
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: ts.sys }),
-                buildDir: resolve("./__data__/.build"),
+                buildDir: resolve("./__TEMP__/.build"),
                 config: {
-                    configFilePath: resolve("./__data__/websmith.config.json"),
+                    configFilePath: resolve("./__TEMP__/websmith.config.json"),
                     targets: {
                         fragment: { options: { declaration: true } },
                         write: { writeFile: true, options: { module: 1, target: 1 } },
                     },
                 },
-                project: { target: 99, outDir: resolve("./__data__/.build"), noEmitOnError: true },
+                project: { target: 99, outDir: resolve("./__TEMP__/.build"), noEmitOnError: true },
                 reporter,
                 targets: ["fragment", "write"],
                 tsconfig: { options: { target: 99 }, fileNames: [expected], errors: [] },
@@ -161,15 +161,15 @@ describe("Transpilation", () => {
                 transpileOnly: false,
                 watch: false,
             },
-            { config: resolve("__data__", "websmith.config.json"), webpackTarget: "fragment" }
+            { config: resolve("__TEMP__", "websmith.config.json"), webpackTarget: "fragment" }
         );
 
         const actual = testObj.build(expected);
 
-        expect(actual.files.map(f => f.name)).toEqual([resolve("./__data__/.build/one.js"), resolve("./__data__/.build/one.d.ts")]);
+        expect(actual.files.map(f => f.name)).toEqual([resolve("./__TEMP__/.build/one.js"), resolve("./__TEMP__/.build/one.d.ts")]);
         expect(actual.files.find(f => f.name.endsWith(".js"))?.text).toBe("export const one = () => 1;\n");
         expect(actual.files.find(f => f.name.endsWith(".d.ts"))?.text).toBe("export declare const one: () => number;\n");
-        expect(readFileSync(resolve("./__data__/.build/one.js"), "utf8")).toMatchInlineSnapshot(`
+        expect(readFileSync(resolve("./__TEMP__/.build/one.js"), "utf8")).toMatchInlineSnapshot(`
             ""use strict";
             Object.defineProperty(exports, "__esModule", { value: true });
             exports.one = void 0;
@@ -177,9 +177,9 @@ describe("Transpilation", () => {
             exports.one = one;
             "
         `);
-        expect(existsSync(resolve("./__data__/.build/one.d.ts"))).toBe(false);
+        expect(existsSync(resolve("./__TEMP__/.build/one.d.ts"))).toBe(false);
 
-        rmSync(resolve("./__data__"), { recursive: true, force: true });
+        rmSync(resolve("./__TEMP__"), { recursive: true, force: true });
     });
 });
 
