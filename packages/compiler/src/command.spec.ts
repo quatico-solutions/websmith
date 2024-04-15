@@ -141,7 +141,6 @@ describe("addCompileCommand", () => {
             compileOnSave: false,
             projectReferences: undefined,
             raw: {
-                compileOnSave: undefined,
                 compilerOptions: {
                     module: "CommonJS",
                     noEmit: false,
@@ -152,7 +151,7 @@ describe("addCompileCommand", () => {
                 include: ["src/**/*.ts"],
             },
             watchOptions: undefined,
-            wildcardDirectories: {[join(__dirname, "..", "src").toLowerCase()]:1},
+            wildcardDirectories: {[join(__dirname, "..", "src")]:1},
         });
         expect(actual.reporter).toBeDefined();
         expect(actual.sourceMap).toBe(false);
