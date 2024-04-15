@@ -18,21 +18,16 @@ module.exports = {
     setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
     testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
-        "^.+\\.(js|ts)$":[
+        "^.+\\.(js|ts)$": [
             "@swc/jest",
             {
                 jsc: {
                     parser: {
                         syntax: "typescript",
                     },
-                    transform: {
-                        react: {
-                            runtime: "automatic",
-                        },
-                    },
                 },
             },
-        ] 
+        ],
     },
     resetMocks: true,
 };

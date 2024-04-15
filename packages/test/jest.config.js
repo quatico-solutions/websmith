@@ -18,20 +18,15 @@ module.exports = {
     testEnvironment: "node",
     testMatch: ["**/cucumber.test.ts", "test/.*\\.test\\.(j|t)sx?$"],
     transform: {
-        "^.+\\.(j|t)s$":[
+        "^.+\\.(j|t)s$": [
             "@swc/jest",
             {
                 jsc: {
                     parser: {
                         syntax: "typescript",
                     },
-                    transform: {
-                        react: {
-                            runtime: "automatic",
-                        },
-                    },
                 },
             },
-        ] 
+        ],
     },
 };

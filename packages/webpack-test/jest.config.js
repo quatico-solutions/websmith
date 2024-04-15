@@ -29,21 +29,16 @@ module.exports = {
     testRegex: ".+\\.test\\.ts",
     testTimeout: 25000,
     transform: {
-        "^.+\\.(j|t)s$":[
+        "^.+\\.(j|t)s$": [
             "@swc/jest",
             {
                 jsc: {
                     parser: {
                         syntax: "typescript",
                     },
-                    transform: {
-                        react: {
-                            runtime: "automatic",
-                        },
-                    },
                 },
             },
-        ] 
+        ],
     },
     resetMocks: true,
 };

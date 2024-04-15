@@ -19,21 +19,16 @@ module.exports = {
     testRegex: "src/.*(test|spec)\\.(tsx?)$",
     testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
-        "^.+\\.(js|ts)$":[
+        "^.+\\.(js|ts)$": [
             "@swc/jest",
             {
                 jsc: {
                     parser: {
                         syntax: "typescript",
                     },
-                    transform: {
-                        react: {
-                            runtime: "automatic",
-                        },
-                    },
                 },
             },
-        ] 
+        ],
     },
     transformIgnorePatterns: ["node_modules"],
     resetMocks: true,
