@@ -10,7 +10,7 @@ import { join, resolve } from "path";
 import { Compiler, WebpackError } from "webpack";
 import { createWebpackCompiler } from "./webpack-utils";
 
-const projectDir = resolve(__dirname, "../__data__/module-date");
+const projectDir = resolve(__dirname, "../__data__/module-test");
 const targetInput = resolve(projectDir, "src", "index.tsx");
 const input = readFileSync(targetInput).toString();
 let cleanupCompiler: Compiler | undefined;
@@ -98,8 +98,8 @@ describe("webpack loader", () => {
         expect(statSync(target).isFile()).toBe(true);
         expect(stats?.compilation.getWarnings()).toEqual([]);
         const output = readFileSync(target).toString();
-        expect(output).toContain('/***/ "./__data__/module-date/src/functions/getDate.ts":');
-        expect(output).toContain('/***/ "./__data__/module-date/src/model/index.ts":');
+        expect(output).toContain('/***/ "./__data__/module-test/src/functions/getDate.ts":');
+        expect(output).toContain('/***/ "./__data__/module-test/src/model/index.ts":');
     });
 
     it("should bundle invalid TypeScript file w/ transpileOnly being used", async () => {
@@ -112,7 +112,7 @@ describe("webpack loader", () => {
         expect(statSync(target).isFile()).toBe(true);
         expect(stats?.compilation.getWarnings()).toEqual([]);
         const output = readFileSync(target).toString();
-        expect(output).toContain('/***/ "./__data__/module-date/src/invalid.ts":');
+        expect(output).toContain('/***/ "./__data__/module-test/src/invalid.ts":');
     });
 
     it("should bundle the file w/ fork-ts-checker-webpack-plugin being used", async () => {
@@ -124,8 +124,8 @@ describe("webpack loader", () => {
         expect(statSync(target).isFile()).toBe(true);
         expect(stats?.compilation.getWarnings()).toEqual([]);
         const output = readFileSync(target).toString();
-        expect(output).toContain('/***/ "./__data__/module-date/src/functions/getDate.ts":');
-        expect(output).toContain('/***/ "./__data__/module-date/src/model/index.ts":');
+        expect(output).toContain('/***/ "./__data__/module-test/src/functions/getDate.ts":');
+        expect(output).toContain('/***/ "./__data__/module-test/src/model/index.ts":');
     });
 
     it("should rebundle the file in watch mode w/ the file content change", async () => {

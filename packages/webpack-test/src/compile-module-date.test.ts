@@ -11,12 +11,12 @@ import { Configuration, NormalModule } from "webpack";
 import { createWebpackCompiler } from "./webpack-utils";
 
 describe("project bundling", () => {
-    const projectDir = resolve(__dirname, "../__data__/module-date");
+    const projectDir = resolve(__dirname, "../__data__/module-test");
     let config: Configuration;
 
     beforeAll(() => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        config = require("../__data__/module-date/webpack.config.js")() as Configuration;
+        config = require("../__data__/module-test/webpack.config.js")() as Configuration;
     });
 
     afterEach(() => {
@@ -46,7 +46,7 @@ describe("project bundling", () => {
     it("yields bundled output", async () => {
         const { compiler } = await createWebpackCompiler(config, projectDir);
 
-        expect(readdirSync(resolve(__dirname, "../__data__/module-date/.build/lib"))).toEqual([
+        expect(readdirSync(resolve(__dirname, "../__data__/module-test/.build/lib"))).toEqual([
             "functions.js",
             "functions.js.map",
             "main.js",
@@ -54,12 +54,12 @@ describe("project bundling", () => {
             "output.yaml",
         ]);
 
-        const expected = readFileSync(resolve(__dirname, "../__data__/module-date/.build/lib/output.yaml")).toString();
+        const expected = readFileSync(resolve(__dirname, "../__data__/module-test/.build/lib/output.yaml")).toString();
         [
-            `-file: "${resolve(__dirname, "../__data__/module-date/src/index.tsx")}"\nexports: [render]`,
-            `-file: "${resolve(__dirname, "../__data__/module-date/src/functions/getDate.ts")}"\nexports: [getDate]`,
-            `-file: "${resolve(__dirname, "../__data__/module-date/src/model/index.ts")}"\nexports: []`,
-            `-file: "${resolve(__dirname, "../__data__/module-date/src/model/create-message.ts")}"\nexports: [createMessage]`,
+            `-file: "${resolve(__dirname, "../__data__/module-test/src/index.tsx")}"\nexports: [render]`,
+            `-file: "${resolve(__dirname, "../__data__/module-test/src/functions/getDate.ts")}"\nexports: [getDate]`,
+            `-file: "${resolve(__dirname, "../__data__/module-test/src/model/index.ts")}"\nexports: []`,
+            `-file: "${resolve(__dirname, "../__data__/module-test/src/model/create-message.ts")}"\nexports: [createMessage]`,
         ].forEach(it => expect(expected).toContain(it));
 
         compiler.close(() => undefined);
