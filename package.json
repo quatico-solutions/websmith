@@ -24,11 +24,6 @@
         "LICENSE",
         "README.md"
     ],
-    "workspaces": {
-        "packages": [
-            "packages/*"
-        ]
-    },
     "scripts": {
         "clean": "nx run-many --target=clean",
         "lint": "nx run-many --target=lint",
@@ -38,11 +33,12 @@
         "test": "nx run-many --target=test",
         "test:e2e": "nx run-many --target=test:e2e",
         "test:update-snapshots": "nx run-many --target=test:update-snapshots",
-        "dist": "nx run-many --target=dist && yarn test:e2e",
+        "dist": "nx run-many --target=dist && pnpm test:e2e",
         "license:check": "license-check-and-add check -f license-config.json",
         "license:add": "license-check-and-add add -f license-config.json",
         "license:remove": "license-check-and-add remove -f license-config.json",
-        "prepare": "husky install"
+        "prepare": "husky install",
+        "preinstall": "npx only-allow pnpm"
     },
     "devDependencies": {
         "@cucumber/gherkin": "^26.2.0",

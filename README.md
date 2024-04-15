@@ -20,10 +20,10 @@ An addon can also access all processed source files as whole and reason about th
 
 ### Installation
 
-Install the following packages to add websmith to your TypeScript project. For example, execute the following command in your command line environment using `yarn`:
+Install the following packages to add websmith to your TypeScript project. For example, execute the following command in your command line environment using `pnpm`:
 
 ```bash
-yarn add typescript @quatico/websmith-compiler @quatico/websmith-api --dev
+pnpm add typescript @quatico/websmith-compiler @quatico/websmith-api --dev
 ```
 
 ### Add websmith to package.json
@@ -46,7 +46,7 @@ In your package.json, add the `websmith` command as your build target to the `sc
 The default configuration uses your `tsconfig.json` file to compile the TypeScript files and looks for compiler addons in the `./addons` directory.
 
 ```bash
-yarn build
+pnpm build
 ```
 
 ## Custom compiler addons

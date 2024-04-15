@@ -12,24 +12,24 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: checkout
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
 
             - name: setup
-              uses: actions/setup-node@v3
+              uses: actions/setup-node@v4
               with:
                   node-version: 20
 
             - name: install
-              run: yarn install --frozen-lockfile
+              run: pnpm install --frozen-lockfile
 
             - name: lint
-              run: yarn lint
+              run: pnpm lint
 
             - name: test
-              run: yarn test
+              run: pnpm test
 
             - name: build
-              run: yarn build
+              run: pnpm build
 
             - name: E2E tests
-              run: yarn test:e2e
+              run: pnpm test:e2e

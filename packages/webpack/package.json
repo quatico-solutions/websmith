@@ -26,7 +26,7 @@
         "watch": "tsc --watch",
         "watch:test": "jest --watch",
         "test": "jest --coverage",
-        "dist": "yarn clean && yarn lint && yarn test && cross-env-shell NODE_ENV=production \"yarn build\""
+        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
     "dependencies": {
         "@quatico/websmith-api": "^0.4.2",

@@ -26,8 +26,8 @@
         "watch": "tsc --watch",
         "watch:test": "jest --watch",
         "test": "jest --coverage --passWithNoTests",
-        "test:update-snapshots": "yarn test -u",
-        "dist": "yarn clean && yarn lint && yarn test && cross-env-shell NODE_ENV=production \"yarn build\""
+        "test:update-snapshots": "pnpm test -u",
+        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
     "devDependencies": {
         "@swc/core": "1.3.76",
