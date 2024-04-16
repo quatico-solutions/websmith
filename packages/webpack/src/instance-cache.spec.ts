@@ -56,7 +56,7 @@ describe("initializeInstance", () => {
             path => console.info(`dependency ${path} added`)
         );
 
-        expect(actual).toEqual(getInstanceFromCache(target._compiler!, target));
+        expect(actual).toEqual(getInstanceFromCache(target._compiler, target));
     });
 });
 

@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-/* eslint-disable jest/no-mocks-import */
 import { TargetConfig } from "@quatico/websmith-api/src";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { basename, dirname, join } from "path";

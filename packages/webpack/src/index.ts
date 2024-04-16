@@ -21,8 +21,7 @@ function loader(this: LoaderContext<PluginOptions>): void {
 
     this.version = instance.version;
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    setInstanceInCache(this._compiler!, this, instance);
+    setInstanceInCache(this._compiler, this, instance);
 
     processResultAndFinish(this, fragment, instance.targets);
 }

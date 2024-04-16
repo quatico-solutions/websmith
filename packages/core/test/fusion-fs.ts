@@ -8,8 +8,10 @@
 import fs, { MakeDirectoryOptions, ObjectEncodingOptions, PathLike, PathOrFileDescriptor, Stats, WatchFileOptions } from "fs";
 import { createFsFromVolume, vol } from "memfs";
 import Dirent from "memfs/lib/Dirent";
-import { TDataOut } from "memfs/lib/encoding";
-import { IReaddirOptions, IReadStream, IReadStreamOptions, IWatchOptions, StatWatcher, TCallback } from "memfs/lib/volume";
+import type { TDataOut } from "memfs/lib/encoding";
+import type { IWatchOptions, StatWatcher, TCallback } from "memfs/lib/volume";
+import type { IReadStream } from "memfs/lib/node/types/misc";
+import type { IReadStreamOptions, IReaddirOptions } from "memfs/lib/node/types/options";
 import { dirname } from "path";
 
 export const createFs = (actualFs: typeof fs): typeof fs => {
@@ -51,7 +53,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             callback: (err: NodeJS.ErrnoException | null, data: Buffer | string) => void
         ): void => {
             options = options ?? { encoding: "utf-8" };
-            return memfs.existsSync(path) ? memfs.readFile(path, options, callback as any) : actualFs.readFile(path, options as any, callback);
+            return memfs.existsSync(path) ? memfs.readFile(path, options, callback as any) : actualFs.readFile(path, options, callback);
         },
         readFileSync: (
             path: PathOrFileDescriptor,
@@ -77,7 +79,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
         },
         readdir: (path: PathLike, options: IReaddirOptions | string, callback: (err: NodeJS.ErrnoException | null, files: string[]) => void): any => {
             options = options ?? { encoding: "utf-8" };
-            return memfs.existsSync(path) ? memfs.readdir(path, options, callback as any) : actualFs.readdir(path, options as any, callback);
+            return memfs.existsSync(path) ? memfs.readdir(path, options, callback as any) : actualFs.readdir(path, options, callback);
         },
         readdirSync: (
             path: PathLike,
@@ -122,7 +124,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             memfs.existsSync(path) ? memfs.stat(path, callback as any) : actualFs.stat(path, callback),
         statSync: (path: PathLike): Stats => (memfs.existsSync(path) ? memfs.statSync(path) : actualFs.statSync(path)),
         createReadStream: (path: PathLike, options?: BufferEncoding | IReadStreamOptions): IReadStream | fs.ReadStream =>
-            memfs.existsSync(path) ? memfs.createReadStream(path, options) : actualFs.createReadStream(path, options as any),
+            memfs.existsSync(path) ? memfs.createReadStream(path, options) : actualFs.createReadStream(path, options),
         unlinkSync: memfs.unlinkSync,
         realpathSync: (path: PathLike, options?: { encoding?: BufferEncoding | null } | BufferEncoding | null): string | TDataOut | Buffer =>
             memfs.existsSync(path) ? memfs.realpathSync(path, options as any) : actualFs.realpathSync(path, options),

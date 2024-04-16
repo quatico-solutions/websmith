@@ -18,7 +18,6 @@ export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
 };
 
 export const processResultAndFinish = (loader: LoaderContext<PluginOptions>, fragment: CompileFragment, targets: string[]) => {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const outputText = fragment.files.find((cur: typescript.OutputFile) => cur.name.match(/\.jsx?$/i))?.text;
     const sourceMapText = fragment.files.find((cur: typescript.OutputFile) => cur.name.match(/\.jsx?\.map$/i))?.text;
 

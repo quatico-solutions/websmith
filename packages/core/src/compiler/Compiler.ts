@@ -115,7 +115,7 @@ export class Compiler {
         return results.filter(cur => !!cur).length < 1
             ? { emitSkipped: true, diagnostics: [] }
             : {
-                  emitSkipped: !!results.find(cur => cur.emitSkipped) ?? false,
+                  emitSkipped: !!results.find(cur => cur.emitSkipped) || false,
                   emittedFiles: concat(results.flatMap(cur => cur.emittedFiles ?? [])),
                   diagnostics: concat(results.flatMap(cur => cur.diagnostics)),
               };
@@ -150,7 +150,6 @@ export class Compiler {
                         fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
                             ? this.emitSourceFile(fileName, target, true, true)
                             : this.contextMap.has(target) &&
-                              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                               this.contextMap
                                   .get(target)!
                                   .resolveDependency(fileName)
@@ -172,7 +171,6 @@ export class Compiler {
     }
 
     protected createTargetContextsIfNecessary(): this {
-        // eslint-disable-next-line no-console
         this.options.targets.forEach((target: string) => {
             if (this.contextMap.has(target)) {
                 return;
@@ -199,7 +197,6 @@ export class Compiler {
             project: { ...project, ...options },
             projectDir: dirname(config?.configFilePath ?? tsconfig.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             program: ts.createProgram({ rootNames: this.getRootFiles(), options: project, host: createCompileHost(project) }),
             tsconfig: { ...tsconfig, options: { ...project, ...options } },
             rootFiles: this.getRootFiles(),

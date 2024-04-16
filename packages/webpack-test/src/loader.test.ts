@@ -25,7 +25,6 @@ afterEach(() => {
 });
 
 describe("webpack loader", () => {
-    // eslint-disable-next-line no-console
     console.info = () => undefined;
     it("should throw an error if webpackTarget does not exist as target", async () => {
         await createWebpackCompiler(requireWebpackConfig("webpack_unknownWebpackTarget.config.js"), projectDir)
@@ -59,7 +58,6 @@ describe("webpack loader", () => {
     it("should write a warning if no target w/ writeFile false is specified", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_noNoWriteTargets.config.js"), projectDir);
         cleanupCompiler = compiler;
 
@@ -70,7 +68,6 @@ describe("webpack loader", () => {
     it("should use default target w/o configured target and webpackTarget", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_noTargets.config.js"), projectDir);
         cleanupCompiler = compiler;
 
@@ -91,7 +88,6 @@ describe("webpack loader", () => {
     it("should bundle the file w/ thread-loader being used", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_thread_loader.config.js"), projectDir);
         cleanupCompiler = compiler;
 
@@ -105,7 +101,6 @@ describe("webpack loader", () => {
     it("should bundle invalid TypeScript file w/ transpileOnly being used", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_transpileOnly.config.js"), projectDir);
         cleanupCompiler = compiler;
 

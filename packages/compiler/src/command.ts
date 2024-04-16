@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-/* eslint-disable no-console */
 import { WarnMessage } from "@quatico/websmith-api";
 import { CompilationConfig, Compiler, DefaultReporter } from "@quatico/websmith-core";
 import { Command, program } from "commander";

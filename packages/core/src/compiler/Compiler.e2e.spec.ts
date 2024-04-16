@@ -1,4 +1,3 @@
-/* eslint-disable jest/no-mocks-import */
 import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createBrowserSystem } from "../environment";
@@ -51,9 +50,9 @@ const createCompiler = (system: ts.System, options: ts.CompilerOptions = {}) => 
                 configFilePath: "",
                 targets: {
                     "*": {
-                        writeFile: true
-                    }
-                }
+                        writeFile: true,
+                    },
+                },
             },
             debug: false,
             project: options,

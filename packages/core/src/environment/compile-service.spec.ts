@@ -4,21 +4,23 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-/* eslint-disable jest/no-mocks-import */
 import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { resolveProjectConfig } from "../compiler";
 import { createBrowserSystem } from "./browser-system";
 import { createWatchHost } from "./compile-service";
 
-const testSystem = createBrowserSystem({
-    "tsconfig.json": JSON.stringify({
-        exclude: ["node_modules"],
-    }),
-    "folder/one.js": `class One {}`,
-    "folder/two.js": `class Two {}`,
-    "folder/foo/three.js": `class Three {}`,
-}, ts.sys.useCaseSensitiveFileNames);
+const testSystem = createBrowserSystem(
+    {
+        "tsconfig.json": JSON.stringify({
+            exclude: ["node_modules"],
+        }),
+        "folder/one.js": `class One {}`,
+        "folder/two.js": `class Two {}`,
+        "folder/foo/three.js": `class Three {}`,
+    },
+    ts.sys.useCaseSensitiveFileNames
+);
 
 describe("createWatchHost", () => {
     let target: ts.WatchCompilerHostOfFilesAndCompilerOptions<ts.SemanticDiagnosticsBuilderProgram>;

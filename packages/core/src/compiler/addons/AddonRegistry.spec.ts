@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-/* eslint-disable jest/no-mocks-import */
 import { WarnMessage } from "@quatico/websmith-api";
 import ts from "typescript";
 import { ReporterMock } from "../../../test";
@@ -40,14 +39,14 @@ describe("Ctor", () => {
     it("yields addons w/o addons property", () => {
         const testObj = new AddonRegistry({} as any);
 
-        // @ts-ignore private property access
+        // @ts-expect-error private property access
         expect(testObj.addons).toEqual([]);
     });
 
     it("yields addons w/ addons property", () => {
         const testObj = new AddonRegistry({ addons: "zip,zap, zup" } as any);
 
-        // @ts-ignore private property access
+        // @ts-expect-error private property access
         expect(testObj.addons).toEqual(["zip", "zap", "zup"]);
     });
 });
