@@ -14,35 +14,30 @@
  */
 
 module.exports = {
-    preset: "ts-jest",
     collectCoverageFrom: ["./src/**/*.{ts,tsx}"],
     coverageDirectory: "coverage",
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
         "@quatico/websmith-core": "<rootDir>/../core/src",
+        "@quatico/websmith-webpack": "<rootDir>/../webpack/src",
     },
-    roots: ["<rootDir>/test/"],
+    roots: ["<rootDir>/src/"],
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
     testEnvironment: "node",
     testRegex: ".+\\.test\\.ts",
     testTimeout: 25000,
     transform: {
-        "^.+\\.(j|t)s$":[
+        "^.+\\.(j|t)s$": [
             "@swc/jest",
             {
                 jsc: {
                     parser: {
                         syntax: "typescript",
                     },
-                    transform: {
-                        react: {
-                            runtime: "automatic",
-                        },
-                    },
                 },
             },
-        ] 
+        ],
     },
     resetMocks: true,
 };

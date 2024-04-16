@@ -5,7 +5,6 @@
  * ---------------------------------------------------------------------------------------------
  */
 module.exports = {
-    preset: "ts-jest",
     collectCoverageFrom: ["./src/**/*.ts"],
     coverageDirectory: "coverage",
     coveragePathIgnorePatterns: ["index.ts"],
@@ -20,11 +19,6 @@ module.exports = {
                 jsc: {
                     parser: {
                         syntax: "typescript",
-                    },
-                    transform: {
-                        react: {
-                            runtime: "automatic",
-                        },
                     },
                 },
             },

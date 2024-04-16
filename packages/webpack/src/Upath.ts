@@ -83,5 +83,3 @@ export class Upath {
         return this.toUnix(path.dirname(this.toUnix(p)));
     }
 }
-
-export default Upath;

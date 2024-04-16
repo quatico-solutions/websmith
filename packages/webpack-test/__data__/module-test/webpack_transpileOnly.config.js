@@ -35,7 +35,7 @@ module.exports = () => {
                 {
                     test: /\.[j|t]sx?$/,
                     include: [sourceDir],
-                    exclude: [/\.spec\.tsx?$/, /node_modules/],
+                    exclude: [/node_modules/],
                     use: [
                         ...preLoaders,
                         {

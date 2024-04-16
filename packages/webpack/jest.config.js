@@ -6,7 +6,6 @@
  */
 
 module.exports = {
-    preset: "ts-jest",
     collectCoverageFrom: ["./src/**/*.{ts,tsx}"],
     coverageDirectory: "coverage",
     moduleNameMapper: {
@@ -19,21 +18,16 @@ module.exports = {
     testEnvironment: "node",
     testRegex: "(test|src)/.+\\.spec\\.ts$",
     transform: {
-        "^.+\\.(j|t)s$":[
+        "^.+\\.(j|t)s$": [
             "@swc/jest",
             {
                 jsc: {
                     parser: {
                         syntax: "typescript",
                     },
-                    transform: {
-                        react: {
-                            runtime: "automatic",
-                        },
-                    },
                 },
             },
-        ] 
+        ],
     },
     resetMocks: true,
 };

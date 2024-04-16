@@ -1,6 +1,6 @@
 import { LoaderContext } from "webpack";
 import { getLoaderOptions, PluginOptions } from "./loader-options";
-import Upath from "./Upath";
+import { Upath } from "./Upath";
 
 describe("getLoaderOptions", () => {
     it("should yield default values w/ empty options", () => {

@@ -6,7 +6,7 @@
  */
 import { existsSync } from "fs";
 import webpack, { Compiler, Configuration, Stats } from "webpack";
-import uPath from "../src/Upath";
+import { uPath } from "@quatico/websmith-webpack";
 
 export const createWebpackCompiler = (
     options: Configuration,
@@ -36,10 +36,9 @@ export const createWebpackCompiler = (
                     {
                         test: /\.tsx?$/,
                         include: [uPath.resolve(projectDir, "src")],
-                        exclude: [/\.spec\.tsx?$/],
                         loader: "@quatico/websmith-webpack",
                         options: {
-                            addonsDir: uPath.resolve(__dirname, "..", "addons", "lib"),
+                            addonsDir: uPath.resolve(__dirname, "addons", "lib"),
                             config: uPath.resolve(projectDir, "websmith.config.json"),
                             project: uPath.resolve(projectDir, "tsconfig.json"),
                             webpackTarget: "*",

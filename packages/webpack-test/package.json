@@ -1,38 +1,21 @@
 {
-    "name": "@quatico/websmith-webpack",
+    "name": "@quatico/websmith-webpack-test",
     "description": "Webpack loader for @quatico/websmith-compiler",
     "version": "0.4.2",
     "author": "Quatico Solutions AG",
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
-    "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/quatico-solutions/websmith.git"
-    },
-    "bugs": {
-        "url": "https://github.com/quatico-solutions/websmith/issues"
-    },
-    "homepage": "https://github.com/quatico-solutions/websmith#readme",
-    "files": [
-        "LICENSE",
-        "README.md",
-        "lib"
-    ],
+    "private": true,
     "scripts": {
-        "clean": "rimraf lib coverage",
+        "clean": "rimraf lib coverage __data__/**/.build/",
         "lint": "eslint \"{src,test}/**/*.{js,ts,tsx}\" --fix --color",
         "build": "tsc",
         "watch": "tsc --watch",
-        "watch:test": "jest --watch",
-        "test": "jest --coverage",
-        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
-    },
-    "dependencies": {
-        "@quatico/websmith-api": "workspace:^",
-        "@quatico/websmith-core": "workspace:^"
+        "test:e2e": "jest --runInBand",
+        "dist": "pnpm clean && pnpm lint && cross-env-shell NODE_ENV=production \"pnpm build\" && pnpm test:e2e"
     },
     "devDependencies": {
+        "@quatico/websmith-api": "workspace:^",
+        "@quatico/websmith-core": "workspace:^",
+        "@quatico/websmith-webpack": "workspace:^",
         "@swc/core": "1.4.14",
         "@swc/jest": "0.2.36",
         "@types/jest": "^29.5.12",
@@ -50,13 +33,12 @@
         "fork-ts-checker-webpack-plugin": "^9.0.2",
         "jest": "^29.7.0",
         "prettier": "^3.2.5",
+        "react": "18.2.0",
+        "react-dom": "18.2.0",
         "rimraf": "^5.0.5",
         "thread-loader": "4.0.2",
         "typescript": "5.4.5",
         "webpack": "^5.91.0",
         "webpack-cli": "^5.1.4"
-    },
-    "peerDependencies": {
-        "webpack": "5.x"
     }
 }
