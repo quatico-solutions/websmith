@@ -56,7 +56,7 @@
     "dependencies": {
         "@quatico/websmith-api": "workspace:^",
         "@quatico/websmith-core": "workspace:^",
-        "commander": "^11.0.0",
+        "commander": "^12.0.0",
         "minimist": "^1.2.8",
         "ts-node": "^10.9.2",
         "tslib": "2.6.2",

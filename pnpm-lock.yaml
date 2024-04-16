@@ -36,8 +36,8 @@ importers:
         specifier: ^7.7.0
         version: 7.7.0(eslint@8.57.0)(typescript@5.4.5)
       commander:
-        specifier: ^11.0.0
-        version: 11.1.0
+        specifier: ^12.0.0
+        version: 12.0.0
       concurrently:
         specifier: ^8.2.2
         version: 8.2.2
@@ -177,8 +177,8 @@ importers:
         specifier: workspace:^
         version: link:../core
       commander:
-        specifier: ^11.0.0
-        version: 11.1.0
+        specifier: ^12.0.0
+        version: 12.0.0
       minimist:
         specifier: ^1.2.8
         version: 1.2.8
@@ -428,8 +428,8 @@ importers:
         specifier: ^7.7.0
         version: 7.7.0(eslint@8.57.0)(typescript@5.4.5)
       commander:
-        specifier: ^11.0.0
-        version: 11.1.0
+        specifier: ^12.0.0
+        version: 12.0.0
       concurrently:
         specifier: ^8.2.2
         version: 8.2.2
@@ -2931,9 +2931,9 @@ packages:
     engines: {node: '>=14'}
     dev: true
 
-  /commander@11.1.0:
-    resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
-    engines: {node: '>=16'}
+  /commander@12.0.0:
+    resolution: {integrity: sha512-MwVNWlYjDTtOjX5PiD7o5pK0UrFU/OYgcJfjjK4RaHZETNtjJqrZa9Y9ds88+A+f+d5lv+561eZ+yCKoS3gbAA==}
+    engines: {node: '>=18'}
 
   /commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
