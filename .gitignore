@@ -23,11 +23,13 @@ packages/test/test-source
 
 # intellij
 .idea/*
+.idea/modules.xml
 !.idea/codeStyles
 !.idea/inspectionProfiles
 !.idea/runConfigurations
 !.idea/checkstyle-idea.xml
 !.idea/jsLibraryMappings.xml
-!.idea/modules.xml
 !.idea/prettier.xml
+!.idea/jsLinters
+!.idea/jsLinters/eslint.xml
 !.idea/vcs.xml
