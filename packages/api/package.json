@@ -17,7 +17,8 @@
     "files": [
         "LICENSE",
         "README.md",
-        "lib"
+        "lib",
+        "docs"
     ],
     "scripts": {
         "clean": "rimraf lib bin coverage",
