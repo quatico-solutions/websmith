@@ -5,9 +5,17 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import fs, { MakeDirectoryOptions, ObjectEncodingOptions, PathLike, PathOrFileDescriptor, Stats, WatchFileOptions } from "fs";
+import type fs from "fs";
+import {
+    type MakeDirectoryOptions,
+    type ObjectEncodingOptions,
+    type PathLike,
+    type PathOrFileDescriptor,
+    type Stats,
+    type WatchFileOptions,
+} from "fs";
 import { createFsFromVolume, vol } from "memfs";
-import Dirent from "memfs/lib/Dirent";
+import type Dirent from "memfs/lib/Dirent";
 import type { TDataOut } from "memfs/lib/encoding";
 import type { IWatchOptions, StatWatcher, TCallback } from "memfs/lib/volume";
 import type { IReadStream } from "memfs/lib/node/types/misc";
@@ -53,7 +61,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             callback: (err: NodeJS.ErrnoException | null, data: Buffer | string) => void
         ): void => {
             options = options ?? { encoding: "utf-8" };
-            return memfs.existsSync(path) ? memfs.readFile(path, options, callback as any) : actualFs.readFile(path, options, callback);
+            return memfs.existsSync(path) ? memfs.readFile(path, options, callback as any) : actualFs.readFile(path, options as any, callback);
         },
         readFileSync: (
             path: PathOrFileDescriptor,
@@ -79,7 +87,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
         },
         readdir: (path: PathLike, options: IReaddirOptions | string, callback: (err: NodeJS.ErrnoException | null, files: string[]) => void): any => {
             options = options ?? { encoding: "utf-8" };
-            return memfs.existsSync(path) ? memfs.readdir(path, options, callback as any) : actualFs.readdir(path, options, callback);
+            return memfs.existsSync(path) ? memfs.readdir(path, options, callback as any) : actualFs.readdir(path, options as any, callback);
         },
         readdirSync: (
             path: PathLike,
@@ -110,9 +118,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             options: MakeDirectoryOptions & {
                 recursive: true;
             }
-        ): void => memfs.mkdirSync(path, options ?? { recursive: true }),
-        mkdirp: memfs.mkdirp,
-        mkdirpSync: memfs.mkdirpSync,
+        ) => memfs.mkdirSync(path, options ?? { recursive: true }),
         exists: (path: PathLike, callback: (exists: boolean) => void): void =>
             memfs.existsSync(path) ? memfs.exists(path, callback as any) : actualFs.exists(path, callback),
         existsSync: (path: PathLike): boolean => memfs.existsSync(path) || actualFs.existsSync(path),
@@ -124,7 +130,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             memfs.existsSync(path) ? memfs.stat(path, callback as any) : actualFs.stat(path, callback),
         statSync: (path: PathLike): Stats => (memfs.existsSync(path) ? memfs.statSync(path) : actualFs.statSync(path)),
         createReadStream: (path: PathLike, options?: BufferEncoding | IReadStreamOptions): IReadStream | fs.ReadStream =>
-            memfs.existsSync(path) ? memfs.createReadStream(path, options) : actualFs.createReadStream(path, options),
+            memfs.existsSync(path) ? memfs.createReadStream(path, options) : actualFs.createReadStream(path, options as any),
         unlinkSync: memfs.unlinkSync,
         realpathSync: (path: PathLike, options?: { encoding?: BufferEncoding | null } | BufferEncoding | null): string | TDataOut | Buffer =>
             memfs.existsSync(path) ? memfs.realpathSync(path, options as any) : actualFs.realpathSync(path, options),
@@ -138,8 +144,8 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             return memfs.openSync(path, flags, mode);
         },
         closeSync: memfs.closeSync,
-        watch: (path: PathLike, options?: IWatchOptions | string, listener?: (eventType: string, filename: string) => void): fs.FSWatcher =>
-            memfs.existsSync(path) ? memfs.watch(path, options, listener) : actualFs.watch(path, options as any, listener),
+        watch: (path: PathLike, options?: IWatchOptions | string, listener?: (eventType: string, filename: string) => void) =>
+            memfs.existsSync(path) ? memfs.watch(path, options, listener) : actualFs.watch(path, options as any, listener as any),
         watchFile: (
             path: PathLike,
             options:
