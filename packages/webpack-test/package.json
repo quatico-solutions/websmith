@@ -1,7 +1,7 @@
 {
     "name": "@quatico/websmith-webpack-test",
     "description": "Webpack loader for @quatico/websmith-compiler",
-    "version": "0.4.2",
+    "version": "0.5.1",
     "author": "Quatico Solutions AG",
     "private": true,
     "scripts": {
