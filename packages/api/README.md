@@ -1,3 +1,9 @@
+<!--
+ ---------------------------------------------------------------------------------------------
+   Copyright (c) Quatico Solutions AG. All rights reserved.
+   Licensed under the MIT License. See LICENSE in the project root for license information.
+ ---------------------------------------------------------------------------------------------
+-->
 # websmith-api
 
 The websmith API package provides interfaces and functionality to implement custom **addons** for the websmith compiler.
