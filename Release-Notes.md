@@ -16,9 +16,25 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
-## [0.4.2]
+## [0.5.0] - 2024-04-18
 
-### Version upgrade of project dependencies
+In this version, we've migrated the project from yarn to pnpm to improve the dependency management and build process. We've also updated the dependencies to the latest versions, including eslint and typescript.
+
+### Fixed
+
+- Fixes an CLI issue with duplicated shorthand parameter. The transpileOnly flag is now set to '-o'.
+- Fixes a documentation issue with a broken link in the README of `@quatico/websmith-api`.
+
+### Changed
+
+- Upgrades build environment for development and pipelines to node 20 with pnpm
+- Introduces new E2E testing package for webpack tests `@quatico/websmith-webpack-test`
+- Upgrades eslint to version 9 and flat config, updates Idea and VSCode settings for eslint and prettier
+- Upgrades all package dependencies
+
+## [0.4.2]  - 2023-08-11
+
+### Changed
 
 - Major version upgrade of all package dependencies.
 - Replace dependency on `typescript` with peer dependency.
@@ -55,25 +71,25 @@ In this version, we've improved the documentation of published packages. Most im
 
 ## [0.3.5] - 2023-02-1
 
-With this version, the usage of the BrowserSystem (createBrowserSystem) is deprecated. It is planned to remove it with version 0.4.0 which will cease support for a system based virtual filesystem.
+With this version, the usage of the BrowserSystem (createBrowserSystem) is deprecated. It is planned to remove it with version 1.0.0 which will cease support for a system based virtual filesystem.
 
 ### Changed
 
 - Mono repository internal dependency now use single pinned versions.
 
-### Bugfix
+### Fixed
 
 - Removal of custom ts.CompilerHost to address compile error logging regarding typescript lib.d.ts files and resulting type resolution lookups.
 
 ## [0.3.4] - 2022-11-24
 
-### Fixes
+### Fixed
 
 - No longer collect preEmitDiagnostics with transpileOnly active
 
 ## [0.3.3] - 2022-11-18
 
-### Fixes
+### Fixed
 
 - @quatico/websmith-core is public again and no longer bundled due to yarn 1.x inability to install bundled dependencies correctly.
 
