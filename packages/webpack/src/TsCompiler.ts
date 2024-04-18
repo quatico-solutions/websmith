@@ -42,7 +42,6 @@ export class TsCompiler extends Compiler {
         if (result.diagnostics && result.diagnostics.length > 0) {
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
                 const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-                // eslint-disable-next-line no-console
                 this.pluginConfig?.error ? this.pluginConfig?.error(new WebpackError(message)) : console.error(message);
             });
         }

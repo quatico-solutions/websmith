@@ -76,7 +76,6 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
             return extname(filePath) !== "" || (isAbsolute(filePath) && !filePath.startsWith(".")) ? filePath : join("/", filePath);
         },
         resolvePath: (filePath: string): string => resolvePath(filePath),
-        // eslint-disable-next-line no-console
         write: (str: string): void => console.warn(`write() not supported. Did not write: "${str}".`),
         writeFile: (filePath: string, contents: string): void => {
             if (filePath && filePath.length > 0) {

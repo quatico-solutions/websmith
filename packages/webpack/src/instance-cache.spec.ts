@@ -52,7 +52,6 @@ describe("initializeInstance", () => {
         const actual = initializeInstance(
             target,
             { config: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json") },
-            // eslint-disable-next-line no-console
             path => console.info(`dependency ${path} added`)
         );
 

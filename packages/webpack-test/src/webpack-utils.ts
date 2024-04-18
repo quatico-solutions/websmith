@@ -14,7 +14,6 @@ export const createWebpackCompiler = (
     callback?: (err?: Error | null, stats?: webpack.Stats) => void
 ): Promise<{ stats?: Stats; errors?: string[]; compiler: Compiler }> => {
     // We don't want displayDone to polute the test run output.
-    // eslint-disable-next-line no-console
     console.info = () => undefined;
     options = {
         ...{

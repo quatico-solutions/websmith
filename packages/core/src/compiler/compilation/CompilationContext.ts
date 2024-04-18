@@ -100,7 +100,6 @@ export class CompilationContext implements AddonContext {
 
     public addInputFile(filePath: string): void {
         if (!this.isCodeFileExtension(filePath)) {
-            // eslint-disable-next-line no-console
             console.error(`Only code files are supported for addInputFile. ${extname(filePath)} of ${filePath} is no valid code file extension.`);
             return;
         }
@@ -110,7 +109,6 @@ export class CompilationContext implements AddonContext {
             this.rootFiles.push(filePath);
         }
         if (this.watchCallback) {
-            // eslint-disable-next-line no-console
             console.error(`add ${filePath} to watch`);
             this.watchCallback(filePath);
         }
@@ -135,7 +133,6 @@ export class CompilationContext implements AddonContext {
     public addAssetDependency(childPath: string, parentPath: string): void {
         // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
         if (this.isCodeFileExtension(childPath)) {
-            // eslint-disable-next-line no-console
             console.error(
                 `Only non-code files are supported for addAssetDependency. ${extname(childPath)} of ${childPath} is a code file extension.`
             );
@@ -151,7 +148,6 @@ export class CompilationContext implements AddonContext {
 
     public addVirtualFile(filePath: string, fileContent: string): void {
         if (!this.isCodeFileExtension(filePath)) {
-            // eslint-disable-next-line no-console
             console.error(`Only code files are supported for addInputFile. ${extname(filePath)} of ${filePath} is no valid code file extension.`);
             return;
         }

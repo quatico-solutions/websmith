@@ -42,15 +42,12 @@ export class DefaultReporter implements Reporter {
     protected logProblem(message: string, category: ts.DiagnosticCategory): void {
         switch (category) {
             case ts.DiagnosticCategory.Error:
-                // eslint-disable-next-line no-console
                 console.error(message);
                 break;
             case ts.DiagnosticCategory.Warning:
-                // eslint-disable-next-line no-console
                 console.warn(message);
                 break;
             default:
-                // eslint-disable-next-line no-console
                 console.log(message);
                 break;
         }

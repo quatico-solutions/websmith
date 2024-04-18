@@ -72,9 +72,7 @@ export class Compiler {
         this.program = this.langService.getProgram();
 
         if (!options.debug) {
-            // eslint-disable-next-line no-console
             console.debug = () => undefined;
-            // eslint-disable-next-line no-console
             console.log = () => undefined;
         }
 
