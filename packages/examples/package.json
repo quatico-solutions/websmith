@@ -5,13 +5,6 @@
     "author": "Quatico Solutions AG",
     "license": "MIT",
     "private": true,
-    "main": "./lib/index.js",
-    "types": "./lib/index.d.ts",
-    "files": [
-        "LICENSE",
-        "README.md",
-        "lib"
-    ],
     "scripts": {
         "clean": "rimraf lib dist bin coverage",
         "lint": "eslint \"{src,test}/**/*.ts\" --color",

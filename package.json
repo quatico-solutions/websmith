@@ -20,10 +20,6 @@
     },
     "homepage": "https://github.com/quatico-solutions/websmith#readme",
     "private": true,
-    "files": [
-        "LICENSE",
-        "README.md"
-    ],
     "scripts": {
         "clean": "nx run-many --target=clean",
         "lint": "nx run-many --target=lint",
@@ -38,7 +34,8 @@
         "license:check": "license-check-and-add check -f license-config.json",
         "license:add": "license-check-and-add add -f license-config.json",
         "license:remove": "license-check-and-add remove -f license-config.json",
-        "preinstall": "npx only-allow pnpm"
+        "preinstall": "npx only-allow pnpm",
+        "publish-npm": "nx run-many --target=publish-npm"
     },
     "devDependencies": {
         "@cucumber/gherkin": "^28.0.0",

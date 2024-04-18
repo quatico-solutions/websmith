@@ -27,7 +27,8 @@
         "watch": "tsc --watch",
         "watch:test": "jest --watch",
         "test": "jest --coverage",
-        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
+        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\"",
+        "publish-npm": "npm publish --access public"
     },
     "dependencies": {
         "@quatico/websmith-api": "workspace:^",

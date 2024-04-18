@@ -29,7 +29,8 @@
         "watch:test": "jest --watch",
         "test": "jest --coverage --passWithNoTests",
         "test:update-snapshots": "pnpm test -u",
-        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
+        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\"",
+        "publish-npm": "npm publish --access public"
     },
     "devDependencies": {
         "@eslint/js": "^9.0.0",
