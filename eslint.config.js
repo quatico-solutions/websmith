@@ -5,7 +5,8 @@ const jest = require("eslint-plugin-jest");
 const prettier = require("eslint-config-prettier");
 const nxPlugin = require("@nx/eslint-plugin");
 const jsoncParser = require("jsonc-eslint-parser");
-const importPlugin = require("eslint-plugin-import");
+// TODO: Enable the import when eslint-plugin-import supports FlatESLint
+// const importPlugin = require("eslint-plugin-import");
 
 module.exports = [
     js.configs.recommended,
@@ -15,6 +16,7 @@ module.exports = [
     {
         plugins: {
             "@nx": nxPlugin,
+            // TODO: Enable the following plugin when eslint-plugin-import supports FlatESLint
             // import: importPlugin,
         },
     },
@@ -35,15 +37,13 @@ module.exports = [
             reportUnusedDisableDirectives: true,
         },
         settings: {
-            // "import/parsers": {
-            //     espree: [".js", ".cjs", ".mjs", ".jsx", ".ts", ".tsx"],
-            //     "@typescript-eslint/parser": [".ts"],
-            // },
-            // "import/resolver": {
-            //     typescript: true,
-            //     node: true,
-            // },
+            "import/parsers": {
+                espree: [".js", ".cjs", ".mjs", ".jsx"],
+                "@typescript-eslint/parser": [".ts", ".tsx"],
+            },
             "import/resolver": {
+                typescript: true,
+                node: true,
                 alias: {
                     map: [
                         ["@quatico/websmith-api", __dirname + "/packages/api/src"],
@@ -57,10 +57,8 @@ module.exports = [
         },
         rules: {
             ...jest.configs["flat/recommended"].rules,
+            // TODO: Enable the following rules when eslint-plugin-import supports FlatESLint
             // ...importPlugin.configs["recommended"].rules,
-            //     "import/no-cycle": ["error", { maxDepth: Infinity }],
-            //     "@typescript-eslint/ban-ts-comment": "off",
-            //     "@typescript-eslint/explicit-module-boundary-types": "off",
             "@typescript-eslint/no-unsafe-call": "warn",
             "@typescript-eslint/no-unsafe-argument": "warn",
             "@typescript-eslint/no-unsafe-assignment": "warn",
