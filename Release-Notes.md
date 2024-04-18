@@ -16,6 +16,14 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.5.1] - 2024-04-18
+
+Bugfix release to address an issue with publishing the npm packages.
+
+### Fixed
+
+- Fixes an issue with the `publish-npm` target for github release pipeline
+
 ## [0.5.0] - 2024-04-18
 
 In this version, we've migrated the project from yarn to pnpm to improve the dependency management and build process. We've also updated the dependencies to the latest versions, including eslint and typescript.
