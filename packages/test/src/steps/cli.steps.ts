@@ -1,5 +1,3 @@
-/* eslint-disable jest/no-jasmine-globals */
-/* eslint-disable no-console */
 import { createOptions } from "@quatico/websmith-compiler";
 import { CompilationContext, Compiler } from "@quatico/websmith-core";
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
@@ -118,8 +116,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
             .filter(it => it.length > 0);
 
         compiler = new Compiler(createOptions({ ...parseArgs(args), buildDir: "./dist", project: "./tsconfig.json" }));
-        compiler.compile();
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        compiler.compile();      
         context = compiler.getContext()!;
     });
 

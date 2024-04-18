@@ -4,14 +4,13 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-// @ts-ignore no type declarations
+// @ts-expect-error no type declarations
 import createHashFn from "create-hash";
 import { extname, isAbsolute, join, normalize } from "path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
 
-
-  /** @deprecated the browser system will be removed with 0.4.0, please do not use this any longer */
+/** @deprecated the browser system will be removed with 2.0.0, please do not use this any longer */
 export const createBrowserSystem = (files?: Record<string, string>, useCaseSensitiveFileNames = false): ts.System => {
     const knownFiles = Object.entries({ ...(files ?? tsLibDefaults) }).reduce((acc: Record<string, string>, [name, content]) => {
         acc[resolvePath(name)] = content;
@@ -77,7 +76,6 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
             return extname(filePath) !== "" || (isAbsolute(filePath) && !filePath.startsWith(".")) ? filePath : join("/", filePath);
         },
         resolvePath: (filePath: string): string => resolvePath(filePath),
-        // eslint-disable-next-line no-console
         write: (str: string): void => console.warn(`write() not supported. Did not write: "${str}".`),
         writeFile: (filePath: string, contents: string): void => {
             if (filePath && filePath.length > 0) {

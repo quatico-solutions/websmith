@@ -5,7 +5,6 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-/* eslint-disable no-console */
 import { Reporter } from "@quatico/websmith-api";
 import { AddonRegistry, CompileFragment, CompilerOptions, NoReporter } from "@quatico/websmith-core";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";

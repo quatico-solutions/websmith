@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-/* eslint-disable no-console */
 
 import { WarnMessage } from "@quatico/websmith-api";
 import { Compiler, CompilerAddon, createBrowserSystem, NoReporter } from "@quatico/websmith-core";
@@ -151,7 +150,7 @@ describe("addCompileCommand", () => {
                 include: ["src/**/*.ts"],
             },
             watchOptions: undefined,
-            wildcardDirectories: {[join(__dirname, "..", "src")]:1},
+            wildcardDirectories: { [join(__dirname, "..", "src")]: 1 },
         });
         expect(actual.reporter).toBeDefined();
         expect(actual.sourceMap).toBe(false);

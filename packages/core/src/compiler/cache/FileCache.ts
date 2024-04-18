@@ -32,7 +32,6 @@ export class FileCache {
             content === undefined ||
             files === undefined ||
             !this.system.getModifiedTime ||
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             this.system.getModifiedTime(fileName)! > modifiedTime
         );
     }

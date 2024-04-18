@@ -17,10 +17,8 @@ const LOADER_NAME = "websmith-loader";
 export const addCompilationHooks = (compiler: Compiler, options: PluginOptions, dependencyCallback: (filePath: string) => void) => {
     const makeCompilation = () => {
         return (compilation: Compilation, options: PluginOptions): void => {
-            // eslint-disable-next-line @typescript-eslint/ban-types
             // NormalModule.getCompilationHooks(compilation).loader.tap(LOADER_NAME, (ctx: object) => {
             compilation.hooks.processAssets.tap(LOADER_NAME, assets => {
-                // eslint-disable-next-line no-console
                 console.error(`processAssets for ${JSON.stringify(assets)}`);
             });
 
@@ -71,7 +69,7 @@ export const addCompilationHooks = (compiler: Compiler, options: PluginOptions, 
 const displayDone = (stats: Stats) => {
     if (!stats.hasErrors() && stats.startTime && stats.endTime) {
         const timeInSec = (stats.endTime - stats.startTime) / 1000;
-        // eslint-disable-next-line no-console
+
         console.info(`✨  Done in ${timeInSec}s.\n`);
     }
 };

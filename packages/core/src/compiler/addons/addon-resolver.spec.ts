@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-/* eslint-disable jest/no-mocks-import */
 import path from "path";
 import ts from "typescript";
 import { ReporterMock } from "../../../test";

@@ -33,7 +33,7 @@ export class CompilationContext implements AddonContext {
     protected ResultProcessors: ResultProcessor[] = [];
     protected rootFiles: string[];
 
-    // @ts-ignore TODO: Unused variable
+    // @ts-expect-error TODO: Unused variable
     private buildDir: string;
     private cache: FileCache;
     private languageHost: ts.LanguageServiceHost;
@@ -100,7 +100,6 @@ export class CompilationContext implements AddonContext {
 
     public addInputFile(filePath: string): void {
         if (!this.isCodeFileExtension(filePath)) {
-            // eslint-disable-next-line no-console
             console.error(`Only code files are supported for addInputFile. ${extname(filePath)} of ${filePath} is no valid code file extension.`);
             return;
         }
@@ -110,7 +109,6 @@ export class CompilationContext implements AddonContext {
             this.rootFiles.push(filePath);
         }
         if (this.watchCallback) {
-            // eslint-disable-next-line no-console
             console.error(`add ${filePath} to watch`);
             this.watchCallback(filePath);
         }
@@ -122,11 +120,10 @@ export class CompilationContext implements AddonContext {
             const resolvedDependency = this.assetAssetDependency.has(dependencyPath)
                 ? this.assetAssetDependency.get(dependencyPath)?.flatMap(cur => this.resolveDependency(cur))
                 : this.assetCodeDependency.has(dependencyPath)
-                ? this.assetCodeDependency.get(dependencyPath)
-                : undefined;
+                  ? this.assetCodeDependency.get(dependencyPath)
+                  : undefined;
 
             if (resolvedDependency) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 return resolvedDependency;
             }
         }
@@ -136,7 +133,6 @@ export class CompilationContext implements AddonContext {
     public addAssetDependency(childPath: string, parentPath: string): void {
         // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
         if (this.isCodeFileExtension(childPath)) {
-            // eslint-disable-next-line no-console
             console.error(
                 `Only non-code files are supported for addAssetDependency. ${extname(childPath)} of ${childPath} is a code file extension.`
             );
@@ -152,7 +148,6 @@ export class CompilationContext implements AddonContext {
 
     public addVirtualFile(filePath: string, fileContent: string): void {
         if (!this.isCodeFileExtension(filePath)) {
-            // eslint-disable-next-line no-console
             console.error(`Only code files are supported for addInputFile. ${extname(filePath)} of ${filePath} is no valid code file extension.`);
             return;
         }
@@ -191,7 +186,7 @@ export class CompilationContext implements AddonContext {
 
     public registerTransformer(transformers: ts.CustomTransformers): this {
         Object.keys(transformers).forEach(kind => {
-            // @ts-ignore ts.CustomTransformers defines too many implicit any
+            // @ts-expect-error ts.CustomTransformers defines too many implicit any
             this.transformers[kind] = concat(this.transformers[kind], transformers[kind]);
         });
         return this;

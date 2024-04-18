@@ -1,3 +1,9 @@
+<!--
+ ---------------------------------------------------------------------------------------------
+   Copyright (c) Quatico Solutions AG. All rights reserved.
+   Licensed under the MIT License. See LICENSE in the project root for license information.
+ ---------------------------------------------------------------------------------------------
+-->
 # websmith-compiler
 
 Command-line tool to execute the frontend for the TypeScript compiler. Use the package [@quatico/websmith-api](https://github.com/quatico-solutions/websmith/tree/develop/packages/api/README.md) for creating addons to generate extra code and process TypeScript unrelated artifacts, such as Sass, JSON, Java and Markdown, during TypeScript compilation.

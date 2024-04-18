@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-/* eslint-disable no-console */
 import { WarnMessage } from "@quatico/websmith-api";
 import { CompilationConfig, Compiler, DefaultReporter } from "@quatico/websmith-core";
 import { Command, program } from "commander";
@@ -26,7 +25,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .option("-d, --debug", "Enable the output of debug information.", false)
         .option("-p, --project <projectPath>", 'Path to the configuration file, or to a folder with a "tsconfig.json".', "./tsconfig.json")
         .option("-s, --sourceMap", "Enable the output of sourceMap information.", false)
-        .option("-t, --transpileOnly", "Enable the transpile only mode", undefined)
+        .option("-o, --transpileOnly", "Enable the transpile only mode", undefined)
         .option(
             "-t, --targets <targetList>",
             "Comma-separated list of compilation target names to use specific configuration and list of addons.",

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -43,7 +42,6 @@ export class TsCompiler extends Compiler {
         if (result.diagnostics && result.diagnostics.length > 0) {
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
                 const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-                // eslint-disable-next-line no-console
                 this.pluginConfig?.error ? this.pluginConfig?.error(new WebpackError(message)) : console.error(message);
             });
         }
@@ -66,7 +64,6 @@ export class TsCompiler extends Compiler {
         const fragmentTargets = super.getNonWritingTargets();
         if (fragmentTargets.length === 0) {
             const error = `No writeFile: false targets found for "${webpackTarget}"`;
-            // eslint-disable-next-line no-console
             this.pluginConfig.warn?.(new WebpackError(error));
 
             const writingTargets = super.getWritingTargets();

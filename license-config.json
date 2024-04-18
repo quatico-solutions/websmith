@@ -1,5 +1,12 @@
 {
     "license": "license-header.txt",
+    "defaultFormat": {
+        "prepend": "/*",
+        "append": " */",
+        "eachLine": {
+            "prepend": " * "
+        }
+    },
     "licenseFormats": {
         "ts|tsx|js|jsx|scss": {
             "prepend": "/*",
@@ -27,6 +34,9 @@
         "**/__snapshots__",
         ".git",
         ".idea",
+        ".nx-cache",
+        ".husky",
+        ".github/ISSUE_TEMPLATE",
         "**/.storybook",
         ".vscode",
         "**/coverage",

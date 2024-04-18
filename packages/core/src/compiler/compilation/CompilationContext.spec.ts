@@ -247,7 +247,6 @@ describe("isCodeFileExtension", () => {
 describe("addInputFile", () => {
     it("write an error when adding an scss file", () => {
         const target = jest.fn();
-        // eslint-disable-next-line no-console
         console.error = target;
 
         testObj.addInputFile("expected.scss");

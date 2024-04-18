@@ -16,7 +16,6 @@ export abstract class DiagnosticMessage implements ts.Diagnostic {
     public category: ts.DiagnosticCategory;
     public code: number;
     public file: ts.SourceFile | undefined;
-    // @ts-ignore compile problem with ts API?
     public length: number | undefined;
     public messageText: string | ts.DiagnosticMessageChain;
     public source?: string;
@@ -40,4 +39,4 @@ export abstract class DiagnosticMessage implements ts.Diagnostic {
  * @returns `true` if the given object is a `ts.SourceFile`, otherwise `false`.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const isSourceFile = (source: any): source is ts.SourceFile => source?.kind && ts.isSourceFile(source);
+export const isSourceFile = (source: any): source is ts.SourceFile => !!(source as ts.SourceFile)?.kind && ts.isSourceFile(source as ts.SourceFile);
