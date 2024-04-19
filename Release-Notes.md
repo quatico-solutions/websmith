@@ -16,6 +16,14 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.5.3] - 2024-04-19
+
+Bugfix release to address an issue with missing compiler executable.
+
+### Fixed
+
+- Fixes npm package `bin` entry for the compiler executable
+
 ## [0.5.2] - 2024-04-19
 
 Bugfix release to address an issue with workspace internal dependencies with publishing npm packages.
