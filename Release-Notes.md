@@ -16,6 +16,14 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.5.2] - 2024-04-19
+
+Bugfix release to address an issue with workspace internal dependencies with publishing npm packages.
+
+### Fixed
+
+- Fixes an issue with unresolved `workspace:` dependencies in published packages
+
 ## [0.5.1] - 2024-04-18
 
 Bugfix release to address an issue with publishing the npm packages.

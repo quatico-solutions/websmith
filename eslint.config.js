@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-var-requires */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -10,7 +13,6 @@ const ts = require("typescript-eslint");
 const jest = require("eslint-plugin-jest");
 const prettier = require("eslint-config-prettier");
 const nxPlugin = require("@nx/eslint-plugin");
-const jsoncParser = require("jsonc-eslint-parser");
 // TODO: Enable the import when eslint-plugin-import supports FlatESLint
 // const importPlugin = require("eslint-plugin-import");
 
@@ -33,7 +35,6 @@ module.exports = [
                 ...globals.node,
             },
             parserOptions: {
-                project: true,
                 tsconfigRootDir: __dirname,
                 project: __dirname + "/tsconfig.lint.json",
                 ecmaVersion: 2020, // Allows for the parsing of modern ECMAScript features

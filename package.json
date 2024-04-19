@@ -34,8 +34,7 @@
         "license:check": "license-check-and-add check -f license-config.json",
         "license:add": "license-check-and-add add -f license-config.json",
         "license:remove": "license-check-and-add remove -f license-config.json",
-        "preinstall": "npx only-allow pnpm",
-        "publish-npm": "nx run-many --target=publish-npm"
+        "preinstall": "npx only-allow pnpm"
     },
     "devDependencies": {
         "@cucumber/gherkin": "^28.0.0",
@@ -74,5 +73,12 @@
         "typescript": "5.4.5",
         "typescript-eslint": "^7.7.0",
         "webpack": "^5.91.0"
+    },
+    "pnpm": {
+        "peerDependencyRules": {
+            "ignoreMissing": [
+                "eslint"
+            ]
+        }
     }
 }

@@ -3,9 +3,17 @@
     "description": "Webpack loader for @quatico/websmith-compiler",
     "version": "0.5.1",
     "author": "Quatico Solutions AG",
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
     "license": "MIT",
+    "main": "lib/index.js",
+    "publishConfig": {
+        "main": "lib/index.js",
+        "typings": "lib/index.d.ts"
+    },
+    "files": [
+        "LICENSE",
+        "README.md",
+        "lib"
+    ],
     "repository": {
         "type": "git",
         "url": "git+https://github.com/quatico-solutions/websmith.git"
@@ -14,11 +22,6 @@
         "url": "https://github.com/quatico-solutions/websmith/issues"
     },
     "homepage": "https://github.com/quatico-solutions/websmith#readme",
-    "files": [
-        "LICENSE",
-        "README.md",
-        "lib"
-    ],
     "scripts": {
         "clean": "rimraf lib coverage",
         "lint": "eslint \"{src,test}/**/*.{js,ts,tsx}\" --color",
@@ -27,8 +30,7 @@
         "watch": "tsc --watch",
         "watch:test": "jest --watch",
         "test": "jest --coverage",
-        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\"",
-        "publish-npm": "npm publish --access public"
+        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
     "dependencies": {
         "@quatico/websmith-api": "workspace:^",

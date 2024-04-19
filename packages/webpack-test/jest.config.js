@@ -6,14 +6,6 @@
  */
 
 module.exports = {
-    collectCoverageFrom: ["./src/**/*.{ts,tsx}"],
-    coverageDirectory: "coverage",
-    moduleNameMapper: {
-        "@quatico/websmith-api": "<rootDir>/../api/src",
-        "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
-        "@quatico/websmith-core": "<rootDir>/../core/src",
-        "@quatico/websmith-webpack": "<rootDir>/../webpack/src",
-    },
     roots: ["<rootDir>/src/"],
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
     testEnvironment: "node",
@@ -31,5 +23,4 @@ module.exports = {
             },
         ],
     },
-    resetMocks: true,
 };
