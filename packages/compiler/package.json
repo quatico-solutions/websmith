@@ -1,19 +1,13 @@
 {
     "name": "@quatico/websmith-compiler",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "description": "A CLI for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
     "main": "bin/index.js",
-    "publishConfig": {
-        "main": "bin/index.js",
-        "typings": "bin/index.d.ts",
-        "executableFiles": [
-            "bin/bin.js"
-        ]
-    },
+    "types": "bin/index.d.ts",
     "bin": {
-        "websmith": "src/bin.ts"
+        "websmith": "bin/bin.js"
     },
     "files": [
         "LICENSE",

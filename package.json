@@ -76,7 +76,7 @@
     },
     "pnpm": {
         "peerDependencyRules": {
-            "ignoreMissing": [
+            "allowAny": [
                 "eslint"
             ]
         }

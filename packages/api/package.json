@@ -1,14 +1,11 @@
 {
     "name": "@quatico/websmith-api",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "description": "Addon API library for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
     "main": "lib/index.js",
-    "publishConfig": {
-        "main": "lib/index.js",
-        "typings": "lib/index.d.ts"
-    },
+    "types": "lib/index.d.ts",
     "files": [
         "LICENSE",
         "README.md",
