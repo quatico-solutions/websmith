@@ -22,6 +22,28 @@ import type { IReadStream } from "memfs/lib/node/types/misc";
 import type { IReadStreamOptions, IReaddirOptions } from "memfs/lib/node/types/options";
 import { dirname } from "path";
 
+/**
+ * Creates a new fs module that uses the memfs volume as a base.
+ * This can be very useful for testing purposes. The actual fs module is used as a fallback.
+ *
+ * For example in your `jest.setup.js` file you can use this function to replace the fs module as follows:
+ *
+ * import { createFs, resetFs } from "./test/fusion-fs";
+ *
+ * jest.mock("fs", () => {
+ *     return createFs(jest.requireActual("fs"));
+ * });
+ *
+ * afterEach(() => {
+ *     jest.clearAllMocks();
+ *     resetFs();
+ * });
+ *
+ *
+ * @param actualFs
+ * @returns
+ */
+
 export const createFs = (actualFs: typeof fs): typeof fs => {
     const memfs = createFsFromVolume(vol);
 
