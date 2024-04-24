@@ -140,10 +140,10 @@ describe("compile", () => {
 describe("emitSourceFile", () => {
     it("yields modified client function w/ annotated arrow function", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -151,11 +151,11 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
-        expect(getText("arrow.d.ts", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.d.ts", actual)).toMatchInlineSnapshot(`
             "export declare const computeDate: () => Promise<Date>;
             "
         `);
@@ -163,10 +163,10 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function w/ annotated arrow function2", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -174,11 +174,11 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
-        expect(getText("arrow.d.ts", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.d.ts", actual)).toMatchInlineSnapshot(`
             "export declare const computeDate: () => Promise<Date>;
             "
         `);
@@ -186,10 +186,10 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, no declaration, no sourceMap w/ transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, sourceMap: false },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -198,7 +198,7 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
@@ -207,10 +207,10 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, no declaration, no declaration map, no sourceMap w/ transpileOnly and declaration", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true, declarationMap: false, sourceMap: false },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -220,7 +220,7 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
@@ -229,10 +229,10 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, no declaration, no declaration map, no sourceMap w/ transpileOnly, declaration and declarationMap", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true, declarationMap: true, sourceMap: false },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -242,7 +242,7 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
@@ -251,10 +251,10 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, no declaration, sourceMap w/ transpileOnly and sourceMap", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, declarationMap: false, sourceMap: true },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -264,22 +264,22 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
-            //# sourceMappingURL=arrow.js.map"
+            //# sourceMappingURL=target.js.map"
         `);
-        expect(getText("arrow.js.map", actual)).toMatchInlineSnapshot(
-            `"{"version":3,"file":"arrow.js","sourceRoot":"","sources":["arrow.ts"],"names":[],"mappings":"AACgB,MAAM,CAAC,MAAM,WAAW,GAAG,KAAK,IAAmB,EAAE,CAAC,IAAI,IAAI,EAAE,CAAC"}"`
+        expect(getText("target.js.map", actual)).toMatchInlineSnapshot(
+            `"{"version":3,"file":"target.js","sourceRoot":"","sources":["target.ts"],"names":[],"mappings":"AACgB,MAAM,CAAC,MAAM,WAAW,GAAG,KAAK,IAAmB,EAAE,CAAC,IAAI,IAAI,EAAE,CAAC"}"`
         );
         expect(getFilesByExtension(actual, ".d.ts", ".d.ts.map")).toHaveLength(0);
     });
 
     it("yields modified client function, no declaration, no sourceMap w/ no transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, sourceMap: false },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -287,7 +287,7 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
@@ -296,10 +296,10 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, declaration, no declaration map, no sourceMap w/ no transpileOnly and declaration", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true, declarationMap: false, sourceMap: false },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -308,11 +308,11 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
-        expect(getText("arrow.d.ts", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.d.ts", actual)).toMatchInlineSnapshot(`
             "export declare const computeDate: () => Promise<Date>;
             "
         `);
@@ -321,10 +321,10 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, declaration, declaration map, no sourceMap w/ no transpileOnly, declaration and declarationMap", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true, declarationMap: true, sourceMap: false },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -333,26 +333,26 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
-        expect(getText("arrow.d.ts", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.d.ts", actual)).toMatchInlineSnapshot(`
             "export declare const computeDate: () => Promise<Date>;
-            //# sourceMappingURL=arrow.d.ts.map"
+            //# sourceMappingURL=target.d.ts.map"
         `);
-        expect(getText("arrow.d.ts.map", actual)).toMatchInlineSnapshot(
-            `"{"version":3,"file":"arrow.d.ts","sourceRoot":"","sources":["arrow.ts"],"names":[],"mappings":"AACgB,eAAO,MAAM,WAAW,qBAAwC,CAAC"}"`
+        expect(getText("target.d.ts.map", actual)).toMatchInlineSnapshot(
+            `"{"version":3,"file":"target.d.ts","sourceRoot":"","sources":["target.ts"],"names":[],"mappings":"AACgB,eAAO,MAAM,WAAW,qBAAwC,CAAC"}"`
         );
         expect(getFilesByExtension(actual, ".js.map")).toHaveLength(0);
     });
 
     it("yields modified client function, no declaration, sourceMap w/ no transpileOnly and sourceMap", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, declarationMap: false, sourceMap: true },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -361,22 +361,22 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
-            //# sourceMappingURL=arrow.js.map"
+            //# sourceMappingURL=target.js.map"
         `);
-        expect(getText("arrow.js.map", actual)).toMatchInlineSnapshot(
-            `"{"version":3,"file":"arrow.js","sourceRoot":"","sources":["arrow.ts"],"names":[],"mappings":"AACgB,MAAM,CAAC,MAAM,WAAW,GAAG,KAAK,IAAmB,EAAE,CAAC,IAAI,IAAI,EAAE,CAAC"}"`
+        expect(getText("target.js.map", actual)).toMatchInlineSnapshot(
+            `"{"version":3,"file":"target.js","sourceRoot":"","sources":["target.ts"],"names":[],"mappings":"AACgB,MAAM,CAAC,MAAM,WAAW,GAAG,KAAK,IAAmB,EAAE,CAAC,IAAI,IAAI,EAAE,CAAC"}"`
         );
         expect(getFilesByExtension(actual, ".d.ts", ".d.ts.map")).toHaveLength(0);
     });
 
     it("yields transpiled client function w/ transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, declarationMap: false, sourceMap: false },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -386,7 +386,7 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
@@ -395,10 +395,10 @@ describe("emitSourceFile", () => {
 
     it("yields transpiled client function w/o transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, declarationMap: false, sourceMap: false },
             tsconfig: { fileNames: [entry!.fileName] },
@@ -407,7 +407,7 @@ describe("emitSourceFile", () => {
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
 
-        expect(getText("arrow.js", actual)).toMatchInlineSnapshot(`
+        expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
@@ -523,7 +523,7 @@ describe("emitSourceFile", () => {
 describe("report", () => {
     it("yields result's messageText", () => {
         const fileSystem = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
         }).fileSystem;
@@ -572,7 +572,7 @@ describe("report", () => {
 
     it("yields emitSkipped true", () => {
         const fileSystem = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
         }).fileSystem;
@@ -599,10 +599,10 @@ describe("report", () => {
 describe.skip("watch", () => {
     it("should output to buildDir w/o outDir override", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             buildDir: "/build",
             config: {
@@ -618,11 +618,11 @@ describe.skip("watch", () => {
 
         testObj.watch();
 
-        expect(fileSystem.readFile("/build/arrow.js")).toMatchInlineSnapshot(`
+        expect(fileSystem.readFile("/build/target.js")).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
-        expect(fileSystem.readFile("/build/arrow.d.ts")).toMatchInlineSnapshot(`
+        expect(fileSystem.readFile("/build/target.d.ts")).toMatchInlineSnapshot(`
             "export declare const computeDate: () => Promise<Date>;
             "
         `);
@@ -632,10 +632,10 @@ describe.skip("watch", () => {
 
     it("should output to outDir w/ target outDir override", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             buildDir: "/build",
             config: {
@@ -651,11 +651,11 @@ describe.skip("watch", () => {
 
         testObj.watch();
 
-        expect(fileSystem.readFile("/build/arrow.js")).toMatchInlineSnapshot(`
+        expect(fileSystem.readFile("/build/target.js")).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
-        expect(fileSystem.readFile("/build/arrow.d.ts")).toMatchInlineSnapshot(`
+        expect(fileSystem.readFile("/build/target.d.ts")).toMatchInlineSnapshot(`
             "export declare const computeDate: () => Promise<Date>;
             "
         `);
@@ -665,10 +665,10 @@ describe.skip("watch", () => {
 
     it("should output to multiple targets outDir w/ multiple targets and outDir override", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             buildDir: "/build",
             config: {
@@ -689,29 +689,29 @@ describe.skip("watch", () => {
         testObj.watch();
 
         expect(fileSystem.readDirectory("/")).toEqual([]);
-        expect(fileSystem.readFile("/target1/arrow.js")).toMatchInlineSnapshot(`
+        expect(fileSystem.readFile("/target1/target.js")).toMatchInlineSnapshot(`
         "export const computeDate = async () => new Date();
         "
         `);
-        expect(fileSystem.readFile("/target1/arrow.d.ts")).toMatchInlineSnapshot(`
+        expect(fileSystem.readFile("/target1/target.d.ts")).toMatchInlineSnapshot(`
         "export declare const computeDate: () => Promise<Date>;
         "
         `);
-        expect(fileSystem.readFile("/target2/arrow.js")).toMatchInlineSnapshot(`
+        expect(fileSystem.readFile("/target2/target.js")).toMatchInlineSnapshot(`
         "export const computeDate = async () => new Date();
         "
         `);
-        expect(fileSystem.readFile("/target2/arrow.d.ts")).toMatchInlineSnapshot(`undefined`);
+        expect(fileSystem.readFile("/target2/target.d.ts")).toMatchInlineSnapshot(`undefined`);
 
         testObj.closeAllWatchers();
     });
 
     it("should output to multiple targets outDir w/ multiple targets, transpileOnly and outDir override", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             buildDir: "/build",
             config: {
@@ -735,11 +735,11 @@ describe.skip("watch", () => {
 
         testObj.watch();
 
-        expect(fileSystem.readFile("/target1/arrow.js")).toMatchInlineSnapshot(`
+        expect(fileSystem.readFile("/target1/target.js")).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
-        expect(fileSystem.readFile("/target2/arrow.js")).toMatchInlineSnapshot(`
+        expect(fileSystem.readFile("/target2/target.js")).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
         `);
@@ -820,10 +820,10 @@ describe.skip("watch", () => {
 
     it("yields a single emitSourceFile invocation per file change", async () => {
         const { entry, fileSystem } = compileSystem({
-            "src/arrow.ts": `
+            "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
-        }).getSourceFile("src/arrow.ts");
+        }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             buildDir: "/build",
             config: {
@@ -846,7 +846,7 @@ describe.skip("watch", () => {
         testObj.watch();
         target.mockClear();
 
-        fileSystem.writeFile("/build/arrow.ts", `const a = 3;`);
+        fileSystem.writeFile("/build/target.ts", `const a = 3;`);
         await new Promise(resolve => setTimeout(resolve, 200));
 
         expect(target).toHaveBeenCalledWith(entry!.fileName, "target1", true, true);
