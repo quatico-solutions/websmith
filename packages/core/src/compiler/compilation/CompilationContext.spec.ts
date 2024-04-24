@@ -5,8 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { ReporterMock } from "../../../test";
-import { createBrowserSystem } from "../../environment";
+import { ReporterMock, compileSystem } from "../../../test";
 import { CompilationContext, CompilationContextOptions } from "./CompilationContext";
 
 class CompilationContextTestClass extends CompilationContext {
@@ -52,7 +51,7 @@ let testSystem: ts.System;
 let testProgram: ts.Program;
 
 beforeEach(() => {
-    testSystem = createBrowserSystem({}, ts.sys.useCaseSensitiveFileNames);
+    testSystem = compileSystem().fileSystem;
     testProgram = ts.createProgram({ options: {}, rootNames: [] });
     testObj = new CompilationContextTestClass({
         buildDir: "",

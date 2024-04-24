@@ -32,9 +32,10 @@ export const createResolver =
 export const resolveName = (name: string, localPath: string, system: ts.System): CompilerAddon | undefined => {
     try {
         const compilerPath = __dirname ? `${__dirname}/..` : "";
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-var-requires
         const addonModule = require(system.resolvePath(`${compilerPath}${localPath}/addon`));
         return {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
             activate: addonModule.activate,
             name,
         } as CompilerAddon;

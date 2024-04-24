@@ -8,6 +8,12 @@ import { writeFileSync } from "fs";
 import ts from "typescript";
 import { FileCache } from "./FileCache";
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+jest.mock("fs", () => ({
+    ...jest.requireActual("fs"),
+    writeFileSync: jest.fn(),
+}));
+
 describe("hasChanged", () => {
     it("w/o output should yield true", () => {
         writeFileSync("expected", "expected");
@@ -24,7 +30,7 @@ describe("hasChanged", () => {
         writeFileSync("expected", "expected");
         const testObj = new FileCache(ts.sys);
         testObj.updateSource("expected", "expected");
-        testObj.updateOutput("expected",[]);
+        testObj.updateOutput("expected", []);
 
         const actual = testObj.hasChanged("expected");
 

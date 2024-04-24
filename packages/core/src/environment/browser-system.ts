@@ -9,8 +9,8 @@ import createHashFn from "create-hash";
 import { extname, isAbsolute, join, normalize } from "path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
+import chokidar from "chokidar";
 
-/** @deprecated the browser system will be removed with 1.0.0, please do not use this any longer */
 export const createBrowserSystem = (files?: Record<string, string>, useCaseSensitiveFileNames = false): ts.System => {
     const knownFiles = Object.entries({ ...(files ?? tsLibDefaults) }).reduce((acc: Record<string, string>, [name, content]) => {
         acc[resolvePath(name)] = content;
@@ -76,7 +76,42 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
             return extname(filePath) !== "" || (isAbsolute(filePath) && !filePath.startsWith(".")) ? filePath : join("/", filePath);
         },
         resolvePath: (filePath: string): string => resolvePath(filePath),
-        write: (str: string): void => console.warn(`write() not supported. Did not write: "${str}".`),
+        watchFile: (path: string, callback: ts.FileWatcherCallback, pollingInterval?: number, options?: ts.WatchOptions): ts.FileWatcher => {
+            const eventKind = (evt: "add" | "addDir" | "change" | "unlink" | "unlinkDir") => {
+                switch (evt) {
+                    case "add":
+                        return ts.FileWatcherEventKind.Created;
+                    case "change":
+                        return ts.FileWatcherEventKind.Changed;
+                    case "unlink":
+                        return ts.FileWatcherEventKind.Deleted;
+                    default:
+                        return ts.FileWatcherEventKind.Changed;
+                }
+            };
+
+            const watcher = chokidar.watch(path, { usePolling: !!options?.fallbackPolling }).on("all", (event, path) => {
+                callback(path, eventKind(event));
+            });
+            return {
+                close: () => {
+                    void watcher.close();
+                },
+            };
+        },
+        watchDirectory: (path: string, callback: ts.DirectoryWatcherCallback, recursive?: boolean, options?: ts.WatchOptions): ts.FileWatcher => {
+            const watcher = chokidar.watch(path, { usePolling: !!options?.fallbackPolling }).on("all", (event, path) => {
+                callback(path);
+            });
+            return {
+                close: () => {
+                    void watcher.close();
+                },
+            };
+        },
+        write: (str: string): void => {
+            console.warn(`write() not supported. Did not write: "${str}".`);
+        },
         writeFile: (filePath: string, contents: string): void => {
             if (filePath && filePath.length > 0) {
                 knownFiles[resolvePath(filePath)] = contents;

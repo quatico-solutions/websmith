@@ -12,6 +12,7 @@ module.exports = {
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
     },
+    prettierPath: null,
     setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
     testRegex: "src/.*(test|spec)\\.(js|ts)$",
     testTimeout: 15000,
