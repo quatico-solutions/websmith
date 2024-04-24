@@ -56,6 +56,7 @@ module.exports = [
                         ["@quatico/websmith-api", __dirname + "/packages/api/src"],
                         ["@quatico/websmith-compiler", __dirname + "/packages/compiler/src"],
                         ["@quatico/websmith-core", __dirname + "/packages/core/src"],
+                        ["@quatico/websmith-testing", __dirname + "/packages/testing/src"],
                         ["@quatico/websmith-webpack", __dirname + "/packages/webpack/src"],
                     ],
                     extensions: [".ts", ".js", ".jsx", ".json"],

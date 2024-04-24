@@ -4,21 +4,20 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-
 module.exports = {
-    roots: ["<rootDir>/src/"],
-    moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+    collectCoverageFrom: ["./src/**/*.ts"],
+    coverageDirectory: "coverage",
+    coveragePathIgnorePatterns: ["index.ts"],
+    moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-core": "<rootDir>/../core/src",
-        "@quatico/websmith-webpack": "<rootDir>/../webpack/src",
-        "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
-    testEnvironment: "node",
-    testRegex: ".+\\.test\\.ts",
-    testTimeout: 25000,
+    testRegex: "src/.*spec\\.(js|ts)$",
+    setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
+    testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
-        "^.+\\.(j|t)s$": [
+        "^.+\\.(js|ts)$": [
             "@swc/jest",
             {
                 jsc: {
@@ -29,4 +28,5 @@ module.exports = {
             },
         ],
     },
+    resetMocks: true,
 };

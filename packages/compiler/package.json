@@ -36,6 +36,7 @@
     "devDependencies": {
         "@eslint/js": "^9.0.0",
         "@nx/eslint-plugin": "^18.2.4",
+        "@quatico/websmith-testing": "workspace:^",
         "@swc/core": "1.4.14",
         "@swc/jest": "0.2.36",
         "@types/jest": "^29.5.12",
