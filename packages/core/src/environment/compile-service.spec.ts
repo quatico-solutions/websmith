@@ -7,8 +7,8 @@
 import ts from "typescript";
 import { compileSystem } from "../../test";
 import { resolveProjectConfig } from "../compiler";
+import { NoReporter } from "../compiler/NoReporter";
 import { createWatchHost } from "./compile-service";
-import { NoReporter } from "../../lib";
 
 describe("createWatchHost", () => {
     describe("createHash", () => {
