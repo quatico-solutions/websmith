@@ -38,7 +38,6 @@
         "@types/jest": "^29.5.12",
         "@types/lodash": "^4.17.0",
         "@types/node": "^20.12.7",
-        "chokidar": "^3.6.0",
         "concurrently": "^8.2.2",
         "cross-env": "7.0.3",
         "eslint": "^9.1.1",

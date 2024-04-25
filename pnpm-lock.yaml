@@ -307,9 +307,6 @@ importers:
       '@types/node':
         specifier: ^20.12.7
         version: 20.12.7
-      chokidar:
-        specifier: ^3.6.0
-        version: 3.6.0
       concurrently:
         specifier: ^8.2.2
         version: 8.2.2
@@ -647,7 +644,7 @@ importers:
         version: 6.2.2(eslint@9.1.1)(typescript@5.4.5)
       fork-ts-checker-webpack-plugin:
         specifier: ^9.0.2
-        version: 9.0.2(typescript@5.4.5)(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0)))
+        version: 9.0.2(typescript@5.4.5)(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4))
       globals:
         specifier: ^15.0.0
         version: 15.0.0
@@ -662,7 +659,7 @@ importers:
         version: 5.0.5
       thread-loader:
         specifier: 4.0.2
-        version: 4.0.2(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0)))
+        version: 4.0.2(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4))
       typescript:
         specifier: 5.4.5
         version: 5.4.5
@@ -671,7 +668,7 @@ importers:
         version: 7.7.1(eslint@9.1.1)(typescript@5.4.5)
       webpack:
         specifier: ^5.91.0
-        version: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0))
+        version: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4)
       webpack-cli:
         specifier: ^5.1.4
         version: 5.1.4(webpack@5.91.0)
@@ -6100,7 +6097,7 @@ snapshots:
     dependencies:
       '@types/node': 20.12.7
       tapable: 2.2.1
-      webpack: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0))
+      webpack: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4)
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
@@ -6357,19 +6354,19 @@ snapshots:
       '@webassemblyjs/ast': 1.12.1
       '@xtuc/long': 4.2.2
 
-  '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0)))':
+  '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4))':
     dependencies:
-      webpack: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0))
+      webpack: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack@5.91.0)
 
-  '@webpack-cli/info@2.0.2(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0)))':
+  '@webpack-cli/info@2.0.2(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4))':
     dependencies:
-      webpack: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0))
+      webpack: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack@5.91.0)
 
-  '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0)))':
+  '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4))':
     dependencies:
-      webpack: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0))
+      webpack: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack@5.91.0)
 
   '@xtuc/ieee754@1.2.0': {}
@@ -9185,9 +9182,9 @@ snapshots:
   webpack-cli@5.1.4(webpack@5.91.0):
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
-      '@webpack-cli/configtest': 2.1.1(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0)))
-      '@webpack-cli/info': 2.0.2(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0)))
-      '@webpack-cli/serve': 2.0.5(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0)))
+      '@webpack-cli/configtest': 2.1.1(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4))
+      '@webpack-cli/info': 2.0.2(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4))
+      '@webpack-cli/serve': 2.0.5(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4))
       colorette: 2.0.20
       commander: 10.0.1
       cross-spawn: 7.0.3
@@ -9196,7 +9193,7 @@ snapshots:
       import-local: 3.1.0
       interpret: 3.1.1
       rechoir: 0.8.0
-      webpack: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4(webpack@5.91.0))
+      webpack: 5.91.0(@swc/core@1.5.0)(webpack-cli@5.1.4)
       webpack-merge: 5.10.0
 
   webpack-merge@5.10.0:

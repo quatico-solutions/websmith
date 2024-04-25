@@ -6,16 +6,64 @@
  */
 // @ts-expect-error no type declarations
 import createHashFn from "create-hash";
-import { extname, isAbsolute, join, normalize } from "path";
+import { dirname, extname, isAbsolute, join, normalize } from "path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
-import chokidar from "chokidar";
+
+class PathWatcherRegistry {
+    private readonly registry: Map<string, ts.FileWatcherCallback[]> = new Map();
+
+    callWatchers(path: string, event: ts.FileWatcherEventKind, recursive = false): this {
+        this.getWatchers(path)?.forEach(callback => callback(path, event));
+        if (recursive) {
+            this.getAllWatchers(dirname(path))?.forEach(callback => callback(path, event));
+        }
+        return this;
+    }
+
+    addWatcher(path: string, callback: ts.FileWatcherCallback): this {
+        if (!this.isWatched(path)) {
+            this.registry.set(resolvePath(path), []);
+        }
+        this.getWatchers(path)?.push(callback);
+        return this;
+    }
+
+    removeWatcher(path: string, callback: ts.FileWatcherCallback): this {
+        if (this.isWatched(path)) {
+            this.registry.set(
+                resolvePath(path),
+                this.getWatchers(path).filter(cur => cur !== callback)
+            );
+        }
+
+        return this;
+    }
+
+    isWatched(path: string): boolean {
+        return this.registry.has(resolvePath(path));
+    }
+
+    getWatchers(path: string): ts.FileWatcherCallback[] {
+        return this.registry.get(resolvePath(path)) ?? [];
+    }
+
+    getAllWatchers(path: string): ts.FileWatcherCallback[] {
+        const resolved = resolvePath(path);
+        return Array.from(this.registry.keys()).reduce((acc: ts.FileWatcherCallback[], cur: string) => {
+            acc = acc.concat(resolved.startsWith(cur) ? this.registry.get(cur) ?? [] : []);
+            return acc;
+        }, []);
+    }
+}
 
 export const createBrowserSystem = (files?: Record<string, string>, useCaseSensitiveFileNames = false): ts.System => {
     const knownFiles = Object.entries({ ...(files ?? tsLibDefaults) }).reduce((acc: Record<string, string>, [name, content]) => {
         acc[resolvePath(name)] = content;
         return acc;
     }, {});
+
+    const pathWatchers = new PathWatcherRegistry();
 
     return {
         args: [],
@@ -27,8 +75,15 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
                 resolved = resolved + "/";
             }
             knownFiles[resolved] = "";
+            pathWatchers.callWatchers(dirPath, ts.FileWatcherEventKind.Created, true);
         },
         createHash: (data: string): string => createHashFn("sha256").update(data).digest("hex"),
+        deleteFile: (filePath: string): void => {
+            if (filePath && filePath.length > 0) {
+                delete knownFiles[resolvePath(filePath)];
+                pathWatchers.callWatchers(filePath, ts.FileWatcherEventKind.Deleted, true);
+            }
+        },
         directoryExists: (directory: string): boolean => {
             if (!directory) {
                 return false;
@@ -43,7 +98,7 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
         },
         exit: (exitCode?: number): void => {
             if (exitCode && exitCode > 0) {
-                throw new Error(`websmith exited with code "${exitCode}".`);
+                throw new Error(`Browser FS exited with code "${exitCode}".`);
             }
         },
         fileExists: (filePath: string): boolean => [filePath, resolvePath(filePath)].some(it => Object.keys(knownFiles).includes(it)),
@@ -76,36 +131,19 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
             return extname(filePath) !== "" || (isAbsolute(filePath) && !filePath.startsWith(".")) ? filePath : join("/", filePath);
         },
         resolvePath: (filePath: string): string => resolvePath(filePath),
-        watchFile: (path: string, callback: ts.FileWatcherCallback, pollingInterval?: number, options?: ts.WatchOptions): ts.FileWatcher => {
-            const eventKind = (evt: "add" | "addDir" | "change" | "unlink" | "unlinkDir") => {
-                switch (evt) {
-                    case "add":
-                        return ts.FileWatcherEventKind.Created;
-                    case "change":
-                        return ts.FileWatcherEventKind.Changed;
-                    case "unlink":
-                        return ts.FileWatcherEventKind.Deleted;
-                    default:
-                        return ts.FileWatcherEventKind.Changed;
-                }
-            };
-
-            const watcher = chokidar.watch(path, { usePolling: !!options?.fallbackPolling }).on("all", (event, path) => {
-                callback(path, eventKind(event));
-            });
+        watchFile: (path: string, callback: ts.FileWatcherCallback): ts.FileWatcher => {
+            pathWatchers.addWatcher(path, callback);
             return {
-                close: () => {
-                    void watcher.close();
+                close() {
+                    pathWatchers.removeWatcher(path, callback);
                 },
             };
         },
-        watchDirectory: (path: string, callback: ts.DirectoryWatcherCallback, recursive?: boolean, options?: ts.WatchOptions): ts.FileWatcher => {
-            const watcher = chokidar.watch(path, { usePolling: !!options?.fallbackPolling }).on("all", (event, path) => {
-                callback(path);
-            });
+        watchDirectory: (path: string, callback: ts.DirectoryWatcherCallback): ts.FileWatcher => {
+            pathWatchers.addWatcher(path, callback);
             return {
-                close: () => {
-                    void watcher.close();
+                close() {
+                    pathWatchers.removeWatcher(path, callback);
                 },
             };
         },
@@ -115,6 +153,7 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
         writeFile: (filePath: string, contents: string): void => {
             if (filePath && filePath.length > 0) {
                 knownFiles[resolvePath(filePath)] = contents;
+                pathWatchers.callWatchers(filePath, ts.FileWatcherEventKind.Changed, true);
             }
         },
     };

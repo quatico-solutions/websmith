@@ -72,6 +72,23 @@ describe("setOptions", () => {
 
         expect(testObj.getOptions()).toEqual(expected);
     });
+
+    it("yields buildDir with compiler options", () => {
+        const { entry, fileSystem: target } = compileSystem({
+            "src/target.ts": `class Target {}`,
+        }).getSourceFile("src/target.ts");
+
+        new CompilerTestClass(
+            compileOptions(target, { project: { outDir: "/expected" }, tsconfig: { fileNames: [entry!.fileName] } }),
+            target
+        ).watch();
+
+        expect(target.readFile("/expected/target.js")).toMatchInlineSnapshot(`
+            "class Target {
+            }
+            "
+        `);
+    });
 });
 
 describe("createCompilationContext", () => {
@@ -596,7 +613,7 @@ describe("report", () => {
     });
 });
 
-describe.skip("watch", () => {
+describe("watch", () => {
     it("should output to buildDir w/o outDir override", () => {
         const { entry, fileSystem } = compileSystem({
             "src/target.ts": `
@@ -609,8 +626,8 @@ describe.skip("watch", () => {
                 configFilePath: "/fake/websmith.config.json",
                 targets: { "*": { writeFile: true } },
             },
-            project: { declaration: true },
-            tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
+            project: { declaration: true, outDir: "/build" },
+            tsconfig: { fileNames: [entry!.fileName] },
             watch: true,
         });
 
@@ -688,7 +705,6 @@ describe.skip("watch", () => {
 
         testObj.watch();
 
-        expect(fileSystem.readDirectory("/")).toEqual([]);
         expect(fileSystem.readFile("/target1/target.js")).toMatchInlineSnapshot(`
         "export const computeDate = async () => new Date();
         "
@@ -742,10 +758,14 @@ describe.skip("watch", () => {
         expect(fileSystem.readFile("/target2/target.js")).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
             "
-        `);
+            `);
     });
 
     it("yields multiple code transpilations w/ a shared asset dependency", async () => {
+        const target = jest.fn().mockImplementation((fileName: string, target: string, writeFile: boolean, skipCache = false) => {
+            console.debug("XXX target", fileName, target, writeFile, skipCache);
+            return;
+        });
         const { fileSystem } = compileSystem({
             "src/shared.scss": `
                 {
@@ -784,21 +804,18 @@ describe.skip("watch", () => {
             watch: true,
         });
 
-        const testObj = new Compiler(options, fileSystem);
+        const testObj = new CompilerTestClass(options, fileSystem);
+        testObj.emitSourceFile = target;
 
         testObj.watch();
 
         Array.from(testObj.contextMap.values()).forEach(cur => {
-            cur.addAssetDependency("/build/shared.scss", "shared1.ts");
-            cur.addAssetDependency("/build/shared.scss", "shared2.ts");
+            cur.addAssetDependency("/build/shared.scss", "/src/shared1.ts");
+            cur.addAssetDependency("/build/shared.scss", "/src/shared2.ts");
         });
-        const target = jest.fn();
-        (testObj as CompilerTestClass).emitSourceFile = target;
 
-        testObj.watch();
-
-        expect(target).toHaveBeenNthCalledWith(1, "/build/shared1.ts", "target1", true);
-        expect(target).toHaveBeenNthCalledWith(2, "/build/shared2.ts", "target1", true);
+        expect(target).toHaveBeenNthCalledWith(1, "/src/shared1.ts", "target1", true);
+        expect(target).toHaveBeenNthCalledWith(2, "/src/shared2.ts", "target1", true);
 
         target.mockClear();
 
@@ -812,10 +829,9 @@ describe.skip("watch", () => {
                 }
             `
         );
-        await new Promise(resolve => setTimeout(resolve, 200));
 
-        expect(target).toHaveBeenNthCalledWith(1, "/build/shared1.ts", "target1", true, true);
-        expect(target).toHaveBeenNthCalledWith(2, "/build/shared2.ts", "target1", true, true);
+        expect(target).toHaveBeenNthCalledWith(1, "/src/shared1.ts", "target1", true, true);
+        expect(target).toHaveBeenNthCalledWith(2, "/src/shared2.ts", "target1", true, true);
     });
 
     it("yields a single emitSourceFile invocation per file change", async () => {
@@ -838,18 +854,17 @@ describe.skip("watch", () => {
             watch: true,
         });
 
-        const testObj = new Compiler(options, fileSystem);
+        const testObj = new CompilerTestClass(options, fileSystem);
 
         const target = jest.fn();
-        (testObj as CompilerTestClass).emitSourceFile = target;
+        testObj.emitSourceFile = target;
 
         testObj.watch();
         target.mockClear();
 
-        fileSystem.writeFile("/build/target.ts", `const a = 3;`);
-        await new Promise(resolve => setTimeout(resolve, 200));
+        fileSystem.writeFile("/src/target.ts", `const a = 3;`);
 
-        expect(target).toHaveBeenCalledWith(entry!.fileName, "target1", true, true);
+        expect(target).toHaveBeenCalledWith("/src/target.ts", "target1", true, true);
     });
 });
 
@@ -859,7 +874,7 @@ const complexFileExtension = (name: string): string => {
 
 const compileOptions = (
     system: ts.System,
-    overrides?: Partial<CompilerOptions> | { tsconfig: Partial<ts.ParsedCommandLine>; project: Partial<ts.CompilerOptions> }
+    overrides?: Partial<CompilerOptions> | { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; targets?: string[] }
 ): CompilerOptions => {
     const reporter = new ReporterMock(system);
     return {
@@ -872,7 +887,7 @@ const compileOptions = (
         watch: false,
         ...overrides,
         project: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest, ...overrides?.project },
-        targets: [],
+        targets: overrides?.targets ?? [],
         tsconfig: { options: {}, fileNames: [], errors: [], ...overrides?.tsconfig },
     };
 };

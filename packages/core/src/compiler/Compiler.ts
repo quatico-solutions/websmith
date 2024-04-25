@@ -70,7 +70,7 @@ export class Compiler {
     public setOptions(options: CompilerOptions): this {
         this.options = options;
         if (!this.options?.targets || this.options.targets.length === 0) {
-            options.targets = ["*"];
+            this.options.targets = ["*"];
         }
 
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
@@ -132,6 +132,9 @@ export class Compiler {
         if (typeof this.system.watchFile === "function") {
             const emitTargets: string[] = this.getWritingTargets();
             this.getRootFiles().forEach(cur => {
+                if (this.options.targets[0] === "*") {
+                    emitTargets.push("*");
+                }
                 emitTargets.forEach(target => this.emitSourceFile(cur, target, true));
                 this.registerWatch(cur, emitTargets);
             });
