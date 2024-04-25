@@ -761,7 +761,7 @@ describe("watch", () => {
             `);
     });
 
-    it("yields multiple code transpilations w/ a shared asset dependency", async () => {
+    it("yields multiple code transpilations w/ a shared asset dependency", () => {
         const target = jest.fn().mockImplementation((fileName: string, target: string, writeFile: boolean, skipCache = false) => {
             console.debug("XXX target", fileName, target, writeFile, skipCache);
             return;
@@ -834,7 +834,7 @@ describe("watch", () => {
         expect(target).toHaveBeenNthCalledWith(2, "/src/shared2.ts", "target1", true, true);
     });
 
-    it("yields a single emitSourceFile invocation per file change", async () => {
+    it("yields a single emitSourceFile invocation per file change", () => {
         const { entry, fileSystem } = compileSystem({
             "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();

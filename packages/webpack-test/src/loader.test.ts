@@ -6,7 +6,7 @@
  */
 import { readFileSync, rmSync, statSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
-import { Compiler, WebpackError } from "webpack";
+import { Compiler, WebpackError, Configuration } from "webpack";
 import { createWebpackCompiler } from "./webpack-utils";
 
 const projectDir = resolve(__dirname, "../__data__/module-test");
@@ -173,7 +173,7 @@ const waitFor = (fn: () => boolean, tag: string, maximum = 80) => {
     });
 };
 
-const requireWebpackConfig = (configFileName: string, watch = false) => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return { ...require(join(projectDir, configFileName))(), ...(!!watch && { watch }) };
+const requireWebpackConfig = (configFileName: string, watch = false): Configuration => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-call
+    return { ...require(join(projectDir, configFileName))(), ...(!!watch && { watch }) } as Configuration;
 };

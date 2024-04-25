@@ -13,7 +13,7 @@ export const createWebpackCompiler = (
     projectDir: string,
     callback?: (err?: Error | null, stats?: webpack.Stats) => void
 ): Promise<{ stats?: Stats; errors?: string[]; compiler: Compiler }> => {
-    // We don't want displayDone to polute the test run output.
+    // We don't want displayDone to pollute the test run output.
     console.info = () => undefined;
     options = {
         ...{
