@@ -8,10 +8,9 @@
 import { basename } from "path";
 import type { LanguageService, Program } from "typescript";
 import * as ts from "typescript";
-import { ReporterMock, compileSystem } from "../../test";
+import { ReporterMock, compileOptions, compileSystem } from "../../test";
 import { CompileFragment, Compiler } from "./Compiler";
 import { CompilerOptions } from "./CompilerOptions";
-import { AddonRegistry } from "./addons";
 import { CompilationContext } from "./compilation";
 
 class CompilerTestClass extends Compiler {
@@ -139,13 +138,14 @@ describe("compile", () => {
         const testObj = new CompilerTestClass(target, fileSystem).setOptions({
             ...target,
             config: {
+                configFilePath: "./websmith.config.json",
                 ...target.config,
                 targets: {
                     "*": {
                         options: { outDir: "./lib/expected" },
                     },
                 },
-            } as any,
+            },
         });
 
         testObj.compile();
@@ -870,26 +870,6 @@ describe("watch", () => {
 
 const complexFileExtension = (name: string): string => {
     return basename(name).replace(basename(name).split(".")[0], "");
-};
-
-const compileOptions = (
-    system: ts.System,
-    overrides?: Partial<CompilerOptions> | { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; targets?: string[] }
-): CompilerOptions => {
-    const reporter = new ReporterMock(system);
-    return {
-        addons: new AddonRegistry({ addonsDir: "./addons", reporter, system }),
-        buildDir: "./src",
-        reporter,
-        debug: false,
-        sourceMap: false,
-        transpileOnly: false,
-        watch: false,
-        ...overrides,
-        project: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest, ...overrides?.project },
-        targets: overrides?.targets ?? [],
-        tsconfig: { options: {}, fileNames: [], errors: [], ...overrides?.tsconfig },
-    };
 };
 
 const getText = (name: string, output: CompileFragment): string => {

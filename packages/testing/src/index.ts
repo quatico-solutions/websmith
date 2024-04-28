@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 export * from "./ReporterMock";
+export * from "./compile-options";
+export * from "./compile-system";
 export * from "./fusion-fs";
 export * from "./tsLibMocks";
-export * from "./compile-system";
