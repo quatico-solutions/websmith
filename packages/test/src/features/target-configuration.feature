@@ -9,6 +9,8 @@ Feature: Target configuration
         And Folder "./addons" contains addon examples "foobar-replace-transformer"
         And Config file "websmith.config.json" contains target "foobar"
         And Target project contains a module "target.ts" with a function is named "foobar"
+        
         When User calls command "websmith --targets foobar"
+        
         Then A file "./dist/target.js" exists containing string "barfoo"
         And Every call to function "foobar" in "./src/target.ts" should be replaced with "barfoo" in "./dist/target.js"
