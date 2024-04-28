@@ -621,7 +621,6 @@ describe("watch", () => {
             `,
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
-            buildDir: "/build",
             config: {
                 configFilePath: "/fake/websmith.config.json",
                 targets: { "*": { writeFile: true } },
@@ -654,7 +653,6 @@ describe("watch", () => {
             `,
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
-            buildDir: "/build",
             config: {
                 configFilePath: "/fake/websmith.config.json",
                 targets: { "*": { writeFile: true, options: { outDir: "/build" } } },
@@ -687,7 +685,6 @@ describe("watch", () => {
             `,
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
-            buildDir: "/build",
             config: {
                 configFilePath: "/fake/websmith.config.json",
                 targets: {
@@ -729,7 +726,6 @@ describe("watch", () => {
             `,
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
-            buildDir: "/build",
             config: {
                 configFilePath: "/fake/websmith.config.json",
                 targets: {
@@ -788,7 +784,6 @@ describe("watch", () => {
             `,
         });
         const options = compileOptions(fileSystem, {
-            buildDir: "/build",
             config: {
                 configFilePath: "/fake/websmith.config.json",
                 targets: {
@@ -841,7 +836,6 @@ describe("watch", () => {
             `,
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
-            buildDir: "/build",
             config: {
                 configFilePath: "/fake/websmith.config.json",
                 targets: {
