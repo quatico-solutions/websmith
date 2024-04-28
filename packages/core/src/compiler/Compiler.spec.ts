@@ -729,14 +729,14 @@ describe("watch", () => {
             config: {
                 configFilePath: "/fake/websmith.config.json",
                 targets: {
-                    target1: { writeFile: true, options: { outDir: "/target1", configFilePath: "./tsconfig.json" } },
+                    target1: { writeFile: true, options: { outDir: "/target1" } },
                     target2: {
                         writeFile: true,
-                        options: { outDir: "/target2", declaration: false, configFilePath: "./tsconfig.json" },
+                        options: { outDir: "/target2", declaration: false },
                     },
                 },
             },
-            project: { declaration: true, configFilePath: "./tsconfig.json" },
+            project: { declaration: true },
             targets: ["target1", "target2"],
             tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
             transpileOnly: true,
@@ -790,7 +790,7 @@ describe("watch", () => {
                     target1: { writeFile: true, options: { outDir: "/target1" } },
                 },
             },
-            project: { declaration: true, configFilePath: "./tsconfig.json" },
+            project: { declaration: true },
             targets: ["target1"],
             tsconfig: {
                 options: { outDir: "/build" },
@@ -842,7 +842,7 @@ describe("watch", () => {
                     target1: { writeFile: true, options: { outDir: "/target1" } },
                 },
             },
-            project: { declaration: true, configFilePath: "./tsconfig.json" },
+            project: { declaration: true },
             targets: ["target1"],
             tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
             watch: true,

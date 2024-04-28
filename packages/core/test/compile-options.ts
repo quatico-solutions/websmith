@@ -16,7 +16,7 @@ export const compileOptions = (
         transpileOnly: false,
         watch: false,
         ...overrides,
-        project: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest, ...overrides?.project },
+        project: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest, configFilePath: "./tsconfig.json", ...overrides?.project },
         targets: overrides?.targets ?? [],
         tsconfig: { options: {}, fileNames: system.readDirectory("./src"), errors: [], ...overrides?.tsconfig },
     };
