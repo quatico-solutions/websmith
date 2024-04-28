@@ -7,6 +7,7 @@
 import { AddonRegistry, type CompilerOptions } from "@quatico/websmith-core";
 import ts from "typescript";
 import { ReporterMock } from "./ReporterMock";
+import { resolvePath } from "./compilation/resolve-path";
 
 export const compileOptions = (
     system: ts.System,
@@ -14,9 +15,10 @@ export const compileOptions = (
     overrides?: Partial<CompilerOptions> & { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; targets?: string[] }
 ): CompilerOptions => {
     const reporter = new ReporterMock(system);
+    const buildDir: string = resolvePath(system, overrides?.buildDir ?? "./src");
     return {
-        addons: new AddonRegistry({ addonsDir: "./addons", reporter, system }),
-        buildDir: "./src",
+        addons: new AddonRegistry({ addonsDir: resolvePath(system, buildDir, "./addons"), reporter, system }),
+        buildDir,
         reporter,
         debug: false,
         sourceMap: false,
@@ -25,6 +27,6 @@ export const compileOptions = (
         ...overrides,
         project: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest, configFilePath: "./tsconfig.json", ...overrides?.project },
         targets: overrides?.targets ?? [],
-        tsconfig: { options: {}, fileNames: system.readDirectory("./src"), errors: [], ...overrides?.tsconfig },
+        tsconfig: { options: {}, fileNames: system.readDirectory(buildDir), errors: [], ...overrides?.tsconfig },
     };
 };

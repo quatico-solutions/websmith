@@ -1,3 +1,5 @@
+const { prettierPath } = require("../../jest.config");
+
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -13,8 +15,9 @@ module.exports = {
         "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-core": "<rootDir>/../core/src",
     },
+    prettierPath: null,
     testRegex: "src/.*spec\\.(js|ts)$",
-    setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
+    setupFilesAfterEnv: ["<rootDir>/test/__setup__/jest.setup.ts", "<rootDir>/../../jest.setup.ts"],
     testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
         "^.+\\.(js|ts)$": [

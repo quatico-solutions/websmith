@@ -126,7 +126,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
         expect(
             compiler
                 .getOptions()
-                .addons.getAddons()
+                .addons.getAvailableAddons()
                 .map(cur => cur.name)
         ).toEqual(addons);
     });
@@ -138,7 +138,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
             expect(
                 compiler
                     .getOptions()
-                    .addons.getAddons()
+                    .addons.getAvailableAddons()
                     .map(cur => cur.name)
             ).not.toContain(addon);
         });

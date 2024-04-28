@@ -54,7 +54,7 @@ describe("getAddons", () => {
     it("returns empty addons w/ empty addons directory", () => {
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(testObj.getAddons()).toEqual([]);
+        expect(testObj.getAvailableAddons()).toEqual([]);
     });
 
     it("returns addons w/ single addon in addon directory", () => {
@@ -69,7 +69,7 @@ describe("getAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(testObj.getAddons().map(it => it.name)).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons().map(it => it.name)).toEqual(["expected"]);
     });
 
     it("returns addons w/ multiple addons in addon directory", () => {
@@ -100,7 +100,7 @@ describe("getAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(testObj.getAddons().map(it => it.name)).toEqual(["one", "two", "three"]);
+        expect(testObj.getAvailableAddons().map(it => it.name)).toEqual(["one", "two", "three"]);
     });
 
     it("returns valid addons w/ invalid and valid addons in addon directory", () => {
@@ -123,7 +123,7 @@ describe("getAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(testObj.getAddons().map(it => it.name)).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons().map(it => it.name)).toEqual(["expected"]);
     });
 
     it("returns no addons w/ empty files in addon directory", () => {
@@ -138,7 +138,7 @@ describe("getAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(testObj.getAddons()).toEqual([]);
+        expect(testObj.getAvailableAddons()).toEqual([]);
     });
 
     it("reports warning w/ non-existing addons name", () => {
@@ -150,7 +150,7 @@ describe("getAddons", () => {
             config: { addons: ["does-not-exist"], configFilePath: "" },
             reporter,
             system,
-        }).getAddons();
+        }).getAvailableAddons();
 
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "does-not-exist".'));
     });
@@ -164,7 +164,7 @@ describe("getAddons", () => {
             config: { targets: { target: { addons: ["does-not-exist"] } }, configFilePath: "" },
             reporter,
             system,
-        }).getAddons("target");
+        }).getAvailableAddons("target");
 
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "target": "does-not-exist".'));
     });

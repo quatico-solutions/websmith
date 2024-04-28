@@ -12,9 +12,10 @@ module.exports = {
         "@quatico/websmith-core": "<rootDir>/../core/src",
         "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
     },
+    prettierPath: null,
     roots: ["<rootDir>/src/"],
     testEnvironment: "node",
-    testMatch: ["**/cucumber.test.ts", "test/.*\\.test\\.(j|t)sx?$"],
+    testRegex: "src/.*(test|spec)\\.(js|ts)$",
     transform: {
         "^.+\\.(j|t)s$": [
             "@swc/jest",

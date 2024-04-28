@@ -187,7 +187,7 @@ export class Compiler {
             }
 
             const ctx = this.createCompilationContext(this.options, target, this.dependencyCallback);
-            this.options.addons.getAddons(target).forEach(addon => {
+            this.options.addons.getAvailableAddons(target).forEach(addon => {
                 addon.activate(ctx);
             });
             this.contextMap.set(target, ctx);

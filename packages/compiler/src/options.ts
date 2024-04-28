@@ -4,14 +4,13 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { Reporter } from "@quatico/websmith-api";
 import {
     AddonRegistry,
     CompilerOptions,
     NoReporter,
     resolveCompilationConfig,
-    resolveProjectConfig as resolveTsConfig,
     resolveTargets,
+    resolveProjectConfig as resolveTsConfig,
     updateCompilerOptions,
 } from "@quatico/websmith-core";
 import { dirname, join } from "path";
@@ -29,7 +28,7 @@ const DEFAULTS = {
     watch: false,
 };
 
-export const createOptions = (args: CompilerArguments, reporter: Reporter = new NoReporter(), system: ts.System = ts.sys): CompilerOptions => {
+export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const tsconfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
     const compilationConfig = resolveCompilationConfig(args.config ?? DEFAULTS.config, reporter, system);
 
