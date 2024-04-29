@@ -14,7 +14,7 @@ export interface WebsmithEnv {
     system: ts.System;
     cleanUp: (path?: string) => void;
     addAddons: (addonNames: string, templateFolder?: string, addonsDir?: string) => AddonRegistry;
-    setProject: (projectName: string, targetDir?: string, templateFolder?: string) => string;
+    addProject: (projectName: string, targetDir?: string, templateFolder?: string) => string;
     sourceFile: (fileName: string, content: string) => string;
 }
 
@@ -122,7 +122,7 @@ export const setUp = (rootDir: string, options?: WebsmithOptions): WebsmithEnv =
         }
     };
 
-    const installAddons = (
+    const addAddons = (
         addonNames: string,
         templateFolder = "../test-data/addons/",
         addonsDir = compileOptions.addons.getAddonDir()
@@ -138,7 +138,7 @@ export const setUp = (rootDir: string, options?: WebsmithOptions): WebsmithEnv =
         return registry;
     };
 
-    const installProject = (projectName: string, targetDir?: string, templateFolder = "../test-data/projects/"): string => {
+    const addProject = (projectName: string, targetDir?: string, templateFolder = "../test-data/projects/"): string => {
         const target = targetDir ?? process.cwd();
         copyFolderSync(system, join(__dirname, templateFolder, projectName), target);
         return resolvePath(system, `${target}/${projectName}`);
@@ -156,6 +156,6 @@ export const setUp = (rootDir: string, options?: WebsmithOptions): WebsmithEnv =
         cleanUp,
         addAddons,
         sourceFile,
-        setProject,
+        addProject,
     };
 };

@@ -1,6 +1,6 @@
 import { activeAddons, execute, fileContent, pathExists, setUp } from "../setup";
 
-const { rootDir, cleanUp, compiler, addAddons, setProject, system } = setUp("__TEMP__");
+const { rootDir, cleanUp, compiler, addAddons, addProject, system } = setUp("__TEMP__");
 
 beforeAll(() => {
     addAddons("foo-addon", "../test-data/addons/");
@@ -13,7 +13,7 @@ afterAll(() => {
 describe("test-project-foo", () => {
     let projectDir: string;
     beforeEach(() => {
-        projectDir = setProject("test-project-foo", rootDir, "../test-data/projects/");
+        projectDir = addProject("test-project-foo", rootDir, "../test-data/projects/");
     });
 
     afterEach(() => {
@@ -49,7 +49,7 @@ describe("test-project-foo", () => {
 
 describe("test-project-foobar", () => {
     beforeEach(() => {
-        setProject("test-project-foobar");
+        addProject("test-project-foobar");
     });
 
     afterEach(() => {
@@ -78,7 +78,7 @@ describe("test-project-foobar", () => {
 describe("test-project-one", () => {
     let projectDir: string;
     beforeEach(() => {
-        projectDir = setProject("test-project-one", rootDir, "../test-data/projects/");
+        projectDir = addProject("test-project-one", rootDir, "../test-data/projects/");
     });
 
     afterEach(() => {

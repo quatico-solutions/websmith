@@ -12,7 +12,7 @@ export class CompilationEnv {
     private system: ts.System;
 
     constructor(rootDir: string, options?: CompilationOptions) {
-        const { virtual = true, compilerOptions = {}, files } = options ?? {};
+        const { compilerOptions = {}, files } = options ?? {};
         this.system = ts.sys;
         this.rootDir = resolvePath(this.system, rootDir);
 
@@ -123,7 +123,6 @@ export class CompilationEnv {
 export type CompilationOptions = {
     compilerOptions?: Partial<CompilerOptions>;
     files?: Record<string, string>;
-    virtual?: boolean;
 };
 
 export const compilationEnv = (rootDir: string, options?: CompilationOptions): CompilationEnv => {
