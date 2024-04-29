@@ -5,12 +5,12 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { AddonRegistry, type CompilerOptions } from "@quatico/websmith-core";
-import * as ts from "typescript";
+import ts from "typescript";
 import { ReporterMock } from "./ReporterMock";
 
 export const compileOptions = (
     system: ts.System,
-    overrides?: Partial<CompilerOptions> | { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; targets?: string[] }
+    overrides?: Partial<CompilerOptions> & { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; targets?: string[] }
 ): CompilerOptions => {
     const reporter = new ReporterMock(system);
     return {
