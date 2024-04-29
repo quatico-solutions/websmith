@@ -16,10 +16,8 @@
     "devDependencies": {
         "@eslint/js": "^9.1.1",
         "@nx/eslint-plugin": "^18.3.3",
-        "@quatico/websmith-api": "workspace:^",
         "@quatico/websmith-compiler": "workspace:^",
         "@quatico/websmith-core": "workspace:^",
-        "@quatico/websmith-testing": "workspace:^",
         "@swc/core": "1.5.0",
         "@swc/jest": "0.2.36",
         "@types/jest": "^29.5.12",
