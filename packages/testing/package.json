@@ -32,7 +32,8 @@
         "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
     "dependencies": {
-        "@quatico/websmith-core": "workspace:^"
+        "@quatico/websmith-core": "workspace:^",
+        "require-from-string": "^2.0.2"
     },
     "devDependencies": {
         "@eslint/js": "^9.1.1",
@@ -40,6 +41,7 @@
         "@swc/core": "1.5.0",
         "@swc/jest": "0.2.36",
         "@types/jest": "^29.5.12",
+        "@types/require-from-string": "^1.2.3",
         "concurrently": "^8.2.2",
         "cross-env": "7.0.3",
         "eslint": "^9.1.1",

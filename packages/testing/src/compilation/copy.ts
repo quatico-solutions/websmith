@@ -24,11 +24,10 @@ export const copyFolderSync = (system: ts.System, source: string, target: string
     if (system.directoryExists(source)) {
         files = system.readDirectory(source);
         files.forEach(file => {
-            const curSource = join(source, file);
-            if (system.directoryExists(curSource)) {
-                copyFolderSync(system, curSource, targetFolder);
+            if (system.directoryExists(file)) {
+                copyFolderSync(system, file, targetFolder);
             } else {
-                copyFileSync(system, curSource, targetFolder);
+                copyFileSync(system, file, targetFolder);
             }
         });
     }

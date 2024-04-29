@@ -16,7 +16,7 @@ module.exports = {
     },
     prettierPath: null,
     testRegex: "src/.*spec\\.(js|ts)$",
-    setupFilesAfterEnv: ["<rootDir>/test/__setup__/jest.setup.ts", "<rootDir>/../../jest.setup.ts"],
+    setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
     testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
         "^.+\\.(js|ts)$": [
