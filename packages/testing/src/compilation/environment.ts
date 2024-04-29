@@ -178,7 +178,6 @@ export type CompilationOptions = {
     useCaseSensitiveFileNames?: boolean;
     virtual?: boolean;
 };
-
 export class Project {
     private path: string;
     private system: ts.System;
@@ -212,15 +211,4 @@ export class Project {
     }
 }
 
-export const compilationEnv = (rootDir: string, options?: CompilationOptions): CompilationEnv => {
-    // if (withDefaults && !existsSync(join(projectDir, "websmith.config.json"))) {
-    //     writeFileSync(
-    //         join(projectDir, "websmith.config.json"),
-    //         JSON.stringify({
-    //             addonsDir: "./addons",
-    //         })
-    //     );
-    // }
-
-    return new CompilationEnv(rootDir, options);
-};
+export const compilationEnv = (rootDir: string, options?: CompilationOptions): CompilationEnv => new CompilationEnv(rootDir, options);

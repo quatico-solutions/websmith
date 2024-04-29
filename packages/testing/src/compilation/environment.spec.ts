@@ -3,17 +3,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import ts from "typescript";
-import { compilationEnv, type CompilationEnv } from "./environment";
-
-let testObj: CompilationEnv;
+import { compilationEnv } from "./environment";
 
 describe("compilationEnv", () => {
-    afterEach(() => {
-        testObj.cleanUp();
-    });
-
     it("should yield default configuration with defaults", () => {
-        testObj = compilationEnv("expected");
+        const testObj = compilationEnv("expected");
 
         expect(testObj.getRootDir().endsWith("/expected")).toBe(true);
         expect(testObj.getCompiler()).toBeDefined();
@@ -23,7 +17,7 @@ describe("compilationEnv", () => {
     });
 
     it("should yield default compiler options with defaults", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
 
         const actual = testObj.getCompilerOptions();
 
@@ -46,7 +40,7 @@ describe("compilationEnv", () => {
     });
 
     it("should yield custom compiler options with custom overrides", () => {
-        testObj = compilationEnv("/target", { compilerOptions: { buildDir: "/expected-src", project: { outDir: "/expected-out" } } });
+        const testObj = compilationEnv("/target", { compilerOptions: { buildDir: "/expected-src", project: { outDir: "/expected-out" } } });
 
         const actual = testObj.getCompilerOptions();
 
@@ -63,12 +57,8 @@ describe("compilationEnv", () => {
 });
 
 describe("compilationEnv#addons", () => {
-    afterEach(() => {
-        testObj.cleanUp();
-    });
-
     it("should yields no addons with defaults", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
 
         const actual = testObj.getAddons();
 
@@ -77,7 +67,7 @@ describe("compilationEnv#addons", () => {
     });
 
     it("should yield addon with valid addon source", () => {
-        testObj = compilationEnv("/target").addAddon("expected-addon", `export const activate = () => {};`);
+        const testObj = compilationEnv("/target").addAddon("expected-addon", `export const activate = () => {};`);
 
         const actual = testObj
             .getAddons()
@@ -88,7 +78,7 @@ describe("compilationEnv#addons", () => {
     });
 
     it("should yield no addons with invalid addon source", () => {
-        testObj = compilationEnv("/target").addAddon("invalid-addon", `export const NO_ACTIVATE_FUNCTION = true;`);
+        const testObj = compilationEnv("/target").addAddon("invalid-addon", `export const NO_ACTIVATE_FUNCTION = true;`);
 
         const actual = testObj.getAddons().getAvailableAddons();
 
@@ -96,7 +86,7 @@ describe("compilationEnv#addons", () => {
     });
 
     it("should yield addon with single addon in default addons path", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.getSystem().writeFile("/test-data/addons/expected-addon/addon.ts", `export const activate = () => {};`);
 
         testObj.addAddons(["expected-addon"]);
@@ -110,7 +100,7 @@ describe("compilationEnv#addons", () => {
     });
 
     it("should yield addons with multiple addons in default addons path", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.getSystem().writeFile("/test-data/addons/expected-addon1/addon.ts", `export const activate = () => {};`);
         testObj.getSystem().writeFile("/test-data/addons/expected-addon2/addon.ts", `export const activate = () => {};`);
 
@@ -125,7 +115,7 @@ describe("compilationEnv#addons", () => {
     });
 
     it("should yield addons with multiple addons in custom addons path", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.getSystem().writeFile("/target/custom-addons-folder/expected-addon1/addon.ts", `export const activate = () => {};`);
         testObj.getSystem().writeFile("/target/custom-addons-folder/expected-addon2/addon.ts", `export const activate = () => {};`);
 
@@ -141,12 +131,8 @@ describe("compilationEnv#addons", () => {
 });
 
 describe("compilationEnv#projects", () => {
-    afterEach(() => {
-        testObj.cleanUp();
-    });
-
     it("should yield empty project with defaults", () => {
-        testObj = compilationEnv("/target").addProject("expected-project");
+        const testObj = compilationEnv("/target").addProject("expected-project");
 
         const actual = testObj.getProjects();
 
@@ -156,7 +142,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project with project files and file names", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.addProject("expected-project", { "index.ts": `export * from "./target";`, "target.ts": `export class Target {}` });
 
         const actual = testObj.getProjects();
@@ -167,7 +153,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project with project files and relative paths", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.addProject("expected-project", {
             "./foo-bar/index.ts": `export * from "./target";`,
             "./foo-bar/target.ts": `export class Target {}`,
@@ -181,7 +167,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project with project files and relative project paths", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.addProject("expected-project", {
             "./expected-project/index.ts": `export * from "./target";`,
             "./expected-project/target.ts": `export class Target {}`,
@@ -195,7 +181,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project with project files and absolute paths", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.addProject("expected-project", {
             "/target/expected-project/index.ts": `export * from "./target";`,
             "/target/expected-project/target.ts": `export class Target {}`,
@@ -209,7 +195,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield empty project with invalid absolute paths", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.addProject("expected-project", {
             // buildDir is missing in absolute paths
             "/expected-project/index.ts": `export * from "./target";`,
@@ -224,7 +210,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project with single project in default projects path", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.getSystem().writeFile("/test-data/projects/expected-project/index.ts", `export * from "./target";`);
         testObj.getSystem().writeFile("/test-data/projects/expected-project/target.ts", `export class Target {}`);
 
@@ -238,7 +224,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield projects with multiple projects in default projects path", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.getSystem().writeFile("/test-data/projects/expected-project1/index.ts", `export * from "./one";`);
         testObj.getSystem().writeFile("/test-data/projects/expected-project1/one.ts", `export class One {}`);
         testObj.getSystem().writeFile("/test-data/projects/expected-project2/index.ts", `export * from "./two";`);
@@ -256,7 +242,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project with single project in custom projects path", () => {
-        testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target");
         testObj.getSystem().writeFile("/custom-projects/expected-project/index.ts", `export * from "./target";`);
         testObj.getSystem().writeFile("/custom-projects/expected-project/target.ts", `export class Target {}`);
 
@@ -270,7 +256,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project and add file with file name", () => {
-        testObj = compilationEnv("/target").addProject("expected-project");
+        const testObj = compilationEnv("/target").addProject("expected-project");
 
         testObj.getProject("expected-project")!.addFile("index.ts", `export * from "./target";`).addFile("target.ts", `export class Target {}`);
 
@@ -282,7 +268,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project and add files with relative paths", () => {
-        testObj = compilationEnv("/target").addProject("expected-project");
+        const testObj = compilationEnv("/target").addProject("expected-project");
 
         testObj
             .getProject("expected-project")!
@@ -297,7 +283,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project and add files with relative project paths", () => {
-        testObj = compilationEnv("/target").addProject("expected-project");
+        const testObj = compilationEnv("/target").addProject("expected-project");
 
         testObj
             .getProject("expected-project")!
@@ -312,7 +298,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project and add files with absolute paths", () => {
-        testObj = compilationEnv("/target").addProject("expected-project");
+        const testObj = compilationEnv("/target").addProject("expected-project");
 
         testObj
             .getProject("expected-project")!
@@ -327,7 +313,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield empty project with invalid absolute paths added", () => {
-        testObj = compilationEnv("/target").addProject("expected-project");
+        const testObj = compilationEnv("/target").addProject("expected-project");
 
         testObj
             .getProject("expected-project")!
