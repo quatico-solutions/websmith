@@ -141,72 +141,86 @@ describe("compilationEnv#addons", () => {
 });
 
 describe("compilationEnv#projects", () => {
-    it("should yield no projects with defaults", () => {
+    afterEach(() => {
+        testObj.cleanUp();
+    });
+
+    it("should yield empty project with defaults", () => {
         testObj = compilationEnv("/target").addProject("expected-project");
 
         const actual = testObj.getProjects();
 
-        expect(actual).toHaveLength(0);
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toHaveLength(0);
     });
 
     it("should yield project with project files and file names", () => {
         testObj = compilationEnv("/target");
-        testObj.addProject("expected-project", { projectFiles: { "index.ts": `export * from "./target";`, "target.ts": `export class Target {}` } });
+        testObj.addProject("expected-project", { "index.ts": `export * from "./target";`, "target.ts": `export class Target {}` });
 
         const actual = testObj.getProjects();
 
-        expect(actual).toEqual(["/target/expected-project"]);
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project/index.ts", "/target/expected-project/target.ts"]);
     });
 
     it("should yield project with project files and relative paths", () => {
         testObj = compilationEnv("/target");
         testObj.addProject("expected-project", {
-            projectFiles: { "./foo-bar/index.ts": `export * from "./target";`, "./foo-bar/target.ts": `export class Target {}` },
+            "./foo-bar/index.ts": `export * from "./target";`,
+            "./foo-bar/target.ts": `export class Target {}`,
         });
 
         const actual = testObj.getProjects();
 
-        expect(actual).toEqual(["/target/expected-project"]);
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project/foo-bar/index.ts", "/target/expected-project/foo-bar/target.ts"]);
     });
 
     it("should yield project with project files and relative project paths", () => {
         testObj = compilationEnv("/target");
         testObj.addProject("expected-project", {
-            projectFiles: { "./expected-project/index.ts": `export * from "./target";`, "./expected-project/target.ts": `export class Target {}` },
+            "./expected-project/index.ts": `export * from "./target";`,
+            "./expected-project/target.ts": `export class Target {}`,
         });
 
         const actual = testObj.getProjects();
 
-        expect(actual).toEqual(["/target/expected-project"]);
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project/index.ts", "/target/expected-project/target.ts"]);
     });
 
     it("should yield project with project files and absolute paths", () => {
         testObj = compilationEnv("/target");
         testObj.addProject("expected-project", {
-            projectFiles: {
-                "/target/expected-project/index.ts": `export * from "./target";`,
-                "/target/expected-project/target.ts": `export class Target {}`,
-            },
+            "/target/expected-project/index.ts": `export * from "./target";`,
+            "/target/expected-project/target.ts": `export class Target {}`,
         });
 
         const actual = testObj.getProjects();
 
-        expect(actual).toEqual(["/target/expected-project"]);
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project/index.ts", "/target/expected-project/target.ts"]);
     });
 
-    it("should yield no projects with project files and invalid absolute paths", () => {
+    it("should yield empty project with invalid absolute paths", () => {
         testObj = compilationEnv("/target");
         testObj.addProject("expected-project", {
-            projectFiles: {
-                // buildDir is missing in absolute paths
-                "/expected-project/index.ts": `export * from "./target";`,
-                "/expected-project/target.ts": `export class Target {}`,
-            },
+            // buildDir is missing in absolute paths
+            "/expected-project/index.ts": `export * from "./target";`,
+            "/expected-project/target.ts": `export class Target {}`,
         });
 
         const actual = testObj.getProjects();
 
-        expect(actual).toHaveLength(0);
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toHaveLength(0);
     });
 
     it("should yield project with single project in default projects path", () => {
@@ -218,7 +232,9 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjects();
 
-        expect(actual).toEqual(["/target/expected-project"]);
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project/index.ts", "/target/expected-project/target.ts"]);
     });
 
     it("should yield projects with multiple projects in default projects path", () => {
@@ -232,7 +248,11 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjects();
 
-        expect(actual).toEqual(["/target/expected-project1", "/target/expected-project2"]);
+        expect(actual).toHaveLength(2);
+        expect(actual[0].getPath()).toBe("/target/expected-project1");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project1/index.ts", "/target/expected-project1/one.ts"]);
+        expect(actual[1].getPath()).toBe("/target/expected-project2");
+        expect(actual[1].getFiles()).toEqual(["/target/expected-project2/index.ts", "/target/expected-project2/two.ts"]);
     });
 
     it("should yield project with single project in custom projects path", () => {
@@ -240,10 +260,84 @@ describe("compilationEnv#projects", () => {
         testObj.getSystem().writeFile("/custom-projects/expected-project/index.ts", `export * from "./target";`);
         testObj.getSystem().writeFile("/custom-projects/expected-project/target.ts", `export class Target {}`);
 
-        testObj.addProject("expected-project", { sourceDir: "../custom-projects/" });
+        testObj.addProject("expected-project", "../custom-projects/");
 
         const actual = testObj.getProjects();
 
-        expect(actual).toEqual(["/target/expected-project"]);
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project/index.ts", "/target/expected-project/target.ts"]);
+    });
+
+    it("should yield project and add file with file name", () => {
+        testObj = compilationEnv("/target").addProject("expected-project");
+
+        testObj.getProject("expected-project")!.addFile("index.ts", `export * from "./target";`).addFile("target.ts", `export class Target {}`);
+
+        const actual = testObj.getProjects();
+
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project/index.ts", "/target/expected-project/target.ts"]);
+    });
+
+    it("should yield project and add files with relative paths", () => {
+        testObj = compilationEnv("/target").addProject("expected-project");
+
+        testObj
+            .getProject("expected-project")!
+            .addFile("./foo-bar/index.ts", `export * from "./target";`)
+            .addFile("./foo-bar/target.ts", `export class Target {}`);
+
+        const actual = testObj.getProjects();
+
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project/foo-bar/index.ts", "/target/expected-project/foo-bar/target.ts"]);
+    });
+
+    it("should yield project and add files with relative project paths", () => {
+        testObj = compilationEnv("/target").addProject("expected-project");
+
+        testObj
+            .getProject("expected-project")!
+            .addFile("./expected-project/index.ts", `export * from "./target";`)
+            .addFile("./expected-project/target.ts", `export class Target {}`);
+
+        const actual = testObj.getProjects();
+
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project/index.ts", "/target/expected-project/target.ts"]);
+    });
+
+    it("should yield project and add files with absolute paths", () => {
+        testObj = compilationEnv("/target").addProject("expected-project");
+
+        testObj
+            .getProject("expected-project")!
+            .addFile("/target/expected-project/index.ts", `export * from "./target";`)
+            .addFile("/target/expected-project/target.ts", `export class Target {}`);
+
+        const actual = testObj.getProjects();
+
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toEqual(["/target/expected-project/index.ts", "/target/expected-project/target.ts"]);
+    });
+
+    it("should yield empty project with invalid absolute paths added", () => {
+        testObj = compilationEnv("/target").addProject("expected-project");
+
+        testObj
+            .getProject("expected-project")!
+            .addFile("/expected-project/index.ts", `export * from "./target";`)
+            .addFile("/expected-project/target.ts", `export class Target {}`);
+
+        const actual = testObj.getProjects();
+
+        expect(actual).toHaveLength(1);
+        expect(actual[0].getPath()).toBe("/target/expected-project");
+        expect(actual[0].getFiles()).toHaveLength(0);
     });
 });

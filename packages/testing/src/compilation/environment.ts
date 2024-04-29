@@ -79,20 +79,31 @@ export class CompilationEnv {
         return this;
     }
 
-    public getProjects(): string[] {
+    public getProject(projectName: string): Project | undefined {
         const buildDir = this.getCompilerOptions().buildDir;
-        const projectDirs = this.system.readDirectory(buildDir).map(it => {
-            const end = it.indexOf("/", buildDir.length + 1);
-            return it.substring(0, end);
-        });
-        return [...new Set(projectDirs)];
+        const projectDir = this.system.getDirectories(buildDir).find(it => it === projectName);
+        if (projectDir) {
+            return new Project(resolvePath(this.system, buildDir, projectDir), this.system);
+        }
+        return undefined;
     }
 
-    public addProject(projectName: string, options?: { sourceDir?: string; projectFiles?: Record<string, string> }): this {
-        const { sourceDir = "../test-data/projects/", projectFiles } = options ?? {};
-        if (projectFiles) {
+    public getProjects(): Project[] {
+        const buildDir = this.getCompilerOptions().buildDir;
+        const projectDirs = this.system.getDirectories(buildDir);
+        return projectDirs.map(it => resolvePath(this.system, buildDir, it)).map(it => new Project(it, this.system));
+    }
+
+    public addProject(projectName: string, source?: string | Record<string, string>): this {
+        const isFiles = (source?: string | Record<string, string>): source is Record<string, string> => typeof source === "object";
+        const projectPath = resolvePath(this.system, this.rootDir, projectName);
+
+        if (!this.system.directoryExists(projectPath)) {
+            this.system.createDirectory(projectPath);
+        }
+        if (isFiles(source)) {
             this.addFiles(
-                Object.entries(projectFiles).reduce((acc: Record<string, string>, [filePath, content]) => {
+                Object.entries(source).reduce((acc: Record<string, string>, [filePath, content]) => {
                     if (isAbsolute(filePath)) {
                         acc[filePath] = content;
                     } else {
@@ -106,14 +117,10 @@ export class CompilationEnv {
                 }, {})
             );
         } else {
+            const sourceDir = source ?? "../test-data/projects/";
             const projectDir = resolvePath(this.system, this.rootDir, sourceDir, projectName);
             copyFolderSync(this.system, projectDir, this.getCompilerOptions().buildDir);
         }
-        return this;
-    }
-
-    public addSourceFile(fileName: string, content: string): this {
-        this.system.writeFile(resolvePath(this.system, "src", fileName), content);
         return this;
     }
 
@@ -171,6 +178,39 @@ export type CompilationOptions = {
     useCaseSensitiveFileNames?: boolean;
     virtual?: boolean;
 };
+
+export class Project {
+    private path: string;
+    private system: ts.System;
+
+    constructor(path: string, system: ts.System) {
+        this.path = path;
+        this.system = system;
+    }
+
+    public getPath(): string {
+        return this.path;
+    }
+
+    public addFile(filePath: string, content: string): this {
+        let path;
+        if (isAbsolute(filePath)) {
+            path = resolvePath(this.system, filePath);
+        } else {
+            if (filePath.includes(basename(this.path))) {
+                path = resolvePath(this.system, dirname(this.path), filePath);
+            } else {
+                path = resolvePath(this.system, this.path, filePath);
+            }
+        }
+        this.system.writeFile(path, content);
+        return this;
+    }
+
+    public getFiles(): string[] {
+        return this.system.readDirectory(this.path);
+    }
+}
 
 export const compilationEnv = (rootDir: string, options?: CompilationOptions): CompilationEnv => {
     // if (withDefaults && !existsSync(join(projectDir, "websmith.config.json"))) {
