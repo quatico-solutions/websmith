@@ -1,5 +1,3 @@
-const { prettierPath } = require("../../jest.config");
-
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -13,6 +11,7 @@ module.exports = {
     moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
         "@quatico/websmith-core": "<rootDir>/../core/src",
+        "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
     prettierPath: null,
     testRegex: "src/.*spec\\.(js|ts)$",

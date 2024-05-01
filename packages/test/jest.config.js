@@ -10,6 +10,7 @@ module.exports = {
     moduleNameMapper: {
         "@quatico/websmith-core": "<rootDir>/../core/src",
         "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
+        "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
     prettierPath: null,
     roots: ["<rootDir>/src/"],

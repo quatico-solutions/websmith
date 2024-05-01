@@ -10,7 +10,6 @@ module.exports = {
     coverageDirectory: "coverage",
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
-        "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
         "@quatico/websmith-core": "<rootDir>/../core/src",
         "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
