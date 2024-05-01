@@ -18,11 +18,11 @@ describe("test-project-foo", () => {
             `
                 export const foo = () => {
                     console.log("foo");
-                };
+                };p
             `
         );
 
-        const actual = testObj.getProjectFile("foo.ts");
+        const actual = testObj.getProjectFile("foo.ts")!.getContent();
 
         expect(actual).toMatchInlineSnapshot(
             `

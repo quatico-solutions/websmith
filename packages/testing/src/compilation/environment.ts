@@ -181,6 +181,14 @@ export class CompilationEnv {
         return this.system.readDirectory(this.rootDir).map(it => projectFile(this.system, this.buildDir, it));
     }
 
+    public getProjectFile(filePath: string): ProjectFile | undefined {
+        const file = this.system.readDirectory(this.rootDir).find(it => it.endsWith(filePath));
+        if (file) {
+            return projectFile(this.system, this.buildDir, file);
+        }
+        return undefined;
+    }
+
     public compile(): ts.EmitResult {
         return this.compiler.compile();
     }
