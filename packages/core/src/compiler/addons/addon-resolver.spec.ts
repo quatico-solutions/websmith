@@ -29,7 +29,7 @@ beforeAll(() => {
 });
 
 describe("createResolver", () => {
-    it("reads addon.ts files from existing addon folder", () => {
+    it("reads addon.js files from existing addon folder", () => {
         const resolve = createResolver(new NoReporter(), testSystem);
 
         const actual = resolve(["one"]);

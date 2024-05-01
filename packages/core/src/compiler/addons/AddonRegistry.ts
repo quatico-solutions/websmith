@@ -42,7 +42,7 @@ export class AddonRegistry {
         return Array.from(this.availableAddons.values());
     }
 
-    public getAddonDir(): string {
+    public getAddonsDir(): string {
         return this.options.addonsDir;
     }
 

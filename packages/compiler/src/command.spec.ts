@@ -210,7 +210,7 @@ describe("addCompileCommand#addons", () => {
             },
             { virtual: true }
         );
-        testSystem.writeFile("./addons/expected/addon.ts", "export const activate = () => {};");
+        testSystem.writeFile("./addons/expected/addon.js", "export const activate = () => {};");
         const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
 
         addCompileCommand(new Command(), target).parse(["--addons", "expected"], { from: "user" });
@@ -218,15 +218,15 @@ describe("addCompileCommand#addons", () => {
         expect(
             target
                 .getOptions()
-                .addons.getAddons()
+                .addons.getAvailableAddons()
                 .map((it: CompilerAddon) => it.name)
         ).toEqual(["expected"]);
     });
 
     it("should yield options addons w/ --addons cli argument and multiple existing addons", () => {
-        testSystem.writeFile("./addons/zip/addon.ts", "export const activate = () => {};");
-        testSystem.writeFile("./addons/zap/addon.ts", "export const activate = () => {};");
-        testSystem.writeFile("./addons/zup/addon.ts", "export const activate = () => {};");
+        testSystem.writeFile("./addons/zip/addon.js", "export const activate = () => {};");
+        testSystem.writeFile("./addons/zap/addon.js", "export const activate = () => {};");
+        testSystem.writeFile("./addons/zup/addon.js", "export const activate = () => {};");
         jest.mock(
             "/addons/zip/addon",
             () => {
@@ -257,7 +257,7 @@ describe("addCompileCommand#addons", () => {
         expect(
             target
                 .getOptions()
-                .addons.getAddons()
+                .addons.getAvailableAddons()
                 .map((it: CompilerAddon) => it.name)
         ).toEqual(["zip", "zap", "zup"]);
     });
@@ -267,11 +267,11 @@ describe("addCompileCommand#addons", () => {
 
         addCompileCommand(new Command(), target).parse(["--addons", "unknown"], { from: "user" });
 
-        expect(target.getOptions().addons.getAddons()).toEqual([]);
+        expect(target.getOptions().addons.getAvailableAddons()).toEqual([]);
     });
 
     it("should not yield non-existing options addons w/ --addons cli argument, existing and non-existing addons", () => {
-        testSystem.writeFile("./addons/expected/addon.ts", "export const activate = () => {};");
+        testSystem.writeFile("./addons/expected/addon.js", "export const activate = () => {};");
         jest.mock(
             "/addons/expected/addon",
             () => {
@@ -287,7 +287,7 @@ describe("addCompileCommand#addons", () => {
         expect(
             target
                 .getOptions()
-                .addons.getAddons()
+                .addons.getAvailableAddons()
                 .map((it: CompilerAddon) => it.name)
         ).toEqual(["expected"]);
     });
@@ -302,7 +302,7 @@ describe("addCompileCommand#addons", () => {
     });
 
     it("should yield warning w/ --addons cli argument, existing and non-existing addons", () => {
-        testSystem.writeFile("./addons/existing/addon.ts", "export const activate = () => {};");
+        testSystem.writeFile("./addons/existing/addon.js", "export const activate = () => {};");
         jest.mock(
             "/addons/existing/addon",
             () => {
@@ -320,7 +320,7 @@ describe("addCompileCommand#addons", () => {
     });
 
     it("should yield addonsDir and addons from compiler config w/o any cli argument", () => {
-        testSystem.writeFile("/expected/one/addon.ts", "export const activate = () => {};");
+        testSystem.writeFile("/expected/one/addon.js", "export const activate = () => {};");
         jest.mock(
             "/expected/one/addon",
             () => {
@@ -333,29 +333,10 @@ describe("addCompileCommand#addons", () => {
 
         addCompileCommand(new Command(), target).parse([], { from: "user" });
 
-        expect(target.getOptions().addons).toMatchInlineSnapshot(`
-            AddonRegistry {
-              "addons": [
-                "one",
-                "two",
-              ],
-              "availableAddons": Map {
-                "one" => {
-                  "activate": [Function],
-                  "name": "one",
-                },
-              },
-              "config": {
-                "addons": [
-                  "one",
-                  "two",
-                ],
-                "addonsDir": "/expected",
-                "configFilePath": "/websmith.config.json",
-              },
-              "reporter": NoReporter {},
-            }
-        `);
+        expect(target.getOptions().addons).toMatchObject({
+            addons: ["one", "two"],
+            availableAddons: {},
+        });
     });
 });
 

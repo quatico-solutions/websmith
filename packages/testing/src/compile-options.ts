@@ -9,15 +9,19 @@ import ts from "typescript";
 import { ReporterMock } from "./ReporterMock";
 import { resolvePath } from "./compilation/resolve-path";
 
+const DEFAULT_BUILD_DIR = "./src";
+const DEFAULT_ADDONS_DIR = "../addons";
+
 export const compileOptions = (
     system: ts.System,
     // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
     overrides?: Partial<CompilerOptions> & { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; targets?: string[] }
 ): CompilerOptions => {
     const reporter = new ReporterMock(system);
-    const buildDir: string = resolvePath(system, overrides?.buildDir ?? "./src");
+    const buildDir: string = resolvePath(system, overrides?.buildDir ?? DEFAULT_BUILD_DIR);
+    const addonsDirPath = resolvePath(system, buildDir, DEFAULT_ADDONS_DIR);
     return {
-        addons: new AddonRegistry({ addonsDir: resolvePath(system, buildDir, "./addons"), reporter, system }),
+        addons: new AddonRegistry({ addonsDir: addonsDirPath, reporter, system }),
         buildDir,
         reporter,
         debug: false,
