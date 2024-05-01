@@ -10,6 +10,7 @@ module.exports = {
     coveragePathIgnorePatterns: ["index.ts"],
     moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
+        "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-core": "<rootDir>/../core/src",
         "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
