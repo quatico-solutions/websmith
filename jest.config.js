@@ -19,7 +19,6 @@ module.exports = {
     prettierPath: null,
     setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
     testRegex: "src/.*spec\\.(tsx?)$",
-    testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
         "^.+\\.(js|ts)$": [
             "@swc/jest",
