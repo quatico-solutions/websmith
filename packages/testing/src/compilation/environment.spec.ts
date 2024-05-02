@@ -137,7 +137,7 @@ describe("compilationEnv#addons", () => {
 
 describe("compilationEnv#projects", () => {
     it("should yield empty project with non-existing path", () => {
-        const testObj = compilationEnv("/target").setupProjectFromDisk("/does-not-exist");
+        const testObj = compilationEnv("/target").addProjectFromDisk("/does-not-exist");
 
         const actual = testObj.getProjectFiles();
 
@@ -145,7 +145,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project with project source and file names", () => {
-        const testObj = compilationEnv("/target").setupProjectFromSource({
+        const testObj = compilationEnv("/target").addProjectFromSource({
             "index.ts": `export * from "./target";`,
             "target.ts": `export class Target {}`,
         });
@@ -157,7 +157,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project with project source and relative paths", () => {
-        const testObj = compilationEnv("/target").setupProjectFromSource({
+        const testObj = compilationEnv("/target").addProjectFromSource({
             "./expected/index.ts": `export * from "./target";`,
             "./expected/target.ts": `export class Target {}`,
         });
@@ -168,7 +168,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project with project source and relative src paths", () => {
-        const testObj = compilationEnv("/target").setupProjectFromSource({
+        const testObj = compilationEnv("/target").addProjectFromSource({
             "./src/index.ts": `export * from "./target";`,
             "./src/target.ts": `export class Target {}`,
         });
@@ -179,7 +179,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield project with project source and absolute paths", () => {
-        const testObj = compilationEnv("/target").setupProjectFromSource({
+        const testObj = compilationEnv("/target").addProjectFromSource({
             "/target/src/index.ts": `export * from "./target";`,
             "/target/src/target.ts": `export class Target {}`,
         });
@@ -190,7 +190,7 @@ describe("compilationEnv#projects", () => {
     });
 
     it("should yield empty project with invalid absolute paths", () => {
-        const testObj = compilationEnv("/target").setupProjectFromSource({
+        const testObj = compilationEnv("/target").addProjectFromSource({
             // buildDir is missing in absolute paths
             "/whatever-path/index.ts": `export * from "./target";`,
             "/whatever-path/target.ts": `export class Target {}`,
@@ -209,7 +209,7 @@ describe("compilationEnv#projects", () => {
         testObj.getSystem().writeFile("/test-projects/expected-project/src/target.ts", `export class Target {}`);
         testObj.getSystem().writeFile("/test-projects/expected-project/tsconfig.json", `{}`);
 
-        testObj.setupProjectFromDisk("expected-project");
+        testObj.addProjectFromDisk("expected-project");
 
         const actual = testObj.getProjectFiles();
 
@@ -223,7 +223,7 @@ describe("compilationEnv#projects", () => {
         testObj.getSystem().writeFile("/test-projects/expected-project2/src/index.ts", `export * from "./two";`);
         testObj.getSystem().writeFile("/test-projects/expected-project2/src/two.ts", `export class Two {}`);
 
-        testObj.setupProjectFromDisk("expected-project1").setupProjectFromDisk("expected-project2");
+        testObj.addProjectFromDisk("expected-project1").addProjectFromDisk("expected-project2");
 
         const actual = testObj.getProjectFiles();
 
@@ -237,7 +237,7 @@ describe("compilationEnv#projects", () => {
         testObj.getSystem().writeFile("/custom-projects/expected-project/src/target.ts", `export class Target {}`);
         testObj.getSystem().writeFile("/custom-projects/expected-project/tsconfig.json", `{}`);
 
-        testObj.setupProjectFromDisk("expected-project", "../custom-projects/");
+        testObj.addProjectFromDisk("expected-project", "../custom-projects/");
 
         const actual = testObj.getProjectFiles();
 
@@ -246,7 +246,7 @@ describe("compilationEnv#projects", () => {
 
     it("should yield project and add file with file name", () => {
         const testObj = compilationEnv("/target")
-            .setupProjectFromDisk("expected-project")
+            .addProjectFromDisk("expected-project")
             .addProjectFile("index.ts", `export * from "./target";`)
             .addProjectFile("target.ts", `export class Target {}`);
 
@@ -258,7 +258,7 @@ describe("compilationEnv#projects", () => {
 
     it("should yield project and add files with relative paths", () => {
         const testObj = compilationEnv("/target")
-            .setupProjectFromDisk("expected-project")
+            .addProjectFromDisk("expected-project")
             .addProjectFile("./expected-dir/index.ts", `export * from "./target";`)
             .addProjectFile("./expected-dir/target.ts", `export class Target {}`);
 
@@ -269,7 +269,7 @@ describe("compilationEnv#projects", () => {
 
     it("should yield project and add files with relative src paths", () => {
         const testObj = compilationEnv("/target")
-            .setupProjectFromDisk("expected-project")
+            .addProjectFromDisk("expected-project")
             .addProjectFile("./src/index.ts", `export * from "./target";`)
             .addProjectFile("./src/target.ts", `export class Target {}`);
 
@@ -280,7 +280,7 @@ describe("compilationEnv#projects", () => {
 
     it("should yield project and add files with absolute paths", () => {
         const testObj = compilationEnv("/target")
-            .setupProjectFromDisk("expected-project")
+            .addProjectFromDisk("expected-project")
             .addProjectFile("/target/expected-project/index.ts", `export * from "./target";`)
             .addProjectFile("/target/expected-project/target.ts", `export class Target {}`);
 
@@ -291,7 +291,7 @@ describe("compilationEnv#projects", () => {
 
     it("should yield empty project with invalid absolute paths added", () => {
         const testObj = compilationEnv("/target")
-            .setupProjectFromDisk("expected-project")
+            .addProjectFromDisk("expected-project")
             .addProjectFile("/expected-project/index.ts", `export * from "./target";`)
             .addProjectFile("/expected-project/target.ts", `export class Target {}`);
 
@@ -361,7 +361,7 @@ describe("compilationEnv#compiled", () => {
 
     it("should yield compiled files with late project setup and compile", () => {
         const testObj = compilationEnv("/target")
-            .setupProjectFromSource({
+            .addProjectFromSource({
                 "index.ts": `export * from './target';`,
                 "target.ts": `export class Target {}`,
             })
@@ -374,7 +374,7 @@ describe("compilationEnv#compiled", () => {
 
     it("should yield compiled files with project", () => {
         const testObj = compilationEnv("/target")
-            .setupProjectFromSource({
+            .addProjectFromSource({
                 "index.ts": `export * from './target';`,
                 "target.ts": `export class Target {}`,
             })

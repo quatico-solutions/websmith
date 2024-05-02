@@ -169,7 +169,7 @@ export class CompilationEnv {
      * @param source optional source files to install
      * @returns this instance
      */
-    public setupProjectFromSource(source: Record<string, string>): this {
+    public addProjectFromSource(source: Record<string, string>): this {
         this.addFiles(
             Object.entries(source).reduce((acc: Record<string, string>, [filePath, content]) => {
                 acc[resolveProjectPath(this.system, this.buildDir, filePath)] = content;
@@ -187,7 +187,7 @@ export class CompilationEnv {
      * @param projectsSourceDir optional path to the source directory to install
      * @returns this instance
      */
-    public setupProjectFromDisk(projectName: string, projectsSourceDir?: string): this {
+    public addProjectFromDisk(projectName: string, projectsSourceDir?: string): this {
         const projectsSourcePath = resolveProjectPath(this.system, this.rootDir, projectsSourceDir ?? DEFAULT_PROJECTS_SOURCE_DIR);
         const sourceFs = this.system.directoryExists(projectsSourcePath) ? this.system : ts.sys;
         copyDirectory(

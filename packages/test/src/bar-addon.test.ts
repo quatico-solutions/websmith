@@ -39,7 +39,7 @@ describe("test-project-foo", () => {
     });
 
     it("should compile source project from disk", () => {
-        const actual = compilationEnv("__TEST__").setupProjectFromDisk("test-project-foo", join(__dirname, "../test-data/projects")).compile();
+        const actual = compilationEnv("__TEST__").addProjectFromDisk("test-project-foo", join(__dirname, "../test-data/projects")).compile();
 
         expect(actual.getCompiledFile("foo.js")!.getContent()).toMatchInlineSnapshot(`
             "export const foo = () => {
