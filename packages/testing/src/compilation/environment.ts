@@ -204,8 +204,8 @@ export class CompilationEnv {
         return this;
     }
 
-    public getProjectFiles(): ProjectFile[] {
-        return this.system.readDirectory(this.rootDir).map(it => projectFile(this.system, this.buildDir, it));
+    public getProjectFiles(): ProjectFiles {
+        return projectFiles(this.system.readDirectory(this.rootDir).map(it => projectFile(this.system, this.buildDir, it)));
     }
 
     public getProjectFile(filePath: string): ProjectFile | undefined {
@@ -245,8 +245,9 @@ export class CompilationEnv {
         return resolveProjectPath(this.system, this.rootDir, this.getCompilerOptions().project.outDir ?? DEFAULT_OUT_DIR);
     }
 
-    public getCompiledFiles(): ProjectFile[] {
-        return this.system.readDirectory(this.getCompiledDir()).map(it => projectFile(this.getSystem(), this.buildDir, it));
+    public getCompiledFiles(): ProjectFiles {
+        return projectFiles(this.system.readDirectory(this.getCompiledDir()).map(it => projectFile(this.getSystem(), this.buildDir, it)));
+
     }
 
     public getCompiledFile(filePath: string): ProjectFile | undefined {
@@ -324,6 +325,8 @@ export type CompilationOptions = {
     virtual?: boolean;
 };
 
+export type ProjectFiles = ProjectFile[] & { getPaths: () => string[], getContents: () => string[] };
+
 export interface ProjectFile {
     getPath(): string;
     getContent(): string | undefined;
@@ -352,4 +355,10 @@ const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || 
 
 const isFiles = (source?: string | Record<string, string>): source is Record<string, string> => typeof source === "object";
 
+const projectFiles = (result: ProjectFile[]): ProjectFiles => {
+    return Object.assign(result, { getPaths: () => result.map(it => it.getPath()), getContents: () => result.map(it => it.getContent()!) });
+}
+
 export const compilationEnv = (rootDir: string, options?: CompilationOptions): CompilationEnv => new CompilationEnv(rootDir, options);
+
+
