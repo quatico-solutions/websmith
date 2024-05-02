@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { compilationEnv } from "@quatico/websmith-testing";
 import { join } from "path";
 
