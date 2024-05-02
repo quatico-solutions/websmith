@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { compilationEnv } from "@quatico/websmith-testing";
+import { join } from "path";
 
 describe("test-project-foo", () => {
     it("should install addon successfully", () => {
-        const testObj = compilationEnv("__TEST__").addAddon("foo-addon", "../test-data/addons");
+        const testObj = compilationEnv("__TEST__").addAddon("foo-addon", join(__dirname, "../test-data/addons"));
 
         const actual = testObj.getActiveAddons().map(it => it.name);
 
@@ -22,13 +23,24 @@ describe("test-project-foo", () => {
 
         const actual = testObj.getProjectFile("foo.ts")!.getContent();
 
-        expect(actual).toMatchInlineSnapshot(
-            `
+        expect(actual).toMatchInlineSnapshot(`
+            "
                 export const foo = () => {
                     console.log("foo");
-                };
-            `
-        );
+                };p
+            "
+        `);
+    });
+
+    it("should compile source project from disk", () => {
+        const actual = compilationEnv("__TEST__").setupProjectFromDisk("test-project-foo", join(__dirname, "../test-data/projects")).compile();
+
+        expect(actual.getCompiledFile("foo.js")!.getContent()).toMatchInlineSnapshot(`
+            "export const foo = () => {
+                console.log("foo");
+            };
+            "
+        `);
     });
 
     it("should compile source file content", () => {
@@ -43,7 +55,7 @@ describe("test-project-foo", () => {
 
         const actual = testObj.compile();
 
-        expect(actual.getCompiledFile("foo.js")).toMatchInlineSnapshot(`
+        expect(actual.getCompiledFile("foo.js")!.getContent()).toMatchInlineSnapshot(`
             "export const foo = () => {
                 console.log("foo");
             };

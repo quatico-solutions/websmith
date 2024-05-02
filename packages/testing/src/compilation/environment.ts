@@ -129,8 +129,9 @@ export class CompilationEnv {
                 }, {})
             );
         } else {
-            const addonsSourceDir = resolvePath(this.system, this.rootDir, addonSource ?? DEFAULT_ADDONS_SOURCE_DIR, addonName);
-            copyDirectory(this.system, addonsSourceDir, addonTargetPath, "addon");
+            const addonsSourceDir = resolveProjectPath(this.system, this.rootDir, join(addonSource ?? DEFAULT_ADDONS_SOURCE_DIR, addonName));
+            const sourceFs = this.system.directoryExists(addonsSourceDir) ? this.system : ts.sys;
+            copyDirectory({ system: sourceFs, path: addonsSourceDir, kind: "addon" }, { system: this.system, path: addonTargetPath });
         }
 
         this.compileAddons(this.getAddonRegistry().getAddonsDir());
@@ -140,9 +141,10 @@ export class CompilationEnv {
 
     public addAddons(addonNames: string[], addonsSourceDir?: string): this {
         const addonsDir = this.getAddonsDir();
-        const addonsSourceDirPath = resolvePath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
+        const addonsSourceDirPath = resolveProjectPath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
+        const sourceFs = this.system.directoryExists(addonsSourceDirPath) ? this.system : ts.sys;
         addonNames.forEach(addon => {
-            copyDirectory(this.system, join(addonsSourceDirPath, addon), addonsDir, "addon");
+            copyDirectory({ system: sourceFs, path: join(addonsSourceDirPath, addon), kind: "addon" }, { system: this.system, path: addonsDir });
         });
         this.compileAddons(addonsDir);
         this.getAddonRegistry().refresh();
@@ -180,8 +182,14 @@ export class CompilationEnv {
      * @returns this instance
      */
     public setupProjectFromDisk(projectName: string, projectsSourceDir?: string): this {
-        const projectsSourcePath = resolvePath(this.system, this.rootDir, projectsSourceDir ?? DEFAULT_PROJECTS_SOURCE_DIR);
-        copyDirectory(this.system, join(projectsSourcePath, projectName), this.rootDir, "project");
+        const projectsSourcePath = resolveProjectPath(this.system, this.rootDir, projectsSourceDir ?? DEFAULT_PROJECTS_SOURCE_DIR);
+        const sourceFs = this.system.directoryExists(projectsSourcePath) ? this.system : ts.sys;
+        copyDirectory(
+            { system: sourceFs, path: join(projectsSourcePath, projectName), kind: "project" },
+            { system: this.system, path: this.rootDir }
+        );
+        this.compilerOptions.tsconfig.fileNames = this.system.readDirectory(this.buildDir).filter(isSourceFile);
+
         return this;
     }
 
@@ -243,7 +251,7 @@ export class CompilationEnv {
     private compileAddons(addonsDir: string) {
         const addonsToCompile = this.system
             .readDirectory(addonsDir)
-            .filter(it => it.endsWith(".ts"))
+            .filter(isSourceFile)
             .map(it => dirname(it));
 
         addonsToCompile.forEach(curDir => {
@@ -253,7 +261,7 @@ export class CompilationEnv {
                         buildDir: curDir,
                     }),
                     project: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5 },
-                    tsconfig: { fileNames: this.system.readDirectory(curDir).filter(it => it.endsWith(".ts")), options: {}, errors: [] },
+                    tsconfig: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
                 this.system
             ).compile();
@@ -285,7 +293,9 @@ export class CompilationEnv {
 
     private addFile(filePath: string, content: string): void {
         this.system.writeFile(filePath, content);
-        this.compilerOptions.tsconfig.fileNames.push(filePath);
+        if (isSourceFile(filePath)) {
+            this.compilerOptions.tsconfig.fileNames.push(filePath);
+        }
     }
 
     private getAddonRegistry(): AddonRegistry {
@@ -331,6 +341,8 @@ const resolveProjectPath = (system: ts.System, buildDir: string, relativePath: s
     }
     return filePath;
 };
+
+const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || filePath.endsWith(".tsx");
 
 const isFiles = (source?: string | Record<string, string>): source is Record<string, string> => typeof source === "object";
 
