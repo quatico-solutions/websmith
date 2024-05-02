@@ -10,7 +10,7 @@ import ts from "typescript";
 type SourcePath = {
     system: ts.System;
     path: string;
-    kind: "project" | "addon";
+    kind: "project" | "addons";
 };
 
 type SourceFilePath = SourcePath & {
@@ -26,7 +26,7 @@ export const copyDirectory = (source: SourcePath, target: TargetPath) => {
     const { system: srcSystem, path: srcPath, kind } = source;
 
     // Throw an error if the source directory does not exist for addons
-    if (kind === "addon" && !srcSystem.directoryExists(srcPath)) {
+    if (kind === "addons" && !srcSystem.directoryExists(srcPath)) {
         throw new Error(`Source directory ${srcPath} does not exist.`);
     }
 

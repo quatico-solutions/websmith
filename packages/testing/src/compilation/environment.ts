@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { AddonRegistry, Compiler, createBrowserSystem, type CompilerAddon, type CompilerOptions } from "@quatico/websmith-core";
+import { rmdirSync } from "fs";
 import { basename, dirname, extname, isAbsolute, join } from "path";
 import requireFromString from "require-from-string";
 import ts from "typescript";
@@ -76,10 +77,14 @@ export class CompilationEnv {
         return this.virtual;
     }
 
-    public cleanUp(path?: string): this {
-        const target = path ?? this.rootDir;
-        if (this.system.fileExists(target)) {
-            this.system.readDirectory(target).forEach(it => this.system.deleteFile!(it));
+    public cleanUp(options: "project" | "addons" | "all" = "all"): this {
+        const target = options === "project" ? this.getProjectDir() : options === "addons" ? this.getAddonsDir() : this.rootDir;
+        if (this.system.directoryExists(target)) {
+            if (this.isVirtual()) {
+                this.system.readDirectory(target).forEach(it => this.system.deleteFile!(it));
+            } else {
+                rmdirSync(target, { recursive: true });
+            }
         }
         return this;
     }
@@ -137,7 +142,7 @@ export class CompilationEnv {
         } else {
             const addonsSourceDir = resolveProjectPath(this.system, this.rootDir, join(addonSource ?? DEFAULT_ADDONS_SOURCE_DIR, addonName));
             const sourceFs = this.system.directoryExists(addonsSourceDir) ? this.system : ts.sys;
-            copyDirectory({ system: sourceFs, path: addonsSourceDir, kind: "addon" }, { system: this.system, path: addonTargetPath });
+            copyDirectory({ system: sourceFs, path: addonsSourceDir, kind: "addons" }, { system: this.system, path: addonTargetPath });
         }
 
         this.compileAddons(this.getAddonRegistry().getAddonsDir());
@@ -150,7 +155,7 @@ export class CompilationEnv {
         const addonsSourceDirPath = resolveProjectPath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
         const sourceFs = this.system.directoryExists(addonsSourceDirPath) ? this.system : ts.sys;
         addonNames.forEach(addon => {
-            copyDirectory({ system: sourceFs, path: join(addonsSourceDirPath, addon), kind: "addon" }, { system: this.system, path: addonsDir });
+            copyDirectory({ system: sourceFs, path: join(addonsSourceDirPath, addon), kind: "addons" }, { system: this.system, path: addonsDir });
         });
         this.compileAddons(addonsDir);
         this.getAddonRegistry().refresh();
@@ -267,7 +272,7 @@ export class CompilationEnv {
                     ...compileOptions(this.system, {
                         buildDir: curDir,
                     }),
-                    project: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5 },
+                    project: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5, esModuleInterop: true },
                     tsconfig: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
                 this.system
@@ -282,7 +287,8 @@ export class CompilationEnv {
                 .forEach(it => {
                     jest.mock(
                         extname(it).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g) ? it.replace(extname(it), "") : it,
-                        () => requireFromString(this.system.readFile(it)!),
+                        // FIXME: replace __dirname with the actual sourceDir of the addon
+                        () => requireFromString(this.system.readFile(it)!, __dirname),
                         { virtual: true }
                     );
                 });

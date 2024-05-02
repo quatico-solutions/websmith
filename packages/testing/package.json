@@ -32,6 +32,7 @@
         "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
     "dependencies": {
+        "@quatico/websmith-api": "workspace:^",
         "@quatico/websmith-core": "workspace:^",
         "require-from-string": "^2.0.2"
     },

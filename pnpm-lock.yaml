@@ -508,6 +508,9 @@ importers:
 
   packages/testing:
     dependencies:
+      '@quatico/websmith-api':
+        specifier: workspace:^
+        version: link:../api
       '@quatico/websmith-core':
         specifier: workspace:^
         version: link:../core
