@@ -90,7 +90,7 @@ export class AddonRegistry {
                         reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${name}" in "${addonsDir}".`));
                     }
                     if (name && activator && !map.has(name)) {
-                        map.set(name, { name, activate: activator });
+                        map.set(name, { getName: () => name, activate: activator });
                     }
                 });
         }

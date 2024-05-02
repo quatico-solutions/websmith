@@ -86,7 +86,7 @@ describe("compilationEnv#addons", () => {
     it("should yield addon with valid addon source", () => {
         const testObj = compilationEnv("/target").addAddon("expected-addon", { "addon.ts": `export const activate = () => {};` });
 
-        const actual = testObj.getActiveAddons().map(it => it.name);
+        const actual = testObj.getActiveAddons().map(it => it.getName());
 
         expect(actual).toEqual(["expected-addon"]);
     });
@@ -105,7 +105,7 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddon("expected-addon");
 
-        const actual = testObj.getActiveAddons().map(it => it.name);
+        const actual = testObj.getActiveAddons().map(it => it.getName());
 
         expect(actual).toEqual(["expected-addon"]);
     });
@@ -117,7 +117,7 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddons(["expected-addon1", "expected-addon2"]);
 
-        const actual = testObj.getActiveAddons().map(it => it.name);
+        const actual = testObj.getActiveAddons().map(it => it.getName());
 
         expect(actual).toEqual(["expected-addon1", "expected-addon2"]);
     });
@@ -129,7 +129,7 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddons(["expected-addon1", "expected-addon2"], "./custom-addons-folder/");
 
-        const actual = testObj.getActiveAddons().map(it => it.name);
+        const actual = testObj.getActiveAddons().map(it => it.getName());
 
         expect(actual).toEqual(["expected-addon1", "expected-addon2"]);
     });

@@ -69,7 +69,7 @@ describe("getAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(testObj.getAvailableAddons().map(it => it.name)).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons().map(it => it.getName())).toEqual(["expected"]);
     });
 
     it("returns addons w/ multiple addons in addon directory", () => {
@@ -100,7 +100,7 @@ describe("getAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(testObj.getAvailableAddons().map(it => it.name)).toEqual(["one", "two", "three"]);
+        expect(testObj.getAvailableAddons().map(it => it.getName())).toEqual(["one", "two", "three"]);
     });
 
     it("returns valid addons w/ invalid and valid addons in addon directory", () => {
@@ -123,7 +123,7 @@ describe("getAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(testObj.getAvailableAddons().map(it => it.name)).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons().map(it => it.getName())).toEqual(["expected"]);
     });
 
     it("returns no addons w/ empty files in addon directory", () => {

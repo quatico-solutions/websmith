@@ -12,7 +12,7 @@ describe("test-project-foo", () => {
     it("should install addon successfully", () => {
         const testObj = compilationEnv("__TEST__").addAddon("foo-addon", join(__dirname, "../test-data/addons"));
 
-        const actual = testObj.getActiveAddons().map(it => it.name);
+        const actual = testObj.getActiveAddons().map(it => it.getName());
 
         expect(actual).toContain("foo-addon");
     });

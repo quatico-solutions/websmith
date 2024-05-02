@@ -219,7 +219,7 @@ describe("addCompileCommand#addons", () => {
             target
                 .getOptions()
                 .addons.getAvailableAddons()
-                .map((it: CompilerAddon) => it.name)
+                .map((it: CompilerAddon) => it.getName())
         ).toEqual(["expected"]);
     });
 
@@ -258,7 +258,7 @@ describe("addCompileCommand#addons", () => {
             target
                 .getOptions()
                 .addons.getAvailableAddons()
-                .map((it: CompilerAddon) => it.name)
+                .map((it: CompilerAddon) => it.getName())
         ).toEqual(["zip", "zap", "zup"]);
     });
 
@@ -288,7 +288,7 @@ describe("addCompileCommand#addons", () => {
             target
                 .getOptions()
                 .addons.getAvailableAddons()
-                .map((it: CompilerAddon) => it.name)
+                .map((it: CompilerAddon) => it.getName())
         ).toEqual(["expected"]);
     });
 

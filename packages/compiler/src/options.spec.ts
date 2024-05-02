@@ -51,7 +51,7 @@ describe("createOptions", () => {
 
         const actual: CompilerAddon[] = createOptions({ addonsDir: "./expected" }, new NoReporter(), target).addons.getAvailableAddons();
 
-        expect(actual.map(it => it.name)).toEqual(["addon-foo"]);
+        expect(actual.map(it => it.getName())).toEqual(["addon-foo"]);
     });
 
     it("should return debug path w/ debug true", () => {
@@ -103,7 +103,7 @@ describe("createOptions", () => {
                 Object.entries({
                     one: {
                         activate: expect.any(Function),
-                        name: "one",
+                        getName: expect.any(Function),
                     },
                 })
             ),
