@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { resolve } from "path";
 import ts from "typescript";
 import { compilationEnv } from "./environment";
-import { resolve } from "path";
 
 describe("compilationEnv", () => {
     it("should yield default configuration with defaults", () => {
@@ -13,7 +13,8 @@ describe("compilationEnv", () => {
         expect(testObj.isVirtual()).toBe(true);
         expect(testObj.getRootDir()).toBe("/expected");
         expect(testObj.getAddonsDir()).toBe("/expected/addons");
-        expect(testObj.getCompiler()).toBeDefined();
+        expect(testObj.getProjectDir()).toBe("/expected/src");
+        expect(testObj.getCompiledDir()).toBe("/expected/dist");
         expect(testObj.getSystem()).toBeDefined();
         expect(testObj.getSystem().useCaseSensitiveFileNames).toBe(false);
     });
@@ -24,7 +25,8 @@ describe("compilationEnv", () => {
         expect(testObj.isVirtual()).toBe(false);
         expect(testObj.getRootDir()).toBe(resolve("./expected"));
         expect(testObj.getAddonsDir()).toBe(resolve(testObj.getRootDir(), "./addons"));
-        expect(testObj.getCompiler()).toBeDefined();
+        expect(testObj.getProjectDir()).toBe(resolve(testObj.getRootDir(), "./src"));
+        expect(testObj.getCompiledDir()).toBe(resolve(testObj.getRootDir(), "./dist"));
         expect(testObj.getSystem()).toEqual(ts.sys);
         expect(testObj.getSystem().useCaseSensitiveFileNames).toBe(ts.sys.useCaseSensitiveFileNames);
 
@@ -39,12 +41,12 @@ describe("compilationEnv", () => {
         expect(actual).toMatchObject({
             buildDir: "/target/src",
             project: {
-                configFilePath: "./tsconfig.json",
+                configFilePath: "/target/tsconfig.json",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
             },
             sourceMap: false,
-            targets: ["*"],
+            targets: [],
             transpileOnly: false,
             tsconfig: {
                 errors: [],
@@ -82,7 +84,7 @@ describe("compilationEnv#addons", () => {
     it("should yield addon with valid addon source", () => {
         const testObj = compilationEnv("/target").addAddon("expected-addon", { "addon.ts": `export const activate = () => {};` });
 
-        const actual = testObj.getActiveAddons().map(it => it?.name);
+        const actual = testObj.getActiveAddons().map(it => it.name);
 
         expect(actual).toEqual(["expected-addon"]);
     });
@@ -101,7 +103,7 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddon("expected-addon");
 
-        const actual = testObj.getActiveAddons().map(it => it?.name);
+        const actual = testObj.getActiveAddons().map(it => it.name);
 
         expect(actual).toEqual(["expected-addon"]);
     });
@@ -113,7 +115,7 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddons(["expected-addon1", "expected-addon2"]);
 
-        const actual = testObj.getActiveAddons().map(it => it?.name);
+        const actual = testObj.getActiveAddons().map(it => it.name);
 
         expect(actual).toEqual(["expected-addon1", "expected-addon2"]);
     });
@@ -125,7 +127,7 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddons(["expected-addon1", "expected-addon2"], "./custom-addons-folder/");
 
-        const actual = testObj.getActiveAddons().map(it => it?.name);
+        const actual = testObj.getActiveAddons().map(it => it.name);
 
         expect(actual).toEqual(["expected-addon1", "expected-addon2"]);
     });
@@ -295,5 +297,108 @@ describe("compilationEnv#projects", () => {
 
         expect(actual).toEqual([]);
         expect(testObj.getSystem().readDirectory("/")).toEqual(["/expected-project/index.ts", "/expected-project/target.ts"]);
+    });
+});
+
+describe("compilationEnv#compiled", () => {
+    it("should yield no compiled files with empty project", () => {
+        const testObj = compilationEnv("/target");
+
+        const actual = testObj.getCompiledFiles();
+
+        expect(actual).toEqual([]);
+    });
+
+    it("should yield no compiled files with existing project but no compile", () => {
+        const testObj = compilationEnv("/target", {
+            files: {
+                "index.ts": `export * from './target';`,
+                "target.ts": `export class Target {}`,
+            },
+        });
+
+        const actual = testObj.getCompiledFiles();
+
+        expect(actual).toEqual([]);
+    });
+
+    it("should yield no compiled files and empty result with empty project and compile", () => {
+        const testObj = compilationEnv("/target").compile();
+
+        expect(testObj.getCompiledFiles()).toEqual([]);
+        expect(testObj.hasEmitSkipped()).toBe(false);
+        expect(testObj.getEmittedFiles()).toEqual([]);
+        expect(testObj.getDiagnostics()).toEqual([]);
+    });
+
+    it("should yield compiled files with existing project and compile", () => {
+        const testObj = compilationEnv("/target", {
+            files: {
+                "index.ts": `export * from './target';`,
+                "target.ts": `export class Target {}`,
+            },
+        }).compile();
+
+        expect(testObj.getCompiledFiles().map(it => it.getPath())).toEqual(["/target/dist/index.js", "/target/dist/target.js"]);
+        expect(testObj.hasEmitSkipped()).toBe(false);
+        expect(testObj.getEmittedFiles()).toEqual(["/target/dist/index.js", "/target/dist/target.js"]);
+        expect(testObj.getDiagnostics()).toEqual([]);
+    });
+
+    it("should yield compiled contents with existing project and compile", () => {
+        const testObj = compilationEnv("/target", {
+            files: {
+                "index.ts": `export * from './target';`,
+                "target.ts": `export class Target {}`,
+            },
+        }).compile();
+
+        expect(testObj.getCompiledFile("/target/dist/index.js")!.getContent()).toBe(`export * from './target';\n`);
+        expect(testObj.getCompiledFile("/target/dist/target.js")!.getContent()).toBe(`export class Target {\n}\n`);
+    });
+
+    it("should yield compiled files with late project setup and compile", () => {
+        const testObj = compilationEnv("/target")
+            .setupProjectFromSource({
+                "index.ts": `export * from './target';`,
+                "target.ts": `export class Target {}`,
+            })
+            .compile();
+
+        const actual = testObj.getCompiledFiles();
+
+        expect(actual.map(it => it.getPath())).toEqual(["/target/dist/index.js", "/target/dist/target.js"]);
+    });
+
+    it("should yield compiled files with project", () => {
+        const testObj = compilationEnv("/target")
+            .setupProjectFromSource({
+                "index.ts": `export * from './target';`,
+                "target.ts": `export class Target {}`,
+            })
+            .compile();
+
+        expect(testObj.getCompiledFile("/target/dist/index.js")!.getContent()).toBe(`export * from './target';\n`);
+        expect(testObj.getCompiledFile("/target/dist/target.js")!.getContent()).toBe(`export class Target {\n}\n`);
+    });
+
+    it("should yield compilation errors with illegal project files", () => {
+        const testObj = compilationEnv("/target", {
+            compilerOptions: { project: { noEmitOnError: true } },
+            files: {
+                "index.ts": `export * from './target';`,
+                "target.ts": `export ILLEGAL Target {};`,
+            },
+        }).compile();
+
+        expect(testObj.getFailureReport("target.ts")).toMatchInlineSnapshot(`
+            "src/index.ts(1,15): error TS2306: File '/target/src/target.ts' is not a module.
+            src/target.ts(1,1): error TS1128: Declaration or statement expected.
+            src/target.ts(1,8): error TS1434: Unexpected keyword or identifier.
+            src/target.ts(1,16): error TS1434: Unexpected keyword or identifier.
+            src/target.ts(1,8): error TS2304: Cannot find name 'ILLEGAL'.
+            src/target.ts(1,16): error TS2304: Cannot find name 'Target'."
+        `);
+        expect(testObj.getEmittedFiles()).toEqual([]);
     });
 });

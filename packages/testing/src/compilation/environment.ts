@@ -8,11 +8,12 @@ import { resolvePath } from "./resolve-path";
 
 const DEFAULT_ROOT_DIR = "/";
 const DEFAULT_BUILD_DIR = "./src";
+const DEFAULT_OUT_DIR = "./dist";
 const DEFAULT_PROJECTS_SOURCE_DIR = "../test-projects";
 const DEFAULT_ADDONS_SOURCE_DIR = "../addons";
 
 export class CompilationEnv {
-    private compiler: Compiler;
+    private compilerOptions: CompilerOptions;
     private rootDir: string;
     private buildDir: string;
     private system: ts.System;
@@ -21,20 +22,31 @@ export class CompilationEnv {
     constructor(rootDir?: string, options?: CompilationOptions) {
         const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames, files } = options ?? {};
         this.virtual = virtual;
-        this.system = this.virtual ? createBrowserSystem(files, useCaseSensitiveFileNames) : ts.sys;
+        this.system = this.virtual ? createBrowserSystem(undefined, useCaseSensitiveFileNames) : ts.sys;
         this.rootDir = resolvePath(this.system, rootDir ?? DEFAULT_ROOT_DIR);
         this.buildDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.buildDir ?? DEFAULT_BUILD_DIR);
-
-        this.addFiles(files);
-
-        const compOptions = compileOptions(this.system, { buildDir: this.buildDir, ...compilerOptions });
-        this.compileAddons(compOptions.addons.getAddonsDir());
-
-        this.compiler = new Compiler(compOptions, this.system);
+        const outDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.project?.outDir ?? DEFAULT_OUT_DIR);
 
         if (!this.system.directoryExists(this.rootDir)) {
             this.system.createDirectory(this.rootDir);
         }
+        this.system.getCurrentDirectory = () => this.rootDir;
+
+        this.compilerOptions = compileOptions(this.system, {
+            buildDir: this.buildDir,
+            config: {
+                configFilePath: `${this.rootDir}/websmith.config.json`,
+                targets: {
+                    "*": {
+                        options: { outDir },
+                    },
+                },
+            },
+            project: { configFilePath: `${this.rootDir}/tsconfig.json`, outDir },
+            ...compilerOptions,
+        });
+        this.addFiles(files);
+        this.compileAddons(this.compilerOptions.addons.getAddonsDir());
     }
 
     /**
@@ -46,11 +58,8 @@ export class CompilationEnv {
         return this.rootDir;
     }
 
-    public getCompiler(): Compiler {
-        return this.compiler;
-    }
     public getCompilerOptions(): CompilerOptions {
-        return this.compiler.getOptions();
+        return this.compilerOptions;
     }
 
     public getSystem(): ts.System {
@@ -141,6 +150,10 @@ export class CompilationEnv {
         return this;
     }
 
+    public getProjectDir(): string {
+        return this.buildDir;
+    }
+
     /**
      * Installs project source code from provided `source` parameter into the
      * build directory, i.e. `this.buildDir`.
@@ -173,7 +186,7 @@ export class CompilationEnv {
     }
 
     public addProjectFile(relativePath: string, content: string): this {
-        this.system.writeFile(resolveProjectPath(this.system, this.buildDir, relativePath), content);
+        this.addFile(resolveProjectPath(this.system, this.buildDir, relativePath), content);
         return this;
     }
 
@@ -183,14 +196,48 @@ export class CompilationEnv {
 
     public getProjectFile(filePath: string): ProjectFile | undefined {
         const file = this.system.readDirectory(this.rootDir).find(it => it.endsWith(filePath));
-        if (file) {
-            return projectFile(this.system, this.buildDir, file);
-        }
-        return undefined;
+        return file ? projectFile(this.system, this.buildDir, file) : undefined;
     }
 
-    public compile(): ts.EmitResult {
-        return this.compiler.compile();
+    public compile(): this & CompilationResult {
+        const result = new Compiler(this.compilerOptions, this.system).compile();
+        // @ts-expect-error - method is not part of the original object
+        this.getDiagnostics = () => result.diagnostics;
+        // @ts-expect-error - method is not part of the original object
+        this.hasEmitSkipped = () => result.emitSkipped;
+        // @ts-expect-error - method is not part of the original object
+        this.getEmittedFiles = () => result.emittedFiles ?? [];
+        // @ts-expect-error - method is not part of the original object
+        this.hasFailures = () => result.diagnostics.some(it => it.category === ts.DiagnosticCategory.Error);
+        // @ts-expect-error - method is not part of the original object
+        this.getFailureReport = (filter?: string) => {
+            const report = ts.formatDiagnostics(result.diagnostics, {
+                getCanonicalFileName: (path: string) => path,
+                getCurrentDirectory: () => this.system.getCurrentDirectory(),
+                getNewLine: () => this.system.newLine,
+            });
+            return filter
+                ? report
+                      .split("\n")
+                      .filter(it => it.includes(filter))
+                      .join("\n")
+                : report;
+        };
+        // @ts-expect-error - New methods were added to the object
+        return this;
+    }
+
+    public getCompiledDir(): string {
+        return resolveProjectPath(this.system, this.rootDir, this.getCompilerOptions().project.outDir ?? DEFAULT_OUT_DIR);
+    }
+
+    public getCompiledFiles(): ProjectFile[] {
+        return this.system.readDirectory(this.getCompiledDir()).map(it => projectFile(this.getSystem(), this.buildDir, it));
+    }
+
+    public getCompiledFile(filePath: string): ProjectFile | undefined {
+        const file = this.system.readDirectory(this.getCompiledDir()).find(it => it.endsWith(filePath));
+        return file ? projectFile(this.system, this.buildDir, file) : undefined;
     }
 
     private compileAddons(addonsDir: string) {
@@ -232,14 +279,27 @@ export class CompilationEnv {
             return;
         }
         Object.keys(files).forEach(file => {
-            this.system.writeFile(file, files[file]);
+            this.addFile(resolveProjectPath(this.system, this.buildDir, file), files[file]);
         });
     }
 
+    private addFile(filePath: string, content: string): void {
+        this.system.writeFile(filePath, content);
+        this.compilerOptions.tsconfig.fileNames.push(filePath);
+    }
+
     private getAddonRegistry(): AddonRegistry {
-        return this.compiler.getOptions().addons;
+        return this.compilerOptions.addons;
     }
 }
+
+export type CompilationResult = {
+    hasEmitSkipped: () => boolean;
+    getEmittedFiles: () => string[];
+    hasFailures: () => boolean;
+    getFailureReport: (filter?: string) => string;
+    getDiagnostics: () => ts.Diagnostic[];
+};
 
 export type CompilationOptions = {
     compilerOptions?: Partial<CompilerOptions>;

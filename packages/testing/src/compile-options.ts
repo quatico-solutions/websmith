@@ -10,6 +10,7 @@ import { ReporterMock } from "./ReporterMock";
 import { resolvePath } from "./compilation/resolve-path";
 
 const DEFAULT_BUILD_DIR = "./src";
+const DEFAULT_OUT_DIR = "./dist";
 const DEFAULT_ADDONS_DIR = "../addons";
 
 export const compileOptions = (
@@ -29,8 +30,18 @@ export const compileOptions = (
         transpileOnly: false,
         watch: false,
         ...overrides,
-        project: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.Latest, configFilePath: "./tsconfig.json", ...overrides?.project },
+        project: {
+            module: ts.ModuleKind.ESNext,
+            target: ts.ScriptTarget.Latest,
+            configFilePath: `./tsconfig.json`,
+            ...overrides?.project,
+        },
         targets: overrides?.targets ?? [],
-        tsconfig: { options: {}, fileNames: system.readDirectory(buildDir), errors: [], ...overrides?.tsconfig },
+        tsconfig: {
+            options: { outDir: overrides?.project?.outDir ?? DEFAULT_OUT_DIR },
+            fileNames: system.readDirectory(buildDir),
+            errors: [],
+            ...overrides?.tsconfig,
+        },
     };
 };
