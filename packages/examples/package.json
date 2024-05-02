@@ -7,15 +7,15 @@
     "private": true,
     "scripts": {
         "clean": "rimraf lib dist bin coverage",
-        "lint": "eslint \"{src,test}/**/*.ts\" --color",
+        "lint": "eslint \"{src,tests}/**/*.ts\" --color",
         "lint:fix": "pnpm lint --fix",
         "build": "tsc",
         "execute": "websmith --addons example-generator,example-processor,example-transformer,example-result-processor -p tsconfig.execute.json",
         "watch": "tsc --watch",
         "watch:test": "jest --watch",
-        "test": "jest --coverage --passWithNoTests",
+        "test:e2e": "jest --coverage",
         "test:update-snapshots": "pnpm test -u",
-        "dist": "cross-env-shell NODE_ENV=production \"pnpm clean && pnpm lint && pnpm test && pnpm build\""
+        "dist": "cross-env-shell NODE_ENV=production \"pnpm clean && pnpm lint && pnpm build\""
     },
     "devDependencies": {
         "@eslint/js": "^9.1.1",
