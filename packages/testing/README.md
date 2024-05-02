@@ -73,14 +73,24 @@ import { compilationEnv } from '@quatico/websmith-testing';
 
 describe('FoobarAddon', () => {
   it('should compile', () => {
-    const results = compilationEnv('/target').addProject("expected-project", {
+    const results = compilationEnv('/target').addProjectFromSource({
             "./foo-bar/index.ts": `export * from "./target";`,
             "./foo-bar/target.ts": `export class Target {}`,
         })
-        .addAddons(['foobar-addon'], "../addons")
+        .addAddons(['foobar-addon'], join(__dirname, "../addons"))
         .compile();
 
-        // expect the compilation results
+    const actual = results.getCompiledFiles();
+
+    expect(actual.getContents()).toEquals([
+        "export * from './target';",
+        "export class Target {}"
+    ]);
+
+    expect(results.getCompiledFile("target.js").getContent()).toMatchInlineSnapshot(`
+      "export class Target {}
+      "
+    `);
   });
 });
 ```
