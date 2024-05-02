@@ -87,7 +87,6 @@ export class CompilationEnv {
         return this.getAddonRegistry().getAddonsDir();
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
     public getActiveAddon(addonName: string): CompilerAddon | undefined {
         return this.getAddonRegistry()
             .getAvailableAddons()
