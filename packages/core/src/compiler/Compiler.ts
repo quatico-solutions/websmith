@@ -103,10 +103,10 @@ export class Compiler {
             for (const fileName of this.getRootFiles()) {
                 const fragment = this.emitSourceFile(fileName, target, writeFile);
                 if (fragment?.files.length > 0) {
-                    result.emittedFiles = fragment.files.map(cur => cur.name);
+                    result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
                 } else {
                     fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
-                    result.diagnostics = fragment.diagnostics ?? [];
+                    result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
                     result.emitSkipped = !!fragment.diagnostics && fragment.diagnostics.length > 0 ? true : false;
                 }
             }

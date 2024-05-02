@@ -152,6 +152,21 @@ describe("compile", () => {
 
         expect(testObj.getContext("*")?.getConfig().options).toEqual(expect.objectContaining({ outDir: "./lib/expected" }));
     });
+
+    it("yields output w/ with defaults", () => {
+        const { fileSystem } = compileSystem({
+            "src/target.ts": `
+                export const computeDate = async (): Promise<Date> => new Date();
+            `,
+        });
+
+        new CompilerTestClass(compileOptions(fileSystem), fileSystem).compile();
+
+        expect(fileSystem.readFile("/src/target.js")).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+    });
 });
 
 describe("emitSourceFile", () => {
