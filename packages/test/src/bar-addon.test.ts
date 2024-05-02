@@ -24,11 +24,11 @@ describe("test-project-foo", () => {
         const actual = testObj.getProjectFile("foo.ts")!.getContent();
 
         expect(actual).toMatchInlineSnapshot(`
-            "
-                export const foo = () => {
-                    console.log("foo");
-                };p
-            "
+        "
+                        export const foo = () => {
+                            console.log("foo");
+                        };p
+                    "
         `);
     });
 
