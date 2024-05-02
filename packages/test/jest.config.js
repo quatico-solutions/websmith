@@ -9,7 +9,6 @@ module.exports = {
     moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
         "@quatico/websmith-core": "<rootDir>/../core/src",
-        "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
         "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
     prettierPath: null,
