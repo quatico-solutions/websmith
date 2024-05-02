@@ -43,7 +43,7 @@ describe("test-project-foo", () => {
 
         const actual = testObj.compile();
 
-        expect(actual.emittedFiles![0]).toMatchInlineSnapshot(`
+        expect(actual.getCompiledFile("foo.js")).toMatchInlineSnapshot(`
             "export const foo = () => {
                 console.log("foo");
             };
