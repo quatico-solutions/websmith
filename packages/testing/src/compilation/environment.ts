@@ -1,3 +1,9 @@
+/*
+ * ---------------------------------------------------------------------------------------------
+ *   Copyright (c) Quatico Solutions AG. All rights reserved.
+ *   Licensed under the MIT License. See LICENSE in the project root for license information.
+ * ---------------------------------------------------------------------------------------------
+ */
 import { AddonRegistry, Compiler, createBrowserSystem, type CompilerAddon, type CompilerOptions } from "@quatico/websmith-core";
 import { basename, dirname, extname, isAbsolute, join } from "path";
 import requireFromString from "require-from-string";
