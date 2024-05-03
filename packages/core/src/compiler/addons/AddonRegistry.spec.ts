@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
-import ts from "typescript";
+import ts, { sys } from "typescript";
 import { ReporterMock, compileSystem } from "../../../test";
 import { AddonRegistry } from "./AddonRegistry";
 
@@ -34,23 +34,9 @@ describe("Ctor", () => {
 
         expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
     });
-
-    it("yields addons w/o addons property", () => {
-        const testObj = new AddonRegistry({} as any);
-
-        // @ts-expect-error private property access
-        expect(testObj.addons).toEqual([]);
-    });
-
-    it("yields addons w/ addons property", () => {
-        const testObj = new AddonRegistry({ addons: "zip,zap, zup" } as any);
-
-        // @ts-expect-error private property access
-        expect(testObj.addons).toEqual(["zip", "zap", "zup"]);
-    });
 });
 
-describe("getAddons", () => {
+describe("getAvailableAddons", () => {
     it("returns empty addons w/ empty addons directory", () => {
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
@@ -192,6 +178,83 @@ describe("refresh", () => {
     });
 });
 
+describe("getExpectedAddons", () => {
+    it("returns empty w/o addons", () => {
+        const testObj = new AddonRegistry({ addonsDir: "./empty", reporter, system });
+
+        // @ts-expect-error private property access
+        expect(testObj.getExpectedAddons()).toHaveLength(0);
+    });
+
+    it("returns addons w/ addons", () => {
+        const testObj = new AddonRegistry({ addons: "one, two, three", addonsDir: "./empty", reporter, system });
+
+        // @ts-expect-error private property access
+        expect(testObj.getExpectedAddons()).toEqual(["one", "two", "three"]);
+    });
+
+    it("returns target addons w/ target", () => {
+        const testObj = new AddonRegistry({
+            config: { targets: { target: { addons: ["one", "two", "three"] } }, configFilePath: "" },
+            addonsDir: "./empty",
+            reporter,
+            system,
+        });
+
+        // @ts-expect-error private property access
+        expect(testObj.getExpectedAddons("target")).toEqual(["one", "two", "three"]);
+    });
+
+    it("returns empty w/ target and no addons", () => {
+        const testObj = new AddonRegistry({
+            config: { targets: { target: { addons: [] } }, configFilePath: "" },
+            addonsDir: "./empty",
+            reporter,
+            system,
+        });
+
+        // @ts-expect-error private property access
+        expect(testObj.getExpectedAddons("target")).toHaveLength(0);
+    });
+
+    it("returns empty w/ target and no target", () => {
+        const testObj = new AddonRegistry({
+            config: { targets: { target: { addons: ["one", "two", "three"] } }, configFilePath: "" },
+            addonsDir: "./empty",
+            reporter,
+            system,
+        });
+
+        // @ts-expect-error private property access
+        expect(testObj.getExpectedAddons()).toHaveLength(0);
+    });
+});
+
+describe("getMissingAddons", () => {
+    it("returns empty w/o addons", () => {
+        const testObj = new AddonRegistry({ addonsDir: "./target", reporter, system });
+
+        // @ts-expect-error private property access
+        expect(testObj.getMissingAddons()).toHaveLength(0);
+    });
+
+    it("returns missing addons w/ missing addons", () => {
+        const testObj = new AddonRegistry({ addons: "missing", addonsDir: "./target", reporter, system });
+
+        // @ts-expect-error private property access
+        expect(testObj.getMissingAddons()).toEqual(["missing"]);
+    });
+
+    it("returns missing addons w/ missing and available addons", () => {
+        createAddon("target/expected/addon");
+
+        const testObj = new AddonRegistry({ addons: "missing, expected", addonsDir: "./target", reporter, system });
+
+        // @ts-expect-error private property access
+        expect(testObj.getMissingAddons()).toEqual(["missing"]);
+    });
+});
+
 describe("reportMissingAddons", () => {
     it("reports missing addons directory", () => {
         reporter.reportDiagnostic = jest.fn();
@@ -204,38 +267,50 @@ describe("reportMissingAddons", () => {
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "./expected" does not exist.'));
     });
 
-    it("reports missing addons w/ target", () => {
-        system.createDirectory("./addons");
+    it("reports missing addons w/ missing addons", () => {
+        system.createDirectory("./target");
         reporter.reportDiagnostic = jest.fn();
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
-
-        // @ts-expect-error private property access
-        testObj.reportMissingAddons("my-target", ["missing"]);
-
-        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "my-target": "missing".'));
-    });
-
-    it("reports missing addons w/o target", () => {
-        system.createDirectory("./addons");
-        reporter.reportDiagnostic = jest.fn();
-
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
-
-        // @ts-expect-error private property access
-        testObj.reportMissingAddons(undefined, ["missing"]);
+        new AddonRegistry({ addonsDir: "./target", addons: "missing", reporter, system }).getAvailableAddons();
 
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "missing".'));
     });
 
     it("does not report missing addons w/o missing addons", () => {
-        system.createDirectory("./addons");
+        system.createDirectory("./target");
+        createAddon("target/expected/addon");
         reporter.reportDiagnostic = jest.fn();
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        new AddonRegistry({ addonsDir: "./target", addons: "expected", reporter, system }).getAvailableAddons();
 
-        // @ts-expect-error private property access
-        testObj.reportMissingAddons(undefined, []);
+        expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
+    });
+
+    it("reports missing target addons w/ missing target addons", () => {
+        system.createDirectory("./target");
+        reporter.reportDiagnostic = jest.fn();
+
+        new AddonRegistry({
+            config: { targets: { target: { addons: ["missing"] } }, configFilePath: "" },
+            addonsDir: "./target",
+            reporter,
+            system,
+        }).getAvailableAddons("target");
+
+        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "target": "missing".'));
+    });
+
+    it("does not report missing target addons w/o missing target addons", () => {
+        system.createDirectory("./target");
+        createAddon("target/expected/addon");
+        reporter.reportDiagnostic = jest.fn();
+
+        new AddonRegistry({
+            config: { targets: { target: { addons: ["expected"] } }, configFilePath: "" },
+            addonsDir: "./target",
+            reporter,
+            system,
+        }).getAvailableAddons("target");
 
         expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
     });

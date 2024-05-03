@@ -19,36 +19,28 @@ export type AddonRegistryOptions = {
 };
 
 export class AddonRegistry {
-    private addons: string[];
     private availableAddons: Map<string, CompilerAddon>;
     private options: AddonRegistryOptions;
 
     constructor(options: AddonRegistryOptions) {
         this.options = options;
-        this.addons =
-            options.addons
-                ?.split(",")
-                .map(it => it.trim())
-                .filter(it => it.length > 0) ?? [];
         this.availableAddons = this.findAddons();
-    }
-
-    public getAvailableAddons(target?: string): CompilerAddons {
-        const expectedNames = getAddonNames(target, this.addons, this.options.config);
-        let results: CompilerAddon[];
-        if (expectedNames.length > 0) {
-            this.reportMissingAddons(target, expectedNames);
-            results = Object.entries(this.availableAddons)
-                .filter(([name]) => expectedNames.includes(name))
-                .map(([, addon]) => addon);
-        } else {
-            results = Array.from(this.availableAddons.values());
-        }
-        return Object.assign(results, { getNames: () => results.map(it => it.getName()) });
     }
 
     public getAddonsDir(): string {
         return this.options.addonsDir;
+    }
+
+    public getAvailableAddons(target?: string): CompilerAddons {
+        this.reportMissingAddons(target);
+        const expectedNames = this.getExpectedAddons(target);
+        const results =
+            expectedNames.length > 0
+                ? Object.entries(this.availableAddons)
+                      .filter(([name]) => expectedNames.includes(name))
+                      .map(([, addon]) => addon)
+                : Array.from(this.availableAddons.values());
+        return Object.assign(results, { getNames: () => results.map(it => it.getName()) });
     }
 
     public refresh(): this {
@@ -56,17 +48,44 @@ export class AddonRegistry {
         return this;
     }
 
-    private reportMissingAddons(target: string | undefined, expected: string[]): void {
-        const { reporter } = this.options;
-        const missing = expected.filter(name => !this.availableAddons.has(name));
-        if (missing.length > 0) {
-            if (target && target !== "*") {
-                reporter.reportDiagnostic(new WarnMessage(`Missing addons for target "${target}": "${missing.join(", ")}".`));
+    private getExpectedAddons(target?: string): string[] {
+        const { config, addons } = this.options;
+        const requestedAddons =
+            addons
+                ?.split(",")
+                .map(it => it.trim())
+                .filter(it => it.length > 0) ?? [];
+
+        if (requestedAddons.length > 0) {
+            return requestedAddons;
+        }
+
+        if (config) {
+            if (target) {
+                const { targets = {} } = config;
+                return targets[target]?.addons ?? [];
             } else {
-                reporter.reportDiagnostic(new WarnMessage(`Missing addons: "${missing.join(", ")}".`));
+                return config.addons ?? [];
             }
         }
+        return [];
     }
+
+    private getMissingAddons(target?: string): string[] {
+        return this.getExpectedAddons(target).filter(name => !this.availableAddons.has(name));
+    }
+
+    private reportMissingAddons(target?: string): void {
+        const { reporter } = this.options;
+
+        const missing = this.getMissingAddons(target).join(", ");
+        if (missing.length > 0) {
+            reporter.reportDiagnostic(
+                new WarnMessage(target && target !== "*" ? `Missing addons for target "${target}": "${missing}".` : `Missing addons: "${missing}".`)
+            );
+        }
+    }
+
     private findAddons(): Map<string, CompilerAddon> {
         const { addonsDir, reporter, system } = this.options;
         const map = new Map<string, CompilerAddon>();
@@ -109,19 +128,3 @@ export class AddonRegistry {
         return map;
     }
 }
-
-const getAddonNames = (target: string | undefined, expectedAddons: string[], config?: CompilationConfig): string[] => {
-    if (expectedAddons.length > 0) {
-        return expectedAddons;
-    }
-
-    if (config) {
-        if (target) {
-            const { targets = {} } = config;
-            return targets[target]?.addons ?? [];
-        } else {
-            return config.addons ?? [];
-        }
-    }
-    return [];
-};
