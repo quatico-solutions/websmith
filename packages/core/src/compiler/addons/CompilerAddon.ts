@@ -13,3 +13,7 @@ export interface CompilerAddon {
     getName: () => string;
     activate: (context: AddonContext) => void;
 }
+
+export type CompilerAddons = CompilerAddon[] & {
+    getNames: () => string[];
+};

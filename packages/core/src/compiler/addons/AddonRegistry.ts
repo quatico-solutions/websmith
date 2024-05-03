@@ -8,7 +8,7 @@ import { Reporter, WarnMessage } from "@quatico/websmith-api";
 import path, { basename, extname } from "path";
 import ts from "typescript";
 import { CompilationConfig } from "../config";
-import { CompilerAddon } from "./CompilerAddon";
+import type { CompilerAddon, CompilerAddons } from "./CompilerAddon";
 
 export type AddonRegistryOptions = {
     addons?: string;
@@ -33,13 +33,18 @@ export class AddonRegistry {
         this.availableAddons = this.findAddons();
     }
 
-    public getAvailableAddons(target?: string): CompilerAddon[] {
-        const expected = getAddonNames(target, this.addons, this.options.config);
-        if (expected.length > 0) {
-            this.reportMissingAddons(target, expected);
-            return expected.map(it => this.availableAddons.get(it)).filter(it => it !== undefined) as CompilerAddon[];
+    public getAvailableAddons(target?: string): CompilerAddons {
+        const expectedNames = getAddonNames(target, this.addons, this.options.config);
+        let results: CompilerAddon[];
+        if (expectedNames.length > 0) {
+            this.reportMissingAddons(target, expectedNames);
+            results = Object.entries(this.availableAddons)
+                .filter(([name]) => expectedNames.includes(name))
+                .map(([, addon]) => addon);
+        } else {
+            results = Array.from(this.availableAddons.values());
         }
-        return Array.from(this.availableAddons.values());
+        return Object.assign(results, { getNames: () => results.map(it => it.getName()) });
     }
 
     public getAddonsDir(): string {
@@ -74,23 +79,30 @@ export class AddonRegistry {
         if (addonsDir) {
             system
                 .readDirectory(addonsDir, [".js", ".jsx"])
-                .filter(ad => basename(ad, extname(ad)).toLocaleLowerCase() === "addon")
-                .forEach(it => {
-                    const importPath = system.resolvePath(it);
-                    const modulePath = extname(importPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g)
-                        ? importPath.replace(extname(importPath), "")
-                        : importPath;
-                    // eslint-disable-next-line @typescript-eslint/no-var-requires
-                    const activator = require(modulePath).activate;
-                    const name = it
-                        .replace(path.sep + basename(it), "")
+                .filter(dirName => basename(dirName, extname(dirName)).toLocaleLowerCase() === "addon")
+                .forEach(filePath => {
+                    const addonName = filePath
+                        .replace(path.sep + basename(filePath), "")
                         .split(path.sep)
                         .slice(-1)[0];
-                    if (name && map.has(name)) {
-                        reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${name}" in "${addonsDir}".`));
-                    }
-                    if (name && activator && !map.has(name)) {
-                        map.set(name, { getName: () => name, activate: activator });
+                    if (addonName) {
+                        if (map.has(addonName)) {
+                            reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${addonName}" in "${addonsDir}".`));
+                        } else {
+                            const resolvedPath = system.resolvePath(filePath);
+                            const importPath = extname(resolvedPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g)
+                                ? resolvedPath.replace(extname(resolvedPath), "")
+                                : resolvedPath;
+                            // eslint-disable-next-line @typescript-eslint/no-var-requires
+                            const activator = require(importPath).activate;
+                            if (activator) {
+                                map.set(addonName, { getName: () => addonName, activate: activator });
+                            } else {
+                                reporter.reportDiagnostic(
+                                    new WarnMessage(`No "activate" function found for addon "${addonName}" in "${addonsDir}".`)
+                                );
+                            }
+                        }
                     }
                 });
         }
