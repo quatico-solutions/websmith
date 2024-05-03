@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { AddonRegistry, Compiler, createBrowserSystem, type CompilerAddon, type CompilerOptions } from "@quatico/websmith-core";
-import { rmdirSync } from "fs";
+import { rmSync } from "fs";
 import { basename, dirname, extname, isAbsolute, join } from "path";
 import requireFromString from "require-from-string";
 import ts from "typescript";
@@ -83,7 +83,7 @@ export class CompilationEnv {
             if (this.isVirtual()) {
                 this.system.readDirectory(target).forEach(it => this.system.deleteFile!(it));
             } else {
-                rmdirSync(target, { recursive: true });
+                rmSync(target, { recursive: true });
             }
         }
         return this;
@@ -252,7 +252,6 @@ export class CompilationEnv {
 
     public getCompiledFiles(): ProjectFiles {
         return projectFiles(this.system.readDirectory(this.getCompiledDir()).map(it => projectFile(this.getSystem(), this.buildDir, it)));
-
     }
 
     public getCompiledFile(filePath: string): ProjectFile | undefined {
@@ -331,7 +330,7 @@ export type CompilationOptions = {
     virtual?: boolean;
 };
 
-export type ProjectFiles = ProjectFile[] & { getPaths: () => string[], getContents: () => string[] };
+export type ProjectFiles = ProjectFile[] & { getPaths: () => string[]; getContents: () => string[] };
 
 export interface ProjectFile {
     getPath(): string;
@@ -363,8 +362,6 @@ const isFiles = (source?: string | Record<string, string>): source is Record<str
 
 const projectFiles = (result: ProjectFile[]): ProjectFiles => {
     return Object.assign(result, { getPaths: () => result.map(it => it.getPath()), getContents: () => result.map(it => it.getContent()!) });
-}
+};
 
 export const compilationEnv = (rootDir: string, options?: CompilationOptions): CompilationEnv => new CompilationEnv(rootDir, options);
-
-
