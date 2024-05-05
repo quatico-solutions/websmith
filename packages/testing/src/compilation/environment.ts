@@ -4,7 +4,17 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { AddonRegistry, Compiler, createBrowserSystem, type CompilerAddon, type CompilerOptions } from "@quatico/websmith-core";
+import {
+    AddonRegistry,
+    AddonRegistryOptions,
+    Compiler,
+    CompilerAddons,
+    DefaultReporter,
+    compilerAddons,
+    createBrowserSystem,
+    type CompilerAddon,
+    type CompilerOptions,
+} from "@quatico/websmith-core";
 import { rmSync } from "fs";
 import { basename, dirname, extname, isAbsolute, join } from "path";
 import requireFromString from "require-from-string";
@@ -25,8 +35,9 @@ export class CompilationEnv {
     private buildDir: string;
     private system: ts.System;
     private virtual: boolean;
+    private addons?: AddonRegistry;
 
-    constructor(rootDir?: string, options?: CompilationOptions) {
+    constructor(rootDir?: string, options?: CompilationOptions, addonsConfig?: AddonRegistryOptions) {
         const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames } = options ?? {};
         this.virtual = virtual;
         this.system = this.virtual ? createBrowserSystem(undefined, useCaseSensitiveFileNames) : ts.sys;
@@ -61,8 +72,16 @@ export class CompilationEnv {
             ...compilerOptions,
         });
 
-        if (!this.system.directoryExists(this.getAddonsDir())) {
-            this.system.createDirectory(this.getAddonsDir());
+        if (!addonsConfig) {
+            addonsConfig = {
+                addonsDir: join(this.rootDir, "./addons"),
+                reporter: new DefaultReporter(this.system),
+                system: this.system,
+            };
+        }
+        this.addons = new AddonRegistry(addonsConfig);
+        if (!this.system.directoryExists(this.addons.getAddonsDir())) {
+            this.system.createDirectory(this.addons.getAddonsDir());
         }
     }
 
@@ -88,7 +107,7 @@ export class CompilationEnv {
     }
 
     public cleanUp(options: "project" | "addons" | "all" = "all"): this {
-        const target = options === "project" ? this.getProjectDir() : options === "addons" ? this.getAddonsDir() : this.rootDir;
+        const target = options === "project" ? this.getProjectDir() : options === "addons" && this.addons ? this.addons.getAddonsDir() : this.rootDir;
         if (this.system.directoryExists(target)) {
             if (this.isVirtual()) {
                 this.system.readDirectory(target).forEach(it => this.system.deleteFile!(it));
@@ -104,19 +123,17 @@ export class CompilationEnv {
      *
      * @returns absolute path to the addons directory, defaults to `${this.rootDir}/addons`
      */
-    public getAddonsDir(): string {
-        return this.getAddonRegistry().getAddonsDir();
+    public getAddonsDir(): string | undefined {
+        return this.addons?.getAddonsDir();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
     public getActiveAddon(addonName: string): CompilerAddon | undefined {
-        return this.getAddonRegistry()
-            .getAvailableAddons()
-            .find((it: CompilerAddon) => it.getName() === addonName);
+        return this.addons?.getAvailableAddons().find((it: CompilerAddon) => it.getName() === addonName);
     }
 
-    public getActiveAddons(): CompilerAddon[] {
-        return this.getAddonRegistry().getAvailableAddons();
+    public getActiveAddons(): CompilerAddons {
+        return this.addons?.getAvailableAddons() ?? compilerAddons([]);
     }
 
     /**
@@ -129,34 +146,40 @@ export class CompilationEnv {
      * @returns this instance
      */
     public addAddon(addonName: string, addonSource?: string | Record<string, string>): this {
-        const addonTargetPath = join(this.getAddonsDir(), addonName);
+        if (!this.addons) {
+            return this;
+        }
+        const addonTargetPath = join(this.addons.getAddonsDir(), addonName);
 
         if (!this.system.directoryExists(addonTargetPath)) {
             this.system.createDirectory(addonTargetPath);
         }
         if (isFiles(addonSource)) {
-            this.addFiles(this.resolveSourcePaths(addonName, addonSource, addonTargetPath));
+            this.addFiles(this.resolveAddonSourcePaths(addonName, addonSource, addonTargetPath));
         } else {
             const addonsSourceDir = resolveProjectPath(this.system, this.rootDir, join(addonSource ?? DEFAULT_ADDONS_SOURCE_DIR, addonName));
             const sourceFs = this.system.directoryExists(addonsSourceDir) ? this.system : ts.sys;
             copyDirectory({ system: sourceFs, path: addonsSourceDir, kind: "addons" }, { system: this.system, path: addonTargetPath });
         }
 
-        this.compileAddons(this.getAddonRegistry().getAddonsDir());
-        this.getAddonRegistry().refresh();
+        if (this.addons) {
+            this.compileAddons(this.addons.getAddonsDir());
+            this.addons.refresh();
+        }
         return this;
     }
 
     public addAddons(addonNames: string[], addonsSourceDir?: string): this {
-        const addonsDir = this.getAddonsDir();
-        const addonsSourceDirPath = resolveProjectPath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
-        const sourceFs = this.system.directoryExists(addonsSourceDirPath) ? this.system : ts.sys;
-        addonNames.forEach(addon => {
-            copyDirectory({ system: sourceFs, path: join(addonsSourceDirPath, addon), kind: "addons" }, { system: this.system, path: addonsDir });
-        });
-        this.compileAddons(addonsDir);
-        this.getAddonRegistry().refresh();
-
+        if (this.addons) {
+            const addonsDir = this.addons.getAddonsDir();
+            const addonsSourceDirPath = resolveProjectPath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
+            const sourceFs = this.system.directoryExists(addonsSourceDirPath) ? this.system : ts.sys;
+            addonNames.forEach(addon => {
+                copyDirectory({ system: sourceFs, path: join(addonsSourceDirPath, addon), kind: "addons" }, { system: this.system, path: addonsDir });
+            });
+            this.compileAddons(addonsDir);
+            this.addons?.refresh();
+        }
         return this;
     }
 
@@ -216,7 +239,7 @@ export class CompilationEnv {
     }
 
     public compile(): this & CompilationResult {
-        const result = new Compiler(this.compilerOptions, this.system).compile();
+        const result = new Compiler(this.compilerOptions, this.system, this.addons).compile();
         // @ts-expect-error - method is not part of the original object
         this.getDiagnostics = () => result.diagnostics;
         // @ts-expect-error - method is not part of the original object
@@ -256,13 +279,16 @@ export class CompilationEnv {
         return file ? projectFile(this.system, this.buildDir, file) : undefined;
     }
 
-    private resolveSourcePaths(addonName: string, addonFiles: Record<string, string>, addonTargetPath: string): Record<string, string> {
+    private resolveAddonSourcePaths(addonName: string, addonFiles: Record<string, string>, addonTargetPath: string): Record<string, string> {
+        if (!this.addons) {
+            return {};
+        }
         return Object.entries(addonFiles).reduce((acc: Record<string, string>, [filePath, content]) => {
             if (isAbsolute(filePath)) {
                 acc[filePath] = content;
             } else {
                 if (filePath.includes(addonName)) {
-                    acc[join(this.getAddonsDir(), filePath)] = content;
+                    acc[join(this.addons!.getAddonsDir(), filePath)] = content;
                 } else {
                     acc[join(addonTargetPath, filePath)] = content;
                 }
@@ -321,10 +347,6 @@ export class CompilationEnv {
             this.compilerOptions.tsconfig.fileNames.push(filePath);
         }
     }
-
-    private getAddonRegistry(): AddonRegistry {
-        return this.compilerOptions.addons;
-    }
 }
 
 export type CompilationResult = {
@@ -375,4 +397,5 @@ const projectFiles = (result: ProjectFile[]): ProjectFiles => {
     return Object.assign(result, { getPaths: () => result.map(it => it.getPath()), getContents: () => result.map(it => it.getContent()!) });
 };
 
-export const compilationEnv = (rootDir: string, options?: CompilationOptions): CompilationEnv => new CompilationEnv(rootDir, options);
+export const compilationEnv = (rootDir: string, options?: CompilationOptions, addonConfig?: AddonRegistryOptions): CompilationEnv =>
+    new CompilationEnv(rootDir, options, addonConfig);

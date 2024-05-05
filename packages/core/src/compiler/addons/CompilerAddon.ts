@@ -17,3 +17,5 @@ export interface CompilerAddon {
 export type CompilerAddons = CompilerAddon[] & {
     getNames: () => string[];
 };
+
+export const compilerAddons = (addons: CompilerAddon[]): CompilerAddons => Object.assign(addons, { getNames: () => addons.map(it => it.getName()) });

@@ -4,14 +4,13 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { AddonRegistry, type CompilerOptions } from "@quatico/websmith-core";
+import { type CompilerOptions } from "@quatico/websmith-core";
 import ts from "typescript";
 import { ReporterMock } from "./ReporterMock";
 import { resolvePath } from "./compilation/resolve-path";
 
 const DEFAULT_BUILD_DIR = "./src";
 const DEFAULT_OUT_DIR = "./dist";
-const DEFAULT_ADDONS_DIR = "../addons";
 
 export const compileOptions = (
     system: ts.System,
@@ -20,9 +19,7 @@ export const compileOptions = (
 ): CompilerOptions => {
     const reporter = new ReporterMock(system);
     const buildDir: string = resolvePath(system, overrides?.buildDir ?? DEFAULT_BUILD_DIR);
-    const addonsDirPath = resolvePath(system, buildDir, DEFAULT_ADDONS_DIR);
     return {
-        addons: new AddonRegistry({ addonsDir: addonsDirPath, reporter, system }),
         buildDir,
         reporter,
         debug: false,

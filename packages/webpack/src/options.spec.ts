@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { CompilerAddon, NoReporter } from "@quatico/websmith-core";
+import { NoReporter } from "@quatico/websmith-core";
 import { compileSystem } from "@quatico/websmith-testing";
 import { createOptions } from "./options";
 
@@ -23,7 +23,7 @@ describe("createOptions", () => {
     });
 
     it("should return project config w/ custom but empty tsconfig.json", () => {
-        const { fileSystem: target } = compileSystem({ "./expected/tsconfig.json": "{}" });
+        const { fileSystem: target } = compileSystem({ files: { "./expected/tsconfig.json": "{}" } });
 
         const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).project;
 
@@ -34,9 +34,12 @@ describe("createOptions", () => {
     });
 
     it("should return expected path w/ custom addons directory", () => {
-        const { fileSystem: target } = compileSystem({
-            "./tsconfig.json": "{}",
-            "./expected/addon-foo/addon.js": "export const activate = () => {};",
+        const { addons } = compileSystem({
+            files: {
+                "./tsconfig.json": "{}",
+                "./expected/addon-foo/addon.js": "export const activate = () => {};",
+            },
+            addonConfig: { addons: "addon-foo", addonsDir: "./expected" },
         });
         jest.mock(
             "/expected/addon-foo/addon",
@@ -46,13 +49,13 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual: CompilerAddon[] = createOptions({ addonsDir: "./expected" }, new NoReporter(), target).addons.refresh().getAvailableAddons();
+        const actual = addons.refresh().getAvailableAddons();
 
         expect(actual.map(it => it.getName())).toEqual(["addon-foo"]);
     });
 
     it("should return debug path w/ debug true", () => {
-        const { fileSystem: target } = compileSystem({ "./tsconfig.json": "{}" });
+        const { fileSystem: target } = compileSystem({ files: { "./tsconfig.json": "{}" } });
 
         const actual = createOptions({ debug: true }, new NoReporter(), target);
 
@@ -61,10 +64,12 @@ describe("createOptions", () => {
 
     it("should return config w/ valid compiler config json", () => {
         const { fileSystem: target } = compileSystem({
-            "./tsconfig.json": "{}",
-            "websmith.config.json": `
+            files: {
+                "./tsconfig.json": "{}",
+                "websmith.config.json": `
                 { "targets": { "whatever": { "addons": [ "one", "two", "three" ], "writeFile": true } } }
             `,
+            },
         });
         const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target).config;
 
@@ -75,10 +80,12 @@ describe("createOptions", () => {
     });
 
     it("should return config w/ valid addonsDir, addons in compiler config json", () => {
-        const { fileSystem: target } = compileSystem({
-            "./tsconfig.json": "{}",
-            "/expected/one/addon.js": "export const activate = () => {};",
-            "websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }',
+        const { addons } = compileSystem({
+            files: {
+                "./tsconfig.json": "{}",
+                "/expected/one/addon.js": "export const activate = () => {};",
+                "websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }',
+            },
         });
         jest.mock(
             "/expected/one/addon",
@@ -88,7 +95,7 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target).addons.refresh();
+        const actual = addons.refresh();
 
         expect(actual).toMatchObject({
             availableAddons: new Map(
@@ -100,13 +107,8 @@ describe("createOptions", () => {
                 })
             ),
             options: {
-                addons: "one,two",
-                addonsDir: "/expected",
-                config: {
-                    addons: ["one", "two"],
-                    addonsDir: "/expected",
-                    configFilePath: "/websmith.config.json",
-                },
+                addons: ["one", "two"],
+                addonsDir: "./expected",
             },
         });
     });

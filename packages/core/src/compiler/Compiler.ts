@@ -15,6 +15,7 @@ import { CompilationContext, CompilationHost, createSharedHost } from "./compila
 import { CompilerOptions } from "./CompilerOptions";
 import { CompilationConfig } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
+import { AddonRegistry } from "./addons";
 
 export type CompileFragment = {
     version: number;
@@ -42,10 +43,12 @@ export class Compiler {
     private system!: ts.System;
     private dependencyCallback?: (filePath: string) => void;
     private fileWatchers: ts.FileWatcher[] = [];
+    private addons?: AddonRegistry;
 
-    constructor(options: CompilerOptions, system?: ts.System, dependencyCallback?: (filePath: string) => void) {
+    constructor(options: CompilerOptions, system?: ts.System, addons?: AddonRegistry, dependencyCallback?: (filePath: string) => void) {
         this.version = 0;
         this.contextMap = new Map();
+        this.addons = addons;
         this.system = system ?? createSystem();
         this.setOptions(options);
         this.dependencyCallback = dependencyCallback;
@@ -63,6 +66,10 @@ export class Compiler {
         return this.reporter;
     }
 
+    public getAddonRegistry(): AddonRegistry | undefined {
+        return this.addons;
+    }
+
     public getOptions(): CompilerOptions {
         return this.options;
     }
@@ -74,6 +81,7 @@ export class Compiler {
         }
 
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
+
         this.compilationHost = new CompilationHost(createSharedHost(this.system) as ts.LanguageServiceHost);
         this.langService = ts.createLanguageService(this.compilationHost, ts.createDocumentRegistry());
         this.program = this.langService.getProgram();
@@ -82,7 +90,6 @@ export class Compiler {
             console.debug = () => undefined;
             console.log = () => undefined;
         }
-        this.options.addons?.refresh();
 
         return this;
     }
@@ -188,7 +195,7 @@ export class Compiler {
             }
 
             const ctx = this.createCompilationContext(this.options, target, this.dependencyCallback);
-            this.options.addons.getAvailableAddons(target).forEach(addon => {
+            this.addons?.getAvailableAddons(target).forEach(addon => {
                 addon.activate(ctx);
             });
             this.contextMap.set(target, ctx);

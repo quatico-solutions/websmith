@@ -24,7 +24,9 @@ describe("createOptions", () => {
 
     it("should return project config w/ custom but empty tsconfig.json", () => {
         const { fileSystem: target } = compileSystem({
-            "./expected/tsconfig.json": "{}",
+            files: {
+                "./expected/tsconfig.json": "{}",
+            },
         });
 
         const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).project;
@@ -38,8 +40,11 @@ describe("createOptions", () => {
     });
 
     it("should return expected path w/ custom addons directory", () => {
-        const { fileSystem: target } = compileSystem({
-            "./expected/addon-foo/addon.js": "export const activate = () => {};",
+        const { addons } = compileSystem({
+            files: {
+                "./expected/addon-foo/addon.js": "export const activate = () => {};",
+            },
+            addonConfig: { addonsDir: "./expected" },
         });
         jest.mock(
             "/expected/addon-foo/addon",
@@ -49,7 +54,7 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ addonsDir: "./expected" }, new NoReporter(), target).addons.refresh().getAvailableAddons();
+        const actual = addons.refresh().getAvailableAddons();
 
         expect(actual.getNames()).toEqual(["addon-foo"]);
     });
@@ -71,7 +76,9 @@ describe("createOptions", () => {
 
     it("should return config w/ valid compiler config json", () => {
         const { fileSystem: target } = compileSystem({
-            "websmith.config.json": '{ "targets": { "whatever": { "addons": [ "one", "two", "three" ], "writeFile": true } } }',
+            files: {
+                "websmith.config.json": '{ "targets": { "whatever": { "addons": [ "one", "two", "three" ], "writeFile": true } } }',
+            },
         });
 
         const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target).config;
@@ -83,9 +90,11 @@ describe("createOptions", () => {
     });
 
     it("should return config w/ valid addonsDir, addons in compiler config json", () => {
-        const { fileSystem: target } = compileSystem({
-            "./expected/one/addon.js": "export const activate = () => {};",
-            "./websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }',
+        const { addons } = compileSystem({
+            files: {
+                "./expected/one/addon.js": "export const activate = () => {};",
+                "./websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }',
+            },
         });
         jest.mock(
             "/expected/one/addon",
@@ -95,7 +104,7 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target).addons.refresh();
+        const actual = addons.refresh();
 
         expect(actual).toMatchObject({
             availableAddons: new Map(
@@ -107,13 +116,8 @@ describe("createOptions", () => {
                 })
             ),
             options: {
-                addons: "one,two",
-                addonsDir: "/expected",
-                config: {
-                    addons: ["one", "two"],
-                    addonsDir: "/expected",
-                    configFilePath: "/websmith.config.json",
-                },
+                addonsDir: "./expected",
+                addons: ["one", "two"],
             },
         });
     });

@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
-import { CompilationConfig, Compiler, DefaultReporter } from "@quatico/websmith-core";
+import { AddonRegistry, CompilationConfig, Compiler, DefaultReporter, resolveCompilationConfig } from "@quatico/websmith-core";
 import { Command, program } from "commander";
 import parseArgs from "minimist";
 import { compileSystem } from "./compiler-system";
@@ -46,13 +46,15 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .action((args: CompilerArguments, command: Command) => {
             // TODO: Add files from CLI argument
             const system = compiler?.getSystem() ?? compileSystem();
-            const options = createOptions(args, compiler?.getReporter() ?? new DefaultReporter(system), system);
+            const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
+            const options = createOptions(args, reporter, system);
+            const compilationConfig = resolveCompilationConfig(args.config ?? "./websmith.config.json", reporter, system);
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
             if (unknownArgs?.length > 0) {
                 options.additionalArguments = parseUnknownArguments(unknownArgs);
             }
             if (hasInvalidTargets(options.targets, options.config)) {
-                options.reporter.reportDiagnostic(
+                reporter.reportDiagnostic(
                     new WarnMessage(
                         `Custom target configuration "${options.targets.join(",")}" found, but no target provided.\n` +
                             `\tSome custom addons may not be applied during compilation.`
@@ -61,9 +63,32 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             }
 
             if (compiler === undefined) {
-                compiler = new Compiler(options, system);
+                let addons;
+                if (command.opts().addonsDir || command.opts().addons) {
+                    addons = new AddonRegistry({
+                        addons: command.opts().addons ?? compilationConfig?.addons?.join(","),
+                        addonsDir:
+                            command.opts().addonsDir && command.opts().addonsDir !== "./addons"
+                                ? command.opts().addonsDir
+                                : compilationConfig?.addonsDir ?? "./addons",
+                        targets: options.config?.targets,
+                        reporter,
+                        system,
+                    });
+                }
+                compiler = new Compiler(options, system, addons);
             } else {
-                compiler.setOptions(options);
+                compiler
+                    .setOptions(options)
+                    .getAddonRegistry()
+                    ?.setOptions({
+                        addons: command.opts().addons ?? compilationConfig?.addons?.join(","),
+                        addonsDir:
+                            command.opts().addonsDir && command.opts().addonsDir !== "./addons"
+                                ? command.opts().addonsDir
+                                : compilationConfig?.addonsDir ?? "./addons",
+                        targets: options.config?.targets,
+                    });
             }
 
             if (args.watch) {

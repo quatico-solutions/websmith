@@ -6,12 +6,11 @@
  */
 import { Reporter } from "@quatico/websmith-api";
 import {
-    AddonRegistry,
     CompilerOptions,
     NoReporter,
     resolveCompilationConfig,
-    resolveProjectConfig as resolveTsConfig,
     resolveTargets,
+    resolveProjectConfig as resolveTsConfig,
     updateCompilerOptions,
 } from "@quatico/websmith-core";
 import { dirname, join } from "path";
@@ -55,13 +54,6 @@ export const createOptions = (args: Partial<PluginOptions>, reporter: Reporter =
     };
 
     return {
-        addons: new AddonRegistry({
-            addons: args.addons ?? compilationConfig?.addons?.join(","),
-            addonsDir: args.addonsDir && args.addonsDir !== DEFAULTS.addonsDir ? args.addonsDir : compilationConfig?.addonsDir ?? DEFAULTS.addonsDir,
-            config: compilationConfig,
-            reporter,
-            system,
-        }),
         buildDir: args.buildDir ?? system.getCurrentDirectory(),
         config: compilationConfig,
         debug: args.debug ?? DEFAULTS.debug,

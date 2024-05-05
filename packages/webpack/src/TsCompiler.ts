@@ -5,11 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { CompileFragment, Compiler, CompilerOptions } from "@quatico/websmith-core";
+import { AddonRegistry, CompileFragment, Compiler, CompilerOptions } from "@quatico/websmith-core";
 import ts from "typescript";
 import { WebpackError } from "webpack";
-import { PluginOptions } from "./loader-options";
 import { Upath as uPath } from "./Upath";
+import { PluginOptions } from "./loader-options";
 
 export class TsCompiler extends Compiler {
     public fragment?: CompileFragment;
@@ -19,7 +19,14 @@ export class TsCompiler extends Compiler {
 
     constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, pluginOptions?: PluginOptions) {
         pluginOptions = pluginOptions ? { webpackTarget: "*", ...pluginOptions } : { config: "", webpackTarget: "*" };
-        super(options, ts.sys, dependencyCallback);
+        super(
+            options,
+            ts.sys,
+            pluginOptions.addonsDir
+                ? new AddonRegistry({ addons: pluginOptions.addons, addonsDir: pluginOptions.addonsDir, reporter: options.reporter, system: ts.sys })
+                : undefined,
+            dependencyCallback
+        );
         this.pluginConfig = pluginOptions;
         super.createTargetContextsIfNecessary();
         this.targets = options.targets;

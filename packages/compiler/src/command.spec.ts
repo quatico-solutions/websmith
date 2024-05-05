@@ -44,14 +44,14 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield default options w/o config and w/o CLI arguments", () => {
-        const testSystem = compileSystem().fileSystem;
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
+        const { fileSystem: testSystem, addons } = compileSystem();
+        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem, addons);
 
         addCompileCommand(new Command(), target).parse([], { from: "user" });
 
         const actual = target.getOptions();
 
-        expect(actual.addons).toEqual(
+        expect(addons).toEqual(
             expect.objectContaining({
                 availableAddons: new Map(),
             })
@@ -102,7 +102,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield config option w/ --config cli argument", () => {
-        const testSystem = compileSystem({ "./expected/websmith.config.json": "{}" }).fileSystem;
+        const testSystem = compileSystem({ files: { "./expected/websmith.config.json": "{}" } }).fileSystem;
         const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
 
         addCompileCommand(new Command(), target).parse(["--config", "./expected/websmith.config.json"], { from: "user" });
@@ -111,7 +111,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield project option w/ --project cli argument", () => {
-        const testSystem = compileSystem({ "./expected/tsconfig.json": "{}" }).fileSystem;
+        const testSystem = compileSystem({ files: { "./expected/tsconfig.json": "{}" } }).fileSystem;
         const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
 
         addCompileCommand(new Command(), target).parse(["--project", "expected/tsconfig.json"], { from: "user" });
@@ -148,7 +148,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield transpileOnly option w/ --transpileOnly cli argument", () => {
-        const testSystem = compileSystem({ "./expected/tsconfig.json": "{}" }).fileSystem;
+        const testSystem = compileSystem({ files: { "./expected/tsconfig.json": "{}" } }).fileSystem;
         const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
 
         addCompileCommand(new Command(), target).parse(["--transpileOnly"], { from: "user" });
@@ -196,92 +196,102 @@ describe("addCompileCommand", () => {
 
 describe("addCompileCommand#addons", () => {
     it("should yield warning w/ --addonsDir cli argument to non-existing path", () => {
-        const testSystem = compileSystem().fileSystem;
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
-        target.getReporter().reportDiagnostic = jest.fn();
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const { fileSystem: testSystem, addons } = compileSystem({ reporter: target });
+        const compiler = new Compiler(createOptions({}, target, testSystem), testSystem, addons);
 
-        addCompileCommand(new Command(), target).parse(["--addonsDir", "./unknown"], { from: "user" });
+        addCompileCommand(new Command(), compiler).parse(["--addonsDir", "./unknown"], { from: "user" });
 
-        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "/unknown" does not exist.'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "./unknown" does not exist.'));
     });
 
     it("should yield options addons w/ --addons cli argument and existing addon", () => {
-        const testSystem = compileSystem().fileSystem;
+        const { fileSystem: testSystem, addons } = compileSystem();
         createAddon(testSystem, "addons/expected/addon");
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
+        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem, addons);
 
         addCompileCommand(new Command(), target).parse(["--addons", "expected"], { from: "user" });
 
-        expect(target.getOptions().addons.refresh().getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(addons.refresh().getAvailableAddons().getNames()).toEqual(["expected"]);
     });
 
     it("should yield options addons w/ --addons cli argument and multiple existing addons", () => {
-        const testSystem = compileSystem().fileSystem;
+        const { fileSystem: testSystem, addons } = compileSystem();
         createAddon(testSystem, "addons/zip/addon");
         createAddon(testSystem, "addons/zap/addon");
         createAddon(testSystem, "addons/zup/addon");
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
+        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem, addons);
 
         addCompileCommand(new Command(), target).parse(["--addons", "zip, zap, zup"], { from: "user" });
 
-        expect(target.getOptions().addons.refresh().getAvailableAddons().getNames()).toEqual(["zip", "zap", "zup"]);
+        expect(addons.refresh().getAvailableAddons().getNames()).toEqual(["zip", "zap", "zup"]);
     });
 
     it("should yield empty options addons w/ --addons cli argument and non-existing addon", () => {
-        const testSystem = compileSystem().fileSystem;
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
+        const { fileSystem: testSystem, addons } = compileSystem();
+        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem, addons);
 
         addCompileCommand(new Command(), target).parse(["--addons", "unknown"], { from: "user" });
 
-        expect(target.getOptions().addons.getAvailableAddons()).toHaveLength(0);
+        expect(addons.getAvailableAddons()).toHaveLength(0);
     });
 
     it("should not yield non-existing options addons w/ --addons cli argument, existing and non-existing addons", () => {
-        const testSystem = compileSystem().fileSystem;
+        const { fileSystem: testSystem, addons } = compileSystem();
         createAddon(testSystem, "addons/expected/addon");
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
+        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem, addons);
 
         addCompileCommand(new Command(), target).parse(["--addons", "unknown, expected"], { from: "user" });
 
-        expect(target.getOptions().addons.refresh().getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(addons.refresh().getAvailableAddons().getNames()).toEqual(["expected"]);
     });
 
     it("should yield warning w/ --addons cli argument and non-existing addon name", () => {
-        const testSystem = compileSystem().fileSystem;
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
-        target.getReporter().reportDiagnostic = jest.fn();
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const { fileSystem: testSystem, addons } = compileSystem({ reporter: target });
+        const compiler = new Compiler(createOptions({}, target, testSystem), testSystem, addons);
 
-        addCompileCommand(new Command(), target).parse(["--addons", "unknown"], { from: "user" });
+        addCompileCommand(new Command(), compiler).parse(["--addons", "unknown"], { from: "user" });
 
-        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
     });
 
     it("should yield warning w/ --addons cli argument, existing and non-existing addons", () => {
-        const testSystem = compileSystem({ "./websmith.config.json": "{}" }).fileSystem;
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const { fileSystem: testSystem, addons } = compileSystem({ files: { "./websmith.config.json": "{}" }, reporter: target });
         createAddon(testSystem, "addons/existing/addon");
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
-        target.getReporter().reportDiagnostic = jest.fn();
+        const compiler = new Compiler(createOptions({}, target, testSystem), testSystem, addons);
 
-        addCompileCommand(new Command(), target).parse(["--addons", "existing, unknown"], { from: "user" });
+        addCompileCommand(new Command(), compiler).parse(["--addons", "existing, unknown"], { from: "user" });
 
-        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
     });
 
     it("should yield addonsDir and addons from compiler config w/o any cli argument", () => {
-        const testSystem = compileSystem().fileSystem;
+        const { fileSystem: testSystem, addons } = compileSystem({
+            files: { "websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }' },
+        });
         createAddon(testSystem, "expected/one/addon");
-        testSystem.writeFile("websmith.config.json", '{ "addons":["one", "two"], "addonsDir":"./expected" }');
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
+        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem, addons);
 
         addCompileCommand(new Command(), target).parse([], { from: "user" });
 
-        expect(target.getOptions().addons).toMatchObject({
+        expect(addons).toMatchObject({
             options: {
                 addons: "one,two",
                 addonsDir: "/expected",
-                config: { addons: ["one", "two"], addonsDir: "/expected", configFilePath: "/websmith.config.json" },
             },
-            availableAddons: {},
+            availableAddons: new Map(
+                Object.entries({
+                    one: {
+                        activate: expect.any(Function),
+                        getName: expect.any(Function),
+                    },
+                })
+            ),
         });
     });
 });
@@ -306,13 +316,15 @@ describe("addCompileCommand#targets", () => {
     });
 
     it("should yield warning w/ --targets cli argument and unknown name", () => {
-        const testSystem = compileSystem().fileSystem;
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
-        target.getReporter().reportDiagnostic = jest.fn();
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const { fileSystem: testSystem, addons } = compileSystem({ reporter: target });
 
-        addCompileCommand(new Command(), target).parse(["--targets", "unknown"], { from: "user" });
+        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(["--targets", "unknown"], {
+            from: "user",
+        });
 
-        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
             new WarnMessage(
                 'Custom target configuration "unknown" found, but no target provided.\n\tSome custom addons may not be applied during compilation.'
             )
@@ -320,36 +332,50 @@ describe("addCompileCommand#targets", () => {
     });
 
     it("should not yield any warning w/ --targets cli argument and known names", () => {
-        const testSystem = compileSystem().fileSystem;
-        testSystem.writeFile("./websmith.config.json", '{ "targets": {"expected": {}} }');
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
-        target.getReporter().reportDiagnostic = jest.fn();
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const { fileSystem: testSystem, addons } = compileSystem({
+            files: { "./websmith.config.json": '{ "targets": {"expected": {}} }' },
+            reporter: target,
+        });
 
-        addCompileCommand(new Command(), target).parse(["--targets", "expected"], { from: "user" });
+        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(["--targets", "expected"], {
+            from: "user",
+        });
 
-        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalled();
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
 
     it("should not yield any warning w/ --targets cli argument and multiple known names", () => {
-        const testSystem = compileSystem().fileSystem;
-        testSystem.writeFile("./websmith.config.json", '{ "targets": {"zip": {}, "zap": {}, "zup": {}} }');
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
-        target.getReporter().reportDiagnostic = jest.fn();
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const { fileSystem: testSystem, addons } = compileSystem({
+            files: { "./websmith.config.json": '{ "targets": {"zip": {}, "zap": {}, "zup": {}} }' },
+            reporter: target,
+        });
 
-        addCompileCommand(new Command(), target).parse(["--targets", "zip, zap, zup"], { from: "user" });
+        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(
+            ["--targets", "zip, zap, zup"],
+            { from: "user" }
+        );
 
-        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalled();
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
 
     it("should yield warning w/ --targets cli argument, known and unknown names", () => {
-        const testSystem = compileSystem().fileSystem;
-        testSystem.writeFile("./websmith.config.json", '{ "targets": {"whatever": {}, "known": {}} }');
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
-        target.getReporter().reportDiagnostic = jest.fn();
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const { fileSystem: testSystem, addons } = compileSystem({
+            files: { "./websmith.config.json": '{ "targets": {"whatever": {}, "known": {}} }' },
+            reporter: target,
+        });
 
-        addCompileCommand(new Command(), target).parse(["--targets", "unknown, known"], { from: "user" });
+        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(
+            ["--targets", "unknown, known"],
+            { from: "user" }
+        );
 
-        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
             new WarnMessage(
                 'Custom target configuration "unknown,known" found, but no target provided.\n\tSome custom addons may not be applied during compilation.'
             )
@@ -357,31 +383,40 @@ describe("addCompileCommand#targets", () => {
     });
 
     it("should yield warning w/ --targets cli argument, known name but missing addons for target", () => {
-        const testSystem = compileSystem().fileSystem;
-        testSystem.writeFile("./websmith.config.json", '{ "targets": {"known": { "addons": ["missing"]}} }');
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
-        target.getReporter().reportDiagnostic = jest.fn();
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const { fileSystem: testSystem, addons } = compileSystem({
+            files: { "./websmith.config.json": '{ "targets": {"known": { "addons": ["missing"]}} }' },
+            reporter: target,
+        });
         expect(testSystem.fileExists("./tsconfig.json")).toBe(true);
 
-        addCompileCommand(new Command(), target).parse(["--targets", "known"], { from: "user" });
+        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(["--targets", "known"], {
+            from: "user",
+        });
 
-        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "known": "missing".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "known": "missing".'));
     });
 
     it("should yield warning w/ --targets cli argument, multiple known names but missing addons for targets", () => {
-        const testSystem = compileSystem().fileSystem;
-        testSystem.writeFile(
-            "./websmith.config.json",
-            '{ "targets": {"zip": { "addons": ["missing1"]}, "zap": { "addons": ["missing2"]}, "zup": { "addons": ["missing3"]}} }'
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const { fileSystem: testSystem, addons } = compileSystem({
+            files: {
+                "./websmith.config.json":
+                    '{ "targets": {"zip": { "addons": ["missing1"]}, "zap": { "addons": ["missing2"]}, "zup": { "addons": ["missing3"]}} }',
+            },
+            reporter: target,
+        });
+
+        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(
+            ["--targets", "zip, zap, zup"],
+            { from: "user" }
         );
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
-        target.getReporter().reportDiagnostic = jest.fn();
 
-        addCompileCommand(new Command(), target).parse(["--targets", "zip, zap, zup"], { from: "user" });
-
-        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "zip": "missing1".'));
-        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "zap": "missing2".'));
-        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "zup": "missing3".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "zip": "missing1".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "zap": "missing2".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "zup": "missing3".'));
     });
 });
 

@@ -9,12 +9,12 @@ import { findConfigFile, findSassConfig } from "./find-config";
 
 describe("findConfigFile", () => {
     it("returns file name with path to existing file", () => {
-        const { fileSystem: target } = compileSystem(
-            {
-                "tsconfig.json": JSON.stringify({}),
+        const { fileSystem: target } = compileSystem({
+            files: {
+                "tsconfig.json": "{}",
             },
-            { withDefaultFiles: false }
-        );
+            withDefaultFiles: false,
+        });
 
         const actual = findConfigFile("./", target);
 
@@ -22,7 +22,7 @@ describe("findConfigFile", () => {
     });
 
     it("throws error with no existing config file", () => {
-        const { fileSystem: target } = compileSystem({}, { withDefaultFiles: false });
+        const { fileSystem: target } = compileSystem({ withDefaultFiles: false });
 
         expect(() => findConfigFile("./", target)).toThrow("Could not find a valid 'tsconfig.json'.");
     });
@@ -30,7 +30,7 @@ describe("findConfigFile", () => {
 
 describe("findSassConfig", () => {
     it("returns file name with path to existing file", () => {
-        const { fileSystem: target } = compileSystem({ "sass.config.js": `{}` });
+        const { fileSystem: target } = compileSystem({ files: { "sass.config.js": `{}` } });
 
         const actual = findSassConfig("sass.config.js", target);
 
@@ -38,7 +38,7 @@ describe("findSassConfig", () => {
     });
 
     it("returns file name with path to custom existing file", () => {
-        const { fileSystem: target } = compileSystem({ "expected.js": `{}` });
+        const { fileSystem: target } = compileSystem({ files: { "expected.js": `{}` } });
 
         const actual = findSassConfig("expected.js", target);
 

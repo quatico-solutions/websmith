@@ -83,8 +83,8 @@ describe("getAvailableAddons", () => {
         reporter.reportDiagnostic = jest.fn();
 
         new AddonRegistry({
+            addons: "does-not-exist",
             addonsDir: "./addons",
-            config: { addons: ["does-not-exist"], configFilePath: "" },
             reporter,
             system,
         }).getAvailableAddons();
@@ -98,7 +98,7 @@ describe("getAvailableAddons", () => {
 
         new AddonRegistry({
             addonsDir: "./addons",
-            config: { targets: { target: { addons: ["does-not-exist"] } }, configFilePath: "" },
+            targets: { target: { addons: ["does-not-exist"] } },
             reporter,
             system,
         }).getAvailableAddons("target");
@@ -195,7 +195,7 @@ describe("getExpectedAddons", () => {
 
     it("returns target addons w/ target", () => {
         const testObj = new AddonRegistry({
-            config: { targets: { target: { addons: ["one", "two", "three"] } }, configFilePath: "" },
+            targets: { target: { addons: ["one", "two", "three"] } },
             addonsDir: "./empty",
             reporter,
             system,
@@ -207,7 +207,7 @@ describe("getExpectedAddons", () => {
 
     it("returns empty w/ target and no addons", () => {
         const testObj = new AddonRegistry({
-            config: { targets: { target: { addons: [] } }, configFilePath: "" },
+            targets: { target: { addons: [] } },
             addonsDir: "./empty",
             reporter,
             system,
@@ -219,7 +219,7 @@ describe("getExpectedAddons", () => {
 
     it("returns empty w/ target and no target", () => {
         const testObj = new AddonRegistry({
-            config: { targets: { target: { addons: ["one", "two", "three"] } }, configFilePath: "" },
+            targets: { target: { addons: ["one", "two", "three"] } },
             addonsDir: "./empty",
             reporter,
             system,
@@ -291,7 +291,7 @@ describe("reportMissingAddons", () => {
         reporter.reportDiagnostic = jest.fn();
 
         new AddonRegistry({
-            config: { targets: { target: { addons: ["missing"] } }, configFilePath: "" },
+            targets: { target: { addons: ["missing"] } },
             addonsDir: "./target",
             reporter,
             system,
@@ -306,7 +306,7 @@ describe("reportMissingAddons", () => {
         reporter.reportDiagnostic = jest.fn();
 
         new AddonRegistry({
-            config: { targets: { target: { addons: ["expected"] } }, configFilePath: "" },
+            targets: { target: { addons: ["expected"] } },
             addonsDir: "./target",
             reporter,
             system,

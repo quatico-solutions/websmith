@@ -4,16 +4,15 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { Reporter, WarnMessage } from "@quatico/websmith-api";
+import { Reporter, WarnMessage, type TargetConfig } from "@quatico/websmith-api";
 import path, { basename, extname } from "path";
 import ts from "typescript";
-import { CompilationConfig } from "../config";
-import type { CompilerAddon, CompilerAddons } from "./CompilerAddon";
+import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
 export type AddonRegistryOptions = {
     addons?: string;
     addonsDir: string;
-    config?: CompilationConfig;
+    targets?: Record<string, TargetConfig>;
     reporter: Reporter;
     system: ts.System;
 };
@@ -23,8 +22,13 @@ export class AddonRegistry {
     private options: AddonRegistryOptions;
 
     constructor(options: AddonRegistryOptions) {
-        this.options = options;
         this.availableAddons = new Map<string, CompilerAddon>();
+        this.options = { ...options };
+    }
+
+    setOptions(options: Partial<AddonRegistryOptions>): this {
+        this.options = { ...this.options, ...options };
+        return this.refresh();
     }
 
     public getAddonsDir(): string {
@@ -38,7 +42,7 @@ export class AddonRegistry {
             expectedNames.length > 0
                 ? [...this.availableAddons].filter(([name]) => expectedNames.includes(name)).map(([, addon]) => addon)
                 : Array.from(this.availableAddons.values());
-        return Object.assign(results, { getNames: () => results.map(it => it.getName()) });
+        return compilerAddons(results);
     }
 
     public refresh(): this {
@@ -47,26 +51,16 @@ export class AddonRegistry {
     }
 
     private getExpectedAddons(target?: string): string[] {
-        const { config, addons } = this.options;
+        const { targets = {}, addons } = this.options;
         const requestedAddons =
             addons
                 ?.split(",")
                 .map(it => it.trim())
                 .filter(it => it.length > 0) ?? [];
 
-        if (requestedAddons.length > 0) {
-            return requestedAddons;
-        }
+        const targetAddons = target ? targets[target]?.addons ?? [] : [];
 
-        if (config) {
-            if (target) {
-                const { targets = {} } = config;
-                return targets[target]?.addons ?? [];
-            } else {
-                return config.addons ?? [];
-            }
-        }
-        return [];
+        return [...new Set([...requestedAddons, ...targetAddons])];
     }
 
     private getMissingAddons(target?: string): string[] {

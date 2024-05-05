@@ -13,7 +13,6 @@ describe("compileOptions", () => {
         const actual = compileOptions(createBrowserSystem());
 
         expect(actual).toEqual({
-            addons: expect.any(Object),
             buildDir: "/src",
             reporter: expect.any(Object),
             debug: false,
