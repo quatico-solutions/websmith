@@ -5,8 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { createResolver } from "./addon-resolver";
-import { AddonRegistry } from "./AddonRegistry";
-import type { CompilerAddon } from "./CompilerAddon";
+import { AddonRegistry, type AddonRegistryOptions } from "./AddonRegistry";
+import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
-export { AddonRegistry, createResolver };
-export type { CompilerAddon };
+export { AddonRegistry, compilerAddons, createResolver };
+export type { AddonRegistryOptions, CompilerAddon, CompilerAddons };
