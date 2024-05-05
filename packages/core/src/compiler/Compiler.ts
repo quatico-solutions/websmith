@@ -82,6 +82,7 @@ export class Compiler {
             console.debug = () => undefined;
             console.log = () => undefined;
         }
+        this.options.addons?.refresh();
 
         return this;
     }

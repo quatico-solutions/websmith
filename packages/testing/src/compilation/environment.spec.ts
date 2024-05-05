@@ -80,7 +80,7 @@ describe("compilationEnv#addons", () => {
         const testObj = compilationEnv("/target");
 
         expect(testObj.getAddonsDir()).toBe("/target/addons");
-        expect(testObj.getActiveAddons()).toEqual([]);
+        expect(testObj.getActiveAddons()).toHaveLength(0);
     });
 
     it("should yield addon with valid addon source", () => {
@@ -307,11 +307,9 @@ describe("compilationEnv#compiled", () => {
     });
 
     it("should yield no compiled files with existing project but no compile", () => {
-        const testObj = compilationEnv("/target", {
-            files: {
-                "index.ts": `export * from './target';`,
-                "target.ts": `export class Target {}`,
-            },
+        const testObj = compilationEnv("/target").addProjectFromSource({
+            "index.ts": `export * from './target';`,
+            "target.ts": `export class Target {}`,
         });
 
         const actual = testObj.getCompiledFiles();
@@ -329,12 +327,12 @@ describe("compilationEnv#compiled", () => {
     });
 
     it("should yield compiled files with existing project and compile", () => {
-        const testObj = compilationEnv("/target", {
-            files: {
+        const testObj = compilationEnv("/target")
+            .addProjectFromSource({
                 "index.ts": `export * from './target';`,
                 "target.ts": `export class Target {}`,
-            },
-        }).compile();
+            })
+            .compile();
 
         expect(testObj.getCompiledFiles().getPaths()).toEqual(["/target/dist/index.js", "/target/dist/target.js"]);
         expect(testObj.hasEmitSkipped()).toBe(false);
@@ -343,12 +341,12 @@ describe("compilationEnv#compiled", () => {
     });
 
     it("should yield compiled contents with existing project and compile", () => {
-        const testObj = compilationEnv("/target", {
-            files: {
+        const testObj = compilationEnv("/target")
+            .addProjectFromSource({
                 "index.ts": `export * from './target';`,
                 "target.ts": `export class Target {}`,
-            },
-        }).compile();
+            })
+            .compile();
 
         expect(testObj.getCompiledFile("/target/dist/index.js")!.getContent()).toBe(`export * from './target';\n`);
         expect(testObj.getCompiledFile("/target/dist/target.js")!.getContent()).toBe(`export class Target {\n}\n`);
@@ -382,11 +380,12 @@ describe("compilationEnv#compiled", () => {
     it("should yield compilation errors with illegal project files", () => {
         const testObj = compilationEnv("/target", {
             compilerOptions: { project: { noEmitOnError: true } },
-            files: {
+        })
+            .addProjectFromSource({
                 "index.ts": `export * from './target';`,
                 "target.ts": `export ILLEGAL Target {};`,
-            },
-        }).compile();
+            })
+            .compile();
 
         expect(testObj.getFailureReport("target.ts")).toMatchInlineSnapshot(`
             "src/index.ts(1,15): error TS2306: File '/target/src/target.ts' is not a module.
