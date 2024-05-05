@@ -9,7 +9,7 @@ import path, { basename, extname } from "path";
 import ts from "typescript";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
-export type AddonRegistryOptions = {
+export type AddonConfig = {
     addons?: string;
     addonsDir: string;
     targets?: Record<string, TargetConfig>;
@@ -19,20 +19,20 @@ export type AddonRegistryOptions = {
 
 export class AddonRegistry {
     private availableAddons: Map<string, CompilerAddon>;
-    private options: AddonRegistryOptions;
+    private config: AddonConfig;
 
-    constructor(options: AddonRegistryOptions) {
+    constructor(config: AddonConfig) {
         this.availableAddons = new Map<string, CompilerAddon>();
-        this.options = { ...options };
+        this.config = { ...config };
     }
 
-    setOptions(options: Partial<AddonRegistryOptions>): this {
-        this.options = { ...this.options, ...options };
+    setConfig(config: Partial<AddonConfig>): this {
+        this.config = { ...this.config, ...config };
         return this.refresh();
     }
 
     public getAddonsDir(): string {
-        return this.options.addonsDir;
+        return this.config.addonsDir;
     }
 
     public getAvailableAddons(target?: string): CompilerAddons {
@@ -51,7 +51,7 @@ export class AddonRegistry {
     }
 
     private getExpectedAddons(target?: string): string[] {
-        const { targets = {}, addons } = this.options;
+        const { targets = {}, addons } = this.config;
         const requestedAddons =
             addons
                 ?.split(",")
@@ -68,7 +68,7 @@ export class AddonRegistry {
     }
 
     private reportMissingAddons(target?: string): void {
-        const { reporter } = this.options;
+        const { reporter } = this.config;
 
         const missing = this.getMissingAddons(target).join(", ");
         if (missing.length > 0) {
@@ -79,7 +79,7 @@ export class AddonRegistry {
     }
 
     private findAddons(): Map<string, CompilerAddon> {
-        const { addonsDir, reporter, system } = this.options;
+        const { addonsDir, reporter, system } = this.config;
         const map = new Map<string, CompilerAddon>();
 
         if (addonsDir && !system.directoryExists(addonsDir)) {

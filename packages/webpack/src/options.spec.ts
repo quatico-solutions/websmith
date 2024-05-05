@@ -106,7 +106,7 @@ describe("createOptions", () => {
                     },
                 })
             ),
-            options: {
+            config: {
                 addons: ["one", "two"],
                 addonsDir: "./expected",
             },

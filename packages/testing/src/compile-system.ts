@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { Reporter } from "@quatico/websmith-api";
-import { AddonRegistry, AddonRegistryOptions, NoReporter, createBrowserSystem, getVersionedFile } from "@quatico/websmith-core";
+import { AddonRegistry, AddonConfig, NoReporter, createBrowserSystem, getVersionedFile } from "@quatico/websmith-core";
 import ts from "typescript";
 
 export type CompileSystem = {
@@ -18,7 +18,7 @@ export type CompileSystemOptions = {
     useCaseSensitiveFileNames?: boolean;
     withDefaultFiles?: boolean;
     files?: Record<string, string>;
-    addonConfig?: Partial<AddonRegistryOptions>;
+    addonConfig?: Partial<AddonConfig>;
     reporter?: Reporter;
 };
 

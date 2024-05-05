@@ -6,7 +6,7 @@
  */
 import {
     AddonRegistry,
-    AddonRegistryOptions,
+    AddonConfig,
     Compiler,
     CompilerAddons,
     DefaultReporter,
@@ -37,7 +37,7 @@ export class CompilationEnv {
     private virtual: boolean;
     private addons?: AddonRegistry;
 
-    constructor(rootDir?: string, options?: CompilationOptions, addonsConfig?: AddonRegistryOptions) {
+    constructor(rootDir?: string, options?: CompilationOptions, addonConfig?: AddonConfig) {
         const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames } = options ?? {};
         this.virtual = virtual;
         this.system = this.virtual ? createBrowserSystem(undefined, useCaseSensitiveFileNames) : ts.sys;
@@ -72,14 +72,14 @@ export class CompilationEnv {
             ...compilerOptions,
         });
 
-        if (!addonsConfig) {
-            addonsConfig = {
+        if (!addonConfig) {
+            addonConfig = {
                 addonsDir: join(this.rootDir, "./addons"),
                 reporter: new DefaultReporter(this.system),
                 system: this.system,
             };
         }
-        this.addons = new AddonRegistry(addonsConfig);
+        this.addons = new AddonRegistry(addonConfig);
         if (!this.system.directoryExists(this.addons.getAddonsDir())) {
             this.system.createDirectory(this.addons.getAddonsDir());
         }

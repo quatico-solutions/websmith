@@ -280,7 +280,7 @@ describe("addCompileCommand#addons", () => {
         addCompileCommand(new Command(), target).parse([], { from: "user" });
 
         expect(addons).toMatchObject({
-            options: {
+            config: {
                 addons: "one,two",
                 addonsDir: "/expected",
             },

@@ -81,7 +81,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 compiler
                     .setOptions(options)
                     .getAddonRegistry()
-                    ?.setOptions({
+                    ?.setConfig({
                         addons: command.opts().addons ?? compilationConfig?.addons?.join(","),
                         addonsDir:
                             command.opts().addonsDir && command.opts().addonsDir !== "./addons"
