@@ -397,5 +397,5 @@ const projectFiles = (result: ProjectFile[]): ProjectFiles => {
     return Object.assign(result, { getPaths: () => result.map(it => it.getPath()), getContents: () => result.map(it => it.getContent()!) });
 };
 
-export const compilationEnv = (rootDir: string, options?: CompilationOptions, addonConfig?: AddonRegistryOptions): CompilationEnv =>
+export const compilationEnv = (rootDir: string, options?: CompilationOptions, addonConfig?: AddonConfig): CompilationEnv =>
     new CompilationEnv(rootDir, options, addonConfig);

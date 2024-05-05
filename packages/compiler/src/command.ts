@@ -5,11 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
-import { AddonRegistry, CompilationConfig, Compiler, DefaultReporter, resolveCompilationConfig } from "@quatico/websmith-core";
+import { AddonRegistry, CompilationConfig, Compiler, CompilerOptions, DefaultReporter, resolveCompilationConfig } from "@quatico/websmith-core";
 import { Command, program } from "commander";
 import parseArgs from "minimist";
-import { compileSystem } from "./compiler-system";
 import { CompilerArguments } from "./CompilerArguments";
+import { compileSystem } from "./compiler-system";
 import { createOptions } from "./options";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
@@ -56,7 +56,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             if (hasInvalidTargets(options.targets, options.config)) {
                 reporter.reportDiagnostic(
                     new WarnMessage(
-                        `Custom target configuration "${options.targets.join(",")}" found, but no target provided.\n` +
+                        `Custom target configuration "${options.targets.join(", ")}" found, but no target provided.\n` +
                             `\tSome custom addons may not be applied during compilation.`
                     )
                 );
@@ -66,12 +66,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 let addons;
                 if (command.opts().addonsDir || command.opts().addons) {
                     addons = new AddonRegistry({
-                        addons: command.opts().addons ?? compilationConfig?.addons?.join(","),
-                        addonsDir:
-                            command.opts().addonsDir && command.opts().addonsDir !== "./addons"
-                                ? command.opts().addonsDir
-                                : compilationConfig?.addonsDir ?? "./addons",
-                        targets: options.config?.targets,
+                        ...addonConfig(command, compilationConfig, options),
                         reporter,
                         system,
                     });
@@ -81,14 +76,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 compiler
                     .setOptions(options)
                     .getAddonRegistry()
-                    ?.setConfig({
-                        addons: command.opts().addons ?? compilationConfig?.addons?.join(","),
-                        addonsDir:
-                            command.opts().addonsDir && command.opts().addonsDir !== "./addons"
-                                ? command.opts().addonsDir
-                                : compilationConfig?.addonsDir ?? "./addons",
-                        targets: options.config?.targets,
-                    });
+                    ?.setConfig(addonConfig(command, compilationConfig, options));
             }
 
             if (args.watch) {
@@ -99,6 +87,19 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         });
     return parent;
 };
+
+const addonConfig = (command: Command, compilationConfig?: CompilationConfig, options?: CompilerOptions) => ({
+    addons:
+        (command.opts().addons ?? compilationConfig?.addons?.join(",") ?? "")
+            ?.split(",")
+            .map((it: string) => it.trim())
+            .filter((it: string) => it.length > 0) ?? [],
+
+    addonsDir:
+        command.opts().addonsDir && command.opts().addonsDir !== "./addons" ? command.opts().addonsDir : compilationConfig?.addonsDir ?? "./addons",
+
+    targets: options?.config?.targets,
+});
 
 export const hasInvalidTargets = (targets?: string[], config?: CompilationConfig) => {
     if (targets === undefined || targets.length === 0 || (targets[0] === "*" && targets.length === 1)) {

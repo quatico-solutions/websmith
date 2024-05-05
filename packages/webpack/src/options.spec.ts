@@ -39,7 +39,7 @@ describe("createOptions", () => {
                 "./tsconfig.json": "{}",
                 "./expected/addon-foo/addon.js": "export const activate = () => {};",
             },
-            addonConfig: { addons: "addon-foo", addonsDir: "./expected" },
+            addonConfig: { addons: ["addon-foo"], addonsDir: "./expected" },
         });
         jest.mock(
             "/expected/addon-foo/addon",

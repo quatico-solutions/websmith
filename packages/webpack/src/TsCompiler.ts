@@ -23,7 +23,16 @@ export class TsCompiler extends Compiler {
             options,
             ts.sys,
             pluginOptions.addonsDir
-                ? new AddonRegistry({ addons: pluginOptions.addons, addonsDir: pluginOptions.addonsDir, reporter: options.reporter, system: ts.sys })
+                ? new AddonRegistry({
+                      addons:
+                          (pluginOptions.addons ?? "")
+                              ?.split(",")
+                              .map(it => it.trim())
+                              .filter(it => it.length > 0) ?? [],
+                      addonsDir: pluginOptions.addonsDir,
+                      reporter: options.reporter,
+                      system: ts.sys,
+                  })
                 : undefined,
             dependencyCallback
         );

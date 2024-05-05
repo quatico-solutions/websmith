@@ -38,7 +38,7 @@ export const compileSystem = (options?: CompileSystemOptions): CompileSystem => 
         }
     }
 
-    const { addons = "", addonsDir = "./addons", targets } = addonConfig ?? JSON.parse(fileSystem.readFile("./websmith.config.json") ?? "{}");
+    const { addons = [], addonsDir = "./addons", targets } = addonConfig ?? JSON.parse(fileSystem.readFile("./websmith.config.json") ?? "{}");
 
     const registry = new AddonRegistry({
         addons,

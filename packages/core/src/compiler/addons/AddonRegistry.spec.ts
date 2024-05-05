@@ -83,7 +83,7 @@ describe("getAvailableAddons", () => {
         reporter.reportDiagnostic = jest.fn();
 
         new AddonRegistry({
-            addons: "does-not-exist",
+            addons: ["does-not-exist"],
             addonsDir: "./addons",
             reporter,
             system,
@@ -187,7 +187,7 @@ describe("getExpectedAddons", () => {
     });
 
     it("returns addons w/ addons", () => {
-        const testObj = new AddonRegistry({ addons: "one, two, three", addonsDir: "./empty", reporter, system });
+        const testObj = new AddonRegistry({ addons: ["one", "two", "three"], addonsDir: "./empty", reporter, system });
 
         // @ts-expect-error private property access
         expect(testObj.getExpectedAddons()).toEqual(["one", "two", "three"]);
@@ -239,7 +239,7 @@ describe("getMissingAddons", () => {
     });
 
     it("returns missing addons w/ missing addons", () => {
-        const testObj = new AddonRegistry({ addons: "missing", addonsDir: "./target", reporter, system });
+        const testObj = new AddonRegistry({ addons: ["missing"], addonsDir: "./target", reporter, system });
 
         // @ts-expect-error private property access
         expect(testObj.getMissingAddons()).toEqual(["missing"]);
@@ -248,7 +248,7 @@ describe("getMissingAddons", () => {
     it("returns missing addons w/ missing and available addons", () => {
         createAddon("target/expected/addon");
 
-        const testObj = new AddonRegistry({ addons: "missing, expected", addonsDir: "./target", reporter, system }).refresh();
+        const testObj = new AddonRegistry({ addons: ["missing", "expected"], addonsDir: "./target", reporter, system }).refresh();
 
         // @ts-expect-error private property access
         expect(testObj.getMissingAddons()).toEqual(["missing"]);
@@ -271,7 +271,7 @@ describe("reportMissingAddons", () => {
         system.createDirectory("./target");
         reporter.reportDiagnostic = jest.fn();
 
-        new AddonRegistry({ addonsDir: "./target", addons: "missing", reporter, system }).getAvailableAddons();
+        new AddonRegistry({ addonsDir: "./target", addons: ["missing"], reporter, system }).getAvailableAddons();
 
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "missing".'));
     });
@@ -281,7 +281,7 @@ describe("reportMissingAddons", () => {
         createAddon("target/expected/addon");
         reporter.reportDiagnostic = jest.fn();
 
-        new AddonRegistry({ addonsDir: "./target", addons: "expected", reporter, system }).refresh().getAvailableAddons();
+        new AddonRegistry({ addonsDir: "./target", addons: ["expected"], reporter, system }).refresh().getAvailableAddons();
 
         expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
     });

@@ -10,7 +10,7 @@ import ts from "typescript";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
 export type AddonConfig = {
-    addons?: string;
+    addons?: string[];
     addonsDir: string;
     targets?: Record<string, TargetConfig>;
     reporter: Reporter;
@@ -51,12 +51,8 @@ export class AddonRegistry {
     }
 
     private getExpectedAddons(target?: string): string[] {
-        const { targets = {}, addons } = this.config;
-        const requestedAddons =
-            addons
-                ?.split(",")
-                .map(it => it.trim())
-                .filter(it => it.length > 0) ?? [];
+        const { targets = {}, addons = [] } = this.config;
+        const requestedAddons = addons.filter(it => it.length > 0);
 
         const targetAddons = target ? targets[target]?.addons ?? [] : [];
 

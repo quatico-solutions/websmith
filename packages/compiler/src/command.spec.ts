@@ -281,7 +281,7 @@ describe("addCompileCommand#addons", () => {
 
         expect(addons).toMatchObject({
             config: {
-                addons: "one,two",
+                addons: ["one", "two"],
                 addonsDir: "/expected",
             },
             availableAddons: new Map(
@@ -377,7 +377,7 @@ describe("addCompileCommand#targets", () => {
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             new WarnMessage(
-                'Custom target configuration "unknown,known" found, but no target provided.\n\tSome custom addons may not be applied during compilation.'
+                'Custom target configuration "unknown, known" found, but no target provided.\n\tSome custom addons may not be applied during compilation.'
             )
         );
     });
