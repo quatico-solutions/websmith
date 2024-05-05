@@ -92,6 +92,7 @@ describe("compilationEnv#addons", () => {
     });
 
     it("should yield no addons with invalid addon source", () => {
+        console.warn = jest.fn();
         const testObj = compilationEnv("/target").addAddon("invalid-addon", { "addon.ts": `export const NO_ACTIVATE_FUNCTION = true;` });
 
         const actual = testObj.getActiveAddons();
