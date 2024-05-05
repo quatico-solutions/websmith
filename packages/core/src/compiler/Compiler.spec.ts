@@ -773,10 +773,7 @@ describe("watch", () => {
     });
 
     it("yields multiple code transpilations w/ a shared asset dependency", () => {
-        const target = jest.fn().mockImplementation((fileName: string, target: string, writeFile: boolean, skipCache = false) => {
-            console.debug("XXX target", fileName, target, writeFile, skipCache);
-            return;
-        });
+        const target = jest.fn();
         const { fileSystem } = compileSystem({
             "src/shared.scss": `
                 {
