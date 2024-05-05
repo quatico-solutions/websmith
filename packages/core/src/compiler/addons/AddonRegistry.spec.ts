@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
-import ts, { sys } from "typescript";
+import ts from "typescript";
 import { ReporterMock, compileSystem } from "../../../test";
 import { AddonRegistry } from "./AddonRegistry";
 
@@ -21,7 +21,7 @@ describe("Ctor", () => {
         reporter.reportDiagnostic = jest.fn();
         expect(system.directoryExists("./addons")).toBe(false);
 
-        new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "./addons" does not exist.'));
     });
@@ -46,7 +46,7 @@ describe("getAvailableAddons", () => {
     it("returns addons w/ single addon in addon directory", () => {
         createAddon("addons/expected/addon");
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
     });
@@ -56,7 +56,7 @@ describe("getAvailableAddons", () => {
         createAddon("addons/two/addon");
         createAddon("addons/three/addon");
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons().getNames()).toEqual(["one", "two", "three"]);
     });
@@ -65,7 +65,7 @@ describe("getAvailableAddons", () => {
         createAddon("addons/expected/addon");
         createAddon("addons/invalid/addon", "export const whatever = () => {};", { whatever: jest.fn() });
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
     });
@@ -73,7 +73,7 @@ describe("getAvailableAddons", () => {
     it("returns no addons w/ empty files in addon directory", () => {
         createAddon("addons/empty/addon", "", {});
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons()).toHaveLength(0);
     });
@@ -125,7 +125,7 @@ describe("refresh", () => {
     it("refreshes addons w/ new addons", () => {
         createAddon("addons/expected/addon");
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
 
@@ -139,7 +139,7 @@ describe("refresh", () => {
     it("refreshes addons w/o new addons", () => {
         createAddon("addons/expected/addon");
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
 
@@ -152,7 +152,7 @@ describe("refresh", () => {
         createAddon("addons/expected/addon");
         createAddon("addons/removed/addon");
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons().getNames()).toEqual(["expected", "removed"]);
 
@@ -166,7 +166,7 @@ describe("refresh", () => {
     it("refreshes addons w/ empty addons directory", () => {
         createAddon("addons/expected/addon");
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
 
@@ -248,7 +248,7 @@ describe("getMissingAddons", () => {
     it("returns missing addons w/ missing and available addons", () => {
         createAddon("target/expected/addon");
 
-        const testObj = new AddonRegistry({ addons: "missing, expected", addonsDir: "./target", reporter, system });
+        const testObj = new AddonRegistry({ addons: "missing, expected", addonsDir: "./target", reporter, system }).refresh();
 
         // @ts-expect-error private property access
         expect(testObj.getMissingAddons()).toEqual(["missing"]);
@@ -259,7 +259,7 @@ describe("reportMissingAddons", () => {
     it("reports missing addons directory", () => {
         reporter.reportDiagnostic = jest.fn();
 
-        const testObj = new AddonRegistry({ addonsDir: "./expected", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./expected", reporter, system }).refresh();
 
         // @ts-expect-error private property access
         testObj.reportMissingAddons(undefined, []);
@@ -281,7 +281,7 @@ describe("reportMissingAddons", () => {
         createAddon("target/expected/addon");
         reporter.reportDiagnostic = jest.fn();
 
-        new AddonRegistry({ addonsDir: "./target", addons: "expected", reporter, system }).getAvailableAddons();
+        new AddonRegistry({ addonsDir: "./target", addons: "expected", reporter, system }).refresh().getAvailableAddons();
 
         expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
     });
@@ -310,7 +310,9 @@ describe("reportMissingAddons", () => {
             addonsDir: "./target",
             reporter,
             system,
-        }).getAvailableAddons("target");
+        })
+            .refresh()
+            .getAvailableAddons("target");
 
         expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
     });
@@ -320,7 +322,7 @@ describe("findAddons", () => {
     it("finds addons w/ single addon in addons directory", () => {
         createAddon("addons/expected/addon");
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
     });
@@ -330,7 +332,7 @@ describe("findAddons", () => {
         createAddon("addons/two/addon");
         createAddon("addons/three/addon");
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons().getNames()).toEqual(["one", "two", "three"]);
     });
@@ -339,7 +341,7 @@ describe("findAddons", () => {
         createAddon("addons/expected/addon");
         createAddon("addons/invalid/addon", "export const whatever = () => {};", { whatever: jest.fn() });
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
         expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
     });

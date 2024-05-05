@@ -27,7 +27,7 @@ export class CompilationEnv {
     private virtual: boolean;
 
     constructor(rootDir?: string, options?: CompilationOptions) {
-        const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames, files } = options ?? {};
+        const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames } = options ?? {};
         this.virtual = virtual;
         this.system = this.virtual ? createBrowserSystem(undefined, useCaseSensitiveFileNames) : ts.sys;
         this.rootDir = resolvePath(this.system, rootDir ?? DEFAULT_ROOT_DIR);
@@ -38,6 +38,14 @@ export class CompilationEnv {
             this.system.createDirectory(this.rootDir);
         }
         this.system.getCurrentDirectory = () => this.rootDir;
+
+        if (!this.system.directoryExists(this.buildDir)) {
+            this.system.createDirectory(this.buildDir);
+        }
+
+        if (!this.system.directoryExists(outDir)) {
+            this.system.createDirectory(outDir);
+        }
 
         this.compilerOptions = compileOptions(this.system, {
             buildDir: this.buildDir,
@@ -52,8 +60,10 @@ export class CompilationEnv {
             project: { configFilePath: `${this.rootDir}/tsconfig.json`, outDir },
             ...compilerOptions,
         });
-        this.addFiles(files);
-        this.compileAddons(this.compilerOptions.addons.getAddonsDir());
+
+        if (!this.system.directoryExists(this.getAddonsDir())) {
+            this.system.createDirectory(this.getAddonsDir());
+        }
     }
 
     /**
@@ -125,20 +135,7 @@ export class CompilationEnv {
             this.system.createDirectory(addonTargetPath);
         }
         if (isFiles(addonSource)) {
-            this.addFiles(
-                Object.entries(addonSource).reduce((acc: Record<string, string>, [filePath, content]) => {
-                    if (isAbsolute(filePath)) {
-                        acc[filePath] = content;
-                    } else {
-                        if (filePath.includes(addonName)) {
-                            acc[join(this.getAddonsDir(), filePath)] = content;
-                        } else {
-                            acc[join(addonTargetPath, filePath)] = content;
-                        }
-                    }
-                    return acc;
-                }, {})
-            );
+            this.addFiles(this.resolveSourcePaths(addonName, addonSource, addonTargetPath));
         } else {
             const addonsSourceDir = resolveProjectPath(this.system, this.rootDir, join(addonSource ?? DEFAULT_ADDONS_SOURCE_DIR, addonName));
             const sourceFs = this.system.directoryExists(addonsSourceDir) ? this.system : ts.sys;
@@ -259,6 +256,21 @@ export class CompilationEnv {
         return file ? projectFile(this.system, this.buildDir, file) : undefined;
     }
 
+    private resolveSourcePaths(addonName: string, addonFiles: Record<string, string>, addonTargetPath: string): Record<string, string> {
+        return Object.entries(addonFiles).reduce((acc: Record<string, string>, [filePath, content]) => {
+            if (isAbsolute(filePath)) {
+                acc[filePath] = content;
+            } else {
+                if (filePath.includes(addonName)) {
+                    acc[join(this.getAddonsDir(), filePath)] = content;
+                } else {
+                    acc[join(addonTargetPath, filePath)] = content;
+                }
+            }
+            return acc;
+        }, {});
+    }
+
     private compileAddons(addonsDir: string) {
         const addonsToCompile = this.system
             .readDirectory(addonsDir)
@@ -281,13 +293,13 @@ export class CompilationEnv {
         if (this.virtual) {
             this.system
                 .readDirectory(addonsDir, [".js", ".jsx"])
-                .filter(it => basename(it, extname(it)).toLocaleLowerCase() === "addon")
-                .map(it => this.system.resolvePath(it))
-                .forEach(it => {
+                .filter(filePath => basename(filePath, extname(filePath)).toLocaleLowerCase() === "addon")
+                .map(resolvedPath => this.system.resolvePath(resolvedPath))
+                .forEach(resolvedPath => {
                     jest.mock(
-                        extname(it).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g) ? it.replace(extname(it), "") : it,
+                        extname(resolvedPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g) ? resolvedPath.replace(extname(resolvedPath), "") : resolvedPath,
                         // FIXME: replace __dirname with the actual sourceDir of the addon
-                        () => requireFromString(this.system.readFile(it)!, __dirname),
+                        () => requireFromString(this.system.readFile(resolvedPath)!, __dirname),
                         { virtual: true }
                     );
                 });
@@ -325,7 +337,6 @@ export type CompilationResult = {
 
 export type CompilationOptions = {
     compilerOptions?: Partial<CompilerOptions>;
-    files?: Record<string, string>;
     useCaseSensitiveFileNames?: boolean;
     virtual?: boolean;
 };

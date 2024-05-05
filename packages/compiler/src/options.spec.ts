@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { CompilerAddon, NoReporter } from "@quatico/websmith-core";
+import { NoReporter } from "@quatico/websmith-core";
 import { compileSystem } from "@quatico/websmith-testing";
 import { createOptions } from "./options";
 
@@ -49,9 +49,9 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual: CompilerAddon[] = createOptions({ addonsDir: "./expected" }, new NoReporter(), target).addons.getAvailableAddons();
+        const actual = createOptions({ addonsDir: "./expected" }, new NoReporter(), target).addons.refresh().getAvailableAddons();
 
-        expect(actual.map(it => it.getName())).toEqual(["addon-foo"]);
+        expect(actual.getNames()).toEqual(["addon-foo"]);
     });
 
     it("should return debug path w/ debug true", () => {
@@ -95,10 +95,9 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target).addons;
+        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target).addons.refresh();
 
         expect(actual).toMatchObject({
-            addons: ["one", "two"],
             availableAddons: new Map(
                 Object.entries({
                     one: {
@@ -107,6 +106,15 @@ describe("createOptions", () => {
                     },
                 })
             ),
+            options: {
+                addons: "one,two",
+                addonsDir: "/expected",
+                config: {
+                    addons: ["one", "two"],
+                    addonsDir: "/expected",
+                    configFilePath: "/websmith.config.json",
+                },
+            },
         });
     });
 });

@@ -24,7 +24,7 @@ export class AddonRegistry {
 
     constructor(options: AddonRegistryOptions) {
         this.options = options;
-        this.availableAddons = this.findAddons();
+        this.availableAddons = new Map<string, CompilerAddon>();
     }
 
     public getAddonsDir(): string {
@@ -36,9 +36,7 @@ export class AddonRegistry {
         const expectedNames = this.getExpectedAddons(target);
         const results =
             expectedNames.length > 0
-                ? Object.entries(this.availableAddons)
-                      .filter(([name]) => expectedNames.includes(name))
-                      .map(([, addon]) => addon)
+                ? [...this.availableAddons].filter(([name]) => expectedNames.includes(name)).map(([, addon]) => addon)
                 : Array.from(this.availableAddons.values());
         return Object.assign(results, { getNames: () => results.map(it => it.getName()) });
     }
@@ -100,31 +98,39 @@ export class AddonRegistry {
                 .readDirectory(addonsDir, [".js", ".jsx"])
                 .filter(dirName => basename(dirName, extname(dirName)).toLocaleLowerCase() === "addon")
                 .forEach(filePath => {
-                    const addonName = filePath
-                        .replace(path.sep + basename(filePath), "")
-                        .split(path.sep)
-                        .slice(-1)[0];
-                    if (addonName) {
-                        if (map.has(addonName)) {
-                            reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${addonName}" in "${addonsDir}".`));
-                        } else {
-                            const resolvedPath = system.resolvePath(filePath);
-                            const importPath = extname(resolvedPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g)
-                                ? resolvedPath.replace(extname(resolvedPath), "")
-                                : resolvedPath;
-                            // eslint-disable-next-line @typescript-eslint/no-var-requires
-                            const activator = require(importPath).activate;
-                            if (activator) {
-                                map.set(addonName, { getName: () => addonName, activate: activator });
-                            } else {
-                                reporter.reportDiagnostic(
-                                    new WarnMessage(`No "activate" function found for addon "${addonName}" in "${addonsDir}".`)
-                                );
-                            }
-                        }
+                    const addonName = getAddonName(filePath);
+                    if (!addonName) {
+                        return;
+                    }
+                    if (map.has(addonName)) {
+                        reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${addonName}" in "${addonsDir}".`));
+                        return;
+                    }
+                    const addon = createAddon(system, filePath, addonName);
+                    if (addon.activate) {
+                        map.set(addonName, addon);
+                    } else {
+                        reporter.reportDiagnostic(new WarnMessage(`No "activate" function found for addon "${addonName}" in "${addonsDir}".`));
                     }
                 });
         }
         return map;
     }
 }
+
+const createAddon = (system: ts.System, filePath: string, addonName: string) => {
+    const importPath = getImportPath(system, filePath);
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return { getName: () => addonName, activate: require(importPath).activate };
+};
+
+const getImportPath = (system: ts.System, filePath: string) => {
+    const resolvedPath = system.resolvePath(filePath);
+    return extname(resolvedPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g) ? resolvedPath.replace(extname(resolvedPath), "") : resolvedPath;
+};
+
+const getAddonName = (filePath: string) =>
+    filePath
+        .replace(path.sep + basename(filePath), "")
+        .split(path.sep)
+        .slice(-1)[0];
