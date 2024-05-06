@@ -5,8 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import {
-    AddonRegistry,
     AddonConfig,
+    AddonRegistry,
     Compiler,
     CompilerAddons,
     DefaultReporter,
@@ -16,6 +16,7 @@ import {
     type CompilerOptions,
 } from "@quatico/websmith-core";
 import { rmSync } from "fs";
+import { Module } from "module";
 import { basename, dirname, extname, isAbsolute, join } from "path";
 import requireFromString from "require-from-string";
 import ts from "typescript";
@@ -150,6 +151,7 @@ export class CompilationEnv {
             return this;
         }
         const addonTargetPath = join(this.addons.getAddonsDir(), addonName);
+        let addonImportDir = join(this.rootDir, addonName);
 
         if (!this.system.directoryExists(addonTargetPath)) {
             this.system.createDirectory(addonTargetPath);
@@ -160,10 +162,11 @@ export class CompilationEnv {
             const addonsSourceDir = resolveProjectPath(this.system, this.rootDir, join(addonSource ?? DEFAULT_ADDONS_SOURCE_DIR, addonName));
             const sourceFs = this.system.directoryExists(addonsSourceDir) ? this.system : ts.sys;
             copyDirectory({ system: sourceFs, path: addonsSourceDir, kind: "addons" }, { system: this.system, path: addonTargetPath });
+            addonImportDir = addonsSourceDir;
         }
 
         if (this.addons) {
-            this.compileAddons(this.addons.getAddonsDir());
+            this.compileAddons(addonImportDir, this.addons.getAddonsDir());
             this.addons.refresh();
         }
         return this;
@@ -177,7 +180,7 @@ export class CompilationEnv {
             addonNames.forEach(addon => {
                 copyDirectory({ system: sourceFs, path: join(addonsSourceDirPath, addon), kind: "addons" }, { system: this.system, path: addonsDir });
             });
-            this.compileAddons(addonsDir);
+            this.compileAddons(addonsSourceDirPath, addonsDir);
             this.addons?.refresh();
         }
         return this;
@@ -297,9 +300,9 @@ export class CompilationEnv {
         }, {});
     }
 
-    private compileAddons(addonsDir: string) {
+    private compileAddons(addonsSourceDir: string, addonsTargetDir: string) {
         const addonsToCompile = this.system
-            .readDirectory(addonsDir)
+            .readDirectory(addonsTargetDir)
             .filter(isSourceFile)
             .map(it => dirname(it));
 
@@ -309,7 +312,12 @@ export class CompilationEnv {
                     ...compileOptions(this.system, {
                         buildDir: curDir,
                     }),
-                    project: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5, esModuleInterop: true },
+                    project: {
+                        module: ts.ModuleKind.CommonJS,
+                        target: ts.ScriptTarget.ES5,
+                        esModuleInterop: true,
+                        moduleResolution: ts.ModuleResolutionKind.NodeNext,
+                    },
                     tsconfig: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
                 this.system
@@ -318,14 +326,19 @@ export class CompilationEnv {
 
         if (this.virtual) {
             this.system
-                .readDirectory(addonsDir, [".js", ".jsx"])
-                .filter(filePath => basename(filePath, extname(filePath)).toLocaleLowerCase() === "addon")
-                .map(resolvedPath => this.system.resolvePath(resolvedPath))
+                .readDirectory(addonsTargetDir, [".js", ".jsx"])
+                .map(filePath => this.system.resolvePath(filePath))
                 .forEach(resolvedPath => {
                     jest.mock(
-                        extname(resolvedPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g) ? resolvedPath.replace(extname(resolvedPath), "") : resolvedPath,
-                        // FIXME: replace __dirname with the actual sourceDir of the addon
-                        () => requireFromString(this.system.readFile(resolvedPath)!, __dirname),
+                        basename(resolvedPath, extname(resolvedPath)) === "addon"
+                            ? resolvedPath.replace(extname(resolvedPath), "")
+                            : `./${basename(resolvedPath, extname(resolvedPath))}`,
+                        () =>
+                            requireFromString(this.system.readFile(resolvedPath)!, resolvedPath, {
+                                prependPaths: [dirname(resolvedPath), addonsTargetDir],
+                                // @ts-expect-error - nodeModulePaths is not part of the original object
+                                appendPaths: Module._nodeModulePaths(dirname(addonsSourceDir)),
+                            }),
                         { virtual: true }
                     );
                 });

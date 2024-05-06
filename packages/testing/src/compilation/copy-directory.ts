@@ -46,12 +46,13 @@ export const copyDirectory = (source: SourcePath, target: TargetPath) => {
 };
 
 const copyFile = (source: SourceFilePath, target: TargetPath) => {
-    const { system: srcSystem, path: srcPath, subDirName, kind } = source;
+    const { system: srcSystem, path: srcPath, subDirName } = source;
 
     const fileContent = srcSystem.readFile(srcPath);
     if (typeof fileContent === "string") {
         // Create a new file with the same path relative to `buildDir`
-        const targetPath = join(target.path, srcPath.substring(srcPath.indexOf(subDirName) + (kind === "project" ? subDirName.length + 1 : 0)));
+        const filePath = srcPath.substring(srcPath.indexOf(subDirName) + subDirName.length + 1);
+        const targetPath = join(target.path, filePath);
         target.system.writeFile(targetPath, fileContent);
     }
 };

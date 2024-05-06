@@ -97,7 +97,7 @@ export class AddonRegistry {
                         return;
                     }
                     const addon = createAddon(system, filePath, addonName);
-                    if (addon.activate) {
+                    if (typeof addon.activate === "function") {
                         map.set(addonName, addon);
                     } else {
                         reporter.reportDiagnostic(new WarnMessage(`No "activate" function found for addon "${addonName}" in "${addonsDir}".`));
@@ -108,7 +108,7 @@ export class AddonRegistry {
     }
 }
 
-const createAddon = (system: ts.System, filePath: string, addonName: string) => {
+const createAddon = (system: ts.System, filePath: string, addonName: string): CompilerAddon => {
     const importPath = getImportPath(system, filePath);
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return { getName: () => addonName, activate: require(importPath).activate };
