@@ -22,14 +22,16 @@ export class TsCompiler extends Compiler {
         super(
             options,
             ts.sys,
-            pluginOptions.addonsDir
+            options.config?.addonsDir ?? pluginOptions.addonsDir
                 ? new AddonRegistry({
                       addons:
-                          (pluginOptions.addons ?? "")
+                          options.config?.addons ??
+                          pluginOptions.addons
                               ?.split(",")
                               .map(it => it.trim())
-                              .filter(it => it.length > 0) ?? [],
-                      addonsDir: pluginOptions.addonsDir,
+                              .filter(it => it.length > 0) ??
+                          [],
+                      addonsDir: options.config?.addonsDir ?? pluginOptions.addonsDir ?? "./addons",
                       reporter: options.reporter,
                       system: ts.sys,
                   })
@@ -37,6 +39,7 @@ export class TsCompiler extends Compiler {
             dependencyCallback
         );
         this.pluginConfig = pluginOptions;
+        this.getAddonRegistry()?.refresh();
         super.createTargetContextsIfNecessary();
         this.targets = options.targets;
         this.webpackTarget = this.getFragmentTarget(pluginOptions.webpackTarget!);

@@ -13,7 +13,7 @@ import {
     resolveProjectConfig as resolveTsConfig,
     updateCompilerOptions,
 } from "@quatico/websmith-core";
-import { dirname, join } from "path";
+import { dirname } from "path";
 import ts from "typescript";
 import { PluginOptions } from "./loader-options";
 
@@ -45,13 +45,6 @@ export const createOptions = (args: Partial<PluginOptions>, reporter: Reporter =
             tsconfig.options.inlineSources = undefined;
         }
     }
-
-    args = {
-        ...args,
-        ...(args.addonsDir &&
-            projectDirectory &&
-            args.addonsDir !== DEFAULTS.addonsDir && { addonsDir: system.resolvePath(join(projectDirectory, args.addonsDir)) }),
-    };
 
     return {
         buildDir: args.buildDir ?? system.getCurrentDirectory(),

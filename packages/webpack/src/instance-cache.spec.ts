@@ -4,14 +4,13 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { AddonRegistry, NoReporter } from "@quatico/websmith-core";
+import { NoReporter } from "@quatico/websmith-core";
 import { randomUUID } from "crypto";
 import { rmSync } from "fs";
 import { join } from "path";
-import ts from "typescript";
 import webpack, { Compilation, Compiler, LoaderContext } from "webpack";
-import { getCacheName, getInstanceFromCache, initializeInstance, setInstanceInCache } from "./instance-cache";
 import { TsCompiler } from "./TsCompiler";
+import { getCacheName, getInstanceFromCache, initializeInstance, setInstanceInCache } from "./instance-cache";
 
 let compiler: Compiler;
 let context: LoaderContext<any>;
@@ -25,7 +24,6 @@ beforeEach(() => {
     const reporter = new NoReporter();
     tsCompiler = new TsCompiler(
         {
-            addons: new AddonRegistry({ addonsDir: "./addons", reporter: reporter, system: ts.sys }),
             buildDir: "./src",
             project: {},
             reporter,
@@ -36,7 +34,8 @@ beforeEach(() => {
             transpileOnly: false,
             watch: false,
         },
-        () => undefined
+        () => undefined,
+        { addonsDir: "./addons", config: "./websmith.config.json" }
     );
 });
 

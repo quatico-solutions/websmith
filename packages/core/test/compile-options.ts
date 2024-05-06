@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { AddonRegistry, type CompilerOptions } from "../src/compiler";
+import { type CompilerOptions } from "../src/compiler";
 import { ReporterMock } from "./ReporterMock";
 
 export const compileOptions = (
@@ -14,7 +14,6 @@ export const compileOptions = (
 ): CompilerOptions => {
     const reporter = new ReporterMock(system);
     return {
-        addons: new AddonRegistry({ addonsDir: "./addons", reporter, system }),
         buildDir: "./src",
         reporter,
         debug: false,
