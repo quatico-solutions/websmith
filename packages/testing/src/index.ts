@@ -4,9 +4,9 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-export * from "./ReporterMock";
-export * from "./compile-options";
-export * from "./compile-system";
-export * from "./fusion-fs";
-export * from "./tsLibMocks";
+export { ReporterMock } from "./ReporterMock";
 export * from "./compilation";
+export { compileOptions } from "./compile-options";
+export { compileSystem, type CompileSystem, type CompileSystemOptions } from "./compile-system";
+export { createFs, resetFs } from "./fusion-fs";
+export { tsLibMocks } from "./tsLibMocks";

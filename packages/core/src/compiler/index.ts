@@ -4,15 +4,12 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import type { CompileFragment } from "./Compiler";
-import { Compiler } from "./Compiler";
-import type { CompilerOptions } from "./CompilerOptions";
-import { DefaultReporter } from "./DefaultReporter";
-import { NoReporter } from "./NoReporter";
-import { tsDefaults, tsLibDefaults } from "./defaults";
-
+export { Compiler } from "./Compiler";
+export type { CompileFragment } from "./Compiler";
+export type { CompilerOptions } from "./CompilerOptions";
+export { DefaultReporter } from "./DefaultReporter";
+export { NoReporter } from "./NoReporter";
 export * from "./addons";
 export * from "./compilation";
 export * from "./config";
-export { Compiler, DefaultReporter, NoReporter, tsDefaults, tsLibDefaults };
-export type { CompileFragment, CompilerOptions };
+export { tsDefaults, tsLibDefaults } from "./defaults";

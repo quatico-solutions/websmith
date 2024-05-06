@@ -7,7 +7,7 @@
 
 import { LoaderContext, WebpackError } from "webpack";
 import { DEFAULTS } from "./options";
-import { Upath } from "./Upath";
+import { Upath as uPath } from "./Upath";
 
 export interface PluginArguments {
     addons?: string;
@@ -33,7 +33,7 @@ export const getLoaderOptions = (loader: LoaderContext<PluginOptions>): PluginOp
         ...options,
         ...(loader._module && loader._module.addWarning && { warn: (err: WebpackError) => loader._module!.addWarning(err) }),
         ...(loader._module && loader._module.addError && { error: (err: WebpackError) => loader._module!.addError(err) }),
-        config: Upath.resolve(options.config ?? DEFAULTS.config),
+        config: uPath.resolve(options.config ?? DEFAULTS.config),
         transpileOnly: options.transpileOnly ?? false,
         webpackTarget: options.webpackTarget ?? "*",
     };
