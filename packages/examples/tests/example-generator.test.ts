@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { join } from "path";
-import { compilationEnv, type CompilationEnv } from "../../testing/lib";
+import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 
 describe("example-generator", () => {
     let testObj: CompilationEnv;
