@@ -11,6 +11,10 @@ describe("foobar-replace-transformer", () => {
     });
 
     afterEach(() => {
+        testObj.cleanUp("project");
+    });
+
+    afterAll(() => {
         testObj.cleanUp();
     });
 

@@ -11,6 +11,10 @@ describe("foobar-replace-processor", () => {
     });
 
     afterEach(() => {
+        testObj.cleanUp("project");
+    });
+
+    afterAll(() => {
         testObj.cleanUp();
     });
 

@@ -18,12 +18,26 @@ describe("example-generator", () => {
         testObj
             .addProjectFromSource({
                 "bar.ts": `console.log("Hello, Bar!");`,
-                "foo.ts": `export class Foo {}`,
+                "foo.ts": `export class Foo<T> {
+                    constructor(public value: T) {
+                        console.log("Hello, Foo!", JSON.stringify(value));
+                    }
+                }`,
             })
             .compile();
 
         const actual = testObj.getCompiledFiles().getPaths();
 
         expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js", "/__TEST__/dist/foo-added.js"]);
+        expect(testObj.getCompiledFile("foo.js")?.getContent()).toMatchInlineSnapshot(`
+            "export class Foo {
+                value;
+                constructor(value) {
+                    this.value = value;
+                    console.log("Hello, Foo!", JSON.stringify(value));
+                }
+            }
+            "
+        `);
     });
 });

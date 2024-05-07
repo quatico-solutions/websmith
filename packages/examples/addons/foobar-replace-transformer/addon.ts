@@ -16,7 +16,7 @@ export const activate = (ctx: AddonContext): void => {
  *
  * @returns A TS transformer factory.
  */
-export const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
+const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
     return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
         return (sf: ts.SourceFile): ts.SourceFile => {
             const visitor = (node: ts.Node): ts.Node => {
