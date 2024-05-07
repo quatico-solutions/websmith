@@ -15,7 +15,6 @@ import {
     type CompilerAddon,
     type CompilerOptions,
 } from "@quatico/websmith-core";
-import { rmSync } from "fs";
 import { Module } from "module";
 import { basename, dirname, extname, isAbsolute, join } from "path";
 import requireFromString from "require-from-string";
@@ -112,7 +111,7 @@ export class CompilationEnv {
             if (this.isVirtual()) {
                 this.system.readDirectory(target).forEach(it => this.system.deleteFile!(it));
             } else {
-                rmSync(target, { recursive: true });
+                ts.sys.readDirectory(target).forEach(it => this.system.deleteFile!(it));
             }
         }
         return this;
