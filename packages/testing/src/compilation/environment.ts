@@ -22,6 +22,7 @@ import ts from "typescript";
 import { compileOptions } from "../compile-options";
 import { copyDirectory } from "./copy-directory";
 import { resolvePath } from "./resolve-path";
+import { rmSync } from "fs";
 
 const DEFAULT_ROOT_DIR = "/";
 const DEFAULT_BUILD_DIR = "./src";
@@ -35,7 +36,7 @@ export class CompilationEnv {
     private buildDir: string;
     private system: ts.System;
     private virtual: boolean;
-    private addons?: AddonRegistry;
+    private addons: AddonRegistry;
 
     constructor(rootDir?: string, options?: Partial<CompilationOptions>, addonConfig?: Partial<AddonConfig>) {
         const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames } = options ?? {};
@@ -73,10 +74,10 @@ export class CompilationEnv {
         });
 
         const registryConfig = {
-            ...(addonConfig ?? {}),
             addonsDir: join(this.rootDir, "./addons"),
             reporter: new DefaultReporter(this.system),
             system: this.system,
+            ...(addonConfig ?? {}),
         };
         this.addons = new AddonRegistry(registryConfig);
         if (!this.system.directoryExists(this.addons.getAddonsDir())) {
@@ -93,6 +94,10 @@ export class CompilationEnv {
         return this.rootDir;
     }
 
+    public getOutDir(): string {
+        return resolvePath(this.system, this.rootDir, this.compilerOptions.project.outDir ?? DEFAULT_OUT_DIR);
+    }
+
     public getCompilerOptions(): CompilerOptions {
         return this.compilerOptions;
     }
@@ -106,14 +111,22 @@ export class CompilationEnv {
     }
 
     public cleanUp(options: "project" | "addons" | "all" = "all"): this {
-        const target = options === "project" ? this.getProjectDir() : options === "addons" && this.addons ? this.addons.getAddonsDir() : this.rootDir;
-        if (this.system.directoryExists(target)) {
-            if (this.isVirtual()) {
-                this.system.readDirectory(target).forEach(it => this.system.deleteFile!(it));
-            } else {
-                ts.sys.readDirectory(target).forEach(it => this.system.deleteFile!(it));
-            }
+        let directories = [];
+        switch (options) {
+            case "all":
+                directories = [this.rootDir];
+                break;
+            case "project":
+                directories = [this.buildDir, this.getOutDir()];
+                break;
+            case "addons":
+                directories = [this.addons.getAddonsDir()];
+                break;
         }
+        directories.forEach(dir =>
+            this.virtual ? this.system.readDirectory(dir).forEach((it: string) => this.system.deleteFile!(it)) : rmSync(dir, { recursive: true })
+        );
+
         return this;
     }
 
@@ -290,7 +303,7 @@ export class CompilationEnv {
                 acc[filePath] = content;
             } else {
                 if (filePath.includes(addonName)) {
-                    acc[join(this.addons!.getAddonsDir(), filePath)] = content;
+                    acc[join(this.addons.getAddonsDir(), filePath)] = content;
                 } else {
                     acc[join(addonTargetPath, filePath)] = content;
                 }

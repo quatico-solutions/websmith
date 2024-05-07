@@ -22,7 +22,7 @@ describe("foobar-replace-processor", () => {
         testObj
             .addProjectFromSource({
                 "bar.ts": `console.log("Hello, Bar!");`,
-                "foo.ts": `export class Foobar {}`,
+                "foo.ts": `export class FooBar {}`,
             })
             .compile();
 

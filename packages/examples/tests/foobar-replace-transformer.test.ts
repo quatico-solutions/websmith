@@ -4,7 +4,7 @@ import { join } from "path";
 describe("foobar-replace-transformer", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", { compilerOptions: { project: { outDir: "dist" } }, virtual: false }).addAddon(
+        testObj = compilationEnv("./__TEST__", { compilerOptions: { project: { outDir: "dist" } } }).addAddon(
             "foobar-replace-transformer",
             join(__dirname, "../addons")
         );
@@ -12,10 +12,6 @@ describe("foobar-replace-transformer", () => {
 
     afterEach(() => {
         testObj.cleanUp("project");
-    });
-
-    afterAll(() => {
-        testObj.cleanUp();
     });
 
     it("should replace 'foo' with 'bar' in the output files", () => {
