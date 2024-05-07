@@ -356,7 +356,7 @@ describe("exit", () => {
     it("throws error with exitCode greater '0'", () => {
         const testObj = createBrowserSystem();
 
-        expect(() => testObj.exit(1)).toThrow('websmith exited with code "1".');
+        expect(() => testObj.exit(1)).toThrow('Browser FS exited with code "1".');
     });
 });
 
@@ -732,6 +732,108 @@ describe("writeFile", () => {
 
         expect(testObj.fileExists("")).toBe(false);
         expect(testObj.readFile("")).toBeUndefined();
+    });
+});
+
+describe("watchFile", () => {
+    it("calls changed callback w/ single watcher and file change in system", () => {
+        const target = jest.fn();
+        const testObj = createBrowserSystem({
+            "target.js": `export class Target {}`,
+        });
+
+        testObj.watchFile!("target.js", target);
+
+        testObj.writeFile("target.js", `export class CHANGED {}`);
+
+        expect(target).toHaveBeenCalledWith("target.js", ts.FileWatcherEventKind.Changed);
+    });
+
+    it("calls changed callback w/ multiple watchers and file change in system", () => {
+        const target1 = jest.fn();
+        const target2 = jest.fn();
+        const testObj = createBrowserSystem({
+            "target.js": `export class Target {}`,
+        });
+
+        testObj.watchFile!("target.js", target1);
+        testObj.watchFile!("target.js", target2);
+
+        testObj.writeFile("target.js", `export class CHANGED {}`);
+
+        expect(target1).toHaveBeenCalledWith("target.js", ts.FileWatcherEventKind.Changed);
+        expect(target2).toHaveBeenCalledWith("target.js", ts.FileWatcherEventKind.Changed);
+    });
+
+    it("does not call callback w/ closed watcher and file change in system", () => {
+        const target = jest.fn();
+        const testObj = createBrowserSystem({
+            "target.js": `export class Target {}`,
+        });
+
+        testObj.watchFile!("target.js", target).close();
+
+        testObj.writeFile("target.js", `export class CHANGED {}`);
+
+        expect(target).not.toHaveBeenCalled();
+    });
+
+    it("calls changed callback w/ file change and relative path in system", () => {
+        const target = jest.fn();
+        const testObj = createBrowserSystem({
+            "../target.js": `export class Target {}`,
+        });
+
+        testObj.watchFile!("../target.js", target);
+
+        testObj.writeFile("../target.js", `export class Expected {}`);
+
+        expect(target).toHaveBeenCalledWith("../target.js", ts.FileWatcherEventKind.Changed);
+    });
+});
+
+describe("watchDirectory", () => {
+    it("calls changed callback w/ child file change in system", () => {
+        const target = jest.fn();
+        const testObj = createBrowserSystem({ "../expected/target.js": `export class Target {}` });
+
+        testObj.watchDirectory!("../expected", target);
+
+        testObj.writeFile("../expected/target.js", `export class Expected {}`);
+
+        expect(target).toHaveBeenCalledWith("../expected/target.js", ts.FileWatcherEventKind.Changed);
+    });
+    it("calls changed callback w/ child file creation in system", () => {
+        const target = jest.fn();
+        const testObj = createBrowserSystem({ "expected/whatever.js": `export class Whatever {}` });
+
+        testObj.watchDirectory!("expected", target);
+
+        testObj.writeFile("expected/target.js", `export class Target {}`);
+
+        expect(target).toHaveBeenCalledWith("expected/target.js", ts.FileWatcherEventKind.Changed);
+    });
+
+    it("calls deleted callback w/ child file deletion in system", () => {
+        const target = jest.fn();
+        const testObj = createBrowserSystem({ "expected/target.js": `export class Target {}` });
+
+        testObj.watchDirectory!("expected", target);
+
+        testObj.deleteFile!("expected/target.js");
+
+        expect(target).toHaveBeenCalledWith("expected/target.js", ts.FileWatcherEventKind.Deleted);
+    });
+
+    it("calls created callback w/ child directory addition in system", () => {
+        const target = jest.fn();
+        const testObj = createBrowserSystem({ "target/whatever.js": `export class Whatever {}` });
+
+        testObj.watchDirectory!("target", target);
+
+        testObj.createDirectory("target/expected");
+
+        expect(target).toHaveBeenCalledWith("target/expected", ts.FileWatcherEventKind.Created);
     });
 });
 

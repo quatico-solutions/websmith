@@ -4,6 +4,16 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+
+/**
+ * Mocks the TypeScript library files.
+ *
+ * Use this function in your jest.setup.ts to mock the TypeScript library files:
+ *
+ * import { tsLibMocks } from "@quatico/websmith-testing";
+ *
+ * tsLibMocks();
+ */
 export const tsLibMocks = () => {
     jest.mock(`!!raw-loader!typescript/lib/lib.dom.d.ts`, () => "lib.dom.d.ts", { virtual: true });
     jest.mock(`!!raw-loader!typescript/lib/lib.es2015.d.ts`, () => "lib.es2015.d.ts", { virtual: true });
@@ -26,12 +36,8 @@ export const tsLibMocks = () => {
         virtual: true,
     });
     jest.mock(`!!raw-loader!typescript/lib/lib.es2015.symbol.d.ts`, () => "lib.es2015.symbol.d.ts", { virtual: true });
-    jest.mock(
-        `!!raw-loader!typescript/lib/lib.es2015.symbol.wellknown.d.ts`,
-        () => "lib.es2015.symbol.wellknown.d.ts",
-        {
-            virtual: true,
-        }
-    );
+    jest.mock(`!!raw-loader!typescript/lib/lib.es2015.symbol.wellknown.d.ts`, () => "lib.es2015.symbol.wellknown.d.ts", {
+        virtual: true,
+    });
     jest.mock(`!!raw-loader!typescript/lib/lib.es5.d.ts`, () => "lib.es5.d.ts", { virtual: true });
 };

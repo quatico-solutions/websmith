@@ -6,7 +6,7 @@
  */
 import { Reporter } from "@quatico/websmith-api";
 import merge from "lodash/merge";
-import * as ts from "typescript";
+import ts from "typescript";
 import { DefaultReporter } from "../compiler";
 
 /**

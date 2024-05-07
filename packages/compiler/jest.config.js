@@ -12,7 +12,9 @@ module.exports = {
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-core": "<rootDir>/../core/src",
+        "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
+    prettierPath: null,
     testRegex: "src/.*\\.spec\\.(j|t)s$",
     setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
     testEnvironmentOptions: { url: "http://localhost/" },

@@ -22,6 +22,12 @@ export type CompileFragment = {
     diagnostics?: ts.Diagnostic[];
 };
 
+type CompilationFragment = {
+    ctx: CompilationContext;
+    fileName: string;
+    content: string;
+};
+
 export class Compiler {
     public contextMap!: Map<string, CompilationContext>;
     public version: number;
@@ -35,6 +41,7 @@ export class Compiler {
     private reporter!: Reporter;
     private system!: ts.System;
     private dependencyCallback?: (filePath: string) => void;
+    private fileWatchers: ts.FileWatcher[] = [];
 
     constructor(options: CompilerOptions, system?: ts.System, dependencyCallback?: (filePath: string) => void) {
         this.version = 0;
@@ -63,7 +70,7 @@ export class Compiler {
     public setOptions(options: CompilerOptions): this {
         this.options = options;
         if (!this.options?.targets || this.options.targets.length === 0) {
-            options.targets = ["*"];
+            this.options.targets = ["*"];
         }
 
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
@@ -119,25 +126,27 @@ export class Compiler {
               };
     }
 
-    private fileWatchers: ts.FileWatcher[] = [];
-
-    public watch() {
+    public watch(): this {
         this.createTargetContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {
             const emitTargets: string[] = this.getWritingTargets();
             this.getRootFiles().forEach(cur => {
+                if (this.options.targets[0] === "*") {
+                    emitTargets.push("*");
+                }
                 emitTargets.forEach(target => this.emitSourceFile(cur, target, true));
                 this.registerWatch(cur, emitTargets);
             });
         } else {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
         }
+        return this;
     }
 
-    public registerWatch(filePath: string, emitTargets: string[]) {
+    public registerWatch(filePath: string, emitTargets: string[]): this {
         if (!this.system.watchFile) {
-            return;
+            return this;
         }
 
         this.fileWatchers.push(
@@ -162,10 +171,13 @@ export class Compiler {
                 }
             )
         );
+
+        return this;
     }
 
-    public closeAllWatchers() {
+    public closeAllWatchers(): this {
         this.fileWatchers.forEach(cur => cur.close());
+        return this;
     }
 
     protected createTargetContextsIfNecessary(): this {
@@ -225,6 +237,22 @@ export class Compiler {
         }
 
         throw new Error(`No target ${target} configured`);
+    }
+
+    protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
+        ts.getPreEmitDiagnostics(program)
+            .concat(result.diagnostics)
+            .forEach(cur => this.reporter.reportDiagnostic(cur));
+
+        return result;
+    }
+
+    protected getNonWritingTargets(): string[] {
+        return this.options.targets.filter(cur => !getTargetConfig(cur, this.options.config).writeFile);
+    }
+
+    protected getWritingTargets(): string[] {
+        return this.options.targets.filter(cur => getTargetConfig(cur, this.options.config).writeFile);
     }
 
     private processOutput(
@@ -301,14 +329,6 @@ export class Compiler {
         return fileName ? [<ts.OutputFile>{ name: fileName, text: content ?? "", writeByteOrderMark: false }] : [];
     }
 
-    protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
-        ts.getPreEmitDiagnostics(program)
-            .concat(result.diagnostics)
-            .forEach(cur => this.reporter.reportDiagnostic(cur));
-
-        return result;
-    }
-
     private getRootFiles(): string[] {
         return this.options?.tsconfig?.fileNames
             ? this.options.tsconfig.fileNames
@@ -320,14 +340,6 @@ export class Compiler {
     private writeOutputFiles(files: ts.OutputFile[]) {
         files.forEach(cur => this.system.writeFile(cur.name, cur.text));
     }
-
-    protected getNonWritingTargets(): string[] {
-        return this.options.targets.filter(cur => !getTargetConfig(cur, this.options.config).writeFile);
-    }
-
-    protected getWritingTargets(): string[] {
-        return this.options.targets.filter(cur => getTargetConfig(cur, this.options.config).writeFile);
-    }
 }
 
 const getTargetConfig = (target: string, config?: CompilationConfig): TargetConfig => {
@@ -336,10 +348,4 @@ const getTargetConfig = (target: string, config?: CompilationConfig): TargetConf
         return targets[target] ?? {};
     }
     return {};
-};
-
-type CompilationFragment = {
-    ctx: CompilationContext;
-    fileName: string;
-    content: string;
 };

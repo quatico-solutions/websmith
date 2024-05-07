@@ -1,69 +1,24 @@
-import ts from "typescript";
-import { ReporterMock } from "../../test";
-import { createBrowserSystem } from "../environment";
-import { AddonRegistry } from "./addons";
+import { compileOptions, compileSystem } from "../../test";
 import { Compiler } from "./Compiler";
 
 describe("end-2-end compile", () => {
     it("should yield compiled file", () => {
-        const options: ts.CompilerOptions = { outDir: "./bin" };
-        const system = createBrowserSystem({
-            "tsconfig.json": JSON.stringify({ compilerOptions: options }),
+        const { fileSystem: target } = compileSystem({
+            "tsconfig.json": "{}",
             "src/one.ts": `whatever`,
             "src/two.ts": `whatever`,
         });
-        const testObj = createCompiler(system, options);
 
-        const result = testObj.compile();
+        const actual = new Compiler(
+            compileOptions(target, {
+                project: { outDir: "./bin" },
+            }),
+            target
+        ).compile();
 
-        expect(result.diagnostics).toEqual([]);
-        expect(result.emitSkipped).toBe(false);
-        expect(system.fileExists("/bin/one.js")).toBe(true);
-        expect(system.fileExists("/bin/two.js")).toBe(true);
-    });
-
-    it.skip("should call transformer before emitting file", () => {
-        const target = jest.fn().mockImplementation((fileName, content) => {
-            return content;
-        });
-        const system = createBrowserSystem({
-            "tsconfig.json": JSON.stringify({}),
-            "src/one.ts": `whatever`,
-        });
-        const testObj = createCompiler(system);
-
-        testObj.getContext()!.registerTransformer({ before: [target] });
-        testObj.compile();
-
-        expect(target).toHaveBeenCalledWith(expect.objectContaining({ fileName: "src/one.ts" }));
-        expect(target).toHaveBeenCalledTimes(1);
+        expect(actual.diagnostics).toEqual([]);
+        expect(actual.emitSkipped).toBe(false);
+        expect(target.fileExists("/bin/one.js")).toBe(true);
+        expect(target.fileExists("/bin/two.js")).toBe(true);
     });
 });
-
-const createCompiler = (system: ts.System, options: ts.CompilerOptions = {}) => {
-    const reporter = new ReporterMock(system);
-    const result = new Compiler(
-        {
-            addons: new AddonRegistry({ addonsDir: "./addons", reporter, system }),
-            buildDir: "./src",
-            config: {
-                configFilePath: "",
-                targets: {
-                    "*": {
-                        writeFile: true,
-                    },
-                },
-            },
-            debug: false,
-            project: options,
-            reporter,
-            sourceMap: false,
-            targets: [],
-            transpileOnly: false,
-            tsconfig: { options: options, fileNames: system.readDirectory("./src"), errors: [] },
-            watch: false,
-        },
-        system
-    );
-    return result;
-};

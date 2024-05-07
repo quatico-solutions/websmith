@@ -13,9 +13,13 @@ module.exports = {
         "@quatico/websmith-api": "<rootDir>/packages/api/src",
         "@quatico/websmith-compiler": "<rootDir>/packages/compiler/src",
         "@quatico/websmith-core": "<rootDir>/packages/core/src",
+        "@quatico/websmith-testing": "<rootDir>/packages/testing/src",
+        "@quatico/websmith-webpack": "<rootDir>/packages/webpack/src",
     },
+    prettierPath: null,
+    modulePathIgnorePatterns: ["<rootDir>/packages/compiler/test/__mocks__/fs.ts"],
     setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
-    testRegex: "src/.*(test|spec)\\.(tsx?)$",
+    testRegex: "src/.*spec\\.(tsx?)$",
     testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
         "^.+\\.(js|ts)$": [

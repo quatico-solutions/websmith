@@ -28,7 +28,7 @@ import { dirname } from "path";
  *
  * For example in your `jest.setup.js` file you can use this function to replace the fs module as follows:
  *
- * import { createFs, resetFs } from "./test/fusion-fs";
+ * import { createFs, resetFs } from "@quatico/websmith-testing";
  *
  * jest.mock("fs", () => {
  *     return createFs(jest.requireActual("fs"));

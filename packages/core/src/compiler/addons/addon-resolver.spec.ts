@@ -4,32 +4,33 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import path from "path";
 import ts from "typescript";
-import { ReporterMock } from "../../../test";
-import { createBrowserSystem } from "../../environment";
+import { NoReporter } from "../../../src/compiler/NoReporter";
+import { ReporterMock, compileSystem } from "../../../test";
 import { createResolver } from "./addon-resolver";
 
-beforeAll(() => {
-    jest.mock(path.normalize(`${__dirname}/../addons/one/addon`), () => ({ activate: () => undefined }), {
-        virtual: true,
-    });
-
-    jest.mock(
-        path.normalize(`${__dirname}/../addons/DESNOTEXIST/addon`),
-        () => {
-            throw new Error();
-        },
-        { virtual: true }
-    );
+jest.mock("/addons/one/addon", () => ({ activate: () => undefined }), {
+    virtual: true,
 });
 
-const testSystem = createBrowserSystem({}, ts.sys.useCaseSensitiveFileNames);
-testSystem.readDirectory = jest.fn().mockReturnValue(["one"]);
+jest.mock(
+    "/addons/DESNOTEXIST/addon",
+    () => {
+        throw new Error();
+    },
+    { virtual: true }
+);
+
+let testSystem: ts.System;
+beforeAll(() => {
+    testSystem = compileSystem().fileSystem;
+    testSystem.readDirectory = jest.fn().mockReturnValue(["one"]);
+    testSystem.resolvePath = path => path.split("..")[1]; // remove the absolute prefix from path
+});
 
 describe("createResolver", () => {
     it("reads addon.ts files from existing addon folder", () => {
-        const resolve = createResolver(new ReporterMock(testSystem), testSystem);
+        const resolve = createResolver(new NoReporter(), testSystem);
 
         const actual = resolve(["one"]);
 
@@ -39,7 +40,7 @@ describe("createResolver", () => {
     });
 
     it("returns empty array for non-existing addon name", () => {
-        const resolve = createResolver(new ReporterMock(testSystem), testSystem);
+        const resolve = createResolver(new NoReporter(), testSystem);
 
         const actual = resolve(["DOESNOTEXIST"]);
 
@@ -47,7 +48,7 @@ describe("createResolver", () => {
     });
 
     it("returns only addons for existing names", () => {
-        const resolve = createResolver(new ReporterMock(testSystem), testSystem);
+        const resolve = createResolver(new NoReporter(), testSystem);
 
         const actual = resolve(["DOESNOTEXIST", "one"]);
 

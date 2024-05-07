@@ -4,16 +4,14 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { createBrowserSystem } from "../../environment";
+import { compileSystem } from "../../../test";
 import { resolveProjectConfig } from "./resolve-project-config";
 
 describe("empty config", () => {
-    const emptySystem = createBrowserSystem({
-        "tsconfig.json": JSON.stringify({}),
-    });
-
     it("yields empty config with empty config file", () => {
-        const actual = resolveProjectConfig("tsconfig.json", emptySystem);
+        const { fileSystem: target } = compileSystem();
+
+        const actual = resolveProjectConfig("tsconfig.json", target);
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual([]);
@@ -26,7 +24,9 @@ describe("empty config", () => {
     });
 
     it("yields error with no matching includes", () => {
-        const actual = resolveProjectConfig("tsconfig.json", emptySystem);
+        const { fileSystem: target } = compileSystem();
+
+        const actual = resolveProjectConfig("tsconfig.json", target);
 
         expect(actual.errors[0]).toEqual(
             expect.objectContaining({
@@ -38,14 +38,15 @@ describe("empty config", () => {
 });
 
 describe("valid config", () => {
-    const validSystem = createBrowserSystem({
-        "tsconfig.json": JSON.stringify({
-            include: ["foobar.ts"],
-        }),
-        "foobar.ts": `class Foobar {}`,
-    });
     it("yields default value with valid config file", () => {
-        const actual = resolveProjectConfig("tsconfig.json", validSystem);
+        const { fileSystem: target } = compileSystem({
+            "tsconfig.json": JSON.stringify({
+                include: ["foobar.ts"],
+            }),
+            "foobar.ts": `class Foobar {}`,
+        });
+
+        const actual = resolveProjectConfig("tsconfig.json", target);
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual(["/foobar.ts"]);
@@ -58,14 +59,21 @@ describe("valid config", () => {
     });
 
     it("yields no error with matching includes", () => {
-        const actual = resolveProjectConfig("tsconfig.json", validSystem);
+        const { fileSystem: target } = compileSystem({
+            "tsconfig.json": JSON.stringify({
+                include: ["foobar.ts"],
+            }),
+            "foobar.ts": `class Foobar {}`,
+        });
+
+        const actual = resolveProjectConfig("tsconfig.json", target);
 
         expect(actual.errors).toEqual([]);
     });
 });
 
 describe("default config", () => {
-    const defaultSystem = createBrowserSystem({
+    const { fileSystem: target } = compileSystem({
         "tsconfig.json": JSON.stringify({
             include: ["**/*.tsx"],
             compilerOptions: {
@@ -78,8 +86,9 @@ describe("default config", () => {
         "/two.tsx": `class Two {}`,
         "/three.tsx": `class Three {}`,
     });
+
     it("yields default value with valid config file", () => {
-        const actual = resolveProjectConfig("tsconfig.json", defaultSystem);
+        const actual = resolveProjectConfig("tsconfig.json", target);
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual(["/one.tsx", "/two.tsx", "/three.tsx"]);
@@ -104,7 +113,7 @@ describe("default config", () => {
     });
 
     it("yields no error with matching includes", () => {
-        const actual = resolveProjectConfig("tsconfig.json", defaultSystem);
+        const actual = resolveProjectConfig("tsconfig.json", target);
 
         expect(actual.errors).toEqual([]);
     });

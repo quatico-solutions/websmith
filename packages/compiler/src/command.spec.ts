@@ -1,21 +1,23 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-
 import { WarnMessage } from "@quatico/websmith-api";
-import { Compiler, CompilerAddon, createBrowserSystem, NoReporter } from "@quatico/websmith-core";
+import { Compiler, CompilerAddon, NoReporter } from "@quatico/websmith-core";
+import { compileSystem } from "@quatico/websmith-testing";
 import { Command } from "commander";
 import path from "path";
+import ts from "typescript";
 import { addCompileCommand, hasInvalidTargets } from "./command";
 import { createOptions } from "./options";
 
-let testSystem;
+let testSystem: ts.System;
 
 beforeEach(() => {
-    testSystem = emptySystem();
+    testSystem = compileSystem().fileSystem;
 });
 
 describe("addCompileCommand", () => {
@@ -139,6 +141,7 @@ describe("addCompileCommand", () => {
 
     it("should yield watch compiler option w/ --watch cli argument", () => {
         const target = new Compiler(createOptions({}, new NoReporter()));
+        target.registerWatch = jest.fn(); // prevent register of watch task
 
         addCompileCommand(new Command(), target).parse(["--watch"], { from: "user" });
 
@@ -496,11 +499,3 @@ describe("hasInvalidTargets", () => {
         ).toBe(true);
     });
 });
-
-const emptySystem = () => {
-    const result = createBrowserSystem();
-    result.writeFile("./tsconfig.json", "{}");
-    result.writeFile("./websmith.config.json", "{}");
-    result.createDirectory("./addons");
-    return result;
-};

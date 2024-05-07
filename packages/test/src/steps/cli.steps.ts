@@ -1,6 +1,6 @@
 import { createOptions } from "@quatico/websmith-compiler";
 import { CompilationContext, Compiler } from "@quatico/websmith-core";
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "fs";
 import { StepDefinitions } from "jest-cucumber";
 import parseArgs from "minimist";
 import { basename, dirname, isAbsolute, join, resolve } from "path";
@@ -116,7 +116,7 @@ export const cliSteps: StepDefinitions = ({ given, when, then }) => {
             .filter(it => it.length > 0);
 
         compiler = new Compiler(createOptions({ ...parseArgs(args), buildDir: "./dist", project: "./tsconfig.json" }));
-        compiler.compile();      
+        compiler.compile();
         context = compiler.getContext()!;
     });
 

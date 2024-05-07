@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { GeneratorMock } from "./GeneratorMock";
-import { ReporterMock } from "./ReporterMock";
-
-export { GeneratorMock, ReporterMock };
+export * from "./ReporterMock";
+export * from "./compile-system";
+export * from "./compile-options";

@@ -53,7 +53,7 @@ describe("TsCompiler", () => {
         testObj = new TestCompiler(
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter: reporter, system: ts.sys }),
-                buildDir: resolve("./__TEMP__/.build"),
+                buildDir: resolve("./__TEMP__"),
                 project: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
                 targets: [],
@@ -114,7 +114,7 @@ describe("Transpilation", () => {
         testObj = new TestCompiler(
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: ts.sys }),
-                buildDir: resolve("./__TEMP__/.build"),
+                buildDir: resolve("./__TEMP__"),
                 project: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
                 targets: [],
@@ -143,7 +143,7 @@ describe("Transpilation", () => {
         testObj = new TestCompiler(
             {
                 addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: ts.sys }),
-                buildDir: resolve("./__TEMP__/.build"),
+                buildDir: resolve("./__TEMP__"),
                 config: {
                     configFilePath: resolve("./__TEMP__/websmith.config.json"),
                     targets: {
