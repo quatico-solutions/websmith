@@ -38,7 +38,7 @@ export class CompilationEnv {
     private virtual: boolean;
     private addons?: AddonRegistry;
 
-    constructor(rootDir?: string, options?: CompilationOptions, addonConfig?: AddonConfig) {
+    constructor(rootDir?: string, options?: Partial<CompilationOptions>, addonConfig?: Partial<AddonConfig>) {
         const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames } = options ?? {};
         this.virtual = virtual;
         this.system = this.virtual ? createBrowserSystem(undefined, useCaseSensitiveFileNames) : ts.sys;
@@ -73,14 +73,13 @@ export class CompilationEnv {
             ...compilerOptions,
         });
 
-        if (!addonConfig) {
-            addonConfig = {
-                addonsDir: join(this.rootDir, "./addons"),
-                reporter: new DefaultReporter(this.system),
-                system: this.system,
-            };
-        }
-        this.addons = new AddonRegistry(addonConfig);
+        const registryConfig = {
+            ...(addonConfig ?? {}),
+            addonsDir: join(this.rootDir, "./addons"),
+            reporter: new DefaultReporter(this.system),
+            system: this.system,
+        };
+        this.addons = new AddonRegistry(registryConfig);
         if (!this.system.directoryExists(this.addons.getAddonsDir())) {
             this.system.createDirectory(this.addons.getAddonsDir());
         }
@@ -220,6 +219,7 @@ export class CompilationEnv {
         const sourceFs = this.system.directoryExists(projectsSourcePath) ? this.system : ts.sys;
         copyDirectory(
             { system: sourceFs, path: join(projectsSourcePath, projectName), kind: "project" },
+            // use rootDir as target path because we copy src and other files from project directory
             { system: this.system, path: this.rootDir }
         );
         this.compilerOptions.tsconfig.fileNames = this.system.readDirectory(this.buildDir).filter(isSourceFile);
@@ -410,5 +410,5 @@ const projectFiles = (result: ProjectFile[]): ProjectFiles => {
     return Object.assign(result, { getPaths: () => result.map(it => it.getPath()), getContents: () => result.map(it => it.getContent()!) });
 };
 
-export const compilationEnv = (rootDir: string, options?: CompilationOptions, addonConfig?: AddonConfig): CompilationEnv =>
+export const compilationEnv = (rootDir: string, options?: Partial<CompilationOptions>, addonConfig?: Partial<AddonConfig>): CompilationEnv =>
     new CompilationEnv(rootDir, options, addonConfig);

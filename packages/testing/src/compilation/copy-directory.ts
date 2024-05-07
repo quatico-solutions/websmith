@@ -46,12 +46,21 @@ export const copyDirectory = (source: SourcePath, target: TargetPath) => {
 };
 
 const copyFile = (source: SourceFilePath, target: TargetPath) => {
-    const { system: srcSystem, path: srcPath, subDirName } = source;
+    const { system: srcSystem, path: srcPath, subDirName, kind } = source;
 
     const fileContent = srcSystem.readFile(srcPath);
     if (typeof fileContent === "string") {
-        // Create a new file with the same path relative to `buildDir`
-        const filePath = srcPath.substring(srcPath.indexOf(subDirName) + subDirName.length + 1);
+        let filePath;
+        if (kind === "addons") {
+            // TODO: target file path seems somewhat off, it sometimes includes the subDirName twice when addons are copied
+            filePath = srcPath.substring(
+                // Don't add the subDirName to the target path if it's already included
+                srcPath.indexOf(subDirName) + (kind === "addons" && target.path.includes(subDirName) ? subDirName.length + 1 : 0)
+            );
+        } else {
+            // kind === "project"
+            filePath = srcPath.substring(srcPath.indexOf(subDirName) + subDirName.length + 1);
+        }
         const targetPath = join(target.path, filePath);
         target.system.writeFile(targetPath, fileContent);
     }

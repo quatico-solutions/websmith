@@ -86,7 +86,7 @@ describe("compilationEnv#addons", () => {
     it("should yield addon with valid addon source", () => {
         const testObj = compilationEnv("/target").addAddon("expected-addon", { "addon.ts": `export const activate = () => {};` });
 
-        const actual = testObj.getActiveAddons().map(it => it.getName());
+        const actual = testObj.getActiveAddons().getNames();
 
         expect(actual).toEqual(["expected-addon"]);
     });
@@ -106,7 +106,7 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddon("expected-addon");
 
-        const actual = testObj.getActiveAddons().map(it => it.getName());
+        const actual = testObj.getActiveAddons().getNames();
 
         expect(actual).toEqual(["expected-addon"]);
     });
@@ -118,19 +118,19 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddons(["expected-addon1", "expected-addon2"]);
 
-        const actual = testObj.getActiveAddons().map(it => it.getName());
+        const actual = testObj.getActiveAddons().getNames();
 
         expect(actual).toEqual(["expected-addon1", "expected-addon2"]);
     });
 
     it("should yield addons with multiple addons in custom addons path", () => {
-        const testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target", {}, { addonsDir: "./custom-addons-folder/" });
         testObj.getSystem().writeFile("/target/custom-addons-folder/expected-addon1/addon.ts", `export const activate = () => {};`);
         testObj.getSystem().writeFile("/target/custom-addons-folder/expected-addon2/addon.ts", `export const activate = () => {};`);
 
         testObj.addAddons(["expected-addon1", "expected-addon2"], "./custom-addons-folder/");
 
-        const actual = testObj.getActiveAddons().map(it => it.getName());
+        const actual = testObj.getActiveAddons().getNames();
 
         expect(actual).toEqual(["expected-addon1", "expected-addon2"]);
     });
@@ -240,9 +240,9 @@ describe("compilationEnv#projects", () => {
 
         testObj.addProjectFromDisk("expected-project", "../custom-projects/");
 
-        const actual = testObj.getProjectFiles();
+        const actual = testObj.getProjectFiles().getPaths();
 
-        expect(actual.getPaths()).toEqual(["/target/src/index.ts", "/target/src/target.ts", "/target/tsconfig.json"]);
+        expect(actual).toEqual(["/target/src/index.ts", "/target/src/target.ts", "/target/tsconfig.json"]);
     });
 
     it("should yield project and add files with file name", () => {
