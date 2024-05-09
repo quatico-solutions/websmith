@@ -5,17 +5,14 @@
  * ---------------------------------------------------------------------------------------------
  */
 module.exports = {
-    collectCoverageFrom: ["./src/**/*.ts"],
-    coverageDirectory: "coverage",
-    coveragePathIgnorePatterns: ["index.ts"],
     moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
-        "@quatico/websmith-core": "<rootDir>/../core/src",
+        "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
-    testRegex: "src/.*spec\\.(js|ts)$",
+    prettierPath: null,
+    testRegex: "tests/.*test\\.(js|ts)$",
     setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
-    testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
         "^.+\\.(js|ts)$": [
             "@swc/jest",
@@ -29,4 +26,5 @@ module.exports = {
         ],
     },
     resetMocks: true,
+    restoreMocks: true,
 };

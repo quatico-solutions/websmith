@@ -4,12 +4,13 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { loadFeatures, autoBindSteps } from "jest-cucumber";
-import { cliSteps } from "./steps/cli.steps";
+import { isAbsolute, join } from "path";
+import ts from "typescript";
 
-const features = loadFeatures("src/features/**/*.feature", { tagFilter: "not @skip" });
-autoBindSteps(features, [cliSteps]);
-
-describe.skip("empty", () => {
-    it.skip("empty", () => undefined);
-});
+export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
+    let resolvedPath = join(...pathSegments);
+    if (!isAbsolute(resolvedPath)) {
+        resolvedPath = join(fs.getCurrentDirectory(), ...pathSegments);
+    }
+    return resolvedPath;
+};

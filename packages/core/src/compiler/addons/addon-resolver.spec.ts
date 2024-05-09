@@ -29,13 +29,13 @@ beforeAll(() => {
 });
 
 describe("createResolver", () => {
-    it("reads addon.ts files from existing addon folder", () => {
+    it("reads addon.js files from existing addon folder", () => {
         const resolve = createResolver(new NoReporter(), testSystem);
 
         const actual = resolve(["one"]);
 
         expect(actual[0].activate).toEqual(expect.any(Function));
-        expect(actual[0].name).toBe("one");
+        expect(actual[0].getName()).toBe("one");
         expect(actual).toHaveLength(1);
     });
 
@@ -53,7 +53,7 @@ describe("createResolver", () => {
         const actual = resolve(["DOESNOTEXIST", "one"]);
 
         expect(actual[0].activate).toEqual(expect.any(Function));
-        expect(actual[0].name).toBe("one");
+        expect(actual[0].getName()).toBe("one");
         expect(actual).toHaveLength(1);
     });
 

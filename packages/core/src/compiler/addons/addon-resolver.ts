@@ -37,7 +37,7 @@ export const resolveName = (name: string, localPath: string, system: ts.System):
         return {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
             activate: addonModule.activate,
-            name,
+            getName: () => name,
         } as CompilerAddon;
     } catch (ignored) {
         return undefined;

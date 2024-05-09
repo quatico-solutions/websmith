@@ -4,13 +4,11 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import ts from "typescript";
 import { Reporter } from "@quatico/websmith-api";
-import { AddonRegistry } from "./addons";
-import { CompilationConfig } from "./config";
+import ts from "typescript";
+import type { CompilationConfig } from "./config";
 
 export interface CompilerOptions {
-    addons: AddonRegistry;
     buildDir: string;
     config?: CompilationConfig;
     debug: boolean;

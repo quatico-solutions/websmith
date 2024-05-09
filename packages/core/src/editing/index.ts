@@ -4,6 +4,4 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { typecheck } from "./edit-check";
-
-export { typecheck };
+export { typecheck } from "./edit-check";

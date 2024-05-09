@@ -4,104 +4,123 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { Reporter, WarnMessage } from "@quatico/websmith-api";
+import { Reporter, WarnMessage, type TargetConfig } from "@quatico/websmith-api";
 import path, { basename, extname } from "path";
 import ts from "typescript";
-import { CompilationConfig } from "../config";
-import { CompilerAddon } from "./CompilerAddon";
+import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
-export type AddonRegistryOptions = {
-    addons?: string;
+export type AddonConfig = {
+    addons?: string[];
     addonsDir: string;
-    config?: CompilationConfig;
+    targets?: Record<string, TargetConfig>;
     reporter: Reporter;
     system: ts.System;
 };
 
 export class AddonRegistry {
-    private addons: string[];
-    private config?: CompilationConfig;
     private availableAddons: Map<string, CompilerAddon>;
-    private reporter: Reporter;
+    private config: AddonConfig;
 
-    constructor(options: AddonRegistryOptions) {
-        const { addons, addonsDir, config, reporter, system } = options;
-        this.addons =
-            addons
-                ?.split(",")
-                .map(it => it.trim())
-                .filter(it => it.length > 0) ?? [];
-        this.config = config;
-        this.availableAddons = findAddons(addonsDir, reporter, system);
-        this.reporter = reporter;
+    constructor(config: AddonConfig) {
+        this.availableAddons = new Map<string, CompilerAddon>();
+        this.config = { ...config };
     }
 
-    public getAddons(target?: string): CompilerAddon[] {
-        const expected = getAddonNames(target, this.addons, this.config);
-        if (expected.length > 0) {
-            this.reportMissingAddons(target, expected);
-            return expected.map(it => this.availableAddons.get(it)).filter(it => it !== undefined) as CompilerAddon[];
-        }
-        return Array.from(this.availableAddons.values());
+    setConfig(config: Partial<AddonConfig>): this {
+        this.config = { ...this.config, ...config };
+        return this.refresh();
     }
 
-    private reportMissingAddons(target: string | undefined, expected: string[]): void {
-        const missing = expected.filter(name => !this.availableAddons.has(name));
+    public getAddonsDir(): string {
+        return this.config.addonsDir;
+    }
+
+    public getAvailableAddons(target?: string): CompilerAddons {
+        this.reportMissingAddons(target);
+        const expectedNames = this.getExpectedAddons(target);
+        const results =
+            expectedNames.length > 0
+                ? [...this.availableAddons].filter(([name]) => expectedNames.includes(name)).map(([, addon]) => addon)
+                : Array.from(this.availableAddons.values());
+        return compilerAddons(results);
+    }
+
+    public refresh(): this {
+        this.availableAddons = this.findAddons();
+        return this;
+    }
+
+    private getExpectedAddons(target?: string): string[] {
+        const { targets = {}, addons = [] } = this.config;
+        const requestedAddons = addons.filter(it => it.length > 0);
+
+        const targetAddons = target ? targets[target]?.addons ?? [] : [];
+
+        return [...new Set([...requestedAddons, ...targetAddons])];
+    }
+
+    private getMissingAddons(target?: string): string[] {
+        return this.getExpectedAddons(target).filter(name => !this.availableAddons.has(name));
+    }
+
+    private reportMissingAddons(target?: string): void {
+        const { reporter } = this.config;
+
+        const missing = this.getMissingAddons(target).join(", ");
         if (missing.length > 0) {
-            if (target && target !== "*") {
-                this.reporter.reportDiagnostic(new WarnMessage(`Missing addons for target "${target}": "${missing.join(", ")}".`));
-            } else {
-                this.reporter.reportDiagnostic(new WarnMessage(`Missing addons: "${missing.join(", ")}".`));
-            }
+            reporter.reportDiagnostic(
+                new WarnMessage(target && target !== "*" ? `Missing addons for target "${target}": "${missing}".` : `Missing addons: "${missing}".`)
+            );
         }
+    }
+
+    private findAddons(): Map<string, CompilerAddon> {
+        const { addonsDir, reporter, system } = this.config;
+        const map = new Map<string, CompilerAddon>();
+
+        if (addonsDir && !system.directoryExists(addonsDir)) {
+            reporter.reportDiagnostic(new WarnMessage(`Addons directory "${addonsDir}" does not exist.`));
+            return map;
+        }
+
+        if (addonsDir) {
+            system
+                .readDirectory(addonsDir, [".js", ".jsx"])
+                .filter(dirName => basename(dirName, extname(dirName)).toLocaleLowerCase() === "addon")
+                .forEach(filePath => {
+                    const addonName = getAddonName(filePath);
+                    if (!addonName) {
+                        return;
+                    }
+                    if (map.has(addonName)) {
+                        reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${addonName}" in "${addonsDir}".`));
+                        return;
+                    }
+                    const addon = createAddon(system, filePath, addonName);
+                    if (typeof addon.activate === "function") {
+                        map.set(addonName, addon);
+                    } else {
+                        reporter.reportDiagnostic(new WarnMessage(`No "activate" function found for addon "${addonName}" in "${addonsDir}".`));
+                    }
+                });
+        }
+        return map;
     }
 }
 
-const getAddonNames = (target: string | undefined, expectedAddons: string[], config?: CompilationConfig): string[] => {
-    if (expectedAddons.length > 0) {
-        return expectedAddons;
-    }
-
-    if (config) {
-        if (target) {
-            const { targets = {} } = config;
-            return targets[target]?.addons ?? [];
-        } else {
-            return config.addons ?? [];
-        }
-    }
-    return [];
+const createAddon = (system: ts.System, filePath: string, addonName: string): CompilerAddon => {
+    const importPath = getImportPath(system, filePath);
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return { getName: () => addonName, activate: require(importPath).activate };
 };
 
-const findAddons = (addonsDir: string, reporter: Reporter, system: ts.System): Map<string, CompilerAddon> => {
-    const map = new Map<string, CompilerAddon>();
-
-    if (addonsDir && !system.directoryExists(addonsDir)) {
-        reporter.reportDiagnostic(new WarnMessage(`Addons directory "${addonsDir}" does not exist.`));
-        return map;
-    }
-
-    if (addonsDir) {
-        system
-            .readDirectory(addonsDir, [".js", ".jsx", ".ts", ".tsx"])
-            .filter(ad => basename(ad, extname(ad)).toLocaleLowerCase() === "addon")
-            .forEach(it => {
-                const importPath = system.resolvePath(it);
-                // eslint-disable-next-line @typescript-eslint/no-var-requires
-                const activator = require(extname(importPath).match(/^(?!.*\.d\.tsx?$).*\.[tj]sx?$/g)
-                    ? importPath.replace(extname(importPath), "")
-                    : importPath).activate;
-                const name = it
-                    .replace(path.sep + basename(it), "")
-                    .split(path.sep)
-                    .slice(-1)[0];
-                if (name && map.has(name)) {
-                    reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${name}" in "${addonsDir}".`));
-                }
-                if (name && activator && !map.has(name)) {
-                    map.set(name, { name, activate: activator });
-                }
-            });
-    }
-    return map;
+const getImportPath = (system: ts.System, filePath: string) => {
+    const resolvedPath = system.resolvePath(filePath);
+    return extname(resolvedPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g) ? resolvedPath.replace(extname(resolvedPath), "") : resolvedPath;
 };
+
+const getAddonName = (filePath: string) =>
+    filePath
+        .replace(path.sep + basename(filePath), "")
+        .split(path.sep)
+        .slice(-1)[0];

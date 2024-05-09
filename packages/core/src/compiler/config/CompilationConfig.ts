@@ -7,9 +7,9 @@
 import type { TargetConfig } from "@quatico/websmith-api";
 
 export type CompilationConfig = {
-    configFilePath: string;
-    addonsDir?: string;
     addons?: string[];
+    addonsDir?: string;
+    configFilePath: string;
     targets?: Record<string, TargetConfig>;
     transpileOnly?: boolean;
 };

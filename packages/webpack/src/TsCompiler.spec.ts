@@ -6,12 +6,12 @@
  */
 
 import { Reporter } from "@quatico/websmith-api";
-import { AddonRegistry, CompileFragment, CompilerOptions, NoReporter } from "@quatico/websmith-core";
+import { CompileFragment, CompilerOptions, NoReporter } from "@quatico/websmith-core";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import ts from "typescript";
-import { PluginOptions } from "./loader-options";
 import { TsCompiler } from "./TsCompiler";
+import { PluginOptions } from "./loader-options";
 
 class TestCompiler extends TsCompiler {
     private sys: ts.System | undefined;
@@ -52,7 +52,6 @@ describe("TsCompiler", () => {
     beforeEach(() => {
         testObj = new TestCompiler(
             {
-                addons: new AddonRegistry({ addonsDir: "./addons", reporter: reporter, system: ts.sys }),
                 buildDir: resolve("./__TEMP__"),
                 project: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
@@ -63,7 +62,7 @@ describe("TsCompiler", () => {
                 transpileOnly: false,
                 watch: false,
             },
-            undefined
+            { addonsDir: "./addons", config: "./websmith.config.json" }
         );
     });
 
@@ -113,7 +112,6 @@ describe("Transpilation", () => {
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
-                addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: ts.sys }),
                 buildDir: resolve("./__TEMP__"),
                 project: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
@@ -124,7 +122,7 @@ describe("Transpilation", () => {
                 transpileOnly: false,
                 watch: false,
             },
-            undefined
+            { addonsDir: "./addons", config: "./websmith.config.json" }
         );
 
         const actual = testObj.build(expected);
@@ -142,7 +140,6 @@ describe("Transpilation", () => {
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
-                addons: new AddonRegistry({ addonsDir: "./addons", reporter, system: ts.sys }),
                 buildDir: resolve("./__TEMP__"),
                 config: {
                     configFilePath: resolve("./__TEMP__/websmith.config.json"),
@@ -160,7 +157,7 @@ describe("Transpilation", () => {
                 transpileOnly: false,
                 watch: false,
             },
-            { config: resolve("__TEMP__", "websmith.config.json"), webpackTarget: "fragment" }
+            { config: resolve("__TEMP__", "websmith.config.json"), webpackTarget: "fragment", addonsDir: "./addons" }
         );
 
         const actual = testObj.build(expected);

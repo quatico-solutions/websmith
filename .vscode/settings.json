@@ -13,5 +13,8 @@
     "search.exclude": {
         "pnpm-lock.yaml": true
     },
-    "typescript.tsdk": "node_modules/typescript/lib"
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "eslint.useESLintClass": true,
+    "eslint.problems.shortenToSingleLine": true,
+    "eslint.quiet": true
 }

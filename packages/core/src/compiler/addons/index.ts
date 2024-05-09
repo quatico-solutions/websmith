@@ -4,9 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { createResolver } from "./addon-resolver";
-import { AddonRegistry } from "./AddonRegistry";
-import type { CompilerAddon } from "./CompilerAddon";
-
-export { AddonRegistry, createResolver };
-export type { CompilerAddon };
+export { AddonRegistry, type AddonConfig } from "./AddonRegistry";
+export { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
+export { createResolver } from "./addon-resolver";

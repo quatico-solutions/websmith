@@ -8,6 +8,12 @@
 import { AddonContext } from "@quatico/websmith-api";
 
 export interface CompilerAddon {
-    name: string;
+    getName: () => string;
     activate: (context: AddonContext) => void;
 }
+
+export type CompilerAddons = CompilerAddon[] & {
+    getNames: () => string[];
+};
+
+export const compilerAddons = (addons: CompilerAddon[]): CompilerAddons => Object.assign(addons, { getNames: () => addons.map(it => it.getName()) });

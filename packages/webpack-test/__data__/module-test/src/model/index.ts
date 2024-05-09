@@ -1,3 +1,1 @@
-import { createMessage } from "./create-message";
-
-export { createMessage };
+export { createMessage } from "./create-message";

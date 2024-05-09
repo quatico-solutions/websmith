@@ -17,10 +17,8 @@ module.exports = {
         "@quatico/websmith-webpack": "<rootDir>/packages/webpack/src",
     },
     prettierPath: null,
-    modulePathIgnorePatterns: ["<rootDir>/packages/compiler/test/__mocks__/fs.ts"],
     setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
     testRegex: "src/.*spec\\.(tsx?)$",
-    testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
         "^.+\\.(js|ts)$": [
             "@swc/jest",
@@ -35,5 +33,5 @@ module.exports = {
     },
     transformIgnorePatterns: ["node_modules"],
     resetMocks: true,
-    watchman: false,
+    clearMocks: true,
 };

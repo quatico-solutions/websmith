@@ -8,13 +8,13 @@
 module.exports = {
     moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
-        "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-core": "<rootDir>/../core/src",
-        "@quatico/websmith-compiler": "<rootDir>/../compiler/src",
+        "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
+    prettierPath: null,
     roots: ["<rootDir>/src/"],
     testEnvironment: "node",
-    testMatch: ["**/cucumber.test.ts", "test/.*\\.test\\.(j|t)sx?$"],
+    testRegex: "src/.*(test|spec)\\.(js|ts)$",
     transform: {
         "^.+\\.(j|t)s$": [
             "@swc/jest",

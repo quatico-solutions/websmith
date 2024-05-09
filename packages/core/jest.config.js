@@ -16,7 +16,6 @@ module.exports = {
     setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
     testRegex: "src/.*(test|spec)\\.(js|ts)$",
     testTimeout: 15000,
-    testEnvironmentOptions: { url: "http://localhost/" },
     transform: {
         "^.+\\.(js|ts)$": [
             "@swc/jest",

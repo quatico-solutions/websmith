@@ -5,11 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { CompileFragment, Compiler, CompilerOptions } from "@quatico/websmith-core";
+import { AddonRegistry, CompileFragment, Compiler, CompilerOptions } from "@quatico/websmith-core";
 import ts from "typescript";
 import { WebpackError } from "webpack";
-import { PluginOptions } from "./loader-options";
 import { Upath as uPath } from "./Upath";
+import { PluginOptions } from "./loader-options";
 
 export class TsCompiler extends Compiler {
     public fragment?: CompileFragment;
@@ -19,8 +19,27 @@ export class TsCompiler extends Compiler {
 
     constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, pluginOptions?: PluginOptions) {
         pluginOptions = pluginOptions ? { webpackTarget: "*", ...pluginOptions } : { config: "", webpackTarget: "*" };
-        super(options, ts.sys, dependencyCallback);
+        super(
+            options,
+            ts.sys,
+            options.config?.addonsDir ?? pluginOptions.addonsDir
+                ? new AddonRegistry({
+                      addons:
+                          options.config?.addons ??
+                          pluginOptions.addons
+                              ?.split(",")
+                              .map(it => it.trim())
+                              .filter(it => it.length > 0) ??
+                          [],
+                      addonsDir: options.config?.addonsDir ?? pluginOptions.addonsDir ?? "./addons",
+                      reporter: options.reporter,
+                      system: ts.sys,
+                  })
+                : undefined,
+            dependencyCallback
+        );
         this.pluginConfig = pluginOptions;
+        this.getAddonRegistry()?.refresh();
         super.createTargetContextsIfNecessary();
         this.targets = options.targets;
         this.webpackTarget = this.getFragmentTarget(pluginOptions.webpackTarget!);

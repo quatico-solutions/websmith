@@ -15,12 +15,14 @@ export const resolveTargets = (targets: string, config: CompilationConfig | unde
         .split(",")
         .map(it => it.trim())
         .filter(it => it.length > 0);
-    const expectedTargets = Object.keys(config?.targets ?? {});
-    const missingTargets = passedTargets.filter(cur => expectedTargets.length > 0 && !expectedTargets.includes(cur));
-    if (missingTargets.length > 0) {
-        reporter.reportDiagnostic(
-            new WarnMessage(`Missing targets: The following targets are passed but not configured "${missingTargets.join(", ")}"`)
-        );
+    if (passedTargets.length > 0 && passedTargets[0] !== "*") {
+        const configured = Object.keys(config?.targets ?? {});
+        const missingTargets = passedTargets.filter(passed => configured[0] !== "*" && !configured.includes(passed));
+        if (missingTargets.length > 0) {
+            reporter.reportDiagnostic(
+                new WarnMessage(`Missing targets: The following targets are passed but not configured "${missingTargets.join(", ")}"`)
+            );
+        }
     }
     return passedTargets;
 };

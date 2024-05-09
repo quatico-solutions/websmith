@@ -5,11 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
-import { CompilationConfig, Compiler, DefaultReporter } from "@quatico/websmith-core";
+import { AddonRegistry, CompilationConfig, Compiler, CompilerOptions, DefaultReporter, resolveCompilationConfig } from "@quatico/websmith-core";
 import { Command, program } from "commander";
 import parseArgs from "minimist";
-import { compileSystem } from "./compiler-system";
 import { CompilerArguments } from "./CompilerArguments";
+import { compileSystem } from "./compiler-system";
 import { createOptions } from "./options";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
@@ -46,24 +46,37 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .action((args: CompilerArguments, command: Command) => {
             // TODO: Add files from CLI argument
             const system = compiler?.getSystem() ?? compileSystem();
-            const options = createOptions(args, compiler?.getReporter() ?? new DefaultReporter(system), system);
+            const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
+            const options = createOptions(args, reporter, system);
+            const compilationConfig = resolveCompilationConfig(args.config ?? "./websmith.config.json", reporter, system);
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
             if (unknownArgs?.length > 0) {
                 options.additionalArguments = parseUnknownArguments(unknownArgs);
             }
             if (hasInvalidTargets(options.targets, options.config)) {
-                options.reporter.reportDiagnostic(
+                reporter.reportDiagnostic(
                     new WarnMessage(
-                        `Custom target configuration "${options.targets.join(",")}" found, but no target provided.\n` +
+                        `Custom target configuration "${options.targets.join(", ")}" found, but no target provided.\n` +
                             `\tSome custom addons may not be applied during compilation.`
                     )
                 );
             }
 
             if (compiler === undefined) {
-                compiler = new Compiler(options, system);
+                let addons;
+                if (command.opts().addonsDir || command.opts().addons) {
+                    addons = new AddonRegistry({
+                        ...addonConfig(command, compilationConfig, options),
+                        reporter,
+                        system,
+                    });
+                }
+                compiler = new Compiler(options, system, addons);
             } else {
-                compiler.setOptions(options);
+                compiler
+                    .setOptions(options)
+                    .getAddonRegistry()
+                    ?.setConfig(addonConfig(command, compilationConfig, options));
             }
 
             if (args.watch) {
@@ -74,6 +87,19 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         });
     return parent;
 };
+
+const addonConfig = (command: Command, compilationConfig?: CompilationConfig, options?: CompilerOptions) => ({
+    addons:
+        (command.opts().addons ?? compilationConfig?.addons?.join(",") ?? "")
+            ?.split(",")
+            .map((it: string) => it.trim())
+            .filter((it: string) => it.length > 0) ?? [],
+
+    addonsDir:
+        command.opts().addonsDir && command.opts().addonsDir !== "./addons" ? command.opts().addonsDir : compilationConfig?.addonsDir ?? "./addons",
+
+    targets: options?.config?.targets,
+});
 
 export const hasInvalidTargets = (targets?: string[], config?: CompilationConfig) => {
     if (targets === undefined || targets.length === 0 || (targets[0] === "*" && targets.length === 1)) {

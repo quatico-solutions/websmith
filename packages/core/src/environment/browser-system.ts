@@ -57,11 +57,14 @@ class PathWatcherRegistry {
     }
 }
 
-export const createBrowserSystem = (files?: Record<string, string>, useCaseSensitiveFileNames = false): ts.System => {
-    const knownFiles = Object.entries({ ...(files ?? tsLibDefaults) }).reduce((acc: Record<string, string>, [name, content]) => {
-        acc[resolvePath(name)] = content;
-        return acc;
-    }, {});
+export const createBrowserSystem = (files?: Record<string, string>, useCaseSensitiveFileNames = false, addLibDefaults = false): ts.System => {
+    const knownFiles = Object.entries({ ...(files ?? {}), ...(addLibDefaults ? tsLibDefaults : {}) }).reduce(
+        (acc: Record<string, string>, [name, content]) => {
+            acc[resolvePath(name)] = content;
+            return acc;
+        },
+        {}
+    );
 
     const pathWatchers = new PathWatcherRegistry();
 

@@ -4,22 +4,19 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { Reporter } from "@quatico/websmith-api";
 import {
-    AddonRegistry,
     CompilerOptions,
     NoReporter,
     resolveCompilationConfig,
-    resolveProjectConfig as resolveTsConfig,
     resolveTargets,
+    resolveProjectConfig as resolveTsConfig,
     updateCompilerOptions,
 } from "@quatico/websmith-core";
-import { dirname, join } from "path";
+import { dirname } from "path";
 import ts from "typescript";
 import { CompilerArguments } from "./CompilerArguments";
 
 const DEFAULTS = {
-    addonsDir: "./addons",
     config: "./websmith.config.json",
     debug: false,
     outDir: "./lib",
@@ -29,7 +26,7 @@ const DEFAULTS = {
     watch: false,
 };
 
-export const createOptions = (args: CompilerArguments, reporter: Reporter = new NoReporter(), system: ts.System = ts.sys): CompilerOptions => {
+export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const tsconfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
     const compilationConfig = resolveCompilationConfig(args.config ?? DEFAULTS.config, reporter, system);
 
@@ -48,21 +45,7 @@ export const createOptions = (args: CompilerArguments, reporter: Reporter = new 
         }
     }
 
-    args = {
-        ...args,
-        ...(args.addonsDir &&
-            projectDirectory &&
-            args.addonsDir !== DEFAULTS.addonsDir && { addonsDir: system.resolvePath(join(projectDirectory, args.addonsDir)) }),
-    };
-
     return {
-        addons: new AddonRegistry({
-            addons: args.addons ?? compilationConfig?.addons?.join(","),
-            addonsDir: args.addonsDir && args.addonsDir !== DEFAULTS.addonsDir ? args.addonsDir : compilationConfig?.addonsDir ?? DEFAULTS.addonsDir,
-            config: compilationConfig,
-            reporter,
-            system,
-        }),
         buildDir: args.buildDir ?? system.getCurrentDirectory(),
         config: compilationConfig,
         debug: args.debug ?? DEFAULTS.debug,
