@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-var-requires */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
