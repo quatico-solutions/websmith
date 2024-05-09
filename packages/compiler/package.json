@@ -4,8 +4,11 @@
     "description": "A CLI for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
-    "main": "bin/index.js",
-    "types": "bin/index.d.ts",
+    "main": "src/index.ts",
+    "publishConfig": {
+        "main": "bin/index.js",
+        "types": "bin/index.d.ts"
+    },
     "bin": {
         "websmith": "bin/bin.js"
     },

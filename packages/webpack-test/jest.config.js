@@ -9,7 +9,10 @@ module.exports = {
     roots: ["<rootDir>/src/"],
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
     moduleNameMapper: {
-        "@quatico/websmith-webpack": "<rootDir>/../webpack/src",
+        "@quatico/websmith-api": "<rootDir>/../api/lib",
+        "@quatico/websmith-core": "<rootDir>/../core/lib",
+        "@quatico/websmith-testing": "<rootDir>/../testing/lib",
+        "@quatico/websmith-webpack": "<rootDir>/../webpack/lib",
     },
     testEnvironment: "node",
     testRegex: ".+\\.test\\.ts",
@@ -26,4 +29,6 @@ module.exports = {
             },
         ],
     },
+    resetMocks: true,
+    restoreMocks: true,
 };

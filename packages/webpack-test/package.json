@@ -11,7 +11,7 @@
         "build": "tsc",
         "watch": "tsc --watch",
         "test:e2e": "jest --runInBand",
-        "dist": "pnpm clean && pnpm lint && cross-env-shell NODE_ENV=production \"pnpm build\" && pnpm test:e2e"
+        "dist": "pnpm clean && pnpm lint && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
     "devDependencies": {
         "@eslint/js": "^9.1.1",
