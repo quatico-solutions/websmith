@@ -1,19 +1,20 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import { join } from "path";
 
 describe("export-yaml-generator", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", { compilerOptions: { project: { outDir: "dist" } }, virtual: false }).addAddon(
-            "export-yaml-generator",
-            join(__dirname, "../addons")
-        );
+        testObj = compilationEnv("./__TEST__/export-yaml-generator", {
+            compilerOptions: { project: { outDir: "dist" } },
+            virtual: false,
+        }).addAddon("export-yaml-generator", join(__dirname, "../addons"));
     });
 
     afterEach(() => {
+        testObj.cleanUp("project");
+    });
+
+    afterAll(() => {
         testObj.cleanUp();
     });
 
@@ -31,7 +32,11 @@ describe("export-yaml-generator", () => {
             .getPaths()
             .map(it => it.substring(it.indexOf("/__TEST__")));
 
-        expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js", "/__TEST__/dist/output.yaml"]);
+        expect(actual).toEqual([
+            "/__TEST__/export-yaml-generator/dist/bar.js",
+            "/__TEST__/export-yaml-generator/dist/foo.js",
+            "/__TEST__/export-yaml-generator/dist/output.yaml",
+        ]);
         expect(testObj.getCompiledFile("output.yaml")?.getContent()).toEqual(expect.stringContaining("exports: [Foo]"));
     });
 });

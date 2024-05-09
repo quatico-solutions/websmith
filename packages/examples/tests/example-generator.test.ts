@@ -1,17 +1,18 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { join } from "path";
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 
 describe("example-generator", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__").addAddon("example-generator", join(__dirname, "../addons"));
+        testObj = compilationEnv("./__TEST__/example-generator", { virtual: false }).addAddon("example-generator", join(__dirname, "../addons"));
     });
 
     afterEach(() => {
         testObj.cleanUp("project");
+    });
+
+    afterAll(() => {
+        testObj.cleanUp();
     });
 
     it("should create additional input files and add them to compilation", () => {
@@ -28,7 +29,11 @@ describe("example-generator", () => {
 
         const actual = testObj.getCompiledFiles().getPaths();
 
-        expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js", "/__TEST__/dist/foo-added.js"]);
+        expect(actual.map(it => it.substring(it.indexOf("/__TEST__")))).toEqual([
+            "/__TEST__/example-generator/dist/bar.js",
+            "/__TEST__/example-generator/dist/foo-added.js",
+            "/__TEST__/example-generator/dist/foo.js",
+        ]);
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toMatchInlineSnapshot(`
             "export class Foo {
                 value;
