@@ -1,5 +1,5 @@
 {
-    "addonsDir": "../../../examples/lib/addons",
+    "addonsDir": "../../../examples/lib",
     "targets": {
         "noWrite": {
             "writeFile": false,

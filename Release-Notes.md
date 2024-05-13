@@ -16,6 +16,27 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.6.0] - 2024-05-13
+
+New package `@quatico/websmith-testing` for testing compiler customization and addons with Jest. The package simplifies compiler testing significantly. You can setup the typescript compiler, customize settings, add addons, and compile various projects within 5 lines of code.
+
+### Added
+
+- Adds new package `@quatico/websmith-testing` for testing the websmith compiler
+- Provides tests for example addons using the new testing package
+- Adds README.md for the new testing API package
+- Provides watch mode for Browser FS with watchDirectory and watchFile capabilities
+
+### Changed
+
+- Upgrades all package dependencies to the latest versions
+- Replaces BDD tests with E2E Addon example tests
+
+### Fixed
+
+- Fixes an issue where projects from custom source paths are copied into a separate directory in the buildDir
+- Fixes skipped tests
+
 ## [0.5.3] - 2024-04-19
 
 Bugfix release to address an issue with missing compiler executable.

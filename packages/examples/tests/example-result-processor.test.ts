@@ -1,18 +1,27 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+/*
+ * ---------------------------------------------------------------------------------------------
+ *   Copyright (c) Quatico Solutions AG. All rights reserved.
+ *   Licensed under the MIT License. See LICENSE in the project root for license information.
+ * ---------------------------------------------------------------------------------------------
+ */
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import { join } from "path";
 
 describe("example-result-processor", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__").addAddon("example-result-processor", join(__dirname, "../addons"));
+        testObj = compilationEnv("./__TEST__/example-result-processor", { virtual: false }).addAddon(
+            "example-result-processor",
+            join(__dirname, "../addons")
+        );
     });
 
     afterEach(() => {
         testObj.cleanUp("project");
+    });
+
+    afterAll(() => {
+        testObj.cleanUp();
     });
 
     it("should create a JSON file with single function names", () => {

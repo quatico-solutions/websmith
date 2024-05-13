@@ -1,17 +1,27 @@
+/*
+ * ---------------------------------------------------------------------------------------------
+ *   Copyright (c) Quatico Solutions AG. All rights reserved.
+ *   Licensed under the MIT License. See LICENSE in the project root for license information.
+ * ---------------------------------------------------------------------------------------------
+ */
 import { CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import { join } from "path";
 
 describe("foobar-replace-transformer", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", { compilerOptions: { project: { outDir: "dist" } } }).addAddon(
-            "foobar-replace-transformer",
-            join(__dirname, "../addons")
-        );
+        testObj = compilationEnv("./__TEST__/foobar-replace-transformer", {
+            compilerOptions: { project: { outDir: "dist" } },
+            virtual: false,
+        }).addAddon("foobar-replace-transformer", join(__dirname, "../addons"));
     });
 
     afterEach(() => {
         testObj.cleanUp("project");
+    });
+
+    afterAll(() => {
+        testObj.cleanUp();
     });
 
     it("should replace 'foo' with 'bar' in the output files", () => {
@@ -27,7 +37,7 @@ describe("foobar-replace-transformer", () => {
             .getPaths()
             .map(it => it.substring(it.indexOf("/__TEST__")));
 
-        expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js"]);
+        expect(actual).toEqual(["/__TEST__/foobar-replace-transformer/dist/bar.js", "/__TEST__/foobar-replace-transformer/dist/foo.js"]);
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo"));
     });
 });

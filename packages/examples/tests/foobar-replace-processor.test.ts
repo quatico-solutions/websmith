@@ -1,13 +1,19 @@
+/*
+ * ---------------------------------------------------------------------------------------------
+ *   Copyright (c) Quatico Solutions AG. All rights reserved.
+ *   Licensed under the MIT License. See LICENSE in the project root for license information.
+ * ---------------------------------------------------------------------------------------------
+ */
 import { CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import { join } from "path";
 
 describe("foobar-replace-processor", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", { compilerOptions: { project: { outDir: "dist" } }, virtual: false }).addAddon(
-            "foobar-replace-processor",
-            join(__dirname, "../addons")
-        );
+        testObj = compilationEnv("./__TEST__/foobar-replace-processor", {
+            compilerOptions: { project: { outDir: "dist" } },
+            virtual: false,
+        }).addAddon("foobar-replace-processor", join(__dirname, "../addons"));
     });
 
     afterEach(() => {
@@ -31,7 +37,7 @@ describe("foobar-replace-processor", () => {
             .getPaths()
             .map(it => it.substring(it.indexOf("/__TEST__")));
 
-        expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js"]);
+        expect(actual).toEqual(["/__TEST__/foobar-replace-processor/dist/bar.js", "/__TEST__/foobar-replace-processor/dist/foo.js"]);
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo {"));
     });
 });

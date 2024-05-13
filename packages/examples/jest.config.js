@@ -7,8 +7,8 @@
 module.exports = {
     moduleFileExtensions: ["ts", "js", "json", "node"],
     moduleNameMapper: {
-        "@quatico/websmith-api": "<rootDir>/../api/src",
-        "@quatico/websmith-testing": "<rootDir>/../testing/src",
+        "@quatico/websmith-api": "<rootDir>/../api/lib",
+        "@quatico/websmith-testing": "<rootDir>/../testing/lib",
     },
     prettierPath: null,
     testRegex: "tests/.*test\\.(js|ts)$",

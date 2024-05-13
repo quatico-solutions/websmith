@@ -127,14 +127,14 @@ afterAll(() => {
 
 describe('MyAddon', () => {
     it('should compile project with simple component', () => {
-        compilation.addProjectFromSource({ /* your project code here */ })
+        compilation.addProjectFromDisk("simple-component", join(__dirname, "../test-data/projects"))
             .compile();
 
         // expect compiled results from disk with same API as before
     });
     
     it('should compile project with styled component', () => {
-        compilation.addProjectFromSource({ /* your project code here */ })
+        compilation.addProjectFromDisk("styled-component", join(__dirname, "../test-data/projects"))
             .compile();
 
         // expect compiled results from disk with same API as before
@@ -178,6 +178,10 @@ Add a single file to the project. The file is copied to the compilation environm
 
 Get the project files in the compilation environment. The project files are stored in memory or on disk and can be accessed with the `ProjectFiles` object.
 
+### `getProjectFile(filePath: string): ProjectFile | undefined`
+
+Get a project file by its path. The project file can be stored in memory or on disk and can be accessed with the `ProjectFile` object. The `filePath` can be relative or absolute.
+
 ### 3.3 Compilation Results
 
 #### `compile(): CompilationResults`
@@ -195,3 +199,13 @@ Get a compiled file by its path. The compiled file is stored in memory and can b
 #### `cleanUp(options: "project" | "addons" | "all" = "all"): CompilationEnv`
 
 Remove all compiled files from memory. Use `options` parameter to remove only project or addon files. This method can be called after each test to clean created files.  
+
+### 3.4 Project and Compiled Files
+
+#### `getPaths(): string[]`
+
+Get the paths of all files in the project or compiled files. The paths are relative to the compilation root.
+
+#### `getContent(): string`
+
+Get the content of the file. The content is a string with the file's content.

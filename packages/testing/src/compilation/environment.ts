@@ -47,7 +47,7 @@ export class CompilationEnv {
         const outDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.project?.outDir ?? DEFAULT_OUT_DIR);
 
         if (!this.system.directoryExists(this.rootDir)) {
-            this.system.createDirectory(this.rootDir);
+            getSubPaths(this.rootDir).forEach(it => !!it && !this.system.directoryExists(it) && this.system.createDirectory(it));
         }
         this.system.getCurrentDirectory = () => this.rootDir;
 
@@ -95,7 +95,7 @@ export class CompilationEnv {
     }
 
     public getOutDir(): string {
-        return resolvePath(this.system, this.rootDir, this.compilerOptions.project.outDir ?? DEFAULT_OUT_DIR);
+        return resolveProjectPath(this.system, this.rootDir, this.compilerOptions.project.outDir ?? DEFAULT_OUT_DIR);
     }
 
     public getCompilerOptions(): CompilerOptions {
@@ -420,6 +420,11 @@ const isFiles = (source?: string | Record<string, string>): source is Record<str
 
 const projectFiles = (result: ProjectFile[]): ProjectFiles => {
     return Object.assign(result, { getPaths: () => result.map(it => it.getPath()), getContents: () => result.map(it => it.getContent()!) });
+};
+
+const getSubPaths = (path: string): string[] => {
+    const segments = path.split("/");
+    return segments.map((s, i) => segments.slice(0, i + 1).join("/"));
 };
 
 export const compilationEnv = (rootDir: string, options?: Partial<CompilationOptions>, addonConfig?: Partial<AddonConfig>): CompilationEnv =>
