@@ -79,7 +79,7 @@ export class TsCompiler extends Compiler {
 
         const result = this.emitSourceFile(fileName, this.webpackTarget, false);
 
-        if (result.diagnostics && result.diagnostics.length > 0) {
+        if (result.diagnostics?.length) {
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
                 const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
                 this.pluginConfig?.error ? this.pluginConfig?.error(new WebpackError(message)) : console.error(message);
@@ -90,6 +90,12 @@ export class TsCompiler extends Compiler {
             .filter((target: string) => target !== this.webpackTarget)
             .forEach((target: string) => {
                 this.emitSourceFile(fileName, target, true);
+
+                // TODO: We cannot apply the resultProcessors to the resulting fragment, because webpack has not written the file yet.
+                this.contextMap
+                    .get(target)
+                    ?.getResultProcessors()
+                    .forEach(cur => cur([fileName]));
             });
 
         this.fragment = result;
