@@ -22,8 +22,8 @@ export class AddonRegistry {
     private config: AddonConfig;
 
     constructor(config: AddonConfig) {
-        this.availableAddons = new Map<string, CompilerAddon>();
         this.config = { ...config };
+        this.availableAddons = this.findAddons();
     }
 
     setConfig(config: Partial<AddonConfig>): this {

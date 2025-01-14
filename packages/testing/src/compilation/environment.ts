@@ -36,7 +36,8 @@ export class CompilationEnv {
     private buildDir: string;
     private system: ts.System;
     private virtual: boolean;
-    private addons: AddonRegistry;
+    private addons?: AddonRegistry;
+    private addonsConfig: AddonConfig;
 
     constructor(rootDir?: string, options?: Partial<CompilationOptions>, addonConfig?: Partial<AddonConfig>) {
         const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames } = options ?? {};
@@ -74,15 +75,14 @@ export class CompilationEnv {
             ...compilerOptions,
         });
 
-        const registryConfig = {
+        this.addonsConfig = {
             addonsDir: join(this.rootDir, "./addons"),
             reporter: new DefaultReporter(this.system),
             system: this.system,
             ...(addonConfig ?? {}),
         };
-        this.addons = new AddonRegistry(registryConfig);
-        if (!this.system.directoryExists(this.addons.getAddonsDir())) {
-            this.system.createDirectory(this.addons.getAddonsDir());
+        if (!this.system.directoryExists(this.addonsConfig.addonsDir)) {
+            this.system.createDirectory(this.addonsConfig.addonsDir);
         }
     }
 
@@ -121,7 +121,7 @@ export class CompilationEnv {
                 directories = [this.buildDir, this.getOutDir()];
                 break;
             case "addons":
-                directories = [this.addons.getAddonsDir()];
+                directories = [this.addonsConfig.addonsDir];
                 break;
         }
         directories.forEach(dir =>
@@ -137,7 +137,7 @@ export class CompilationEnv {
      * @returns absolute path to the addons directory, defaults to `${this.rootDir}/addons`
      */
     public getAddonsDir(): string | undefined {
-        return this.addons?.getAddonsDir();
+        return this.addonsConfig.addonsDir;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
@@ -159,10 +159,7 @@ export class CompilationEnv {
      * @returns this instance
      */
     public addAddon(addonName: string, addonSource?: string | Record<string, string>): this {
-        if (!this.addons) {
-            return this;
-        }
-        const addonTargetPath = join(this.addons.getAddonsDir(), addonName);
+        const addonTargetPath = join(this.addonsConfig.addonsDir, addonName);
         let addonImportDir = join(this.rootDir, addonName);
 
         if (!this.system.directoryExists(addonTargetPath)) {
@@ -177,24 +174,22 @@ export class CompilationEnv {
             addonImportDir = addonsSourceDir;
         }
 
-        if (this.addons) {
-            this.compileAddons(addonImportDir, this.addons.getAddonsDir());
-            this.addons.refresh();
-        }
+        this.compileAddons(addonImportDir, this.addonsConfig.addonsDir);
+        this.getOrCreateAddonRegistry().refresh();
+
         return this;
     }
 
     public addAddons(addonNames: string[], addonsSourceDir?: string): this {
-        if (this.addons) {
-            const addonsDir = this.addons.getAddonsDir();
-            const addonsSourceDirPath = resolveProjectPath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
-            const sourceFs = this.system.directoryExists(addonsSourceDirPath) ? this.system : ts.sys;
-            addonNames.forEach(addon => {
-                copyDirectory({ system: sourceFs, path: join(addonsSourceDirPath, addon), kind: "addons" }, { system: this.system, path: addonsDir });
-            });
-            this.compileAddons(addonsSourceDirPath, addonsDir);
-            this.addons?.refresh();
-        }
+        const addonsDir = this.addonsConfig.addonsDir;
+        const addonsSourceDirPath = resolveProjectPath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
+        const sourceFs = this.system.directoryExists(addonsSourceDirPath) ? this.system : ts.sys;
+        addonNames.forEach(addon => {
+            copyDirectory({ system: sourceFs, path: join(addonsSourceDirPath, addon), kind: "addons" }, { system: this.system, path: addonsDir });
+        });
+        this.compileAddons(addonsSourceDirPath, addonsDir);
+        this.getOrCreateAddonRegistry().refresh();
+
         return this;
     }
 
@@ -255,7 +250,7 @@ export class CompilationEnv {
     }
 
     public compile(): this & CompilationResult {
-        const result = new Compiler(this.compilerOptions, this.system, this.addons).compile();
+        const result = new Compiler(this.compilerOptions, this.system, this.getOrCreateAddonRegistry()).compile();
         // @ts-expect-error - method is not part of the original object
         this.getDiagnostics = () => result.diagnostics;
         // @ts-expect-error - method is not part of the original object
@@ -295,16 +290,20 @@ export class CompilationEnv {
         return file ? projectFile(this.system, this.buildDir, file) : undefined;
     }
 
-    private resolveAddonSourcePaths(addonName: string, addonFiles: Record<string, string>, addonTargetPath: string): Record<string, string> {
+    private getOrCreateAddonRegistry(): AddonRegistry {
         if (!this.addons) {
-            return {};
+            this.addons = new AddonRegistry(this.addonsConfig);
         }
+        return this.addons;
+    }
+
+    private resolveAddonSourcePaths(addonName: string, addonFiles: Record<string, string>, addonTargetPath: string): Record<string, string> {
         return Object.entries(addonFiles).reduce((acc: Record<string, string>, [filePath, content]) => {
             if (isAbsolute(filePath)) {
                 acc[filePath] = content;
             } else {
                 if (filePath.includes(addonName)) {
-                    acc[join(this.addons.getAddonsDir(), filePath)] = content;
+                    acc[join(this.addonsConfig.addonsDir, filePath)] = content;
                 } else {
                     acc[join(addonTargetPath, filePath)] = content;
                 }
@@ -340,7 +339,7 @@ export class CompilationEnv {
 
         if (this.virtual) {
             this.system
-                .readDirectory(addonsTargetDir, [".js", ".jsx"])
+                .readDirectory(addonsTargetDir, [".js", ".jsx", ".ts", ".tsx"])
                 .map(filePath => this.system.resolvePath(filePath))
                 .forEach(resolvedPath => {
                     jest.mock(
