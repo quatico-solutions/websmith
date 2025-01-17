@@ -7,7 +7,7 @@
 import { readFileSync, rmSync, statSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
 import { Compiler, WebpackError, Configuration } from "webpack";
-import { createWebpackCompiler } from "./webpack-utils";
+import { webpackBuild } from "./webpack-utils";
 
 const projectDir = resolve(__dirname, "../__data__/module-test");
 const targetInput = resolve(projectDir, "src", "index.tsx");
@@ -26,7 +26,7 @@ afterEach(() => {
 describe("webpack loader", () => {
     console.info = jest.fn();
     it("should throw an error if webpackTarget does not exist as target", async () => {
-        await createWebpackCompiler(requireWebpackConfig("webpack_unknownWebpackTarget.config.js"), projectDir)
+        await webpackBuild(requireWebpackConfig("webpack_unknownWebpackTarget.config.js"), projectDir)
             .then(({ compiler }) => {
                 cleanupCompiler = compiler;
             })
@@ -39,7 +39,7 @@ describe("webpack loader", () => {
     it("should bundle using the first target w/ writeFile false w/o webpackTarget set", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        const { compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_noWebpackTarget.config.js"), projectDir);
+        const { compiler } = await webpackBuild(requireWebpackConfig("webpack_noWebpackTarget.config.js"), projectDir);
         cleanupCompiler = compiler;
 
         expect(statSync(target).isFile()).toBe(true);
@@ -48,7 +48,7 @@ describe("webpack loader", () => {
     it("should select the writeFile target w/ webpackTarget set", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        const { compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_noNoWriteTargetsWithWebpackTarget.config.js"), projectDir);
+        const { compiler } = await webpackBuild(requireWebpackConfig("webpack_noNoWriteTargetsWithWebpackTarget.config.js"), projectDir);
         cleanupCompiler = compiler;
 
         expect(statSync(target).isFile()).toBe(true);
@@ -57,7 +57,7 @@ describe("webpack loader", () => {
     it("should write a warning if no target w/ writeFile false is specified", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_noNoWriteTargets.config.js"), projectDir);
+        const { stats, compiler } = await webpackBuild(requireWebpackConfig("webpack_noNoWriteTargets.config.js"), projectDir);
         cleanupCompiler = compiler;
 
         expect(statSync(target).isFile()).toBe(true);
@@ -67,7 +67,7 @@ describe("webpack loader", () => {
     it("should use default target w/o configured target and webpackTarget", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_noTargets.config.js"), projectDir);
+        const { stats, compiler } = await webpackBuild(requireWebpackConfig("webpack_noTargets.config.js"), projectDir);
         cleanupCompiler = compiler;
 
         expect(statSync(target).isFile()).toBe(true);
@@ -77,7 +77,7 @@ describe("webpack loader", () => {
     it("should write a warning if more than one target w/ writeFile false is specified", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_multipleNoWriteTargets.config.js"), projectDir);
+        const { stats, compiler } = await webpackBuild(requireWebpackConfig("webpack_multipleNoWriteTargets.config.js"), projectDir);
         cleanupCompiler = compiler;
 
         expect(statSync(target).isFile()).toBe(true);
@@ -88,7 +88,7 @@ describe("webpack loader", () => {
     it.skip("should bundle the file w/ thread-loader being used", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_thread_loader.config.js"), projectDir);
+        const { stats, compiler } = await webpackBuild(requireWebpackConfig("webpack_thread_loader.config.js"), projectDir);
         cleanupCompiler = compiler;
 
         expect(statSync(target).isFile()).toBe(true);
@@ -101,7 +101,7 @@ describe("webpack loader", () => {
     it("should bundle invalid TypeScript file w/ transpileOnly being used", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_transpileOnly.config.js"), projectDir);
+        const { stats, compiler } = await webpackBuild(requireWebpackConfig("webpack_transpileOnly.config.js"), projectDir);
         cleanupCompiler = compiler;
 
         expect(statSync(target).isFile()).toBe(true);
@@ -113,7 +113,7 @@ describe("webpack loader", () => {
     it("should bundle the file w/ fork-ts-checker-webpack-plugin being used", async () => {
         const target = resolve(projectDir, ".build", "lib", "main.js");
 
-        const { stats, compiler } = await createWebpackCompiler(requireWebpackConfig("webpack_fork_ts.config.js"), projectDir);
+        const { stats, compiler } = await webpackBuild(requireWebpackConfig("webpack_fork_ts.config.js"), projectDir);
         cleanupCompiler = compiler;
 
         expect(statSync(target).isFile()).toBe(true);
@@ -132,7 +132,7 @@ describe("webpack loader", () => {
             count++;
         };
 
-        const { compiler } = await createWebpackCompiler(requireWebpackConfig("webpack.config.js", true), projectDir, callback);
+        const { compiler } = await webpackBuild(requireWebpackConfig("webpack.config.js", true), projectDir, callback);
         cleanupCompiler = compiler;
 
         let success = await waitFor(() => count > 0, "initial compile");

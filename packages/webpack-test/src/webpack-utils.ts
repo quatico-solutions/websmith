@@ -8,7 +8,7 @@ import { existsSync } from "fs";
 import webpack, { Compiler, Configuration, Stats } from "webpack";
 import { uPath } from "@quatico/websmith-webpack";
 
-export const createWebpackCompiler = (
+export const webpackBuild = (
     options: Configuration,
     projectDir: string,
     callback?: (err?: Error | null, stats?: webpack.Stats) => void
