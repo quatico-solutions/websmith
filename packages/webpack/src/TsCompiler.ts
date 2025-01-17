@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { AddonRegistry, CompileFragment, Compiler, CompilerOptions } from "@quatico/websmith-core";
+import { AddonRegistry, CompilationConfig, CompileFragment, Compiler, CompilerOptions, resolveCompilationConfig } from "@quatico/websmith-core";
 import ts from "typescript";
 import { WebpackError } from "webpack";
 import { Upath as uPath } from "./Upath";
@@ -18,30 +18,51 @@ export class TsCompiler extends Compiler {
     public webpackTarget: string;
 
     constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, pluginOptions?: PluginOptions) {
+        const system = ts.sys;
         pluginOptions = pluginOptions ? { webpackTarget: "*", ...pluginOptions } : { config: "", webpackTarget: "*" };
+        let websmithConfig: CompilationConfig = {
+            addons:
+                pluginOptions.addons
+                    ?.split(",")
+                    .map(it => it.trim())
+                    .filter(it => it.length > 0) ?? [],
+            addonsDir: pluginOptions.addonsDir,
+            ...(pluginOptions.transpileOnly ? { transpileOnly: pluginOptions.transpileOnly } : {}),
+        };
+        if (pluginOptions.config) {
+            websmithConfig = { ...resolveCompilationConfig(pluginOptions.config, options.reporter, system), ...websmithConfig };
+        }
+
+        const { targets } = pluginOptions;
+        const { addons, targets: targetsMap, addonsDir } = websmithConfig ?? {};
+        const targetNames =
+            targets
+                ?.split(",")
+                .map(it => it.trim())
+                .filter(it => it.length > 0) ?? [];
+        const addonsMerged = addons?.length
+            ? addons
+            : Object.entries(targetsMap ?? {})
+                  .filter(([target]) => targetNames.includes(target))
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  .map(([_, value]) => value.addons ?? [])
+                  .flat();
         super(
             options,
-            ts.sys,
-            options.config?.addonsDir ?? pluginOptions.addonsDir
+            system,
+            addonsMerged.length
                 ? new AddonRegistry({
-                      addons:
-                          options.config?.addons ??
-                          pluginOptions.addons
-                              ?.split(",")
-                              .map(it => it.trim())
-                              .filter(it => it.length > 0) ??
-                          [],
-                      addonsDir: options.config?.addonsDir ?? pluginOptions.addonsDir ?? "./addons",
+                      addons: addonsMerged,
+                      addonsDir: addonsDir ?? options.config?.addonsDir ?? "./addons",
                       reporter: options.reporter,
-                      system: ts.sys,
-                  })
+                      system,
+                  }).refresh()
                 : undefined,
             dependencyCallback
         );
         this.pluginConfig = pluginOptions;
-        this.getAddonRegistry()?.refresh();
         super.createTargetContextsIfNecessary();
-        this.targets = options.targets;
+        this.targets = targetNames.length ? targetNames : options.targets;
         this.webpackTarget = this.getFragmentTarget(pluginOptions.webpackTarget!);
     }
 
