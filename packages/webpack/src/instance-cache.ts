@@ -51,4 +51,13 @@ export const initializeInstance = (
     return instance;
 };
 
-export const getCacheName = (loader: webpack.LoaderContext<unknown>) => `websmith-${loader._compilation?.hash ?? ""}`;
+export const getCacheName = (loader: webpack.LoaderContext<unknown>) => {
+    if (loader._compilation && !loader._compilation.hash) {
+        loader._compilation.hash = generateRandomString();
+    }
+    return `websmith-${loader._compilation?.hash}`;
+};
+
+const generateRandomString = () => {
+    return Math.floor(Math.random() * Date.now()).toString(36);
+};

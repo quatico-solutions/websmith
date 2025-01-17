@@ -8,7 +8,7 @@
 import { readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
 import { Configuration, NormalModule } from "webpack";
-import { createWebpackCompiler } from "./webpack-utils";
+import { webpackBuild } from "./webpack-utils";
 
 describe("project bundling", () => {
     const projectDir = resolve(__dirname, "../__data__/module-test");
@@ -24,7 +24,7 @@ describe("project bundling", () => {
     });
 
     it("yields modules", async () => {
-        const { stats, compiler } = await createWebpackCompiler(config, projectDir);
+        const { stats, compiler } = await webpackBuild(config, projectDir);
 
         expect(
             Array.from(stats!.compilation.modules.values())
@@ -36,7 +36,7 @@ describe("project bundling", () => {
     });
 
     it("yields chunks", async () => {
-        const { stats, compiler } = await createWebpackCompiler(config, projectDir);
+        const { stats, compiler } = await webpackBuild(config, projectDir);
 
         expect(Array.from(stats!.compilation.chunks.values()).map(cur => cur.name)).toEqual(expect.arrayContaining(["functions", "main"]));
 
@@ -44,7 +44,7 @@ describe("project bundling", () => {
     });
 
     it("yields bundled output", async () => {
-        const { compiler } = await createWebpackCompiler(config, projectDir);
+        const { compiler } = await webpackBuild(config, projectDir);
 
         expect(readdirSync(resolve(__dirname, "../__data__/module-test/.build/lib"))).toEqual([
             "functions.js",

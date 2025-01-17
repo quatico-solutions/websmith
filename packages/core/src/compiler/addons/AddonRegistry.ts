@@ -39,9 +39,9 @@ export class AddonRegistry {
         this.reportMissingAddons(target);
         const expectedNames = this.getExpectedAddons(target);
         const results =
-            expectedNames.length > 0
-                ? [...this.availableAddons].filter(([name]) => expectedNames.includes(name)).map(([, addon]) => addon)
-                : Array.from(this.availableAddons.values());
+            expectedNames.length === 0 && target === "*"
+                ? Array.from(this.availableAddons.values())
+                : [...this.availableAddons].filter(([name]) => expectedNames.includes(name)).map(([, addon]) => addon);
         return compilerAddons(results);
     }
 

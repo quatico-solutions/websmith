@@ -27,7 +27,7 @@ export const compileOptions = (
             configFilePath: "./tsconfig.json",
             ...overrides?.project,
         },
-        targets: overrides?.targets ?? [],
+        targets: overrides?.targets ?? ["*"],
         tsconfig: {
             options: {},
             fileNames: system.readDirectory("./src"),

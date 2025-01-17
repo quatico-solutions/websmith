@@ -76,10 +76,6 @@ export class Compiler {
 
     public setOptions(options: CompilerOptions): this {
         this.options = options;
-        if (!this.options?.targets || this.options.targets.length === 0) {
-            this.options.targets = ["*"];
-        }
-
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
 
         this.compilationHost = new CompilationHost(createSharedHost(this.system) as ts.LanguageServiceHost);

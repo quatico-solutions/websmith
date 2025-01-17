@@ -39,7 +39,7 @@ describe("createOptions", () => {
         );
     });
 
-    it("should return expected path w/ custom addons directory", () => {
+    it("should return expected path w/ custom addons directory and '*' target", () => {
         const { addons } = compileSystem({
             files: {
                 "./expected/addon-foo/addon.js": "export const activate = () => {};",
@@ -54,7 +54,7 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = addons.refresh().getAvailableAddons();
+        const actual = addons.refresh().getAvailableAddons("*");
 
         expect(actual.getNames()).toEqual(["addon-foo"]);
     });

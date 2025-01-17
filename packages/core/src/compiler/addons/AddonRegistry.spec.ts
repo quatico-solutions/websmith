@@ -40,7 +40,7 @@ describe("getAvailableAddons", () => {
     it("returns empty addons w/ empty addons directory", () => {
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(testObj.getAvailableAddons()).toHaveLength(0);
+        expect(testObj.getAvailableAddons("*")).toHaveLength(0);
     });
 
     it("returns addons w/ single addon in addon directory", () => {
@@ -48,7 +48,7 @@ describe("getAvailableAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
     });
 
     it("returns addons w/ multiple addons in addon directory", () => {
@@ -58,7 +58,7 @@ describe("getAvailableAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["one", "two", "three"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["one", "two", "three"]);
     });
 
     it("returns valid addons w/ invalid and valid addons in addon directory", () => {
@@ -67,7 +67,7 @@ describe("getAvailableAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
     });
 
     it("returns no addons w/ empty files in addon directory", () => {
@@ -75,7 +75,7 @@ describe("getAvailableAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons()).toHaveLength(0);
+        expect(testObj.getAvailableAddons("*")).toHaveLength(0);
     });
 
     it("reports warning w/ non-existing addons name", () => {
@@ -87,7 +87,7 @@ describe("getAvailableAddons", () => {
             addonsDir: "./addons",
             reporter,
             system,
-        }).getAvailableAddons();
+        }).getAvailableAddons("*");
 
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "does-not-exist".'));
     });
@@ -127,13 +127,13 @@ describe("refresh", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
 
         createAddon("addons/new/addon");
 
         testObj.refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected", "new"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected", "new"]);
     });
 
     it("refreshes addons w/o new addons", () => {
@@ -141,11 +141,11 @@ describe("refresh", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
 
         testObj.refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
     });
 
     it("refreshes addons w/ removed addons", () => {
@@ -154,13 +154,13 @@ describe("refresh", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected", "removed"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected", "removed"]);
 
         removeAddon("addons/removed/addon");
 
         testObj.refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
     });
 
     it("refreshes addons w/ empty addons directory", () => {
@@ -168,13 +168,13 @@ describe("refresh", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
 
         removeAddon("addons/expected/addon");
 
         testObj.refresh();
 
-        expect(testObj.getAvailableAddons()).toHaveLength(0);
+        expect(testObj.getAvailableAddons("*")).toHaveLength(0);
     });
 });
 
@@ -271,7 +271,7 @@ describe("reportMissingAddons", () => {
         system.createDirectory("./target");
         reporter.reportDiagnostic = jest.fn();
 
-        new AddonRegistry({ addonsDir: "./target", addons: ["missing"], reporter, system }).getAvailableAddons();
+        new AddonRegistry({ addonsDir: "./target", addons: ["missing"], reporter, system }).getAvailableAddons("*");
 
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "missing".'));
     });
@@ -281,7 +281,7 @@ describe("reportMissingAddons", () => {
         createAddon("target/expected/addon");
         reporter.reportDiagnostic = jest.fn();
 
-        new AddonRegistry({ addonsDir: "./target", addons: ["expected"], reporter, system }).refresh().getAvailableAddons();
+        new AddonRegistry({ addonsDir: "./target", addons: ["expected"], reporter, system }).refresh().getAvailableAddons("*");
 
         expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
     });
@@ -324,7 +324,7 @@ describe("findAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
     });
 
     it("finds addons w/ multiple addons in addons directory", () => {
@@ -334,7 +334,7 @@ describe("findAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["one", "two", "three"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["one", "two", "three"]);
     });
 
     it("finds valid addons w/ invalid and valid addons in addons directory", () => {
@@ -343,7 +343,7 @@ describe("findAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system }).refresh();
 
-        expect(testObj.getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
     });
 
     it("finds no addons w/ empty files in addons directory", () => {
@@ -351,7 +351,7 @@ describe("findAddons", () => {
 
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
-        expect(testObj.getAvailableAddons()).toHaveLength(0);
+        expect(testObj.getAvailableAddons("*")).toHaveLength(0);
     });
 });
 

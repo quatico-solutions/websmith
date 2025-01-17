@@ -16,7 +16,16 @@ export interface CompilerOptions {
     project: ts.CompilerOptions;
     reporter: Reporter;
     sourceMap: boolean;
+    /**
+     * List of targets to be compiled. Refers to the `targets` defined in the `config` property.
+     * Use `["*"]` to compile with all available addons. No addons will be used if no target is specified.
+     */
     targets: string[];
+    /**
+     * Whether to only transpile the code without emitting any output.
+     * Overrides the `transpileOnly` specified in the `tsconfig.json`.
+     * @deprecated use `config.transpileOnly` instead.
+     */
     transpileOnly: boolean;
     watch: boolean;
     additionalArguments?: Map<string, unknown>;
