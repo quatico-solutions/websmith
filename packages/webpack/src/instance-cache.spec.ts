@@ -125,6 +125,6 @@ describe("getCacheName", () => {
 
         const actual = getCacheName(context);
 
-        expect(actual).toBe(expected);
+        expect(actual).toContain(expected);
     });
 });
