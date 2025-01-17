@@ -13,7 +13,7 @@ export interface PluginArguments {
     addons?: string;
     addonsDir?: string;
     buildDir?: string;
-    config: string;
+    config?: string;
     debug?: boolean;
     project?: string;
     sourceMap?: boolean;
