@@ -61,6 +61,7 @@ export class CompilationEnv {
 
         this.compilerOptions = compileOptions(this.system, {
             buildDir: this.buildDir,
+            targets: options?.compilerOptions?.targets?.length ? options.compilerOptions.targets : ["*"],
             config: {
                 configFilePath: `${this.rootDir}/websmith.config.json`,
                 targets: {
@@ -144,8 +145,8 @@ export class CompilationEnv {
         return this.addons?.getAvailableAddons().find((it: CompilerAddon) => it.getName() === addonName);
     }
 
-    public getActiveAddons(): CompilerAddons {
-        return this.addons?.getAvailableAddons() ?? compilerAddons([]);
+    public getActiveAddons(target?: string): CompilerAddons {
+        return this.addons?.getAvailableAddons(target) ?? compilerAddons([]);
     }
 
     /**
@@ -330,6 +331,7 @@ export class CompilationEnv {
                         esModuleInterop: true,
                         moduleResolution: ts.ModuleResolutionKind.NodeNext,
                     },
+                    targets: ["*"],
                     tsconfig: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
                 this.system
