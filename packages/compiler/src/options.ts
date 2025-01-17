@@ -31,7 +31,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
     const compilationConfig = resolveCompilationConfig(args.config ?? DEFAULTS.config, reporter, system);
 
     const projectDirectory =
-        (compilationConfig && dirname(compilationConfig.configFilePath)) ??
+        (compilationConfig?.configFilePath && dirname(compilationConfig.configFilePath)) ??
         (tsconfig.raw && tsconfig.raw.configFilePath && dirname(tsconfig.raw?.configFilePath));
     tsconfig.options.outDir = args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir;
     if (projectDirectory) {
