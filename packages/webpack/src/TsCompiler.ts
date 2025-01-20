@@ -27,7 +27,7 @@ export class TsCompiler extends Compiler {
                     .map(it => it.trim())
                     .filter(it => it.length > 0) ?? [],
             addonsDir: pluginOptions.addonsDir,
-            ...(pluginOptions.transpileOnly ? { transpileOnly: pluginOptions.transpileOnly } : {}),
+            ...(!!pluginOptions.transpileOnly && { transpileOnly: pluginOptions.transpileOnly }),
         };
         if (pluginOptions.config) {
             websmithConfig = { ...resolveCompilationConfig(pluginOptions.config, options.reporter, system), ...websmithConfig };
@@ -62,7 +62,7 @@ export class TsCompiler extends Compiler {
         );
         this.pluginConfig = pluginOptions;
         super.createTargetContextsIfNecessary();
-        this.targets = targetNames.length ? targetNames : options.targets;
+        this.targets = targetNames.length ? targetNames : options.targets ?? [];
         this.webpackTarget = this.getFragmentTarget(pluginOptions.webpackTarget!);
     }
 

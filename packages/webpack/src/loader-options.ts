@@ -31,8 +31,8 @@ export const getLoaderOptions = (loader: LoaderContext<PluginOptions>): PluginOp
     const options: PluginOptions = loader.getOptions();
     const result = {
         ...options,
-        ...(loader._module && loader._module.addWarning && { warn: (err: WebpackError) => loader._module!.addWarning(err) }),
-        ...(loader._module && loader._module.addError && { error: (err: WebpackError) => loader._module!.addError(err) }),
+        ...(!!loader._module && typeof loader._module.addWarning === "function" && { warn: (err: WebpackError) => loader._module!.addWarning(err) }),
+        ...(!!loader._module && typeof loader._module.addError === "function" && { error: (err: WebpackError) => loader._module!.addError(err) }),
         config: uPath.resolve(options.config ?? DEFAULTS.config),
         transpileOnly: options.transpileOnly ?? false,
         webpackTarget: options.webpackTarget ?? "*",
