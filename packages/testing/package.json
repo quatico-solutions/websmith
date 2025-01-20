@@ -1,6 +1,6 @@
 {
     "name": "@quatico/websmith-testing",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "description": "Testing library for simplifying the testing of websmith addons",
     "author": "Quatico Solutions AG",
     "license": "MIT",

@@ -12,9 +12,38 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+### Added
+
+- TBA
+
+### Removed
+
+- TBA
+
 ### Changed
 
 - TBA
+
+### Fixed
+
+- TBA
+
+## [0.6.1] - 2025-01-20
+
+Bugfix release to address an issue with the webpack loader configuration and the websmith options to activate an addon.
+
+### Fixed
+
+- Fixes Issue 45 "Webpack loader requires 'addons' property in loader config and websmith options to activate an addon
+
+### Changed
+
+- Method calls for retrieving addons need to include a target parameter (e.g., getAvailableAddons())
+- Refining the logic for handling targets, compilationConfig and loaderOptions in webpack override properties from config files.
+
+### Added
+
+- Adding documentation comments to explain the use of configuration options
 
 ## [0.6.0] - 2024-05-13
 
@@ -108,7 +137,7 @@ In this version, we've improved the documentation of published packages. Most im
 - README.md of compiler package to improve compiler usage documentation.
 - README.md of api package to introduction to websmith api.
 - README.md of webpack package to improve webpack usage documentation.
-- README.md of core package to clearify the purpose of the package.
+- README.md of core package to clarify the purpose of the package.
 
 ### Added
 
@@ -116,7 +145,7 @@ In this version, we've improved the documentation of published packages. Most im
 
 ## [0.3.5] - 2023-02-1
 
-With this version, the usage of the BrowserSystem (createBrowserSystem) is deprecated. It is planned to remove it with version 1.0.0 which will cease support for a system based virtual filesystem.
+With this version, the usage of the BrowserSystem is deprecated. It is planned to remove it with version 1.0.0 which will cease support for a system based virtual filesystem.
 
 ### Changed
 
