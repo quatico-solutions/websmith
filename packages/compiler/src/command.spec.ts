@@ -97,7 +97,7 @@ describe("addCompileCommand", () => {
         });
         expect(actual.reporter).toBeDefined();
         expect(actual.sourceMap).toBe(false);
-        expect(actual.targets).toEqual(["*"]);
+        expect(actual.targets).toEqual([]);
         expect(actual.watch).toBe(false);
     });
 

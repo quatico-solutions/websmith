@@ -16,7 +16,6 @@ describe("createOptions", () => {
             expect.objectContaining({
                 debug: false,
                 sourceMap: false,
-                targets: ["*"],
                 watch: false,
             })
         );
@@ -119,7 +118,6 @@ describe("createOptions", () => {
                 outDir: "/lib",
             },
 
-            targets: ["*"],
             tsconfig: {
                 fileNames: ["/expected/one/addon.ts"],
                 errors: [],
