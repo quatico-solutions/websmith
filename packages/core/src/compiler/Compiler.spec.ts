@@ -167,6 +167,41 @@ describe("compile", () => {
             "
         `);
     });
+
+    it("yields output w/ with addons but w/o targets", () => {
+        const { fileSystem } = compileSystem({
+            "src/target.ts": `
+                export const computeDate = async (): Promise<Date> => new Date();
+            `,
+        });
+
+        new CompilerTestClass(
+            {
+                buildDir: "./src",
+                reporter: new ReporterMock(fileSystem),
+                debug: false,
+                sourceMap: false,
+                transpileOnly: false,
+                watch: false,
+                project: {
+                    module: ts.ModuleKind.ESNext,
+                    target: ts.ScriptTarget.Latest,
+                    configFilePath: "./tsconfig.json",
+                },
+                tsconfig: {
+                    options: {},
+                    fileNames: fileSystem.readDirectory("./src"),
+                    errors: [],
+                },
+            },
+            fileSystem
+        ).compile();
+
+        expect(fileSystem.readFile("/src/target.js")).toMatchInlineSnapshot(`
+            "export const computeDate = async () => new Date();
+            "
+        `);
+    });
 });
 
 describe("emitSourceFile", () => {

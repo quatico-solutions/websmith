@@ -55,7 +55,10 @@ export class Compiler {
     }
 
     public getContext(target?: string): CompilationContext | undefined {
-        return this.contextMap.get(target ?? "*");
+        if (target) {
+            return this.contextMap.get(target);
+        }
+        return this.createCompilationContext(this.options, target, this.dependencyCallback);
     }
 
     public getSystem(): ts.System {
@@ -94,32 +97,21 @@ export class Compiler {
         this.createTargetContextsIfNecessary();
 
         const results: ts.EmitResult[] = [];
-        this.options.targets.forEach((target: string) => {
-            const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
-            const { config } = this.options;
-            const { writeFile = true } = getTargetConfig(target, config);
-            const ctx = this.contextMap.get(target);
-
-            if (!ctx) {
-                return;
+        if (!this.options.targets || !this.options.targets.length) {
+            const ctx = this.getContext();
+            if (ctx) {
+                const result = this.emitResult(undefined, ctx); // no target
+                results.push(this.options.transpileOnly ? result : this.report(ctx.getProgram(), result));
             }
-
-            for (const fileName of this.getRootFiles()) {
-                const fragment = this.emitSourceFile(fileName, target, writeFile);
-                if (fragment?.files.length > 0) {
-                    result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
-                } else {
-                    fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
-                    result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
-                    result.emitSkipped = !!fragment.diagnostics && fragment.diagnostics.length > 0 ? true : false;
+        } else {
+            this.options.targets.forEach((target: string) => {
+                const ctx = this.getContext(target);
+                if (ctx) {
+                    const result = this.emitResult(target, ctx);
+                    results.push(this.options.transpileOnly ? result : this.report(ctx.getProgram(), result));
                 }
-            }
-
-            const files = this.getRootFiles();
-            ctx.getResultProcessors().forEach(cur => cur(files));
-
-            results.push(this.options.transpileOnly ? result : this.report(ctx.getProgram(), result));
-        });
+            });
+        }
 
         return results.filter(cur => !!cur).length < 1
             ? { emitSkipped: true, diagnostics: [] }
@@ -130,13 +122,34 @@ export class Compiler {
               };
     }
 
+    private emitResult(target: string | undefined, ctx: CompilationContext): ts.EmitResult {
+        const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
+        const { config } = this.options;
+        const { writeFile = true } = getTargetConfig(target, config);
+
+        for (const fileName of this.getRootFiles()) {
+            const fragment = this.emitSourceFile(fileName, target, writeFile);
+            if (fragment?.files.length > 0) {
+                result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
+            } else {
+                fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
+                result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
+                result.emitSkipped = !!fragment.diagnostics && fragment.diagnostics.length > 0 ? true : false;
+            }
+        }
+
+        const files = this.getRootFiles();
+        ctx.getResultProcessors().forEach(cur => cur(files));
+        return result;
+    }
+
     public watch(): this {
         this.createTargetContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {
             const emitTargets: string[] = this.getWritingTargets();
             this.getRootFiles().forEach(cur => {
-                if (this.options.targets[0] === "*") {
+                if (this.options?.targets?.[0] === "*") {
                     emitTargets.push("*");
                 }
                 emitTargets.forEach(target => this.emitSourceFile(cur, target, true));
@@ -185,27 +198,33 @@ export class Compiler {
     }
 
     protected createTargetContextsIfNecessary(): this {
-        this.options.targets.forEach((target: string) => {
-            if (this.contextMap.has(target)) {
-                return;
-            }
-
-            const ctx = this.createCompilationContext(this.options, target, this.dependencyCallback);
-            this.addons?.getAvailableAddons(target).forEach(addon => {
+        if (!this.options.targets || !this.options.targets.length) {
+            const ctx = this.createCompilationContext(this.options, undefined, this.dependencyCallback);
+            this.addons?.getAvailableAddons().forEach(addon => {
                 addon.activate(ctx);
             });
-            this.contextMap.set(target, ctx);
-        });
+        } else {
+            this.options.targets.forEach((target: string) => {
+                if (this.contextMap.has(target)) {
+                    return;
+                }
+                const ctx = this.createCompilationContext(this.options, target, this.dependencyCallback);
+                this.addons?.getAvailableAddons(target).forEach(addon => {
+                    addon.activate(ctx);
+                });
+                this.contextMap.set(target, ctx);
+            });
+        }
         return this;
     }
 
     protected createCompilationContext(
         compileOptions: CompilerOptions,
-        target: string,
+        target?: string,
         registerDependencyCallback?: (filePath: string) => void
     ): CompilationContext {
         const { buildDir, config, project, tsconfig, watch } = compileOptions;
-        const { options, config: targetConfig } = getTargetConfig(target, config);
+        const { options = {}, config: targetConfig } = getTargetConfig(target, config);
         return new CompilationContext({
             buildDir,
             project: { ...project, ...options },
@@ -215,16 +234,16 @@ export class Compiler {
             tsconfig: { ...tsconfig, options: { ...project, ...options } },
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,
-            config: targetConfig,
+            ...(!!targetConfig && { config: targetConfig }),
             target,
             ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.getWritingTargets()) }),
             registerDependencyCallback,
         });
     }
 
-    protected emitSourceFile(fileName: string, target: string, writeFile = true, skipCache = false): CompileFragment {
+    protected emitSourceFile(fileName: string, target?: string, writeFile = true, skipCache = false): CompileFragment {
         const filePath = this.system.resolvePath(fileName);
-        const ctx = this.contextMap.get(target);
+        const ctx = this.getContext(target);
         const cache = ctx?.getCache();
 
         if (ctx && cache) {
@@ -252,11 +271,11 @@ export class Compiler {
     }
 
     protected getNonWritingTargets(): string[] {
-        return this.options.targets.filter(cur => !getTargetConfig(cur, this.options.config).writeFile);
+        return this.options.targets?.filter(cur => !getTargetConfig(cur, this.options.config).writeFile) ?? [];
     }
 
     protected getWritingTargets(): string[] {
-        return this.options.targets.filter(cur => getTargetConfig(cur, this.options.config).writeFile);
+        return this.options.targets?.filter(cur => getTargetConfig(cur, this.options.config).writeFile) ?? [];
     }
 
     private processOutput(
@@ -346,8 +365,8 @@ export class Compiler {
     }
 }
 
-const getTargetConfig = (target: string, config?: CompilationConfig): TargetConfig => {
-    if (config) {
+const getTargetConfig = (target?: string, config?: CompilationConfig): TargetConfig => {
+    if (config && target) {
         const { targets = {} } = config;
         return targets[target] ?? {};
     }
