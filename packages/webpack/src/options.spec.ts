@@ -49,7 +49,7 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = addons.refresh().getAvailableAddons();
+        const actual = addons.getAvailableAddons("*");
 
         expect(actual.map(it => it.getName())).toEqual(["addon-foo"]);
     });
@@ -80,10 +80,10 @@ describe("createOptions", () => {
     });
 
     it("should return config w/ valid addonsDir, addons in compiler config json", () => {
-        const { addons } = compileSystem({
+        const { fileSystem: target } = compileSystem({
             files: {
-                "./tsconfig.json": "{}",
-                "/expected/one/addon.js": "export const activate = () => {};",
+                "./tsconfig.json": '{ "include": ["**/*.ts"] }',
+                "/expected/one/addon.ts": "export const activate = () => {};",
                 "websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }',
             },
         });
@@ -95,20 +95,31 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = addons.refresh();
+        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
-            availableAddons: new Map(
-                Object.entries({
-                    one: {
-                        activate: expect.any(Function),
-                        getName: expect.any(Function),
-                    },
-                })
-            ),
+            buildDir: "/",
             config: {
                 addons: ["one", "two"],
-                addonsDir: "./expected",
+                addonsDir: "/expected",
+                configFilePath: "/websmith.config.json",
+            },
+            project: {
+                configFilePath: "/tsconfig.json",
+                outDir: "/lib",
+            },
+
+            targets: ["*"],
+            tsconfig: {
+                fileNames: ["/expected/one/addon.ts"],
+                errors: [],
+                options: {
+                    configFilePath: "/tsconfig.json",
+                    outDir: "/lib",
+                },
+                raw: {
+                    include: ["**/*.ts"],
+                },
             },
         });
     });

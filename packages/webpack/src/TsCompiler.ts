@@ -56,7 +56,7 @@ export class TsCompiler extends Compiler {
                       addonsDir: addonsDir ?? options.config?.addonsDir ?? "./addons",
                       reporter: options.reporter,
                       system,
-                  }).refresh()
+                  })
                 : undefined,
             dependencyCallback
         );

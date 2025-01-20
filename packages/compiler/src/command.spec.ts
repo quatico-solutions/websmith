@@ -213,7 +213,7 @@ describe("addCompileCommand#addons", () => {
 
         addCompileCommand(new Command(), target).parse(["--addons", "expected"], { from: "user" });
 
-        expect(addons.refresh().getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(addons.getAvailableAddons("*").getNames()).toEqual(["expected"]);
     });
 
     it("should yield options addons w/ --addons cli argument and multiple existing addons", () => {
@@ -225,7 +225,7 @@ describe("addCompileCommand#addons", () => {
 
         addCompileCommand(new Command(), target).parse(["--addons", "zip, zap, zup"], { from: "user" });
 
-        expect(addons.refresh().getAvailableAddons().getNames()).toEqual(["zip", "zap", "zup"]);
+        expect(addons.getAvailableAddons("*").getNames()).toEqual(["zip", "zap", "zup"]);
     });
 
     it("should yield empty options addons w/ --addons cli argument and non-existing addon", () => {
@@ -234,7 +234,7 @@ describe("addCompileCommand#addons", () => {
 
         addCompileCommand(new Command(), target).parse(["--addons", "unknown"], { from: "user" });
 
-        expect(addons.getAvailableAddons()).toHaveLength(0);
+        expect(addons.getAvailableAddons("*")).toHaveLength(0);
     });
 
     it("should not yield non-existing options addons w/ --addons cli argument, existing and non-existing addons", () => {
@@ -244,7 +244,7 @@ describe("addCompileCommand#addons", () => {
 
         addCompileCommand(new Command(), target).parse(["--addons", "unknown, expected"], { from: "user" });
 
-        expect(addons.refresh().getAvailableAddons().getNames()).toEqual(["expected"]);
+        expect(addons.getAvailableAddons("*").getNames()).toEqual(["expected"]);
     });
 
     it("should yield warning w/ --addons cli argument and non-existing addon name", () => {

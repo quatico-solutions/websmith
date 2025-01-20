@@ -142,7 +142,7 @@ export class CompilationEnv {
 
     // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
     public getActiveAddon(addonName: string): CompilerAddon | undefined {
-        return this.addons?.getAvailableAddons().find((it: CompilerAddon) => it.getName() === addonName);
+        return this.addons?.getAvailableAddons("*").find((it: CompilerAddon) => it.getName() === addonName);
     }
 
     public getActiveAddons(target?: string): CompilerAddons {
