@@ -28,6 +28,18 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.6.2] - 2025-01-22
+
+Bugfix release to address an issue with the compiler does not transpile any output when no target is specified
+
+### Fixed
+
+- Fixes Issue 49 Running the compiler w/ available 'addons' but w/o 'target' does not transpile any output"
+
+### Changed
+
+- Improves lifecycle of AddonRegistry. No need to call `refresh()` from AddonRegistry instantiation
+
 ## [0.6.1] - 2025-01-20
 
 Bugfix release to address an issue with the webpack loader configuration and the websmith options to activate an addon.
