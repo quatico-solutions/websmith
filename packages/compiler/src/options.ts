@@ -22,7 +22,6 @@ const DEFAULTS = {
     outDir: "./lib",
     project: "./tsconfig.json",
     sourceMap: false,
-    targets: "*",
     watch: false,
 };
 
@@ -55,7 +54,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         project: tsconfig.options,
         reporter,
         sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
-        targets: resolveTargets(args.targets || DEFAULTS.targets, compilationConfig, reporter),
+        targets: resolveTargets(args.targets, compilationConfig, reporter),
         transpileOnly: args.transpileOnly ?? compilationConfig?.transpileOnly ?? false,
         watch: args.watch ?? DEFAULTS.watch,
     };

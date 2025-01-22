@@ -13,7 +13,7 @@ import { PluginOptions } from "./loader-options";
 export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
     return {
         output: outputText.replace(/^\/\/# sourceMappingURL=[^\r\n]*/gm, ""),
-        ...(sourceMapText && { sourceMap: JSON.parse(sourceMapText) }),
+        ...(!!sourceMapText && { sourceMap: JSON.parse(sourceMapText) }),
     };
 };
 
