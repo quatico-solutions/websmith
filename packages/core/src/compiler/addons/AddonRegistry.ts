@@ -22,8 +22,8 @@ export class AddonRegistry {
     private config: AddonConfig;
 
     constructor(config: AddonConfig) {
-        this.availableAddons = new Map<string, CompilerAddon>();
         this.config = { ...config };
+        this.availableAddons = this.findAddons();
     }
 
     setConfig(config: Partial<AddonConfig>): this {
@@ -35,6 +35,17 @@ export class AddonRegistry {
         return this.config.addonsDir;
     }
 
+    /**
+     * Retrieves the available compiler addons based on the specified target. Only addons that are
+     * provided in the 'addonsDir' are requested. If unavailable addons are requested, a warning message
+     * is emitted to the registry's reporter.
+     *
+     * @param target - An optional string specifying the target for which to retrieve the addons.
+     *                 If not provided, the function will retrieve addons specified by the 'addons'
+     *                 property in the configuration, or an empty array.
+     * @returns A `CompilerAddons` object containing the available addons for the specified 'target'
+     *          or by the 'addons' property in the configuration.
+     */
     public getAvailableAddons(target?: string): CompilerAddons {
         this.reportMissingAddons(target);
         const expectedNames = this.getExpectedAddons(target);
@@ -50,6 +61,13 @@ export class AddonRegistry {
         return this;
     }
 
+    /**
+     * Retrieves the list of expected addons based on the provided 'target' and the 'addons'
+     * property from the configuration.
+     *
+     * @param target - An optional string representing the target for which to retrieve addons.
+     * @returns An array of unique addon names that are expected for the given target or 'addons' config.
+     */
     private getExpectedAddons(target?: string): string[] {
         const { targets = {}, addons = [] } = this.config;
         const requestedAddons = addons.filter(it => it.length > 0);

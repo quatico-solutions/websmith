@@ -27,7 +27,6 @@ beforeEach(() => {
             buildDir: "./src",
             project: {},
             reporter,
-            targets: [],
             tsconfig: { options: { outDir: ".build" }, fileNames: [], errors: [] },
             debug: false,
             sourceMap: false,

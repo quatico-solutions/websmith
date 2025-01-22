@@ -20,7 +20,7 @@ export type CompilationContextOptions = {
     reporter: Reporter;
     rootFiles: string[];
     system: ts.System;
-    target: string;
+    target?: string;
     tsconfig: ts.ParsedCommandLine;
     watchCallback?: (filePath: string) => void;
     registerDependencyCallback?: (filePath: string) => void;
@@ -230,13 +230,14 @@ export class CompilationContext implements AddonContext {
     }: {
         system: ts.System;
         options: ts.CompilerOptions;
-        target: string;
+        target?: string;
     }): ts.LanguageServiceHost {
         return {
             ...createSharedHost(system),
             getScriptVersion: (fileName: string) => {
                 fileName = system.resolvePath(fileName);
-                return `${fileName}:${this.cache.getVersion(fileName).toString()}:${target}`;
+                const version = this.cache.getVersion(fileName).toString();
+                return target ? `${fileName}:${version}:${target}` : `${fileName}:${version}`;
             },
             getScriptSnapshot: (fileName: string) => {
                 fileName = system.resolvePath(fileName);

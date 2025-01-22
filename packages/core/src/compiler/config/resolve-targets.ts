@@ -10,11 +10,12 @@ import { CompilationConfig } from "./CompilationConfig";
 // TODO: Target resolution: Passed targets in CLI vs. specified targets in CompilationConfig
 //  Passed target this args.target
 //  Specified targets in CompilationConfig
-export const resolveTargets = (targets: string, config: CompilationConfig | undefined, reporter: Reporter) => {
-    const passedTargets = targets
-        .split(",")
-        .map(it => it.trim())
-        .filter(it => it.length > 0);
+export const resolveTargets = (targets: string | undefined, config: CompilationConfig | undefined, reporter: Reporter) => {
+    const passedTargets =
+        targets
+            ?.split(",")
+            .map(it => it.trim())
+            .filter(it => it.length > 0) ?? [];
     if (passedTargets.length > 0 && passedTargets[0] !== "*") {
         const configured = Object.keys(config?.targets ?? {});
         const missingTargets = passedTargets.filter(passed => configured[0] !== "*" && !configured.includes(passed));
