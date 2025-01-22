@@ -339,7 +339,7 @@ export class CompilationEnv {
 
         if (this.virtual) {
             this.system
-                .readDirectory(addonsTargetDir, [".js", ".jsx", ".ts", ".tsx"])
+                .readDirectory(addonsTargetDir, [".js", ".jsx"])
                 .map(filePath => this.system.resolvePath(filePath))
                 .forEach(resolvedPath => {
                     jest.mock(
