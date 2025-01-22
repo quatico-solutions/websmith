@@ -58,7 +58,11 @@ export class Compiler {
         if (target) {
             return this.contextMap.get(target);
         }
-        return this.createCompilationContext(this.options, target, this.dependencyCallback);
+        const defaultCtx = this.contextMap.get("default");
+        if (!defaultCtx) {
+            this.contextMap.set("default", this.createCompilationContext(this.options, undefined, this.dependencyCallback));
+        }
+        return this.contextMap.get("default");
     }
 
     public getSystem(): ts.System {
@@ -199,7 +203,7 @@ export class Compiler {
 
     protected createTargetContextsIfNecessary(): this {
         if (!this.options.targets || !this.options.targets.length) {
-            const ctx = this.createCompilationContext(this.options, undefined, this.dependencyCallback);
+            const ctx = this.getContext()!;
             this.addons?.getAvailableAddons().forEach(addon => {
                 addon.activate(ctx);
             });
