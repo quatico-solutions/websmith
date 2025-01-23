@@ -28,7 +28,15 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
-## [0.6.2] - 2025-01-22
+## [0.6.3] - 2025-01-23
+
+Compilation with selected addons but no targets does not apply addons to emitted output. This release fixes the issue and improves the lifecycle of the AddonRegistry.
+
+### Fixed
+
+- Fixes Issue 51 Compilation with selected addons but no targets does not apply addons to emitted output.
+
+## [0.6.3] - 2025-01-22
 
 Bugfix release to address an issue with the compiler does not transpile any output when no target is specified
 
