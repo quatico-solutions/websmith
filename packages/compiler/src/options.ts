@@ -16,8 +16,8 @@ import { dirname } from "path";
 import ts from "typescript";
 import { CompilerArguments } from "./CompilerArguments";
 
-const DEFAULTS = {
-    config: "./websmith.config.json",
+const DEFAULTS: CompilerArguments & { outDir: string; project: string; configFile: string } = {
+    configFile: "./websmith.config.json",
     debug: false,
     outDir: "./lib",
     project: "./tsconfig.json",
@@ -27,12 +27,11 @@ const DEFAULTS = {
 
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const tsconfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
-    const compilationConfig = resolveCompilationConfig(args.config ?? DEFAULTS.config, reporter, system);
+    const compilationConfig = resolveCompilationConfig(args.configFile ?? DEFAULTS.configFile, reporter, system);
 
     const projectDirectory =
-        (compilationConfig?.configFilePath && dirname(compilationConfig.configFilePath)) ??
-        (tsconfig.raw && tsconfig.raw.configFilePath && dirname(tsconfig.raw?.configFilePath));
-    tsconfig.options.outDir = args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir;
+        (args?.configFile && dirname(args.configFile)) ?? (tsconfig.raw && tsconfig.raw.configFilePath && dirname(tsconfig.raw?.configFilePath));
+    tsconfig.options.outDir = system.resolvePath(args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir);
     if (projectDirectory) {
         tsconfig.options = updateCompilerOptions(tsconfig.options, system, projectDirectory);
     }

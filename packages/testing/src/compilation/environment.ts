@@ -64,7 +64,6 @@ export class CompilationEnv {
             buildDir: this.buildDir,
             targets: options?.compilerOptions?.targets?.length ? options.compilerOptions.targets : ["*"],
             config: {
-                configFilePath: `${this.rootDir}/websmith.config.json`,
                 targets: {
                     "*": {
                         options: { outDir },

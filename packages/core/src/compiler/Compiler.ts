@@ -227,12 +227,12 @@ export class Compiler {
         target?: string,
         registerDependencyCallback?: (filePath: string) => void
     ): CompilationContext {
-        const { buildDir, config, project, tsconfig, watch } = compileOptions;
+        const { buildDir, config, configFile, project, tsconfig, watch } = compileOptions;
         const { options = {}, config: targetConfig } = getTargetConfig(target, config);
         return new CompilationContext({
             buildDir,
             project: { ...project, ...options },
-            projectDir: dirname(config?.configFilePath ?? tsconfig.raw?.configFilePath ?? this.system.getCurrentDirectory()),
+            projectDir: dirname(configFile ?? tsconfig.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
             program: ts.createProgram({ rootNames: this.getRootFiles(), options: project, host: createCompileHost(project) }),
             tsconfig: { ...tsconfig, options: { ...project, ...options } },

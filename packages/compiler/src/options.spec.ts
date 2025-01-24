@@ -30,12 +30,10 @@ describe("createOptions", () => {
 
         const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).project;
 
-        expect(actual).toEqual(
-            expect.objectContaining({
-                configFilePath: "/expected/tsconfig.json",
-                outDir: "/lib",
-            })
-        );
+        expect(actual).toEqual({
+            configFilePath: "/expected/tsconfig.json",
+            outDir: "/lib",
+        });
     });
 
     it("should return expected path w/ custom addons directory and '*' target", () => {
@@ -80,10 +78,9 @@ describe("createOptions", () => {
             },
         });
 
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target).config;
+        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target).config;
 
         expect(actual).toEqual({
-            configFilePath: "/websmith.config.json",
             targets: { whatever: { addons: ["one", "two", "three"], writeFile: true } },
         });
     });
@@ -104,14 +101,13 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target);
+        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
             buildDir: "/",
             config: {
                 addons: ["one", "two"],
                 addonsDir: "/expected",
-                configFilePath: "/websmith.config.json",
             },
             project: {
                 configFilePath: "/tsconfig.json",

@@ -11,11 +11,13 @@ import type { CompilationConfig } from "./config";
 export interface CompilerOptions {
     buildDir: string;
     config?: CompilationConfig;
-    debug: boolean;
+    /** Relative path to the `websmith.config.json` configuration file. */
+    configFile?: string;
+    debug?: boolean;
     tsconfig: ts.ParsedCommandLine;
     project: ts.CompilerOptions;
     reporter: Reporter;
-    sourceMap: boolean;
+    sourceMap?: boolean;
     /**
      * List of targets to be compiled. Refers to the `targets` defined in the `config` property.
      * Use `["*"]` to compile with all available addons. No addons will be used if no target is specified.
@@ -26,9 +28,7 @@ export interface CompilerOptions {
      * Overrides the `transpileOnly` specified in the `tsconfig.json`.
      * @deprecated use `config.transpileOnly` instead.
      */
-    transpileOnly: boolean;
-    watch: boolean;
+    transpileOnly?: boolean;
+    watch?: boolean;
     additionalArguments?: Map<string, unknown>;
-    // TODO: Add support for style processors via addon
-    // sassOptions?: sass.Options<"sync">;
 }

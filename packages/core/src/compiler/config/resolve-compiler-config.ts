@@ -21,7 +21,7 @@ export const resolveCompilationConfig = (configFilePath: string, reporter: Repor
                 const config = JSON.parse(content ?? "{}");
 
                 // TODO: Do we need further validation for the config per target?
-                return { ...updatePaths(config, system, dirname(resolvedPath)), configFilePath: resolvedPath };
+                return { ...updatePaths(config, system, dirname(resolvedPath)) };
             }
         }
     }

@@ -58,7 +58,7 @@ describe("addCompileCommand", () => {
         );
         expect(actual.buildDir).toEqual(expect.stringContaining(path.sep));
         expect(actual.watch).toBe(false);
-        expect(actual.config).toEqual({ configFilePath: "/websmith.config.json" });
+        expect(actual.config).toEqual({});
         expect(actual.debug).toBe(false);
         const compilerOptions = {
             configFilePath: "/tsconfig.json",
@@ -101,13 +101,13 @@ describe("addCompileCommand", () => {
         expect(actual.watch).toBe(false);
     });
 
-    it("should yield config option w/ --config cli argument", () => {
+    it("should yield config option w/ --configFile cli argument", () => {
         const testSystem = compileSystem({ files: { "./expected/websmith.config.json": "{}" } }).fileSystem;
         const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
 
-        addCompileCommand(new Command(), target).parse(["--config", "./expected/websmith.config.json"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--configFile", "./expected/websmith.config.json"], { from: "user" });
 
-        expect(target.getOptions().config?.configFilePath).toEqual(expect.stringContaining("/expected/websmith.config.json"));
+        expect(target.getOptions().configFile).toEqual(expect.stringContaining("/expected/websmith.config.json"));
     });
 
     it("should yield project option w/ --project cli argument", () => {

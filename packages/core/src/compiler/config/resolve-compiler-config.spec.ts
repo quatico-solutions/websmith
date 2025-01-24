@@ -38,8 +38,6 @@ describe("resolveCompilationConfig", () => {
 
         const actual = resolveCompilationConfig("./empty-config.json", new NoReporter(), target);
 
-        expect(actual).toEqual({
-            configFilePath: "/empty-config.json",
-        });
+        expect(actual).toEqual({});
     });
 });

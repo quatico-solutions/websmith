@@ -32,9 +32,8 @@ export const createOptions = (args: Partial<PluginOptions>, reporter: Reporter =
     const compilationConfig = resolveCompilationConfig(args.config ?? DEFAULTS.config, reporter, system);
 
     const projectDirectory =
-        (compilationConfig?.configFilePath && dirname(compilationConfig.configFilePath)) ??
-        (tsconfig.raw && tsconfig.raw.configFilePath && dirname(tsconfig.raw?.configFilePath));
-    tsconfig.options.outDir = args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir;
+        (args.config && dirname(args.config)) ?? (tsconfig.raw && tsconfig.raw.configFilePath && dirname(tsconfig.raw?.configFilePath));
+    tsconfig.options.outDir = system.resolvePath(args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir);
     if (projectDirectory) {
         tsconfig.options = updateCompilerOptions(tsconfig.options, system, projectDirectory);
     }
