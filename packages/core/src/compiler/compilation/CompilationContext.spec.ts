@@ -227,12 +227,12 @@ describe("isCodeFileExtension", () => {
         ["expected.cts", true],
         ["expected.d.cts", true],
         ["expected.cjs", true],
-        // TODO: Implement
+        // TODO: Implement support for code extension
         // ["expected.d.cjs", false],
         ["expected.mts", true],
         ["expected.d.mts", true],
         ["expected.mjs", true],
-        // TODO: Implement
+        // TODO: Implement support for code extension
         // ["expected.d.mjs", false],
         ["expected.scss", false],
         ["expected.json", false],
