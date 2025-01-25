@@ -29,8 +29,8 @@ export const addCompilationHooks = (compiler: Compiler, options: PluginOptions, 
                     initializeInstance(context, options, dependencyCallback);
                     const instance =
                         getInstanceFromCache(compilation.compiler, context) ?? new TsCompiler(createOptions(options), dependencyCallback, options);
-                    if (options.config) {
-                        instance.pluginConfig = JSON.parse(readFileSync(options.config).toString());
+                    if (options.configFile) {
+                        instance.pluginConfig = JSON.parse(readFileSync(options.configFile).toString());
                     }
                     setInstanceInCache(compilation.compiler, context, instance);
                 }

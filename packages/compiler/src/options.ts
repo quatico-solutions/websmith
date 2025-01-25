@@ -16,8 +16,7 @@ import { dirname } from "path";
 import ts from "typescript";
 import { CompilerArguments } from "./CompilerArguments";
 
-const DEFAULTS: CompilerArguments & { outDir: string; project: string; configFile: string } = {
-    configFile: "./websmith.config.json",
+const DEFAULTS: CompilerArguments & { outDir: string; project: string } = {
     debug: false,
     outDir: "./lib",
     project: "./tsconfig.json",
@@ -27,7 +26,7 @@ const DEFAULTS: CompilerArguments & { outDir: string; project: string; configFil
 
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const tsconfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
-    const compilationConfig = resolveCompilationConfig(args.configFile ?? DEFAULTS.configFile, reporter, system);
+    const compilationConfig = args.configFile ? resolveCompilationConfig(args.configFile, reporter, system) : undefined;
 
     const projectDirectory =
         (args?.configFile && dirname(args.configFile)) ?? (tsconfig.raw && tsconfig.raw.configFilePath && dirname(tsconfig.raw?.configFilePath));
@@ -43,9 +42,13 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         }
     }
 
+    const targets = args.targets?.split(",").map(target => target.trim()) ?? [];
+    const config = compilationConfig || args.config ? Object.assign({}, compilationConfig, args.config) : undefined;
+
     return {
         buildDir: args.buildDir ?? system.getCurrentDirectory(),
-        config: compilationConfig,
+        ...(config && { config }),
+        ...(args.configFile && { configFile: args.configFile }),
         debug: args.debug ?? DEFAULTS.debug,
         // TODO: Do we need lib files, or is injecting them into the system sufficient?
         // files?: Record<string, string>;
@@ -53,7 +56,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         project: tsconfig.options,
         reporter,
         sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
-        targets: resolveTargets(args.targets, compilationConfig, reporter),
+        targets: resolveTargets(targets, compilationConfig, reporter),
         transpileOnly: args.transpileOnly ?? compilationConfig?.transpileOnly ?? false,
         watch: args.watch ?? DEFAULTS.watch,
     };

@@ -58,7 +58,7 @@ describe("addCompileCommand", () => {
         );
         expect(actual.buildDir).toEqual(expect.stringContaining(path.sep));
         expect(actual.watch).toBe(false);
-        expect(actual.config).toEqual({});
+        expect(actual.config).toBeUndefined();
         expect(actual.debug).toBe(false);
         const compilerOptions = {
             configFilePath: "/tsconfig.json",

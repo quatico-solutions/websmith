@@ -5,15 +5,16 @@
  * ---------------------------------------------------------------------------------------------
  */
 
+import { CompilationConfig } from "@quatico/websmith-core";
 import { LoaderContext, WebpackError } from "webpack";
-import { DEFAULTS } from "./options";
 import { Upath as uPath } from "./Upath";
 
 export interface PluginArguments {
     addons?: string;
     addonsDir?: string;
     buildDir?: string;
-    config?: string;
+    config?: CompilationConfig;
+    configFile?: string;
     debug?: boolean;
     project?: string;
     sourceMap?: boolean;
@@ -33,7 +34,7 @@ export const getLoaderOptions = (loader: LoaderContext<PluginOptions>): PluginOp
         ...options,
         ...(!!loader._module && typeof loader._module.addWarning === "function" && { warn: (err: WebpackError) => loader._module!.addWarning(err) }),
         ...(!!loader._module && typeof loader._module.addError === "function" && { error: (err: WebpackError) => loader._module!.addError(err) }),
-        config: uPath.resolve(options.config ?? DEFAULTS.config),
+        ...(!!options.configFile && { configFile: uPath.resolve(options.configFile) }),
         transpileOnly: options.transpileOnly ?? false,
         webpackTarget: options.webpackTarget ?? "*",
     };

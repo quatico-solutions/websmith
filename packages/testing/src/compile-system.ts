@@ -30,15 +30,12 @@ export const compileSystem = (options?: CompileSystemOptions): CompileSystem => 
         if (!fileSystem.fileExists("./tsconfig.json")) {
             fileSystem.writeFile("./tsconfig.json", "{}");
         }
-        if (!fileSystem.fileExists("./websmith.config.json")) {
-            fileSystem.writeFile("./websmith.config.json", "{}");
-        }
         if (!fileSystem.directoryExists("./addons")) {
             fileSystem.createDirectory("./addons");
         }
     }
 
-    const { addons = [], addonsDir = "./addons", targets } = addonConfig ?? JSON.parse(fileSystem.readFile("./websmith.config.json") ?? "{}");
+    const { addons = [], addonsDir = "./addons", targets } = addonConfig ?? {};
 
     const registry = new AddonRegistry({
         addons,

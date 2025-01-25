@@ -71,7 +71,7 @@ describe("createOptions", () => {
             `,
             },
         });
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target).config;
+        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target).config;
 
         expect(actual).toEqual({
             targets: { whatever: { addons: ["one", "two", "three"], writeFile: true } },
@@ -94,7 +94,7 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target);
+        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
             buildDir: "/",

@@ -19,7 +19,7 @@ export class TsCompiler extends Compiler {
 
     constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, pluginOptions?: PluginOptions) {
         const system = ts.sys;
-        pluginOptions = pluginOptions ? { webpackTarget: "*", ...pluginOptions } : { config: "", webpackTarget: "*" };
+        pluginOptions = pluginOptions ? { webpackTarget: "*", ...pluginOptions } : { webpackTarget: "*" };
         let websmithConfig: CompilationConfig = {
             addons:
                 pluginOptions.addons
@@ -29,8 +29,8 @@ export class TsCompiler extends Compiler {
             addonsDir: pluginOptions.addonsDir,
             ...(!!pluginOptions.transpileOnly && { transpileOnly: pluginOptions.transpileOnly }),
         };
-        if (pluginOptions.config) {
-            websmithConfig = { ...resolveCompilationConfig(pluginOptions.config, options.reporter, system), ...websmithConfig };
+        if (pluginOptions.configFile) {
+            websmithConfig = { ...resolveCompilationConfig(pluginOptions.configFile, options.reporter, system), ...websmithConfig };
         }
 
         const { targets } = pluginOptions;

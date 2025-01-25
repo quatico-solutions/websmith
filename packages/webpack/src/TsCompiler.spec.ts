@@ -62,7 +62,7 @@ describe("TsCompiler", () => {
                 transpileOnly: false,
                 watch: false,
             },
-            { addonsDir: "./addons", config: "./websmith.config.json" }
+            { addonsDir: "./addons", configFile: "./websmith.config.json" }
         );
     });
 
@@ -122,7 +122,7 @@ describe("Transpilation", () => {
                 transpileOnly: false,
                 watch: false,
             },
-            { addonsDir: "./addons", config: "./websmith.config.json" }
+            { addonsDir: "./addons", configFile: "./websmith.config.json" }
         );
 
         const actual = testObj.build(expected);

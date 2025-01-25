@@ -34,7 +34,7 @@ beforeEach(() => {
             watch: false,
         },
         () => undefined,
-        { addonsDir: "./addons", config: "./websmith.config.json" }
+        { addonsDir: "./addons", configFile: "./websmith.config.json" }
     );
 });
 
