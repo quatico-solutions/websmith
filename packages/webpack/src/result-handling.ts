@@ -8,7 +8,7 @@
 import { CompileFragment } from "@quatico/websmith-core";
 import type typescript from "typescript";
 import { LoaderContext } from "webpack";
-import { PluginOptions } from "./loader-options";
+import { WebsmithLoaderConfig } from "./loader-options";
 
 export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
     return {
@@ -17,7 +17,7 @@ export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
     };
 };
 
-export const processResultAndFinish = (loader: LoaderContext<PluginOptions>, fragment: CompileFragment, targets: string[]) => {
+export const processResultAndFinish = (loader: LoaderContext<WebsmithLoaderConfig>, fragment: CompileFragment, targets: string[]) => {
     const outputText = fragment.files.find((cur: typescript.OutputFile) => cur.name.match(/\.jsx?$/i))?.text;
     const sourceMapText = fragment.files.find((cur: typescript.OutputFile) => cur.name.match(/\.jsx?\.map$/i))?.text;
 

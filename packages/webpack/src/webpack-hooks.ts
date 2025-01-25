@@ -9,28 +9,28 @@ import { readFileSync } from "fs";
 import { Compilation, Compiler, LoaderContext, NormalModule, Stats } from "webpack";
 import { contribute } from "./CompilationQueue";
 import { getInstanceFromCache, initializeInstance, setInstanceInCache } from "./instance-cache";
-import { PluginOptions } from "./loader-options";
+import { WebsmithLoaderConfig } from "./loader-options";
 import { TsCompiler } from "./TsCompiler";
 
 const LOADER_NAME = "websmith-loader";
 
-export const addCompilationHooks = (compiler: Compiler, options: PluginOptions, dependencyCallback: (filePath: string) => void) => {
+export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderConfig, dependencyCallback: (filePath: string) => void) => {
     const makeCompilation = () => {
-        return (compilation: Compilation, options: PluginOptions): void => {
+        return (compilation: Compilation, options: WebsmithLoaderConfig): void => {
             // NormalModule.getCompilationHooks(compilation).loader.tap(LOADER_NAME, (ctx: object) => {
             compilation.hooks.processAssets.tap(LOADER_NAME, assets => {
                 console.error(`processAssets for ${JSON.stringify(assets)}`);
             });
 
             NormalModule.getCompilationHooks(compilation)?.loader?.tap(LOADER_NAME, (ctx: object) => {
-                const context: LoaderContext<PluginOptions> = ctx as LoaderContext<PluginOptions>;
+                const context: LoaderContext<WebsmithLoaderConfig> = ctx as LoaderContext<WebsmithLoaderConfig>;
 
                 if (context) {
                     initializeInstance(context, options, dependencyCallback);
                     const instance =
                         getInstanceFromCache(compilation.compiler, context) ?? new TsCompiler(createOptions(options), dependencyCallback, options);
                     if (options.configFile) {
-                        instance.pluginConfig = JSON.parse(readFileSync(options.configFile).toString());
+                        instance.loaderConfig = JSON.parse(readFileSync(options.configFile).toString());
                     }
                     setInstanceInCache(compilation.compiler, context, instance);
                 }
@@ -39,7 +39,7 @@ export const addCompilationHooks = (compiler: Compiler, options: PluginOptions, 
     };
 
     const cachedMakeCompilation = makeCompilation();
-    const makeCompilationCallback = (compilation: Compilation, loaderOptions: PluginOptions) => {
+    const makeCompilationCallback = (compilation: Compilation, loaderOptions: WebsmithLoaderConfig) => {
         compilation.hooks.processAssets.tap({ name: LOADER_NAME, stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL }, () => {
             cachedMakeCompilation(compilation, loaderOptions);
         });

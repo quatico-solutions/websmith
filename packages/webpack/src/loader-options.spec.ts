@@ -5,11 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { LoaderContext } from "webpack";
-import { getLoaderOptions, PluginOptions } from "./loader-options";
+import { getLoaderOptions, WebsmithLoaderConfig } from "./loader-options";
 
 describe("getLoaderOptions", () => {
     it("should yield default values w/ empty options", () => {
-        const target = { getOptions: () => ({}) } as LoaderContext<PluginOptions>;
+        const target = { getOptions: () => ({}) } as LoaderContext<WebsmithLoaderConfig>;
 
         const actual = getLoaderOptions(target);
 

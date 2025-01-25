@@ -10,7 +10,7 @@ import ts from "typescript";
 import { LoaderContext, WebpackError } from "webpack";
 import { Upath as uPath } from "./Upath";
 
-export interface PluginArguments {
+export interface WebsmithLoaderOptions {
     addons?: string[];
     addonsDir?: string;
     buildDir?: string;
@@ -25,13 +25,13 @@ export interface PluginArguments {
     webpackTarget?: string;
 }
 
-export type PluginOptions = PluginArguments & {
+export type WebsmithLoaderConfig = WebsmithLoaderOptions & {
     warn?: (err: WebpackError) => void;
     error?: (err: WebpackError) => void;
 };
 
-export const getLoaderOptions = (loader: LoaderContext<PluginOptions>): PluginOptions => {
-    const options: PluginOptions = loader.getOptions();
+export const getLoaderOptions = (loader: LoaderContext<WebsmithLoaderConfig>): WebsmithLoaderConfig => {
+    const options: WebsmithLoaderConfig = loader.getOptions();
     const result = {
         ...options,
         ...(!!loader._module && typeof loader._module.addWarning === "function" && { warn: (err: WebpackError) => loader._module!.addWarning(err) }),

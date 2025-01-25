@@ -11,13 +11,13 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import ts from "typescript";
 import { TsCompiler } from "./TsCompiler";
-import { PluginOptions } from "./loader-options";
+import { WebsmithLoaderConfig } from "./loader-options";
 
 class TestCompiler extends TsCompiler {
     private sys: ts.System | undefined;
 
-    constructor(options: CompilerOptions, pluginOptions?: PluginOptions) {
-        super(options, path => console.info(`dependency ${path} added`), pluginOptions);
+    constructor(options: CompilerOptions, loaderConfig?: WebsmithLoaderConfig) {
+        super(options, path => console.info(`dependency ${path} added`), loaderConfig);
         this.sys = super.getSystem();
     }
 

@@ -15,9 +15,9 @@ import {
 } from "@quatico/websmith-core";
 import { dirname } from "path";
 import ts from "typescript";
-import { PluginArguments, PluginOptions } from "./loader-options";
+import { WebsmithLoaderOptions, WebsmithLoaderConfig } from "./loader-options";
 
-export const DEFAULTS: PluginArguments & { outDir: string; project: string; targets: string[] } = {
+export const DEFAULTS: WebsmithLoaderOptions & { outDir: string; project: string; targets: string[] } = {
     addonsDir: "./addons",
     debug: false,
     outDir: "./lib",
@@ -26,7 +26,11 @@ export const DEFAULTS: PluginArguments & { outDir: string; project: string; targ
     targets: ["*"],
 };
 
-export const createOptions = (args: Partial<PluginOptions>, reporter: Reporter = new NoReporter(), system: ts.System = ts.sys): CompilerOptions => {
+export const createOptions = (
+    args: Partial<WebsmithLoaderConfig>,
+    reporter: Reporter = new NoReporter(),
+    system: ts.System = ts.sys
+): CompilerOptions => {
     const { project, targets, debug, sourceMap, configFile, buildDir, config, transpileOnly, tsConfig } = { ...DEFAULTS, ...args };
 
     const tsconfig = resolveTsConfig(project, system);

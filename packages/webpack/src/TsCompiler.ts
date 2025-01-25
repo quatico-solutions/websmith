@@ -9,27 +9,27 @@ import { AddonRegistry, CompilationConfig, CompileFragment, Compiler, CompilerOp
 import ts from "typescript";
 import { WebpackError } from "webpack";
 import { Upath as uPath } from "./Upath";
-import { PluginOptions } from "./loader-options";
+import { WebsmithLoaderConfig } from "./loader-options";
 
 export class TsCompiler extends Compiler {
     public fragment?: CompileFragment;
-    public pluginConfig: PluginOptions;
+    public loaderConfig: WebsmithLoaderConfig;
     public targets: string[];
     public webpackTarget: string;
 
-    constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, pluginOptions?: PluginOptions) {
+    constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, loaderConfig?: WebsmithLoaderConfig) {
         const system = ts.sys;
-        pluginOptions = pluginOptions ? { webpackTarget: "*", ...pluginOptions } : { webpackTarget: "*" };
+        loaderConfig = loaderConfig ? { webpackTarget: "*", ...loaderConfig } : { webpackTarget: "*" };
         let websmithConfig: CompilationConfig = {
-            addons: pluginOptions.addons ?? [],
-            addonsDir: pluginOptions.addonsDir,
-            ...(!!pluginOptions.transpileOnly && { transpileOnly: pluginOptions.transpileOnly }),
+            addons: loaderConfig.addons ?? [],
+            addonsDir: loaderConfig.addonsDir,
+            ...(!!loaderConfig.transpileOnly && { transpileOnly: loaderConfig.transpileOnly }),
         };
-        if (pluginOptions.configFile) {
-            websmithConfig = { ...resolveCompilationConfig(pluginOptions.configFile, options.reporter, system), ...websmithConfig };
+        if (loaderConfig.configFile) {
+            websmithConfig = { ...resolveCompilationConfig(loaderConfig.configFile, options.reporter, system), ...websmithConfig };
         }
 
-        const { targets } = pluginOptions;
+        const { targets } = loaderConfig;
         const { addons, targets: targetsMap, addonsDir } = websmithConfig ?? {};
         const targetNames = targets ?? [];
         const addonsMerged = addons?.length
@@ -52,10 +52,10 @@ export class TsCompiler extends Compiler {
                 : undefined,
             dependencyCallback
         );
-        this.pluginConfig = pluginOptions;
+        this.loaderConfig = loaderConfig;
         super.createTargetContextsIfNecessary();
         this.targets = targetNames.length ? targetNames : options.targets ?? [];
-        this.webpackTarget = this.getFragmentTarget(pluginOptions.webpackTarget!);
+        this.webpackTarget = this.getFragmentTarget(loaderConfig.webpackTarget!);
     }
 
     public getProgram(): ts.Program | undefined {
@@ -74,7 +74,7 @@ export class TsCompiler extends Compiler {
         if (result.diagnostics?.length) {
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
                 const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-                this.pluginConfig?.error ? this.pluginConfig?.error(new WebpackError(message)) : console.error(message);
+                this.loaderConfig?.error ? this.loaderConfig?.error(new WebpackError(message)) : console.error(message);
             });
         }
         super
@@ -102,15 +102,15 @@ export class TsCompiler extends Compiler {
         const fragmentTargets = super.getNonWritingTargets();
         if (fragmentTargets.length === 0) {
             const error = `No writeFile: false targets found for "${webpackTarget}"`;
-            this.pluginConfig.warn?.(new WebpackError(error));
+            this.loaderConfig.warn?.(new WebpackError(error));
 
             const writingTargets = super.getWritingTargets();
             if (writingTargets.includes(webpackTarget) || webpackTarget == "*") {
                 return writingTargets.length > 0 ? writingTargets[0] : webpackTarget;
             }
             const noTargetError = `No target found for "${webpackTarget}"`;
-            if (this.pluginConfig.error) {
-                this.pluginConfig.error?.(new WebpackError(noTargetError));
+            if (this.loaderConfig.error) {
+                this.loaderConfig.error?.(new WebpackError(noTargetError));
             }
             throw new Error(noTargetError);
         }
@@ -119,7 +119,7 @@ export class TsCompiler extends Compiler {
         fragmentTargets
             .filter((cur: string) => cur !== target)
             .forEach((target: string) => {
-                this.pluginConfig.warn?.(new WebpackError(`Target "${target}" is not used by the WebsmithPlugin.`));
+                this.loaderConfig.warn?.(new WebpackError(`Target "${target}" is not used by the WebsmithPlugin.`));
             });
 
         return target;
