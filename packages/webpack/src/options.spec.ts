@@ -12,14 +12,17 @@ describe("createOptions", () => {
     it("should return defaults w/o any param", () => {
         const actual = createOptions({});
 
-        expect(actual).toEqual(
-            expect.objectContaining({
-                debug: false,
-                sourceMap: false,
-                targets: ["*"],
-                watch: false,
-            })
-        );
+        expect(actual).toEqual({
+            buildDir: expect.any(String),
+            project: expect.any(Object),
+            reporter: expect.any(NoReporter),
+            tsconfig: expect.any(Object),
+            debug: false,
+            sourceMap: false,
+            targets: ["*"],
+            watch: false,
+            transpileOnly: false,
+        });
     });
 
     it("should return project config w/ custom but empty tsconfig.json", () => {
@@ -30,6 +33,37 @@ describe("createOptions", () => {
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
             outDir: "/lib",
+            sourceMap: false,
+        });
+    });
+
+    it("should return project config w/ with custom tsconfig.json", () => {
+        const { fileSystem: target } = compileSystem({
+            files: { "./expected/tsconfig.json": `${JSON.stringify({ compilerOptions: { strict: true } })}` },
+        });
+
+        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).project;
+
+        expect(actual).toEqual({
+            configFilePath: "/expected/tsconfig.json",
+            outDir: "/lib",
+            sourceMap: false,
+            strict: true,
+        });
+    });
+
+    it("should return project config w/ with tsConfig override", () => {
+        const { fileSystem: target } = compileSystem({
+            files: { "./expected/tsconfig.json": `${JSON.stringify({ compileOptions: { strict: false } })}` },
+        });
+
+        const actual = createOptions({ project: "./expected/tsconfig.json", tsConfig: { strict: true } }, new NoReporter(), target).project;
+
+        expect(actual).toEqual({
+            configFilePath: "/expected/tsconfig.json",
+            outDir: "/lib",
+            sourceMap: false,
+            strict: true,
         });
     });
 

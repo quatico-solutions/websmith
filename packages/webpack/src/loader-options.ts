@@ -6,6 +6,7 @@
  */
 
 import { CompilationConfig } from "@quatico/websmith-core";
+import ts from "typescript";
 import { LoaderContext, WebpackError } from "webpack";
 import { Upath as uPath } from "./Upath";
 
@@ -19,6 +20,7 @@ export interface PluginArguments {
     project?: string;
     sourceMap?: boolean;
     transpileOnly?: boolean;
+    tsConfig?: ts.CompilerOptions;
     targets?: string[];
     webpackTarget?: string;
 }

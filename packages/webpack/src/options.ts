@@ -27,37 +27,38 @@ export const DEFAULTS: PluginArguments & { outDir: string; project: string; targ
 };
 
 export const createOptions = (args: Partial<PluginOptions>, reporter: Reporter = new NoReporter(), system: ts.System = ts.sys): CompilerOptions => {
-    const tsconfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
-    const compilationConfig = args.configFile ? resolveCompilationConfig(args.configFile, reporter, system) : undefined;
+    const { project, targets, debug, sourceMap, configFile, buildDir, config, transpileOnly, tsConfig } = { ...DEFAULTS, ...args };
 
-    const projectDirectory =
-        (args.configFile && dirname(args.configFile)) ?? (tsconfig.raw && tsconfig.raw.configFilePath && dirname(tsconfig.raw?.configFilePath));
-    tsconfig.options.outDir = system.resolvePath(args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir);
+    const tsconfig = resolveTsConfig(project, system);
+    tsconfig.options = { ...tsconfig.options, ...tsConfig };
+    const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system) : undefined;
+
+    const projectDirectory = (configFile && dirname(configFile)) ?? (tsconfig.raw?.configFilePath && dirname(tsconfig.raw?.configFilePath));
+    tsconfig.options.outDir = system.resolvePath(buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir);
     if (projectDirectory) {
         tsconfig.options = updateCompilerOptions(tsconfig.options, system, projectDirectory);
     }
 
-    if (args.sourceMap !== undefined) {
-        tsconfig.options.sourceMap = args.sourceMap;
+    if (sourceMap !== undefined) {
+        tsconfig.options.sourceMap = sourceMap;
         if (tsconfig.options.sourceMap === false) {
-            tsconfig.options.inlineSources = undefined;
+            delete tsconfig.options.inlineSources;
         }
     }
 
-    const targets = args.targets ?? DEFAULTS.targets;
-    const config = compilationConfig || args.config ? Object.assign({}, compilationConfig, args.config) : undefined;
+    const mergedConfig = compilationConfig || config ? Object.assign({}, compilationConfig, config) : undefined;
 
     return {
-        buildDir: args.buildDir ?? system.getCurrentDirectory(),
-        ...(config && { config }),
-        ...(args.configFile && { configFile: args.configFile }),
-        debug: args.debug ?? DEFAULTS.debug,
+        buildDir: buildDir ?? system.getCurrentDirectory(),
+        ...(mergedConfig && { config: mergedConfig }),
+        ...(configFile && { configFile }),
+        debug,
         tsconfig,
         project: tsconfig.options,
         reporter,
-        sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
+        sourceMap,
         targets: resolveTargets(targets, compilationConfig, reporter),
-        transpileOnly: args.transpileOnly ?? compilationConfig?.transpileOnly ?? false,
+        transpileOnly: transpileOnly ?? compilationConfig?.transpileOnly ?? false,
         watch: false,
     };
 };
