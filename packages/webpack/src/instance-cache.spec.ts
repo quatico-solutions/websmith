@@ -25,7 +25,7 @@ beforeEach(() => {
     tsCompiler = new TsCompiler(
         {
             buildDir: "./src",
-            project: {},
+            tsConfig: {},
             reporter,
             cliArgs: { options: { outDir: ".build" }, fileNames: [], errors: [] },
             debug: false,
@@ -49,7 +49,7 @@ describe("initializeInstance", () => {
 
         const actual = initializeInstance(
             target,
-            { config: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json") },
+            { configFile: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json") },
             path => console.info(`dependency ${path} added`)
         );
 

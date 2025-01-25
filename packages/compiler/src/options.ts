@@ -53,7 +53,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         // TODO: Do we need lib files, or is injecting them into the system sufficient?
         // files?: Record<string, string>;
         cliArgs: tsConfig,
-        project: tsConfig.options,
+        tsConfig: tsConfig.options,
         reporter,
         sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
         targets: resolveTargets(targets, compilationConfig, reporter),

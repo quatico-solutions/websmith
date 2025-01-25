@@ -227,15 +227,15 @@ export class Compiler {
         target?: string,
         registerDependencyCallback?: (filePath: string) => void
     ): CompilationContext {
-        const { buildDir, config, configFile, project, cliArgs, watch } = compileOptions;
+        const { buildDir, config, configFile, tsConfig, cliArgs, watch } = compileOptions;
         const { options = {}, config: targetConfig } = getTargetConfig(target, config);
         return new CompilationContext({
             buildDir,
-            project: { ...project, ...options },
+            tsConfig: { ...tsConfig, ...options },
             projectDir: dirname(configFile ?? cliArgs.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
-            program: ts.createProgram({ rootNames: this.getRootFiles(), options: project, host: createCompileHost(project) }),
-            cliArgs: { ...cliArgs, options: { ...project, ...options } },
+            program: ts.createProgram({ rootNames: this.getRootFiles(), options: tsConfig, host: createCompileHost(tsConfig) }),
+            cliArgs: { ...cliArgs, options: { ...tsConfig, ...options } },
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,
             ...(!!targetConfig && { config: targetConfig }),
@@ -344,7 +344,7 @@ export class Compiler {
 
     private transpileJson({ ctx, fileName, content }: CompilationFragment) {
         // JSON are only output by TypoScript if an outDir is provided, otherwise they are ignored.
-        if (this.options.project.outDir !== undefined) {
+        if (this.options.tsConfig.outDir !== undefined) {
             const fileNames = ts.getOutputFileNames(ctx.getConfig(), fileName, !this.system.useCaseSensitiveFileNames);
             return { outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }], emitSkipped: false };
         }

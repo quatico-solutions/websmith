@@ -58,7 +58,7 @@ export const createOptions = (
         ...(configFile && { configFile }),
         debug,
         cliArgs,
-        project: cliArgs.options,
+        tsConfig: cliArgs.options,
         reporter,
         sourceMap,
         targets: resolveTargets(targets, compilationConfig, reporter),

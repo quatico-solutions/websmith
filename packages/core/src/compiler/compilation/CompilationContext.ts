@@ -15,7 +15,7 @@ export type CompilationContextOptions = {
     buildDir: string;
     config?: unknown;
     program: ts.Program;
-    project: ts.CompilerOptions;
+    tsConfig: ts.CompilerOptions;
     projectDir: string;
     reporter: Reporter;
     rootFiles: string[];
@@ -50,7 +50,7 @@ export class CompilationContext implements AddonContext {
     private assetCodeDependency: Map<string, string[]> = new Map();
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, config, program, project, projectDir, rootFiles, system, target, cliArgs, watchCallback, registerDependencyCallback } =
+        const { buildDir, config, program, tsConfig, projectDir, rootFiles, system, target, cliArgs, watchCallback, registerDependencyCallback } =
             options;
         this.buildDir = buildDir;
         this.rootFiles = rootFiles;
@@ -61,7 +61,7 @@ export class CompilationContext implements AddonContext {
         this.generators = [];
         this.languageHost = this.createLanguageServiceHost({
             system,
-            options: project,
+            options: tsConfig,
             target,
         });
         this.cache = new FileCache(system);

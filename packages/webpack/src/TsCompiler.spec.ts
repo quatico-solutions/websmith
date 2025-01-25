@@ -53,7 +53,7 @@ describe("TsCompiler", () => {
         testObj = new TestCompiler(
             {
                 buildDir: resolve("./__TEMP__"),
-                project: { declaration: true, target: 99, noEmitOnError: true },
+                tsConfig: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
                 targets: ["*"],
                 cliArgs: { options: {}, fileNames: [expected], errors: [] },
@@ -113,7 +113,7 @@ describe("Transpilation", () => {
         testObj = new TestCompiler(
             {
                 buildDir: resolve("./__TEMP__"),
-                project: { declaration: true, target: 99, noEmitOnError: true },
+                tsConfig: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
                 targets: ["*"],
                 cliArgs: { options: { declaration: true, target: 99 }, fileNames: [expected], errors: [] },
@@ -148,7 +148,7 @@ describe("Transpilation", () => {
                         write: { writeFile: true, options: { module: 1, target: 1 } },
                     },
                 },
-                project: { target: 99, outDir: resolve("./__TEMP__/.build"), noEmitOnError: true },
+                tsConfig: { target: 99, outDir: resolve("./__TEMP__/.build"), noEmitOnError: true },
                 reporter,
                 targets: ["fragment", "write"],
                 cliArgs: { options: { target: 99 }, fileNames: [expected], errors: [] },

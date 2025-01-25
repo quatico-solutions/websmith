@@ -45,7 +45,7 @@ export class CompilationEnv {
         this.system = this.virtual ? createBrowserSystem(undefined, useCaseSensitiveFileNames) : ts.sys;
         this.rootDir = resolvePath(this.system, rootDir ?? DEFAULT_ROOT_DIR);
         this.buildDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.buildDir ?? DEFAULT_BUILD_DIR);
-        const outDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.project?.outDir ?? DEFAULT_OUT_DIR);
+        const outDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.tsConfig?.outDir ?? DEFAULT_OUT_DIR);
 
         if (!this.system.directoryExists(this.rootDir)) {
             getSubPaths(this.rootDir).forEach(it => !!it && !this.system.directoryExists(it) && this.system.createDirectory(it));
@@ -70,7 +70,7 @@ export class CompilationEnv {
                     },
                 },
             },
-            project: { configFilePath: `${this.rootDir}/tsconfig.json`, outDir },
+            tsConfig: { configFilePath: `${this.rootDir}/tsconfig.json`, outDir },
             ...compilerOptions,
         });
 
@@ -95,7 +95,7 @@ export class CompilationEnv {
     }
 
     public getOutDir(): string {
-        return resolveProjectPath(this.system, this.rootDir, this.compilerOptions.project.outDir ?? DEFAULT_OUT_DIR);
+        return resolveProjectPath(this.system, this.rootDir, this.compilerOptions.tsConfig.outDir ?? DEFAULT_OUT_DIR);
     }
 
     public getCompilerOptions(): CompilerOptions {
@@ -277,7 +277,7 @@ export class CompilationEnv {
     }
 
     public getCompiledDir(): string {
-        return resolveProjectPath(this.system, this.rootDir, this.getCompilerOptions().project.outDir ?? DEFAULT_OUT_DIR);
+        return resolveProjectPath(this.system, this.rootDir, this.getCompilerOptions().tsConfig.outDir ?? DEFAULT_OUT_DIR);
     }
 
     public getCompiledFiles(): ProjectFiles {
@@ -323,7 +323,7 @@ export class CompilationEnv {
                     ...compileOptions(this.system, {
                         buildDir: curDir,
                     }),
-                    project: {
+                    tsConfig: {
                         module: ts.ModuleKind.CommonJS,
                         target: ts.ScriptTarget.ES5,
                         esModuleInterop: true,

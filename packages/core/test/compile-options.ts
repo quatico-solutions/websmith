@@ -21,11 +21,11 @@ export const compileOptions = (
         transpileOnly: false,
         watch: false,
         ...overrides,
-        project: {
+        tsConfig: {
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.Latest,
             configFilePath: "./tsconfig.json",
-            ...overrides?.project,
+            ...overrides?.tsConfig,
         },
         targets: overrides?.targets ?? ["*"],
         cliArgs: {

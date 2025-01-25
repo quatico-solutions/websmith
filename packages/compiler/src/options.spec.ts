@@ -28,7 +28,7 @@ describe("createOptions", () => {
             },
         });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).project;
+        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -109,7 +109,7 @@ describe("createOptions", () => {
                 addons: ["one", "two"],
                 addonsDir: "/expected",
             },
-            project: {
+            tsConfig: {
                 configFilePath: "/tsconfig.json",
                 outDir: "/lib",
             },

@@ -66,7 +66,7 @@ describe("addCompileCommand", () => {
             outDir: "/lib",
             sourceMap: false,
         };
-        expect(actual.project).toEqual(compilerOptions);
+        expect(actual.tsConfig).toEqual(compilerOptions);
 
         expect({ wildcardDirectories: {}, ...actual.cliArgs }).toEqual({
             options: compilerOptions,
@@ -116,7 +116,7 @@ describe("addCompileCommand", () => {
 
         addCompileCommand(new Command(), target).parse(["--project", "expected/tsconfig.json"], { from: "user" });
 
-        expect(target.getOptions().project.configFilePath).toEqual(expect.stringContaining("/expected/tsconfig.json"));
+        expect(target.getOptions().tsConfig.configFilePath).toEqual(expect.stringContaining("/expected/tsconfig.json"));
     });
 
     it("should yield sourceMap option w/ --sourceMap cli argument", () => {

@@ -14,7 +14,7 @@ describe("createOptions", () => {
 
         expect(actual).toEqual({
             buildDir: expect.any(String),
-            project: expect.any(Object),
+            tsConfig: expect.any(Object),
             reporter: expect.any(NoReporter),
             cliArgs: expect.any(Object),
             debug: false,
@@ -28,7 +28,7 @@ describe("createOptions", () => {
     it("should return project config w/ custom but empty tsconfig.json", () => {
         const { fileSystem: target } = compileSystem({ files: { "./expected/tsconfig.json": "{}" } });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).project;
+        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -42,7 +42,7 @@ describe("createOptions", () => {
             files: { "./expected/tsconfig.json": `${JSON.stringify({ compilerOptions: { strict: true } })}` },
         });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).project;
+        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -57,7 +57,7 @@ describe("createOptions", () => {
             files: { "./expected/tsconfig.json": `${JSON.stringify({ compileOptions: { strict: false } })}` },
         });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json", tsConfig: { strict: true } }, new NoReporter(), target).project;
+        const actual = createOptions({ project: "./expected/tsconfig.json", tsConfig: { strict: true } }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -136,7 +136,7 @@ describe("createOptions", () => {
                 addons: ["one", "two"],
                 addonsDir: "/expected",
             },
-            project: {
+            tsConfig: {
                 configFilePath: "/tsconfig.json",
                 outDir: "/lib",
             },

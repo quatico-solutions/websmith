@@ -55,7 +55,7 @@ beforeEach(() => {
     testProgram = ts.createProgram({ options: {}, rootNames: [] });
     testObj = new CompilationContextTestClass({
         buildDir: "",
-        project: {},
+        tsConfig: {},
         projectDir: testSystem.getCurrentDirectory(),
         reporter: new ReporterMock(testSystem),
         rootFiles: [],
@@ -182,7 +182,7 @@ describe("resolvePath", () => {
     beforeEach(() => {
         testObj = new CompilationContextTestClass({
             buildDir: "",
-            project: {},
+            tsConfig: {},
             projectDir: "/expected",
             reporter: new ReporterMock(testSystem),
             rootFiles: [],
@@ -271,7 +271,7 @@ describe("addAssetDependency", () => {
         const target = jest.fn();
         testObj = new CompilationContextTestClass({
             buildDir: "",
-            project: {},
+            tsConfig: {},
             projectDir: testSystem.getCurrentDirectory(),
             reporter: new ReporterMock(testSystem),
             rootFiles: [],

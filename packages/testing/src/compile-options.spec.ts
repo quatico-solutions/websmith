@@ -19,7 +19,7 @@ describe("compileOptions", () => {
             sourceMap: false,
             transpileOnly: false,
             watch: false,
-            project: {
+            tsConfig: {
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.Latest,
                 configFilePath: "./tsconfig.json",

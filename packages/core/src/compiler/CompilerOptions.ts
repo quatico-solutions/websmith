@@ -15,7 +15,7 @@ export interface CompilerOptions {
     configFile?: string;
     debug?: boolean;
     cliArgs: ts.ParsedCommandLine;
-    project: ts.CompilerOptions;
+    tsConfig: ts.CompilerOptions;
     reporter: Reporter;
     sourceMap?: boolean;
     /**
