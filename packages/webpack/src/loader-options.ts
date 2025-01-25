@@ -10,7 +10,7 @@ import { LoaderContext, WebpackError } from "webpack";
 import { Upath as uPath } from "./Upath";
 
 export interface PluginArguments {
-    addons?: string;
+    addons?: string[];
     addonsDir?: string;
     buildDir?: string;
     config?: CompilationConfig;

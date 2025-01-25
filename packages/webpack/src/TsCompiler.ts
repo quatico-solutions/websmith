@@ -21,11 +21,7 @@ export class TsCompiler extends Compiler {
         const system = ts.sys;
         pluginOptions = pluginOptions ? { webpackTarget: "*", ...pluginOptions } : { webpackTarget: "*" };
         let websmithConfig: CompilationConfig = {
-            addons:
-                pluginOptions.addons
-                    ?.split(",")
-                    .map(it => it.trim())
-                    .filter(it => it.length > 0) ?? [],
+            addons: pluginOptions.addons ?? [],
             addonsDir: pluginOptions.addonsDir,
             ...(!!pluginOptions.transpileOnly && { transpileOnly: pluginOptions.transpileOnly }),
         };
