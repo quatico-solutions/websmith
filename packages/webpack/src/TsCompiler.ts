@@ -35,11 +35,7 @@ export class TsCompiler extends Compiler {
 
         const { targets } = pluginOptions;
         const { addons, targets: targetsMap, addonsDir } = websmithConfig ?? {};
-        const targetNames =
-            targets
-                ?.split(",")
-                .map(it => it.trim())
-                .filter(it => it.length > 0) ?? [];
+        const targetNames = targets ?? [];
         const addonsMerged = addons?.length
             ? addons
             : Object.entries(targetsMap ?? {})

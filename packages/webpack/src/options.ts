@@ -17,13 +17,13 @@ import { dirname } from "path";
 import ts from "typescript";
 import { PluginArguments, PluginOptions } from "./loader-options";
 
-export const DEFAULTS: PluginArguments & { outDir: string; project: string; targets: string } = {
+export const DEFAULTS: PluginArguments & { outDir: string; project: string; targets: string[] } = {
     addonsDir: "./addons",
     debug: false,
     outDir: "./lib",
     project: "./tsconfig.json",
     sourceMap: false,
-    targets: "*",
+    targets: ["*"],
 };
 
 export const createOptions = (args: Partial<PluginOptions>, reporter: Reporter = new NoReporter(), system: ts.System = ts.sys): CompilerOptions => {
@@ -44,7 +44,7 @@ export const createOptions = (args: Partial<PluginOptions>, reporter: Reporter =
         }
     }
 
-    const targets = (args.targets ?? DEFAULTS.targets).split(",").map(target => target.trim());
+    const targets = args.targets ?? DEFAULTS.targets;
     const config = compilationConfig || args.config ? Object.assign({}, compilationConfig, args.config) : undefined;
 
     return {

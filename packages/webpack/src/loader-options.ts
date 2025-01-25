@@ -19,7 +19,7 @@ export interface PluginArguments {
     project?: string;
     sourceMap?: boolean;
     transpileOnly?: boolean;
-    targets?: string;
+    targets?: string[];
     webpackTarget?: string;
 }
 

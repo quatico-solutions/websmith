@@ -5,7 +5,7 @@ module.exports = ({
     configFile = join(__dirname, "websmith.config.json"),
     preLoaders = [],
     postLoaders = [],
-    targets = "noWrite",
+    targets = ["noWrite"],
     webpackTarget,
 }) => {
     const websmithLoaderOptions = {
