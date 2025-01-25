@@ -227,15 +227,15 @@ export class Compiler {
         target?: string,
         registerDependencyCallback?: (filePath: string) => void
     ): CompilationContext {
-        const { buildDir, config, configFile, project, tsconfig, watch } = compileOptions;
+        const { buildDir, config, configFile, project, cliArgs, watch } = compileOptions;
         const { options = {}, config: targetConfig } = getTargetConfig(target, config);
         return new CompilationContext({
             buildDir,
             project: { ...project, ...options },
-            projectDir: dirname(configFile ?? tsconfig.raw?.configFilePath ?? this.system.getCurrentDirectory()),
+            projectDir: dirname(configFile ?? cliArgs.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
             program: ts.createProgram({ rootNames: this.getRootFiles(), options: project, host: createCompileHost(project) }),
-            tsconfig: { ...tsconfig, options: { ...project, ...options } },
+            cliArgs: { ...cliArgs, options: { ...project, ...options } },
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,
             ...(!!targetConfig && { config: targetConfig }),
@@ -357,8 +357,8 @@ export class Compiler {
     }
 
     private getRootFiles(): string[] {
-        return this.options?.tsconfig?.fileNames
-            ? this.options.tsconfig.fileNames
+        return this.options?.cliArgs?.fileNames
+            ? this.options.cliArgs.fileNames
             : recursiveFindByFilter(this.system.resolvePath(join(dirname(this.configPath), "./src")), (path: string) =>
                   ["ts", "tsx", "js", "jsx"].some(it => extname(path).includes(it))
               );

@@ -34,11 +34,11 @@ export const compileOptions = (
             ...overrides?.project,
         },
         targets: overrides?.targets ?? [],
-        tsconfig: {
+        cliArgs: {
             options: { outDir: overrides?.project?.outDir ?? DEFAULT_OUT_DIR },
             fileNames: system.readDirectory(buildDir),
             errors: [],
-            ...overrides?.tsconfig,
+            ...overrides?.cliArgs,
         },
     };
 };

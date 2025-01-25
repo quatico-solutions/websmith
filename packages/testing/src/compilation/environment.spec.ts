@@ -50,7 +50,7 @@ describe("compilationEnv", () => {
             sourceMap: false,
             targets: ["*"],
             transpileOnly: false,
-            tsconfig: {
+            cliArgs: {
                 errors: [],
                 options: {},
             },

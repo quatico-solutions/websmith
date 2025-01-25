@@ -61,7 +61,7 @@ beforeEach(() => {
         rootFiles: [],
         system: testSystem,
         program: testProgram,
-        tsconfig: { options: {}, fileNames: [], errors: [] },
+        cliArgs: { options: {}, fileNames: [], errors: [] },
         target: "test",
     });
 });
@@ -188,7 +188,7 @@ describe("resolvePath", () => {
             rootFiles: [],
             system: testSystem,
             program: testProgram,
-            tsconfig: { options: {}, fileNames: [], errors: [] },
+            cliArgs: { options: {}, fileNames: [], errors: [] },
             target: "test",
         });
     });
@@ -277,7 +277,7 @@ describe("addAssetDependency", () => {
             rootFiles: [],
             system: testSystem,
             program: testProgram,
-            tsconfig: { options: {}, fileNames: [], errors: [] },
+            cliArgs: { options: {}, fileNames: [], errors: [] },
             target: "test",
             registerDependencyCallback: target,
         });

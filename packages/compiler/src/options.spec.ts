@@ -114,7 +114,7 @@ describe("createOptions", () => {
                 outDir: "/lib",
             },
 
-            tsconfig: {
+            cliArgs: {
                 fileNames: ["/expected/one/addon.ts"],
                 errors: [],
                 options: {

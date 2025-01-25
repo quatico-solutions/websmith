@@ -28,11 +28,11 @@ export const compileOptions = (
             ...overrides?.project,
         },
         targets: overrides?.targets ?? ["*"],
-        tsconfig: {
+        cliArgs: {
             options: {},
             fileNames: system.readDirectory("./src"),
             errors: [],
-            ...overrides?.tsconfig,
+            ...overrides?.cliArgs,
         },
     };
 };

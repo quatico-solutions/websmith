@@ -68,7 +68,7 @@ describe("addCompileCommand", () => {
         };
         expect(actual.project).toEqual(compilerOptions);
 
-        expect({ wildcardDirectories: {}, ...actual.tsconfig }).toEqual({
+        expect({ wildcardDirectories: {}, ...actual.cliArgs }).toEqual({
             options: compilerOptions,
             errors: [
                 {

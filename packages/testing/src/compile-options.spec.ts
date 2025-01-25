@@ -25,7 +25,7 @@ describe("compileOptions", () => {
                 configFilePath: "./tsconfig.json",
             },
             targets: [],
-            tsconfig: {
+            cliArgs: {
                 options: {
                     outDir: "./dist",
                 },

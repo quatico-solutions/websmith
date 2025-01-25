@@ -25,20 +25,20 @@ const DEFAULTS: CompilerArguments & { outDir: string; project: string } = {
 };
 
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
-    const tsconfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
+    const tsConfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
     const compilationConfig = args.configFile ? resolveCompilationConfig(args.configFile, reporter, system) : undefined;
 
     const projectDirectory =
-        (args?.configFile && dirname(args.configFile)) ?? (tsconfig.raw && tsconfig.raw.configFilePath && dirname(tsconfig.raw?.configFilePath));
-    tsconfig.options.outDir = system.resolvePath(args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir);
+        (args?.configFile && dirname(args.configFile)) ?? (tsConfig.raw && tsConfig.raw.configFilePath && dirname(tsConfig.raw?.configFilePath));
+    tsConfig.options.outDir = system.resolvePath(args.buildDir ?? tsConfig.options.outDir ?? DEFAULTS.outDir);
     if (projectDirectory) {
-        tsconfig.options = updateCompilerOptions(tsconfig.options, system, projectDirectory);
+        tsConfig.options = updateCompilerOptions(tsConfig.options, system, projectDirectory);
     }
 
     if (args.sourceMap !== undefined) {
-        tsconfig.options.sourceMap = args.sourceMap;
-        if (tsconfig.options.sourceMap === false) {
-            tsconfig.options.inlineSources = undefined;
+        tsConfig.options.sourceMap = args.sourceMap;
+        if (tsConfig.options.sourceMap === false) {
+            tsConfig.options.inlineSources = undefined;
         }
     }
 
@@ -52,8 +52,8 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         debug: args.debug ?? DEFAULTS.debug,
         // TODO: Do we need lib files, or is injecting them into the system sufficient?
         // files?: Record<string, string>;
-        tsconfig,
-        project: tsconfig.options,
+        cliArgs: tsConfig,
+        project: tsConfig.options,
         reporter,
         sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
         targets: resolveTargets(targets, compilationConfig, reporter),

@@ -78,7 +78,7 @@ describe("setOptions", () => {
         }).getSourceFile("src/target.ts");
 
         new CompilerTestClass(
-            compileOptions(target, { project: { outDir: "/expected" }, tsconfig: { fileNames: [entry!.fileName] } }),
+            compileOptions(target, { project: { outDir: "/expected" }, cliArgs: { fileNames: [entry!.fileName] } }),
             target
         ).watch();
 
@@ -188,7 +188,7 @@ describe("compile", () => {
                     target: ts.ScriptTarget.Latest,
                     configFilePath: "./tsconfig.json",
                 },
-                tsconfig: {
+                cliArgs: {
                     options: {},
                     fileNames: fileSystem.readDirectory("./src"),
                     errors: [],
@@ -213,7 +213,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -236,7 +236,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -259,7 +259,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             transpileOnly: true,
         });
 
@@ -280,7 +280,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true, declarationMap: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
             transpileOnly: true,
         });
@@ -302,7 +302,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true, declarationMap: true, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
             transpileOnly: true,
         });
@@ -324,7 +324,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, declarationMap: false, sourceMap: true },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
             transpileOnly: true,
         });
@@ -349,7 +349,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -369,7 +369,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true, declarationMap: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
         });
 
@@ -394,7 +394,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: true, declarationMap: true, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
         });
 
@@ -422,7 +422,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, declarationMap: false, sourceMap: true },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
         });
 
@@ -446,7 +446,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, declarationMap: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
             transpileOnly: true,
         });
@@ -468,7 +468,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
             project: { declaration: false, declarationMap: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
         });
 
@@ -494,7 +494,7 @@ describe("emitSourceFile", () => {
                 outDir: "/build",
                 configFilePath: "tsconfig.json",
             },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
             transpileOnly: true,
         });
@@ -516,7 +516,7 @@ describe("emitSourceFile", () => {
                 resolveJsonModule: true,
                 outDir: "/build",
             },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
         });
 
@@ -547,7 +547,7 @@ describe("emitSourceFile", () => {
                 importHelpers: true,
                 strict: true,
             },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             sourceMap: true,
             transpileOnly: true,
         });
@@ -576,7 +576,7 @@ describe("emitSourceFile", () => {
                 importHelpers: true,
                 strict: true,
             },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             buildDir: "./types",
             sourceMap: true,
         });
@@ -676,7 +676,7 @@ describe("watch", () => {
                 targets: { "*": { writeFile: true } },
             },
             project: { declaration: true, outDir: "/build" },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName] },
             watch: true,
         });
 
@@ -708,7 +708,7 @@ describe("watch", () => {
                 targets: { "*": { writeFile: true, options: { outDir: "/build" } } },
             },
             project: { declaration: true },
-            tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
+            cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
             watch: true,
         });
 
@@ -744,7 +744,7 @@ describe("watch", () => {
             },
             project: { declaration: true },
             targets: ["target1", "target2"],
-            tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
+            cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
             watch: true,
         });
 
@@ -788,7 +788,7 @@ describe("watch", () => {
             },
             project: { declaration: true },
             targets: ["target1", "target2"],
-            tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
+            cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
             transpileOnly: true,
             watch: true,
         });
@@ -839,7 +839,7 @@ describe("watch", () => {
             },
             project: { declaration: true },
             targets: ["target1"],
-            tsconfig: {
+            cliArgs: {
                 options: { outDir: "/build" },
                 fileNames: ["/src/shared1.ts", "/src/shared2.ts"],
             },
@@ -891,7 +891,7 @@ describe("watch", () => {
             },
             project: { declaration: true },
             targets: ["target1"],
-            tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
+            cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
             watch: true,
         });
 

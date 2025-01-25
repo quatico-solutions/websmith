@@ -33,20 +33,20 @@ export const createOptions = (
 ): CompilerOptions => {
     const { project, targets, debug, sourceMap, configFile, buildDir, config, transpileOnly, tsConfig } = { ...DEFAULTS, ...args };
 
-    const tsconfig = resolveTsConfig(project, system);
-    tsconfig.options = { ...tsconfig.options, ...tsConfig };
+    const cliArgs = resolveTsConfig(project, system);
+    cliArgs.options = { ...cliArgs.options, ...tsConfig };
     const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system) : undefined;
 
-    const projectDirectory = (configFile && dirname(configFile)) ?? (tsconfig.raw?.configFilePath && dirname(tsconfig.raw?.configFilePath));
-    tsconfig.options.outDir = system.resolvePath(buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir);
+    const projectDirectory = (configFile && dirname(configFile)) ?? (cliArgs.raw?.configFilePath && dirname(cliArgs.raw?.configFilePath));
+    cliArgs.options.outDir = system.resolvePath(buildDir ?? cliArgs.options.outDir ?? DEFAULTS.outDir);
     if (projectDirectory) {
-        tsconfig.options = updateCompilerOptions(tsconfig.options, system, projectDirectory);
+        cliArgs.options = updateCompilerOptions(cliArgs.options, system, projectDirectory);
     }
 
     if (sourceMap !== undefined) {
-        tsconfig.options.sourceMap = sourceMap;
-        if (tsconfig.options.sourceMap === false) {
-            delete tsconfig.options.inlineSources;
+        cliArgs.options.sourceMap = sourceMap;
+        if (cliArgs.options.sourceMap === false) {
+            delete cliArgs.options.inlineSources;
         }
     }
 
@@ -57,8 +57,8 @@ export const createOptions = (
         ...(mergedConfig && { config: mergedConfig }),
         ...(configFile && { configFile }),
         debug,
-        tsconfig,
-        project: tsconfig.options,
+        cliArgs,
+        project: cliArgs.options,
         reporter,
         sourceMap,
         targets: resolveTargets(targets, compilationConfig, reporter),

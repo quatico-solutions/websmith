@@ -229,7 +229,7 @@ export class CompilationEnv {
             // use rootDir as target path because we copy src and other files from project directory
             { system: this.system, path: this.rootDir }
         );
-        this.compilerOptions.tsconfig.fileNames = this.system.readDirectory(this.buildDir).filter(isSourceFile);
+        this.compilerOptions.cliArgs.fileNames = this.system.readDirectory(this.buildDir).filter(isSourceFile);
 
         return this;
     }
@@ -330,7 +330,7 @@ export class CompilationEnv {
                         moduleResolution: ts.ModuleResolutionKind.NodeNext,
                     },
                     targets: ["*"],
-                    tsconfig: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
+                    cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
                 this.system
             ).compile();
@@ -369,7 +369,7 @@ export class CompilationEnv {
     private addFile(filePath: string, content: string): void {
         this.system.writeFile(filePath, content);
         if (isSourceFile(filePath)) {
-            this.compilerOptions.tsconfig.fileNames.push(filePath);
+            this.compilerOptions.cliArgs.fileNames.push(filePath);
         }
     }
 }

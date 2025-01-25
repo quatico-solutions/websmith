@@ -21,7 +21,7 @@ export type CompilationContextOptions = {
     rootFiles: string[];
     system: ts.System;
     target?: string;
-    tsconfig: ts.ParsedCommandLine;
+    cliArgs: ts.ParsedCommandLine;
     watchCallback?: (filePath: string) => void;
     registerDependencyCallback?: (filePath: string) => void;
 };
@@ -38,7 +38,7 @@ export class CompilationContext implements AddonContext {
     private cache: FileCache;
     private languageHost: ts.LanguageServiceHost;
     private reporter: Reporter;
-    private tsconfig: ts.ParsedCommandLine;
+    private cliArgs: ts.ParsedCommandLine;
     private system: ts.System;
     private projectDir: string;
     private program: ts.Program;
@@ -50,11 +50,11 @@ export class CompilationContext implements AddonContext {
     private assetCodeDependency: Map<string, string[]> = new Map();
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, config, program, project, projectDir, rootFiles, system, target, tsconfig, watchCallback, registerDependencyCallback } =
+        const { buildDir, config, program, project, projectDir, rootFiles, system, target, cliArgs, watchCallback, registerDependencyCallback } =
             options;
         this.buildDir = buildDir;
         this.rootFiles = rootFiles;
-        this.tsconfig = tsconfig;
+        this.cliArgs = cliArgs;
         this.projectDir = projectDir;
         this.transformers = {};
         this.processors = [];
@@ -78,7 +78,7 @@ export class CompilationContext implements AddonContext {
     }
 
     public getConfig(): ts.ParsedCommandLine {
-        return this.tsconfig;
+        return this.cliArgs;
     }
 
     public getReporter(): Reporter {

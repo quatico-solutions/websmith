@@ -14,7 +14,7 @@ export interface CompilerOptions {
     /** Relative path to the `websmith.config.json` configuration file. */
     configFile?: string;
     debug?: boolean;
-    tsconfig: ts.ParsedCommandLine;
+    cliArgs: ts.ParsedCommandLine;
     project: ts.CompilerOptions;
     reporter: Reporter;
     sourceMap?: boolean;

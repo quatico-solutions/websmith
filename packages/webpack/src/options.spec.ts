@@ -16,7 +16,7 @@ describe("createOptions", () => {
             buildDir: expect.any(String),
             project: expect.any(Object),
             reporter: expect.any(NoReporter),
-            tsconfig: expect.any(Object),
+            cliArgs: expect.any(Object),
             debug: false,
             sourceMap: false,
             targets: ["*"],
@@ -142,7 +142,7 @@ describe("createOptions", () => {
             },
 
             targets: ["*"],
-            tsconfig: {
+            cliArgs: {
                 fileNames: ["/expected/one/addon.ts"],
                 errors: [],
                 options: {
