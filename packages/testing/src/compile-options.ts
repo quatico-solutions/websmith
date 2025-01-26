@@ -24,7 +24,6 @@ export const compileOptions = (
         reporter,
         debug: false,
         sourceMap: false,
-        transpileOnly: false,
         watch: false,
         ...overrides,
         tsConfig: {

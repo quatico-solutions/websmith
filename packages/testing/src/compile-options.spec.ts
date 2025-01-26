@@ -17,7 +17,6 @@ describe("compileOptions", () => {
             reporter: expect.any(Object),
             debug: false,
             sourceMap: false,
-            transpileOnly: false,
             watch: false,
             tsConfig: {
                 module: ts.ModuleKind.ESNext,

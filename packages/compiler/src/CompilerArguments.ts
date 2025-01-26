@@ -10,4 +10,5 @@ export interface CompilerArguments extends Partial<Omit<CompilerOptions, "cliArg
     targets?: string;
     files?: string[];
     project?: string;
+    transpileOnly?: boolean;
 }

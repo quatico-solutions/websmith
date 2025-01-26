@@ -49,7 +49,6 @@ describe("compilationEnv", () => {
             },
             sourceMap: false,
             targets: ["*"],
-            transpileOnly: false,
             cliArgs: {
                 errors: [],
                 options: {},

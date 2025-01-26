@@ -31,7 +31,7 @@ export const createOptions = (
     reporter: Reporter = new NoReporter(),
     system: ts.System = ts.sys
 ): CompilerOptions => {
-    const { project, targets, debug, sourceMap, configFile, buildDir, config, transpileOnly, tsConfig } = { ...DEFAULTS, ...args };
+    const { project, targets, debug, sourceMap, configFile, buildDir, config, tsConfig } = { ...DEFAULTS, ...args };
 
     const cliArgs = resolveTsConfig(project, system);
     cliArgs.options = { ...cliArgs.options, ...tsConfig };
@@ -62,7 +62,6 @@ export const createOptions = (
         reporter,
         sourceMap,
         targets: resolveTargets(targets, compilationConfig, reporter),
-        transpileOnly: transpileOnly ?? compilationConfig?.transpileOnly ?? false,
         watch: false,
     };
 };

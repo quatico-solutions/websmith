@@ -59,7 +59,6 @@ describe("TsCompiler", () => {
                 cliArgs: { options: {}, fileNames: [expected], errors: [] },
                 debug: true,
                 sourceMap: false,
-                transpileOnly: false,
                 watch: false,
             },
             { addonsDir: "./addons", configFile: "./websmith.config.json" }
@@ -119,7 +118,6 @@ describe("Transpilation", () => {
                 cliArgs: { options: { declaration: true, target: 99 }, fileNames: [expected], errors: [] },
                 debug: true,
                 sourceMap: false,
-                transpileOnly: false,
                 watch: false,
             },
             { addonsDir: "./addons", configFile: "./websmith.config.json" }
@@ -154,7 +152,6 @@ describe("Transpilation", () => {
                 cliArgs: { options: { target: 99 }, fileNames: [expected], errors: [] },
                 debug: false,
                 sourceMap: false,
-                transpileOnly: false,
                 watch: false,
             },
             { config: resolve("__TEMP__", "websmith.config.json"), webpackTarget: "fragment", addonsDir: "./addons" }

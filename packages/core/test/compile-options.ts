@@ -8,17 +8,13 @@ import ts from "typescript";
 import { type CompilerOptions } from "../src/compiler";
 import { ReporterMock } from "./ReporterMock";
 
-export const compileOptions = (
-    system: ts.System,
-    overrides?: Partial<CompilerOptions> | { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; targets?: string[] }
-): CompilerOptions => {
+export const compileOptions = (system: ts.System, overrides?: Partial<CompilerOptions>): CompilerOptions => {
     const reporter = new ReporterMock(system);
     return {
         buildDir: "./src",
         reporter,
         debug: false,
         sourceMap: false,
-        transpileOnly: false,
         watch: false,
         ...overrides,
         tsConfig: {

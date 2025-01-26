@@ -21,8 +21,8 @@ export const activate = (ctx: AddonContext): void => {
 const createProcessor =
     (ctx: AddonContext): Processor =>
     (fileName: string, content: string): string => {
-        const file = ts.createSourceFile(fileName, content, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
-        const result = ts.transform(file, [createTransformer()], ctx.getConfig().options);
+        const file = ts.createSourceFile(fileName, content, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest, true);
+        const result = ts.transform(file, [createTransformer()], ctx.getCliArgs().options);
         if (result.diagnostics && result.diagnostics.length > 0) {
             result.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, file)));
             return "";

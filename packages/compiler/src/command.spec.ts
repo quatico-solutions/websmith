@@ -153,7 +153,7 @@ describe("addCompileCommand", () => {
 
         addCompileCommand(new Command(), target).parse(["--transpileOnly"], { from: "user" });
 
-        expect(target.getOptions().transpileOnly).toBe(true);
+        expect(target.getOptions().config?.transpileOnly).toBe(true);
     });
 
     it("should yield additionalArguments w/ unsupported cli arguments", () => {

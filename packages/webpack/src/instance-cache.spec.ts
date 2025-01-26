@@ -30,7 +30,6 @@ beforeEach(() => {
             cliArgs: { options: { outDir: ".build" }, fileNames: [], errors: [] },
             debug: false,
             sourceMap: false,
-            transpileOnly: false,
             watch: false,
         },
         () => undefined,

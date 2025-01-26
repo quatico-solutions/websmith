@@ -21,7 +21,6 @@ describe("createOptions", () => {
             sourceMap: false,
             targets: ["*"],
             watch: false,
-            transpileOnly: false,
         });
     });
 

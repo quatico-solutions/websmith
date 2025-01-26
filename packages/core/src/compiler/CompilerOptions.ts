@@ -28,7 +28,6 @@ export interface CompilerOptions {
      * Overrides the `transpileOnly` specified in the `tsconfig.json`.
      * @deprecated use `config.transpileOnly` instead.
      */
-    transpileOnly?: boolean;
     watch?: boolean;
     additionalArguments?: Map<string, unknown>;
 }

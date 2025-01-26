@@ -43,7 +43,17 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
     }
 
     const targets = args.targets?.split(",").map(target => target.trim()) ?? [];
-    const config = compilationConfig || args.config ? Object.assign({}, compilationConfig, args.config) : undefined;
+    let config =
+        compilationConfig || args.config
+            ? Object.assign({}, compilationConfig, args.config, { ...(args.transpileOnly && { transpileOnly: true }) })
+            : undefined;
+    if (args.transpileOnly) {
+        if (!config) {
+            config = { transpileOnly: true };
+        } else {
+            config.transpileOnly = true;
+        }
+    }
 
     return {
         buildDir: args.buildDir ?? system.getCurrentDirectory(),
@@ -57,7 +67,6 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         reporter,
         sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
         targets: resolveTargets(targets, compilationConfig, reporter),
-        transpileOnly: args.transpileOnly ?? compilationConfig?.transpileOnly ?? false,
         watch: args.watch ?? DEFAULTS.watch,
     };
 };
