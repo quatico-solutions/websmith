@@ -14,14 +14,13 @@ export interface WebsmithLoaderOptions {
     addons?: string[];
     addonsDir?: string;
     buildDir?: string;
-    config?: CompilationConfig;
     configFile?: string;
+    config?: CompilationConfig;
     debug?: boolean;
     project?: string;
-    sourceMap?: boolean;
+    targets?: string[];
     transpileOnly?: boolean;
     tsConfig?: ts.CompilerOptions;
-    targets?: string[];
     webpackTarget?: string;
 }
 

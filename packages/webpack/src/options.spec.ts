@@ -31,7 +31,6 @@ describe("createOptions", () => {
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
             outDir: "/lib",
-            sourceMap: false,
         });
     });
 
@@ -45,7 +44,6 @@ describe("createOptions", () => {
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
             outDir: "/lib",
-            sourceMap: false,
             strict: true,
         });
     });
@@ -60,7 +58,6 @@ describe("createOptions", () => {
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
             outDir: "/lib",
-            sourceMap: false,
             strict: true,
         });
     });
