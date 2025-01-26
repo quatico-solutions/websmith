@@ -28,8 +28,8 @@ export const activate = (ctx: AddonContext): void => {
 const createGenerator =
     (ctx: AddonContext): Generator =>
     (fileName: string, fileContent: string): void => {
-        const file = ts.createSourceFile(fileName, fileContent, ctx.getConfig().options.target ?? ts.ScriptTarget.Latest, true);
-        const result = ts.transform(file, [createTransformer(ctx)], ctx.getConfig().options);
+        const file = ts.createSourceFile(fileName, fileContent, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest, true);
+        const result = ts.transform(file, [createTransformer(ctx)], ctx.getCliArgs().options);
 
         if (result.diagnostics && result.diagnostics.length > 0) {
             result.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, file)));

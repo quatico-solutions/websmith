@@ -77,7 +77,7 @@ export class CompilationContext implements AddonContext {
         return this.system;
     }
 
-    public getConfig(): ts.ParsedCommandLine {
+    public getCliArgs(): ts.ParsedCommandLine {
         return this.cliArgs;
     }
 

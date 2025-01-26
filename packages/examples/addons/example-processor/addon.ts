@@ -17,7 +17,7 @@ import ts from "typescript";
  */
 export const activate = (ctx: AddonContext) => {
     ctx.registerProcessor((filePath: string, fileContent: string): string => {
-        const sf = ts.createSourceFile(filePath, fileContent, ctx.getConfig().options?.target ?? ts.ScriptTarget.Latest);
+        const sf = ts.createSourceFile(filePath, fileContent, ctx.getCliArgs().options?.target ?? ts.ScriptTarget.Latest);
         const result = ts.transform(
             sf,
             [
@@ -43,7 +43,7 @@ export const activate = (ctx: AddonContext) => {
                     };
                 },
             ],
-            ctx.getConfig().options
+            ctx.getCliArgs().options
         );
         return ts.createPrinter().printFile(result.transformed[0]);
     });

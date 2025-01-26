@@ -23,7 +23,7 @@ export const activate = (ctx: AddonContext) => {
 
         filePaths.forEach(curPath => {
             const content = ctx.getFileContent(curPath);
-            const target = ctx.getConfig().options.target ?? ts.ScriptTarget.Latest;
+            const target = ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest;
 
             ts.transform(
                 ts.createSourceFile(curPath, content, target),
@@ -50,13 +50,13 @@ export const activate = (ctx: AddonContext) => {
                             return curFile;
                         },
                 ],
-                ctx.getConfig().options
+                ctx.getCliArgs().options
             );
             // Report info message to the console.
             ctx.getReporter().reportDiagnostic(new InfoMessage(`Example result processor: processed "${curPath}"`));
         });
 
         // Write the result to the output JSON file.
-        ctx.getSystem().writeFile(join(ctx.getConfig()?.options?.outDir ?? "", "named-functions.json"), JSON.stringify(result));
+        ctx.getSystem().writeFile(join(ctx.getCliArgs()?.options?.outDir ?? "", "named-functions.json"), JSON.stringify(result));
     });
 };
