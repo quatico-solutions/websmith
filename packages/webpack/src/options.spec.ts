@@ -18,7 +18,6 @@ describe("createOptions", () => {
             reporter: expect.any(NoReporter),
             cliArgs: expect.any(Object),
             debug: false,
-            sourceMap: false,
             targets: ["*"],
             watch: false,
         });

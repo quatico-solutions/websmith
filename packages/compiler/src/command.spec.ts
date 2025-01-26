@@ -96,7 +96,6 @@ describe("addCompileCommand", () => {
             wildcardDirectories: { [""]: 1 },
         });
         expect(actual.reporter).toBeDefined();
-        expect(actual.sourceMap).toBe(false);
         expect(actual.targets).toEqual([]);
         expect(actual.watch).toBe(false);
     });
@@ -125,7 +124,7 @@ describe("addCompileCommand", () => {
 
         addCompileCommand(new Command(), target).parse(["--sourceMap"], { from: "user" });
 
-        expect(target.getOptions().sourceMap).toBe(true);
+        expect(target.getOptions().tsConfig.sourceMap).toBe(true);
     });
 
     it("should yield debug compiler option w/ --debug cli argument", () => {

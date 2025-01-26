@@ -18,7 +18,17 @@ import ts from "typescript";
 import { WebsmithLoaderConfig } from "./loader-options";
 
 export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
-    const { buildDir, config, configFile, debug = false, project = "./tsconfig.json", sourceMap = false, targets = ["*"], tsConfig } = args;
+    const {
+        buildDir,
+        config,
+        configFile,
+        debug = false,
+        project = "./tsconfig.json",
+        sourceMap = false,
+        targets = ["*"],
+        tsConfig,
+        transpileOnly,
+    } = args;
 
     const cliArgs = resolveTsConfig(project, system);
     cliArgs.options = { ...cliArgs.options, ...tsConfig };
@@ -37,7 +47,14 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
         }
     }
 
-    const mergedConfig = compilationConfig || config ? Object.assign({}, compilationConfig, config) : undefined;
+    let mergedConfig = compilationConfig || config ? Object.assign({}, compilationConfig, config) : undefined;
+    if (transpileOnly) {
+        if (!mergedConfig) {
+            mergedConfig = { transpileOnly: true };
+        } else {
+            mergedConfig.transpileOnly = true;
+        }
+    }
 
     return {
         buildDir: buildDir ?? system.getCurrentDirectory(),
@@ -46,7 +63,6 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
         ...(configFile && { configFile }),
         debug,
         reporter,
-        sourceMap,
         targets: resolveTargets(targets, compilationConfig, reporter),
         tsConfig: cliArgs.options,
         watch: false,

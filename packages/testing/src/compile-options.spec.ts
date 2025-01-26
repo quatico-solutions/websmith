@@ -16,7 +16,6 @@ describe("compileOptions", () => {
             buildDir: "/src",
             reporter: expect.any(Object),
             debug: false,
-            sourceMap: false,
             watch: false,
             tsConfig: {
                 module: ts.ModuleKind.ESNext,

@@ -15,7 +15,6 @@ describe("createOptions", () => {
         expect(actual).toEqual(
             expect.objectContaining({
                 debug: false,
-                sourceMap: false,
                 watch: false,
             })
         );

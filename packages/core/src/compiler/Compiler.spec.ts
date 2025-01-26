@@ -199,7 +199,6 @@ describe("compile", () => {
                 buildDir: "./src",
                 reporter: new ReporterMock(fileSystem),
                 debug: false,
-                sourceMap: false,
                 watch: false,
                 tsConfig: {
                     module: ts.ModuleKind.ESNext,
@@ -299,7 +298,6 @@ describe("emitSourceFile", () => {
         const target = compileOptions(fileSystem, {
             tsConfig: { declaration: true, declarationMap: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
             config: { transpileOnly: true },
         });
 
@@ -321,7 +319,6 @@ describe("emitSourceFile", () => {
         const target = compileOptions(fileSystem, {
             tsConfig: { declaration: true, declarationMap: true, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
             config: { transpileOnly: true },
         });
 
@@ -343,7 +340,6 @@ describe("emitSourceFile", () => {
         const target = compileOptions(fileSystem, {
             tsConfig: { declaration: false, declarationMap: false, sourceMap: true },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
             config: { transpileOnly: true },
         });
 
@@ -388,7 +384,6 @@ describe("emitSourceFile", () => {
         const target = compileOptions(fileSystem, {
             tsConfig: { declaration: true, declarationMap: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -413,7 +408,6 @@ describe("emitSourceFile", () => {
         const target = compileOptions(fileSystem, {
             tsConfig: { declaration: true, declarationMap: true, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -441,7 +435,6 @@ describe("emitSourceFile", () => {
         const target = compileOptions(fileSystem, {
             tsConfig: { declaration: false, declarationMap: false, sourceMap: true },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -465,7 +458,6 @@ describe("emitSourceFile", () => {
         const target = compileOptions(fileSystem, {
             tsConfig: { declaration: false, declarationMap: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
             config: { transpileOnly: true },
         });
 
@@ -487,7 +479,6 @@ describe("emitSourceFile", () => {
         const target = compileOptions(fileSystem, {
             tsConfig: { declaration: false, declarationMap: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -507,13 +498,12 @@ describe("emitSourceFile", () => {
             tsConfig: {
                 declaration: false,
                 declarationMap: false,
-                sourceMap: false,
+                sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
                 configFilePath: "tsconfig.json",
             },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
             config: { transpileOnly: true },
         });
 
@@ -530,12 +520,11 @@ describe("emitSourceFile", () => {
             tsConfig: {
                 declaration: false,
                 declarationMap: false,
-                sourceMap: false,
+                sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
             },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -559,14 +548,13 @@ describe("emitSourceFile", () => {
             tsConfig: {
                 declaration: false,
                 declarationMap: false,
-                sourceMap: false,
+                sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
                 importHelpers: true,
                 strict: true,
             },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            sourceMap: true,
             config: { transpileOnly: true },
         });
 
@@ -588,7 +576,7 @@ describe("emitSourceFile", () => {
             tsConfig: {
                 declaration: false,
                 declarationMap: false,
-                sourceMap: false,
+                sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
                 importHelpers: true,
@@ -596,7 +584,6 @@ describe("emitSourceFile", () => {
             },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             buildDir: "./types",
-            sourceMap: true,
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);

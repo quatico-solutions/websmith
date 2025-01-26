@@ -58,7 +58,6 @@ describe("TsCompiler", () => {
                 targets: ["*"],
                 cliArgs: { options: {}, fileNames: [expected], errors: [] },
                 debug: true,
-                sourceMap: false,
                 watch: false,
             },
             { addonsDir: "./addons", configFile: "./websmith.config.json" }
@@ -117,7 +116,6 @@ describe("Transpilation", () => {
                 targets: ["*"],
                 cliArgs: { options: { declaration: true, target: 99 }, fileNames: [expected], errors: [] },
                 debug: true,
-                sourceMap: false,
                 watch: false,
             },
             { addonsDir: "./addons", configFile: "./websmith.config.json" }
@@ -139,8 +137,8 @@ describe("Transpilation", () => {
         testObj = new TestCompiler(
             {
                 buildDir: resolve("./__TEMP__"),
+                configFile: resolve("./__TEMP__/websmith.config.json"),
                 config: {
-                    configFilePath: resolve("./__TEMP__/websmith.config.json"),
                     targets: {
                         fragment: { options: { declaration: true } },
                         write: { writeFile: true, options: { module: 1, target: 1 } },
@@ -151,10 +149,9 @@ describe("Transpilation", () => {
                 targets: ["fragment", "write"],
                 cliArgs: { options: { target: 99 }, fileNames: [expected], errors: [] },
                 debug: false,
-                sourceMap: false,
                 watch: false,
             },
-            { config: resolve("__TEMP__", "websmith.config.json"), webpackTarget: "fragment", addonsDir: "./addons" }
+            { configFile: resolve("__TEMP__", "websmith.config.json"), webpackTarget: "fragment", addonsDir: "./addons" }
         );
 
         const actual = testObj.build(expected);

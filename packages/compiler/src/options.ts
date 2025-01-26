@@ -56,7 +56,6 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         cliArgs,
         tsConfig: cliArgs.options,
         reporter,
-        sourceMap,
         targets: resolveTargets(targetNames, compilationConfig, reporter),
         watch,
     };

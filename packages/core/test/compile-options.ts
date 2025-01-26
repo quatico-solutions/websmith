@@ -14,7 +14,6 @@ export const compileOptions = (system: ts.System, overrides?: Partial<CompilerOp
         buildDir: "./src",
         reporter,
         debug: false,
-        sourceMap: false,
         watch: false,
         ...overrides,
         tsConfig: {

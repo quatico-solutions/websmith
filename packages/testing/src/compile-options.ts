@@ -23,7 +23,6 @@ export const compileOptions = (
         buildDir,
         reporter,
         debug: false,
-        sourceMap: false,
         watch: false,
         ...overrides,
         tsConfig: {

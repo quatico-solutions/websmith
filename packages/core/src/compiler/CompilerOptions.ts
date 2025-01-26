@@ -17,7 +17,6 @@ export interface CompilerOptions {
     cliArgs: ts.ParsedCommandLine;
     tsConfig: ts.CompilerOptions;
     reporter: Reporter;
-    sourceMap?: boolean;
     /**
      * List of targets to be compiled. Refers to the `targets` defined in the `config` property.
      * Use `["*"]` to compile with all available addons. No addons will be used if no target is specified.

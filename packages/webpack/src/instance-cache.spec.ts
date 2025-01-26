@@ -29,7 +29,6 @@ beforeEach(() => {
             reporter,
             cliArgs: { options: { outDir: ".build" }, fileNames: [], errors: [] },
             debug: false,
-            sourceMap: false,
             watch: false,
         },
         () => undefined,
