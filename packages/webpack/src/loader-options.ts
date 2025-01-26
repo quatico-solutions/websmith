@@ -31,14 +31,15 @@ export type WebsmithLoaderConfig = WebsmithLoaderOptions & {
 };
 
 export const getLoaderOptions = (loader: LoaderContext<WebsmithLoaderConfig>): WebsmithLoaderConfig => {
-    const options: WebsmithLoaderConfig = loader.getOptions();
+    const options = loader.getOptions();
+    const { configFile, webpackTarget = "*" } = options;
+
     const result = {
         ...options,
         ...(!!loader._module && typeof loader._module.addWarning === "function" && { warn: (err: WebpackError) => loader._module!.addWarning(err) }),
         ...(!!loader._module && typeof loader._module.addError === "function" && { error: (err: WebpackError) => loader._module!.addError(err) }),
-        ...(!!options.configFile && { configFile: uPath.resolve(options.configFile) }),
-        transpileOnly: options.transpileOnly ?? false,
-        webpackTarget: options.webpackTarget ?? "*",
+        ...(!!configFile && { configFile: uPath.resolve(configFile) }),
+        webpackTarget,
     };
     return result;
 };

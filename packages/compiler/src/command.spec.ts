@@ -63,7 +63,7 @@ describe("addCompileCommand", () => {
         const compilerOptions = {
             configFilePath: "/tsconfig.json",
             inlineSources: undefined,
-            outDir: "/lib",
+            outDir: "/",
             sourceMap: false,
         };
         expect(actual.tsConfig).toEqual(compilerOptions);

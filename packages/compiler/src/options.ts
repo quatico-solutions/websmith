@@ -16,38 +16,29 @@ import { dirname } from "path";
 import ts from "typescript";
 import { CompilerArguments } from "./CompilerArguments";
 
-const DEFAULTS: CompilerArguments & { outDir: string; project: string } = {
-    debug: false,
-    outDir: "./lib",
-    project: "./tsconfig.json",
-    sourceMap: false,
-    watch: false,
-};
-
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
-    const tsConfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
-    const compilationConfig = args.configFile ? resolveCompilationConfig(args.configFile, reporter, system) : undefined;
+    const { configFile, debug = false, project = "./tsconfig.json", sourceMap = false, targets, transpileOnly, watch = false } = args;
 
-    const projectDirectory =
-        (args?.configFile && dirname(args.configFile)) ?? (tsConfig.raw && tsConfig.raw.configFilePath && dirname(tsConfig.raw?.configFilePath));
-    tsConfig.options.outDir = system.resolvePath(args.buildDir ?? tsConfig.options.outDir ?? DEFAULTS.outDir);
+    const cliArgs = resolveTsConfig(project, system);
+    cliArgs.options = { ...cliArgs.options };
+    const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system) : undefined;
+
+    const projectDirectory = (configFile && dirname(configFile)) ?? (cliArgs.raw?.configFilePath && dirname(cliArgs.raw?.configFilePath));
+    cliArgs.options.outDir = system.resolvePath(cliArgs.options.outDir ?? system.getCurrentDirectory());
     if (projectDirectory) {
-        tsConfig.options = updateCompilerOptions(tsConfig.options, system, projectDirectory);
+        cliArgs.options = updateCompilerOptions(cliArgs.options, system, projectDirectory);
     }
 
-    if (args.sourceMap !== undefined) {
-        tsConfig.options.sourceMap = args.sourceMap;
-        if (tsConfig.options.sourceMap === false) {
-            tsConfig.options.inlineSources = undefined;
+    if (sourceMap !== undefined) {
+        cliArgs.options.sourceMap = sourceMap;
+        if (cliArgs.options.sourceMap === false) {
+            delete cliArgs.options.inlineSources;
         }
     }
 
-    const targets = args.targets?.split(",").map(target => target.trim()) ?? [];
-    let config =
-        compilationConfig || args.config
-            ? Object.assign({}, compilationConfig, args.config, { ...(args.transpileOnly && { transpileOnly: true }) })
-            : undefined;
-    if (args.transpileOnly) {
+    const targetNames = targets?.split(",").map(target => target.trim()) ?? [];
+    let config = compilationConfig;
+    if (transpileOnly) {
         if (!config) {
             config = { transpileOnly: true };
         } else {
@@ -56,17 +47,17 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
     }
 
     return {
-        buildDir: args.buildDir ?? system.getCurrentDirectory(),
+        buildDir: cliArgs.options.outDir!,
         ...(config && { config }),
-        ...(args.configFile && { configFile: args.configFile }),
-        debug: args.debug ?? DEFAULTS.debug,
+        ...(configFile && { configFile }),
+        debug,
         // TODO: Do we need lib files, or is injecting them into the system sufficient?
         // files?: Record<string, string>;
-        cliArgs: tsConfig,
-        tsConfig: tsConfig.options,
+        cliArgs,
+        tsConfig: cliArgs.options,
         reporter,
-        sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
-        targets: resolveTargets(targets, compilationConfig, reporter),
-        watch: args.watch ?? DEFAULTS.watch,
+        sourceMap,
+        targets: resolveTargets(targetNames, compilationConfig, reporter),
+        watch,
     };
 };

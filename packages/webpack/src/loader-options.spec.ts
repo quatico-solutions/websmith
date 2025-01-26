@@ -14,7 +14,6 @@ describe("getLoaderOptions", () => {
         const actual = getLoaderOptions(target);
 
         expect(actual).toEqual({
-            transpileOnly: false,
             webpackTarget: "*",
         });
     });

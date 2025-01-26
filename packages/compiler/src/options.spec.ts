@@ -32,7 +32,8 @@ describe("createOptions", () => {
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
-            outDir: "/lib",
+            outDir: "/",
+            sourceMap: false,
         });
     });
 
@@ -111,7 +112,7 @@ describe("createOptions", () => {
             },
             tsConfig: {
                 configFilePath: "/tsconfig.json",
-                outDir: "/lib",
+                outDir: "/",
             },
 
             cliArgs: {
@@ -119,7 +120,7 @@ describe("createOptions", () => {
                 errors: [],
                 options: {
                     configFilePath: "/tsconfig.json",
-                    outDir: "/lib",
+                    outDir: "/",
                 },
                 raw: {
                     include: ["**/*.ts"],

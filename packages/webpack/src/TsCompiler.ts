@@ -17,21 +17,10 @@ export class TsCompiler extends Compiler {
     public targets: string[];
     public webpackTarget: string;
 
-    constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, loaderConfig?: WebsmithLoaderConfig) {
+    constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, loaderConfig: WebsmithLoaderConfig = {}) {
         const system = ts.sys;
-        loaderConfig = loaderConfig ? { webpackTarget: "*", ...loaderConfig } : { webpackTarget: "*" };
-        let websmithConfig: CompilationConfig = {
-            addons: loaderConfig.addons ?? [],
-            addonsDir: loaderConfig.addonsDir,
-            ...(!!loaderConfig.transpileOnly && { transpileOnly: loaderConfig.transpileOnly }),
-        };
-        if (loaderConfig.configFile) {
-            websmithConfig = { ...resolveCompilationConfig(loaderConfig.configFile, options.reporter, system), ...websmithConfig };
-        }
-
-        const { targets } = loaderConfig;
-        const { addons, targets: targetsMap, addonsDir } = websmithConfig ?? {};
-        const targetNames = targets ?? [];
+        const { addons, targets: targetsMap, addonsDir } = loadCompilationConfig(loaderConfig, options, system);
+        const targetNames = loaderConfig.targets ?? [];
         const addonsMerged = addons?.length
             ? addons
             : Object.entries(targetsMap ?? {})
@@ -55,7 +44,7 @@ export class TsCompiler extends Compiler {
         this.loaderConfig = loaderConfig;
         super.createTargetContextsIfNecessary();
         this.targets = targetNames.length ? targetNames : options.targets ?? [];
-        this.webpackTarget = this.getFragmentTarget(loaderConfig.webpackTarget!);
+        this.webpackTarget = this.getFragmentTarget(loaderConfig.webpackTarget ?? "*");
     }
 
     public getProgram(): ts.Program | undefined {
@@ -125,3 +114,16 @@ export class TsCompiler extends Compiler {
         return target;
     }
 }
+
+const loadCompilationConfig = (loaderConfig: WebsmithLoaderConfig, options: CompilerOptions, system: ts.System): CompilationConfig => {
+    const { addons = [], addonsDir, configFile, transpileOnly } = loaderConfig;
+    let results: CompilationConfig = {
+        addons,
+        addonsDir,
+        ...(!!transpileOnly && { transpileOnly }),
+    };
+    if (configFile) {
+        results = { ...resolveCompilationConfig(configFile, options.reporter, system), ...results };
+    }
+    return results;
+};
