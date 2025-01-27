@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -5,10 +6,17 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
-import { AddonRegistry, CompilationConfig, Compiler, CompilerOptions, DefaultReporter, resolveCompilationConfig } from "@quatico/websmith-core";
-import { Command, program } from "commander";
+import {
+    AddonRegistry,
+    type CompilationConfig,
+    Compiler,
+    type CompilerOptions,
+    DefaultReporter,
+    resolveCompilationConfig,
+} from "@quatico/websmith-core";
+import { type Command, program } from "commander";
 import parseArgs from "minimist";
-import { CompilerArguments } from "./CompilerArguments";
+import { type CompilerArguments } from "./CompilerArguments";
 import { compileSystem } from "./compiler-system";
 import { createOptions } from "./options";
 

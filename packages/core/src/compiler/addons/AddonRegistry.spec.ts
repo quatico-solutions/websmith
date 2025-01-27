@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
-import ts from "typescript";
+import type ts from "typescript";
 import { ReporterMock, compileSystem } from "../../../test";
 import { AddonRegistry } from "./AddonRegistry";
 

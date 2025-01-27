@@ -87,14 +87,14 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
         },
         readFileSync: (
             path: PathOrFileDescriptor,
-            options?: BufferEncoding | (ObjectEncodingOptions & { flag?: string | undefined }) | null | undefined
+            options?: BufferEncoding | (ObjectEncodingOptions & { flag?: string | undefined }) | null
         ): string | Buffer => {
             try {
                 const content = memfs.readFileSync(path, options as any);
                 if (content) {
                     return content;
                 }
-            } catch (err) {
+            } catch (_ignored) {
                 // falls through
             }
             return actualFs.readFileSync(path, options);

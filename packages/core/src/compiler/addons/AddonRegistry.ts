@@ -4,9 +4,9 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { Reporter, WarnMessage, type TargetConfig } from "@quatico/websmith-api";
+import { type Reporter, WarnMessage, type TargetConfig } from "@quatico/websmith-api";
 import path, { basename, extname } from "path";
-import ts from "typescript";
+import type ts from "typescript";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
 export type AddonConfig = {
@@ -128,7 +128,7 @@ export class AddonRegistry {
 
 const createAddon = (system: ts.System, filePath: string, addonName: string): CompilerAddon => {
     const importPath = getImportPath(system, filePath);
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     return { getName: () => addonName, activate: require(importPath).activate };
 };
 

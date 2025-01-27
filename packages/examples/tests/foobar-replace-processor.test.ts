@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
+import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import { join } from "path";
 
 describe("foobar-replace-processor", () => {

@@ -4,8 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { Reporter, WarnMessage } from "@quatico/websmith-api";
-import { CompilationConfig } from "./CompilationConfig";
+import { type Reporter, WarnMessage } from "@quatico/websmith-api";
+import { type CompilationConfig } from "./CompilationConfig";
 
 // TODO: Target resolution: Passed targets in CLI vs. specified targets in CompilationConfig
 //  Passed target this args.target

@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import ts from "typescript";
+import type ts from "typescript";
 
 /**
  * This type represents the configuration options for a target. It is used in

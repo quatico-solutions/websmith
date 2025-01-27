@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import ts, { CompilerOptions, IScriptSnapshot, LanguageServiceHost } from "typescript";
+import ts, { type CompilerOptions, type IScriptSnapshot, type LanguageServiceHost } from "typescript";
 
 export class CompilationHost implements LanguageServiceHost {
     private currentHost: LanguageServiceHost;

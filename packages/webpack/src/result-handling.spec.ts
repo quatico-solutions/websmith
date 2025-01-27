@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { LoaderContext } from "webpack";
+import { type LoaderContext } from "webpack";
 import { makeSourceMap, processResultAndFinish } from "./result-handling";
 
 describe("makeSourceMap", () => {

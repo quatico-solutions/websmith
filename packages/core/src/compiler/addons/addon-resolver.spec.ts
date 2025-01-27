@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import ts from "typescript";
+import type ts from "typescript";
 import { NoReporter } from "../../../src/compiler/NoReporter";
 import { ReporterMock, compileSystem } from "../../../test";
 import { createResolver } from "./addon-resolver";

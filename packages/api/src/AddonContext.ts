@@ -4,11 +4,11 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import ts from "typescript";
-import { Generator } from "./Generator";
-import { Processor } from "./Processor";
-import { Reporter } from "./Reporter";
-import { ResultProcessor } from "./ResultProcessor";
+import type ts from "typescript";
+import { type Generator } from "./Generator";
+import { type Processor } from "./Processor";
+import { type Reporter } from "./Reporter";
+import { type ResultProcessor } from "./ResultProcessor";
 
 /**
  * This type represents the context for the current compilation in which this addon is being used.

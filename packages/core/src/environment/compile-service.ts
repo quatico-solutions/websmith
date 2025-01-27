@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { Reporter } from "@quatico/websmith-api";
+import { type Reporter } from "@quatico/websmith-api";
 import merge from "lodash/merge";
 import ts from "typescript";
 import { DefaultReporter } from "../compiler";

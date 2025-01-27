@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -5,7 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { existsSync } from "fs";
-import webpack, { Compiler, Configuration, Stats } from "webpack";
+import webpack, { type Compiler, type Configuration, type Stats } from "webpack";
 import { uPath } from "@quatico/websmith-webpack";
 
 export const webpackBuild = (
@@ -57,7 +58,7 @@ export const webpackBuild = (
               compiler.run((err, stats) => {
                   if (err || (stats && stats.hasErrors())) {
                       const resolvedErrors = err ? [err.message] : stats?.toJson("errors-only").errors?.map(cur => cur.message) ?? [];
-                      reject({ errors: resolvedErrors, compiler });
+                      reject(new Error(resolvedErrors.join("\n")));
                   }
                   resolve({ stats: stats as unknown as Stats, compiler });
               })

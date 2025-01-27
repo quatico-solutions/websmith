@@ -5,8 +5,9 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { createOptions } from "./options";
-import webpack, { LoaderContext } from "webpack";
-import { WebsmithLoaderConfig } from "./loader-options";
+import {type LoaderContext} from "webpack";
+import type webpack from "webpack";
+import { type WebsmithLoaderConfig } from "./loader-options";
 import { TsCompiler } from "./TsCompiler";
 import { addCompilationHooks } from "./webpack-hooks";
 

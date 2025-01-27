@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -5,17 +6,17 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { ErrorMessage, Reporter, TargetConfig } from "@quatico/websmith-api";
+import { ErrorMessage, type Reporter, type TargetConfig } from "@quatico/websmith-api";
 import { dirname, extname, join } from "path";
 import ts, { PollingWatchKind, WatchFileKind } from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
-import { FileCache } from "./cache";
+import { type FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
-import { CompilerOptions } from "./CompilerOptions";
-import { CompilationConfig } from "./config";
+import { type CompilerOptions } from "./CompilerOptions";
+import { type CompilationConfig } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
-import { AddonRegistry } from "./addons";
+import { type AddonRegistry } from "./addons";
 
 export type CompileFragment = {
     version: number;

@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { isAbsolute, join } from "path";
-import ts from "typescript";
+import type ts from "typescript";
 
 export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
     let resolvedPath = join(...pathSegments);

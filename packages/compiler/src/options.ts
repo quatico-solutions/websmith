@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import {
-    CompilerOptions,
+    type CompilerOptions,
     NoReporter,
     resolveCompilationConfig,
     resolveTargets,
@@ -14,7 +14,7 @@ import {
 } from "@quatico/websmith-core";
 import { dirname } from "path";
 import ts from "typescript";
-import { CompilerArguments } from "./CompilerArguments";
+import { type CompilerArguments } from "./CompilerArguments";
 
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const { configFile, debug = false, project = "./tsconfig.json", sourceMap = false, targets, transpileOnly, watch = false } = args;

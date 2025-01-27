@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { AddonActivator } from "@quatico/websmith-api";
+import { type AddonActivator } from "@quatico/websmith-api";
 
 export type AddonModule = {
     activate: AddonActivator;

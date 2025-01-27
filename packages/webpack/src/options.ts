@@ -4,9 +4,9 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { Reporter } from "@quatico/websmith-api";
+import { type Reporter } from "@quatico/websmith-api";
 import {
-    CompilerOptions,
+    type CompilerOptions,
     NoReporter,
     resolveCompilationConfig,
     resolveTargets,
@@ -15,7 +15,7 @@ import {
 } from "@quatico/websmith-core";
 import { dirname } from "path";
 import ts from "typescript";
-import { WebsmithLoaderConfig } from "./loader-options";
+import { type WebsmithLoaderConfig } from "./loader-options";
 
 export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const { buildDir, config, configFile, debug = false, project = "./tsconfig.json", targets = ["*"], tsConfig, transpileOnly } = args;

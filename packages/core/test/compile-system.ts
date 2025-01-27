@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import ts from "typescript";
+import type ts from "typescript";
 import { createBrowserSystem, getVersionedFile } from "../src/environment";
 
 export type CompileSystem = {

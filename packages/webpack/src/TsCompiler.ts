@@ -5,11 +5,18 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { AddonRegistry, CompilationConfig, CompileFragment, Compiler, CompilerOptions, resolveCompilationConfig } from "@quatico/websmith-core";
+import {
+    AddonRegistry,
+    type CompilationConfig,
+    type CompileFragment,
+    Compiler,
+    type CompilerOptions,
+    resolveCompilationConfig,
+} from "@quatico/websmith-core";
 import ts from "typescript";
 import { WebpackError } from "webpack";
 import { Upath as uPath } from "./Upath";
-import { WebsmithLoaderConfig } from "./loader-options";
+import { type WebsmithLoaderConfig } from "./loader-options";
 
 export class TsCompiler extends Compiler {
     public fragment?: CompileFragment;
@@ -63,7 +70,13 @@ export class TsCompiler extends Compiler {
         if (result.diagnostics?.length) {
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
                 const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-                this.loaderConfig?.error ? this.loaderConfig?.error(new WebpackError(message)) : console.error(message);
+
+                if (typeof this.loaderConfig?.error === "function") {
+                    this.loaderConfig.error(new WebpackError(message));
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.error(message);
+                }
             });
         }
         super

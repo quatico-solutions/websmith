@@ -14,7 +14,7 @@ const DEFAULT_OUT_DIR = "./dist";
 
 export const compileOptions = (
     system: ts.System,
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+     
     overrides?: Partial<CompilerOptions> & { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; targets?: string[] }
 ): CompilerOptions => {
     const reporter = new ReporterMock(system);
