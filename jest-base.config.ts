@@ -4,24 +4,21 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-module.exports = {
+import type { Config } from "jest";
+
+export const config: Config = {
     collectCoverageFrom: ["./src/**/*.{ts,tsx}"],
     coverageDirectory: "coverage",
     coveragePathIgnorePatterns: ["index.ts"],
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
-    moduleNameMapper: {
-        "@quatico/websmith-api": "<rootDir>/packages/api/src",
-        "@quatico/websmith-compiler": "<rootDir>/packages/compiler/src",
-        "@quatico/websmith-core": "<rootDir>/packages/core/src",
-        "@quatico/websmith-testing": "<rootDir>/packages/testing/src",
-        "@quatico/websmith-webpack": "<rootDir>/packages/webpack/src",
-    },
+    modulePathIgnorePatterns: ["<rootDir>/lib/"],
     prettierPath: null,
-    setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+    setupFilesAfterEnv: ["../../jest.setup.ts"],
     testRegex: "src/.*spec\\.(tsx?)$",
     transform: {
         "^.+\\.(js|ts)$": ["ts-jest", { diagnostics: false, isolatedModules: true }],
     },
+    transformIgnorePatterns: ["node_modules/.pnpm/(?!cross-spawn|tildify|path-exists)/"],
     resetMocks: true,
     clearMocks: true,
 };

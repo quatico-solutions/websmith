@@ -5,20 +5,16 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-module.exports = {
-    collectCoverageFrom: ["./src/**/*.{ts,tsx}"],
-    coverageDirectory: "coverage",
+import type { Config } from "jest";
+import { config as baseConfig } from "../../jest-base.config";
+
+const config: Config = {
+    ...baseConfig,
     moduleNameMapper: {
-        "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-core": "<rootDir>/../core/src",
         "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
-    roots: ["<rootDir>/src/"],
-    moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
-    testEnvironment: "node",
-    testRegex: "(test|src)/.+\\.spec\\.ts$",
-    transform: {
-        "^.+\\.(js|ts)$": ["ts-jest", { diagnostics: false, isolatedModules: true }],
-    },
-    resetMocks: true,
+    testRegex: "src/.*(test|spec)\\.(js|ts)$",
 };
+
+export default config;
