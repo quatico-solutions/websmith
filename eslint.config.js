@@ -10,8 +10,10 @@ const ts = require("typescript-eslint");
 const jest = require("eslint-plugin-jest");
 const prettier = require("eslint-config-prettier");
 const nxPlugin = require("@nx/eslint-plugin");
-// TODO: Enable the import when eslint-plugin-import supports FlatESLint
-// const importPlugin = require("eslint-plugin-import");
+const { fixupPluginRules } = require("@eslint/compat");
+const importPlugin = require("eslint-plugin-import");
+const testingLibrary = require("eslint-plugin-testing-library");
+const tsPlugin = require("@typescript-eslint/eslint-plugin");
 
 module.exports = [
     js.configs.recommended,
@@ -19,10 +21,23 @@ module.exports = [
     jest.configs["flat/recommended"],
     prettier,
     {
+        languageOptions: {
+            parserOptions: {
+                tsconfigRootDir: __dirname,
+                project: "./tsconfig.lint.json",
+                ecmaVersion: 2020, // Allows for the parsing of modern ECMAScript features
+            },
+            globals: {
+                ...globals.serviceworker,
+                ...globals.browser,
+                ...globals.node,
+                BUILD_HOSTED: true,
+            },
+        },
         plugins: {
             "@nx": nxPlugin,
-            // TODO: Enable the following plugin when eslint-plugin-import supports FlatESLint
-            // import: importPlugin,
+            import: fixupPluginRules(importPlugin),
+            "testing-library": fixupPluginRules(testingLibrary),
         },
     },
     {
@@ -40,14 +55,15 @@ module.exports = [
         linterOptions: {
             reportUnusedDisableDirectives: true,
         },
+        plugins: {
+            "@typescript-eslint": tsPlugin,
+        },
         settings: {
             "import/parsers": {
                 espree: [".js", ".cjs", ".mjs", ".jsx"],
                 "@typescript-eslint/parser": [".ts", ".tsx"],
             },
             "import/resolver": {
-                typescript: true,
-                node: true,
                 alias: {
                     map: [
                         ["@quatico/websmith-api", __dirname + "/packages/api/src"],
@@ -55,15 +71,20 @@ module.exports = [
                         ["@quatico/websmith-core", __dirname + "/packages/core/src"],
                         ["@quatico/websmith-testing", __dirname + "/packages/testing/src"],
                         ["@quatico/websmith-webpack", __dirname + "/packages/webpack/src"],
+                        ["@quatico/websmith-runner", __dirname + "/packages/runner/src"],
                     ],
                     extensions: [".ts", ".js", ".jsx", ".json"],
+                },
+                typescript: {
+                    alwaysTryTypes: true,
+                    project: ["./tsconfig.lint.json"],
                 },
             },
         },
         rules: {
             ...jest.configs["flat/recommended"].rules,
-            // TODO: Enable the following rules when eslint-plugin-import supports FlatESLint
-            // ...importPlugin.configs["recommended"].rules,
+            ...importPlugin.configs["recommended"].rules,
+
             "@typescript-eslint/no-unsafe-call": "warn",
             "@typescript-eslint/no-unsafe-argument": "warn",
             "@typescript-eslint/no-unsafe-assignment": "warn",
@@ -71,6 +92,17 @@ module.exports = [
             "@typescript-eslint/no-unsafe-return": "warn",
             "@typescript-eslint/unbound-method": "warn",
             "@typescript-eslint/no-var-requires": "warn",
+            "@typescript-eslint/no-unused-vars": [
+                "error",
+                {
+                    argsIgnorePattern: "^_",
+                    caughtErrorsIgnorePattern: "^_",
+                    destructuredArrayIgnorePattern: "^_",
+                },
+            ],
+            "@typescript-eslint/consistent-type-imports": ["error", { fixStyle: "inline-type-imports" }],
+
+            "no-console": "error",
             "arrow-parens": ["error", "as-needed"],
             "max-len": ["warn", { code: 150, tabWidth: 4 }],
             curly: "error",
@@ -87,6 +119,8 @@ module.exports = [
             "@typescript-eslint/no-explicit-any": "off",
             "@typescript-eslint/no-non-null-assertion": "off",
             "max-len": "off",
+            "no-console": "off",
         },
     },
+    { ignores: ["**/dist/*", "**/lib/*"] },
 ];
