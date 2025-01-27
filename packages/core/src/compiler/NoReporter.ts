@@ -5,7 +5,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import ts from "typescript";
+import type ts from "typescript";
 import type { Reporter } from "@quatico/websmith-api";
 
 export class NoReporter implements Reporter {

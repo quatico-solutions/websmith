@@ -5,7 +5,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import ts from "typescript";
+import type ts from "typescript";
 import { DefaultReporter } from "../src/compiler";
 
 export class ReporterMock extends DefaultReporter {

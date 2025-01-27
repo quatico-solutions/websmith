@@ -10,7 +10,7 @@ import { Compiler, NoReporter } from "@quatico/websmith-core";
 import { compileSystem } from "@quatico/websmith-testing";
 import { Command } from "commander";
 import path from "path";
-import ts from "typescript";
+import type ts from "typescript";
 import { addCompileCommand, hasInvalidTargets } from "./command";
 import { createOptions } from "./options";
 

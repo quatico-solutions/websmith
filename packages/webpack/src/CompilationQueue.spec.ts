@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { CompilationQueue, CompilationQueueContributor } from "./CompilationQueue";
+import { CompilationQueue, type CompilationQueueContributor } from "./CompilationQueue";
 
 describe("CompilationQueue", () => {
     let testObj: CompilationQueue;

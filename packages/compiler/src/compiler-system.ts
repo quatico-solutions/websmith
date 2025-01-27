@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { createSystem } from "@quatico/websmith-core";
-import ts from "typescript";
+import type ts from "typescript";
 
 export const compileSystem = (files?: { [name: string]: string }): ts.System => {
     const raw = createSystem(files);

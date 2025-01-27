@@ -5,10 +5,10 @@
  * ---------------------------------------------------------------------------------------------
  */
 import type { TargetConfig } from "@quatico/websmith-api";
-import { Reporter, WarnMessage } from "@quatico/websmith-api";
+import { type Reporter, WarnMessage } from "@quatico/websmith-api";
 import { dirname, isAbsolute, join } from "path";
-import ts from "typescript";
-import { CompilationConfig } from "./CompilationConfig";
+import type ts from "typescript";
+import { type CompilationConfig } from "./CompilationConfig";
 
 export const resolveCompilationConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilationConfig | undefined => {
     if (configFilePath) {

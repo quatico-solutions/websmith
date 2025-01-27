@@ -7,7 +7,7 @@
 
 import { readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
-import { Configuration, NormalModule } from "webpack";
+import { type Configuration, NormalModule } from "webpack";
 import { webpackBuild } from "./webpack-utils";
 
 describe("project bundling", () => {
@@ -15,7 +15,7 @@ describe("project bundling", () => {
     let config: Configuration;
 
     beforeAll(() => {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         config = require("../__data__/module-test/webpack.config.js")() as Configuration;
     });
 

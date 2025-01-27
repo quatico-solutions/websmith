@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { CacheFile, getCachedName } from "./CacheFile";
+import { type CacheFile, getCachedName } from "./CacheFile";
 
 export class FileCache {
     private data: ts.MapLike<CacheFile>;

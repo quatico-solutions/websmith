@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { AddonContext } from "@quatico/websmith-api";
+import { type AddonContext } from "@quatico/websmith-api";
 
 export interface CompilerAddon {
     getName: () => string;

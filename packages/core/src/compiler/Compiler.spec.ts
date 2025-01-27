@@ -7,11 +7,11 @@
  */
 import { basename } from "path";
 import type { LanguageService, Program } from "typescript";
-import ts from "typescript";
-import { ReporterMock, compileOptions, compileSystem } from "../../test";
-import { CompileFragment, Compiler } from "./Compiler";
-import { CompilerOptions } from "./CompilerOptions";
-import { CompilationContext } from "./compilation";
+import type ts from "typescript";
+import { type ReporterMock, compileOptions, compileSystem } from "../../test";
+import { type CompileFragment, Compiler } from "./Compiler";
+import { type CompilerOptions } from "./CompilerOptions";
+import { type CompilationContext } from "./compilation";
 
 class CompilerTestClass extends Compiler {
     constructor(options: CompilerOptions, system: ts.System) {

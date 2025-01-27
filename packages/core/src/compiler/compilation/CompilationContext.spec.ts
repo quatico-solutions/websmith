@@ -6,7 +6,7 @@
  */
 import ts from "typescript";
 import { ReporterMock, compileSystem } from "../../../test";
-import { CompilationContext, CompilationContextOptions } from "./CompilationContext";
+import { CompilationContext, type CompilationContextOptions } from "./CompilationContext";
 
 class CompilationContextTestClass extends CompilationContext {
     public constructor(options: CompilationContextOptions) {

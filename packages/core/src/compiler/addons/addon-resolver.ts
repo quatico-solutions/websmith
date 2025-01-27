@@ -4,8 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import ts from "typescript";
-import { Reporter, WarnMessage } from "@quatico/websmith-api";
+import type ts from "typescript";
+import { type Reporter, WarnMessage } from "@quatico/websmith-api";
 import type { CompilerAddon } from "./CompilerAddon";
 
 export const ADDONS_FOLDER_NAME = `/addons`;
@@ -32,14 +32,14 @@ export const createResolver =
 export const resolveName = (name: string, localPath: string, system: ts.System): CompilerAddon | undefined => {
     try {
         const compilerPath = __dirname ? `${__dirname}/..` : "";
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-var-requires
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports
         const addonModule = require(system.resolvePath(`${compilerPath}${localPath}/addon`));
         return {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
             activate: addonModule.activate,
             getName: () => name,
         } as CompilerAddon;
-    } catch (ignored) {
+    } catch (_ignored) {
         return undefined;
     }
 };

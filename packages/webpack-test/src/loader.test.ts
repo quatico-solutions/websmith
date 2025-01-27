@@ -6,7 +6,7 @@
  */
 import { readFileSync, rmSync, statSync, writeFileSync } from "fs";
 import { join, resolve } from "path";
-import { Compiler, WebpackError, Configuration } from "webpack";
+import { type Compiler, WebpackError, type Configuration } from "webpack";
 import { webpackBuild } from "./webpack-utils";
 
 const projectDir = resolve(__dirname, "../__data__/module-test");
@@ -169,13 +169,13 @@ const waitFor = (fn: () => boolean, tag: string, maximum = 80) => {
             if (++counter > maximum) {
                 console.error(`waitFor timed out after ${maximum} tries on ${tag} @ ${new Date().toISOString()}`);
                 clearInterval(interval);
-                reject(false);
+                reject(new Error(`waitFor timed out after ${maximum} tries on ${tag} @ ${new Date().toISOString()}`));
             }
         }, 200);
     });
 };
 
 const requireWebpackConfig = (configFileName: string, watch = false): Configuration => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-call
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     return { ...require(join(projectDir, configFileName))(), ...(!!watch && { watch }) } as Configuration;
 };

@@ -5,9 +5,9 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { CompilationConfig } from "@quatico/websmith-core";
-import ts from "typescript";
-import { LoaderContext, WebpackError } from "webpack";
+import { type CompilationConfig } from "@quatico/websmith-core";
+import type ts from "typescript";
+import { type LoaderContext, type WebpackError } from "webpack";
 import { Upath as uPath } from "./Upath";
 
 export interface WebsmithLoaderOptions {

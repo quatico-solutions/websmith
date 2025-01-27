@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { join } from "path";
-import ts from "typescript";
+import type ts from "typescript";
 
 type SourcePath = {
     system: ts.System;
