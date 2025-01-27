@@ -19,8 +19,6 @@
         "@nx/eslint-plugin": "^18.3.4",
         "@quatico/websmith-core": "workspace:*",
         "@quatico/websmith-testing": "workspace:*",
-        "@swc/core": "1.5.0",
-        "@swc/jest": "0.2.36",
         "@types/jest": "^29.5.12",
         "@types/node": "20",
         "@typescript-eslint/eslint-plugin": "^8.18.0",
@@ -41,6 +39,7 @@
         "path": "0.12.7",
         "prettier": "^3.2.5",
         "rimraf": "5.0.5",
+        "ts-jest": "^29.2.5",
         "typescript": "5.4.5",
         "typescript-eslint": "^8.18.0"
     }

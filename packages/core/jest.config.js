@@ -17,16 +17,7 @@ module.exports = {
     testRegex: "(tests|src)/.*(test|spec)\\.(js|ts)$",
     testTimeout: 15000,
     transform: {
-        "^.+\\.(js|ts)$": [
-            "@swc/jest",
-            {
-                jsc: {
-                    parser: {
-                        syntax: "typescript",
-                    },
-                },
-            },
-        ],
+        "^.+\\.(js|ts)$": ["ts-jest", { diagnostics: false, isolatedModules: true }],
     },
     transformIgnorePatterns: ["node_modules"],
     resetMocks: true,

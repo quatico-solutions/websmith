@@ -7,8 +7,8 @@
  */
 import { basename } from "path";
 import type { LanguageService, Program } from "typescript";
-import type ts from "typescript";
-import { type ReporterMock, compileOptions, compileSystem } from "../../test";
+import ts from "typescript";
+import { ReporterMock, compileOptions, compileSystem } from "../../test";
 import { type CompileFragment, Compiler } from "./Compiler";
 import { type CompilerOptions } from "./CompilerOptions";
 import { type CompilationContext } from "./compilation";
