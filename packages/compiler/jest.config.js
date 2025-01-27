@@ -18,16 +18,7 @@ module.exports = {
     testRegex: "src/.*\\.spec\\.(j|t)s$",
     setupFilesAfterEnv: ["<rootDir>/../../jest.setup.ts"],
     transform: {
-        "^.+\\.(js|ts)$": [
-            "@swc/jest",
-            {
-                jsc: {
-                    parser: {
-                        syntax: "typescript",
-                    },
-                },
-            },
-        ],
+        "^.+\\.(js|ts)$": ["ts-jest", { diagnostics: false, isolatedModules: true }],
     },
     resetMocks: true,
 };
