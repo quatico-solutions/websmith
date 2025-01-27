@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import ts from "typescript";
+import type ts from "typescript";
 import { resolve } from "path";
 
 export type CacheFile = { version: number; content?: string; files?: ts.OutputFile[]; snapshot?: ts.IScriptSnapshot; modifiedTime?: Date };

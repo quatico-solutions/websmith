@@ -4,8 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { LoaderContext } from "webpack";
-import { getLoaderOptions, WebsmithLoaderConfig } from "./loader-options";
+import { type LoaderContext } from "webpack";
+import { getLoaderOptions, type WebsmithLoaderConfig } from "./loader-options";
 
 describe("getLoaderOptions", () => {
     it("should yield default values w/ empty options", () => {

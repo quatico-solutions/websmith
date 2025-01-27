@@ -4,14 +4,14 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { LoaderContext } from "webpack";
+import { type LoaderContext } from "webpack";
 import { initializeInstance, setInstanceInCache } from "./instance-cache";
-import { getLoaderOptions, WebsmithLoaderConfig } from "./loader-options";
+import { getLoaderOptions, type WebsmithLoaderConfig } from "./loader-options";
 import { processResultAndFinish } from "./result-handling";
-import { TsCompiler } from "./TsCompiler";
+import { type TsCompiler } from "./TsCompiler";
 
 export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
-    this.cacheable && this.cacheable();
+    this.cacheable?.();
     const loaderOptions = getLoaderOptions(this);
     const instance = initializeInstance(this, loaderOptions, (path: string) => {
         this.addDependency(path);
@@ -24,6 +24,7 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
 
     processResultAndFinish(this, fragment, instance.targets);
 }
+
 const buildTargets = (compiler: TsCompiler, resourcePath: string) => {
     return compiler.build(resourcePath);
 };

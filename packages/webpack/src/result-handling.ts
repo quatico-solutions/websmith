@@ -5,10 +5,10 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { CompileFragment } from "@quatico/websmith-core";
+import { type CompileFragment } from "@quatico/websmith-core";
 import type typescript from "typescript";
-import { LoaderContext } from "webpack";
-import { WebsmithLoaderConfig } from "./loader-options";
+import { type LoaderContext } from "webpack";
+import { type WebsmithLoaderConfig } from "./loader-options";
 
 export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
     return {

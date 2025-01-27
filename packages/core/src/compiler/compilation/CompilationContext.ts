@@ -1,10 +1,11 @@
+/* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { AddonContext, Generator, Processor, Reporter, ResultProcessor } from "@quatico/websmith-api";
+import { type AddonContext, type Generator, type Processor, type Reporter, type ResultProcessor } from "@quatico/websmith-api";
 import { extname, isAbsolute, join } from "path";
 import ts from "typescript";
 import { FileCache } from "../cache";

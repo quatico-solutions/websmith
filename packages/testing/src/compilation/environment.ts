@@ -5,10 +5,10 @@
  * ---------------------------------------------------------------------------------------------
  */
 import {
-    AddonConfig,
+    type AddonConfig,
     AddonRegistry,
     Compiler,
-    CompilerAddons,
+    type CompilerAddons,
     DefaultReporter,
     compilerAddons,
     createBrowserSystem,
@@ -139,7 +139,7 @@ export class CompilationEnv {
         return this.addonsConfig.addonsDir;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+     
     public getActiveAddon(addonName: string): CompilerAddon | undefined {
         return this.addons?.getAvailableAddons("*").find((it: CompilerAddon) => it.getName() === addonName);
     }

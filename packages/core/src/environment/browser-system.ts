@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.

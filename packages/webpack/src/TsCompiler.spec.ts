@@ -5,13 +5,13 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { Reporter } from "@quatico/websmith-api";
-import { CompileFragment, CompilerOptions, NoReporter } from "@quatico/websmith-core";
+import { type Reporter } from "@quatico/websmith-api";
+import { type CompileFragment, type CompilerOptions, NoReporter } from "@quatico/websmith-core";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
-import ts from "typescript";
+import type ts from "typescript";
 import { TsCompiler } from "./TsCompiler";
-import { WebsmithLoaderConfig } from "./loader-options";
+import { type WebsmithLoaderConfig } from "./loader-options";
 
 class TestCompiler extends TsCompiler {
     private sys: ts.System | undefined;

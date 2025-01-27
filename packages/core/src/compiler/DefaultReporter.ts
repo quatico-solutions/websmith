@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -5,7 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { messageToString, Reporter } from "@quatico/websmith-api";
+import { messageToString, type Reporter } from "@quatico/websmith-api";
 
 export class DefaultReporter implements Reporter {
     public readonly formatHost: ts.FormatDiagnosticsHost;

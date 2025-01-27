@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -6,10 +7,10 @@
  */
 import { createOptions } from "./options";
 import { readFileSync } from "fs";
-import { Compilation, Compiler, LoaderContext, NormalModule, Stats } from "webpack";
+import { Compilation, type Compiler, type LoaderContext, NormalModule, type Stats } from "webpack";
 import { contribute } from "./CompilationQueue";
 import { getInstanceFromCache, initializeInstance, setInstanceInCache } from "./instance-cache";
-import { WebsmithLoaderConfig } from "./loader-options";
+import { type WebsmithLoaderConfig } from "./loader-options";
 import { TsCompiler } from "./TsCompiler";
 
 const LOADER_NAME = "websmith-loader";
