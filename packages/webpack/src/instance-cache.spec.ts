@@ -15,7 +15,7 @@ import { getCacheName, getInstanceFromCache, initializeInstance, setInstanceInCa
 let compiler: Compiler;
 let context: LoaderContext<any>;
 let tsCompiler: TsCompiler;
-const projectDir = join(__dirname, "..", "test", "__data__");
+const projectDir = join(__dirname, "..", "tests", "__data__");
 
 beforeEach(() => {
     compiler = webpack({});
