@@ -9,6 +9,10 @@ import { config as baseConfig } from "../../jest-base.config";
 
 const config: Config = {
     ...baseConfig,
+    moduleNameMapper: {
+        "@quatico/websmith-core": "<rootDir>/../core/src",
+        "@quatico/websmith-webpack": "<rootDir>/../webpack/src",
+    },
     setupFilesAfterEnv: ["./test/jest.setup.ts"],
     testRegex: "(tests|src)/.+\\.spec\\.ts$",
     transform: {
