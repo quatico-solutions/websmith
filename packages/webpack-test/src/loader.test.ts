@@ -30,9 +30,9 @@ describe("webpack loader", () => {
             .then(({ compiler }) => {
                 cleanupCompiler = compiler;
             })
-            .catch(({ errors }) => {
+            .catch(({ message }) => {
                 // eslint-disable-next-line jest/no-conditional-expect
-                expect(errors).toContain('No target found for "noWrite"');
+                expect(message).toContain('No target found for "noWrite"');
             });
     });
 

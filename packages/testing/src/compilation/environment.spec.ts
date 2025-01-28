@@ -387,12 +387,9 @@ describe("compilationEnv#compiled", () => {
             .compile();
 
         expect(testObj.getFailureReport("target.ts")).toMatchInlineSnapshot(`
-            "src/index.ts(1,15): error TS2306: File '/target/src/target.ts' is not a module.
-            src/target.ts(1,1): error TS1128: Declaration or statement expected.
+            "src/target.ts(1,1): error TS1128: Declaration or statement expected.
             src/target.ts(1,8): error TS1434: Unexpected keyword or identifier.
-            src/target.ts(1,16): error TS1434: Unexpected keyword or identifier.
-            src/target.ts(1,8): error TS2304: Cannot find name 'ILLEGAL'.
-            src/target.ts(1,16): error TS2304: Cannot find name 'Target'."
+            src/target.ts(1,16): error TS1434: Unexpected keyword or identifier."
         `);
         expect(testObj.getEmittedFiles()).toEqual([]);
     });
