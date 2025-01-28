@@ -8,4 +8,5 @@
 export { Compiler, DefaultReporter, NoReporter, createBrowserSystem, getVersionedFile } from "@quatico/websmith-core";
 export type { CompilerOptions } from "@quatico/websmith-core";
 export { Upath as uPath } from "./Upath";
+export { type WebsmithLoaderOptions, type WebsmithLoaderConfig, getLoaderOptions } from "./loader-options";
 export { loader as default } from "./loader";

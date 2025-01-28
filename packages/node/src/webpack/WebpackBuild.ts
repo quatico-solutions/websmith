@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { type WebsmithLoaderOptions } from "@quatico/websmith-webpack";
 import { split } from "lodash";
-import path from "node:path";
+import path from "path";
 import tildify from "tildify";
 import { type LoaderOptions as TsLoaderOptions } from "ts-loader/dist/interfaces";
 import webpack, { type Configuration, type RuleSetRule } from "webpack";
@@ -10,20 +11,6 @@ import { parseNumberValues } from "../compiler-options";
 import { Logger } from "../Logger";
 import { webpackDefaults } from "./webpack-options";
 import { parseReasonFromStats } from "./webpack-stats";
-
-// Copied from @quatico/websmith-webpack/lib/loader-options.ts
-export interface WebsmithLoaderOptions {
-    addons?: string;
-    addonsDir?: string;
-    buildDir?: string;
-    config: string;
-    debug?: boolean;
-    project?: string;
-    sourceMap?: boolean;
-    transpileOnly?: boolean;
-    targets?: string;
-    webpackTarget?: string;
-}
 
 export class WebpackBuild {
     private logger: Logger;
