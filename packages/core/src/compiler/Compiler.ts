@@ -313,7 +313,7 @@ export class Compiler {
         }
     }
 
-    private transpile(compilationFragment: CompilationFragment) {
+    private transpile(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
         const { fileName, ctx } = compilationFragment;
         if (this.transpileOnly) {
             if (fileName.endsWith(".d.ts")) {
@@ -328,10 +328,10 @@ export class Compiler {
         }
 
         this.compilationHost.setLanguageHost(ctx.getLanguageHost());
-        return this.langService.getEmitOutput(fileName);
+        return { ...this.langService.getEmitOutput(fileName), diagnostics: this.langService.getSyntacticDiagnostics(fileName) };
     }
 
-    private transpileSourceCode({ content, ctx, fileName }: CompilationFragment) {
+    private transpileSourceCode({ content, ctx, fileName }: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
         const isTranspiledSourceFile = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)$/i);
         const isSourceMap = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)\.map$/i);
         const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
@@ -345,19 +345,27 @@ export class Compiler {
                 this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText),
                 this.extractOutputFile(fileNames, isSourceMap, sourceMapText)
             ),
-            diagnostics,
+            diagnostics: diagnostics ?? [],
             emitSkipped: diagnostics !== undefined && diagnostics.length > 0,
         };
     }
 
-    private transpileJson({ ctx, fileName, content }: CompilationFragment) {
+    private transpileJson({ ctx, fileName, content }: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
         const { outDir } = this.options?.tsConfig ?? {};
         if (outDir !== undefined) {
             // JSON are only output by TypoScript if an outDir is provided, otherwise they are ignored.
             const fileNames = ts.getOutputFileNames(ctx.getCliArgs(), fileName, !this.system.useCaseSensitiveFileNames);
-            return { outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }], emitSkipped: false };
+            return {
+                outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }],
+                emitSkipped: false,
+                diagnostics: [],
+            };
         }
-        return { outputFiles: [], emitSkipped: false };
+        return {
+            outputFiles: [],
+            emitSkipped: false,
+            diagnostics: [createDiagnostic({ source: content, messageText: "JSON files are only emitted if an outDir is provided." })],
+        };
     }
 
     private extractOutputFile(fileNames: readonly string[], fileFilter: (name: string) => boolean, content?: string) {
@@ -387,3 +395,21 @@ const getTargetConfig = (target?: string, config?: CompilationConfig): TargetCon
     }
     return {};
 };
+
+const createDiagnostic = ({
+    source,
+    category = ts.DiagnosticCategory.Error,
+    code = 0,
+    file = undefined,
+    start = undefined,
+    length = undefined,
+    messageText,
+}: Partial<ts.Diagnostic> & { source: string; messageText: string }): ts.Diagnostic => ({
+    source,
+    category,
+    code,
+    file,
+    start,
+    length,
+    messageText,
+});
