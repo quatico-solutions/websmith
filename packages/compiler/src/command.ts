@@ -40,6 +40,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             undefined
         )
         .option("-w, --watch", "Enable watch mode.", false)
+        .allowExcessArguments() // Allow unknown options to be passed to the compiler
         .allowUnknownOption(true)
         .hook("preAction", command => {
             if (command.opts().profile) {
@@ -105,7 +106,7 @@ const addonConfig = (command: Command, compilationConfig?: CompilationConfig, op
             .filter((it: string) => it.length > 0) ?? [],
 
     addonsDir:
-        command.opts().addonsDir && command.opts().addonsDir !== "./addons" ? command.opts().addonsDir : compilationConfig?.addonsDir ?? "./addons",
+        command.opts().addonsDir && command.opts().addonsDir !== "./addons" ? command.opts().addonsDir : (compilationConfig?.addonsDir ?? "./addons"),
 
     ...(!!options?.config?.targets && { targets: options?.config?.targets }),
 });

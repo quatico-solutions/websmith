@@ -420,9 +420,7 @@ describe("emitSourceFile", () => {
             "export declare const computeDate: () => Promise<Date>;
             //# sourceMappingURL=target.d.ts.map"
         `);
-        expect(getText("target.d.ts.map", actual)).toMatchInlineSnapshot(
-            `"{"version":3,"file":"target.d.ts","sourceRoot":"","sources":["target.ts"],"names":[],"mappings":"AACgB,eAAO,MAAM,WAAW,qBAAwC,CAAC"}"`
-        );
+        expect(getText("target.d.ts.map", actual)).toMatchInlineSnapshot(`"{"version":3,"file":"target.d.ts","sourceRoot":"","sources":["target.ts"],"names":[],"mappings":"AACgB,eAAO,MAAM,WAAW,QAAa,OAAO,CAAC,IAAI,CAAe,CAAC"}"`);
         expect(getFilesByExtension(actual, ".js.map")).toHaveLength(0);
     });
 
