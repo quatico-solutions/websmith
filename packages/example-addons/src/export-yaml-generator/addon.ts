@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { AddonContext, ErrorMessage, Generator } from "@quatico/websmith-api";
+import { type AddonContext, ErrorMessage, type Generator } from "@quatico/websmith-api";
 import ts from "typescript";
 import { createTransformer } from "./export-transformer";
 

@@ -10,7 +10,7 @@ import { join } from "path";
 describe("example-processor", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__/example-processor", { virtual: false }).addAddon("example-processor", join(__dirname, "../addons"));
+        testObj = compilationEnv("./__TEST__/example-processor", { virtual: false }).addAddon("example-processor", join(__dirname, "../src"));
     });
 
     afterEach(() => {

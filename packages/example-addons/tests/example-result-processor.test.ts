@@ -12,7 +12,7 @@ describe("example-result-processor", () => {
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__/example-result-processor", { virtual: false }).addAddon(
             "example-result-processor",
-            join(__dirname, "../addons")
+            join(__dirname, "../src")
         );
     });
 
