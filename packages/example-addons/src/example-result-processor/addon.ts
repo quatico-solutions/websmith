@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { AddonContext, InfoMessage } from "@quatico/websmith-api";
+import { type AddonContext, InfoMessage } from "@quatico/websmith-api";
 import { basename, extname, join } from "path";
 import ts from "typescript";
 

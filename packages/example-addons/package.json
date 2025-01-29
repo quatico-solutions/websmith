@@ -1,21 +1,26 @@
 {
-    "name": "@quatico/websmith-examples",
+    "name": "@quatico/websmith-example-addons",
     "version": "0.6.3",
     "description": "A library of example addons for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
     "private": true,
+    "main": "src/index.ts",
+    "publishConfig": {
+        "main": "lib/index.js",
+        "types": "lib/index.d.ts"
+    },
     "scripts": {
         "clean": "rimraf lib dist bin coverage",
-        "lint": "eslint \"{src,tests}/**/*.ts\" --color",
+        "lint": "eslint \"{addons,tests}/**/*.ts\" --color",
         "lint:fix": "pnpm lint --fix",
-        "build": "tsc",
         "execute": "websmith --addons example-generator,example-processor,example-transformer,example-result-processor -p tsconfig.execute.json",
-        "watch": "tsc --watch",
+        "build": "tsc",
+        "watch": "pnpm build --watch",
         "watch:test": "jest --watch",
-        "test:e2e": "jest --coverage",
+        "test": "jest --coverage",
         "test:update-snapshots": "pnpm test -u",
-        "dist": "cross-env-shell NODE_ENV=production \"pnpm clean && pnpm lint && pnpm build\""
+        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
     "devDependencies": {
         "@eslint/compat": "^1.2.5",

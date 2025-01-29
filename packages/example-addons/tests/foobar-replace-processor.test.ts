@@ -7,13 +7,13 @@
 import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import { join } from "path";
 
-describe("foobar-replace-transformer", () => {
+describe("foobar-replace-processor", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__/foobar-replace-transformer", {
+        testObj = compilationEnv("./__TEST__/foobar-replace-processor", {
             compilerOptions: { tsConfig: { outDir: "dist" } },
             virtual: false,
-        }).addAddon("foobar-replace-transformer", join(__dirname, "../addons"));
+        }).addAddon("foobar-replace-processor", join(__dirname, "../src"));
     });
 
     afterEach(() => {
@@ -37,7 +37,7 @@ describe("foobar-replace-transformer", () => {
             .getPaths()
             .map(it => it.substring(it.indexOf("/__TEST__")));
 
-        expect(actual).toEqual(["/__TEST__/foobar-replace-transformer/dist/bar.js", "/__TEST__/foobar-replace-transformer/dist/foo.js"]);
-        expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo"));
+        expect(actual).toEqual(["/__TEST__/foobar-replace-processor/dist/bar.js", "/__TEST__/foobar-replace-processor/dist/foo.js"]);
+        expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo {"));
     });
 });

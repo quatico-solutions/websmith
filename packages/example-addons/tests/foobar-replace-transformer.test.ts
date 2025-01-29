@@ -4,16 +4,16 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
+import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import { join } from "path";
 
-describe("export-yaml-generator", () => {
+describe("foobar-replace-transformer", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__/export-yaml-generator", {
+        testObj = compilationEnv("./__TEST__/foobar-replace-transformer", {
             compilerOptions: { tsConfig: { outDir: "dist" } },
             virtual: false,
-        }).addAddon("export-yaml-generator", join(__dirname, "../addons"));
+        }).addAddon("foobar-replace-transformer", join(__dirname, "../src"));
     });
 
     afterEach(() => {
@@ -24,12 +24,11 @@ describe("export-yaml-generator", () => {
         testObj.cleanUp();
     });
 
-    // TODO: BUG in addon? The test fails as the addon does not report on exported classes.
-    it.skip("should create additional input files and add them to compilation", () => {
+    it("should replace 'foo' with 'bar' in the output files", () => {
         testObj
             .addProjectFromSource({
                 "bar.ts": `console.log("Hello, Bar!");`,
-                "foo.ts": `export class Foo {}`,
+                "foo.ts": `export class FooBar {}`,
             })
             .compile();
 
@@ -38,11 +37,7 @@ describe("export-yaml-generator", () => {
             .getPaths()
             .map(it => it.substring(it.indexOf("/__TEST__")));
 
-        expect(actual).toEqual([
-            "/__TEST__/export-yaml-generator/dist/bar.js",
-            "/__TEST__/export-yaml-generator/dist/foo.js",
-            "/__TEST__/export-yaml-generator/dist/output.yaml",
-        ]);
-        expect(testObj.getCompiledFile("output.yaml")?.getContent()).toEqual(expect.stringContaining("exports: [Foo]"));
+        expect(actual).toEqual(["/__TEST__/foobar-replace-transformer/dist/bar.js", "/__TEST__/foobar-replace-transformer/dist/foo.js"]);
+        expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo"));
     });
 });
