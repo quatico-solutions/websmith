@@ -10,7 +10,7 @@ import { join } from "path";
 describe("example-transformer", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__/example-transformer", { virtual: false }).addAddon("example-transformer", join(__dirname, "../addons"));
+        testObj = compilationEnv("./__TEST__/example-transformer", { virtual: false }).addAddon("example-transformer", join(__dirname, "../src"));
     });
 
     afterEach(() => {
