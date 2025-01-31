@@ -86,7 +86,10 @@ export class WebpackBuild {
                 if (this.tsLoaderOptions && rule?.loader?.includes("ts-loader")) {
                     this.injectTsLoaderOptions(rule, this.tsLoaderOptions);
                 }
-                if (this.websmithLoaderOptions && rule?.loader?.includes("@quatico/websmith-webpack")) {
+                if (
+                    this.websmithLoaderOptions &&
+                    (rule?.loader?.includes("@quatico/websmith-webpack") || rule?.loader?.includes("packages/webpack/src/index.ts"))
+                ) {
                     this.injectWebsmithLoaderOptions(rule, this.websmithLoaderOptions);
                 }
             }
