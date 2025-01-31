@@ -7,10 +7,10 @@
 import type webpack from "webpack";
 import { type LoaderContext } from "webpack";
 import { CompilationQueue } from "./CompilationQueue";
-import { type WebsmithLoaderConfig } from "./loader-options";
 import { createOptions } from "./options";
 import { TsCompiler } from "./TsCompiler";
 import { addCompilationHooks } from "./webpack-hooks";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 // Some loaders (e.g. thread-loader) will limit the access to (loader) context information.
 // To ensure that the WeakMap key still works as it expected, we keep a global "marker" object to use and avoid runtime errors.

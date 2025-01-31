@@ -162,10 +162,10 @@ export class WebpackBuild {
             }
 
             compiler.close(closeErr => {
-                if (!closeErr) {
-                    resolve(this.stdout);
-                } else {
+                if (closeErr) {
                     this.handleFailure(reject, `Spawn: got event "exit" with error "${closeErr}"!`);
+                } else {
+                    resolve(this.stdout);
                 }
             });
         });

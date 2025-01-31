@@ -7,9 +7,10 @@
 import { type LoaderContext } from "webpack";
 import { type CompilationQueue } from "./CompilationQueue";
 import { initializeInstance, setInstanceInCache } from "./instance-cache";
-import { getLoaderOptions, type WebsmithLoaderConfig } from "./loader-options";
+import { getLoaderOptions } from "./loader-options";
 import { processResultAndFinish } from "./result-handling";
 import { type TsCompiler } from "./TsCompiler";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export type WebpackLoaderContext = {
     queue: CompilationQueue;

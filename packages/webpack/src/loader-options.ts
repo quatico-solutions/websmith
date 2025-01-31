@@ -5,40 +5,77 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type CompilationConfig } from "@quatico/websmith-core";
-import type ts from "typescript";
-import { type LoaderContext, type WebpackError } from "webpack";
-import { Upath as uPath } from "./Upath";
+import crypto from "crypto";
+import { type LoaderContext } from "webpack";
+import { createOptions } from "./options";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
+import { type WebsmithLoaderOptions } from "./WebsmithLoaderOptions";
 
-export interface WebsmithLoaderOptions {
-    addons?: string[];
-    addonsDir?: string;
-    buildDir?: string;
-    configFile?: string;
-    config?: CompilationConfig;
-    debug?: boolean;
-    project?: string;
-    targets?: string[];
-    transpileOnly?: boolean;
-    tsConfig?: ts.CompilerOptions;
-    webpackTarget?: string;
-}
+const loaderOptionsCache: {
+    [name: string]: WeakMap<WebsmithLoaderConfig, WebsmithLoaderConfig>;
+} = {};
 
-export type WebsmithLoaderConfig = WebsmithLoaderOptions & {
-    warn?: (err: WebpackError) => void;
-    error?: (err: WebpackError) => void;
+/**
+ * either retrieves loader options from the cache
+ * or creates them, adds them to the cache and returns
+ */
+export const getLoaderOptions = (context: LoaderContext<WebsmithLoaderConfig>): WebsmithLoaderConfig => {
+    const options = context.getOptions();
+
+    // If no instance name is given in the options, use the hash of the loader options
+    // In this way, if different options are given the instances will be different
+    const instanceName = getOptionsHash(options);
+
+    // eslint-disable-next-line no-prototype-builtins
+    if (!loaderOptionsCache.hasOwnProperty(instanceName)) {
+        loaderOptionsCache[instanceName] = new WeakMap();
+    }
+
+    const cache = loaderOptionsCache[instanceName];
+    if (cache.has(options)) {
+        return cache.get(options) as WebsmithLoaderConfig;
+    }
+
+    const resolvedOptions = resolveLoaderOptions(instanceName, options, context);
+
+    cache.set(options, resolvedOptions);
+
+    return resolvedOptions;
 };
 
-export const getLoaderOptions = (loader: LoaderContext<WebsmithLoaderConfig>): WebsmithLoaderConfig => {
-    const options = loader.getOptions();
-    const { configFile, webpackTarget = "*" } = options;
+const resolveLoaderOptions = (
+    instanceName: string,
+    options: WebsmithLoaderConfig,
+    context: LoaderContext<WebsmithLoaderConfig>
+): WebsmithLoaderConfig => {
+    const hasForkTsCheckerWebpackPlugin = context._compiler?.options.plugins.some(
+        plugin => plugin && typeof plugin === "object" && plugin.constructor?.name === "ForkTsCheckerWebpackPlugin"
+    );
 
-    const result = {
-        ...options,
-        ...(!!loader._module && typeof loader._module.addWarning === "function" && { warn: (err: WebpackError) => loader._module!.addWarning(err) }),
-        ...(!!loader._module && typeof loader._module.addError === "function" && { error: (err: WebpackError) => loader._module!.addError(err) }),
-        ...(!!configFile && { configFile: uPath.resolve(configFile) }),
-        webpackTarget,
-    };
-    return result;
+    // We need to remove empty addons to avoid overriding the default options
+    // eslint-disable-next-line no-prototype-builtins
+    if (options.hasOwnProperty("addons") && (options.addons === undefined || options.addons.length === 0)) {
+        delete options.addons;
+    }
+
+    return Object.assign({}, options, createOptions(options), {
+        instanceName,
+        // Set default transpileOnly to true if there is an instance of ForkTsCheckerWebpackPlugin
+        ...(hasForkTsCheckerWebpackPlugin && { transpileOnly: hasForkTsCheckerWebpackPlugin }),
+    });
 };
+
+export const getOptionsHash = (options: WebsmithLoaderConfig) => {
+    const hash = crypto.createHash("sha256");
+    Object.keys(options).forEach(key => {
+        const value = options[key as keyof WebsmithLoaderOptions];
+        if (value !== undefined) {
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
+            const valueString = isFunction(value) ? value.toString() : JSON.stringify(value);
+            hash.update(key + valueString);
+        }
+    });
+    return hash.digest("hex").substring(0, 16);
+};
+
+const isFunction = (value: unknown): value is object => typeof value === "function";

@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import type ts from "typescript";
 import { TsCompiler } from "./TsCompiler";
-import { type WebsmithLoaderConfig } from "./loader-options";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 class TestCompiler extends TsCompiler {
     private sys: ts.System | undefined;

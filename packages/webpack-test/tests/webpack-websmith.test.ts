@@ -65,8 +65,7 @@ afterEach(() => {
     fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 });
 
-// FIXME: This test is not working, loader-options cache yields invalid results
-describe.skip("webpack", () => {
+describe("webpack", () => {
     it("should build foobar-arrow.js with ES2020 and addonsDir", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
@@ -146,7 +145,7 @@ describe.skip("webpack", () => {
         expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-arrow-added.js"), "utf-8")).toMatchSnapshot();
     });
 
-    it.only("should transform foobar functions with addonDir, addons and all targets selected", async () => {
+    it("should transform foobar functions with addonDir, addons and all targets selected", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             tsLoader: { compilerOptions: { ...tsDefaults } },
@@ -163,7 +162,7 @@ describe.skip("webpack", () => {
         expect(actual).toContain("function getbarfoo");
     });
 
-    it.only("should generate YAML file with all targets and addonsDir, named target in file-config", async () => {
+    it("should generate YAML file with all targets and addonsDir, named target in file-config", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             targets: {
@@ -177,6 +176,7 @@ describe.skip("webpack", () => {
             webpack: { ...webpackDefaults },
             tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
+                addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 targets: ["named"],
                 webpackTarget: "named",
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
@@ -332,6 +332,7 @@ describe.skip("webpack", () => {
             websmith: {
                 targets: ["target-transform"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                config: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
             },
         });
 
@@ -360,6 +361,7 @@ describe.skip("webpack", () => {
             webpack: { ...webpackDefaults },
             tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
+                addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 targets: ["target-transform", "target-process"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
