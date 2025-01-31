@@ -15,9 +15,7 @@ const config: Config = {
         "@quatico/websmith-testing": "<rootDir>/../testing/src",
         "@quatico/websmith-webpack": "<rootDir>/../webpack/src",
     },
-    testEnvironment: "node",
-    testRegex: ".+\\.test\\.ts",
-    testTimeout: 25000,
+    testRegex: "tests/.*test\\.(tsx?)$",
 };
 
 export default config;
