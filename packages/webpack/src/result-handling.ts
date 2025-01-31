@@ -8,7 +8,7 @@
 import { type CompileFragment } from "@quatico/websmith-core";
 import type typescript from "typescript";
 import { type LoaderContext } from "webpack";
-import { type WebsmithLoaderConfig } from "./loader-options";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
     return {
@@ -17,14 +17,14 @@ export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
     };
 };
 
-export const processResultAndFinish = (loader: LoaderContext<WebsmithLoaderConfig>, fragment: CompileFragment, targets: string[]) => {
+export const processResultAndFinish = (context: LoaderContext<WebsmithLoaderConfig>, fragment: CompileFragment, targets: string[]) => {
     const outputText = fragment.files.find((cur: typescript.OutputFile) => cur.name.match(/\.jsx?$/i))?.text;
     const sourceMapText = fragment.files.find((cur: typescript.OutputFile) => cur.name.match(/\.jsx?\.map$/i))?.text;
 
     if (!outputText) {
-        return loader.callback(new Error(`No processed output found for "${loader.resourcePath}" with targets "${targets.join(",")}"`));
+        return context.callback(new Error(`No processed output found for "${context.resourcePath}" with targets "${targets.join(",")}"`));
     } else {
         const { output, sourceMap } = makeSourceMap(outputText, sourceMapText);
-        loader.callback(undefined, output, sourceMap);
+        context.callback(undefined, output, sourceMap);
     }
 };

@@ -5,16 +5,30 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type LoaderContext } from "webpack";
-import { getLoaderOptions, type WebsmithLoaderConfig } from "./loader-options";
+import { getLoaderOptions } from "./loader-options";
+import { createOptions } from "./options";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 describe("getLoaderOptions", () => {
+    it("should yield defaults w/ empty options", () => {
+        const expected = createOptions({ instanceName: "target-instance" });
+        const target = { getOptions: () => ({}) } as LoaderContext<WebsmithLoaderConfig>;
+
+        const actual = getLoaderOptions(target);
+
+        expect(actual).toMatchObject(expected);
+    });
+
     it("should yield default values w/ empty options", () => {
         const target = { getOptions: () => ({}) } as LoaderContext<WebsmithLoaderConfig>;
 
         const actual = getLoaderOptions(target);
 
-        expect(actual).toEqual({
-            webpackTarget: "*",
+        expect(actual).toMatchObject({
+            buildDir: expect.stringContaining("packages/webpack"),
+            debug: false,
+            targets: ["*"],
+            watch: false,
         });
     });
 });
