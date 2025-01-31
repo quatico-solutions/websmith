@@ -8,7 +8,7 @@
 import { readFileSync } from "fs";
 import { Compilation, type Compiler, type LoaderContext, NormalModule, type Stats } from "webpack";
 import { type WebpackLoaderContext } from "./loader";
-import { type WebsmithLoaderConfig } from "./loader-options";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 const LOADER_NAME = "websmith-loader";
 

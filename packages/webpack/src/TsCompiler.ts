@@ -16,7 +16,7 @@ import {
 import ts from "typescript";
 import { WebpackError } from "webpack";
 import { Upath as uPath } from "./Upath";
-import { type WebsmithLoaderConfig } from "./loader-options";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export class TsCompiler extends Compiler {
     public fragment?: CompileFragment;
@@ -50,7 +50,7 @@ export class TsCompiler extends Compiler {
         );
         this.loaderConfig = loaderConfig;
         super.createTargetContextsIfNecessary();
-        this.targets = targetNames.length ? targetNames : options.targets ?? [];
+        this.targets = targetNames.length ? targetNames : (options.targets ?? []);
         this.webpackTarget = this.getFragmentTarget(loaderConfig.webpackTarget ?? "*");
     }
 
@@ -129,7 +129,13 @@ export class TsCompiler extends Compiler {
 }
 
 const loadCompilationConfig = (loaderConfig: WebsmithLoaderConfig, options: CompilerOptions, system: ts.System): CompilationConfig => {
-    const { addons = [], addonsDir, configFile, transpileOnly } = loaderConfig;
+    // Prefer config values from webpack loaderConfig, but fallback to values from websmith.config.json
+    const {
+        addons = options.config?.addons ?? [],
+        addonsDir = options.config?.addonsDir,
+        configFile = options.configFile,
+        transpileOnly,
+    } = loaderConfig;
     let results: CompilationConfig = {
         addons,
         addonsDir,

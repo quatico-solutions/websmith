@@ -10,7 +10,7 @@ import { createOptions } from "./options";
 
 describe("createOptions", () => {
     it("should return defaults w/o any param", () => {
-        const actual = createOptions({});
+        const actual = createOptions({ instanceName: "target-instance" });
 
         expect(actual).toEqual({
             buildDir: expect.any(String),
@@ -26,7 +26,7 @@ describe("createOptions", () => {
     it("should return project config w/ custom but empty tsconfig.json", () => {
         const { fileSystem: target } = compileSystem({ files: { "./expected/tsconfig.json": "{}" } });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
+        const actual = createOptions({ project: "./expected/tsconfig.json", instanceName: "target-instance" }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -39,7 +39,7 @@ describe("createOptions", () => {
             files: { "./expected/tsconfig.json": `${JSON.stringify({ compilerOptions: { strict: true } })}` },
         });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
+        const actual = createOptions({ project: "./expected/tsconfig.json", instanceName: "target-instance" }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -53,7 +53,11 @@ describe("createOptions", () => {
             files: { "./expected/tsconfig.json": `${JSON.stringify({ compileOptions: { strict: false } })}` },
         });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json", tsConfig: { strict: true } }, new NoReporter(), target).tsConfig;
+        const actual = createOptions(
+            { project: "./expected/tsconfig.json", instanceName: "target-instance", tsConfig: { strict: true } },
+            new NoReporter(),
+            target
+        ).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -86,7 +90,7 @@ describe("createOptions", () => {
     it("should return debug path w/ debug true", () => {
         const { fileSystem: target } = compileSystem({ files: { "./tsconfig.json": "{}" } });
 
-        const actual = createOptions({ debug: true }, new NoReporter(), target);
+        const actual = createOptions({ debug: true, instanceName: "target-instance" }, new NoReporter(), target);
 
         expect(actual).toEqual(expect.objectContaining({ debug: true }));
     });
@@ -100,7 +104,7 @@ describe("createOptions", () => {
             `,
             },
         });
-        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target).config;
+        const actual = createOptions({ configFile: "./websmith.config.json", instanceName: "target-instance" }, new NoReporter(), target).config;
 
         expect(actual).toEqual({
             targets: { whatever: { addons: ["one", "two", "three"], writeFile: true } },
@@ -123,7 +127,7 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target);
+        const actual = createOptions({ configFile: "./websmith.config.json", instanceName: "target-instance" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
             buildDir: "/",

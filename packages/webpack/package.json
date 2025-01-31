@@ -34,7 +34,8 @@
     },
     "dependencies": {
         "@quatico/websmith-api": "workspace:*",
-        "@quatico/websmith-core": "workspace:*"
+        "@quatico/websmith-core": "workspace:*",
+        "crypto": "^1.0.1"
     },
     "devDependencies": {
         "@eslint/compat": "^1.2.5",
