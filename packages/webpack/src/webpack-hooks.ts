@@ -5,49 +5,16 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { createOptions } from "./options";
 import { readFileSync } from "fs";
 import { Compilation, type Compiler, type LoaderContext, NormalModule, type Stats } from "webpack";
-import { contribute } from "./CompilationQueue";
-import { getInstanceFromCache, initializeInstance, setInstanceInCache } from "./instance-cache";
+import { type WebpackLoaderContext } from "./loader";
 import { type WebsmithLoaderConfig } from "./loader-options";
-import { TsCompiler } from "./TsCompiler";
 
 const LOADER_NAME = "websmith-loader";
 
-export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderConfig, dependencyCallback: (filePath: string) => void) => {
-    const makeCompilation = () => {
-        return (compilation: Compilation, options: WebsmithLoaderConfig): void => {
-            // NormalModule.getCompilationHooks(compilation).loader.tap(LOADER_NAME, (ctx: object) => {
-            compilation.hooks.processAssets.tap(LOADER_NAME, assets => {
-                console.error(`processAssets for ${JSON.stringify(assets)}`);
-            });
-
-            NormalModule.getCompilationHooks(compilation)?.loader?.tap(LOADER_NAME, (ctx: object) => {
-                const context: LoaderContext<WebsmithLoaderConfig> = ctx as LoaderContext<WebsmithLoaderConfig>;
-
-                if (context) {
-                    initializeInstance(context, options, dependencyCallback);
-                    const instance =
-                        getInstanceFromCache(compilation.compiler, context) ?? new TsCompiler(createOptions(options), dependencyCallback, options);
-                    if (options.configFile) {
-                        instance.loaderConfig = JSON.parse(readFileSync(options.configFile).toString());
-                    }
-                    setInstanceInCache(compilation.compiler, context, instance);
-                }
-            });
-        };
-    };
-
-    const cachedMakeCompilation = makeCompilation();
-    const makeCompilationCallback = (compilation: Compilation, loaderOptions: WebsmithLoaderConfig) => {
-        compilation.hooks.processAssets.tap({ name: LOADER_NAME, stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL }, () => {
-            cachedMakeCompilation(compilation, loaderOptions);
-        });
-    };
-
+export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderConfig, context: WebpackLoaderContext) => {
     if (compiler.hooks) {
-        const compilationQueueContributor = contribute();
+        const compilationQueueContributor = context.queue.contribute();
         compiler.hooks.beforeRun.tap(LOADER_NAME, () => {
             compilationQueueContributor.inProgress();
         });
@@ -58,7 +25,9 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
             compilationQueueContributor.done();
         });
 
-        compiler.hooks.compilation.tap(LOADER_NAME, compilation => makeCompilationCallback(compilation, options));
+        compiler.hooks.compilation.tap(LOADER_NAME, compilation => {
+            return makeCompilationCallback(compilation, options, context);
+        });
 
         compiler.hooks.done.tapAsync(LOADER_NAME, (stats, callback) => {
             callback();
@@ -67,6 +36,34 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
             }
         });
     }
+};
+
+const makeCompilationCallback = (compilation: Compilation, loaderOptions: WebsmithLoaderConfig, context: WebpackLoaderContext) => {
+    const cachedMakeCompilation = makeCompilation(context);
+
+    compilation.hooks.processAssets.tap({ name: LOADER_NAME, stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL }, () => {
+        cachedMakeCompilation(compilation, loaderOptions);
+    });
+};
+
+const makeCompilation = (loaderContext: WebpackLoaderContext) => {
+    return (compilation: Compilation, options: WebsmithLoaderConfig): void => {
+        // NormalModule.getCompilationHooks(compilation).loader.tap(LOADER_NAME, (ctx: object) => {
+        compilation.hooks.processAssets.tap(LOADER_NAME, assets => {
+            console.error(`processAssets for ${JSON.stringify(assets)}`);
+        });
+
+        NormalModule.getCompilationHooks(compilation)?.loader?.tap(LOADER_NAME, (ctx: object) => {
+            const configContext: LoaderContext<WebsmithLoaderConfig> = ctx as LoaderContext<WebsmithLoaderConfig>;
+
+            if (configContext) {
+                // const instance = initializeInstance(context, options, dependencyCallback);
+                if (options.configFile && loaderContext.websmithCompiler) {
+                    loaderContext.websmithCompiler.loaderConfig = JSON.parse(readFileSync(options.configFile).toString());
+                }
+            }
+        });
+    };
 };
 
 const displayDone = (stats: Stats) => {

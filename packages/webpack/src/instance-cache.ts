@@ -4,10 +4,11 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { createOptions } from "./options";
-import {type LoaderContext} from "webpack";
 import type webpack from "webpack";
+import { type LoaderContext } from "webpack";
+import { CompilationQueue } from "./CompilationQueue";
 import { type WebsmithLoaderConfig } from "./loader-options";
+import { createOptions } from "./options";
 import { TsCompiler } from "./TsCompiler";
 import { addCompilationHooks } from "./webpack-hooks";
 
@@ -44,7 +45,11 @@ export const initializeInstance = (
     if (!instance) {
         instance = new TsCompiler(createOptions(config), dependencyCallback, config);
         if (compiler !== marker) {
-            addCompilationHooks(compiler, config, dependencyCallback);
+            addCompilationHooks(compiler, config, {
+                queue: new CompilationQueue(),
+                websmithCompiler: instance,
+                dependencyCallback,
+            });
         }
     }
     instance.loaderConfig = config;

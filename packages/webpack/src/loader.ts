@@ -5,10 +5,17 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type LoaderContext } from "webpack";
+import { type CompilationQueue } from "./CompilationQueue";
 import { initializeInstance, setInstanceInCache } from "./instance-cache";
 import { getLoaderOptions, type WebsmithLoaderConfig } from "./loader-options";
 import { processResultAndFinish } from "./result-handling";
 import { type TsCompiler } from "./TsCompiler";
+
+export type WebpackLoaderContext = {
+    queue: CompilationQueue;
+    websmithCompiler: TsCompiler;
+    dependencyCallback: (filePath: string) => void;
+};
 
 export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     this.cacheable?.();
