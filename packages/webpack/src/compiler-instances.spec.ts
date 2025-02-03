@@ -6,12 +6,15 @@
  */
 import { NoReporter } from "@quatico/websmith-core";
 import { rmSync } from "fs";
-import webpack, { type Compiler } from "webpack";
+import { join } from "path";
+import webpack, { type Compiler, type LoaderContext } from "webpack";
 import { TsCompiler } from "./TsCompiler";
+import { getCompilerInstance } from "./compiler-instances";
 import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
 
 let compiler: Compiler;
 let tsCompiler: TsCompiler;
+const projectDir = join(__dirname, "..", "tests", "__data__");
 
 beforeEach(() => {
     compiler = webpack({});
@@ -23,6 +26,8 @@ beforeEach(() => {
             tsConfig: {},
             reporter,
             cliArgs: { options: { outDir: ".build" }, fileNames: [], errors: [] },
+            debug: false,
+            watch: false,
         },
         () => undefined,
         { addonsDir: "./addons", configFile: "./websmith.config.json", instanceName: "target-instance" }
@@ -34,18 +39,31 @@ afterEach(() => {
     rmSync("./.build", { recursive: true, force: true });
 });
 
+describe("getCompilerInstance", () => {
+    it("should create a TsCompiler instance w/o instance in cache", () => {
+        const target = { _compiler: {} as Compiler } as LoaderContext<any>;
+        const actual = getCompilerInstance(
+            { configFile: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json"), instanceName: "target-instance" },
+            target,
+            path => console.info(`dependency ${path} added`)
+        );
+
+        expect(actual).toEqual(getInstanceFromCache(target._compiler, "target-instance"));
+    });
+});
+
 describe("getInstanceFromCache", () => {
     it("should return the previously cached instance", () => {
         const expected = tsCompiler;
-        setInstanceInCache(compiler, "target", expected);
+        setInstanceInCache(compiler, "target-instance", expected);
 
-        const actual = getInstanceFromCache(compiler, "target");
+        const actual = getInstanceFromCache(compiler, "target-instance");
 
         expect(actual).toBe(expected);
     });
 
     it("should return undefined if no previously cached instance exists", () => {
-        const actual = getInstanceFromCache(compiler, "target");
+        const actual = getInstanceFromCache(compiler, "target-instance");
 
         expect(actual).toBeUndefined();
     });
@@ -55,32 +73,32 @@ describe("setInstanceInCache", () => {
     it("should cache the instance w/ cache key", () => {
         const expected = tsCompiler;
 
-        setInstanceInCache(compiler, "target", expected);
+        setInstanceInCache(compiler, "target-instance", expected);
 
-        expect(getInstanceFromCache(compiler, "target")).toBe(expected);
+        expect(getInstanceFromCache(compiler, "target-instance")).toBe(expected);
     });
 
     it("should cache the instance with a global identifier w/o cache key", () => {
         const expected = tsCompiler;
 
-        setInstanceInCache(undefined, "target", expected);
+        setInstanceInCache(undefined, "target-instance", expected);
 
-        expect(getInstanceFromCache(undefined, "target")).toBe(expected);
+        expect(getInstanceFromCache(undefined, "target-instance")).toBe(expected);
     });
 
     it("should cache only the last instance w/o cache key", () => {
         const expected = tsCompiler;
 
-        setInstanceInCache(undefined, "target", expected);
+        setInstanceInCache(undefined, "target-instance", expected);
 
-        const firstInstance = getInstanceFromCache(undefined, "target");
+        const firstInstance = getInstanceFromCache(undefined, "target-instance");
         expect(firstInstance).toBe(expected);
 
         const target = {} as TsCompiler;
 
-        setInstanceInCache(undefined, "target", target);
+        setInstanceInCache(undefined, "target-instance", target);
 
-        const secondInstance = getInstanceFromCache(undefined, "target");
+        const secondInstance = getInstanceFromCache(undefined, "target-instance");
         expect(secondInstance).not.toBe(firstInstance);
         expect(secondInstance).toBe(target);
     });

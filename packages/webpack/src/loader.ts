@@ -6,33 +6,27 @@
  */
 import { type LoaderContext } from "webpack";
 import { type CompilationQueue } from "./CompilationQueue";
-import { initializeInstance, setInstanceInCache } from "./instance-cache";
+import { getCompilerInstance } from "./compiler-instances";
 import { getLoaderOptions } from "./loader-options";
 import { processResultAndFinish } from "./result-handling";
 import { type TsCompiler } from "./TsCompiler";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export type WebpackLoaderContext = {
-    queue: CompilationQueue;
-    websmithCompiler: TsCompiler;
     dependencyCallback: (filePath: string) => void;
+    websmithCompiler: TsCompiler;
+    queue: CompilationQueue;
 };
 
 export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     this.cacheable?.();
-    const loaderOptions = getLoaderOptions(this);
-    const instance = initializeInstance(this, loaderOptions, (path: string) => {
+    const options = getLoaderOptions(this);
+    const instance = getCompilerInstance(options, this, (path: string) => {
         this.addDependency(path);
     });
-    const fragment = buildTargets(instance, this.resourcePath);
 
+    const fragment = instance.build(this.resourcePath);
     this.version = instance.version;
-
-    setInstanceInCache(this._compiler, this, instance);
 
     processResultAndFinish(this, fragment, instance.targets);
 }
-
-const buildTargets = (compiler: TsCompiler, resourcePath: string) => {
-    return compiler.build(resourcePath);
-};
