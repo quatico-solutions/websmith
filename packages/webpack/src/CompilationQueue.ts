@@ -55,9 +55,4 @@ class CompilationQueue {
     }
 }
 
-const defaultQueue = new CompilationQueue();
-const contribute = () => defaultQueue.contribute();
-const whenDone = (callback: CompilationQueueCallback) => defaultQueue.whenDone(callback);
-
-export type { CompilationQueueCallback, CompilationQueueContributor };
-export { CompilationQueue, contribute, whenDone };
+export { CompilationQueue, type CompilationQueueCallback, type CompilationQueueContributor };

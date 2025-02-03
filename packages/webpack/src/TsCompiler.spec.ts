@@ -151,7 +151,11 @@ describe("Transpilation", () => {
                 debug: false,
                 watch: false,
             },
-            { configFile: resolve("__TEMP__", "websmith.config.json"), webpackTarget: "fragment", addonsDir: "./addons" }
+            {
+                configFile: resolve("__TEMP__", "websmith.config.json"),
+                webpackTarget: "fragment",
+                addonsDir: "./addons",
+            }
         );
 
         const actual = testObj.build(expected);

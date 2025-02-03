@@ -57,7 +57,8 @@ const makeCompilation = (loaderContext: WebpackLoaderContext) => {
             const configContext: LoaderContext<WebsmithLoaderConfig> = ctx as LoaderContext<WebsmithLoaderConfig>;
 
             if (configContext) {
-                // const instance = initializeInstance(context, options, dependencyCallback);
+                // TODO: Do we need to cache the compiler instance here?
+                // const instance = getCompilerInstance(options, context, dependencyCallback);
                 if (options.configFile && loaderContext.websmithCompiler) {
                     loaderContext.websmithCompiler.loaderConfig = JSON.parse(readFileSync(options.configFile).toString());
                 }
