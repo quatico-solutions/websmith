@@ -35,13 +35,14 @@
     "dependencies": {
         "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-core": "workspace:*",
-        "crypto": "^1.0.1"
+        "crypto-js": "^4.2.0"
     },
     "devDependencies": {
-        "@eslint/compat": "^1.2.5",
+        "@eslint/compat": "^1.2.6",
         "@eslint/js": "^9.19.0",
         "@nx/eslint-plugin": "^18.3.4",
         "@quatico/websmith-testing": "workspace:*",
+        "@types/crypto-js": "^4.2.2",
         "@types/jest": "^29.5.14",
         "@types/node": "20",
         "@types/webpack": "^5.28.5",

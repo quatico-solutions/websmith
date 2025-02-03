@@ -36,7 +36,7 @@
         "preinstall": "npx only-allow pnpm"
     },
     "devDependencies": {
-        "@eslint/compat": "^1.2.5",
+        "@eslint/compat": "^1.2.6",
         "@eslint/js": "^9.19.0",
         "@nrwl/nx-cloud": "18.0.1",
         "@nx/eslint-plugin": "^18.3.4",

@@ -1,5 +1,5 @@
 import { type CompilerOptions as WebsmithOptions } from "@quatico/websmith-core";
-import { webpack } from "../../node/src";
+import { webpack } from "@quatico/websmith-node";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
