@@ -40,7 +40,7 @@
         "require-from-string": "^2.0.2"
     },
     "devDependencies": {
-        "@eslint/compat": "^1.2.5",
+        "@eslint/compat": "^1.2.6",
         "@eslint/js": "^9.19.0",
         "@nx/eslint-plugin": "^18.3.4",
         "@types/jest": "^29.5.14",

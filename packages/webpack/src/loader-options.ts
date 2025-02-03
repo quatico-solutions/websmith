@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import crypto from "crypto";
+import crypto from "crypto-js";
 import { type LoaderContext } from "webpack";
 import { createOptions } from "./options";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
@@ -66,16 +66,16 @@ const resolveLoaderOptions = (
 };
 
 export const getOptionsHash = (options: WebsmithLoaderConfig) => {
-    const hash = crypto.createHash("sha256");
+    const hash = crypto.algo.SHA256.create();
     Object.keys(options).forEach(key => {
         const value = options[key as keyof WebsmithLoaderOptions];
         if (value !== undefined) {
             // eslint-disable-next-line @typescript-eslint/no-base-to-string
             const valueString = isFunction(value) ? value.toString() : JSON.stringify(value);
-            hash.update(key + valueString);
+            hash.update(crypto.enc.Utf8.parse(key + valueString));
         }
     });
-    return hash.digest("hex").substring(0, 16);
+    return hash.finalize().toString(crypto.enc.Hex);
 };
 
 const isFunction = (value: unknown): value is object => typeof value === "function";
