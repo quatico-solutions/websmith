@@ -13,8 +13,9 @@ const config: Config = {
     moduleNameMapper: {
         "@quatico/websmith-core": "<rootDir>/../core/src",
         "@quatico/websmith-testing": "<rootDir>/../testing/src",
+        "@quatico/websmith-node": "<rootDir>/../node/src",
     },
-    testRegex: "src/.*(test|spec)\\.(js|ts)$",
+    testRegex: "tests/.*(test|spec)\\.(js|ts)$",
 };
 
 export default config;

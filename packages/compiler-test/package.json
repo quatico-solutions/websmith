@@ -11,13 +11,14 @@
         "lint:fix": "pnpm lint --fix",
         "build": "tsc",
         "watch": "tsc --watch",
-        "test:e2e": "jest --verbose"
+        "test:e2e": "jest --verbose --runInBand"
     },
     "devDependencies": {
         "@eslint/compat": "^1.2.6",
         "@eslint/js": "^9.19.0",
         "@nx/eslint-plugin": "^18.3.4",
         "@quatico/websmith-core": "workspace:*",
+        "@quatico/websmith-node": "workspace:*",
         "@quatico/websmith-testing": "workspace:*",
         "@types/jest": "^29.5.14",
         "@types/node": "20",
