@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { type WebsmithLoaderOptions } from "@quatico/websmith-webpack";
 import { split } from "lodash";
-import path from "path";
+import path from "node:path";
 import tildify from "tildify";
 import { type LoaderOptions as TsLoaderOptions } from "ts-loader/dist/interfaces";
 import webpack, { type Configuration, type RuleSetRule } from "webpack";

@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { dirname, join } from "path";
+import { dirname, join } from "node:path";
 import ts from "typescript";
 
 export const createSharedHost = (sys: ts.System = ts.sys) => ({

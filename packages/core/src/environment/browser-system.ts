@@ -7,7 +7,7 @@
  */
 // @ts-expect-error no type declarations
 import createHashFn from "create-hash";
-import { dirname, extname, isAbsolute, join, normalize } from "path";
+import { dirname, extname, isAbsolute, join, normalize } from "node:path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
 
@@ -52,7 +52,7 @@ class PathWatcherRegistry {
     getAllWatchers(path: string): ts.FileWatcherCallback[] {
         const resolved = resolvePath(path);
         return Array.from(this.registry.keys()).reduce((acc: ts.FileWatcherCallback[], cur: string) => {
-            acc = acc.concat(resolved.startsWith(cur) ? this.registry.get(cur) ?? [] : []);
+            acc = acc.concat(resolved.startsWith(cur) ? (this.registry.get(cur) ?? []) : []);
             return acc;
         }, []);
     }

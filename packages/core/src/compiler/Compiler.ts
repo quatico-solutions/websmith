@@ -7,7 +7,7 @@
  */
 
 import { ErrorMessage, type Reporter, type TargetConfig } from "@quatico/websmith-api";
-import { dirname, extname, join } from "path";
+import { dirname, extname, join } from "node:path";
 import ts, { PollingWatchKind, WatchFileKind } from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
 import { type FileCache } from "./cache";

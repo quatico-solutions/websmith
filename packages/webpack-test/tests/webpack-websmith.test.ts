@@ -2,7 +2,7 @@
 import { type CompilationConfig as WebsmithOptions } from "@quatico/websmith-core";
 import { webpack } from "@quatico/websmith-node";
 import fs from "node:fs";
-import path from "path";
+import path from "node:path";
 import ts from "typescript";
 
 // TODO: ts-loader options caching seems broken, we need to understand where to fix it

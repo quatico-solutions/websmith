@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext, InfoMessage } from "@quatico/websmith-api";
-import { basename, dirname, extname, join } from "path";
+import { basename, dirname, extname, join } from "node:path";
 
 /**
  * Example addon with a generator that creates additional input

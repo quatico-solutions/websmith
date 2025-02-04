@@ -6,7 +6,7 @@
  */
 import type { TargetConfig } from "@quatico/websmith-api";
 import { type Reporter, WarnMessage } from "@quatico/websmith-api";
-import { dirname, isAbsolute, join } from "path";
+import { dirname, isAbsolute, join } from "node:path";
 import type ts from "typescript";
 import { type CompilationConfig } from "./CompilationConfig";
 

@@ -5,8 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext } from "@quatico/websmith-api";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import ts from "typescript";
 
 /**

@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { isAbsolute, join } from "path";
+import { isAbsolute, join } from "node:path";
 import type ts from "typescript";
 
 export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {

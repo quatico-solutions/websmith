@@ -5,7 +5,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { readFileSync } from "fs";
+import { readFileSync } from "node:fs";
 import { Compilation, type Compiler, type LoaderContext, NormalModule, type Stats } from "webpack";
 import { type WebpackLoaderContext } from "./loader";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";

@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type Reporter, WarnMessage, type TargetConfig } from "@quatico/websmith-api";
-import path, { basename, extname } from "path";
+import path, { basename, extname } from "node:path";
 import type ts from "typescript";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
@@ -72,7 +72,7 @@ export class AddonRegistry {
         const { targets = {}, addons = [] } = this.config;
         const requestedAddons = addons.filter(it => it.length > 0);
 
-        const targetAddons = target ? targets[target]?.addons ?? [] : [];
+        const targetAddons = target ? (targets[target]?.addons ?? []) : [];
 
         return [...new Set([...requestedAddons, ...targetAddons])];
     }

@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext, InfoMessage } from "@quatico/websmith-api";
-import { basename, extname, join } from "path";
+import { basename, extname, join } from "node:path";
 import ts from "typescript";
 
 /**
