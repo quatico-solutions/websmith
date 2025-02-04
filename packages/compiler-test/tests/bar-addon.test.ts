@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { compilationEnv } from "@quatico/websmith-testing";
-import { join } from "path";
+import { join } from "node:path";
 
 describe("test-project-foo", () => {
     it("should install addon successfully", () => {
