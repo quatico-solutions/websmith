@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import path from "path";
+import path from "node:path";
 
 /**
  * Class based on node module upath 1.1.0

@@ -6,8 +6,8 @@
  */
 
 import { webpack } from "@quatico/websmith-node";
-import { readdirSync, readFileSync, rmSync } from "fs";
-import { resolve } from "path";
+import { readdirSync, readFileSync, rmSync } from "node:fs";
+import { resolve } from "node:path";
 import { type Configuration } from "webpack";
 
 // FIXME: This test is not working, we need valid entries

@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
-import { join } from "path";
+import { join } from "node:path";
 
 describe("example-transformer", () => {
     let testObj: CompilationEnv;

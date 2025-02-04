@@ -5,7 +5,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import type fs from "fs";
+import type fs from "node:fs";
 import {
     type MakeDirectoryOptions,
     type ObjectEncodingOptions,
@@ -13,14 +13,14 @@ import {
     type PathOrFileDescriptor,
     type Stats,
     type WatchFileOptions,
-} from "fs";
+} from "node:fs";
 import { createFsFromVolume, vol } from "memfs";
 import type Dirent from "memfs/lib/Dirent";
 import type { TDataOut } from "memfs/lib/encoding";
 import type { IWatchOptions, StatWatcher, TCallback } from "memfs/lib/volume";
 import type { IReadStream } from "memfs/lib/node/types/misc";
 import type { IReadStreamOptions, IReaddirOptions } from "memfs/lib/node/types/options";
-import { dirname } from "path";
+import { dirname } from "node:path";
 
 /**
  * Creates a new fs module that uses the memfs volume as a base.

@@ -6,7 +6,7 @@ import {
     resolveCompilationConfig,
     resolveProjectConfig,
 } from "@quatico/websmith-core";
-import path from "path";
+import path from "node:path";
 import ts from "typescript";
 import { Compiler as TscCompiler } from "./Compiler";
 

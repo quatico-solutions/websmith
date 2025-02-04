@@ -1,6 +1,6 @@
 import { webpack } from "@quatico/websmith-node";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 import ts from "typescript";
 
 const OUTPUT_DIR = path.join(__dirname, "..", "lib");
