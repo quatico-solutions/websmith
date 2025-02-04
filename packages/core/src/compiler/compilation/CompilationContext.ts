@@ -6,7 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext, type Generator, type Processor, type Reporter, type ResultProcessor } from "@quatico/websmith-api";
-import { extname, isAbsolute, join } from "path";
+import { extname, isAbsolute, join } from "node:path";
 import ts from "typescript";
 import { FileCache } from "../cache";
 import { concat } from "../collections";

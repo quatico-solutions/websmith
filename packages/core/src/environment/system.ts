@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { join } from "path";
+import { join } from "node:path";
 import ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
 import { createBrowserSystem } from "./browser-system";

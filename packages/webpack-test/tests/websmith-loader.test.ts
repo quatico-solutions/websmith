@@ -5,8 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { webpack } from "@quatico/websmith-node";
-import { readFileSync, rmSync, statSync, writeFileSync } from "fs";
-import path, { join, resolve } from "path";
+import { readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import path, { join, resolve } from "node:path";
 import ts from "typescript";
 import { WebpackError, type Compiler, type Configuration } from "webpack";
 

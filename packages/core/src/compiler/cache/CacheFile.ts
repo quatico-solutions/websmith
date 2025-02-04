@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import type ts from "typescript";
-import { resolve } from "path";
+import { resolve } from "node:path";
 
 export type CacheFile = { version: number; content?: string; files?: ts.OutputFile[]; snapshot?: ts.IScriptSnapshot; modifiedTime?: Date };
 

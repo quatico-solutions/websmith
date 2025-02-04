@@ -16,13 +16,13 @@ import {
     type CompilerOptions,
 } from "@quatico/websmith-core";
 import { Module } from "module";
-import { basename, dirname, extname, isAbsolute, join } from "path";
+import { basename, dirname, extname, isAbsolute, join } from "node:path";
 import requireFromString from "require-from-string";
 import ts from "typescript";
 import { compileOptions } from "../compile-options";
 import { copyDirectory } from "./copy-directory";
 import { resolvePath } from "./resolve-path";
-import { rmSync } from "fs";
+import { rmSync } from "node:fs";
 
 const DEFAULT_ROOT_DIR = "/";
 const DEFAULT_BUILD_DIR = "./src";
@@ -139,7 +139,6 @@ export class CompilationEnv {
         return this.addonsConfig.addonsDir;
     }
 
-     
     public getActiveAddon(addonName: string): CompilerAddon | undefined {
         return this.addons?.getAvailableAddons("*").find((it: CompilerAddon) => it.getName() === addonName);
     }

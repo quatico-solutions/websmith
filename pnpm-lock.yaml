@@ -318,6 +318,9 @@ importers:
       '@quatico/websmith-core':
         specifier: workspace:*
         version: link:../core
+      '@quatico/websmith-node':
+        specifier: workspace:*
+        version: link:../node
       '@quatico/websmith-testing':
         specifier: workspace:*
         version: link:../testing
