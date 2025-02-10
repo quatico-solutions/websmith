@@ -10,7 +10,7 @@
         "lint:fix": "pnpm lint --fix",
         "build": "tsc",
         "watch": "tsc --watch",
-        "test:e2e": "jest --runInBand",
+        "test:e2e": "jest --verbose --runInBand",
         "dist": "pnpm clean && pnpm lint && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
     "devDependencies": {
@@ -22,6 +22,7 @@
         "@quatico/websmith-webpack": "workspace:*",
         "@types/jest": "^29.5.14",
         "@types/node": "20",
+        "@types/react": "18",
         "@types/webpack": "^5.28.5",
         "@typescript-eslint/eslint-plugin": "^8.22.0",
         "@typescript-eslint/parser": "^8.22.0",

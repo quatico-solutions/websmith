@@ -82,16 +82,14 @@ export class WebpackBuild {
             this.config.entry = entries;
         }
         this.config?.module?.rules?.forEach(rule => {
-            if (isRuleSetRule(rule)) {
-                if (this.tsLoaderOptions && rule?.loader?.includes("ts-loader")) {
-                    this.injectTsLoaderOptions(rule, this.tsLoaderOptions);
-                }
-                if (
-                    this.websmithLoaderOptions &&
-                    (rule?.loader?.includes("@quatico/websmith-webpack") || rule?.loader?.includes("packages/webpack/src/index.ts"))
-                ) {
-                    this.injectWebsmithLoaderOptions(rule, this.websmithLoaderOptions);
-                }
+            if (isUseRuleSetRule(rule) && Array.isArray(rule.use)) {
+                rule.use?.forEach(use => {
+                    if (isRuleSetRule(use)) {
+                        this.customizeRule(use);
+                    }
+                });
+            } else if (isRuleSetRule(rule)) {
+                this.customizeRule(rule);
             }
         });
 
@@ -104,6 +102,20 @@ export class WebpackBuild {
         });
         this.logger.log(`✔ Executed successfully.`);
         return result;
+    }
+
+    private customizeRule(rule: string | number | boolean | webpack.RuleSetRule | null | undefined) {
+        if (isRuleSetRule(rule)) {
+            if (this.tsLoaderOptions && rule?.loader?.includes("ts-loader")) {
+                this.injectTsLoaderOptions(rule, this.tsLoaderOptions);
+            }
+            if (
+                this.websmithLoaderOptions &&
+                (rule?.loader?.includes("@quatico/websmith-webpack") || rule?.loader?.includes("packages/webpack/src/index.ts"))
+            ) {
+                this.injectWebsmithLoaderOptions(rule, this.websmithLoaderOptions);
+            }
+        }
     }
 
     private injectTsLoaderOptions(rule: webpack.RuleSetRule, options: Partial<TsLoaderOptions>) {
@@ -192,4 +204,8 @@ export class WebpackBuild {
 
 const isRuleSetRule = (rule: unknown): rule is RuleSetRule => {
     return typeof rule === "object" && rule !== null && "loader" in rule;
+};
+
+const isUseRuleSetRule = (rule: unknown): rule is RuleSetRule => {
+    return typeof rule === "object" && rule !== null && "use" in rule;
 };
