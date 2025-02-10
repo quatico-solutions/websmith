@@ -131,9 +131,9 @@ export class TsCompiler extends Compiler {
 const loadCompilationConfig = (loaderConfig: WebsmithLoaderConfig, options: CompilerOptions, system: ts.System): CompilationConfig => {
     // Prefer config values from webpack loaderConfig, but fallback to values from websmith.config.json
     const {
-        addons = options.config?.addons ?? [],
-        addonsDir = options.config?.addonsDir,
-        configFile = options.configFile,
+        addons = loaderConfig.addons ?? loaderConfig.config?.addons ?? options.config?.addons ?? [],
+        addonsDir = loaderConfig.addonsDir ?? loaderConfig.config?.addonsDir ?? options.config?.addonsDir,
+        configFile = loaderConfig.configFile ?? options.configFile,
         transpileOnly,
     } = loaderConfig;
     let results: CompilationConfig = {

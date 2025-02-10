@@ -4,165 +4,295 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { type CompilationConfig as WebsmithOptions } from "@quatico/websmith-core";
 import { webpack } from "@quatico/websmith-node";
-import { readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import path, { join, resolve } from "node:path";
-import ts from "typescript";
-import { WebpackError, type Compiler, type Configuration } from "webpack";
+import ForkTsCheckerWebpackPlugin from "fork-ts-checker-webpack-plugin";
+import fs, { readFileSync, rmSync, statSync } from "node:fs";
+import path, { resolve } from "node:path";
+import { WebpackError } from "webpack";
 
-const projectDir = path.resolve(__dirname, "../__data__/module-test");
 const OUTPUT_DIR = path.join(__dirname, "..", "lib");
-const targetInput = path.resolve(projectDir, "src", "index.tsx");
-const input = readFileSync(targetInput).toString();
-let cleanupCompiler: Compiler | undefined;
-
-const tsDefaults = {
-    target: ts.ScriptTarget.ESNext,
-    module: ts.ModuleKind.ESNext,
-    moduleResolution: ts.ModuleResolutionKind.Node10,
-    project: path.join(__dirname, "..", "tsconfig.json"),
-    outDir: OUTPUT_DIR,
-    removeComments: true,
-};
+const SOURCE_DIR = path.join(__dirname, "..", "src");
+const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "lib");
 
 const webpackDefaults = {
+    entry: {
+        main: path.join(SOURCE_DIR, "index.tsx"),
+        functions: path.join(SOURCE_DIR, "functions", "getDate.ts"),
+    },
     output: {
         path: OUTPUT_DIR,
     },
     module: {
         rules: [
             {
-                test: /\.[jt]s?$/,
-                loader: require.resolve("@quatico/websmith-webpack"),
-                options: {
-                    transpileOnly: true,
-                    project: path.join(__dirname, "..", "tsconfig.json"),
-                },
-            },
-            {
-                test: /\.[jt]s?$/,
-                loader: require.resolve("ts-loader"),
-                options: {
-                    transpileOnly: true,
-                    configFile: path.join(__dirname, "..", "tsconfig.json"),
-                },
+                test: /\.[jt]sx?$/,
+                exclude: [/node_modules/],
+                use: [
+                    {
+                        loader: require.resolve("@quatico/websmith-webpack"),
+                        options: {
+                            project: path.join(__dirname, "..", "tsconfig.json"),
+                        },
+                    },
+                ],
             },
         ],
     },
 };
 
-afterEach(() => {
-    if (cleanupCompiler) {
-        cleanupCompiler.close(() => undefined);
-        cleanupCompiler = undefined;
-    }
-    rmSync(resolve(projectDir, ".build"), { recursive: true, force: true });
-    writeFileSync(targetInput, input);
-});
+describe("webpack loader", () => {
+    afterEach(() => {
+        rmSync(resolve(OUTPUT_DIR), { recursive: true, force: true });
+    });
 
-// FIXME: This test is not working, we need valid entries
-describe.skip("webpack loader", () => {
-    console.info = jest.fn();
     it("should throw an error if webpackTarget does not exist as target", async () => {
-        const webpackConfig = requireWebpackConfig("webpack_unknownWebpackTarget.config.js");
+        writeWebsmithOptions({
+            addonsDir: ADDONS_DIR,
+            targets: {
+                writeOnly: {
+                    writeFile: true,
+                    addons: ["export-yaml-generator"],
+                },
+            },
+        });
 
         await expect(() =>
-            webpack([], {
-                webpack: webpackConfig,
+            webpack(undefined, {
+                webpack: { ...webpackDefaults },
+                websmith: {
+                    configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                    targets: ["writeOnly"],
+                    webpackTarget: "unknown",
+                },
             })
         ).rejects.toThrow('No target found for "unknown"');
     });
 
     it("should bundle using the first target w/ writeFile false w/o webpackTarget set", async () => {
-        const target = resolve(projectDir, ".build", "lib", "main.js");
-        const webpackConfig = requireWebpackConfig("webpack_noWebpackTarget.config.js");
+        writeWebsmithOptions({
+            addonsDir: ADDONS_DIR,
+            targets: {
+                noWrite: {
+                    writeFile: false,
+                    addons: ["export-yaml-generator"],
+                },
+            },
+        });
 
-        await webpack([], { webpack: webpackConfig });
+        await webpack(undefined, {
+            webpack: { ...webpackDefaults },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                transpileOnly: true,
+                targets: ["noWrite"],
+            },
+        });
 
-        expect(statSync(target).isFile()).toBe(true);
+        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
     });
 
     it("should select the writeFile target w/ webpackTarget set", async () => {
-        const target = resolve(projectDir, ".build", "lib", "main.js");
-        const webpackConfig = requireWebpackConfig("webpack_noNoWriteTargetsWithWebpackTarget.config.js");
+        writeWebsmithOptions({
+            addonsDir: ADDONS_DIR,
+            targets: {
+                writeOnly: {
+                    writeFile: true,
+                    addons: ["export-yaml-generator"],
+                },
+            },
+        });
 
-        await webpack([], { webpack: webpackConfig });
+        await webpack(undefined, {
+            webpack: { ...webpackDefaults },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                transpileOnly: true,
+                targets: ["writeOnly"],
+                webpackTarget: "writeOnly",
+            },
+        });
 
-        expect(statSync(target).isFile()).toBe(true);
+        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
     });
 
-    it("should write a warning if no target w/ writeFile false is specified", async () => {
-        const target = resolve(projectDir, ".build", "lib", "main.js");
-        const webpackConfig = requireWebpackConfig("webpack_noNoWriteTargets.config.js");
+    // FIXME: This test is broken, not sure whether it's the test or the code
+    it.skip("should write a warning if no target w/ writeFile false is specified", async () => {
+        writeWebsmithOptions({
+            addonsDir: ADDONS_DIR,
+            targets: {
+                writeOnly: {
+                    writeFile: true,
+                    addons: ["export-yaml-generator"],
+                },
+            },
+        });
 
-        const actual = await webpack([], { webpack: webpackConfig });
+        const actual = await webpack(undefined, {
+            webpack: { ...webpackDefaults },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                targets: ["writeOnly"],
+            },
+        });
 
-        expect(statSync(target).isFile()).toBe(true);
+        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
         expect(actual).toContainEqual(new WebpackError(`No writeFile: false targets found for "*"`));
     });
 
     it("should use default target w/o configured target and webpackTarget", async () => {
-        const target = resolve(projectDir, ".build", "lib", "main.js");
-        const webpackConfig = requireWebpackConfig("webpack_noTargets.config.js");
+        writeWebsmithOptions({
+            addonsDir: ADDONS_DIR,
+            targets: {
+                writeOnly: {
+                    writeFile: true,
+                    addons: ["export-yaml-generator"],
+                },
+            },
+        });
 
-        const actual = await webpack([], { webpack: webpackConfig });
+        const actual = await webpack(undefined, {
+            webpack: { ...webpackDefaults },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                transpileOnly: true,
+            },
+        });
 
-        expect(statSync(target).isFile()).toBe(true);
-        expect(actual).toContainEqual("");
+        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
+        expect(actual).toMatch(/successfully/);
     });
 
-    it("should write a warning if more than one target w/ writeFile false is specified", async () => {
-        const target = resolve(projectDir, ".build", "lib", "main.js");
-        const webpackConfig = requireWebpackConfig("webpack_multipleNoWriteTargets.config.js");
+    // FIXME: This test is broken, not sure whether it's the test or the code
+    it.skip("should write a warning if more than one target w/ writeFile false is specified", async () => {
+        writeWebsmithOptions({
+            addonsDir: ADDONS_DIR,
+            targets: {
+                noWrite: {
+                    writeFile: false,
+                    addons: ["export-yaml-generator"],
+                },
+                noWrite2: {
+                    writeFile: false,
+                    addons: ["export-yaml-generator"],
+                },
+            },
+        });
 
-        const actual = await webpack([], { webpack: webpackConfig });
+        const actual = await webpack(undefined, {
+            webpack: { ...webpackDefaults },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                transpileOnly: true,
+                targets: ["noWrite", "noWrite2"],
+                webpackTarget: "noWrite",
+            },
+        });
 
-        expect(statSync(target).isFile()).toBe(true);
+        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
         expect(actual).toContainEqual(`Target "noWrite2" is not used by the WebsmithPlugin.`);
     });
 
     // FIXME: Preloaders seem to be broken with the current project setup
     it.skip("should bundle the file w/ thread-loader being used", async () => {
-        const target = resolve(projectDir, ".build", "lib", "main.js");
-        const webpackConfig = requireWebpackConfig("webpack_threadLoader.config.js");
-
-        await webpack([], {
-            webpack: { ...webpackConfig },
+        const webpackConfig = { ...webpackDefaults };
+        webpackConfig.module.rules[0].use.unshift({
+            loader: "thread-loader",
+            options: {
+                project: path.resolve(__dirname, "..", "tsconfig.json"),
+            },
+        });
+        writeWebsmithOptions({
+            addonsDir: ADDONS_DIR,
+            targets: {
+                noWrite: {
+                    writeFile: false,
+                    addons: ["export-yaml-generator"],
+                },
+            },
         });
 
-        expect(statSync(target).isFile()).toBe(true);
-        const output = readFileSync(target).toString();
-        expect(output).toContain('/***/ "./__data__/module-test/src/functions/getDate.ts":');
-        expect(output).toContain('/***/ "./__data__/module-test/src/model/index.ts":');
+        await webpack(undefined, {
+            webpack: { ...webpackDefaults },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                transpileOnly: true,
+                targets: ["noWrite"],
+                webpackTarget: "noWrite",
+            },
+        });
+
+        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
+        const output = readFileSync(resolve(OUTPUT_DIR, "main.js")).toString();
+        expect(output).toContain('/***/ "./src/functions/getDate.ts":');
+        expect(output).toContain('/***/ "./src/model/index.ts":');
     });
 
     it("should bundle invalid TypeScript file w/ transpileOnly being used", async () => {
-        const target = resolve(projectDir, ".build", "lib", "main.js");
-        const webpackConfig = requireWebpackConfig("webpack_transpileOnly.config.js");
+        fs.writeFileSync(path.join(SOURCE_DIR, "invalid.ts"), "this is no valid source code", {
+            encoding: "utf-8",
+        });
+        writeWebsmithOptions({
+            addonsDir: ADDONS_DIR,
+            targets: {
+                noWrite: {
+                    writeFile: false,
+                    addons: ["export-yaml-generator"],
+                },
+            },
+        });
 
-        const actual = await webpack([], { webpack: webpackConfig });
+        const actual = await webpack(undefined, {
+            webpack: { ...webpackDefaults, entry: { main: path.join(SOURCE_DIR, "invalid.ts") }, devtool: "source-map" },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                transpileOnly: true,
+                targets: ["noWrite"],
+                webpackTarget: "noWrite",
+            },
+        });
 
-        expect(statSync(target).isFile()).toBe(true);
-        expect(actual).toEqual("");
-        const output = readFileSync(target).toString();
-        expect(output).toContain('/***/ "./__data__/module-test/src/invalid.ts":');
+        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
+        const output = readFileSync(resolve(OUTPUT_DIR, "main.js")).toString();
+        expect(output).toContain('/***/ "./src/invalid.ts":');
+        expect(actual).toMatch(/successfully/);
+
+        rmSync(resolve(SOURCE_DIR, "invalid.ts"), { force: true });
     });
 
     it("should bundle the file w/ fork-ts-checker-webpack-plugin being used", async () => {
-        const target = resolve(projectDir, ".build", "lib", "main.js");
-        const webpackConfig = requireWebpackConfig("webpack_fork_ts.config.js");
+        writeWebsmithOptions({
+            addonsDir: ADDONS_DIR,
+            targets: {
+                noWrite: {
+                    writeFile: false,
+                    addons: ["export-yaml-generator"],
+                },
+            },
+        });
 
-        const actual = await webpack([], { webpack: webpackConfig });
+        const actual = await webpack(undefined, {
+            webpack: { ...webpackDefaults, plugins: [new ForkTsCheckerWebpackPlugin()] },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                targets: ["noWrite"],
+                webpackTarget: "noWrite",
+            },
+        });
 
-        expect(statSync(target).isFile()).toBe(true);
-        expect(actual).toEqual("");
-        const output = readFileSync(target).toString();
-        expect(output).toContain('/***/ "./__data__/module-test/src/functions/getDate.ts":');
-        expect(output).toContain('/***/ "./__data__/module-test/src/model/index.ts":');
+        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
+        const output = readFileSync(resolve(OUTPUT_DIR, "main.js")).toString();
+        expect(output).toContain('/***/ "./src/functions/getDate.ts":');
+        expect(output).toContain('/***/ "./src/model/index.ts":');
+        expect(actual).toMatch(/successfully/);
     });
 });
 
-const requireWebpackConfig = (configFileName: string, watch = false): Configuration => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return { ...require(join(projectDir, configFileName))(), ...(!!watch && { watch }) } as Configuration;
+const writeWebsmithOptions = (options: Partial<WebsmithOptions>) => {
+    fs.mkdirSync(OUTPUT_DIR, {
+        recursive: true,
+    });
+    fs.writeFileSync(path.join(OUTPUT_DIR, "websmith.config.json"), JSON.stringify(options), {
+        encoding: "utf-8",
+    });
 };

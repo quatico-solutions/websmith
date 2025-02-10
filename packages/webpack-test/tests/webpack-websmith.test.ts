@@ -17,10 +17,7 @@ const SOURCE_DIR = path.join(__dirname, "..", "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "lib");
 
 const tsDefaults = {
-    target: ts.ScriptTarget.ESNext,
-    module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Node10,
-    project: path.join(__dirname, "..", "tsconfig.json"),
     outDir: OUTPUT_DIR,
     removeComments: true,
 };
@@ -33,19 +30,22 @@ const webpackDefaults = {
         rules: [
             {
                 test: /\.[jt]s?$/,
-                loader: require.resolve("@quatico/websmith-webpack"),
-                options: {
-                    transpileOnly: true,
-                    project: path.join(__dirname, "..", "tsconfig.json"),
-                },
-            },
-            {
-                test: /\.[jt]s?$/,
-                loader: require.resolve("ts-loader"),
-                options: {
-                    transpileOnly: true,
-                    configFile: path.join(__dirname, "..", "tsconfig.json"),
-                },
+                use: [
+                    {
+                        loader: require.resolve("@quatico/websmith-webpack"),
+                        options: {
+                            transpileOnly: true,
+                            project: path.join(__dirname, "..", "tsconfig.json"),
+                        },
+                    },
+                    {
+                        loader: require.resolve("ts-loader"),
+                        options: {
+                            transpileOnly: true,
+                            configFile: path.join(__dirname, "..", "tsconfig.json"),
+                        },
+                    },
+                ],
             },
         ],
     },
