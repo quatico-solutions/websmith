@@ -6,41 +6,115 @@
  */
 
 import { webpack } from "@quatico/websmith-node";
-import { readdirSync, readFileSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
-import { type Configuration } from "webpack";
+import { type WebsmithLoaderOptions } from "@quatico/websmith-webpack";
+import fs, { readdirSync, readFileSync, rmSync } from "node:fs";
+import path, { resolve } from "node:path";
+import ts from "typescript";
 
-// FIXME: This test is not working, we need valid entries
-describe.skip("project bundling", () => {
-    const projectDir = resolve(__dirname, "../__data__/module-test");
-    let config: Configuration;
+const OUTPUT_DIR = path.join(__dirname, "..", "lib");
+const SOURCE_DIR = path.join(__dirname, "..", "src");
+const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "lib");
 
-    beforeAll(() => {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        config = require("../__data__/module-test/webpack.config.js")() as Configuration;
-    });
+const tsDefaults = {
+    moduleResolution: ts.ModuleResolutionKind.Node10,
+    outDir: OUTPUT_DIR,
+    removeComments: true,
+};
 
+const webpackDefaults = {
+    output: {
+        path: OUTPUT_DIR,
+    },
+    module: {
+        rules: [
+            {
+                test: /\.[j|t]sx?$/,
+                exclude: /node_modules/,
+                use: [
+                    {
+                        loader: require.resolve("@quatico/websmith-webpack"),
+                        options: {
+                            transpileOnly: true,
+                            project: path.join(__dirname, "..", "tsconfig.json"),
+                        },
+                    },
+                    {
+                        loader: require.resolve("ts-loader"),
+                        options: {
+                            transpileOnly: true,
+                            configFile: path.join(__dirname, "..", "tsconfig.json"),
+                        },
+                    },
+                ],
+            },
+        ],
+    },
+};
+
+describe("project bundling", () => {
     afterEach(() => {
-        rmSync(resolve(projectDir, ".build"), { recursive: true, force: true });
+        rmSync(resolve(OUTPUT_DIR), { recursive: true, force: true });
     });
 
     it("yields bundled output", async () => {
-        await webpack([], { webpack: config });
+        writeWebsmithOptions({
+            config: {
+                addonsDir: ADDONS_DIR,
+                targets: {
+                    noWrite: {
+                        writeFile: false,
+                        addons: ["export-yaml-generator"],
+                    },
+                },
+            },
+        });
 
-        expect(readdirSync(resolve(__dirname, "../__data__/module-test/.build/lib"))).toEqual([
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                devtool: "source-map",
+                entry: {
+                    main: path.join(SOURCE_DIR, "index.tsx"),
+                    functions: path.join(SOURCE_DIR, "functions", "getDate.ts"),
+                },
+            },
+            tsLoader: {
+                compilerOptions: {
+                    ...tsDefaults,
+                    jsx: ts.JsxEmit.React,
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                targets: ["noWrite"],
+                webpackTarget: "noWrite",
+            },
+        });
+
+        expect(readdirSync(OUTPUT_DIR)).toEqual([
             "functions.js",
             "functions.js.map",
             "main.js",
             "main.js.map",
             "output.yaml",
+            "websmith.config.json",
         ]);
 
-        const expected = readFileSync(resolve(__dirname, "../__data__/module-test/.build/lib/output.yaml")).toString();
+        const expected = readFileSync(resolve(OUTPUT_DIR, "output.yaml")).toString();
         [
-            `-file: "${resolve(__dirname, "../__data__/module-test/src/index.tsx")}"\nexports: [render]`,
-            `-file: "${resolve(__dirname, "../__data__/module-test/src/functions/getDate.ts")}"\nexports: [getDate]`,
-            `-file: "${resolve(__dirname, "../__data__/module-test/src/model/index.ts")}"\nexports: []`,
-            `-file: "${resolve(__dirname, "../__data__/module-test/src/model/create-message.ts")}"\nexports: [createMessage]`,
+            `-file: "${resolve(SOURCE_DIR, "index.tsx")}"\nexports: [render]`,
+            `-file: "${resolve(SOURCE_DIR, "functions/getDate.ts")}"\nexports: [getDate]`,
+            `-file: "${resolve(SOURCE_DIR, "model/index.ts")}"\nexports: []`,
+            `-file: "${resolve(SOURCE_DIR, "model/create-message.ts")}"\nexports: [createMessage]`,
         ].forEach(it => expect(expected).toContain(it));
     });
 });
+
+const writeWebsmithOptions = (options: Partial<WebsmithLoaderOptions>) => {
+    fs.mkdirSync(OUTPUT_DIR, {
+        recursive: true,
+    });
+    fs.writeFileSync(path.join(OUTPUT_DIR, "websmith.config.json"), JSON.stringify(options), {
+        encoding: "utf-8",
+    });
+};
