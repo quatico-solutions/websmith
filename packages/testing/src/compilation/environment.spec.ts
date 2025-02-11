@@ -42,15 +42,13 @@ describe("compilationEnv", () => {
 
         expect(actual).toMatchObject({
             buildDir: "/target/src",
-            project: {
+            tsConfig: {
                 configFilePath: "/target/tsconfig.json",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
             },
-            sourceMap: false,
             targets: ["*"],
-            transpileOnly: false,
-            tsconfig: {
+            cliArgs: {
                 errors: [],
                 options: {},
             },
@@ -59,13 +57,13 @@ describe("compilationEnv", () => {
     });
 
     it("should yield custom compiler options with custom overrides", () => {
-        const testObj = compilationEnv("/target", { compilerOptions: { buildDir: "./expected-src", project: { outDir: "./expected-out" } } });
+        const testObj = compilationEnv("/target", { compilerOptions: { buildDir: "./expected-src", tsConfig: { outDir: "./expected-out" } } });
 
         const actual = testObj.getCompilerOptions();
 
         expect(actual).toMatchObject({
             buildDir: "./expected-src",
-            project: {
+            tsConfig: {
                 configFilePath: "./tsconfig.json",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
@@ -380,7 +378,7 @@ describe("compilationEnv#compiled", () => {
 
     it("should yield compilation errors with illegal project files", () => {
         const testObj = compilationEnv("/target", {
-            compilerOptions: { project: { noEmitOnError: true } },
+            compilerOptions: { tsConfig: { noEmitOnError: true } },
         })
             .addProjectFromSource({
                 "index.ts": `export * from './target';`,

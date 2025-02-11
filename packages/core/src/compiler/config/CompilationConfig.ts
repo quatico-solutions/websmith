@@ -11,8 +11,6 @@ export type CompilationConfig = {
     addons?: string[];
     /** Relative path to the directory containing the addons. Overrides the `addonsDir` specified in the configuration file. */
     addonsDir?: string;
-    /** Relative path to the `websmith.config.json` configuration file. */
-    configFilePath?: string;
     /** Record of target specific addons configurations. Overrides the `targets` specified in the configuration file. */
     targets?: Record<string, TargetConfig>;
     /**

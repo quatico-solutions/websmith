@@ -15,7 +15,6 @@ describe("createOptions", () => {
         expect(actual).toEqual(
             expect.objectContaining({
                 debug: false,
-                sourceMap: false,
                 watch: false,
             })
         );
@@ -28,14 +27,13 @@ describe("createOptions", () => {
             },
         });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).project;
+        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
 
-        expect(actual).toEqual(
-            expect.objectContaining({
-                configFilePath: "/expected/tsconfig.json",
-                outDir: "/lib",
-            })
-        );
+        expect(actual).toEqual({
+            configFilePath: "/expected/tsconfig.json",
+            outDir: "/",
+            sourceMap: false,
+        });
     });
 
     it("should return expected path w/ custom addons directory and '*' target", () => {
@@ -80,10 +78,9 @@ describe("createOptions", () => {
             },
         });
 
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target).config;
+        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target).config;
 
         expect(actual).toEqual({
-            configFilePath: "/websmith.config.json",
             targets: { whatever: { addons: ["one", "two", "three"], writeFile: true } },
         });
     });
@@ -104,26 +101,25 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target);
+        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
             buildDir: "/",
             config: {
                 addons: ["one", "two"],
                 addonsDir: "/expected",
-                configFilePath: "/websmith.config.json",
             },
-            project: {
+            tsConfig: {
                 configFilePath: "/tsconfig.json",
-                outDir: "/lib",
+                outDir: "/",
             },
 
-            tsconfig: {
+            cliArgs: {
                 fileNames: ["/expected/one/addon.ts"],
                 errors: [],
                 options: {
                     configFilePath: "/tsconfig.json",
-                    outDir: "/lib",
+                    outDir: "/",
                 },
                 raw: {
                     include: ["**/*.ts"],

@@ -33,7 +33,7 @@ export const createTransformer = (context: AddonContext): ts.TransformerFactory<
 
             input = ts.visitNode(input, visitor, ts.isSourceFile);
 
-            const outPath = join(context.getConfig()?.options?.outDir ?? "", "output.yaml");
+            const outPath = join(context.getCliArgs()?.options?.outDir ?? "", "output.yaml");
             // Write collected identifiers to hard coded output file
             writeFileSync(outPath, createFileContent(input.fileName, foundDecls, outPath));
             return input;

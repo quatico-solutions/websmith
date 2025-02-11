@@ -55,13 +55,13 @@ beforeEach(() => {
     testProgram = ts.createProgram({ options: {}, rootNames: [] });
     testObj = new CompilationContextTestClass({
         buildDir: "",
-        project: {},
+        tsConfig: {},
         projectDir: testSystem.getCurrentDirectory(),
         reporter: new ReporterMock(testSystem),
         rootFiles: [],
         system: testSystem,
         program: testProgram,
-        tsconfig: { options: {}, fileNames: [], errors: [] },
+        cliArgs: { options: {}, fileNames: [], errors: [] },
         target: "test",
     });
 });
@@ -182,13 +182,13 @@ describe("resolvePath", () => {
     beforeEach(() => {
         testObj = new CompilationContextTestClass({
             buildDir: "",
-            project: {},
+            tsConfig: {},
             projectDir: "/expected",
             reporter: new ReporterMock(testSystem),
             rootFiles: [],
             system: testSystem,
             program: testProgram,
-            tsconfig: { options: {}, fileNames: [], errors: [] },
+            cliArgs: { options: {}, fileNames: [], errors: [] },
             target: "test",
         });
     });
@@ -227,12 +227,12 @@ describe("isCodeFileExtension", () => {
         ["expected.cts", true],
         ["expected.d.cts", true],
         ["expected.cjs", true],
-        // TODO: Implement
+        // TODO: Implement support for code extension
         // ["expected.d.cjs", false],
         ["expected.mts", true],
         ["expected.d.mts", true],
         ["expected.mjs", true],
-        // TODO: Implement
+        // TODO: Implement support for code extension
         // ["expected.d.mjs", false],
         ["expected.scss", false],
         ["expected.json", false],
@@ -271,13 +271,13 @@ describe("addAssetDependency", () => {
         const target = jest.fn();
         testObj = new CompilationContextTestClass({
             buildDir: "",
-            project: {},
+            tsConfig: {},
             projectDir: testSystem.getCurrentDirectory(),
             reporter: new ReporterMock(testSystem),
             rootFiles: [],
             system: testSystem,
             program: testProgram,
-            tsconfig: { options: {}, fileNames: [], errors: [] },
+            cliArgs: { options: {}, fileNames: [], errors: [] },
             target: "test",
             registerDependencyCallback: target,
         });

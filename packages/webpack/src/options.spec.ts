@@ -12,24 +12,53 @@ describe("createOptions", () => {
     it("should return defaults w/o any param", () => {
         const actual = createOptions({});
 
-        expect(actual).toEqual(
-            expect.objectContaining({
-                debug: false,
-                sourceMap: false,
-                targets: ["*"],
-                watch: false,
-            })
-        );
+        expect(actual).toEqual({
+            buildDir: expect.any(String),
+            tsConfig: expect.any(Object),
+            reporter: expect.any(NoReporter),
+            cliArgs: expect.any(Object),
+            debug: false,
+            targets: ["*"],
+            watch: false,
+        });
     });
 
     it("should return project config w/ custom but empty tsconfig.json", () => {
         const { fileSystem: target } = compileSystem({ files: { "./expected/tsconfig.json": "{}" } });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).project;
+        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
             outDir: "/lib",
+        });
+    });
+
+    it("should return project config w/ with custom tsconfig.json", () => {
+        const { fileSystem: target } = compileSystem({
+            files: { "./expected/tsconfig.json": `${JSON.stringify({ compilerOptions: { strict: true } })}` },
+        });
+
+        const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
+
+        expect(actual).toEqual({
+            configFilePath: "/expected/tsconfig.json",
+            outDir: "/lib",
+            strict: true,
+        });
+    });
+
+    it("should return project config w/ with tsConfig override", () => {
+        const { fileSystem: target } = compileSystem({
+            files: { "./expected/tsconfig.json": `${JSON.stringify({ compileOptions: { strict: false } })}` },
+        });
+
+        const actual = createOptions({ project: "./expected/tsconfig.json", tsConfig: { strict: true } }, new NoReporter(), target).tsConfig;
+
+        expect(actual).toEqual({
+            configFilePath: "/expected/tsconfig.json",
+            outDir: "/lib",
+            strict: true,
         });
     });
 
@@ -71,10 +100,9 @@ describe("createOptions", () => {
             `,
             },
         });
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target).config;
+        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target).config;
 
         expect(actual).toEqual({
-            configFilePath: "/websmith.config.json",
             targets: { whatever: { addons: ["one", "two", "three"], writeFile: true } },
         });
     });
@@ -95,22 +123,21 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ config: "./websmith.config.json" }, new NoReporter(), target);
+        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
             buildDir: "/",
             config: {
                 addons: ["one", "two"],
                 addonsDir: "/expected",
-                configFilePath: "/websmith.config.json",
             },
-            project: {
+            tsConfig: {
                 configFilePath: "/tsconfig.json",
                 outDir: "/lib",
             },
 
             targets: ["*"],
-            tsconfig: {
+            cliArgs: {
                 fileNames: ["/expected/one/addon.ts"],
                 errors: [],
                 options: {

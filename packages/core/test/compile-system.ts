@@ -24,9 +24,6 @@ export const compileSystem = (files?: Record<string, string>, options?: CompileS
         if (!fileSystem.fileExists("./tsconfig.json")) {
             fileSystem.writeFile("./tsconfig.json", "{}");
         }
-        if (!fileSystem.fileExists("./websmith.config.json")) {
-            fileSystem.writeFile("./websmith.config.json", "{}");
-        }
         if (!fileSystem.directoryExists("./addons")) {
             fileSystem.createDirectory("./addons");
         }

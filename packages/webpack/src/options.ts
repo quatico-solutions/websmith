@@ -15,47 +15,43 @@ import {
 } from "@quatico/websmith-core";
 import { dirname } from "path";
 import ts from "typescript";
-import { PluginOptions } from "./loader-options";
+import { WebsmithLoaderConfig } from "./loader-options";
 
-export const DEFAULTS = {
-    addonsDir: "./addons",
-    config: "./websmith.config.json",
-    debug: false,
-    outDir: "./lib",
-    project: "./tsconfig.json",
-    sourceMap: false,
-    targets: "*",
-};
+export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
+    const { buildDir, config, configFile, debug = false, project = "./tsconfig.json", targets = ["*"], tsConfig, transpileOnly } = args;
 
-export const createOptions = (args: Partial<PluginOptions>, reporter: Reporter = new NoReporter(), system: ts.System = ts.sys): CompilerOptions => {
-    const tsconfig: ts.ParsedCommandLine = resolveTsConfig(args.project ?? DEFAULTS.project, system);
-    const compilationConfig = resolveCompilationConfig(args.config ?? DEFAULTS.config, reporter, system);
+    const cliArgs = resolveTsConfig(project, system);
+    cliArgs.options = { ...cliArgs.options, ...tsConfig };
+    const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system) : undefined;
 
-    const projectDirectory =
-        (compilationConfig?.configFilePath && dirname(compilationConfig.configFilePath)) ??
-        (tsconfig.raw && tsconfig.raw.configFilePath && dirname(tsconfig.raw?.configFilePath));
-    tsconfig.options.outDir = args.buildDir ?? tsconfig.options.outDir ?? DEFAULTS.outDir;
+    const projectDirectory = (configFile && dirname(configFile)) ?? (cliArgs.raw?.configFilePath && dirname(cliArgs.raw?.configFilePath));
+    cliArgs.options.outDir = system.resolvePath(buildDir ?? cliArgs.options.outDir ?? "./lib");
     if (projectDirectory) {
-        tsconfig.options = updateCompilerOptions(tsconfig.options, system, projectDirectory);
+        cliArgs.options = updateCompilerOptions(cliArgs.options, system, projectDirectory);
     }
 
-    if (args.sourceMap !== undefined) {
-        tsconfig.options.sourceMap = args.sourceMap;
-        if (tsconfig.options.sourceMap === false) {
-            tsconfig.options.inlineSources = undefined;
+    if (cliArgs.options.sourceMap === false) {
+        delete cliArgs.options.inlineSources;
+    }
+
+    let mergedConfig = compilationConfig || config ? Object.assign({}, compilationConfig, config) : undefined;
+    if (transpileOnly) {
+        if (!mergedConfig) {
+            mergedConfig = { transpileOnly: true };
+        } else {
+            mergedConfig.transpileOnly = true;
         }
     }
 
     return {
-        buildDir: args.buildDir ?? system.getCurrentDirectory(),
-        config: compilationConfig,
-        debug: args.debug ?? DEFAULTS.debug,
-        tsconfig,
-        project: tsconfig.options,
+        buildDir: buildDir ?? system.getCurrentDirectory(),
+        cliArgs,
+        ...(mergedConfig && { config: mergedConfig }),
+        ...(configFile && { configFile }),
+        debug,
         reporter,
-        sourceMap: args.sourceMap ?? DEFAULTS.sourceMap,
-        targets: resolveTargets(args.targets || DEFAULTS.targets, compilationConfig, reporter),
-        transpileOnly: args.transpileOnly ?? compilationConfig?.transpileOnly ?? false,
+        targets: resolveTargets(targets, compilationConfig, reporter),
+        tsConfig: cliArgs.options,
         watch: false,
     };
 };

@@ -6,7 +6,7 @@
  */
 import { createOptions } from "./options";
 import webpack, { LoaderContext } from "webpack";
-import { PluginOptions } from "./loader-options";
+import { WebsmithLoaderConfig } from "./loader-options";
 import { TsCompiler } from "./TsCompiler";
 import { addCompilationHooks } from "./webpack-hooks";
 
@@ -15,7 +15,7 @@ import { addCompilationHooks } from "./webpack-hooks";
 const marker: webpack.Compiler = {} as webpack.Compiler;
 const cache: WeakMap<webpack.Compiler, Map<string, TsCompiler>> = new WeakMap();
 
-export function getInstanceFromCache(key: webpack.Compiler | undefined, loader: webpack.LoaderContext<PluginOptions>): TsCompiler | undefined {
+export function getInstanceFromCache(key: webpack.Compiler | undefined, loader: webpack.LoaderContext<WebsmithLoaderConfig>): TsCompiler | undefined {
     const compiler = key ?? marker;
     let instances = cache.get(compiler);
     if (!instances) {
@@ -26,7 +26,7 @@ export function getInstanceFromCache(key: webpack.Compiler | undefined, loader: 
     return instances.get(getCacheName(loader));
 }
 
-export function setInstanceInCache(key: webpack.Compiler | undefined, loader: webpack.LoaderContext<PluginOptions>, instance: TsCompiler) {
+export function setInstanceInCache(key: webpack.Compiler | undefined, loader: webpack.LoaderContext<WebsmithLoaderConfig>, instance: TsCompiler) {
     const compiler = key ?? marker;
     const instances = cache.get(compiler) ?? new Map<string, TsCompiler>();
     instances.set(getCacheName(loader), instance);
@@ -34,19 +34,19 @@ export function setInstanceInCache(key: webpack.Compiler | undefined, loader: we
 }
 
 export const initializeInstance = (
-    loader: LoaderContext<PluginOptions>,
-    options: PluginOptions,
+    loader: LoaderContext<WebsmithLoaderConfig>,
+    config: WebsmithLoaderConfig,
     dependencyCallback: (filePath: string) => void
 ): TsCompiler => {
     const compiler = loader._compiler ?? marker;
     let instance = getInstanceFromCache(compiler, loader);
     if (!instance) {
-        instance = new TsCompiler(createOptions(options), dependencyCallback, options);
+        instance = new TsCompiler(createOptions(config), dependencyCallback, config);
         if (compiler !== marker) {
-            addCompilationHooks(compiler, options, dependencyCallback);
+            addCompilationHooks(compiler, config, dependencyCallback);
         }
     }
-    instance.pluginConfig = options;
+    instance.loaderConfig = config;
     setInstanceInCache(compiler, loader, instance);
     return instance;
 };

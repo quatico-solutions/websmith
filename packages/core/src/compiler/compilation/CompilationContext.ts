@@ -15,13 +15,13 @@ export type CompilationContextOptions = {
     buildDir: string;
     config?: unknown;
     program: ts.Program;
-    project: ts.CompilerOptions;
+    tsConfig: ts.CompilerOptions;
     projectDir: string;
     reporter: Reporter;
     rootFiles: string[];
     system: ts.System;
     target?: string;
-    tsconfig: ts.ParsedCommandLine;
+    cliArgs: ts.ParsedCommandLine;
     watchCallback?: (filePath: string) => void;
     registerDependencyCallback?: (filePath: string) => void;
 };
@@ -38,7 +38,7 @@ export class CompilationContext implements AddonContext {
     private cache: FileCache;
     private languageHost: ts.LanguageServiceHost;
     private reporter: Reporter;
-    private tsconfig: ts.ParsedCommandLine;
+    private cliArgs: ts.ParsedCommandLine;
     private system: ts.System;
     private projectDir: string;
     private program: ts.Program;
@@ -50,18 +50,18 @@ export class CompilationContext implements AddonContext {
     private assetCodeDependency: Map<string, string[]> = new Map();
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, config, program, project, projectDir, rootFiles, system, target, tsconfig, watchCallback, registerDependencyCallback } =
+        const { buildDir, config, program, tsConfig, projectDir, rootFiles, system, target, cliArgs, watchCallback, registerDependencyCallback } =
             options;
         this.buildDir = buildDir;
         this.rootFiles = rootFiles;
-        this.tsconfig = tsconfig;
+        this.cliArgs = cliArgs;
         this.projectDir = projectDir;
         this.transformers = {};
         this.processors = [];
         this.generators = [];
         this.languageHost = this.createLanguageServiceHost({
             system,
-            options: project,
+            options: tsConfig,
             target,
         });
         this.cache = new FileCache(system);
@@ -77,8 +77,8 @@ export class CompilationContext implements AddonContext {
         return this.system;
     }
 
-    public getConfig(): ts.ParsedCommandLine {
-        return this.tsconfig;
+    public getCliArgs(): ts.ParsedCommandLine {
+        return this.cliArgs;
     }
 
     public getReporter(): Reporter {

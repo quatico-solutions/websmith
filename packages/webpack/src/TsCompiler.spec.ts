@@ -11,13 +11,13 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, resolve } from "path";
 import ts from "typescript";
 import { TsCompiler } from "./TsCompiler";
-import { PluginOptions } from "./loader-options";
+import { WebsmithLoaderConfig } from "./loader-options";
 
 class TestCompiler extends TsCompiler {
     private sys: ts.System | undefined;
 
-    constructor(options: CompilerOptions, pluginOptions?: PluginOptions) {
-        super(options, path => console.info(`dependency ${path} added`), pluginOptions);
+    constructor(options: CompilerOptions, loaderConfig?: WebsmithLoaderConfig) {
+        super(options, path => console.info(`dependency ${path} added`), loaderConfig);
         this.sys = super.getSystem();
     }
 
@@ -53,16 +53,14 @@ describe("TsCompiler", () => {
         testObj = new TestCompiler(
             {
                 buildDir: resolve("./__TEMP__"),
-                project: { declaration: true, target: 99, noEmitOnError: true },
+                tsConfig: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
                 targets: ["*"],
-                tsconfig: { options: {}, fileNames: [expected], errors: [] },
+                cliArgs: { options: {}, fileNames: [expected], errors: [] },
                 debug: true,
-                sourceMap: false,
-                transpileOnly: false,
                 watch: false,
             },
-            { addonsDir: "./addons", config: "./websmith.config.json" }
+            { addonsDir: "./addons", configFile: "./websmith.config.json" }
         );
     });
 
@@ -113,16 +111,14 @@ describe("Transpilation", () => {
         testObj = new TestCompiler(
             {
                 buildDir: resolve("./__TEMP__"),
-                project: { declaration: true, target: 99, noEmitOnError: true },
+                tsConfig: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
                 targets: ["*"],
-                tsconfig: { options: { declaration: true, target: 99 }, fileNames: [expected], errors: [] },
+                cliArgs: { options: { declaration: true, target: 99 }, fileNames: [expected], errors: [] },
                 debug: true,
-                sourceMap: false,
-                transpileOnly: false,
                 watch: false,
             },
-            { addonsDir: "./addons", config: "./websmith.config.json" }
+            { addonsDir: "./addons", configFile: "./websmith.config.json" }
         );
 
         const actual = testObj.build(expected);
@@ -141,23 +137,21 @@ describe("Transpilation", () => {
         testObj = new TestCompiler(
             {
                 buildDir: resolve("./__TEMP__"),
+                configFile: resolve("./__TEMP__/websmith.config.json"),
                 config: {
-                    configFilePath: resolve("./__TEMP__/websmith.config.json"),
                     targets: {
                         fragment: { options: { declaration: true } },
                         write: { writeFile: true, options: { module: 1, target: 1 } },
                     },
                 },
-                project: { target: 99, outDir: resolve("./__TEMP__/.build"), noEmitOnError: true },
+                tsConfig: { target: 99, outDir: resolve("./__TEMP__/.build"), noEmitOnError: true },
                 reporter,
                 targets: ["fragment", "write"],
-                tsconfig: { options: { target: 99 }, fileNames: [expected], errors: [] },
+                cliArgs: { options: { target: 99 }, fileNames: [expected], errors: [] },
                 debug: false,
-                sourceMap: false,
-                transpileOnly: false,
                 watch: false,
             },
-            { config: resolve("__TEMP__", "websmith.config.json"), webpackTarget: "fragment", addonsDir: "./addons" }
+            { configFile: resolve("__TEMP__", "websmith.config.json"), webpackTarget: "fragment", addonsDir: "./addons" }
         );
 
         const actual = testObj.build(expected);

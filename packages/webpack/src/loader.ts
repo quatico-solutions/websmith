@@ -6,11 +6,11 @@
  */
 import { LoaderContext } from "webpack";
 import { initializeInstance, setInstanceInCache } from "./instance-cache";
-import { getLoaderOptions, PluginOptions } from "./loader-options";
+import { getLoaderOptions, WebsmithLoaderConfig } from "./loader-options";
 import { processResultAndFinish } from "./result-handling";
 import { TsCompiler } from "./TsCompiler";
 
-export function loader(this: LoaderContext<PluginOptions>): void {
+export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     this.cacheable && this.cacheable();
     const loaderOptions = getLoaderOptions(this);
     const instance = initializeInstance(this, loaderOptions, (path: string) => {

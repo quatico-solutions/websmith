@@ -2,15 +2,15 @@ const { join } = require("path");
 
 module.exports = ({
     sourceDir = join(__dirname, "src"),
-    config = join(__dirname, "websmith.config.json"),
+    configFile = join(__dirname, "websmith.config.json"),
     preLoaders = [],
     postLoaders = [],
-    targets = "noWrite",
+    targets = ["noWrite"],
     webpackTarget,
 }) => {
     const websmithLoaderOptions = {
         project: join(__dirname, "tsconfig.json"),
-        config,
+        configFile,
         targets,
         ...(!!webpackTarget && { webpackTarget }),
     };

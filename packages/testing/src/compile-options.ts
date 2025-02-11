@@ -23,22 +23,20 @@ export const compileOptions = (
         buildDir,
         reporter,
         debug: false,
-        sourceMap: false,
-        transpileOnly: false,
         watch: false,
         ...overrides,
-        project: {
+        tsConfig: {
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.Latest,
             configFilePath: `./tsconfig.json`,
-            ...overrides?.project,
+            ...overrides?.tsConfig,
         },
         targets: overrides?.targets ?? [],
-        tsconfig: {
-            options: { outDir: overrides?.project?.outDir ?? DEFAULT_OUT_DIR },
+        cliArgs: {
+            options: { outDir: overrides?.tsConfig?.outDir ?? DEFAULT_OUT_DIR },
             fileNames: system.readDirectory(buildDir),
             errors: [],
-            ...overrides?.tsconfig,
+            ...overrides?.cliArgs,
         },
     };
 };

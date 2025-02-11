@@ -5,37 +5,40 @@
  * ---------------------------------------------------------------------------------------------
  */
 
+import { CompilationConfig } from "@quatico/websmith-core";
+import ts from "typescript";
 import { LoaderContext, WebpackError } from "webpack";
-import { DEFAULTS } from "./options";
 import { Upath as uPath } from "./Upath";
 
-export interface PluginArguments {
-    addons?: string;
+export interface WebsmithLoaderOptions {
+    addons?: string[];
     addonsDir?: string;
     buildDir?: string;
-    config?: string;
+    configFile?: string;
+    config?: CompilationConfig;
     debug?: boolean;
     project?: string;
-    sourceMap?: boolean;
+    targets?: string[];
     transpileOnly?: boolean;
-    targets?: string;
+    tsConfig?: ts.CompilerOptions;
     webpackTarget?: string;
 }
 
-export type PluginOptions = PluginArguments & {
+export type WebsmithLoaderConfig = WebsmithLoaderOptions & {
     warn?: (err: WebpackError) => void;
     error?: (err: WebpackError) => void;
 };
 
-export const getLoaderOptions = (loader: LoaderContext<PluginOptions>): PluginOptions => {
-    const options: PluginOptions = loader.getOptions();
+export const getLoaderOptions = (loader: LoaderContext<WebsmithLoaderConfig>): WebsmithLoaderConfig => {
+    const options = loader.getOptions();
+    const { configFile, webpackTarget = "*" } = options;
+
     const result = {
         ...options,
         ...(!!loader._module && typeof loader._module.addWarning === "function" && { warn: (err: WebpackError) => loader._module!.addWarning(err) }),
         ...(!!loader._module && typeof loader._module.addError === "function" && { error: (err: WebpackError) => loader._module!.addError(err) }),
-        config: uPath.resolve(options.config ?? DEFAULTS.config),
-        transpileOnly: options.transpileOnly ?? false,
-        webpackTarget: options.webpackTarget ?? "*",
+        ...(!!configFile && { configFile: uPath.resolve(configFile) }),
+        webpackTarget,
     };
     return result;
 };

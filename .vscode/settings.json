@@ -1,7 +1,7 @@
 {
     "cSpell.words": ["addon", "addons", "barfoo", "json", "websmith"],
     "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-    "eslint.experimental.useFlatConfig": true,
+    "eslint.useFlatConfig": true,
     "eslint.format.enable": true,
     "eslint.lintTask.enable": true,
     // For those using file-nesting, nest the new files. E.g.:

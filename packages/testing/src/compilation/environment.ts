@@ -45,7 +45,7 @@ export class CompilationEnv {
         this.system = this.virtual ? createBrowserSystem(undefined, useCaseSensitiveFileNames) : ts.sys;
         this.rootDir = resolvePath(this.system, rootDir ?? DEFAULT_ROOT_DIR);
         this.buildDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.buildDir ?? DEFAULT_BUILD_DIR);
-        const outDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.project?.outDir ?? DEFAULT_OUT_DIR);
+        const outDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.tsConfig?.outDir ?? DEFAULT_OUT_DIR);
 
         if (!this.system.directoryExists(this.rootDir)) {
             getSubPaths(this.rootDir).forEach(it => !!it && !this.system.directoryExists(it) && this.system.createDirectory(it));
@@ -64,14 +64,13 @@ export class CompilationEnv {
             buildDir: this.buildDir,
             targets: options?.compilerOptions?.targets?.length ? options.compilerOptions.targets : ["*"],
             config: {
-                configFilePath: `${this.rootDir}/websmith.config.json`,
                 targets: {
                     "*": {
                         options: { outDir },
                     },
                 },
             },
-            project: { configFilePath: `${this.rootDir}/tsconfig.json`, outDir },
+            tsConfig: { configFilePath: `${this.rootDir}/tsconfig.json`, outDir },
             ...compilerOptions,
         });
 
@@ -96,7 +95,7 @@ export class CompilationEnv {
     }
 
     public getOutDir(): string {
-        return resolveProjectPath(this.system, this.rootDir, this.compilerOptions.project.outDir ?? DEFAULT_OUT_DIR);
+        return resolveProjectPath(this.system, this.rootDir, this.compilerOptions.tsConfig.outDir ?? DEFAULT_OUT_DIR);
     }
 
     public getCompilerOptions(): CompilerOptions {
@@ -230,7 +229,7 @@ export class CompilationEnv {
             // use rootDir as target path because we copy src and other files from project directory
             { system: this.system, path: this.rootDir }
         );
-        this.compilerOptions.tsconfig.fileNames = this.system.readDirectory(this.buildDir).filter(isSourceFile);
+        this.compilerOptions.cliArgs.fileNames = this.system.readDirectory(this.buildDir).filter(isSourceFile);
 
         return this;
     }
@@ -278,7 +277,7 @@ export class CompilationEnv {
     }
 
     public getCompiledDir(): string {
-        return resolveProjectPath(this.system, this.rootDir, this.getCompilerOptions().project.outDir ?? DEFAULT_OUT_DIR);
+        return resolveProjectPath(this.system, this.rootDir, this.getCompilerOptions().tsConfig.outDir ?? DEFAULT_OUT_DIR);
     }
 
     public getCompiledFiles(): ProjectFiles {
@@ -324,14 +323,14 @@ export class CompilationEnv {
                     ...compileOptions(this.system, {
                         buildDir: curDir,
                     }),
-                    project: {
+                    tsConfig: {
                         module: ts.ModuleKind.CommonJS,
                         target: ts.ScriptTarget.ES5,
                         esModuleInterop: true,
                         moduleResolution: ts.ModuleResolutionKind.NodeNext,
                     },
                     targets: ["*"],
-                    tsconfig: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
+                    cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
                 this.system
             ).compile();
@@ -370,7 +369,7 @@ export class CompilationEnv {
     private addFile(filePath: string, content: string): void {
         this.system.writeFile(filePath, content);
         if (isSourceFile(filePath)) {
-            this.compilerOptions.tsconfig.fileNames.push(filePath);
+            this.compilerOptions.cliArgs.fileNames.push(filePath);
         }
     }
 }

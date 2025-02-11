@@ -29,7 +29,7 @@ export interface AddonContext<O = unknown> {
     /**
      * Returns the command line options used to run the compiler.
      */
-    getConfig(): ts.ParsedCommandLine;
+    getCliArgs(): ts.ParsedCommandLine;
 
     /**
      * Returns the reporter to display error, warning and info messages.

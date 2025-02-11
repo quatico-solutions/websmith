@@ -25,16 +25,14 @@ beforeEach(() => {
     tsCompiler = new TsCompiler(
         {
             buildDir: "./src",
-            project: {},
+            tsConfig: {},
             reporter,
-            tsconfig: { options: { outDir: ".build" }, fileNames: [], errors: [] },
+            cliArgs: { options: { outDir: ".build" }, fileNames: [], errors: [] },
             debug: false,
-            sourceMap: false,
-            transpileOnly: false,
             watch: false,
         },
         () => undefined,
-        { addonsDir: "./addons", config: "./websmith.config.json" }
+        { addonsDir: "./addons", configFile: "./websmith.config.json" }
     );
 });
 
@@ -49,7 +47,7 @@ describe("initializeInstance", () => {
 
         const actual = initializeInstance(
             target,
-            { config: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json") },
+            { configFile: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json") },
             path => console.info(`dependency ${path} added`)
         );
 

@@ -8,31 +8,26 @@ import ts from "typescript";
 import { type CompilerOptions } from "../src/compiler";
 import { ReporterMock } from "./ReporterMock";
 
-export const compileOptions = (
-    system: ts.System,
-    overrides?: Partial<CompilerOptions> | { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; targets?: string[] }
-): CompilerOptions => {
+export const compileOptions = (system: ts.System, overrides?: Partial<CompilerOptions>): CompilerOptions => {
     const reporter = new ReporterMock(system);
     return {
         buildDir: "./src",
         reporter,
         debug: false,
-        sourceMap: false,
-        transpileOnly: false,
         watch: false,
         ...overrides,
-        project: {
+        tsConfig: {
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.Latest,
             configFilePath: "./tsconfig.json",
-            ...overrides?.project,
+            ...overrides?.tsConfig,
         },
         targets: overrides?.targets ?? ["*"],
-        tsconfig: {
+        cliArgs: {
             options: {},
             fileNames: system.readDirectory("./src"),
             errors: [],
-            ...overrides?.tsconfig,
+            ...overrides?.cliArgs,
         },
     };
 };

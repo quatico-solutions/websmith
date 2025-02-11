@@ -21,7 +21,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .description("Compiles typescript source code and applies addons to transform source before or after emit.")
         .option("-a, --addons <addons>", "Comma-separated list of addons to apply. All found addons will be applied by default.")
         .option("-f, --addonsDir <directoryPath>", 'Directory path to the "addons" folder.', "./addons")
-        .option("-c, --config <filePath>", 'File path to the "websmith.config.json".', "./websmith.config.json")
+        .option("-c, --configFile <filePath>", 'File path to the "websmith.config.json".', "./websmith.config.json")
         .option("-d, --debug", "Enable the output of debug information.", false)
         .option("-p, --project <projectPath>", 'Path to the configuration file, or to a folder with a "tsconfig.json".', "./tsconfig.json")
         .option("-s, --sourceMap", "Enable the output of sourceMap information.", false)
@@ -48,7 +48,8 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             const system = compiler?.getSystem() ?? compileSystem();
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
             const options = createOptions(args, reporter, system);
-            const compilationConfig = resolveCompilationConfig(args.config ?? "./websmith.config.json", reporter, system);
+            options.configFile = args.configFile ?? "./websmith.config.json";
+            const compilationConfig = resolveCompilationConfig(options.configFile, reporter, system);
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
             if (unknownArgs?.length > 0) {
                 options.additionalArguments = parseUnknownArguments(unknownArgs);

@@ -44,6 +44,7 @@ export class Compiler {
     private dependencyCallback?: (filePath: string) => void;
     private fileWatchers: ts.FileWatcher[] = [];
     private addons?: AddonRegistry;
+    private transpileOnly: boolean;
 
     constructor(options: CompilerOptions, system?: ts.System, addons?: AddonRegistry, dependencyCallback?: (filePath: string) => void) {
         this.version = 0;
@@ -52,6 +53,7 @@ export class Compiler {
         this.system = system ?? createSystem();
         this.setOptions(options);
         this.dependencyCallback = dependencyCallback;
+        this.transpileOnly = this.options.config?.transpileOnly ?? false;
     }
 
     public getContext(target?: string): CompilationContext | undefined {
@@ -98,21 +100,22 @@ export class Compiler {
     }
 
     public compile(): ts.EmitResult {
+        const { targets } = this.options;
         this.createTargetContextsIfNecessary();
 
         const results: ts.EmitResult[] = [];
-        if (!this.options.targets || !this.options.targets.length) {
+        if (!targets?.length) {
             const ctx = this.getContext();
             if (ctx) {
                 const result = this.emitResult(undefined, ctx); // no target
-                results.push(this.options.transpileOnly ? result : this.report(ctx.getProgram(), result));
+                results.push(this.options ? result : this.report(ctx.getProgram(), result));
             }
         } else {
-            this.options.targets.forEach((target: string) => {
+            targets.forEach((target: string) => {
                 const ctx = this.getContext(target);
                 if (ctx) {
                     const result = this.emitResult(target, ctx);
-                    results.push(this.options.transpileOnly ? result : this.report(ctx.getProgram(), result));
+                    results.push(this.options.config?.transpileOnly ? result : this.report(ctx.getProgram(), result));
                 }
             });
         }
@@ -202,13 +205,15 @@ export class Compiler {
     }
 
     protected createTargetContextsIfNecessary(): this {
-        if (!this.options.targets || !this.options.targets.length) {
+        const { targets } = this.options;
+
+        if (!targets?.length) {
             const ctx = this.getContext()!;
             this.addons?.getAvailableAddons().forEach(addon => {
                 addon.activate(ctx);
             });
         } else {
-            this.options.targets.forEach((target: string) => {
+            targets.forEach((target: string) => {
                 if (this.contextMap.has(target)) {
                     return;
                 }
@@ -227,15 +232,15 @@ export class Compiler {
         target?: string,
         registerDependencyCallback?: (filePath: string) => void
     ): CompilationContext {
-        const { buildDir, config, project, tsconfig, watch } = compileOptions;
+        const { buildDir, config, configFile, tsConfig, cliArgs, watch } = compileOptions;
         const { options = {}, config: targetConfig } = getTargetConfig(target, config);
         return new CompilationContext({
             buildDir,
-            project: { ...project, ...options },
-            projectDir: dirname(config?.configFilePath ?? tsconfig.raw?.configFilePath ?? this.system.getCurrentDirectory()),
+            tsConfig: { ...tsConfig, ...options },
+            projectDir: dirname(configFile ?? cliArgs.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
-            program: ts.createProgram({ rootNames: this.getRootFiles(), options: project, host: createCompileHost(project) }),
-            tsconfig: { ...tsconfig, options: { ...project, ...options } },
+            program: ts.createProgram({ rootNames: this.getRootFiles(), options: tsConfig, host: createCompileHost(tsConfig) }),
+            cliArgs: { ...cliArgs, options: { ...tsConfig, ...options } },
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,
             ...(!!targetConfig && { config: targetConfig }),
@@ -275,11 +280,13 @@ export class Compiler {
     }
 
     protected getNonWritingTargets(): string[] {
-        return this.options.targets?.filter(cur => !getTargetConfig(cur, this.options.config).writeFile) ?? [];
+        const { targets, config } = this.options;
+        return targets?.filter(cur => !getTargetConfig(cur, config).writeFile) ?? [];
     }
 
     protected getWritingTargets(): string[] {
-        return this.options.targets?.filter(cur => getTargetConfig(cur, this.options.config).writeFile) ?? [];
+        const { targets, config } = this.options;
+        return targets?.filter(cur => getTargetConfig(cur, config).writeFile) ?? [];
     }
 
     private processOutput(
@@ -307,7 +314,7 @@ export class Compiler {
 
     private transpile(compilationFragment: CompilationFragment) {
         const { fileName, ctx } = compilationFragment;
-        if (this.options.transpileOnly) {
+        if (this.transpileOnly) {
             if (fileName.endsWith(".d.ts")) {
                 return undefined;
             } else {
@@ -327,11 +334,11 @@ export class Compiler {
         const isTranspiledSourceFile = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)$/i);
         const isSourceMap = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)\.map$/i);
         const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
-            compilerOptions: ctx.getConfig().options,
+            compilerOptions: ctx.getCliArgs().options,
             fileName,
             transformers: ctx.getTransformers(),
         });
-        const fileNames = ts.getOutputFileNames(ctx.getConfig(), fileName, !this.system.useCaseSensitiveFileNames);
+        const fileNames = ts.getOutputFileNames(ctx.getCliArgs(), fileName, !this.system.useCaseSensitiveFileNames);
         return {
             outputFiles: concat(
                 this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText),
@@ -343,9 +350,10 @@ export class Compiler {
     }
 
     private transpileJson({ ctx, fileName, content }: CompilationFragment) {
-        // JSON are only output by TypoScript if an outDir is provided, otherwise they are ignored.
-        if (this.options.project.outDir !== undefined) {
-            const fileNames = ts.getOutputFileNames(ctx.getConfig(), fileName, !this.system.useCaseSensitiveFileNames);
+        const { outDir } = this.options?.tsConfig ?? {};
+        if (outDir !== undefined) {
+            // JSON are only output by TypoScript if an outDir is provided, otherwise they are ignored.
+            const fileNames = ts.getOutputFileNames(ctx.getCliArgs(), fileName, !this.system.useCaseSensitiveFileNames);
             return { outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }], emitSkipped: false };
         }
         return { outputFiles: [], emitSkipped: false };
@@ -357,8 +365,10 @@ export class Compiler {
     }
 
     private getRootFiles(): string[] {
-        return this.options?.tsconfig?.fileNames
-            ? this.options.tsconfig.fileNames
+        const { cliArgs } = this.options;
+
+        return cliArgs?.fileNames
+            ? cliArgs.fileNames
             : recursiveFindByFilter(this.system.resolvePath(join(dirname(this.configPath), "./src")), (path: string) =>
                   ["ts", "tsx", "js", "jsx"].some(it => extname(path).includes(it))
               );

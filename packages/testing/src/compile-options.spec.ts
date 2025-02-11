@@ -16,16 +16,14 @@ describe("compileOptions", () => {
             buildDir: "/src",
             reporter: expect.any(Object),
             debug: false,
-            sourceMap: false,
-            transpileOnly: false,
             watch: false,
-            project: {
+            tsConfig: {
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.Latest,
                 configFilePath: "./tsconfig.json",
             },
             targets: [],
-            tsconfig: {
+            cliArgs: {
                 options: {
                     outDir: "./dist",
                 },

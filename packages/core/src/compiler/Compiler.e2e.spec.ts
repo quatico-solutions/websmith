@@ -11,7 +11,7 @@ describe("end-2-end compile", () => {
 
         const actual = new Compiler(
             compileOptions(target, {
-                project: { outDir: "./bin" },
+                tsConfig: { outDir: "./bin" },
             }),
             target
         ).compile();

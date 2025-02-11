@@ -5,8 +5,9 @@
  * ---------------------------------------------------------------------------------------------
  */
 export interface CompilerArguments {
-    buildDir?: string;
-    config?: string;
+    addons?: string;
+    addonsDir?: string;
+    configFile?: string;
     debug?: boolean;
     files?: string[];
     project?: string;

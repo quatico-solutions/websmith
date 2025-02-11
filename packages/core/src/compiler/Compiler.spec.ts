@@ -60,7 +60,7 @@ describe("getSystem", () => {
 describe("setOptions", () => {
     it("replaces compiler options", () => {
         const expected = {
-            project: {
+            tsConfig: {
                 react: 1,
             },
         } as unknown as CompilerOptions;
@@ -78,7 +78,10 @@ describe("setOptions", () => {
         }).getSourceFile("src/target.ts");
 
         new CompilerTestClass(
-            compileOptions(target, { project: { outDir: "/expected" }, tsconfig: { fileNames: [entry!.fileName] } }),
+            compileOptions(target, {
+                tsConfig: { outDir: "/expected" },
+                cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
+            }),
             target
         ).watch();
 
@@ -92,15 +95,15 @@ describe("setOptions", () => {
 
 describe("createCompilationContext", () => {
     it("initializes the CompilationContext meeting to AddonContext API requirements", () => {
-        const expected = { field: "expected", path: "expected.json" };
+        const expected = { field: "expected-value", output: "expected-output.json" };
         const { fileSystem } = compileSystem();
         const target = compileOptions(fileSystem);
 
         const actual = new CompilerTestClass(target, fileSystem).createCompilationContext(
             {
                 ...target,
+                configFile: "./expected/webshmith.config.json",
                 config: {
-                    configFilePath: "expected",
                     targets: {
                         "*": {
                             config: expected,
@@ -111,9 +114,26 @@ describe("createCompilationContext", () => {
             "*"
         );
 
+        expect(actual).toMatchObject({
+            buildDir: "./src",
+            cliArgs: {
+                errors: [],
+                fileNames: [],
+                options: {
+                    configFilePath: "./tsconfig.json",
+                    module: ts.ModuleKind.ESNext,
+                    target: ts.ScriptTarget.ESNext,
+                },
+            },
+            config: {
+                field: "expected-value",
+                output: "expected-output.json",
+            },
+            projectDir: "./expected",
+        });
+
         expect(actual.getProgram()).toBeDefined();
         expect(actual.getSystem()).toBeDefined();
-        expect(actual.getConfig()).toBeDefined();
         expect(actual.getReporter()).toStrictEqual(target.reporter);
         expect(actual.getTargetConfig()).toStrictEqual(expected);
     });
@@ -133,12 +153,11 @@ describe("compile", () => {
 
     it("updates the CompilerOptions with the target specific overrides", () => {
         const { fileSystem } = compileSystem();
-        const target = compileOptions(fileSystem, { config: { configFilePath: "./websmith.config.json", targets: { "*": {} } } });
+        const target = compileOptions(fileSystem, { config: { targets: { "*": {} } } });
 
         const testObj = new CompilerTestClass(target, fileSystem).setOptions({
             ...target,
             config: {
-                configFilePath: "./websmith.config.json",
                 ...target.config,
                 targets: {
                     "*": {
@@ -150,7 +169,7 @@ describe("compile", () => {
 
         testObj.compile();
 
-        expect(testObj.getContext("*")?.getConfig().options).toEqual(expect.objectContaining({ outDir: "./lib/expected" }));
+        expect(testObj.getContext("*")?.getCliArgs().options).toEqual(expect.objectContaining({ outDir: "./lib/expected" }));
     });
 
     it("yields output w/ with defaults", () => {
@@ -180,15 +199,13 @@ describe("compile", () => {
                 buildDir: "./src",
                 reporter: new ReporterMock(fileSystem),
                 debug: false,
-                sourceMap: false,
-                transpileOnly: false,
                 watch: false,
-                project: {
+                tsConfig: {
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.Latest,
                     configFilePath: "./tsconfig.json",
                 },
-                tsconfig: {
+                cliArgs: {
                     options: {},
                     fileNames: fileSystem.readDirectory("./src"),
                     errors: [],
@@ -212,8 +229,8 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: true },
-            tsconfig: { fileNames: [entry!.fileName] },
+            tsConfig: { declaration: true },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -235,8 +252,8 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: true },
-            tsconfig: { fileNames: [entry!.fileName] },
+            tsConfig: { declaration: true },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -258,9 +275,9 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
-            transpileOnly: true,
+            tsConfig: { declaration: false, sourceMap: false },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
+            config: { transpileOnly: true },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -279,10 +296,9 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: true, declarationMap: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
-            transpileOnly: true,
+            tsConfig: { declaration: true, declarationMap: false, sourceMap: false },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
+            config: { transpileOnly: true },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -301,10 +317,9 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: true, declarationMap: true, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
-            transpileOnly: true,
+            tsConfig: { declaration: true, declarationMap: true, sourceMap: false },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
+            config: { transpileOnly: true },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -323,10 +338,9 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: false, declarationMap: false, sourceMap: true },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
-            transpileOnly: true,
+            tsConfig: { declaration: false, declarationMap: false, sourceMap: true },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
+            config: { transpileOnly: true },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -348,8 +362,8 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
+            tsConfig: { declaration: false, sourceMap: false },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -368,9 +382,8 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: true, declarationMap: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
+            tsConfig: { declaration: true, declarationMap: false, sourceMap: false },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -393,9 +406,8 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: true, declarationMap: true, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
+            tsConfig: { declaration: true, declarationMap: true, sourceMap: false },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -421,9 +433,8 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: false, declarationMap: false, sourceMap: true },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
+            tsConfig: { declaration: false, declarationMap: false, sourceMap: true },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -445,10 +456,9 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: false, declarationMap: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
-            transpileOnly: true,
+            tsConfig: { declaration: false, declarationMap: false, sourceMap: false },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
+            config: { transpileOnly: true },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -467,9 +477,8 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("src/target.ts");
         const target = compileOptions(fileSystem, {
-            project: { declaration: false, declarationMap: false, sourceMap: false },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
+            tsConfig: { declaration: false, declarationMap: false, sourceMap: false },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -486,17 +495,16 @@ describe("emitSourceFile", () => {
             "src/config.json": `{"name":"test"}`,
         }).getSourceFile("src/config.json");
         const target = compileOptions(fileSystem, {
-            project: {
+            tsConfig: {
                 declaration: false,
                 declarationMap: false,
-                sourceMap: false,
+                sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
                 configFilePath: "tsconfig.json",
             },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
-            transpileOnly: true,
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
+            config: { transpileOnly: true },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -509,15 +517,14 @@ describe("emitSourceFile", () => {
             "src/config.json": `{"name":"test"}`,
         }).getSourceFile("src/config.json");
         const target = compileOptions(fileSystem, {
-            project: {
+            tsConfig: {
                 declaration: false,
                 declarationMap: false,
-                sourceMap: false,
+                sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
             },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -538,18 +545,17 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("types/style.d.ts");
         const target = compileOptions(fileSystem, {
-            project: {
+            tsConfig: {
                 declaration: false,
                 declarationMap: false,
-                sourceMap: false,
+                sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
                 importHelpers: true,
                 strict: true,
             },
-            tsconfig: { fileNames: [entry!.fileName] },
-            sourceMap: true,
-            transpileOnly: true,
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
+            config: { transpileOnly: true },
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -567,18 +573,17 @@ describe("emitSourceFile", () => {
             `,
         }).getSourceFile("types/style.d.ts");
         const target = compileOptions(fileSystem, {
-            project: {
+            tsConfig: {
                 declaration: false,
                 declarationMap: false,
-                sourceMap: false,
+                sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
                 importHelpers: true,
                 strict: true,
             },
-            tsconfig: { fileNames: [entry!.fileName] },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             buildDir: "./types",
-            sourceMap: true,
         });
 
         const actual = new CompilerTestClass(target, fileSystem).createTargetContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
@@ -672,11 +677,10 @@ describe("watch", () => {
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             config: {
-                configFilePath: "/fake/websmith.config.json",
                 targets: { "*": { writeFile: true } },
             },
-            project: { declaration: true, outDir: "/build" },
-            tsconfig: { fileNames: [entry!.fileName] },
+            tsConfig: { declaration: true, outDir: "/build" },
+            cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             watch: true,
         });
 
@@ -704,11 +708,10 @@ describe("watch", () => {
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             config: {
-                configFilePath: "/fake/websmith.config.json",
                 targets: { "*": { writeFile: true, options: { outDir: "/build" } } },
             },
-            project: { declaration: true },
-            tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
+            tsConfig: { declaration: true },
+            cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
         });
 
@@ -736,15 +739,14 @@ describe("watch", () => {
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             config: {
-                configFilePath: "/fake/websmith.config.json",
                 targets: {
                     target1: { writeFile: true, options: { outDir: "/target1" } },
                     target2: { writeFile: true, options: { outDir: "/target2", declaration: false } },
                 },
             },
-            project: { declaration: true },
+            tsConfig: { declaration: true },
             targets: ["target1", "target2"],
-            tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
+            cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
         });
 
@@ -777,7 +779,6 @@ describe("watch", () => {
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             config: {
-                configFilePath: "/fake/websmith.config.json",
                 targets: {
                     target1: { writeFile: true, options: { outDir: "/target1" } },
                     target2: {
@@ -785,11 +786,11 @@ describe("watch", () => {
                         options: { outDir: "/target2", declaration: false },
                     },
                 },
+                transpileOnly: true,
             },
-            project: { declaration: true },
+            tsConfig: { declaration: true },
             targets: ["target1", "target2"],
-            tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
-            transpileOnly: true,
+            cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
         });
 
@@ -832,16 +833,16 @@ describe("watch", () => {
         });
         const options = compileOptions(fileSystem, {
             config: {
-                configFilePath: "/fake/websmith.config.json",
                 targets: {
                     target1: { writeFile: true, options: { outDir: "/target1" } },
                 },
             },
-            project: { declaration: true },
+            tsConfig: { declaration: true },
             targets: ["target1"],
-            tsconfig: {
+            cliArgs: {
                 options: { outDir: "/build" },
                 fileNames: ["/src/shared1.ts", "/src/shared2.ts"],
+                errors: [],
             },
             watch: true,
         });
@@ -884,14 +885,13 @@ describe("watch", () => {
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             config: {
-                configFilePath: "/fake/websmith.config.json",
                 targets: {
                     target1: { writeFile: true, options: { outDir: "/target1" } },
                 },
             },
-            project: { declaration: true },
+            tsConfig: { declaration: true },
             targets: ["target1"],
-            tsconfig: { options: { outDir: "/build" }, fileNames: [entry!.fileName] },
+            cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
         });
 
