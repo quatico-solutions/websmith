@@ -7,7 +7,7 @@
 import { join } from "node:path";
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 
-describe("example-generator", () => {
+describe("example-generator addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__/example-generator", { virtual: false }).addAddon("example-generator", join(__dirname, "../src"));

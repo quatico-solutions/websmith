@@ -28,7 +28,7 @@ beforeAll(() => {
     fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 });
 
-describe("webpack", () => {
+describe("webpack w/ ts-loader", () => {
     it("should build foobar-arrow.js with ES2020 target", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: { ...webpackDefaults },

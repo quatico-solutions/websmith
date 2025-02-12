@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`webpack should build foobar-arrow.js with ES5 target 1`] = `
+exports[`webpack w/ ts-loader should build foobar-arrow.js with ES5 target 1`] = `
 /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	// The require scope
@@ -59,7 +59,7 @@ var foobar = function (date) {
 ;
 `;
 
-exports[`webpack should build foobar-arrow.js with ES2020 target 1`] = `
+exports[`webpack w/ ts-loader should build foobar-arrow.js with ES2020 target 1`] = `
 /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	// The require scope
@@ -118,7 +118,7 @@ const foobar = (date) => {
 ;
 `;
 
-exports[`webpack should build foobar-arrow.js with ESNEXT and ESM target 1`] = `
+exports[`webpack w/ ts-loader should build foobar-arrow.js with ESNEXT and ESM target 1`] = `
 /******/ // The require scope
 /******/ var __webpack_require__ = {};
 /******/ 
@@ -174,7 +174,7 @@ const foobar = (date) => {
 
 `;
 
-exports[`webpack should build foobar-function.js with ES5 target 1`] = `
+exports[`webpack w/ ts-loader should build foobar-function.js with ES5 target 1`] = `
 /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	// The require scope
@@ -233,7 +233,7 @@ function foobar(date) {
 ;
 `;
 
-exports[`webpack should build foobar-function.js with ES2020 target 1`] = `
+exports[`webpack w/ ts-loader should build foobar-function.js with ES2020 target 1`] = `
 /******/ (() => { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	// The require scope

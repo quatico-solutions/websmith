@@ -7,7 +7,7 @@
 import { compilationEnv } from "@quatico/websmith-testing";
 import { join } from "node:path";
 
-describe("test-project-foo", () => {
+describe("compile test-project-foo w/ compilationEnv", () => {
     it("should install addon successfully", () => {
         const testObj = compilationEnv("__TEST__").addAddon("foo-addon", join(__dirname, "../test-data/addons"));
 

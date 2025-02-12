@@ -32,7 +32,7 @@ afterEach(() => {
     fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 });
 
-describe("compile", () => {
+describe("compile w/ websmith", () => {
     it("should build foobar-arrow.js with ES2020 and addonsDir", async () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { ...tsDefaults, target: ts.ScriptTarget.ES2020 },

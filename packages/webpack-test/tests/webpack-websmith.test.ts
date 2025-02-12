@@ -16,12 +16,6 @@ const OUTPUT_DIR = path.join(__dirname, "..", "lib");
 const SOURCE_DIR = path.join(__dirname, "..", "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "lib");
 
-const tsDefaults = {
-    moduleResolution: ts.ModuleResolutionKind.Node10,
-    outDir: OUTPUT_DIR,
-    removeComments: true,
-};
-
 const webpackDefaults = {
     output: {
         path: OUTPUT_DIR,
@@ -36,13 +30,6 @@ const webpackDefaults = {
                         options: {
                             transpileOnly: true,
                             project: path.join(__dirname, "..", "tsconfig.json"),
-                        },
-                    },
-                    {
-                        loader: require.resolve("ts-loader"),
-                        options: {
-                            transpileOnly: true,
-                            configFile: path.join(__dirname, "..", "tsconfig.json"),
                         },
                     },
                 ],
@@ -65,7 +52,7 @@ afterEach(() => {
     fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 });
 
-describe("webpack", () => {
+describe("webpack w/ websmith", () => {
     it("should build foobar-arrow.js with ES2020 and addonsDir", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
@@ -73,14 +60,11 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: {
-                compilerOptions: {
-                    target: ts.ScriptTarget.ES2020,
-                    project: path.join(__dirname, "..", "tsconfig.json"),
-                },
-            },
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                tsConfig: {
+                    target: ts.ScriptTarget.ES2020,
+                },
             },
         });
 
@@ -94,14 +78,11 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: {
-                compilerOptions: {
-                    target: ts.ScriptTarget.ES2020,
-                    project: path.join(__dirname, "..", "tsconfig.json"),
-                },
-            },
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                tsConfig: {
+                    target: ts.ScriptTarget.ES2020,
+                },
             },
         });
 
@@ -111,7 +92,6 @@ describe("webpack", () => {
     it("should generate YAML file with addonsDir, addons and all targets selected", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 targets: ["*"],
                 webpackTarget: "*",
@@ -131,7 +111,6 @@ describe("webpack", () => {
     it.skip("should generate additional files with addonDir, addons and all targets selected", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 targets: ["*"],
                 webpackTarget: "*",
@@ -148,7 +127,6 @@ describe("webpack", () => {
     it("should transform foobar functions with addonDir, addons and all targets selected", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 targets: ["*"],
                 webpackTarget: "*",
@@ -174,7 +152,6 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 targets: ["named"],
@@ -203,7 +180,6 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 targets: ["*"],
                 webpackTarget: "*",
@@ -231,7 +207,6 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 targets: ["*"],
                 webpackTarget: "*",
@@ -256,7 +231,6 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 targets: ["target-zip"],
                 webpackTarget: "target-zip",
@@ -274,7 +248,6 @@ describe("webpack", () => {
     it("should transform foobar functions with addonsDir and addons config", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -291,7 +264,6 @@ describe("webpack", () => {
     it("should transform foobar functions with addonsDir, addons and targets config but no target selected", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -328,7 +300,6 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 targets: ["target-transform"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
@@ -359,7 +330,6 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 targets: ["target-transform", "target-process"],
@@ -386,7 +356,6 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 targets: ["target-transform"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
