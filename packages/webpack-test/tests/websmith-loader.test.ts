@@ -41,7 +41,7 @@ const webpackDefaults = {
     },
 };
 
-describe("webpack loader", () => {
+describe("webpack w/ websmith", () => {
     afterEach(() => {
         rmSync(resolve(OUTPUT_DIR), { recursive: true, force: true });
     });

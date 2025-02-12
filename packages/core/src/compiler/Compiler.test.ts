@@ -1,7 +1,7 @@
 import { compileOptions, compileSystem } from "../../test";
 import { Compiler } from "./Compiler";
 
-describe("end-2-end compile", () => {
+describe("end-2-end compile w/ websmith", () => {
     it("should yield compiled file", () => {
         const { fileSystem: target } = compileSystem({
             "tsconfig.json": "{}",
