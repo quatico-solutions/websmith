@@ -1,0 +1,40 @@
+{
+    "name": "@quatico/websmith-vite",
+    "description": "Vite plugin for @quatico/websmith-compiler",
+    "version": "0.1.0",
+    "author": "Quatico Solutions AG",
+    "license": "MIT",
+    "main": "src/index.ts",
+    "publishConfig": {
+        "main": "lib/index.js",
+        "types": "lib/index.d.ts"
+    },
+    "files": [
+        "README.md",
+        "lib"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/quatico-solutions/websmith.git"
+    },
+    "scripts": {
+        "clean": "rimraf lib coverage",
+        "build": "tsc",
+        "watch": "tsc --watch",
+        "dist": "pnpm clean && cross-env-shell NODE_ENV=production \"pnpm build\""
+    },
+    "dependencies": {
+        "@quatico/websmith-api": "workspace:*",
+        "@quatico/websmith-core": "workspace:*"
+    },
+    "devDependencies": {
+        "@quatico/websmith-testing": "workspace:*",
+        "@types/node": "20",
+        "rimraf": "^6.0.1",
+        "typescript": "5.8.2",
+        "vite": "^6.2.0"
+    },
+    "peerDependencies": {
+        "vite": "6.x"
+    }
+}
