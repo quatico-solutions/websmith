@@ -12,7 +12,7 @@ import { type ResultProcessor } from "./ResultProcessor";
 
 /**
  * This type represents the context for the current compilation in which this addon is being used.
- * The context is created for a compilation target and provides access to the specific target
+ * The context is created for a compilation profile and provides access to the specific profile
  * configuration.
  */
 export interface AddonContext<O = unknown> {

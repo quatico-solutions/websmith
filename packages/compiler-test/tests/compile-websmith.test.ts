@@ -111,7 +111,7 @@ describe("compile w/ websmith", () => {
         expect(actual).toContain("function getbarfoo");
     });
 
-    it("should generate YAML file with all profiles and addonsDir, named target in file-config", async () => {
+    it("should generate YAML file with all profiles and addonsDir, named profile in file-config", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             profiles: {
@@ -136,7 +136,7 @@ describe("compile w/ websmith", () => {
         expect(actual2).toContain("exports: [getFoobar]");
     });
 
-    it("should not generate YAML file with named target, addonsDir and target in file-config", async () => {
+    it("should not generate YAML file with named profile, addonsDir and profile in file-config", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             profiles: {
@@ -158,7 +158,7 @@ describe("compile w/ websmith", () => {
         expect(fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8")).toContain("exports: [getFoobar]");
     });
 
-    it("should generate YAML file with all profiles and addonsDir, generic target in file-config", async () => {
+    it("should generate YAML file with all profiles and addonsDir, generic profile in file-config", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             profiles: {
@@ -182,7 +182,7 @@ describe("compile w/ websmith", () => {
         expect(actual2).toContain("exports: [getFoobar]");
     });
 
-    it("should transform foobar functions with all profiles and addonsDir, generic target in file-config", async () => {
+    it("should transform foobar functions with all profiles and addonsDir, generic profile in file-config", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             profiles: {
@@ -205,11 +205,11 @@ describe("compile w/ websmith", () => {
         expect(actual).toContain("function getbarfoo");
     });
 
-    it("should generate YAML file with named target and addonsDir, named target in file-config", async () => {
+    it("should generate YAML file with named profile and addonsDir, named profile in file-config", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             profiles: {
-                "target-zip": {
+                "profile-zip": {
                     addons: ["export-yaml-generator"],
                 },
             },
@@ -218,7 +218,7 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                profiles: ["target-zip"],
+                profiles: ["profile-zip"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
@@ -246,7 +246,7 @@ describe("compile w/ websmith", () => {
         expect(actual).toContain("function getbarfoo");
     });
 
-    it("should transform foobar functions with addonsDir, addons and profiles config but no target selected", async () => {
+    it("should transform foobar functions with addonsDir, addons and profiles config but no profile selected", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
@@ -254,7 +254,7 @@ describe("compile w/ websmith", () => {
                     addonsDir: ADDONS_DIR,
                     addons: ["example-transformer"],
                     profiles: {
-                        "target-expected": {
+                        "profile-expected": {
                             addons: ["example-transformer"],
                         },
                     },
@@ -267,17 +267,17 @@ describe("compile w/ websmith", () => {
         expect(actual).toContain("function getbarfoo");
     });
 
-    it("should transform foobar functions with named target and addonsDir, multiple named profiles in config-file", async () => {
+    it("should transform foobar functions with named profile and addonsDir, multiple named profiles in config-file", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             profiles: {
-                "target-transform": {
+                "profile-transform": {
                     addons: ["example-transformer"],
                 },
-                "target-generate": {
+                "profile-generate": {
                     addons: ["example-generator"],
                 },
-                "target-process": {
+                "profile-process": {
                     addons: ["example-processor"],
                 },
             },
@@ -286,7 +286,7 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                profiles: ["target-transform"],
+                profiles: ["profile-transform"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
@@ -300,13 +300,13 @@ describe("compile w/ websmith", () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             profiles: {
-                "target-transform": {
+                "profile-transform": {
                     addons: ["example-transformer"],
                 },
-                "target-generate": {
+                "profile-generate": {
                     addons: ["example-generator"],
                 },
-                "target-process": {
+                "profile-process": {
                     addons: ["export-yaml-generator"],
                 },
             },
@@ -315,7 +315,7 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                profiles: ["target-transform", "target-process"],
+                profiles: ["profile-transform", "profile-process"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
@@ -327,11 +327,11 @@ describe("compile w/ websmith", () => {
         expect(actual2).toContain("exports: [getFoobar]");
     });
 
-    it("should transform foobar functions with named target and addonsDir, chained addons in config-file", async () => {
+    it("should transform foobar functions with named profile and addonsDir, chained addons in config-file", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             profiles: {
-                "target-transform": {
+                "profile-transform": {
                     addons: ["example-transformer", "export-yaml-generator"],
                 },
             },
@@ -340,7 +340,7 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                profiles: ["target-transform"],
+                profiles: ["profile-transform"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });

@@ -38,7 +38,7 @@ export interface CompilerOptions {
     reporter: Reporter;
     /**
      * List of profiles to be compiled. Refers to the `profiles` defined in the `config` property.
-     * Use `["*"]` to compile with all available addons. No addons will be used if no target is specified.
+     * Use `["*"]` to compile with all available addons. No addons will be used if no profile is specified.
      */
     profiles?: string[];
     /**

@@ -22,8 +22,8 @@ class CompilerTestClass extends Compiler {
         return super.report(program, result);
     }
 
-    public emitSourceFile(fileName: string, target: string, writeFile: boolean, skipCache = false): CompileFragment {
-        return super.emitSourceFile(fileName, target, writeFile, skipCache);
+    public emitSourceFile(fileName: string, profile: string, writeFile: boolean, skipCache = false): CompileFragment {
+        return super.emitSourceFile(fileName, profile, writeFile, skipCache);
     }
 
     public createProfileContextsIfNecessary(): this {
@@ -42,8 +42,8 @@ class CompilerTestClass extends Compiler {
         return this.options;
     }
 
-    public createCompilationContext(baseOptions: CompilerOptions, target: string): CompilationContext {
-        return super.createCompilationContext(baseOptions, target);
+    public createCompilationContext(baseOptions: CompilerOptions, profile: string): CompilationContext {
+        return super.createCompilationContext(baseOptions, profile);
     }
 }
 

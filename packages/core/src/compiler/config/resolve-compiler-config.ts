@@ -20,7 +20,7 @@ export const resolveCompilationConfig = (configFilePath: string, reporter: Repor
             if (content) {
                 const config = JSON.parse(content ?? "{}");
 
-                // TODO: Do we need further validation for the config per target?
+                // TODO: Do we need further validation for the config per profile?
                 return { ...updatePaths(config.config ?? config, system, dirname(resolvedPath)) };
             }
         }
@@ -33,7 +33,7 @@ const updatePaths = (config: CompilationConfig, system: ts.System, basePath: str
         ...config,
         ...(config.addonsDir && { addonsDir: resolvePath(config.addonsDir, system, basePath) }),
         ...(config.profiles && {
-            profiles: Object.fromEntries(Object.entries(config.profiles).map(([name, target]) => [name, updateProfile(target, system, basePath)])),
+            profiles: Object.fromEntries(Object.entries(config.profiles).map(([name, profile]) => [name, updateProfile(profile, system, basePath)])),
         }),
     };
 };
