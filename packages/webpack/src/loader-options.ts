@@ -52,12 +52,6 @@ const resolveLoaderOptions = (
         plugin => plugin && typeof plugin === "object" && plugin.constructor?.name === "ForkTsCheckerWebpackPlugin"
     );
 
-    // We need to remove empty addons to avoid overriding the default options
-    // eslint-disable-next-line no-prototype-builtins
-    if (options.hasOwnProperty("addons") && (options.addons === undefined || options.addons.length === 0)) {
-        delete options.addons;
-    }
-
     return Object.assign({}, options, createOptions(options), {
         instanceName,
         // Set default transpileOnly to true if there is an instance of ForkTsCheckerWebpackPlugin

@@ -3,14 +3,6 @@ import type ts from "typescript";
 
 export interface WebsmithLoaderOptions {
     /**
-     * List of addons to be used for compilation. Overrides the `addons` specified in the `config`.
-     */
-    addons?: string[];
-    /**
-     * File path to the directory containing the addons to be used for compilation
-     */
-    addonsDir?: string;
-    /**
      * Relative file path to the `websmith.config.json` file to be used for compilation.
      */
     configFile?: string;

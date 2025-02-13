@@ -25,7 +25,7 @@ beforeEach(() => {
             cliArgs: { options: { outDir: ".build" }, fileNames: [], errors: [] },
         },
         () => undefined,
-        { addonsDir: "./addons", configFile: "./websmith.config.json", instanceName: "target-instance" }
+        { configFile: "./websmith.config.json", instanceName: "target-instance" }
     );
 });
 
