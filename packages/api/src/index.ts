@@ -13,5 +13,5 @@ export { aggregateMessages, messageToString } from "./messages";
 export type { Processor } from "./Processor";
 export type { Reporter } from "./Reporter";
 export type { ResultProcessor } from "./ResultProcessor";
-export type { TargetConfig } from "./TargetConfig";
+export type { CompilationProfile } from "./CompilationProfile";
 export { WarnMessage } from "./WarnMessage";

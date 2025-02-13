@@ -6,7 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { ErrorMessage, type Reporter, type TargetConfig } from "@quatico/websmith-api";
+import { ErrorMessage, type Reporter, type CompilationProfile } from "@quatico/websmith-api";
 import { dirname, extname, join } from "node:path";
 import ts, { PollingWatchKind, WatchFileKind } from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
@@ -232,7 +232,7 @@ export class Compiler {
         registerDependencyCallback?: (filePath: string) => void
     ): CompilationContext {
         const { buildDir, config, configFile, tsConfig, cliArgs, watch } = compileOptions;
-        const { options = {}, config: targetConfig } = getTargetConfig(target, config);
+        const { options = {}, config: targetConfig } = getProfileConfig(target, config);
         return new CompilationContext({
             buildDir,
             tsConfig: { ...tsConfig, ...options },
@@ -381,7 +381,7 @@ export class Compiler {
     }
 }
 
-const getTargetConfig = (target?: string, config?: CompilationConfig): TargetConfig => {
+const getProfileConfig = (target?: string, config?: CompilationConfig): CompilationProfile => {
     if (config && target) {
         const { targets = {} } = config;
         return targets[target] ?? {};

@@ -7,14 +7,14 @@
 import type ts from "typescript";
 
 /**
- * This type represents the configuration options for a target. It is used in
- * the `targets` section of the `websmith.config.json` file. You can specify
- *  - the list of addons to apply for this target
+ * This type represents the configuration options for a profile. It is used in
+ * the `profiles` section of the `websmith.config.json` file. You can specify
+ *  - the list of addons to apply for this profile
  *  - whether output files should be written to disk
  *  - specific configuration properties used by your addon
- *  - a set of compiler options for the TypeScript compiler for this target
+ *  - a set of compiler options for the TypeScript compiler for this profile
  */
-export type TargetConfig = {
+export type CompilationProfile = {
     addons?: string[];
     config?: unknown;
     options?: ts.CompilerOptions;
