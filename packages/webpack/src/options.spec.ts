@@ -26,7 +26,11 @@ describe("createOptions", () => {
     it("should return project config w/ custom but empty tsconfig.json", () => {
         const { fileSystem: target } = compileSystem({ files: { "./expected/tsconfig.json": "{}" } });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json", instanceName: "target-instance" }, new NoReporter(), target).tsConfig;
+        const actual = createOptions(
+            { tsConfigFile: "./expected/tsconfig.json", instanceName: "target-instance" },
+            new NoReporter(),
+            target
+        ).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -39,7 +43,11 @@ describe("createOptions", () => {
             files: { "./expected/tsconfig.json": `${JSON.stringify({ compilerOptions: { strict: true } })}` },
         });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json", instanceName: "target-instance" }, new NoReporter(), target).tsConfig;
+        const actual = createOptions(
+            { tsConfigFile: "./expected/tsconfig.json", instanceName: "target-instance" },
+            new NoReporter(),
+            target
+        ).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -54,7 +62,7 @@ describe("createOptions", () => {
         });
 
         const actual = createOptions(
-            { project: "./expected/tsconfig.json", instanceName: "target-instance", tsConfig: { strict: true } },
+            { tsConfigFile: "./expected/tsconfig.json", instanceName: "target-instance", tsConfig: { strict: true } },
             new NoReporter(),
             target
         ).tsConfig;

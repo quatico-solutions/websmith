@@ -58,9 +58,11 @@ module.exports = {
                     {
                         loader: "@quatico/websmith-webpack",
                         options: {
-                            project: join(__dirname, "tsconfig.json"),
-                            config,
-                            targets: "executeAddons",
+                            tsConfigFile: join(__dirname, "tsconfig.json"),
+                            config: {
+                                addonsDir: join(__dirname, "addons"),
+                            },
+                            targets: ["executeAddons"],
                             webpackTarget: "executeAddons",
                         },
                     },

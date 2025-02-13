@@ -43,7 +43,11 @@ describe("getCompilerInstance", () => {
     it("should create a TsCompiler instance w/o instance in cache", () => {
         const target = { _compiler: {} as Compiler } as LoaderContext<any>;
         const actual = getCompilerInstance(
-            { configFile: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json"), instanceName: "target-instance" },
+            {
+                tsConfigFile: join(projectDir, "tsconfig.json"),
+                configFile: join(projectDir, "websmith.config.json"),
+                instanceName: "target-instance",
+            },
             target,
             path => console.info(`dependency ${path} added`)
         );

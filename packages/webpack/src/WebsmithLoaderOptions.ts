@@ -16,9 +16,9 @@ export interface WebsmithLoaderOptions {
      */
     debug?: boolean;
     /**
-     * File path to the `tsconfig.json` file to be used for TypeScript compilation.
+     * Relative file path to the `tsconfig.json` file to be used for TypeScript compilation.
      */
-    project?: string;
+    tsConfigFile?: string;
     /**
      * TypeScript compiler options to be used for compilation. Overrides the options loaded from `tsconfig.json`.
      */

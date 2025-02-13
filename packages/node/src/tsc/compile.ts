@@ -39,7 +39,7 @@ export const compile = async (files: string[], config?: { tsConfig?: ts.Compiler
             const config = resolveCompilationConfig(websmithConfig.configFile, reporter, system);
             websmithConfig.config = { ...websmithConfig.config, ...config };
         }
-        websmithConfig = { ...defaultWebsmithConfig(tsConfig), ...(tsConfig ? { project: tsConfig } : {}), ...websmithConfig };
+        websmithConfig = { ...defaultWebsmithConfig(tsConfig), ...(tsConfig ? { tsConfig } : {}), ...websmithConfig };
 
         const { targets } = websmithConfig;
         const { addons, targets: targetsMap, addonsDir } = websmithConfig.config ?? {};
