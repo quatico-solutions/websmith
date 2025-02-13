@@ -60,7 +60,7 @@ describe("TsCompiler", () => {
                 debug: true,
                 watch: false,
             },
-            { addonsDir: "./addons", configFile: "./websmith.config.json" }
+            { configFile: "./websmith.config.json" }
         );
     });
 
@@ -118,7 +118,7 @@ describe("Transpilation", () => {
                 debug: true,
                 watch: false,
             },
-            { addonsDir: "./addons", configFile: "./websmith.config.json" }
+            { configFile: "./websmith.config.json" }
         );
 
         const actual = testObj.build(expected);
@@ -143,6 +143,7 @@ describe("Transpilation", () => {
                         fragment: { options: { declaration: true } },
                         write: { options: { module: 1, target: 1 } },
                     },
+                    addonsDir: "./addons",
                 },
                 tsConfig: { target: 99, outDir: resolve("./__TEMP__/.build"), noEmitOnError: true },
                 reporter,
@@ -154,7 +155,6 @@ describe("Transpilation", () => {
             {
                 configFile: resolve("__TEMP__", "websmith.config.json"),
                 webpackTarget: "fragment",
-                addonsDir: "./addons",
             }
         );
 

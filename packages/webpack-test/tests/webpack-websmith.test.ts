@@ -93,10 +93,12 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
+                config: {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["export-yaml-generator"],
+                },
                 targets: ["*"],
                 webpackTarget: "*",
-                addonsDir: ADDONS_DIR,
-                addons: ["export-yaml-generator"],
             },
         });
 
@@ -112,12 +114,12 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                targets: ["*"],
-                webpackTarget: "*",
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["example-generator"],
                 },
+                targets: ["*"],
+                webpackTarget: "*",
             },
         });
 
@@ -128,10 +130,12 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
+                config: {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["example-transformer"],
+                },
                 targets: ["*"],
                 webpackTarget: "*",
-                addonsDir: ADDONS_DIR,
-                addons: ["example-transformer"],
             },
         });
 
@@ -153,10 +157,12 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                config: {
+                    addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                },
                 targets: ["named"],
                 webpackTarget: "named",
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
 
@@ -180,9 +186,9 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 targets: ["*"],
                 webpackTarget: "*",
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
 
@@ -206,9 +212,9 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 targets: ["*"],
                 webpackTarget: "*",
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
 
@@ -301,10 +307,10 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                targets: ["target-transform"],
-                webpackTarget: "target-transform",
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 config: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                targets: ["target-transform"],
+                webpackTarget: "target-transform",
             },
         });
 
@@ -332,10 +338,12 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                config: {
+                    addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                },
                 targets: ["target-transform", "target-process"],
                 webpackTarget: "target-transform",
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
 
@@ -359,9 +367,9 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 targets: ["target-transform"],
                 webpackTarget: "target-transform",
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
 
