@@ -9,7 +9,7 @@ import {
     type CompilerOptions,
     NoReporter,
     resolveCompilationConfig,
-    resolveTargets,
+    resolveProfiles,
     resolveProjectConfig as resolveTsConfig,
     updateCompilerOptions,
 } from "@quatico/websmith-core";
@@ -18,7 +18,7 @@ import ts from "typescript";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
-    const { config, configFile, debug = false, tsConfigFile = "./tsconfig.json", targets, tsConfig, transpileOnly } = args;
+    const { config, configFile, debug = false, tsConfigFile = "./tsconfig.json", profiles, tsConfig, transpileOnly } = args;
 
     const cliArgs = resolveTsConfig(tsConfigFile, system);
     cliArgs.options = { ...cliArgs.options, ...tsConfig };
@@ -50,7 +50,7 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
         ...(configFile && { configFile }),
         debug,
         reporter,
-        targets: resolveTargets(targets, compilationConfig, reporter),
+        profiles: resolveProfiles(profiles, compilationConfig, reporter),
         tsConfig: cliArgs.options,
         watch: false,
     };

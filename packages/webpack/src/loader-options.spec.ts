@@ -26,7 +26,7 @@ describe("getLoaderOptions", () => {
 
         expect(actual).toMatchObject({
             debug: false,
-            targets: [],
+            profiles: [],
             watch: false,
         });
     });

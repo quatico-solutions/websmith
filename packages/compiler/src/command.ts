@@ -35,8 +35,8 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .option("-s, --sourceMap", "Enable the output of sourceMap information.", false)
         .option("-o, --transpileOnly", "Enable the transpile only mode", undefined)
         .option(
-            "-t, --targets <targetList>",
-            "Comma-separated list of compilation target names to use specific configuration and list of addons.",
+            "-l, --profiles <profileList>",
+            "Comma-separated list of profile names to use a specific configuration and list of addons.",
             undefined
         )
         .option("-w, --watch", "Enable watch mode.", false)
@@ -63,10 +63,10 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             if (unknownArgs?.length > 0) {
                 options.additionalArguments = parseUnknownArguments(unknownArgs);
             }
-            if (options.targets && hasInvalidTargets(options.targets, options.config)) {
+            if (options.profiles && hasInvalidProfiles(options.profiles, options.config)) {
                 reporter.reportDiagnostic(
                     new WarnMessage(
-                        `Custom target configuration "${options.targets.join(", ")}" found, but no target provided.\n` +
+                        `Custom profile configuration "${options.profiles.join(", ")}" found, but no profile provided.\n` +
                             `\tSome custom addons may not be applied during compilation.`
                     )
                 );
@@ -108,19 +108,19 @@ const addonConfig = (command: Command, compilationConfig?: CompilationConfig, op
     addonsDir:
         command.opts().addonsDir && command.opts().addonsDir !== "./addons" ? command.opts().addonsDir : (compilationConfig?.addonsDir ?? "./addons"),
 
-    ...(!!options?.config?.targets && { targets: options?.config?.targets }),
+    ...(!!options?.config?.profiles && { profiles: options?.config?.profiles }),
 });
 
-export const hasInvalidTargets = (targets?: string[], config?: CompilationConfig) => {
-    if (targets === undefined || targets.length === 0 || (targets[0] === "*" && targets.length === 1)) {
+export const hasInvalidProfiles = (profiles?: string[], config?: CompilationConfig) => {
+    if (profiles === undefined || profiles.length === 0 || (profiles[0] === "*" && profiles.length === 1)) {
         return false;
     }
     if (config === undefined) {
         return true;
     }
-    const definedTargets = Object.keys(config?.targets ?? []);
+    const definedProfiles = Object.keys(config?.profiles ?? []);
 
-    return !targets.every(it => definedTargets.includes(it));
+    return !profiles.every(it => definedProfiles.includes(it));
 };
 
 const parseUnknownArguments = (unknownArgs: string[]): Map<string, unknown> => {

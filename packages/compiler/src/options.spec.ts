@@ -74,14 +74,14 @@ describe("createOptions", () => {
     it("should return config w/ valid compiler config json", () => {
         const { fileSystem: target } = compileSystem({
             files: {
-                "websmith.config.json": '{ "targets": { "whatever": { "addons": [ "one", "two", "three" ] } } }',
+                "websmith.config.json": '{ "profiles": { "whatever": { "addons": [ "one", "two", "three" ] } } }',
             },
         });
 
         const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target).config;
 
         expect(actual).toEqual({
-            targets: { whatever: { addons: ["one", "two", "three"] } },
+            profiles: { whatever: { addons: ["one", "two", "three"] } },
         });
     });
 

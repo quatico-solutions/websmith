@@ -87,7 +87,7 @@ By default all addons found in the addon directory are applied.
 
 ### Use the websmith configuration file
 
-websmith looks for a `websmith.config.json` file in the root of your project. If it exists, it is used to configure the compilation process. The configuration file can be used to specify which addons to use. Provide a lists of addon names or define compilation targets with addons names to apply different addons for different targets.
+websmith looks for a `websmith.config.json` file in the root of your project. If it exists, it is used to configure the compilation process. The configuration file can be used to specify which addons to use. Provide a lists of addon names or define compilation profiles with addons names to apply different addons for different profiles.
 
 Add an "addons" section to the `websmith.config.json` with the addon names to apply. This default list of addons will be applied for every compilation. The addon name is the addon directory name if not specified otherwise:
 
@@ -99,12 +99,12 @@ Add an "addons" section to the `websmith.config.json` with the addon names to ap
 }
 ```
 
-You can also define compilation targets in the config file and specify a different list of addons for every target:
+You can also define compilation profiles in the config file and specify a different list of addons for every profile:
 
 ```json
 // websmith.config.json
 {
-    "targets": {
+    "profiles": {
         "one": {
             "addons": ["addon-foo", "addon-bar"],
         },
@@ -115,22 +115,22 @@ You can also define compilation targets in the config file and specify a differe
 }
 ```
 
-Run the websmith compiler with selected targets `websmith --targets one, two` to apply specific addons during compilation. If a target specific addon list is provided, the default addons list will be replaced, i.e., the no addon of the defaults list will be applied.
+Run the websmith compiler with selected profiles `websmith --profiles one, two` to apply specific addons during compilation. If a profile specific addon list is provided, the default addons list will be replaced, i.e., the no addon of the defaults list will be applied.
 
-## Custom compilation targets
+## Custom compilation profiles
 
-websmith supports custom configurations for different compilation targets. A compilation target is a set of options that specify the environment for a compilation output. You can define a custom compilation target by adding a `targets` section to the `websmith.config.json` file. The `targets` section contains a unique target `name` and a set of options. The `name` is used to specify the target when calling the websmith compiler. The options are used to configure the compilation process. The options contain the following sections:
+websmith supports custom configurations for different compilation profiles. A compilation profile is a set of options that specify the environment for a compilation output. You can define a custom compilation profile by adding a `profiles` section to the `websmith.config.json` file. The `profiles` section contains a unique profile `name` and a set of options. The `name` is used to specify the profile when calling the websmith compiler. The options are used to configure the compilation process. The options contain the following sections:
 
-* `addons`: a list of addon names to apply for this target
-* `config`: target specific configuration properties defined by your addon
-* `options`: a set of compiler options for the TypeScript compiler to use for this target
+* `addons`: a list of addon names to apply for this profile
+* `config`: profile specific configuration properties defined by your addon
+* `options`: a set of compiler options for the TypeScript compiler to use for this profile
 
-An example for a custom compilation target could be:
+An example for a custom compilation profile could be:
 
 ```json
 // websmith.config.json
 {
-    "targets": {
+    "profiles": {
         "one": {
             "addons": ["addon-zip", "addon-zap"],
             "config": {
@@ -150,9 +150,9 @@ An example for a custom compilation target could be:
 }
 ```
 
-### Apply different addons for different targets
+### Apply different addons for different profiles
 
-Run websmith with the CLI argument `--targets` to select a specific target. You can specify a single target or multiple targets by separating them with a comma. If multiple targets are specified, the compiler will build the targets in the specified order.
+Run websmith with the CLI argument `--profiles` to select a specific profile. You can specify a single profile or multiple profiles by separating them with a comma. If multiple profiles are specified, the compiler will build the profiles in the specified order.
 
 ## Writing your own addon
 

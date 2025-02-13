@@ -62,9 +62,9 @@ export class CompilationEnv {
 
         this.compilerOptions = compileOptions(this.system, {
             buildDir: this.buildDir,
-            targets: options?.compilerOptions?.targets?.length ? options.compilerOptions.targets : ["*"],
+            profiles: options?.compilerOptions?.profiles?.length ? options.compilerOptions.profiles : ["*"],
             config: {
-                targets: {
+                profiles: {
                     "*": {
                         options: { outDir },
                     },
@@ -328,7 +328,7 @@ export class CompilationEnv {
                         esModuleInterop: true,
                         moduleResolution: ts.ModuleResolutionKind.NodeNext,
                     },
-                    targets: ["*"],
+                    profiles: ["*"],
                     cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
                 this.system

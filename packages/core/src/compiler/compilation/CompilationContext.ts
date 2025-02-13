@@ -21,7 +21,7 @@ export type CompilationContextOptions = {
     reporter: Reporter;
     rootFiles: string[];
     system: ts.System;
-    target?: string;
+    profile?: string;
     cliArgs: ts.ParsedCommandLine;
     watchCallback?: (filePath: string) => void;
     registerDependencyCallback?: (filePath: string) => void;
@@ -51,7 +51,7 @@ export class CompilationContext implements AddonContext {
     private assetCodeDependency: Map<string, string[]> = new Map();
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, config, program, tsConfig, projectDir, rootFiles, system, target, cliArgs, watchCallback, registerDependencyCallback } =
+        const { buildDir, config, program, tsConfig, projectDir, rootFiles, system, profile, cliArgs, watchCallback, registerDependencyCallback } =
             options;
         this.buildDir = buildDir;
         this.rootFiles = rootFiles;
@@ -63,7 +63,7 @@ export class CompilationContext implements AddonContext {
         this.languageHost = this.createLanguageServiceHost({
             system,
             options: tsConfig,
-            target,
+            profile,
         });
         this.cache = new FileCache(system);
         this.reporter = options.reporter;
@@ -90,7 +90,7 @@ export class CompilationContext implements AddonContext {
         return this.program;
     }
 
-    public getTargetConfig(): unknown {
+    public getProfileConfig(): unknown {
         return this.config ?? {};
     }
 
@@ -227,18 +227,18 @@ export class CompilationContext implements AddonContext {
     private createLanguageServiceHost({
         system,
         options,
-        target,
+        profile,
     }: {
         system: ts.System;
         options: ts.CompilerOptions;
-        target?: string;
+        profile?: string;
     }): ts.LanguageServiceHost {
         return {
             ...createSharedHost(system),
             getScriptVersion: (fileName: string) => {
                 fileName = system.resolvePath(fileName);
                 const version = this.cache.getVersion(fileName).toString();
-                return target ? `${fileName}:${version}:${target}` : `${fileName}:${version}`;
+                return profile ? `${fileName}:${version}:${profile}` : `${fileName}:${version}`;
             },
             getScriptSnapshot: (fileName: string) => {
                 fileName = system.resolvePath(fileName);

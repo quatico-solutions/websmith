@@ -57,9 +57,9 @@ export class Compiler {
         this.transpileOnly = this.options.config?.transpileOnly ?? false;
     }
 
-    public getContext(target?: string): CompilationContext | undefined {
-        if (target) {
-            return this.contextMap.get(target);
+    public getContext(profile?: string): CompilationContext | undefined {
+        if (profile) {
+            return this.contextMap.get(profile);
         }
         const defaultCtx = this.contextMap.get("default");
         if (!defaultCtx) {
@@ -101,21 +101,21 @@ export class Compiler {
     }
 
     public compile(): ts.EmitResult {
-        const { targets } = this.options;
-        this.createTargetContextsIfNecessary();
+        const { profiles } = this.options;
+        this.createProfileContextsIfNecessary();
 
         const results: ts.EmitResult[] = [];
-        if (!targets?.length) {
+        if (!profiles?.length) {
             const ctx = this.getContext();
             if (ctx) {
-                const result = this.emitResult(undefined, ctx); // no target
+                const result = this.emitResult(undefined, ctx); // no profile
                 results.push(this.options ? result : this.report(ctx.getProgram(), result));
             }
         } else {
-            targets.forEach((target: string) => {
-                const ctx = this.getContext(target);
+            profiles.forEach((profile: string) => {
+                const ctx = this.getContext(profile);
                 if (ctx) {
-                    const result = this.emitResult(target, ctx);
+                    const result = this.emitResult(profile, ctx);
                     results.push(this.options.config?.transpileOnly ? result : this.report(ctx.getProgram(), result));
                 }
             });
@@ -130,11 +130,11 @@ export class Compiler {
               };
     }
 
-    private emitResult(target: string | undefined, ctx: CompilationContext): ts.EmitResult {
+    private emitResult(profile: string | undefined, ctx: CompilationContext): ts.EmitResult {
         const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
 
         for (const fileName of this.getRootFiles()) {
-            const fragment = this.emitSourceFile(fileName, target);
+            const fragment = this.emitSourceFile(fileName, profile);
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
             } else {
@@ -150,16 +150,16 @@ export class Compiler {
     }
 
     public watch(): this {
-        this.createTargetContextsIfNecessary();
+        this.createProfileContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {
-            const emitTargets: string[] = this.getDefinedTargets();
-            this.getRootFiles().forEach(cur => {
-                if (this.options?.targets?.[0] === "*") {
-                    emitTargets.push("*");
+            const profiles: string[] = this.getDefinedProfiles();
+            this.getRootFiles().forEach(curFile => {
+                if (this.options?.profiles?.[0] === "*") {
+                    profiles.push("*");
                 }
-                emitTargets.forEach(target => this.emitSourceFile(cur, target, true));
-                this.registerWatch(cur, emitTargets);
+                profiles.forEach(profile => this.emitSourceFile(curFile, profile, true));
+                this.registerWatch(curFile, profiles);
             });
         } else {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
@@ -167,7 +167,7 @@ export class Compiler {
         return this;
     }
 
-    public registerWatch(filePath: string, emitTargets: string[]): this {
+    public registerWatch(filePath: string, profileNames: string[]): this {
         if (!this.system.watchFile) {
             return this;
         }
@@ -176,14 +176,14 @@ export class Compiler {
             this.system.watchFile(
                 filePath,
                 fileName =>
-                    emitTargets.forEach(target =>
+                    profileNames.forEach(profile =>
                         fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                            ? this.emitSourceFile(fileName, target, true, true)
-                            : this.contextMap.has(target) &&
+                            ? this.emitSourceFile(fileName, profile, true, true)
+                            : this.contextMap.has(profile) &&
                               this.contextMap
-                                  .get(target)!
+                                  .get(profile)!
                                   .resolveDependency(fileName)
-                                  .map(cur => this.emitSourceFile(cur, target, true, true))
+                                  .map(cur => this.emitSourceFile(cur, profile, true, true))
                     ),
                 50,
                 {
@@ -203,24 +203,24 @@ export class Compiler {
         return this;
     }
 
-    protected createTargetContextsIfNecessary(): this {
-        const { targets } = this.options;
+    protected createProfileContextsIfNecessary(): this {
+        const { profiles } = this.options;
 
-        if (!targets?.length) {
+        if (!profiles?.length) {
             const ctx = this.getContext()!;
             this.addons?.getAvailableAddons().forEach(addon => {
                 addon.activate(ctx);
             });
         } else {
-            targets.forEach((target: string) => {
-                if (this.contextMap.has(target)) {
+            profiles.forEach((profile: string) => {
+                if (this.contextMap.has(profile)) {
                     return;
                 }
-                const ctx = this.createCompilationContext(this.options, target, this.dependencyCallback);
-                this.addons?.getAvailableAddons(target).forEach(addon => {
+                const ctx = this.createCompilationContext(this.options, profile, this.dependencyCallback);
+                this.addons?.getAvailableAddons(profile).forEach(addon => {
                     addon.activate(ctx);
                 });
-                this.contextMap.set(target, ctx);
+                this.contextMap.set(profile, ctx);
             });
         }
         return this;
@@ -228,11 +228,11 @@ export class Compiler {
 
     protected createCompilationContext(
         compileOptions: CompilerOptions,
-        target?: string,
+        profile?: string,
         registerDependencyCallback?: (filePath: string) => void
     ): CompilationContext {
         const { buildDir, config, configFile, tsConfig, cliArgs, watch } = compileOptions;
-        const { options = {}, config: targetConfig } = getProfileConfig(target, config);
+        const { options = {}, config: profileConfig } = getProfile(profile, config);
         return new CompilationContext({
             buildDir,
             tsConfig: { ...tsConfig, ...options },
@@ -242,16 +242,16 @@ export class Compiler {
             cliArgs: { ...cliArgs, options: { ...tsConfig, ...options } },
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,
-            ...(!!targetConfig && { config: targetConfig }),
-            target,
-            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.options.targets ?? []) }),
+            ...(!!profileConfig && { config: profileConfig }),
+            profile,
+            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.options.profiles ?? []) }),
             registerDependencyCallback,
         });
     }
 
-    protected emitSourceFile(fileName: string, target?: string, writeFile = true, skipCache = false): CompileFragment {
+    protected emitSourceFile(fileName: string, profile?: string, writeFile = true, skipCache = false): CompileFragment {
         const filePath = this.system.resolvePath(fileName);
-        const ctx = this.getContext(target);
+        const ctx = this.getContext(profile);
         const cache = ctx?.getCache();
 
         if (ctx && cache) {
@@ -267,7 +267,7 @@ export class Compiler {
             return this.processOutput(cache, this.transpile({ fileName, ctx, content }), writeFile, fileName);
         }
 
-        throw new Error(`No target ${target} configured`);
+        throw new Error(`No profile with name "${profile}" configured.`);
     }
 
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
@@ -278,9 +278,9 @@ export class Compiler {
         return result;
     }
 
-    protected getDefinedTargets(name?: string): string[] {
-        const targets = Object.keys(this.options.config?.targets ?? []);
-        return name ? targets.filter(cur => cur === name) : targets;
+    protected getDefinedProfiles(name?: string): string[] {
+        const profiles = Object.keys(this.options.config?.profiles ?? []);
+        return name ? profiles.filter(cur => cur === name) : profiles;
     }
 
     private processOutput(
@@ -381,10 +381,10 @@ export class Compiler {
     }
 }
 
-const getProfileConfig = (target?: string, config?: CompilationConfig): CompilationProfile => {
-    if (config && target) {
-        const { targets = {} } = config;
-        return targets[target] ?? {};
+const getProfile = (name?: string, config?: CompilationConfig): CompilationProfile => {
+    if (config && name) {
+        const { profiles = {} } = config;
+        return profiles[name] ?? {};
     }
     return {};
 };
