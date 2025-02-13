@@ -36,21 +36,21 @@ export class AddonRegistry {
     }
 
     /**
-     * Retrieves the available compiler addons based on the specified target. Only addons that are
+     * Retrieves the available compiler addons based on the specified profile. Only addons that are
      * provided in the 'addonsDir' are requested. If unavailable addons are requested, a warning message
      * is emitted to the registry's reporter.
      *
-     * @param target - An optional string specifying the target for which to retrieve the addons.
+     * @param profile - An optional string specifying the profile name for which to retrieve the addons.
      *                 If not provided, the function will retrieve addons specified by the 'addons'
      *                 property in the configuration, or an empty array.
-     * @returns A `CompilerAddons` object containing the available addons for the specified 'target'
+     * @returns A `CompilerAddons` object containing the available addons for the specified 'profile'
      *          or by the 'addons' property in the configuration.
      */
-    public getAvailableAddons(target?: string): CompilerAddons {
-        this.reportMissingAddons(target);
-        const expectedNames = this.getExpectedAddons(target);
+    public getAvailableAddons(profile?: string): CompilerAddons {
+        this.reportMissingAddons(profile);
+        const expectedNames = this.getExpectedAddons(profile);
         const results =
-            expectedNames.length === 0 && target === "*"
+            expectedNames.length === 0 && profile === "*"
                 ? Array.from(this.availableAddons.values())
                 : [...this.availableAddons].filter(([name]) => expectedNames.includes(name)).map(([, addon]) => addon);
         return compilerAddons(results);
@@ -62,32 +62,34 @@ export class AddonRegistry {
     }
 
     /**
-     * Retrieves the list of expected addons based on the provided 'target' and the 'addons'
+     * Retrieves the list of expected addons based on the provided 'profile' and the 'addons'
      * property from the configuration.
      *
-     * @param target - An optional string representing the target for which to retrieve addons.
-     * @returns An array of unique addon names that are expected for the given target or 'addons' config.
+     * @param profile - An optional string representing the profile for which to retrieve addons.
+     * @returns An array of unique addon names that are expected for the given profile or 'addons' config.
      */
-    private getExpectedAddons(target?: string): string[] {
+    private getExpectedAddons(profile?: string): string[] {
         const { profiles = {}, addons = [] } = this.config;
         const requestedAddons = addons.filter(it => it.length > 0);
 
-        const targetAddons = target ? (profiles[target]?.addons ?? []) : [];
+        const profileAddons = profile ? (profiles[profile]?.addons ?? []) : [];
 
-        return [...new Set([...requestedAddons, ...targetAddons])];
+        return [...new Set([...requestedAddons, ...profileAddons])];
     }
 
-    private getMissingAddons(target?: string): string[] {
-        return this.getExpectedAddons(target).filter(name => !this.availableAddons.has(name));
+    private getMissingAddons(profile?: string): string[] {
+        return this.getExpectedAddons(profile).filter(name => !this.availableAddons.has(name));
     }
 
-    private reportMissingAddons(target?: string): void {
+    private reportMissingAddons(profile?: string): void {
         const { reporter } = this.config;
 
-        const missing = this.getMissingAddons(target).join(", ");
+        const missing = this.getMissingAddons(profile).join(", ");
         if (missing.length > 0) {
             reporter.reportDiagnostic(
-                new WarnMessage(target && target !== "*" ? `Missing addons for profile "${target}": "${missing}".` : `Missing addons: "${missing}".`)
+                new WarnMessage(
+                    profile && profile !== "*" ? `Missing addons for profile "${profile}": "${missing}".` : `Missing addons: "${missing}".`
+                )
             );
         }
     }

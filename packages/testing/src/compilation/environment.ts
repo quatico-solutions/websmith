@@ -143,8 +143,8 @@ export class CompilationEnv {
         return this.addons?.getAvailableAddons("*").find((it: CompilerAddon) => it.getName() === addonName);
     }
 
-    public getActiveAddons(target?: string): CompilerAddons {
-        return this.addons?.getAvailableAddons(target) ?? compilerAddons([]);
+    public getActiveAddons(profile?: string): CompilerAddons {
+        return this.addons?.getAvailableAddons(profile) ?? compilerAddons([]);
     }
 
     /**

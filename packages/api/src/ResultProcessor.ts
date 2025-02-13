@@ -10,7 +10,7 @@
  * but have access to the transformed source code and compilation results.
  * ResultProcessors are executed after all other Addon types and the actual
  * compilation is completed. All ResultProcessors are executed in order
- * of their registration once for every target.
+ * of their registration once for every profile.
  *
  * Use this result processor function to create additional output, such as
  * other compilation results or documentation based on your output.

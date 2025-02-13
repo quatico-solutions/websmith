@@ -16,17 +16,17 @@ export class FileCache {
         this.data = {};
     }
 
-    public removeCachedFile(filePath: string, target = "") {
-        delete this.data[getCachedName(filePath, target)];
+    public removeCachedFile(filePath: string, profile = "") {
+        delete this.data[getCachedName(filePath, profile)];
     }
 
-    public getCachedFile(fileName: string, target = ""): CacheFile {
-        const cachedName = getCachedName(fileName, target);
+    public getCachedFile(fileName: string, profile = ""): CacheFile {
+        const cachedName = getCachedName(fileName, profile);
         return this.data[cachedName] ?? this.createEmptyCacheFile();
     }
 
-    public hasChanged(fileName: string, target = ""): boolean {
-        const { modifiedTime, content, files } = this.getCachedFile(fileName, target);
+    public hasChanged(fileName: string, profile = ""): boolean {
+        const { modifiedTime, content, files } = this.getCachedFile(fileName, profile);
         return (
             modifiedTime === undefined ||
             content === undefined ||
@@ -36,41 +36,41 @@ export class FileCache {
         );
     }
 
-    public updateSource(fileName: string, content: string, target = ""): boolean {
+    public updateSource(fileName: string, content: string, profile = ""): boolean {
         let result = false;
         const file = this.getCachedFile(fileName);
-        if (!file.snapshot || this.hasChanged(fileName, target)) {
+        if (!file.snapshot || this.hasChanged(fileName, profile)) {
             const newFile: CacheFile = {
                 version: file.version + 1,
                 content,
                 snapshot: ts.ScriptSnapshot.fromString(content),
                 modifiedTime: new Date(),
             };
-            this.data[getCachedName(fileName, target)] = newFile;
+            this.data[getCachedName(fileName, profile)] = newFile;
             result = true;
         }
 
         return result;
     }
 
-    public createCacheEntry(fileName: string, target = "") {
-        this.data[getCachedName(fileName, target)] = this.createEmptyCacheFile();
+    public createCacheEntry(fileName: string, profile = "") {
+        this.data[getCachedName(fileName, profile)] = this.createEmptyCacheFile();
     }
 
-    public updateOutput(fileName: string, outputFiles: ts.OutputFile[], target = "") {
-        const cachedName = getCachedName(fileName, target);
+    public updateOutput(fileName: string, outputFiles: ts.OutputFile[], profile = "") {
+        const cachedName = getCachedName(fileName, profile);
         const cacheFile = this.data[cachedName];
         if (cacheFile) {
             this.data[cachedName] = { ...cacheFile, files: outputFiles };
         }
     }
 
-    public getVersion(fileName: string, target = ""): number {
-        return this.getCachedFile(fileName, target)?.version ?? 0;
+    public getVersion(fileName: string, profile = ""): number {
+        return this.getCachedFile(fileName, profile)?.version ?? 0;
     }
 
-    public getSnapshot(fileName: string, target = ""): ts.IScriptSnapshot | undefined {
-        return this.getCachedFile(fileName, target)?.snapshot;
+    public getSnapshot(fileName: string, profile = ""): ts.IScriptSnapshot | undefined {
+        return this.getCachedFile(fileName, profile)?.snapshot;
     }
 
     private createEmptyCacheFile(): CacheFile {
