@@ -87,7 +87,7 @@ describe("TsCompiler", () => {
         const actual = testObj.build("expected.ts");
 
         expect(actual).toEqual(expected);
-        expect(target).toHaveBeenCalledWith("expected.ts", "*", false);
+        expect(target).toHaveBeenCalledWith("expected.ts", "*", true);
     });
 
     it("should fail with invalid source code", () => {
@@ -141,7 +141,7 @@ describe("Transpilation", () => {
                 config: {
                     targets: {
                         fragment: { options: { declaration: true } },
-                        write: { writeFile: true, options: { module: 1, target: 1 } },
+                        write: { options: { module: 1, target: 1 } },
                     },
                 },
                 tsConfig: { target: 99, outDir: resolve("./__TEMP__/.build"), noEmitOnError: true },

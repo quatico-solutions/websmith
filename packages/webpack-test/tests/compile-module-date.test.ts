@@ -62,7 +62,6 @@ describe("project bundling", () => {
                 addonsDir: ADDONS_DIR,
                 targets: {
                     noWrite: {
-                        writeFile: false,
                         addons: ["export-yaml-generator"],
                     },
                 },

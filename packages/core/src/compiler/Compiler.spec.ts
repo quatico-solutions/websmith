@@ -420,7 +420,9 @@ describe("emitSourceFile", () => {
             "export declare const computeDate: () => Promise<Date>;
             //# sourceMappingURL=target.d.ts.map"
         `);
-        expect(getText("target.d.ts.map", actual)).toMatchInlineSnapshot(`"{"version":3,"file":"target.d.ts","sourceRoot":"","sources":["target.ts"],"names":[],"mappings":"AACgB,eAAO,MAAM,WAAW,QAAa,OAAO,CAAC,IAAI,CAAe,CAAC"}"`);
+        expect(getText("target.d.ts.map", actual)).toMatchInlineSnapshot(
+            `"{"version":3,"file":"target.d.ts","sourceRoot":"","sources":["target.ts"],"names":[],"mappings":"AACgB,eAAO,MAAM,WAAW,QAAa,OAAO,CAAC,IAAI,CAAe,CAAC"}"`
+        );
         expect(getFilesByExtension(actual, ".js.map")).toHaveLength(0);
     });
 
@@ -675,7 +677,7 @@ describe("watch", () => {
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             config: {
-                targets: { "*": { writeFile: true } },
+                targets: { "*": { config: "whatever" } },
             },
             tsConfig: { declaration: true, outDir: "/build" },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
@@ -706,7 +708,7 @@ describe("watch", () => {
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             config: {
-                targets: { "*": { writeFile: true, options: { outDir: "/build" } } },
+                targets: { "*": { options: { outDir: "/build" } } },
             },
             tsConfig: { declaration: true },
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
@@ -738,8 +740,8 @@ describe("watch", () => {
         const options = compileOptions(fileSystem, {
             config: {
                 targets: {
-                    target1: { writeFile: true, options: { outDir: "/target1" } },
-                    target2: { writeFile: true, options: { outDir: "/target2", declaration: false } },
+                    target1: { options: { outDir: "/target1" } },
+                    target2: { options: { outDir: "/target2", declaration: false } },
                 },
             },
             tsConfig: { declaration: true },
@@ -778,9 +780,8 @@ describe("watch", () => {
         const options = compileOptions(fileSystem, {
             config: {
                 targets: {
-                    target1: { writeFile: true, options: { outDir: "/target1" } },
+                    target1: { options: { outDir: "/target1" } },
                     target2: {
-                        writeFile: true,
                         options: { outDir: "/target2", declaration: false },
                     },
                 },
@@ -832,7 +833,7 @@ describe("watch", () => {
         const options = compileOptions(fileSystem, {
             config: {
                 targets: {
-                    target1: { writeFile: true, options: { outDir: "/target1" } },
+                    target1: { options: { outDir: "/target1" } },
                 },
             },
             tsConfig: { declaration: true },
@@ -884,7 +885,7 @@ describe("watch", () => {
         const options = compileOptions(fileSystem, {
             config: {
                 targets: {
-                    target1: { writeFile: true, options: { outDir: "/target1" } },
+                    target1: { options: { outDir: "/target1" } },
                 },
             },
             tsConfig: { declaration: true },

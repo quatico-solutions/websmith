@@ -18,7 +18,7 @@ describe("createOptions", () => {
             reporter: expect.any(NoReporter),
             cliArgs: expect.any(Object),
             debug: false,
-            targets: ["*"],
+            targets: [],
             watch: false,
         });
     });
@@ -100,14 +100,14 @@ describe("createOptions", () => {
             files: {
                 "./tsconfig.json": "{}",
                 "websmith.config.json": `
-                { "targets": { "whatever": { "addons": [ "one", "two", "three" ], "writeFile": true } } }
+                { "targets": { "whatever": { "addons": [ "one", "two", "three" ] } } }
             `,
             },
         });
         const actual = createOptions({ configFile: "./websmith.config.json", instanceName: "target-instance" }, new NoReporter(), target).config;
 
         expect(actual).toEqual({
-            targets: { whatever: { addons: ["one", "two", "three"], writeFile: true } },
+            targets: { whatever: { addons: ["one", "two", "three"] } },
         });
     });
 
@@ -140,7 +140,7 @@ describe("createOptions", () => {
                 outDir: "/lib",
             },
 
-            targets: ["*"],
+            targets: [],
             cliArgs: {
                 fileNames: ["/expected/one/addon.ts"],
                 errors: [],

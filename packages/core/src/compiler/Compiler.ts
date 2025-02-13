@@ -10,13 +10,13 @@ import { ErrorMessage, type Reporter, type TargetConfig } from "@quatico/websmit
 import { dirname, extname, join } from "node:path";
 import ts, { PollingWatchKind, WatchFileKind } from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
+import { type AddonRegistry } from "./addons";
 import { type FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
 import { type CompilerOptions } from "./CompilerOptions";
 import { type CompilationConfig } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
-import { type AddonRegistry } from "./addons";
 
 export type CompileFragment = {
     version: number;
@@ -132,11 +132,9 @@ export class Compiler {
 
     private emitResult(target: string | undefined, ctx: CompilationContext): ts.EmitResult {
         const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
-        const { config } = this.options;
-        const { writeFile = true } = getTargetConfig(target, config);
 
         for (const fileName of this.getRootFiles()) {
-            const fragment = this.emitSourceFile(fileName, target, writeFile);
+            const fragment = this.emitSourceFile(fileName, target);
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
             } else {
@@ -155,7 +153,7 @@ export class Compiler {
         this.createTargetContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {
-            const emitTargets: string[] = this.getWritingTargets();
+            const emitTargets: string[] = this.getDefinedTargets();
             this.getRootFiles().forEach(cur => {
                 if (this.options?.targets?.[0] === "*") {
                     emitTargets.push("*");
@@ -246,7 +244,7 @@ export class Compiler {
             reporter: this.reporter,
             ...(!!targetConfig && { config: targetConfig }),
             target,
-            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.getWritingTargets()) }),
+            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.options.targets ?? []) }),
             registerDependencyCallback,
         });
     }
@@ -280,14 +278,9 @@ export class Compiler {
         return result;
     }
 
-    protected getNonWritingTargets(): string[] {
-        const { targets, config } = this.options;
-        return targets?.filter(cur => !getTargetConfig(cur, config).writeFile) ?? [];
-    }
-
-    protected getWritingTargets(): string[] {
-        const { targets, config } = this.options;
-        return targets?.filter(cur => getTargetConfig(cur, config).writeFile) ?? [];
+    protected getDefinedTargets(name?: string): string[] {
+        const targets = Object.keys(this.options.config?.targets ?? []);
+        return name ? targets.filter(cur => cur === name) : targets;
     }
 
     private processOutput(

@@ -107,7 +107,6 @@ You can also define compilation targets in the config file and specify a differe
     "targets": {
         "one": {
             "addons": ["addon-foo", "addon-bar"],
-            "writeFile": false,
         },
         "two": {
             "addons": ["addon-zip"],
@@ -123,7 +122,6 @@ Run the websmith compiler with selected targets `websmith --targets one, two` to
 websmith supports custom configurations for different compilation targets. A compilation target is a set of options that specify the environment for a compilation output. You can define a custom compilation target by adding a `targets` section to the `websmith.config.json` file. The `targets` section contains a unique target `name` and a set of options. The `name` is used to specify the target when calling the websmith compiler. The options are used to configure the compilation process. The options contain the following sections:
 
 * `addons`: a list of addon names to apply for this target
-* `writeFile`: a boolean value that specifies whether the output file should be written to disk
 * `config`: target specific configuration properties defined by your addon
 * `options`: a set of compiler options for the TypeScript compiler to use for this target
 
@@ -147,7 +145,6 @@ An example for a custom compilation target could be:
         },
         "two": {
             "addons": ["addon-zip"],
-            "writeFile": false,
         }
     }
 }

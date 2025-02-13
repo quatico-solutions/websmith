@@ -55,7 +55,6 @@ Register your addon by adding a config file `websmith.config.json` to your proje
     "targets": {
         "*": {
             "addons": ["addon-foo"],
-            "writeFile": true,
             "config": {
                 "apiCollectionPath": "./foo-functions.yml"
             }

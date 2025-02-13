@@ -173,7 +173,6 @@ describe("webpack w/ websmith", () => {
             targets: {
                 "*": {
                     addons: ["export-yaml-generator"],
-                    writeFile: true,
                 },
             },
         });
@@ -200,7 +199,6 @@ describe("webpack w/ websmith", () => {
             targets: {
                 "*": {
                     addons: ["example-transformer"],
-                    writeFile: true,
                 },
             },
         });
@@ -253,6 +251,8 @@ describe("webpack w/ websmith", () => {
                     addonsDir: ADDONS_DIR,
                     addons: ["example-transformer"],
                 },
+                targets: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                webpackTarget: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
             },
         });
 
@@ -302,6 +302,7 @@ describe("webpack w/ websmith", () => {
             webpack: { ...webpackDefaults },
             websmith: {
                 targets: ["target-transform"],
+                webpackTarget: "target-transform",
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 config: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
             },
@@ -333,6 +334,7 @@ describe("webpack w/ websmith", () => {
             websmith: {
                 addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 targets: ["target-transform", "target-process"],
+                webpackTarget: "target-transform",
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
@@ -358,6 +360,7 @@ describe("webpack w/ websmith", () => {
             webpack: { ...webpackDefaults },
             websmith: {
                 targets: ["target-transform"],
+                webpackTarget: "target-transform",
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
