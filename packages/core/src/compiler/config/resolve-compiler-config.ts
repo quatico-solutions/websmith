@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import type { TargetConfig } from "@quatico/websmith-api";
+import type { CompilationProfile } from "@quatico/websmith-api";
 import { type Reporter, WarnMessage } from "@quatico/websmith-api";
 import { dirname, isAbsolute, join } from "node:path";
 import type ts from "typescript";
@@ -40,7 +40,7 @@ const updatePaths = (config: CompilationConfig, system: ts.System, basePath: str
     };
 };
 
-const updateTargetConfigs = (target: TargetConfig, system: ts.System, basePath: string): TargetConfig => {
+const updateTargetConfigs = (target: CompilationProfile, system: ts.System, basePath: string): CompilationProfile => {
     return {
         ...target,
         ...(target.options && { options: updateCompilerOptions(target.options, system, basePath) }),

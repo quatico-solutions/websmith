@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type Reporter, WarnMessage, type TargetConfig } from "@quatico/websmith-api";
+import { type Reporter, WarnMessage, type CompilationProfile } from "@quatico/websmith-api";
 import path, { basename, extname } from "node:path";
 import type ts from "typescript";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
@@ -12,7 +12,7 @@ import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./Compi
 export type AddonConfig = {
     addons?: string[];
     addonsDir: string;
-    targets?: Record<string, TargetConfig>;
+    targets?: Record<string, CompilationProfile>;
     reporter: Reporter;
     system: ts.System;
 };
