@@ -35,7 +35,7 @@ const webpackDefaults = {
                         loader: require.resolve("@quatico/websmith-webpack"),
                         options: {
                             transpileOnly: true,
-                            project: path.join(__dirname, "..", "tsconfig.json"),
+                            tsConfigFile: path.join(__dirname, "..", "tsconfig.json"),
                         },
                     },
                     {

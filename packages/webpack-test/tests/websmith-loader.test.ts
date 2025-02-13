@@ -32,7 +32,7 @@ const webpackDefaults = {
                         loader: require.resolve("@quatico/websmith-webpack"),
                         options: {
                             transpileOnly: true,
-                            project: path.join(__dirname, "..", "tsconfig.json"),
+                            tsConfigFile: path.join(__dirname, "..", "tsconfig.json"),
                         },
                     },
                 ],
@@ -215,11 +215,7 @@ describe("webpack w/ websmith", () => {
         const webpackConfig = { ...webpackDefaults };
         webpackConfig.module.rules[0].use.unshift({
             loader: "thread-loader",
-            options: {
-                transpileOnly: true,
-                project: path.resolve(__dirname, "..", "tsconfig.json"),
-            },
-        });
+        } as any);
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             targets: {
