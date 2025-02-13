@@ -136,13 +136,34 @@ describe("compile w/ websmith", () => {
         expect(actual2).toContain("exports: [getFoobar]");
     });
 
+    it("should not generate YAML file with named target, addonsDir and target in file-config", async () => {
+        writeWebsmithOptions({
+            addonsDir: ADDONS_DIR,
+            targets: {
+                named: {
+                    addons: ["export-yaml-generator"],
+                },
+            },
+        });
+
+        await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
+            tsConfig: { ...tsDefaults, noEmit: true },
+            websmith: {
+                targets: ["named"],
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+            },
+        });
+
+        expect(fs.existsSync(path.join(OUTPUT_DIR, "foobar-function.js"))).toBe(false);
+        expect(fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8")).toContain("exports: [getFoobar]");
+    });
+
     it("should generate YAML file with all targets and addonsDir, generic target in file-config", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
             targets: {
                 "*": {
                     addons: ["export-yaml-generator"],
-                    writeFile: true,
                 },
             },
         });
@@ -167,7 +188,6 @@ describe("compile w/ websmith", () => {
             targets: {
                 "*": {
                     addons: ["example-transformer"],
-                    writeFile: true,
                 },
             },
         });

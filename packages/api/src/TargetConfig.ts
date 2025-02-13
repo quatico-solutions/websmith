@@ -16,7 +16,6 @@ import type ts from "typescript";
  */
 export type TargetConfig = {
     addons?: string[];
-    writeFile?: boolean;
     config?: unknown;
     options?: ts.CompilerOptions;
 };

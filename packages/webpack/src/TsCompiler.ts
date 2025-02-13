@@ -22,7 +22,7 @@ export class TsCompiler extends Compiler {
     public fragment?: CompileFragment;
     public loaderConfig: WebsmithLoaderConfig;
     public targets: string[];
-    public webpackTarget: string;
+    public webpackTarget?: string;
 
     constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, loaderConfig: WebsmithLoaderConfig = {}) {
         const system = ts.sys;
@@ -51,7 +51,7 @@ export class TsCompiler extends Compiler {
         this.loaderConfig = loaderConfig;
         super.createTargetContextsIfNecessary();
         this.targets = targetNames.length ? targetNames : (options.targets ?? []);
-        this.webpackTarget = this.getFragmentTarget(loaderConfig.webpackTarget ?? "*");
+        this.webpackTarget = loaderConfig.webpackTarget ? this.getFragmentTarget(loaderConfig.webpackTarget) : undefined;
     }
 
     public getProgram(): ts.Program | undefined {
@@ -65,6 +65,7 @@ export class TsCompiler extends Compiler {
 
         const fileName = uPath.normalize(resourcePath);
 
+        // Transpile source file with webpack target but do not write the file, i.e. file is written by webpack
         const result = this.emitSourceFile(fileName, this.webpackTarget, false);
 
         if (result.diagnostics?.length) {
@@ -79,10 +80,10 @@ export class TsCompiler extends Compiler {
                 }
             });
         }
-        super
-            .getWritingTargets()
+        (this.options.targets ?? [])
             .filter((target: string) => target !== this.webpackTarget)
             .forEach((target: string) => {
+                // Transpile source file with other targets (different from webpack target) and write the file
                 this.emitSourceFile(fileName, target, true);
 
                 // TODO: We cannot apply the resultProcessors to the resulting fragment, because webpack has not written the file yet.
@@ -96,30 +97,33 @@ export class TsCompiler extends Compiler {
         return result;
     }
 
-    protected emitSourceFile(fileName: string, target: string, writeFile: boolean): CompileFragment {
+    protected emitSourceFile(fileName: string, target: string | undefined, writeFile: boolean): CompileFragment {
         return super.emitSourceFile(fileName, target, writeFile, true);
     }
 
     private getFragmentTarget(webpackTarget: string): string {
-        const fragmentTargets = super.getNonWritingTargets();
-        if (fragmentTargets.length === 0) {
-            const error = `No writeFile: false targets found for "${webpackTarget}"`;
-            this.loaderConfig.warn?.(new WebpackError(error));
-
-            const writingTargets = super.getWritingTargets();
-            if (writingTargets.includes(webpackTarget) || webpackTarget == "*") {
-                return writingTargets.length > 0 ? writingTargets[0] : webpackTarget;
-            }
-            const noTargetError = `No target found for "${webpackTarget}"`;
-            if (this.loaderConfig.error) {
-                this.loaderConfig.error?.(new WebpackError(noTargetError));
-            }
-            throw new Error(noTargetError);
+        const fragmentTargets = super.getDefinedTargets();
+        const target = fragmentTargets.includes(webpackTarget)
+            ? webpackTarget
+            : webpackTarget == "*"
+              ? fragmentTargets.length
+                  ? fragmentTargets[0]
+                  : "*"
+              : undefined;
+        if (!target) {
+            const noWebpackTargetError = `No target found for 'webpackTarget' with name '${webpackTarget}'.`;
+            this.loaderConfig.error?.(new WebpackError(noWebpackTargetError));
+            throw new Error(noWebpackTargetError);
         }
-
-        const target = fragmentTargets.length === 0 || fragmentTargets.includes(webpackTarget) ? webpackTarget : fragmentTargets[0];
+        const otherTargets =
+            this.targets.length && this.targets[0] !== "*" ? this.targets.filter((cur: string) => !fragmentTargets.includes(cur)) : [];
+        if (this.targets.length && otherTargets.length) {
+            const unknownTargetsError = `No target found for 'targets' with names '[${otherTargets.map(cur => `"${cur}"`).join(", ")}]'.`;
+            this.loaderConfig.error?.(new WebpackError(unknownTargetsError));
+            throw new Error(unknownTargetsError);
+        }
         fragmentTargets
-            .filter((cur: string) => cur !== target)
+            .filter((cur: string) => !this.targets.includes(cur))
             .forEach((target: string) => {
                 this.loaderConfig.warn?.(new WebpackError(`Target "${target}" is not used by the WebsmithPlugin.`));
             });

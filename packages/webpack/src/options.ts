@@ -18,7 +18,7 @@ import ts from "typescript";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
-    const { buildDir, config, configFile, debug = false, project = "./tsconfig.json", targets = ["*"], tsConfig, transpileOnly } = args;
+    const { buildDir, config, configFile, debug = false, project = "./tsconfig.json", targets, tsConfig, transpileOnly } = args;
 
     const cliArgs = resolveTsConfig(project, system);
     cliArgs.options = { ...cliArgs.options, ...tsConfig };

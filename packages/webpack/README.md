@@ -30,7 +30,6 @@ A `websmith.config.json` file is needed to configure which addons should be used
     "targets": {
         "executeAddons": {
             "addons": ["my-addon"],
-            "writeFile": false,
         },
     }
 }

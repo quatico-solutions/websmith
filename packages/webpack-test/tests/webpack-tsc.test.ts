@@ -28,6 +28,10 @@ beforeAll(() => {
     fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 });
 
+afterEach(() => {
+    fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
+});
+
 describe("webpack w/ ts-loader", () => {
     it("should build foobar-arrow.js with ES2020 target", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
@@ -40,8 +44,6 @@ describe("webpack w/ ts-loader", () => {
         });
 
         expect(fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8")).toMatchSnapshot();
-
-        fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
     });
 
     it("should build foobar-function.js with ES2020 target", async () => {
@@ -55,8 +57,6 @@ describe("webpack w/ ts-loader", () => {
         });
 
         expect(fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8")).toMatchSnapshot();
-
-        fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
     });
 
     it("should build foobar-arrow.js with ES5 target", async () => {
@@ -70,8 +70,6 @@ describe("webpack w/ ts-loader", () => {
         });
 
         expect(fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8")).toMatchSnapshot();
-
-        fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
     });
 
     it("should build foobar-function.js with ES5 target", async () => {
@@ -85,17 +83,12 @@ describe("webpack w/ ts-loader", () => {
         });
 
         expect(fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8")).toMatchSnapshot();
-
-        fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
     });
 
     it("should build foobar-arrow.js with ESNEXT and ESM target", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: {
                 ...webpackDefaults,
-                output: {
-                    path: OUTPUT_DIR,
-                },
                 experiments: {
                     outputModule: true,
                 },
@@ -110,7 +103,19 @@ describe("webpack w/ ts-loader", () => {
         });
 
         expect(fs.readFileSync(path.join(OUTPUT_DIR, "main.mjs"), "utf-8")).toMatchSnapshot();
+    });
 
-        fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
+    it("should throw error with transpileOnly false", async () => {
+        await expect(() =>
+            webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
+                webpack: { ...webpackDefaults },
+                tsLoader: {
+                    compilerOptions: {
+                        target: ts.ScriptTarget.ES2020,
+                    },
+                    transpileOnly: false,
+                },
+            })
+        ).rejects.toThrow(/TypeScript emitted no output for .*\/src\/foobar-arrow\.ts/);
     });
 });
