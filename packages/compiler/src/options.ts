@@ -8,7 +8,7 @@ import {
     type CompilerOptions,
     NoReporter,
     resolveCompilationConfig,
-    resolveTargets,
+    resolveProfiles,
     resolveProjectConfig as resolveTsConfig,
     updateCompilerOptions,
 } from "@quatico/websmith-core";
@@ -17,7 +17,7 @@ import ts from "typescript";
 import { type CompilerArguments } from "./CompilerArguments";
 
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
-    const { configFile, debug = false, project = "./tsconfig.json", sourceMap = false, targets, transpileOnly, watch = false } = args;
+    const { configFile, debug = false, project = "./tsconfig.json", sourceMap = false, profiles, transpileOnly, watch = false } = args;
 
     const cliArgs = resolveTsConfig(project, system);
     cliArgs.options = { ...cliArgs.options };
@@ -36,7 +36,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         }
     }
 
-    const targetNames = targets?.split(",").map(target => target.trim()) ?? [];
+    const profileNames = profiles?.split(",").map(name => name.trim()) ?? [];
     let config = compilationConfig;
     if (transpileOnly) {
         if (!config) {
@@ -56,7 +56,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         cliArgs,
         tsConfig: cliArgs.options,
         reporter,
-        targets: resolveTargets(targetNames, compilationConfig, reporter),
+        profiles: resolveProfiles(profileNames, compilationConfig, reporter),
         watch,
     };
 };

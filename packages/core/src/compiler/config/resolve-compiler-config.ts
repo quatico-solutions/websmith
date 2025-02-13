@@ -32,18 +32,16 @@ const updatePaths = (config: CompilationConfig, system: ts.System, basePath: str
     return {
         ...config,
         ...(config.addonsDir && { addonsDir: resolvePath(config.addonsDir, system, basePath) }),
-        ...(config.targets && {
-            targets: Object.fromEntries(
-                Object.entries(config.targets).map(([name, target]) => [name, updateTargetConfigs(target, system, basePath)])
-            ),
+        ...(config.profiles && {
+            profiles: Object.fromEntries(Object.entries(config.profiles).map(([name, target]) => [name, updateProfile(target, system, basePath)])),
         }),
     };
 };
 
-const updateTargetConfigs = (target: CompilationProfile, system: ts.System, basePath: string): CompilationProfile => {
+const updateProfile = (profile: CompilationProfile, system: ts.System, basePath: string): CompilationProfile => {
     return {
-        ...target,
-        ...(target.options && { options: updateCompilerOptions(target.options, system, basePath) }),
+        ...profile,
+        ...(profile.options && { options: updateCompilerOptions(profile.options, system, basePath) }),
     };
 };
 

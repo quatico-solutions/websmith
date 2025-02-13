@@ -55,7 +55,7 @@ describe("TsCompiler", () => {
                 buildDir: resolve("./__TEMP__"),
                 tsConfig: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
-                targets: ["*"],
+                profiles: ["*"],
                 cliArgs: { options: {}, fileNames: [expected], errors: [] },
                 debug: true,
                 watch: false,
@@ -113,7 +113,7 @@ describe("Transpilation", () => {
                 buildDir: resolve("./__TEMP__"),
                 tsConfig: { declaration: true, target: 99, noEmitOnError: true },
                 reporter,
-                targets: ["*"],
+                profiles: ["*"],
                 cliArgs: { options: { declaration: true, target: 99 }, fileNames: [expected], errors: [] },
                 debug: true,
                 watch: false,
@@ -139,7 +139,7 @@ describe("Transpilation", () => {
                 buildDir: resolve("./__TEMP__"),
                 configFile: resolve("./__TEMP__/websmith.config.json"),
                 config: {
-                    targets: {
+                    profiles: {
                         fragment: { options: { declaration: true } },
                         write: { options: { module: 1, target: 1 } },
                     },
@@ -147,7 +147,7 @@ describe("Transpilation", () => {
                 },
                 tsConfig: { target: 99, outDir: resolve("./__TEMP__/.build"), noEmitOnError: true },
                 reporter,
-                targets: ["fragment", "write"],
+                profiles: ["fragment", "write"],
                 cliArgs: { options: { target: 99 }, fileNames: [expected], errors: [] },
                 debug: false,
                 watch: false,

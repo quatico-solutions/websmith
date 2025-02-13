@@ -20,7 +20,7 @@ function foobar(date) {
 "
 `;
 
-exports[`compile w/ websmith should generate additional files with addonDir, addons and all targets selected 1`] = `
+exports[`compile w/ websmith should generate additional files with addonDir, addons and all profiles selected 1`] = `
 "export const getFoobar = (date) => {
     return foobar(date);
 };

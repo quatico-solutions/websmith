@@ -11,8 +11,8 @@ export type CompilationConfig = {
     addons?: string[];
     /** Relative path to the directory containing the addons. Overrides the `addonsDir` specified in the configuration file. */
     addonsDir?: string;
-    /** Record of target specific addons configurations. Overrides the `targets` specified in the configuration file. */
-    targets?: Record<string, CompilationProfile>;
+    /** Record of profile specific addons configurations. Overrides the `profiles` specified in the configuration file. */
+    profiles?: Record<string, CompilationProfile>;
     /**
      * Whether to only transpile the code without emitting any output.
      * Overrides the `transpileOnly` specified in the `tsconfig.json`.

@@ -21,17 +21,17 @@ import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 export class TsCompiler extends Compiler {
     public fragment?: CompileFragment;
     public loaderConfig: WebsmithLoaderConfig;
-    public targets: string[];
+    public profiles: string[];
     public webpackTarget?: string;
 
     constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, loaderConfig: WebsmithLoaderConfig = {}) {
         const system = ts.sys;
-        const { addons, targets: targetsMap, addonsDir } = loadCompilationConfig(loaderConfig, options, system);
-        const targetNames = loaderConfig.targets ?? [];
+        const { addons, profiles: profileMap, addonsDir } = loadCompilationConfig(loaderConfig, options, system);
+        const profileNames = loaderConfig.profiles ?? [];
         const addonsMerged = addons?.length
             ? addons
-            : Object.entries(targetsMap ?? {})
-                  .filter(([target]) => targetNames.includes(target))
+            : Object.entries(profileMap ?? {})
+                  .filter(([profile]) => profileNames.includes(profile))
                   // eslint-disable-next-line @typescript-eslint/no-unused-vars
                   .map(([_, value]) => value.addons ?? [])
                   .flat();
@@ -49,9 +49,9 @@ export class TsCompiler extends Compiler {
             dependencyCallback
         );
         this.loaderConfig = loaderConfig;
-        super.createTargetContextsIfNecessary();
-        this.targets = targetNames.length ? targetNames : (options.targets ?? []);
-        this.webpackTarget = loaderConfig.webpackTarget ? this.getFragmentTarget(loaderConfig.webpackTarget) : undefined;
+        super.createProfileContextsIfNecessary();
+        this.profiles = profileNames.length ? profileNames : (options.profiles ?? []);
+        this.webpackTarget = loaderConfig.webpackTarget ? this.getFragmentProfile(loaderConfig.webpackTarget) : undefined;
     }
 
     public getProgram(): ts.Program | undefined {
@@ -80,15 +80,15 @@ export class TsCompiler extends Compiler {
                 }
             });
         }
-        (this.options.targets ?? [])
-            .filter((target: string) => target !== this.webpackTarget)
-            .forEach((target: string) => {
-                // Transpile source file with other targets (different from webpack target) and write the file
-                this.emitSourceFile(fileName, target, true);
+        (this.options.profiles ?? [])
+            .filter((profile: string) => profile !== this.webpackTarget)
+            .forEach((profile: string) => {
+                // Transpile source file with other profiles (different from webpack target) and write the file
+                this.emitSourceFile(fileName, profile, true);
 
                 // TODO: We cannot apply the resultProcessors to the resulting fragment, because webpack has not written the file yet.
                 this.contextMap
-                    .get(target)
+                    .get(profile)
                     ?.getResultProcessors()
                     .forEach(cur => cur([fileName]));
             });
@@ -97,38 +97,38 @@ export class TsCompiler extends Compiler {
         return result;
     }
 
-    protected emitSourceFile(fileName: string, target: string | undefined, writeFile: boolean): CompileFragment {
-        return super.emitSourceFile(fileName, target, writeFile, true);
+    protected emitSourceFile(fileName: string, profile: string | undefined, writeFile: boolean): CompileFragment {
+        return super.emitSourceFile(fileName, profile, writeFile, true);
     }
 
-    private getFragmentTarget(webpackTarget: string): string {
-        const fragmentTargets = super.getDefinedTargets();
-        const target = fragmentTargets.includes(webpackTarget)
+    private getFragmentProfile(webpackTarget: string): string {
+        const fragmentProfiles = super.getDefinedProfiles();
+        const profile = fragmentProfiles.includes(webpackTarget)
             ? webpackTarget
             : webpackTarget == "*"
-              ? fragmentTargets.length
-                  ? fragmentTargets[0]
+              ? fragmentProfiles.length
+                  ? fragmentProfiles[0]
                   : "*"
               : undefined;
-        if (!target) {
-            const noWebpackTargetError = `No target found for 'webpackTarget' with name '${webpackTarget}'.`;
+        if (!profile) {
+            const noWebpackTargetError = `No profile found for 'webpackTarget' with name '${webpackTarget}'.`;
             this.loaderConfig.error?.(new WebpackError(noWebpackTargetError));
             throw new Error(noWebpackTargetError);
         }
-        const otherTargets =
-            this.targets.length && this.targets[0] !== "*" ? this.targets.filter((cur: string) => !fragmentTargets.includes(cur)) : [];
-        if (this.targets.length && otherTargets.length) {
-            const unknownTargetsError = `No target found for 'targets' with names '[${otherTargets.map(cur => `"${cur}"`).join(", ")}]'.`;
-            this.loaderConfig.error?.(new WebpackError(unknownTargetsError));
-            throw new Error(unknownTargetsError);
+        const otherProfiles =
+            this.profiles.length && this.profiles[0] !== "*" ? this.profiles.filter((cur: string) => !fragmentProfiles.includes(cur)) : [];
+        if (this.profiles.length && otherProfiles.length) {
+            const unknownProfilesError = `No profile found for 'profiles' with names '[${otherProfiles.map(cur => `"${cur}"`).join(", ")}]'.`;
+            this.loaderConfig.error?.(new WebpackError(unknownProfilesError));
+            throw new Error(unknownProfilesError);
         }
-        fragmentTargets
-            .filter((cur: string) => !this.targets.includes(cur))
-            .forEach((target: string) => {
-                this.loaderConfig.warn?.(new WebpackError(`Target "${target}" is not used by the WebsmithPlugin.`));
+        fragmentProfiles
+            .filter((cur: string) => !this.profiles.includes(cur))
+            .forEach((profile: string) => {
+                this.loaderConfig.warn?.(new WebpackError(`Profile "${profile}" is not used by the WebsmithPlugin.`));
             });
 
-        return target;
+        return profile;
     }
 }
 

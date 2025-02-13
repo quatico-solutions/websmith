@@ -27,7 +27,7 @@ A `websmith.config.json` file is needed to configure which addons should be used
 ```json
 // websmith.config.json
 {
-    "targets": {
+    "profiles": {
         "executeAddons": {
             "addons": ["my-addon"],
         },
@@ -35,7 +35,7 @@ A `websmith.config.json` file is needed to configure which addons should be used
 }
 ```
 
-**Note:** The webpack loader will expect a target called `executeAddons` which we need to configure in the webpack configuration.
+**Note:** The webpack loader will expect a profile called `executeAddons` which we need to configure in the webpack configuration.
 
 ### Add webpack configuration
 
@@ -62,7 +62,7 @@ module.exports = {
                             config: {
                                 addonsDir: join(__dirname, "addons"),
                             },
-                            targets: ["executeAddons"],
+                            profiles: ["executeAddons"],
                             webpackTarget: "executeAddons",
                         },
                     },
@@ -76,7 +76,7 @@ module.exports = {
 
 ### Bundle your project
 
-You can run webpack in one of your build targets with:
+You can run webpack in one of your build profiles with:
 
 ```sh
 webpack

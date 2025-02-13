@@ -46,7 +46,7 @@ describe("webpack w/ websmith", () => {
         rmSync(resolve(OUTPUT_DIR), { recursive: true, force: true });
     });
 
-    it("should yield compiled output with no targets", async () => {
+    it("should yield compiled output with no profiles", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
         });
@@ -55,7 +55,7 @@ describe("webpack w/ websmith", () => {
             webpack: { ...webpackDefaults },
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
-                targets: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                profiles: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 webpackTarget: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
             },
         });
@@ -69,7 +69,7 @@ describe("webpack w/ websmith", () => {
     it("should yield compiled and generated output with transpileOnly true", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 valid: {
                     addons: ["export-yaml-generator"],
                 },
@@ -81,7 +81,7 @@ describe("webpack w/ websmith", () => {
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 transpileOnly: true,
-                targets: ["valid"],
+                profiles: ["valid"],
                 webpackTarget: "valid",
             },
         });
@@ -97,7 +97,7 @@ describe("webpack w/ websmith", () => {
     it("should throw error with transpileOnly false", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 valid: {
                     addons: ["export-yaml-generator"],
                 },
@@ -110,17 +110,17 @@ describe("webpack w/ websmith", () => {
                 websmith: {
                     configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                     transpileOnly: false,
-                    targets: ["valid"],
+                    profiles: ["valid"],
                     webpackTarget: "valid",
                 },
             })
-        ).rejects.toThrow(/No processed output found for ".*\/functions\/getDate\.ts" with targets "valid"/);
+        ).rejects.toThrow(/No processed output found for ".*\/functions\/getDate\.ts" with profiles "valid"/);
     });
 
     it("should throw error with unknown webpackTarget name", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 existing: {
                     addons: ["export-yaml-generator"],
                 },
@@ -133,17 +133,17 @@ describe("webpack w/ websmith", () => {
                 websmith: {
                     configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                     transpileOnly: true,
-                    targets: ["existing"],
+                    profiles: ["existing"],
                     webpackTarget: "unknown",
                 },
             })
-        ).rejects.toThrow("No target found for 'webpackTarget' with name 'unknown'.");
+        ).rejects.toThrow("No profile found for 'webpackTarget' with name 'unknown'.");
     });
 
-    it("should throw error with unknown target name in targets", async () => {
+    it("should throw error with unknown profile name in profiles", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 existing: {
                     addons: ["export-yaml-generator"],
                 },
@@ -156,17 +156,17 @@ describe("webpack w/ websmith", () => {
                 websmith: {
                     configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                     transpileOnly: true,
-                    targets: ["unknown"],
+                    profiles: ["unknown"],
                     webpackTarget: "existing",
                 },
             })
-        ).rejects.toThrow("No target found for 'targets' with names '[\"unknown\"]'.");
+        ).rejects.toThrow("No profile found for 'profiles' with names '[\"unknown\"]'.");
     });
 
-    it("should bundle using the first target w/o webpackTarget set", async () => {
+    it("should bundle using the first profile w/o webpackTarget set", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 noWrite: {
                     addons: ["export-yaml-generator"],
                 },
@@ -178,7 +178,7 @@ describe("webpack w/ websmith", () => {
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 transpileOnly: true,
-                targets: ["noWrite"],
+                profiles: ["noWrite"],
                 webpackTarget: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
             },
         });
@@ -186,10 +186,10 @@ describe("webpack w/ websmith", () => {
         expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
     });
 
-    it("should use default target w/o configured target and webpackTarget", async () => {
+    it("should use default profile w/o configured profile and webpackTarget", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 writeOnly: {
                     addons: ["export-yaml-generator"],
                 },
@@ -201,7 +201,7 @@ describe("webpack w/ websmith", () => {
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 transpileOnly: true,
-                targets: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                profiles: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 webpackTarget: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
             },
         });
@@ -218,7 +218,7 @@ describe("webpack w/ websmith", () => {
         } as any);
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 noWrite: {
                     addons: ["export-yaml-generator"],
                 },
@@ -230,7 +230,7 @@ describe("webpack w/ websmith", () => {
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 transpileOnly: true,
-                targets: ["noWrite"],
+                profiles: ["noWrite"],
                 webpackTarget: "noWrite",
             },
         });
@@ -247,7 +247,7 @@ describe("webpack w/ websmith", () => {
         });
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 noWrite: {
                     addons: ["export-yaml-generator"],
                 },
@@ -259,7 +259,7 @@ describe("webpack w/ websmith", () => {
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 transpileOnly: true,
-                targets: ["noWrite"],
+                profiles: ["noWrite"],
                 webpackTarget: "noWrite",
             },
         });
@@ -275,7 +275,7 @@ describe("webpack w/ websmith", () => {
     it("should bundle the file w/ fork-ts-checker-webpack-plugin being used", async () => {
         writeWebsmithOptions({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 noWrite: {
                     addons: ["export-yaml-generator"],
                 },
@@ -287,7 +287,7 @@ describe("webpack w/ websmith", () => {
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 transpileOnly: true,
-                targets: ["noWrite"],
+                profiles: ["noWrite"],
                 webpackTarget: "noWrite",
             },
         });

@@ -37,10 +37,10 @@ export interface CompilerOptions {
      */
     reporter: Reporter;
     /**
-     * List of targets to be compiled. Refers to the `targets` defined in the `config` property.
+     * List of profiles to be compiled. Refers to the `profiles` defined in the `config` property.
      * Use `["*"]` to compile with all available addons. No addons will be used if no target is specified.
      */
-    targets?: string[];
+    profiles?: string[];
     /**
      * Whether to watch the files for changes and recompile on change
      * @default false

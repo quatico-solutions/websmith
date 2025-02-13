@@ -37,9 +37,9 @@ export interface AddonContext<O = unknown> {
     getReporter(): Reporter;
 
     /**
-     * Returns the configuration specific for this compilation target.
+     * Returns the configuration specific for this compilation profile.
      */
-    getTargetConfig(): O;
+    getProfileConfig(): O;
 
     /**
      * Adds a new code file to the compilation input. The file will be compiled with the same options as all other code files.

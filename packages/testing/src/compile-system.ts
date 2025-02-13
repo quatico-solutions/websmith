@@ -35,12 +35,12 @@ export const compileSystem = (options?: CompileSystemOptions): CompileSystem => 
         }
     }
 
-    const { addons = [], addonsDir = "./addons", targets } = addonConfig ?? {};
+    const { addons = [], addonsDir = "./addons", profiles } = addonConfig ?? {};
 
     const registry = new AddonRegistry({
         addons,
         addonsDir,
-        targets,
+        profiles,
         reporter: reporter ?? new NoReporter(),
         system: fileSystem,
     });

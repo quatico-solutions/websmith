@@ -62,7 +62,7 @@ beforeEach(() => {
         system: testSystem,
         program: testProgram,
         cliArgs: { options: {}, fileNames: [], errors: [] },
-        target: "test",
+        profile: "test",
     });
 });
 
@@ -189,7 +189,7 @@ describe("resolvePath", () => {
             system: testSystem,
             program: testProgram,
             cliArgs: { options: {}, fileNames: [], errors: [] },
-            target: "test",
+            profile: "test",
         });
     });
 
@@ -278,7 +278,7 @@ describe("addAssetDependency", () => {
             system: testSystem,
             program: testProgram,
             cliArgs: { options: {}, fileNames: [], errors: [] },
-            target: "test",
+            profile: "test",
             registerDependencyCallback: target,
         });
 

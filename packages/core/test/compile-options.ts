@@ -22,7 +22,7 @@ export const compileOptions = (system: ts.System, overrides?: Partial<CompilerOp
             configFilePath: "./tsconfig.json",
             ...overrides?.tsConfig,
         },
-        targets: overrides?.targets ?? ["*"],
+        profiles: overrides?.profiles ?? ["*"],
         cliArgs: {
             options: {},
             fileNames: system.readDirectory("./src"),

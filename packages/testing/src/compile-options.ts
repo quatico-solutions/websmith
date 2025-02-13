@@ -14,8 +14,8 @@ const DEFAULT_OUT_DIR = "./dist";
 
 export const compileOptions = (
     system: ts.System,
-     
-    overrides?: Partial<CompilerOptions> & { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; targets?: string[] }
+
+    overrides?: Partial<CompilerOptions> & { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; profiles?: string[] }
 ): CompilerOptions => {
     const reporter = new ReporterMock(system);
     const buildDir: string = resolvePath(system, overrides?.buildDir ?? DEFAULT_BUILD_DIR);
@@ -31,7 +31,7 @@ export const compileOptions = (
             configFilePath: `./tsconfig.json`,
             ...overrides?.tsConfig,
         },
-        targets: overrides?.targets ?? [],
+        profiles: overrides?.profiles ?? [],
         cliArgs: {
             options: { outDir: overrides?.tsConfig?.outDir ?? DEFAULT_OUT_DIR },
             fileNames: system.readDirectory(buildDir),

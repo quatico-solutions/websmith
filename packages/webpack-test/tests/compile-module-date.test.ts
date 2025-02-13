@@ -60,7 +60,7 @@ describe("project bundling", () => {
         writeWebsmithOptions({
             config: {
                 addonsDir: ADDONS_DIR,
-                targets: {
+                profiles: {
                     noWrite: {
                         addons: ["export-yaml-generator"],
                     },
@@ -85,7 +85,7 @@ describe("project bundling", () => {
             },
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
-                targets: ["noWrite"],
+                profiles: ["noWrite"],
                 webpackTarget: "noWrite",
             },
         });

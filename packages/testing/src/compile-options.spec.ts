@@ -22,7 +22,7 @@ describe("compileOptions", () => {
                 target: ts.ScriptTarget.Latest,
                 configFilePath: "./tsconfig.json",
             },
-            targets: [],
+            profiles: [],
             cliArgs: {
                 options: {
                     outDir: "./dist",

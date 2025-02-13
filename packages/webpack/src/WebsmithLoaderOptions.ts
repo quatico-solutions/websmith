@@ -24,9 +24,9 @@ export interface WebsmithLoaderOptions {
      */
     tsConfig?: ts.CompilerOptions;
     /**
-     * Defines the targets to apply during webpack compilation.
+     * Defines the profiles to apply during webpack compilation.
      */
-    targets?: string[];
+    profiles?: string[];
     /**
      * Whether to only transpile the code without emitting any output.
      * Overrides the `transpileOnly` specified in the `config`.

@@ -98,12 +98,12 @@ describe("getAvailableAddons", () => {
 
         new AddonRegistry({
             addonsDir: "./addons",
-            targets: { target: { addons: ["does-not-exist"] } },
+            profiles: { target: { addons: ["does-not-exist"] } },
             reporter,
             system,
         }).getAvailableAddons("target");
 
-        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "target": "does-not-exist".'));
+        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "target": "does-not-exist".'));
     });
 });
 
@@ -195,7 +195,7 @@ describe("getExpectedAddons", () => {
 
     it("returns target addons w/ target", () => {
         const testObj = new AddonRegistry({
-            targets: { target: { addons: ["one", "two", "three"] } },
+            profiles: { target: { addons: ["one", "two", "three"] } },
             addonsDir: "./empty",
             reporter,
             system,
@@ -207,7 +207,7 @@ describe("getExpectedAddons", () => {
 
     it("returns empty w/ target and no addons", () => {
         const testObj = new AddonRegistry({
-            targets: { target: { addons: [] } },
+            profiles: { target: { addons: [] } },
             addonsDir: "./empty",
             reporter,
             system,
@@ -219,7 +219,7 @@ describe("getExpectedAddons", () => {
 
     it("returns empty w/ target and no target", () => {
         const testObj = new AddonRegistry({
-            targets: { target: { addons: ["one", "two", "three"] } },
+            profiles: { target: { addons: ["one", "two", "three"] } },
             addonsDir: "./empty",
             reporter,
             system,
@@ -291,13 +291,13 @@ describe("reportMissingAddons", () => {
         reporter.reportDiagnostic = jest.fn();
 
         new AddonRegistry({
-            targets: { target: { addons: ["missing"] } },
+            profiles: { target: { addons: ["missing"] } },
             addonsDir: "./target",
             reporter,
             system,
         }).getAvailableAddons("target");
 
-        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "target": "missing".'));
+        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "target": "missing".'));
     });
 
     it("does not report missing target addons w/o missing target addons", () => {
@@ -306,7 +306,7 @@ describe("reportMissingAddons", () => {
         reporter.reportDiagnostic = jest.fn();
 
         new AddonRegistry({
-            targets: { target: { addons: ["expected"] } },
+            profiles: { target: { addons: ["expected"] } },
             addonsDir: "./target",
             reporter,
             system,

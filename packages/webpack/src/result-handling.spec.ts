@@ -30,7 +30,7 @@ describe("processResultAndFinish", () => {
 
         processResultAndFinish(testObj, { version: 0, files: [] }, ["expected"]);
 
-        expect(testObj.callback).toHaveBeenCalledWith(new Error('No processed output found for "/expected/test.ts" with targets "expected"'));
+        expect(testObj.callback).toHaveBeenCalledWith(new Error('No processed output found for "/expected/test.ts" with profiles "expected"'));
     });
 
     it("should yield the output and sourceMap w/ output and sourceMap files", () => {

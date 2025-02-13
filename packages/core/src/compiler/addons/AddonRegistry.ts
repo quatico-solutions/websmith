@@ -12,7 +12,7 @@ import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./Compi
 export type AddonConfig = {
     addons?: string[];
     addonsDir: string;
-    targets?: Record<string, CompilationProfile>;
+    profiles?: Record<string, CompilationProfile>;
     reporter: Reporter;
     system: ts.System;
 };
@@ -69,10 +69,10 @@ export class AddonRegistry {
      * @returns An array of unique addon names that are expected for the given target or 'addons' config.
      */
     private getExpectedAddons(target?: string): string[] {
-        const { targets = {}, addons = [] } = this.config;
+        const { profiles = {}, addons = [] } = this.config;
         const requestedAddons = addons.filter(it => it.length > 0);
 
-        const targetAddons = target ? (targets[target]?.addons ?? []) : [];
+        const targetAddons = target ? (profiles[target]?.addons ?? []) : [];
 
         return [...new Set([...requestedAddons, ...targetAddons])];
     }
@@ -87,7 +87,7 @@ export class AddonRegistry {
         const missing = this.getMissingAddons(target).join(", ");
         if (missing.length > 0) {
             reporter.reportDiagnostic(
-                new WarnMessage(target && target !== "*" ? `Missing addons for target "${target}": "${missing}".` : `Missing addons: "${missing}".`)
+                new WarnMessage(target && target !== "*" ? `Missing addons for profile "${target}": "${missing}".` : `Missing addons: "${missing}".`)
             );
         }
     }
