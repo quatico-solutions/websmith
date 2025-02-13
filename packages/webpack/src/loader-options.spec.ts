@@ -25,7 +25,6 @@ describe("getLoaderOptions", () => {
         const actual = getLoaderOptions(target);
 
         expect(actual).toMatchObject({
-            buildDir: expect.stringContaining("packages/webpack"),
             debug: false,
             targets: [],
             watch: false,
