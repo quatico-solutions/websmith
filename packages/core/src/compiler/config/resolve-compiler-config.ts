@@ -5,28 +5,10 @@
  * ---------------------------------------------------------------------------------------------
  */
 import type { CompilationProfile } from "@quatico/websmith-api";
-import { type Reporter, WarnMessage } from "@quatico/websmith-api";
+import { ErrorMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
 import { dirname, isAbsolute, join } from "node:path";
 import type ts from "typescript";
 import { type CompilationConfig } from "./CompilationConfig";
-
-export const resolveCompilationConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilationConfig | undefined => {
-    if (configFilePath) {
-        const resolvedPath = system.resolvePath(configFilePath);
-        if (!system.fileExists(resolvedPath)) {
-            reporter.reportDiagnostic(new WarnMessage(`No configuration file found at ${resolvedPath}.`));
-        } else {
-            const content = system.readFile(resolvedPath);
-            if (content) {
-                const config = JSON.parse(content ?? "{}");
-
-                // TODO: Do we need further validation for the config per profile?
-                return { ...updatePaths(config.config ?? config, system, dirname(resolvedPath)) };
-            }
-        }
-    }
-    return undefined;
-};
 
 const updatePaths = (config: CompilationConfig, system: ts.System, basePath: string): CompilationConfig => {
     return {
@@ -59,4 +41,35 @@ export const updateCompilerOptions = (tsConfig: ts.CompilerOptions, system: ts.S
 
 const resolvePath = (path: string, system: ts.System, basePath: string): string => {
     return isAbsolute(path) ? path : system.resolvePath(join(basePath, path));
+};
+
+export const resolveCompilationConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilationConfig | undefined => {
+    if (configFilePath) {
+        const resolvedPath = system.resolvePath(configFilePath);
+        if (!system.fileExists(resolvedPath)) {
+            reporter.reportDiagnostic(new WarnMessage(`No configuration file found at ${resolvedPath}.`));
+        } else {
+            const content = system.readFile(resolvedPath);
+            if (content) {
+                const config = JSON.parse(content ?? "{}");
+                const result = { ...updatePaths(config.config ?? config, system, dirname(resolvedPath)) };
+                if (result.profiles) {
+                    Object.entries(result.profiles).forEach(([_name, profile]) => {
+                        if (profile.addons?.length) {
+                            profile.addons = [...(profile.addons ?? []), ...(result.addons ?? [])];
+                        }
+                        if (profile.depends?.length) {
+                            profile.depends.forEach(dep => {
+                                if (!result.profiles?.[dep]) {
+                                    reporter.reportDiagnostic(new ErrorMessage(`Unknown profile '${dep}' in 'depends' of '${configFilePath}'.`));
+                                }
+                            });
+                        }
+                    });
+                }
+                return result;
+            }
+        }
+    }
+    return undefined;
 };

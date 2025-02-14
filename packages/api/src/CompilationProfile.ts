@@ -9,13 +9,18 @@ import type ts from "typescript";
 /**
  * This type represents the configuration options for a profile. It is used in
  * the `profiles` section of the `websmith.config.json` file. You can specify
- *  - the list of addons to apply for this profile
- *  - whether output files should be written to disk
- *  - specific configuration properties used by your addon
- *  - a set of compiler options for the TypeScript compiler for this profile
+ *  - `depends`: the list of dependencies to other profiles to be applied
+ *  - `addons`: the list of addons to apply for this profile
+ *  - `config`: profile specific configuration
+ *  - `tsConfig`: compiler options for the TypeScript compiler for this profile
  */
 export type CompilationProfile = {
+    /** List of dependencies to other profiles to be applied, before this profile is applied. */
+    depends?: string[];
+    /** List of addons to be loaded. */
     addons?: string[];
+    /** Profile specific configuration. */
     config?: unknown;
+    /** Compiler options for the TypeScript compiler for this profile. */
     tsConfig?: ts.CompilerOptions;
 };
