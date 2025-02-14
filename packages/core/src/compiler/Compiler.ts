@@ -232,7 +232,7 @@ export class Compiler {
         registerDependencyCallback?: (filePath: string) => void
     ): CompilationContext {
         const { buildDir, config, configFile, tsConfig, cliArgs, watch } = compileOptions;
-        const { options = {}, config: profileConfig } = getProfile(profile, config);
+        const { tsConfig: options = {}, config: profileConfig } = getProfile(profile, config);
         return new CompilationContext({
             buildDir,
             tsConfig: { ...tsConfig, ...options },

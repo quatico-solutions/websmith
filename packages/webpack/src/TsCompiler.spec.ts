@@ -140,8 +140,8 @@ describe("Transpilation", () => {
                 configFile: resolve("./__TEMP__/websmith.config.json"),
                 config: {
                     profiles: {
-                        fragment: { options: { declaration: true } },
-                        write: { options: { module: 1, target: 1 } },
+                        fragment: { tsConfig: { declaration: true } },
+                        write: { tsConfig: { module: 1, target: 1 } },
                     },
                     addonsDir: "./addons",
                 },
