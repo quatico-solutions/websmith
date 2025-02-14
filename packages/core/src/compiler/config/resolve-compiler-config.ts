@@ -45,13 +45,13 @@ const updateProfile = (profile: CompilationProfile, system: ts.System, basePath:
     };
 };
 
-export const updateCompilerOptions = (options: ts.CompilerOptions, system: ts.System, basePath: string): ts.CompilerOptions => {
+export const updateCompilerOptions = (tsConfig: ts.CompilerOptions, system: ts.System, basePath: string): ts.CompilerOptions => {
     return {
-        ...options,
-        ...(options.outDir && { outDir: resolvePath(options.outDir, system, basePath) }),
-        ...(options.paths && {
+        ...tsConfig,
+        ...(tsConfig.outDir && { outDir: resolvePath(tsConfig.outDir, system, basePath) }),
+        ...(tsConfig.paths && {
             paths: Object.fromEntries(
-                Object.entries(options.paths).map(value => [value[0], value[1].map(cur => resolvePath(cur, system, basePath))])
+                Object.entries(tsConfig.paths).map(value => [value[0], value[1].map(cur => resolvePath(cur, system, basePath))])
             ),
         }),
     };
