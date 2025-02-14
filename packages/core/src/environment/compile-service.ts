@@ -20,20 +20,20 @@ import { DefaultReporter } from "../compiler";
  * @param sourceFiles
  * @param system
  */
-export const createCompileHost = (options: ts.CompilerOptions): ts.CompilerHost => {
-    return ts.createCompilerHost(options, true);
+export const createCompileHost = (tsConfig: ts.CompilerOptions): ts.CompilerHost => {
+    return ts.createCompilerHost(tsConfig, true);
 };
 
 export const createWatchHost = (
     rootFiles: string[],
-    compilerOptions: ts.CompilerOptions,
+    tsConfig: ts.CompilerOptions,
     system: ts.System,
     reporter?: Reporter
 ): ts.WatchCompilerHostOfFilesAndCompilerOptions<ts.SemanticDiagnosticsBuilderProgram> => {
     reporter = reporter ?? new DefaultReporter(system);
     return ts.createWatchCompilerHost(
         rootFiles,
-        compilerOptions,
+        tsConfig,
         system,
         createProgram,
         reporter.reportDiagnostic,

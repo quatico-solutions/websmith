@@ -62,7 +62,7 @@ export class CompilationContext implements AddonContext {
         this.generators = [];
         this.languageHost = this.createLanguageServiceHost({
             system,
-            options: tsConfig,
+            tsConfig,
             profile,
         });
         this.cache = new FileCache(system);
@@ -226,11 +226,11 @@ export class CompilationContext implements AddonContext {
 
     private createLanguageServiceHost({
         system,
-        options,
+        tsConfig,
         profile,
     }: {
         system: ts.System;
-        options: ts.CompilerOptions;
+        tsConfig: ts.CompilerOptions;
         profile?: string;
     }): ts.LanguageServiceHost {
         return {
@@ -266,7 +266,7 @@ export class CompilationContext implements AddonContext {
                 return ts.ScriptSnapshot.fromString(content);
             },
             getScriptFileNames: (): string[] => this.rootFiles,
-            getCompilationSettings: () => options,
+            getCompilationSettings: () => tsConfig,
             getCustomTransformers: (): ts.CustomTransformers => this.transformers,
         };
     }

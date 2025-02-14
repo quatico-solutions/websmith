@@ -10,7 +10,7 @@ import ts from "typescript";
 export const createSharedHost = (sys: ts.System = ts.sys) => ({
     getNewLine: () => sys.newLine,
     getCurrentDirectory: () => sys.getCurrentDirectory(),
-    getDefaultLibFileName: (options: ts.CompilerOptions) => join(dirname(ts.getDefaultLibFilePath(options)), ts.getDefaultLibFileName(options)),
+    getDefaultLibFileName: (tsConfig: ts.CompilerOptions) => join(dirname(ts.getDefaultLibFilePath(tsConfig)), ts.getDefaultLibFileName(tsConfig)),
     fileExists: sys.fileExists,
     readFile: sys.readFile,
     readDirectory: sys.readDirectory,

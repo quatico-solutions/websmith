@@ -12,16 +12,16 @@ import { Compiler as TscCompiler } from "./Compiler";
 
 const ADDONS_DIR = path.join(__dirname, "..", "..", "..", "sandbox-addons", "lib");
 
-const defaultWebsmithConfig = (options?: ts.CompilerOptions): WebsmithOptions => {
+const defaultWebsmithConfig = (tsConfig: ts.CompilerOptions = {}): WebsmithOptions => {
     const system = ts.sys;
     const reporter = new DefaultReporter(system);
     return {
         buildDir: "../src",
         debug: false,
-        tsConfig: options ?? {},
+        tsConfig,
         reporter,
         profiles: [],
-        cliArgs: resolveProjectConfig(options?.project ?? path.join(__dirname, "..", "tsconfig.json"), system),
+        cliArgs: resolveProjectConfig(tsConfig?.project ?? path.join(__dirname, "..", "tsconfig.json"), system),
         watch: false,
     };
 };

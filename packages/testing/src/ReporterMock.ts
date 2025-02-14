@@ -11,7 +11,7 @@ import type ts from "typescript";
 export class ReporterMock extends DefaultReporter {
     public message?: string = "";
 
-    public reportWatchStatus(diagnostic: ts.Diagnostic, newLine?: string, options?: ts.CompilerOptions, errorCount?: number): void {
+    public reportWatchStatus(diagnostic: ts.Diagnostic, newLine?: string, tsConfig?: ts.CompilerOptions, errorCount?: number): void {
         // do nothing
     }
 

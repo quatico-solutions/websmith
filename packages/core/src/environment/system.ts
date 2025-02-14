@@ -44,9 +44,9 @@ export const recursiveFindByFilter = (path: string, filter: (name: string) => bo
         .flatMap(it => (system.directoryExists(join(path, it)) ? recursiveFindByFilter(join(path, it), filter) : join(path, it)))
         .filter(filter);
 
-export const createVersionedFiles = (files: { [name: string]: string }, options: ts.CompilerOptions): { [name: string]: VersionedFile } => {
+export const createVersionedFiles = (files: { [name: string]: string }, tsConfig: ts.CompilerOptions): { [name: string]: VersionedFile } => {
     return Object.keys(files).reduce((result: { [name: string]: VersionedFile }, name: string) => {
-        result[name] = createVersionedFile(name, files[name], options);
+        result[name] = createVersionedFile(name, files[name], tsConfig);
         return result;
     }, {});
 };
@@ -54,10 +54,10 @@ export const createVersionedFiles = (files: { [name: string]: string }, options:
 export const getVersionedFile = (filePath: string, system: ts.System): ts.SourceFile | undefined =>
     createVersionedFiles(readFiles([filePath], system), tsDefaults)[filePath];
 
-export const createVersionedFile = (name: string, content: string, options: ts.CompilerOptions): VersionedFile => {
+export const createVersionedFile = (name: string, content: string, tsConfig: ts.CompilerOptions): VersionedFile => {
     const scriptKind = name.endsWith(".ts") ? undefined : ts.ScriptKind.Deferred;
     return {
-        ...ts.createSourceFile(name, content, options.target || ts.ScriptTarget.Latest, true, scriptKind),
+        ...ts.createSourceFile(name, content, tsConfig.target || ts.ScriptTarget.Latest, true, scriptKind),
         version: 0,
     };
 };

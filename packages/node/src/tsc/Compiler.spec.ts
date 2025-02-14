@@ -10,13 +10,13 @@ describe("Compiler#getTsOptions", () => {
     it("should return tsDefaults without tsOptions", () => {
         const testObj = new Compiler();
 
-        expect(testObj.getTsOptions()).toEqual(tsDefaults);
+        expect(testObj.getTsConfig()).toEqual(tsDefaults);
     });
 
     it("should return tsOptions with tsOptions parameter", () => {
         const testObj = new Compiler({ target: ts.ScriptTarget.ESNext });
 
-        expect(testObj.getTsOptions()).toEqual({ target: ts.ScriptTarget.ESNext });
+        expect(testObj.getTsConfig()).toEqual({ target: ts.ScriptTarget.ESNext });
     });
 });
 
