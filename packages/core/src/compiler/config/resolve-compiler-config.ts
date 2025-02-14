@@ -41,7 +41,7 @@ const updatePaths = (config: CompilationConfig, system: ts.System, basePath: str
 const updateProfile = (profile: CompilationProfile, system: ts.System, basePath: string): CompilationProfile => {
     return {
         ...profile,
-        ...(profile.options && { options: updateCompilerOptions(profile.options, system, basePath) }),
+        ...(profile.tsConfig && { tsConfig: updateCompilerOptions(profile.tsConfig, system, basePath) }),
     };
 };
 

@@ -17,5 +17,5 @@ import type ts from "typescript";
 export type CompilationProfile = {
     addons?: string[];
     config?: unknown;
-    options?: ts.CompilerOptions;
+    tsConfig?: ts.CompilerOptions;
 };

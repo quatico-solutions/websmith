@@ -161,7 +161,7 @@ describe("compile", () => {
                 ...target.config,
                 profiles: {
                     "*": {
-                        options: { outDir: "./lib/expected" },
+                        tsConfig: { outDir: "./lib/expected" },
                     },
                 },
             },
@@ -708,7 +708,7 @@ describe("watch", () => {
         }).getSourceFile("src/target.ts");
         const options = compileOptions(fileSystem, {
             config: {
-                profiles: { "*": { options: { outDir: "/build" } } },
+                profiles: { "*": { tsConfig: { outDir: "/build" } } },
             },
             tsConfig: { declaration: true },
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
@@ -740,8 +740,8 @@ describe("watch", () => {
         const options = compileOptions(fileSystem, {
             config: {
                 profiles: {
-                    target1: { options: { outDir: "/target1" } },
-                    target2: { options: { outDir: "/target2", declaration: false } },
+                    target1: { tsConfig: { outDir: "/target1" } },
+                    target2: { tsConfig: { outDir: "/target2", declaration: false } },
                 },
             },
             tsConfig: { declaration: true },
@@ -780,9 +780,9 @@ describe("watch", () => {
         const options = compileOptions(fileSystem, {
             config: {
                 profiles: {
-                    target1: { options: { outDir: "/target1" } },
+                    target1: { tsConfig: { outDir: "/target1" } },
                     target2: {
-                        options: { outDir: "/target2", declaration: false },
+                        tsConfig: { outDir: "/target2", declaration: false },
                     },
                 },
                 transpileOnly: true,
@@ -833,7 +833,7 @@ describe("watch", () => {
         const options = compileOptions(fileSystem, {
             config: {
                 profiles: {
-                    target1: { options: { outDir: "/target1" } },
+                    target1: { tsConfig: { outDir: "/target1" } },
                 },
             },
             tsConfig: { declaration: true },
@@ -885,7 +885,7 @@ describe("watch", () => {
         const options = compileOptions(fileSystem, {
             config: {
                 profiles: {
-                    target1: { options: { outDir: "/target1" } },
+                    target1: { tsConfig: { outDir: "/target1" } },
                 },
             },
             tsConfig: { declaration: true },

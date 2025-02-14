@@ -66,7 +66,7 @@ export class CompilationEnv {
             config: {
                 profiles: {
                     "*": {
-                        options: { outDir },
+                        tsConfig: { outDir },
                     },
                 },
             },
