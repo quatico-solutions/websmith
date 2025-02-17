@@ -6,7 +6,7 @@
  */
 export { ReporterMock } from "./ReporterMock";
 export * from "./compilation";
-export { compileOptions } from "./compile-options";
+export { resolveCompilerOptions } from "./resolve-options";
 export { compileSystem, type CompileSystem, type CompileSystemOptions } from "./compile-system";
 export { createFs, resetFs } from "./fusion-fs";
 export { tsLibMocks } from "./tsLibMocks";

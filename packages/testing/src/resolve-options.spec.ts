@@ -6,11 +6,11 @@
  */
 import { createBrowserSystem } from "@quatico/websmith-core";
 import ts from "typescript";
-import { compileOptions } from "./compile-options";
+import { resolveCompilerOptions } from "./resolve-options";
 
 describe("compileOptions", () => {
     it("should return correct defaults", () => {
-        const actual = compileOptions(createBrowserSystem());
+        const actual = resolveCompilerOptions(createBrowserSystem());
 
         expect(actual).toEqual({
             buildDir: "/src",
@@ -22,7 +22,7 @@ describe("compileOptions", () => {
                 target: ts.ScriptTarget.Latest,
                 configFilePath: "./tsconfig.json",
             },
-            profiles: [],
+            profiles: ["*"],
             cliArgs: {
                 options: {
                     outDir: "./dist",
