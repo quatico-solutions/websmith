@@ -10,36 +10,36 @@ import { dirname, isAbsolute, join } from "node:path";
 import type ts from "typescript";
 import { type CompilationConfig } from "./CompilationConfig";
 
-const updatePaths = (config: CompilationConfig, system: ts.System, basePath: string): CompilationConfig => {
+const updatePaths = (config: CompilationConfig, basePath: string, system: ts.System): CompilationConfig => {
     return {
         ...config,
-        ...(config.addonsDir && { addonsDir: resolvePath(config.addonsDir, system, basePath) }),
+        ...(config.addonsDir && { addonsDir: resolvePath(config.addonsDir, basePath, system) }),
         ...(config.profiles && {
-            profiles: Object.fromEntries(Object.entries(config.profiles).map(([name, profile]) => [name, updateProfile(profile, system, basePath)])),
+            profiles: Object.fromEntries(Object.entries(config.profiles).map(([name, profile]) => [name, updateProfile(profile, basePath, system)])),
         }),
     };
 };
 
-const updateProfile = (profile: CompilationProfile, system: ts.System, basePath: string): CompilationProfile => {
+const updateProfile = (profile: CompilationProfile, basePath: string, system: ts.System): CompilationProfile => {
     return {
         ...profile,
-        ...(profile.tsConfig && { tsConfig: updateCompilerOptions(profile.tsConfig, system, basePath) }),
+        ...(profile.tsConfig && { tsConfig: resolvePaths(profile.tsConfig, basePath, system) }),
     };
 };
 
-export const updateCompilerOptions = (tsConfig: ts.CompilerOptions, system: ts.System, basePath: string): ts.CompilerOptions => {
+export const resolvePaths = (tsConfig: ts.CompilerOptions, basePath: string, system: ts.System): ts.CompilerOptions => {
     return {
         ...tsConfig,
-        ...(tsConfig.outDir && { outDir: resolvePath(tsConfig.outDir, system, basePath) }),
+        ...(tsConfig.outDir && { outDir: resolvePath(tsConfig.outDir, basePath, system) }),
         ...(tsConfig.paths && {
             paths: Object.fromEntries(
-                Object.entries(tsConfig.paths).map(value => [value[0], value[1].map(cur => resolvePath(cur, system, basePath))])
+                Object.entries(tsConfig.paths).map(value => [value[0], value[1].map(cur => resolvePath(cur, basePath, system))])
             ),
         }),
     };
 };
 
-const resolvePath = (path: string, system: ts.System, basePath: string): string => {
+const resolvePath = (path: string, basePath: string, system: ts.System): string => {
     return isAbsolute(path) ? path : system.resolvePath(join(basePath, path));
 };
 
@@ -52,7 +52,7 @@ export const resolveCompilationConfig = (configFilePath: string, reporter: Repor
             const content = system.readFile(resolvedPath);
             if (content) {
                 const config = JSON.parse(content ?? "{}");
-                const result = { ...updatePaths(config.config ?? config, system, dirname(resolvedPath)) };
+                const result = { ...updatePaths(config.config ?? config, dirname(resolvedPath), system) };
                 if (result.profiles) {
                     Object.entries(result.profiles).forEach(([_name, profile]) => {
                         if (profile.addons?.length) {
