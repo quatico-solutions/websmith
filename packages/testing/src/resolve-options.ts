@@ -12,11 +12,7 @@ import { resolvePath } from "./compilation/resolve-path";
 const DEFAULT_BUILD_DIR = "./src";
 const DEFAULT_OUT_DIR = "./dist";
 
-export const compileOptions = (
-    system: ts.System,
-
-    overrides?: Partial<CompilerOptions> & { tsconfig?: Partial<ts.ParsedCommandLine>; project?: Partial<ts.CompilerOptions>; profiles?: string[] }
-): CompilerOptions => {
+export const resolveCompilerOptions = (system: ts.System, overrides?: Partial<CompilerOptions>): CompilerOptions => {
     const reporter = new ReporterMock(system);
     const buildDir: string = resolvePath(system, overrides?.buildDir ?? DEFAULT_BUILD_DIR);
     return {
@@ -28,10 +24,10 @@ export const compileOptions = (
         tsConfig: {
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.Latest,
-            configFilePath: `./tsconfig.json`,
+            configFilePath: overrides?.tsConfigFile ?? "./tsconfig.json",
             ...overrides?.tsConfig,
         },
-        profiles: overrides?.profiles ?? [],
+        profiles: overrides?.profiles ?? ["*"],
         cliArgs: {
             options: { outDir: overrides?.tsConfig?.outDir ?? DEFAULT_OUT_DIR },
             fileNames: system.readDirectory(buildDir),

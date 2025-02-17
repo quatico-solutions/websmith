@@ -7,11 +7,17 @@
 import ts from "typescript";
 import { type CompilerOptions } from "../src/compiler";
 import { ReporterMock } from "./ReporterMock";
+import { join, isAbsolute } from "node:path";
 
-export const compileOptions = (system: ts.System, overrides?: Partial<CompilerOptions>): CompilerOptions => {
+const DEFAULT_BUILD_DIR = "./src";
+const DEFAULT_OUT_DIR = "./dist";
+
+export const resolveCompilerOptions = (system: ts.System, overrides?: Partial<CompilerOptions>): CompilerOptions => {
     const reporter = new ReporterMock(system);
+    const buildDir: string = resolvePath(system, overrides?.buildDir ?? DEFAULT_BUILD_DIR);
+
     return {
-        buildDir: "./src",
+        buildDir,
         reporter,
         debug: false,
         watch: false,
@@ -19,15 +25,23 @@ export const compileOptions = (system: ts.System, overrides?: Partial<CompilerOp
         tsConfig: {
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.Latest,
-            configFilePath: "./tsconfig.json",
+            configFilePath: overrides?.tsConfigFile ?? "./tsconfig.json",
             ...overrides?.tsConfig,
         },
         profiles: overrides?.profiles ?? ["*"],
         cliArgs: {
-            options: {},
-            fileNames: system.readDirectory("./src"),
+            options: { outDir: overrides?.tsConfig?.outDir ?? DEFAULT_OUT_DIR },
+            fileNames: system.readDirectory(buildDir),
             errors: [],
             ...overrides?.cliArgs,
         },
     };
+};
+
+export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
+    let resolvedPath = join(...pathSegments);
+    if (!isAbsolute(resolvedPath)) {
+        resolvedPath = join(fs.getCurrentDirectory(), ...pathSegments);
+    }
+    return resolvedPath;
 };

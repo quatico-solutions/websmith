@@ -29,6 +29,10 @@ export interface CompilerOptions {
      */
     cliArgs: ts.ParsedCommandLine;
     /**
+     * Relative file path to the `tsconfig.json` file to be used for compilation.
+     */
+    tsConfigFile?: string;
+    /**
      * TypeScript compiler options to be used for compilation. Overrides the options loaded from `tsconfig.json`.
      */
     tsConfig: ts.CompilerOptions;

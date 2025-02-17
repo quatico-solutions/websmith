@@ -63,7 +63,7 @@ export class Compiler {
         }
         const defaultCtx = this.contextMap.get("default");
         if (!defaultCtx) {
-            this.contextMap.set("default", this.createCompilationContext(this.options, undefined, this.dependencyCallback));
+            this.contextMap.set("default", this.createCompilationContext());
         }
         return this.contextMap.get("default");
     }
@@ -167,7 +167,7 @@ export class Compiler {
         return this;
     }
 
-    public registerWatch(filePath: string, profileNames: string[]): this {
+    public registerWatch(filePath: string, profileNames = this.options.profiles): this {
         if (!this.system.watchFile) {
             return this;
         }
@@ -176,7 +176,7 @@ export class Compiler {
             this.system.watchFile(
                 filePath,
                 fileName =>
-                    profileNames.forEach(profile =>
+                    (profileNames ?? []).forEach(profile =>
                         fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
                             ? this.emitSourceFile(fileName, profile, true, true)
                             : this.contextMap.has(profile) &&
@@ -216,7 +216,7 @@ export class Compiler {
                 if (this.contextMap.has(profile)) {
                     return;
                 }
-                const ctx = this.createCompilationContext(this.options, profile, this.dependencyCallback);
+                const ctx = this.createCompilationContext(profile);
                 this.addons?.getAvailableAddons(profile).forEach(addon => {
                     addon.activate(ctx);
                 });
@@ -226,12 +226,8 @@ export class Compiler {
         return this;
     }
 
-    protected createCompilationContext(
-        compileOptions: CompilerOptions,
-        profile?: string,
-        registerDependencyCallback?: (filePath: string) => void
-    ): CompilationContext {
-        const { buildDir, config, configFile, tsConfig, cliArgs, watch } = compileOptions;
+    protected createCompilationContext(profile?: string): CompilationContext {
+        const { buildDir, config, configFile, tsConfig, cliArgs, watch } = this.options;
         const { tsConfig: options = {}, config: profileConfig } = getProfile(profile, config);
         return new CompilationContext({
             buildDir,
@@ -244,8 +240,8 @@ export class Compiler {
             reporter: this.reporter,
             ...(!!profileConfig && { config: profileConfig }),
             profile,
-            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.options.profiles ?? []) }),
-            registerDependencyCallback,
+            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath) }),
+            registerDependencyCallback: this.dependencyCallback,
         });
     }
 

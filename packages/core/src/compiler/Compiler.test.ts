@@ -1,4 +1,4 @@
-import { compileOptions, compileSystem } from "../../test";
+import { resolveCompilerOptions, compileSystem } from "../../test";
 import { Compiler } from "./Compiler";
 
 describe("end-2-end compile w/ websmith", () => {
@@ -10,7 +10,7 @@ describe("end-2-end compile w/ websmith", () => {
         });
 
         const actual = new Compiler(
-            compileOptions(target, {
+            resolveCompilerOptions(target, {
                 tsConfig: { outDir: "./bin" },
             }),
             target

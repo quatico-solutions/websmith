@@ -19,7 +19,7 @@ import { Module } from "module";
 import { basename, dirname, extname, isAbsolute, join } from "node:path";
 import requireFromString from "require-from-string";
 import ts from "typescript";
-import { compileOptions } from "../compile-options";
+import { resolveCompilerOptions } from "../resolve-options";
 import { copyDirectory } from "./copy-directory";
 import { resolvePath } from "./resolve-path";
 import { rmSync } from "node:fs";
@@ -60,7 +60,7 @@ export class CompilationEnv {
             this.system.createDirectory(outDir);
         }
 
-        this.compilerOptions = compileOptions(this.system, {
+        this.compilerOptions = resolveCompilerOptions(this.system, {
             buildDir: this.buildDir,
             profiles: options?.compilerOptions?.profiles?.length ? options.compilerOptions.profiles : ["*"],
             config: {
@@ -319,7 +319,7 @@ export class CompilationEnv {
         addonsToCompile.forEach(curDir => {
             new Compiler(
                 {
-                    ...compileOptions(this.system, {
+                    ...resolveCompilerOptions(this.system, {
                         buildDir: curDir,
                     }),
                     tsConfig: {

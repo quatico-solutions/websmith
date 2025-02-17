@@ -31,7 +31,7 @@ export const compile = async (files: string[], config?: { tsConfig?: ts.Compiler
     if (websmith) {
         const system = ts.sys;
         const reporter = new DefaultReporter(system);
-        let websmithConfig: WebsmithOptions = { ...websmith } as unknown as WebsmithOptions;
+        let websmithConfig = { ...websmith } as WebsmithOptions;
         if (files && files.length > 0) {
             websmithConfig.cliArgs = { ...(websmithConfig.cliArgs ?? {}), fileNames: files };
         }
