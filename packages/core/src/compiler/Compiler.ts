@@ -254,7 +254,7 @@ export class Compiler {
             if (!skipCache && !cache.hasChanged(filePath)) {
                 return { files: [], content: "", ...cache.getCachedFile(filePath) };
             }
-            let content = this.system.readFile(fileName) ?? ctx.getCache().getCachedFile(fileName)?.content ?? "";
+            let content = this.system.readFile(fileName) ?? cache.getCachedFile(fileName)?.content ?? "";
 
             ctx.getGenerators().forEach(cur => cur(fileName, content));
             ctx.getProcessors().forEach(cur => (content = cur(fileName, content)));
