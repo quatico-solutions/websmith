@@ -5,23 +5,17 @@
  * ---------------------------------------------------------------------------------------------
  */
 import type ts from "typescript";
-import { createBrowserSystem, getVersionedFile } from "../src/environment";
+import { createBrowserSystem, getVersionedFile, type CompileSystemOptions } from "../src/environment";
 
 export type CompileSystem = {
     fileSystem: ts.System;
     getSourceFile(fileName: string): { entry?: ts.SourceFile; fileSystem: ts.System };
 };
 
-export type CompileSystemOptions = {
-    useCaseSensitiveFileNames?: boolean;
-    withDefaultFiles?: boolean;
-    fileWatcher?: (fileName: string, eventKind: ts.FileWatcherEventKind, modifiedTime?: Date) => void;
-};
-
 export const compileSystem = (files?: Record<string, string>, options?: CompileSystemOptions): CompileSystem => {
-    const { useCaseSensitiveFileNames = false, withDefaultFiles = true, fileWatcher } = options ?? {};
-    const fileSystem = createBrowserSystem({ ...files }, { useCaseSensitiveFileNames, addLibDefaults: withDefaultFiles, fileWatcher });
-    if (withDefaultFiles) {
+    const { useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher } = options ?? {};
+    const fileSystem = createBrowserSystem({ ...files }, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher });
+    if (addLibDefaults) {
         if (!fileSystem.fileExists("./tsconfig.json")) {
             fileSystem.writeFile("./tsconfig.json", "{}");
         }

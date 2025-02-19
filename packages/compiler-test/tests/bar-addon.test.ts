@@ -17,8 +17,8 @@ describe("compile test-project-foo w/ compilationEnv", () => {
     });
 
     it("should contain source file", () => {
-        const testObj = compilationEnv("__TEST__").addProjectFile(
-            "src/foo.ts",
+        const testObj = compilationEnv("__TEST__").addSourceFile(
+            "foo.ts",
             `
                 export const foo = () => {
                     console.log("foo");
@@ -49,8 +49,8 @@ describe("compile test-project-foo w/ compilationEnv", () => {
     });
 
     it("should compile source file content", () => {
-        const testObj = compilationEnv("__TEST__").addProjectFile(
-            "src/foo.ts",
+        const testObj = compilationEnv("__TEST__").addSourceFile(
+            "foo.ts",
             `
             export const foo = () => {
                 console.log("foo");
