@@ -38,7 +38,7 @@ The following list should help you to decide what kind to use for your purpose:
 The following example shows how to implement a `Generator` that creates additional input files for the compilation:
 
 ```typescript
-// ./addons/example-generator/addon.ts
+// ./addons/foo-added-generator/addon.ts
 import { AddonContext, InfoMessage } from "@quatico/websmith-api";
 import { basename, dirname, extname, join } from "path";
 
@@ -69,7 +69,7 @@ export const activate = (ctx: AddonContext) => {
 The following example shows how to implement a `Processor` that modifies the exports of "foobar" functions:
 
 ```typescript
-// ./addons/example-processor/addon.ts
+// ./addons/foobar-export-processor/addon.ts
 import { AddonContext } from "@quatico/websmith-api";
 import ts from "typescript";
 
@@ -119,7 +119,7 @@ export const activate = (ctx: AddonContext) => {
 The following example shows how to implement a `ResultProcessor` that creates JSON data with found function names:
 
 ```typescript
-// ./addons/example-result-processor/addon.ts
+// ./addons/function-json-result-processor/addon.ts
 import { AddonContext, InfoMessage } from "@quatico/websmith-api";
 import { basename, extname, join } from "path";
 import ts from "typescript";
@@ -183,7 +183,7 @@ VisualStudio Code users can leverage the extension [TypeScript AST Explorer](htt
 The following example shows how to implement a `Transformer` that modifies the source code inside a module:
 
 ```typescript
-// ./addons/example-transformer/addon.ts
+// ./addons/foobar-replace-transformer/addon.ts
 import { AddonContext } from "@quatico/websmith-api";
 import ts from "typescript";
 

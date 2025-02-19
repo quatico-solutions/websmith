@@ -13,7 +13,7 @@ export const activate = (ctx: AddonContext): void => {
 };
 
 /**
- * Creates a processor that uses a TS transformer to replace every found "foobar" identifier with "barfoo".
+ * Creates a processor that uses a TS transformer to replace every found "CLIENT" identifier with "SERVER".
  *
  * @param ctx The addon context for the compilation.
  * @returns A websmith processor factory function.
@@ -22,7 +22,7 @@ const createProcessor =
     (ctx: AddonContext): Processor =>
     (fileName: string, content: string): string => {
         const file = ts.createSourceFile(fileName, content, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest, true);
-        const result = ts.transform(file, [createReplaceIdentifierTransformer(/foobar/gi, "barfoo")], ctx.getCliArgs().options);
+        const result = ts.transform(file, [createReplaceIdentifierTransformer(/CLIENT/, "SERVER")], ctx.getCliArgs().options);
         if (result.diagnostics && result.diagnostics.length > 0) {
             result.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, file)));
             return "";

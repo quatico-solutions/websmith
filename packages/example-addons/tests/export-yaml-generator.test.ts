@@ -5,15 +5,15 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
-import { join } from "node:path";
+import path from "node:path";
 
 describe("export-yaml-generator addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__/export-yaml-generator", {
+        testObj = compilationEnv("./__TEST__", {
             compilerOptions: { tsConfig: { outDir: "dist" } },
             virtual: false,
-        }).addAddon("export-yaml-generator", join(__dirname, "../src"));
+        }).addAddon("export-yaml-generator", path.join(__dirname, "../src"));
     });
 
     afterEach(() => {
@@ -38,11 +38,7 @@ describe("export-yaml-generator addon", () => {
             .getPaths()
             .map(it => it.substring(it.indexOf("/__TEST__")));
 
-        expect(actual).toEqual([
-            "/__TEST__/export-yaml-generator/dist/bar.js",
-            "/__TEST__/export-yaml-generator/dist/foo.js",
-            "/__TEST__/export-yaml-generator/dist/output.yaml",
-        ]);
+        expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js", "/__TEST__/dist/output.yaml"]);
         expect(testObj.getCompiledFile("output.yaml")?.getContent()).toEqual(expect.stringContaining("exports: [Foo]"));
     });
 });

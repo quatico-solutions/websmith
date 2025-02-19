@@ -10,27 +10,27 @@ A set of example addons to create your own `Generators`, `Processors` or `Result
 
 ## Example Generator
 
-The `example-generator` addon is a generator that creates additional input files for the compilation. It creates an additional source file for every input file with substring "foo" in its file name. The additional file is named "*-added.ts" and contains the original file content. It is compiled with the same options as the original file.
+The `foo-added-generator` addon is a generator that creates additional input files for the compilation. It creates an additional source file for every input file with substring "foo" in its file name. The additional file is named "*-added.ts" and contains the original file content. It is compiled with the same options as the original file.
 
-See example code in [example-generator/addon.ts](https://github.com/quatico-solutions/websmith/tree/develop/packages/examples/addons/example-generator/addon.ts) for more details.
+See example code in [foo-added-generator/addon.ts](https://github.com/quatico-solutions/websmith/tree/develop/packages/examples/addons/foo-added-generator/addon.ts) for more details.
 
 ## Example Processor
 
-The `example-processor` addon is a processor that modifies all exports of ES modules. It finds all non exported "foobar" functions and adds an export modifier to the function declaration.
+The `foobar-export-processor` addon is a processor that modifies all exports of ES modules. It finds all non exported "foobar" functions and adds an export modifier to the function declaration.
 
-See example code in [example-processor/addon.ts](https://github.com/quatico-solutions/websmith/tree/develop/packages/examples/addons/example-processor/addon.ts) for more details.
+See example code in [foobar-export-processor/addon.ts](https://github.com/quatico-solutions/websmith/tree/develop/packages/examples/addons/foobar-export-processor/addon.ts) for more details.
 
 ## Example ResultProcessor
 
-The `example-result-processor` addon is a result processor that creates JSON data with all found function names. It consumes all processed source files to find function declarations and arrow functions to extract their names into a JSON file.
+The `function-json-result-processor` addon is a result processor that creates JSON data with all found function names. It consumes all processed source files to find function declarations and arrow functions to extract their names into a JSON file.
 
-See example code in [example-result-processor/addon.ts](https://github.com/quatico-solutions/websmith/tree/develop/packages/examples/addons/example-result-processor/addon.ts) for more details.
+See example code in [function-json-result-processor/addon.ts](https://github.com/quatico-solutions/websmith/tree/develop/packages/examples/addons/function-json-result-processor/addon.ts) for more details.
 
 ## Example Transformer
 
-The `example-transformer` addon is a transformer that modifies the source code inside a module. It finds all "foobar" identifiers in the source file and replaces them with the string "barfoo".
+The `foobar-replace-transformer` addon is a transformer that modifies the source code inside a module. It finds all "foobar" identifiers in the source file and replaces them with the string "barfoo".
 
-See example code in [example-transformer/addon.ts](https://github.com/quatico-solutions/websmith/tree/develop/packages/examples/addons/example-transformer/addon.ts) for more details.
+See example code in [foobar-replace-transformer/addon.ts](https://github.com/quatico-solutions/websmith/tree/develop/packages/examples/addons/foobar-replace-transformer/addon.ts) for more details.
 
 ## Example YAML Generator
 

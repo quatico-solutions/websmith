@@ -4,13 +4,13 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { join } from "node:path";
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
+import path from "node:path";
 
-describe("example-generator addon", () => {
+describe("foo-added-generator addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__/example-generator", { virtual: false }).addAddon("example-generator", join(__dirname, "../src"));
+        testObj = compilationEnv("./__TEST__", { virtual: false }).addAddon("foo-added-generator", path.join(__dirname, "../src"));
     });
 
     afterEach(() => {
@@ -36,9 +36,9 @@ describe("example-generator addon", () => {
         const actual = testObj.getCompiledFiles().getPaths();
 
         expect(actual.map(it => it.substring(it.indexOf("/__TEST__")))).toEqual([
-            "/__TEST__/example-generator/dist/bar.js",
-            "/__TEST__/example-generator/dist/foo-added.js",
-            "/__TEST__/example-generator/dist/foo.js",
+            "/__TEST__/dist/bar.js",
+            "/__TEST__/dist/foo-added.js",
+            "/__TEST__/dist/foo.js",
         ]);
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toMatchInlineSnapshot(`
             "export class Foo {

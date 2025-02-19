@@ -86,7 +86,7 @@ describe("compile w/ websmith", () => {
                 profiles: ["*"],
                 config: {
                     addonsDir: ADDONS_DIR,
-                    addons: ["example-generator"],
+                    addons: ["foo-added-generator"],
                 },
             },
         });
@@ -101,7 +101,7 @@ describe("compile w/ websmith", () => {
                 profiles: ["*"],
                 config: {
                     addonsDir: ADDONS_DIR,
-                    addons: ["example-transformer"],
+                    addons: ["foobar-replace-transformer"],
                 },
             },
         });
@@ -187,7 +187,7 @@ describe("compile w/ websmith", () => {
             addonsDir: ADDONS_DIR,
             profiles: {
                 "*": {
-                    addons: ["example-transformer"],
+                    addons: ["foobar-replace-transformer"],
                 },
             },
         });
@@ -236,7 +236,7 @@ describe("compile w/ websmith", () => {
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
-                    addons: ["example-transformer"],
+                    addons: ["foobar-replace-transformer"],
                 },
             },
         });
@@ -252,10 +252,10 @@ describe("compile w/ websmith", () => {
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
-                    addons: ["example-transformer"],
+                    addons: ["foobar-replace-transformer"],
                     profiles: {
                         "profile-expected": {
-                            addons: ["example-transformer"],
+                            addons: ["foobar-replace-transformer"],
                         },
                     },
                 },
@@ -272,13 +272,13 @@ describe("compile w/ websmith", () => {
             addonsDir: ADDONS_DIR,
             profiles: {
                 "profile-transform": {
-                    addons: ["example-transformer"],
+                    addons: ["foobar-replace-transformer"],
                 },
                 "profile-generate": {
-                    addons: ["example-generator"],
+                    addons: ["foo-added-generator"],
                 },
                 "profile-process": {
-                    addons: ["example-processor"],
+                    addons: ["foobar-export-processor"],
                 },
             },
         });
@@ -301,10 +301,10 @@ describe("compile w/ websmith", () => {
             addonsDir: ADDONS_DIR,
             profiles: {
                 "profile-transform": {
-                    addons: ["example-transformer"],
+                    addons: ["foobar-replace-transformer"],
                 },
                 "profile-generate": {
-                    addons: ["example-generator"],
+                    addons: ["foo-added-generator"],
                 },
                 "profile-process": {
                     addons: ["export-yaml-generator"],
@@ -332,7 +332,7 @@ describe("compile w/ websmith", () => {
             addonsDir: ADDONS_DIR,
             profiles: {
                 "profile-transform": {
-                    addons: ["example-transformer", "export-yaml-generator"],
+                    addons: ["foobar-replace-transformer", "export-yaml-generator"],
                 },
             },
         });

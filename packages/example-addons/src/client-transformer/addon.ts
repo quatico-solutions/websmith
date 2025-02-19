@@ -5,19 +5,19 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext } from "@quatico/websmith-api";
-import { createReplaceIdentifierTransformer } from "./replace-identifier-transformer";
+import { createReplaceIdentifierTransformer } from "../foobar-replace-transformer";
 
 /**
  * Example addon with a transformer that modifies the source code inside a
  * module.
  *
  * This addon finds all "foobar" identifiers in the source file and
- * replaces them with the string "barfoo".
+ * replaces them with the string "CLIENT".
  *
  * @param ctx The compilation context for this addon.
  */
 export const activate = (ctx: AddonContext): void => {
     ctx.registerTransformer({
-        before: [createReplaceIdentifierTransformer()],
+        before: [createReplaceIdentifierTransformer(/foobar/gi, "CLIENT")],
     });
 };
