@@ -12,7 +12,7 @@ import {
     resolveProjectConfig as resolveTsConfig,
     resolvePaths,
 } from "@quatico/websmith-core";
-import { dirname } from "node:path";
+import path from "node:path";
 import ts from "typescript";
 import { type CompilerArguments } from "./CompilerArguments";
 
@@ -23,7 +23,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
     cliArgs.options = { ...cliArgs.options };
     const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system) : undefined;
 
-    const projectDirectory = (configFile && dirname(configFile)) ?? (cliArgs.raw?.configFilePath && dirname(cliArgs.raw?.configFilePath));
+    const projectDirectory = (configFile && path.dirname(configFile)) ?? (cliArgs.raw?.configFilePath && path.dirname(cliArgs.raw?.configFilePath));
     cliArgs.options.outDir = system.resolvePath(cliArgs.options.outDir ?? system.getCurrentDirectory());
     if (projectDirectory) {
         cliArgs.options = resolvePaths(cliArgs.options, projectDirectory, system);

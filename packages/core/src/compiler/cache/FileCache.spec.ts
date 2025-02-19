@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { writeFileSync } from "fs";
+import fs from "node:fs";
 import ts from "typescript";
 import { FileCache } from "./FileCache";
 
@@ -16,7 +16,7 @@ jest.mock("fs", () => ({
 
 describe("hasChanged", () => {
     it("w/o output should yield true", () => {
-        writeFileSync("expected", "expected");
+        fs.writeFileSync("expected", "expected");
         const testObj = new FileCache(ts.sys);
         testObj.updateSource("expected", "expected");
 
@@ -27,7 +27,7 @@ describe("hasChanged", () => {
     });
 
     it("w/ output should yield false", () => {
-        writeFileSync("expected", "expected");
+        fs.writeFileSync("expected", "expected");
         const testObj = new FileCache(ts.sys);
         testObj.updateSource("expected", "expected");
         testObj.updateOutput("expected", []);
@@ -39,11 +39,11 @@ describe("hasChanged", () => {
     });
 
     it("w/ modified file should yield true", async () => {
-        writeFileSync("expected", "expected");
+        fs.writeFileSync("expected", "expected");
         const testObj = new FileCache(ts.sys);
         testObj.updateSource("expected", "expected");
         await new Promise(resolve => setTimeout(resolve, 100));
-        writeFileSync("expected", "something else");
+        fs.writeFileSync("expected", "something else");
 
         const actual = testObj.hasChanged("expected");
 

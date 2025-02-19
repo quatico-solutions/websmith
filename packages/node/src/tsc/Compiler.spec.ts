@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 import ts from "typescript";
 import { tsDefaults } from "../compiler-options";
 import { Logger } from "../Logger";

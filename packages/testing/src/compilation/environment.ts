@@ -8,21 +8,21 @@ import {
     type AddonConfig,
     AddonRegistry,
     Compiler,
+    type CompilerAddon,
     type CompilerAddons,
+    type CompilerOptions,
     DefaultReporter,
     compilerAddons,
     createBrowserSystem,
-    type CompilerAddon,
-    type CompilerOptions,
 } from "@quatico/websmith-core";
-import { Module } from "module";
-import { basename, dirname, extname, isAbsolute, join } from "node:path";
+import fs from "node:fs";
+import { Module } from "node:module";
+import path from "node:path";
 import requireFromString from "require-from-string";
 import ts from "typescript";
 import { resolveCompilerOptions } from "../resolve-options";
 import { copyDirectory } from "./copy-directory";
 import { resolvePath } from "./resolve-path";
-import { rmSync } from "node:fs";
 
 const DEFAULT_ROOT_DIR = "/";
 const DEFAULT_BUILD_DIR = "./src";
@@ -47,9 +47,13 @@ export class CompilationEnv {
         this.buildDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.buildDir ?? DEFAULT_BUILD_DIR);
         const outDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.tsConfig?.outDir ?? DEFAULT_OUT_DIR);
 
+        if (this.system.directoryExists(this.rootDir)) {
+            this.deleteDirectory(this.rootDir);
+        }
         if (!this.system.directoryExists(this.rootDir)) {
             getSubPaths(this.rootDir).forEach(it => !!it && !this.system.directoryExists(it) && this.system.createDirectory(it));
         }
+
         this.system.getCurrentDirectory = () => this.rootDir;
 
         if (!this.system.directoryExists(this.buildDir)) {
@@ -75,7 +79,7 @@ export class CompilationEnv {
         });
 
         this.addonsConfig = {
-            addonsDir: join(this.rootDir, "./addons"),
+            addonsDir: path.join(this.rootDir, "./addons"),
             reporter: new DefaultReporter(this.system),
             system: this.system,
             ...(addonConfig ?? {}),
@@ -123,10 +127,8 @@ export class CompilationEnv {
                 directories = [this.addonsConfig.addonsDir];
                 break;
         }
-        directories.forEach(dir =>
-            this.virtual ? this.system.readDirectory(dir).forEach((it: string) => this.system.deleteFile!(it)) : rmSync(dir, { recursive: true })
-        );
-
+        directories.forEach(dir => this.deleteDirectory(dir));
+        this.compilerOptions.cliArgs.fileNames = [];
         return this;
     }
 
@@ -157,8 +159,8 @@ export class CompilationEnv {
      * @returns this instance
      */
     public addAddon(addonName: string, addonSource?: string | Record<string, string>): this {
-        const addonTargetPath = join(this.addonsConfig.addonsDir, addonName);
-        let addonImportDir = join(this.rootDir, addonName);
+        const addonTargetPath = path.join(this.addonsConfig.addonsDir, addonName);
+        let addonImportDir = path.join(this.rootDir, addonName);
 
         if (!this.system.directoryExists(addonTargetPath)) {
             this.system.createDirectory(addonTargetPath);
@@ -166,7 +168,7 @@ export class CompilationEnv {
         if (isFiles(addonSource)) {
             this.addFiles(this.resolveAddonSourcePaths(addonName, addonSource, addonTargetPath));
         } else {
-            const addonsSourceDir = resolveProjectPath(this.system, this.rootDir, join(addonSource ?? DEFAULT_ADDONS_SOURCE_DIR, addonName));
+            const addonsSourceDir = resolveProjectPath(this.system, this.rootDir, path.join(addonSource ?? DEFAULT_ADDONS_SOURCE_DIR, addonName));
             const sourceFs = this.system.directoryExists(addonsSourceDir) ? this.system : ts.sys;
             copyDirectory({ system: sourceFs, path: addonsSourceDir, kind: "addons" }, { system: this.system, path: addonTargetPath });
             addonImportDir = addonsSourceDir;
@@ -183,7 +185,10 @@ export class CompilationEnv {
         const addonsSourceDirPath = resolveProjectPath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
         const sourceFs = this.system.directoryExists(addonsSourceDirPath) ? this.system : ts.sys;
         addonNames.forEach(addon => {
-            copyDirectory({ system: sourceFs, path: join(addonsSourceDirPath, addon), kind: "addons" }, { system: this.system, path: addonsDir });
+            copyDirectory(
+                { system: sourceFs, path: path.join(addonsSourceDirPath, addon), kind: "addons" },
+                { system: this.system, path: path.join(addonsDir, addon) }
+            );
         });
         this.compileAddons(addonsSourceDirPath, addonsDir);
         this.getOrCreateAddonRegistry().refresh();
@@ -224,7 +229,7 @@ export class CompilationEnv {
         const projectsSourcePath = resolveProjectPath(this.system, this.rootDir, projectsSourceDir ?? DEFAULT_PROJECTS_SOURCE_DIR);
         const sourceFs = this.system.directoryExists(projectsSourcePath) ? this.system : ts.sys;
         copyDirectory(
-            { system: sourceFs, path: join(projectsSourcePath, projectName), kind: "project" },
+            { system: sourceFs, path: path.join(projectsSourcePath, projectName), kind: "project" },
             // use rootDir as target path because we copy src and other files from project directory
             { system: this.system, path: this.rootDir }
         );
@@ -238,8 +243,9 @@ export class CompilationEnv {
         return this;
     }
 
-    public getProjectFiles(): ProjectFiles {
-        return projectFiles(this.system.readDirectory(this.rootDir).map(it => projectFile(this.system, this.buildDir, it)));
+    public getProjectFiles(relativePath?: string): ProjectFiles {
+        const targetDir = relativePath ? resolveProjectPath(this.system, this.buildDir, relativePath) : this.buildDir;
+        return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.system, this.buildDir, it)));
     }
 
     public getProjectFile(filePath: string): ProjectFile | undefined {
@@ -279,8 +285,9 @@ export class CompilationEnv {
         return resolveProjectPath(this.system, this.rootDir, this.getCompilerOptions().tsConfig.outDir ?? DEFAULT_OUT_DIR);
     }
 
-    public getCompiledFiles(): ProjectFiles {
-        return projectFiles(this.system.readDirectory(this.getCompiledDir()).map(it => projectFile(this.getSystem(), this.buildDir, it)));
+    public getCompiledFiles(relativePath?: string): ProjectFiles {
+        const targetDir = relativePath ? resolveProjectPath(this.system, this.rootDir, relativePath) : this.getCompiledDir();
+        return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.getSystem(), this.buildDir, it)));
     }
 
     public getCompiledFile(filePath: string): ProjectFile | undefined {
@@ -297,13 +304,13 @@ export class CompilationEnv {
 
     private resolveAddonSourcePaths(addonName: string, addonFiles: Record<string, string>, addonTargetPath: string): Record<string, string> {
         return Object.entries(addonFiles).reduce((acc: Record<string, string>, [filePath, content]) => {
-            if (isAbsolute(filePath)) {
+            if (path.isAbsolute(filePath)) {
                 acc[filePath] = content;
             } else {
                 if (filePath.includes(addonName)) {
-                    acc[join(this.addonsConfig.addonsDir, filePath)] = content;
+                    acc[path.join(this.addonsConfig.addonsDir, filePath)] = content;
                 } else {
-                    acc[join(addonTargetPath, filePath)] = content;
+                    acc[path.join(addonTargetPath, filePath)] = content;
                 }
             }
             return acc;
@@ -314,7 +321,7 @@ export class CompilationEnv {
         const addonsToCompile = this.system
             .readDirectory(addonsTargetDir)
             .filter(isSourceFile)
-            .map(it => dirname(it));
+            .map(it => path.dirname(it));
 
         addonsToCompile.forEach(curDir => {
             new Compiler(
@@ -341,14 +348,14 @@ export class CompilationEnv {
                 .map(filePath => this.system.resolvePath(filePath))
                 .forEach(resolvedPath => {
                     jest.mock(
-                        basename(resolvedPath, extname(resolvedPath)) === "addon"
-                            ? resolvedPath.replace(extname(resolvedPath), "")
-                            : `./${basename(resolvedPath, extname(resolvedPath))}`,
+                        path.basename(resolvedPath, path.extname(resolvedPath)) === "addon"
+                            ? resolvedPath.replace(path.extname(resolvedPath), "")
+                            : `./${path.basename(resolvedPath, path.extname(resolvedPath))}`,
                         () =>
                             requireFromString(this.system.readFile(resolvedPath)!, resolvedPath, {
-                                prependPaths: [dirname(resolvedPath), addonsTargetDir],
+                                prependPaths: [path.dirname(resolvedPath), addonsTargetDir],
                                 // @ts-expect-error - nodeModulePaths is not part of the original object
-                                appendPaths: Module._nodeModulePaths(dirname(addonsSourceDir)),
+                                appendPaths: Module._nodeModulePaths(path.dirname(addonsSourceDir)),
                             }),
                         { virtual: true }
                     );
@@ -361,14 +368,25 @@ export class CompilationEnv {
             return;
         }
         Object.keys(files).forEach(file => {
-            this.addFile(resolveProjectPath(this.system, this.buildDir, file), files[file]);
+            this.addFile(file, files[file]);
         });
     }
 
     private addFile(filePath: string, content: string): void {
+        if (!path.isAbsolute(filePath)) {
+            filePath = resolveProjectPath(this.system, this.buildDir, filePath);
+        }
         this.system.writeFile(filePath, content);
         if (isSourceFile(filePath)) {
             this.compilerOptions.cliArgs.fileNames.push(filePath);
+        }
+    }
+
+    private deleteDirectory(dirPath: string): void {
+        if (this.virtual) {
+            this.system.readDirectory(dirPath).forEach((it: string) => this.system.deleteFile!(it));
+        } else {
+            fs.rmSync(dirPath, { recursive: true, force: true });
         }
     }
 }
@@ -387,7 +405,7 @@ export type CompilationOptions = {
     virtual?: boolean;
 };
 
-export type ProjectFiles = ProjectFile[] & { getPaths: () => string[]; getContents: () => string[] };
+export type ProjectFiles = ProjectFile[] & { getPaths: (substringPrefix?: string) => string[]; getContents: () => string[] };
 
 export interface ProjectFile {
     getPath(): string;
@@ -401,11 +419,11 @@ export const projectFile = (system: ts.System, buildDir: string, relativePath: s
 
 const resolveProjectPath = (system: ts.System, buildDir: string, relativePath: string) => {
     let filePath;
-    if (isAbsolute(relativePath)) {
+    if (path.isAbsolute(relativePath)) {
         filePath = resolvePath(system, relativePath);
     } else {
-        if (relativePath.includes(basename(buildDir))) {
-            filePath = resolvePath(system, dirname(buildDir), relativePath);
+        if (relativePath.includes(path.basename(buildDir))) {
+            filePath = resolvePath(system, path.dirname(buildDir), relativePath);
         } else {
             filePath = resolvePath(system, buildDir, relativePath);
         }
@@ -418,12 +436,19 @@ const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || 
 const isFiles = (source?: string | Record<string, string>): source is Record<string, string> => typeof source === "object";
 
 const projectFiles = (result: ProjectFile[]): ProjectFiles => {
-    return Object.assign(result, { getPaths: () => result.map(it => it.getPath()), getContents: () => result.map(it => it.getContent()!) });
+    return Object.assign(result, {
+        getPaths: (substringPrefix?: string) =>
+            result.map(it => {
+                const curPath = it.getPath();
+                return substringPrefix ? curPath.substring(curPath.indexOf(substringPrefix)) : curPath;
+            }),
+        getContents: () => result.map(it => it.getContent()!),
+    });
 };
 
 const getSubPaths = (path: string): string[] => {
     const segments = path.split("/");
-    return segments.map((s, i) => segments.slice(0, i + 1).join("/"));
+    return segments.map((_s, i) => segments.slice(0, i + 1).join("/"));
 };
 
 export const compilationEnv = (rootDir: string, options?: Partial<CompilationOptions>, addonConfig?: Partial<AddonConfig>): CompilationEnv =>

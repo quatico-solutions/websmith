@@ -14,6 +14,7 @@ const { fixupPluginRules } = require("@eslint/compat");
 const importPlugin = require("eslint-plugin-import");
 const testingLibrary = require("eslint-plugin-testing-library");
 const tsPlugin = require("@typescript-eslint/eslint-plugin");
+const eslintPluginUnicorn = require("eslint-plugin-unicorn");
 
 module.exports = [
     js.configs.recommended,
@@ -38,6 +39,7 @@ module.exports = [
             "@nx": nxPlugin,
             import: fixupPluginRules(importPlugin),
             "testing-library": fixupPluginRules(testingLibrary),
+            unicorn: eslintPluginUnicorn,
         },
     },
     {
@@ -106,6 +108,8 @@ module.exports = [
             "no-console": "error",
             "arrow-parens": ["error", "as-needed"],
             "max-len": ["warn", { code: 150, tabWidth: 4 }],
+            "unicorn/prefer-node-protocol": "error",
+            "unicorn/import-style": "error",
             curly: "error",
         },
     },

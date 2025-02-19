@@ -4,13 +4,13 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { isAbsolute, join } from "node:path";
+import path from "node:path";
 import type ts from "typescript";
 
 export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
-    let resolvedPath = join(...pathSegments);
-    if (!isAbsolute(resolvedPath)) {
-        resolvedPath = join(fs.getCurrentDirectory(), ...pathSegments);
+    let resolvedPath = path.join(...pathSegments);
+    if (!path.isAbsolute(resolvedPath)) {
+        resolvedPath = path.join(fs.getCurrentDirectory(), ...pathSegments);
     }
     return resolvedPath;
 };

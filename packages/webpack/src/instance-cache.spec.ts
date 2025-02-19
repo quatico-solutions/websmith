@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { NoReporter } from "@quatico/websmith-core";
-import { rmSync } from "fs";
+import fs from "node:fs";
 import webpack, { type Compiler } from "webpack";
 import { TsCompiler } from "./TsCompiler";
 import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
@@ -31,7 +31,7 @@ beforeEach(() => {
 
 afterEach(() => {
     compiler.close(() => undefined);
-    rmSync("./.build", { recursive: true, force: true });
+    fs.rmSync("./.build", { recursive: true, force: true });
 });
 
 describe("getInstanceFromCache", () => {

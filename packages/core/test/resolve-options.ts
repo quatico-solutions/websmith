@@ -7,7 +7,7 @@
 import ts from "typescript";
 import { type CompilerOptions } from "../src/compiler";
 import { ReporterMock } from "./ReporterMock";
-import { join, isAbsolute } from "node:path";
+import path from "node:path";
 
 const DEFAULT_BUILD_DIR = "./src";
 const DEFAULT_OUT_DIR = "./dist";
@@ -39,9 +39,9 @@ export const resolveCompilerOptions = (system: ts.System, overrides?: Partial<Co
 };
 
 export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
-    let resolvedPath = join(...pathSegments);
-    if (!isAbsolute(resolvedPath)) {
-        resolvedPath = join(fs.getCurrentDirectory(), ...pathSegments);
+    let resolvedPath = path.join(...pathSegments);
+    if (!path.isAbsolute(resolvedPath)) {
+        resolvedPath = path.join(fs.getCurrentDirectory(), ...pathSegments);
     }
     return resolvedPath;
 };
