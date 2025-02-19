@@ -5,12 +5,12 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
-import { join } from "node:path";
+import path from "node:path";
 
-describe("example-processor addon", () => {
+describe("foobar-export-processor addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__/example-processor", { virtual: false }).addAddon("example-processor", join(__dirname, "../src"));
+        testObj = compilationEnv("./__TEST__", { virtual: false }).addAddon("foobar-export-processor", path.join(__dirname, "../src"));
     });
 
     afterEach(() => {

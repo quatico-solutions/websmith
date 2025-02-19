@@ -5,15 +5,12 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
-import { join } from "node:path";
+import path from "node:path";
 
-describe("example-result-processor addon", () => {
+describe("function-json-result-processor addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__/example-result-processor", { virtual: false }).addAddon(
-            "example-result-processor",
-            join(__dirname, "../src")
-        );
+        testObj = compilationEnv("./__TEST__", { virtual: false }).addAddon("function-json-result-processor", path.join(__dirname, "../src"));
     });
 
     afterEach(() => {
