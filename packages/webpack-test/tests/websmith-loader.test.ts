@@ -7,8 +7,8 @@
 import { type CompilationConfig as WebsmithOptions } from "@quatico/websmith-core";
 import { webpack } from "@quatico/websmith-node";
 import ForkTsCheckerWebpackPlugin from "fork-ts-checker-webpack-plugin";
-import fs, { readFileSync, rmSync, statSync } from "node:fs";
-import path, { resolve } from "node:path";
+import fs from "node:fs";
+import path from "node:path";
 
 const OUTPUT_DIR = path.join(__dirname, "..", "lib");
 const SOURCE_DIR = path.join(__dirname, "..", "src");
@@ -43,7 +43,7 @@ const webpackDefaults = {
 
 describe("webpack w/ websmith", () => {
     afterEach(() => {
-        rmSync(resolve(OUTPUT_DIR), { recursive: true, force: true });
+        fs.rmSync(path.resolve(OUTPUT_DIR), { recursive: true, force: true });
     });
 
     it("should yield compiled output with no profiles", async () => {
@@ -60,7 +60,7 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        const output = readFileSync(resolve(OUTPUT_DIR, "main.js")).toString();
+        const output = fs.readFileSync(path.resolve(OUTPUT_DIR, "main.js")).toString();
         expect(output).toContain('/***/ "./src/functions/getDate.ts":');
         expect(output).toContain('/***/ "./src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
@@ -86,9 +86,9 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(readFileSync(resolve(OUTPUT_DIR, "output.yaml")).toString()).toContain("exports: [getDate]");
+        expect(fs.readFileSync(path.resolve(OUTPUT_DIR, "output.yaml")).toString()).toContain("exports: [getDate]");
 
-        const output = readFileSync(resolve(OUTPUT_DIR, "main.js")).toString();
+        const output = fs.readFileSync(path.resolve(OUTPUT_DIR, "main.js")).toString();
         expect(output).toContain('/***/ "./src/functions/getDate.ts":');
         expect(output).toContain('/***/ "./src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
@@ -183,7 +183,7 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
+        expect(fs.statSync(path.resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
     });
 
     it("should use default profile w/o configured profile and webpackTarget", async () => {
@@ -206,7 +206,7 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
+        expect(fs.statSync(path.resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
         expect(actual).toMatch(/successfully/);
     });
 
@@ -235,8 +235,8 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
-        const output = readFileSync(resolve(OUTPUT_DIR, "main.js")).toString();
+        expect(fs.statSync(path.resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
+        const output = fs.readFileSync(path.resolve(OUTPUT_DIR, "main.js")).toString();
         expect(output).toContain('/***/ "./src/functions/getDate.ts":');
         expect(output).toContain('/***/ "./src/model/index.ts":');
     });
@@ -264,12 +264,12 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
-        const output = readFileSync(resolve(OUTPUT_DIR, "main.js")).toString();
+        expect(fs.statSync(path.resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
+        const output = fs.readFileSync(path.resolve(OUTPUT_DIR, "main.js")).toString();
         expect(output).toContain('/***/ "./src/invalid.ts":');
         expect(actual).toMatch(/successfully/);
 
-        rmSync(resolve(SOURCE_DIR, "invalid.ts"), { force: true });
+        fs.rmSync(path.resolve(SOURCE_DIR, "invalid.ts"), { force: true });
     });
 
     it("should bundle the file w/ fork-ts-checker-webpack-plugin being used", async () => {
@@ -292,8 +292,8 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(statSync(resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
-        const output = readFileSync(resolve(OUTPUT_DIR, "main.js")).toString();
+        expect(fs.statSync(path.resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
+        const output = fs.readFileSync(path.resolve(OUTPUT_DIR, "main.js")).toString();
         expect(output).toContain('/***/ "./src/functions/getDate.ts":');
         expect(output).toContain('/***/ "./src/model/index.ts":');
         expect(actual).toMatch(/successfully/);

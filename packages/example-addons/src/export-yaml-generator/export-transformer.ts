@@ -5,8 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext } from "@quatico/websmith-api";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import fs from "node:fs";
+import path from "node:path";
 import ts from "typescript";
 
 /**
@@ -33,9 +33,9 @@ export const createTransformer = (context: AddonContext): ts.TransformerFactory<
 
             input = ts.visitNode(input, visitor, ts.isSourceFile);
 
-            const outPath = join(context.getCliArgs()?.options?.outDir ?? "", "output.yaml");
+            const outPath = path.join(context.getCliArgs()?.options?.outDir ?? "", "output.yaml");
             // Write collected identifiers to hard coded output file
-            writeFileSync(outPath, createFileContent(input.fileName, foundDecls, outPath));
+            fs.writeFileSync(outPath, createFileContent(input.fileName, foundDecls, outPath));
             return input;
         };
     };
@@ -78,11 +78,11 @@ const getName = (node: ts.Node): string => {
  * @returns The content of the file or empty string if the file does not exist.
  */
 const getOrCreateFile = (filePath: string): string => {
-    if (!existsSync(dirname(filePath))) {
-        mkdirSync(dirname(filePath), { recursive: true });
+    if (!fs.existsSync(path.dirname(filePath))) {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
     }
-    if (!existsSync(filePath)) {
-        writeFileSync(filePath, "");
+    if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, "");
     }
-    return readFileSync(filePath).toString();
+    return fs.readFileSync(filePath).toString();
 };

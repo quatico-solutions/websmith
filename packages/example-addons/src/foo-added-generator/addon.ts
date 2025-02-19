@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext, InfoMessage } from "@quatico/websmith-api";
-import { basename, dirname, extname, join } from "node:path";
+import path from "node:path";
 
 /**
  * Example addon with a generator that creates additional input
@@ -21,11 +21,11 @@ import { basename, dirname, extname, join } from "node:path";
 export const activate = (ctx: AddonContext) => {
     ctx.registerGenerator((filePath: string, fileContent: string): void => {
         if (filePath.includes("foo")) {
-            const dirName = dirname(filePath);
-            const fileName = `${basename(filePath, extname(filePath))}-added.ts`;
+            const dirName = path.dirname(filePath);
+            const fileName = `${path.basename(filePath, path.extname(filePath))}-added.ts`;
             if (!filePath.endsWith("-added.ts")) {
                 // Add the additional file to the compilation process.
-                ctx.addVirtualFile(join(dirName, fileName), fileContent);
+                ctx.addVirtualFile(path.join(dirName, fileName), fileContent);
             }
 
             // Report info message to the console.

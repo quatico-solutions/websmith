@@ -7,7 +7,7 @@
 
 import { type Reporter } from "@quatico/websmith-api";
 import { type CompileFragment, type CompilerOptions, NoReporter } from "@quatico/websmith-core";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import fs from "node:fs";
 import path from "node:path";
 import type ts from "typescript";
 import { TsCompiler } from "./TsCompiler";
@@ -99,7 +99,7 @@ describe("TsCompiler", () => {
 
         expect(target).toHaveBeenCalledWith("Variable declaration expected.");
 
-        rmSync(path.resolve("./__TEMP__"), { recursive: true, force: true });
+        fs.rmSync(path.resolve("./__TEMP__"), { recursive: true, force: true });
     });
 });
 
@@ -127,7 +127,7 @@ describe("Transpilation", () => {
         expect(actual.files.find(f => f.name.endsWith(".js"))?.text).toBe("export const one = () => 1;\n");
         expect(actual.files.find(f => f.name.endsWith(".d.ts"))?.text).toBe("export declare const one: () => number;\n");
 
-        rmSync(path.resolve("./__TEMP__"), { recursive: true, force: true });
+        fs.rmSync(path.resolve("./__TEMP__"), { recursive: true, force: true });
     });
 
     it('should provide transpiled compilation fragment w/ build, "fragment" and "write" target and source code', () => {
@@ -163,7 +163,7 @@ describe("Transpilation", () => {
         expect(actual.files.map(f => f.name)).toEqual([path.resolve("./__TEMP__/.build/one.js"), path.resolve("./__TEMP__/.build/one.d.ts")]);
         expect(actual.files.find(f => f.name.endsWith(".js"))?.text).toBe("export const one = () => 1;\n");
         expect(actual.files.find(f => f.name.endsWith(".d.ts"))?.text).toBe("export declare const one: () => number;\n");
-        expect(readFileSync(path.resolve("./__TEMP__/.build/one.js"), "utf8")).toMatchInlineSnapshot(`
+        expect(fs.readFileSync(path.resolve("./__TEMP__/.build/one.js"), "utf8")).toMatchInlineSnapshot(`
             ""use strict";
             Object.defineProperty(exports, "__esModule", { value: true });
             exports.one = void 0;
@@ -171,17 +171,17 @@ describe("Transpilation", () => {
             exports.one = one;
             "
         `);
-        expect(existsSync(path.resolve("./__TEMP__/.build/one.d.ts"))).toBe(false);
+        expect(fs.existsSync(path.resolve("./__TEMP__/.build/one.d.ts"))).toBe(false);
 
-        rmSync(path.resolve("./__TEMP__"), { recursive: true, force: true });
+        fs.rmSync(path.resolve("./__TEMP__"), { recursive: true, force: true });
     });
 });
 
 const createSource = (fileName: string, text: string) => {
     const dir = path.dirname(fileName);
-    if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
     }
 
-    writeFileSync(fileName, text);
+    fs.writeFileSync(fileName, text);
 };
