@@ -5,11 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { compilationEnv } from "@quatico/websmith-testing";
-import { join } from "node:path";
+import path from "node:path";
 
 describe("compile test-project-foo w/ compilationEnv", () => {
     it("should install addon successfully", () => {
-        const testObj = compilationEnv("__TEST__").addAddon("foo-addon", join(__dirname, "../test-data/addons"));
+        const testObj = compilationEnv("__TEST__").addAddon("foo-addon", path.join(__dirname, "../test-data/addons"));
 
         const actual = testObj.getActiveAddons("*").getNames();
 
@@ -38,7 +38,7 @@ describe("compile test-project-foo w/ compilationEnv", () => {
     });
 
     it("should compile source project from disk", () => {
-        const actual = compilationEnv("__TEST__").addProjectFromDisk("test-project-foo", join(__dirname, "../test-data/projects")).compile();
+        const actual = compilationEnv("__TEST__").addProjectFromDisk("test-project-foo", path.join(__dirname, "../test-data/projects")).compile();
 
         expect(actual.getCompiledFile("foo.js")!.getContent()).toMatchInlineSnapshot(`
             "export const foo = () => {

@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext, InfoMessage } from "@quatico/websmith-api";
-import { basename, extname, join } from "node:path";
+import path from "node:path";
 import ts from "typescript";
 
 /**
@@ -45,7 +45,7 @@ export const activate = (ctx: AddonContext) => {
                             };
 
                             curFile = ts.visitNode(curFile, visitor, ts.isSourceFile);
-                            result[basename(curPath, extname(curPath))] = funcNames;
+                            result[path.basename(curPath, path.extname(curPath))] = funcNames;
 
                             return curFile;
                         },
@@ -57,6 +57,6 @@ export const activate = (ctx: AddonContext) => {
         });
 
         // Write the result to the output JSON file.
-        ctx.getSystem().writeFile(join(ctx.getCliArgs()?.options?.outDir ?? "", "named-functions.json"), JSON.stringify(result));
+        ctx.getSystem().writeFile(path.join(ctx.getCliArgs()?.options?.outDir ?? "", "named-functions.json"), JSON.stringify(result));
     });
 };
