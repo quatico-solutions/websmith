@@ -1,5 +1,5 @@
 import { createFsFromVolume, Volume } from "memfs";
-import path from "path";
+import path from "node:path";
 import ts from "typescript";
 import { Logger } from "../Logger";
 import { webpackDefaults } from "./webpack-options";

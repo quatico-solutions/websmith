@@ -5,7 +5,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { basename } from "path";
+import path from "node:path";
 import type { LanguageService, Program } from "typescript";
 import ts from "typescript";
 import { ReporterMock, resolveCompilerOptions, compileSystem } from "../../test";
@@ -909,7 +909,7 @@ describe("watch", () => {
 });
 
 const complexFileExtension = (name: string): string => {
-    return basename(name).replace(basename(name).split(".")[0], "");
+    return path.basename(name).replace(path.basename(name).split(".")[0], "");
 };
 
 const getText = (name: string, output: CompileFragment): string => {

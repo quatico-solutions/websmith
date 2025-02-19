@@ -20,7 +20,7 @@ import type { TDataOut } from "memfs/lib/encoding";
 import type { IWatchOptions, StatWatcher, TCallback } from "memfs/lib/volume";
 import type { IReadStream } from "memfs/lib/node/types/misc";
 import type { IReadStreamOptions, IReaddirOptions } from "memfs/lib/node/types/options";
-import { dirname } from "node:path";
+import path from "node:path";
 
 /**
  * Creates a new fs module that uses the memfs volume as a base.
@@ -126,7 +126,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
         },
         writeFile: memfs.writeFile,
         writeFileSync: (file: PathOrFileDescriptor, data: any, options?: any): void => {
-            const parent = dirname(file.toString());
+            const parent = path.dirname(file.toString());
             if (!memfs.existsSync(parent)) {
                 memfs.mkdirSync(parent, { recursive: true });
             }
@@ -156,14 +156,14 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
         unlinkSync: memfs.unlinkSync,
         realpathSync: (path: PathLike, options?: { encoding?: BufferEncoding | null } | BufferEncoding | null): string | TDataOut | Buffer =>
             memfs.existsSync(path) ? memfs.realpathSync(path, options as any) : actualFs.realpathSync(path, options),
-        openSync: (path: PathLike, flags: string | number, mode?: string | number): number => {
-            if (!memfs.existsSync(path) && actualFs.existsSync(path)) {
-                memfs.writeFileSync(path, actualFs.readFileSync(path));
+        openSync: (pathLike: PathLike, flags: string | number, mode?: string | number): number => {
+            if (!memfs.existsSync(pathLike) && actualFs.existsSync(pathLike)) {
+                memfs.writeFileSync(pathLike, actualFs.readFileSync(pathLike));
             } else {
-                memfs.mkdirSync(dirname(path.toString()), { recursive: true });
-                memfs.writeFileSync(path, "");
+                memfs.mkdirSync(path.dirname(pathLike.toString()), { recursive: true });
+                memfs.writeFileSync(pathLike, "");
             }
-            return memfs.openSync(path, flags, mode);
+            return memfs.openSync(pathLike, flags, mode);
         },
         closeSync: memfs.closeSync,
         watch: (path: PathLike, options?: IWatchOptions | string, listener?: (eventType: string, filename: string) => void) =>

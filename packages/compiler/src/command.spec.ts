@@ -9,7 +9,7 @@ import { WarnMessage } from "@quatico/websmith-api";
 import { Compiler, NoReporter } from "@quatico/websmith-core";
 import { compileSystem } from "@quatico/websmith-testing";
 import { Command } from "commander";
-import path from "path";
+import path from "node:path";
 import type ts from "typescript";
 import { addCompileCommand, hasInvalidProfiles } from "./command";
 import { createOptions } from "./options";

@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type Reporter, WarnMessage, type CompilationProfile } from "@quatico/websmith-api";
-import path, { basename, extname } from "node:path";
+import path from "node:path";
 import type ts from "typescript";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
@@ -106,7 +106,7 @@ export class AddonRegistry {
         if (addonsDir) {
             system
                 .readDirectory(addonsDir, [".js", ".jsx"])
-                .filter(dirName => basename(dirName, extname(dirName)).toLocaleLowerCase() === "addon")
+                .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
                 .forEach(filePath => {
                     const addonName = getAddonName(filePath);
                     if (!addonName) {
@@ -136,11 +136,11 @@ const createAddon = (system: ts.System, filePath: string, addonName: string): Co
 
 const getImportPath = (system: ts.System, filePath: string) => {
     const resolvedPath = system.resolvePath(filePath);
-    return extname(resolvedPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g) ? resolvedPath.replace(extname(resolvedPath), "") : resolvedPath;
+    return path.extname(resolvedPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g) ? resolvedPath.replace(path.extname(resolvedPath), "") : resolvedPath;
 };
 
 const getAddonName = (filePath: string) =>
     filePath
-        .replace(path.sep + basename(filePath), "")
+        .replace(path.sep + path.basename(filePath), "")
         .split(path.sep)
         .slice(-1)[0];

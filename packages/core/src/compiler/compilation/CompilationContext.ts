@@ -6,7 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext, type Generator, type Processor, type Reporter, type ResultProcessor } from "@quatico/websmith-api";
-import { extname, isAbsolute, join } from "node:path";
+import path from "node:path";
 import ts from "typescript";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
@@ -101,7 +101,9 @@ export class CompilationContext implements AddonContext {
 
     public addInputFile(filePath: string): void {
         if (!this.isCodeFileExtension(filePath)) {
-            console.error(`Only code files are supported for addInputFile. ${extname(filePath)} of ${filePath} is no valid code file extension.`);
+            console.error(
+                `Only code files are supported for addInputFile. ${path.extname(filePath)} of ${filePath} is no valid code file extension.`
+            );
             return;
         }
 
@@ -135,7 +137,7 @@ export class CompilationContext implements AddonContext {
         // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
         if (this.isCodeFileExtension(childPath)) {
             console.error(
-                `Only non-code files are supported for addAssetDependency. ${extname(childPath)} of ${childPath} is a code file extension.`
+                `Only non-code files are supported for addAssetDependency. ${path.extname(childPath)} of ${childPath} is a code file extension.`
             );
             return;
         }
@@ -149,7 +151,9 @@ export class CompilationContext implements AddonContext {
 
     public addVirtualFile(filePath: string, fileContent: string): void {
         if (!this.isCodeFileExtension(filePath)) {
-            console.error(`Only code files are supported for addInputFile. ${extname(filePath)} of ${filePath} is no valid code file extension.`);
+            console.error(
+                `Only code files are supported for addInputFile. ${path.extname(filePath)} of ${filePath} is no valid code file extension.`
+            );
             return;
         }
         if (!this.rootFiles.includes(filePath)) {
@@ -165,8 +169,8 @@ export class CompilationContext implements AddonContext {
         this.cache.removeCachedFile(filePath);
     }
 
-    public resolvePath(path: string): string {
-        return isAbsolute(path) ? path : this.system.resolvePath(join(this.projectDir, path));
+    public resolvePath(filePath: string): string {
+        return path.isAbsolute(filePath) ? filePath : this.system.resolvePath(path.join(this.projectDir, filePath));
     }
 
     public getFileContent(filePath: string): string {

@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { join } from "node:path";
+import path from "node:path";
 import ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
 import { createBrowserSystem } from "./browser-system";
@@ -38,10 +38,12 @@ export const readFiles = (paths: string[], system: ts.System = ts.sys): { [name:
         return result;
     }, {});
 
-export const recursiveFindByFilter = (path: string, filter: (name: string) => boolean = () => true, system: ts.System = ts.sys): string[] =>
+export const recursiveFindByFilter = (filePath: string, filter: (name: string) => boolean = () => true, system: ts.System = ts.sys): string[] =>
     system
-        .readDirectory(path)
-        .flatMap(it => (system.directoryExists(join(path, it)) ? recursiveFindByFilter(join(path, it), filter) : join(path, it)))
+        .readDirectory(filePath)
+        .flatMap(it =>
+            system.directoryExists(path.join(filePath, it)) ? recursiveFindByFilter(path.join(filePath, it), filter) : path.join(filePath, it)
+        )
         .filter(filter);
 
 export const createVersionedFiles = (files: { [name: string]: string }, tsConfig: ts.CompilerOptions): { [name: string]: VersionedFile } => {

@@ -6,7 +6,7 @@
  */
 import type { CompilationProfile } from "@quatico/websmith-api";
 import { ErrorMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
-import { dirname, isAbsolute, join } from "node:path";
+import path from "node:path";
 import type ts from "typescript";
 import { type CompilationConfig } from "./CompilationConfig";
 
@@ -39,8 +39,8 @@ export const resolvePaths = (tsConfig: ts.CompilerOptions, basePath: string, sys
     };
 };
 
-const resolvePath = (path: string, basePath: string, system: ts.System): string => {
-    return isAbsolute(path) ? path : system.resolvePath(join(basePath, path));
+const resolvePath = (filePath: string, basePath: string, system: ts.System): string => {
+    return path.isAbsolute(filePath) ? filePath : system.resolvePath(path.join(basePath, filePath));
 };
 
 export const resolveCompilationConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilationConfig | undefined => {
@@ -52,7 +52,7 @@ export const resolveCompilationConfig = (configFilePath: string, reporter: Repor
             const content = system.readFile(resolvedPath);
             if (content) {
                 const config = JSON.parse(content ?? "{}");
-                const result = { ...updatePaths(config.config ?? config, dirname(resolvedPath), system) };
+                const result = { ...updatePaths(config.config ?? config, path.dirname(resolvedPath), system) };
                 if (result.profiles) {
                     Object.entries(result.profiles).forEach(([_name, profile]) => {
                         if (profile.addons?.length) {

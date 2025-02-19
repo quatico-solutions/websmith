@@ -7,7 +7,7 @@
  */
 
 import { ErrorMessage, type Reporter, type CompilationProfile } from "@quatico/websmith-api";
-import { dirname, extname, join } from "node:path";
+import path from "node:path";
 import ts, { PollingWatchKind, WatchFileKind } from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
 import { type AddonRegistry } from "./addons";
@@ -232,7 +232,7 @@ export class Compiler {
         return new CompilationContext({
             buildDir,
             tsConfig: { ...tsConfig, ...options },
-            projectDir: dirname(configFile ?? cliArgs.raw?.configFilePath ?? this.system.getCurrentDirectory()),
+            projectDir: path.dirname(configFile ?? cliArgs.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
             program: ts.createProgram({ rootNames: this.getRootFiles(), options: tsConfig, host: createCompileHost(tsConfig) }),
             cliArgs: { ...cliArgs, options: { ...tsConfig, ...options } },
@@ -367,8 +367,8 @@ export class Compiler {
 
         return cliArgs?.fileNames
             ? cliArgs.fileNames
-            : recursiveFindByFilter(this.system.resolvePath(join(dirname(this.configPath), "./src")), (path: string) =>
-                  ["ts", "tsx", "js", "jsx"].some(it => extname(path).includes(it))
+            : recursiveFindByFilter(this.system.resolvePath(path.join(path.dirname(this.configPath), "./src")), (cur: string) =>
+                  ["ts", "tsx", "js", "jsx"].some(it => path.extname(cur).includes(it))
               );
     }
 

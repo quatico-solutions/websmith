@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { resolve } from "path";
+import path from "node:path";
 import ts from "typescript";
 import { compilationEnv } from "./environment";
 
@@ -25,10 +25,10 @@ describe("compilationEnv", () => {
         const testObj = compilationEnv("./expected", { virtual: false });
 
         expect(testObj.isVirtual()).toBe(false);
-        expect(testObj.getRootDir()).toBe(resolve("./expected"));
-        expect(testObj.getAddonsDir()).toBe(resolve(testObj.getRootDir(), "./addons"));
-        expect(testObj.getProjectDir()).toBe(resolve(testObj.getRootDir(), "./src"));
-        expect(testObj.getCompiledDir()).toBe(resolve(testObj.getRootDir(), "./dist"));
+        expect(testObj.getRootDir()).toBe(path.resolve("./expected"));
+        expect(testObj.getAddonsDir()).toBe(path.resolve(testObj.getRootDir(), "./addons"));
+        expect(testObj.getProjectDir()).toBe(path.resolve(testObj.getRootDir(), "./src"));
+        expect(testObj.getCompiledDir()).toBe(path.resolve(testObj.getRootDir(), "./dist"));
         expect(testObj.getSystem()).toEqual(ts.sys);
         expect(testObj.getSystem().useCaseSensitiveFileNames).toBe(ts.sys.useCaseSensitiveFileNames);
 
