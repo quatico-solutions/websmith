@@ -245,8 +245,8 @@ describe("compilationEnv#projects", () => {
 
     it("should yield project and add files with file name", () => {
         const testObj = compilationEnv("/target")
-            .addProjectFile("index.ts", `export * from "./target";`)
-            .addProjectFile("target.ts", `export class Target {}`);
+            .addSourceFile("index.ts", `export * from "./target";`)
+            .addSourceFile("target.ts", `export class Target {}`);
 
         const actual = testObj.getProjectFiles();
 
@@ -256,8 +256,8 @@ describe("compilationEnv#projects", () => {
 
     it("should yield project and add files with relative paths", () => {
         const testObj = compilationEnv("/target")
-            .addProjectFile("./expected-dir/index.ts", `export * from "./target";`)
-            .addProjectFile("./expected-dir/target.ts", `export class Target {}`);
+            .addSourceFile("./expected-dir/index.ts", `export * from "./target";`)
+            .addSourceFile("./expected-dir/target.ts", `export class Target {}`);
 
         const actual = testObj.getProjectFiles();
 
@@ -266,8 +266,8 @@ describe("compilationEnv#projects", () => {
 
     it("should yield project and add files with relative src paths", () => {
         const testObj = compilationEnv("/target")
-            .addProjectFile("./src/index.ts", `export * from "./target";`)
-            .addProjectFile("./src/target.ts", `export class Target {}`);
+            .addSourceFile("./src/index.ts", `export * from "./target";`)
+            .addSourceFile("./src/target.ts", `export class Target {}`);
 
         const actual = testObj.getProjectFiles();
 
@@ -276,8 +276,8 @@ describe("compilationEnv#projects", () => {
 
     it("should yield project and add files with absolute paths", () => {
         const testObj = compilationEnv("/target")
-            .addProjectFile("/target/expected-project/index.ts", `export * from "./target";`)
-            .addProjectFile("/target/expected-project/target.ts", `export class Target {}`);
+            .addSourceFile("/target/expected-project/index.ts", `export * from "./target";`)
+            .addSourceFile("/target/expected-project/target.ts", `export class Target {}`);
 
         const actual = testObj.getProjectFiles();
 
@@ -286,8 +286,8 @@ describe("compilationEnv#projects", () => {
 
     it("should yield empty project with invalid absolute paths added", () => {
         const testObj = compilationEnv("/target")
-            .addProjectFile("/expected-project/index.ts", `export * from "./target";`)
-            .addProjectFile("/expected-project/target.ts", `export class Target {}`);
+            .addSourceFile("/expected-project/index.ts", `export * from "./target";`)
+            .addSourceFile("/expected-project/target.ts", `export class Target {}`);
 
         const actual = testObj.getProjectFiles();
 

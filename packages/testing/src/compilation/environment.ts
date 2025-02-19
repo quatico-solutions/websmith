@@ -7,6 +7,7 @@
 import {
     type AddonConfig,
     AddonRegistry,
+    type CompileSystemOptions,
     Compiler,
     type CompilerAddon,
     type CompilerAddons,
@@ -40,9 +41,9 @@ export class CompilationEnv {
     private addonsConfig: AddonConfig;
 
     constructor(rootDir?: string, options?: Partial<CompilationOptions>, addonConfig?: Partial<AddonConfig>) {
-        const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames } = options ?? {};
+        const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames, addLibDefaults, fileWatcher } = options ?? {};
         this.virtual = virtual;
-        this.system = this.virtual ? createBrowserSystem(undefined, useCaseSensitiveFileNames) : ts.sys;
+        this.system = this.virtual ? createBrowserSystem(undefined, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher }) : ts.sys;
         this.rootDir = resolvePath(this.system, rootDir ?? DEFAULT_ROOT_DIR);
         this.buildDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.buildDir ?? DEFAULT_BUILD_DIR);
         const outDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.tsConfig?.outDir ?? DEFAULT_OUT_DIR);
@@ -239,17 +240,32 @@ export class CompilationEnv {
     }
 
     public addProjectFile(relativePath: string, content: string): this {
-        this.addFile(resolveProjectPath(this.system, this.buildDir, relativePath), content);
+        this.addFile(resolveProjectPath(this.system, this.rootDir, relativePath), content);
         return this;
     }
 
     public getProjectFiles(relativePath?: string): ProjectFiles {
-        const targetDir = relativePath ? resolveProjectPath(this.system, this.buildDir, relativePath) : this.buildDir;
-        return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.system, this.buildDir, it)));
+        const targetDir = relativePath ? resolveProjectPath(this.system, this.rootDir, relativePath) : this.rootDir;
+        return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.system, this.rootDir, it)));
     }
 
     public getProjectFile(filePath: string): ProjectFile | undefined {
         const file = this.system.readDirectory(this.rootDir).find(it => it.endsWith(filePath));
+        return file ? projectFile(this.system, this.rootDir, file) : undefined;
+    }
+
+    public addSourceFile(relativePath: string, content: string): this {
+        this.addFile(resolveProjectPath(this.system, this.buildDir, relativePath), content);
+        return this;
+    }
+
+    public getSourceFiles(relativePath?: string): ProjectFiles {
+        const targetDir = relativePath ? resolveProjectPath(this.system, this.buildDir, relativePath) : this.buildDir;
+        return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.system, this.buildDir, it)));
+    }
+
+    public getSourceFile(filePath: string): ProjectFile | undefined {
+        const file = this.system.readDirectory(this.buildDir).find(it => it.endsWith(filePath));
         return file ? projectFile(this.system, this.buildDir, file) : undefined;
     }
 
@@ -399,9 +415,8 @@ export type CompilationResult = {
     getDiagnostics: () => ts.Diagnostic[];
 };
 
-export type CompilationOptions = {
+export type CompilationOptions = CompileSystemOptions & {
     compilerOptions?: Partial<CompilerOptions>;
-    useCaseSensitiveFileNames?: boolean;
     virtual?: boolean;
 };
 

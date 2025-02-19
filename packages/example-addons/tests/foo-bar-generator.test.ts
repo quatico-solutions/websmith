@@ -33,13 +33,12 @@ describe("foo-added-generator addon", () => {
             })
             .compile();
 
-        const actual = testObj.getCompiledFiles().getPaths();
-
-        expect(actual.map(it => it.substring(it.indexOf("/__TEST__")))).toEqual([
+        expect(testObj.getCompiledFiles().getPaths("/__TEST__")).toEqual([
             "/__TEST__/dist/bar.js",
             "/__TEST__/dist/foo-added.js",
             "/__TEST__/dist/foo.js",
         ]);
+
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toMatchInlineSnapshot(`
             "export class Foo {
                 value;

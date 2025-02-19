@@ -12,7 +12,7 @@ import { AddonRegistry } from "./AddonRegistry";
 let system: ts.System;
 let reporter: ReporterMock;
 beforeEach(() => {
-    system = compileSystem({}, { withDefaultFiles: false }).fileSystem;
+    system = compileSystem({}, { addLibDefaults: false }).fileSystem;
     reporter = new ReporterMock(system);
 });
 

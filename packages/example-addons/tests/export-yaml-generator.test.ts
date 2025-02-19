@@ -33,10 +33,7 @@ describe("export-yaml-generator addon", () => {
             })
             .compile();
 
-        const actual = testObj
-            .getCompiledFiles()
-            .getPaths()
-            .map(it => it.substring(it.indexOf("/__TEST__")));
+        const actual = testObj.getCompiledFiles().getPaths("/__TEST__");
 
         expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js", "/__TEST__/dist/output.yaml"]);
         expect(testObj.getCompiledFile("output.yaml")?.getContent()).toEqual(expect.stringContaining("exports: [Foo]"));

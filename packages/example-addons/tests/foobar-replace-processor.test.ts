@@ -32,12 +32,7 @@ describe("foobar-replace-processor addon", () => {
             })
             .compile();
 
-        const actual = testObj
-            .getCompiledFiles()
-            .getPaths()
-            .map(it => it.substring(it.indexOf("/__TEST__")));
-
-        expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js"]);
+        expect(testObj.getCompiledFiles().getPaths("/__TEST__")).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js"]);
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo {"));
     });
 });

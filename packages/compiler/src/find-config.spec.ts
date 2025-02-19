@@ -13,7 +13,7 @@ describe("findConfigFile", () => {
             files: {
                 "tsconfig.json": "{}",
             },
-            withDefaultFiles: false,
+            addLibDefaults: false,
         });
 
         const actual = findConfigFile("./", target);
@@ -22,7 +22,7 @@ describe("findConfigFile", () => {
     });
 
     it("throws error with no existing config file", () => {
-        const { fileSystem: target } = compileSystem({ withDefaultFiles: false });
+        const { fileSystem: target } = compileSystem({ addLibDefaults: false });
 
         expect(() => findConfigFile("./", target)).toThrow("Could not find a valid 'tsconfig.json'.");
     });

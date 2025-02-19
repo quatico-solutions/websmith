@@ -25,8 +25,6 @@ describe("foobar-replace-transformer addon", () => {
     });
 
     it("should replace 'foobar' with 'barfoo'", () => {
-        expect(testObj.getProjectFiles().getPaths()).toEqual([]);
-        expect(testObj.getCompiledFiles().getPaths()).toEqual([]);
         testObj
             .addProjectFromSource({
                 "target.ts": `
@@ -48,8 +46,6 @@ describe("foobar-replace-transformer addon", () => {
     });
 
     it("should replace 'foo' with 'bar' in the output files", () => {
-        expect(testObj.getProjectFiles().getPaths()).toEqual([]);
-        expect(testObj.getCompiledFiles().getPaths()).toEqual([]);
         testObj
             .addProjectFromSource({
                 "bar.ts": `console.log("Hello, Bar!");`,
