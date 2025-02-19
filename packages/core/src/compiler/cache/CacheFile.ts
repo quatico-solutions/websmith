@@ -9,6 +9,6 @@ import path from "node:path";
 
 export type CacheFile = { version: number; content?: string; files?: ts.OutputFile[]; snapshot?: ts.IScriptSnapshot; modifiedTime?: Date };
 
-export const getCachedName = (fileName: string, profile: string): string => {
-    return `${path.resolve(fileName)}!!${profile}`;
+export const getCachedName = (fileName: string): string => {
+    return `${path.resolve(fileName)}!!cached`;
 };

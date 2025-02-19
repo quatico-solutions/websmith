@@ -15,11 +15,12 @@ export type CompileSystem = {
 export type CompileSystemOptions = {
     useCaseSensitiveFileNames?: boolean;
     withDefaultFiles?: boolean;
+    fileWatcher?: (fileName: string, eventKind: ts.FileWatcherEventKind, modifiedTime?: Date) => void;
 };
 
 export const compileSystem = (files?: Record<string, string>, options?: CompileSystemOptions): CompileSystem => {
-    const { useCaseSensitiveFileNames = false, withDefaultFiles = true } = options ?? {};
-    const fileSystem = createBrowserSystem({ ...files }, useCaseSensitiveFileNames);
+    const { useCaseSensitiveFileNames = false, withDefaultFiles = true, fileWatcher } = options ?? {};
+    const fileSystem = createBrowserSystem({ ...files }, { useCaseSensitiveFileNames, addLibDefaults: withDefaultFiles, fileWatcher });
     if (withDefaultFiles) {
         if (!fileSystem.fileExists("./tsconfig.json")) {
             fileSystem.writeFile("./tsconfig.json", "{}");
