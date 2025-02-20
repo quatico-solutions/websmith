@@ -6,7 +6,7 @@ import ts from "typescript";
 
 const OUTPUT_DIR = path.join(__dirname, "..", "lib");
 const SOURCE_DIR = path.join(__dirname, "..", "src");
-const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "lib");
+const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
 
 beforeAll(() => {
     if (fs.readdirSync(ADDONS_DIR).length === 0) {
@@ -44,7 +44,7 @@ describe("compile w/ websmith", () => {
         });
 
         expect(result).toBe("");
-        expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-arrow.js"), "utf-8")).toMatchSnapshot();
+        expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
     });
 
     it("should build foobar-function.js with ES2020 and addonsDir", async () => {
@@ -57,7 +57,7 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8")).toMatchSnapshot();
+        expect(getOutput("foobar-function.js")).toMatchSnapshot();
     });
 
     it("should generate YAML file with addonsDir, addons and all profiles selected", async () => {
@@ -72,11 +72,9 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function foobar");
-        expect(actual).toContain("function getFoobar");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("foobar-function.js")).toContain("function foobar");
+        expect(getOutput("foobar-function.js")).toContain("function getFoobar");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
     it("should generate additional files with addonDir, addons and all profiles selected", async () => {
@@ -91,7 +89,7 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-arrow-added.js"), "utf-8")).toMatchSnapshot();
+        expect(getOutput("foobar-arrow-added.js")).toMatchSnapshot();
     });
 
     it("should transform foobar functions with addonDir, addons and all profiles selected", async () => {
@@ -106,9 +104,8 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
+        expect(getOutput("foobar-function.js")).toContain("function barfoo");
+        expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
     });
 
     it("should generate YAML file with all profiles and addonsDir, named profile in file-config", async () => {
@@ -129,11 +126,9 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function foobar");
-        expect(actual).toContain("function getFoobar");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("foobar-function.js")).toContain("function foobar");
+        expect(getOutput("foobar-function.js")).toContain("function getFoobar");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
     it("should not generate YAML file with named profile, addonsDir and profile in file-config", async () => {
@@ -154,8 +149,8 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        expect(fs.existsSync(path.join(OUTPUT_DIR, "foobar-function.js"))).toBe(false);
-        expect(fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8")).toContain("exports: [getFoobar]");
+        expect(getOutput("foobar-function.js")).toBeUndefined();
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
     it("should generate YAML file with all profiles and addonsDir, generic profile in file-config", async () => {
@@ -175,11 +170,9 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function foobar");
-        expect(actual).toContain("function getFoobar");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("foobar-function.js")).toContain("function foobar");
+        expect(getOutput("foobar-function.js")).toContain("function getFoobar");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
     it("should transform foobar functions with all profiles and addonsDir, generic profile in file-config", async () => {
@@ -200,9 +193,8 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
+        expect(getOutput("foobar-function.js")).toContain("function barfoo");
+        expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
     });
 
     it("should generate YAML file with named profile and addonsDir, named profile in file-config", async () => {
@@ -223,11 +215,9 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function foobar");
-        expect(actual).toContain("function getFoobar");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("foobar-function.js")).toContain("function foobar");
+        expect(getOutput("foobar-function.js")).toContain("function getFoobar");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
     it("should transform foobar functions with addonsDir and addons config", async () => {
@@ -241,9 +231,8 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
+        expect(getOutput("foobar-function.js")).toContain("function barfoo");
+        expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
     });
 
     it("should transform foobar functions with addonsDir, addons and profiles config but no profile selected", async () => {
@@ -262,9 +251,8 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
+        expect(getOutput("foobar-function.js")).toContain("function barfoo");
+        expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
     });
 
     it("should transform foobar functions with named profile and addonsDir, multiple named profiles in config-file", async () => {
@@ -291,9 +279,8 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
+        expect(getOutput("foobar-function.js")).toContain("function barfoo");
+        expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
     });
 
     it("should transform foobar functions with multiple named profiles and addonsDir, multiple profiles in config-file", async () => {
@@ -320,11 +307,9 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("foobar-function.js")).toContain("function barfoo");
+        expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
     it("should transform foobar functions with named profile and addonsDir, chained addons in config-file", async () => {
@@ -345,11 +330,9 @@ describe("compile w/ websmith", () => {
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("foobar-function.js")).toContain("function barfoo");
+        expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 });
 
@@ -361,3 +344,6 @@ const writeWebsmithOptions = (options: Partial<WebsmithOptions>) => {
         encoding: "utf-8",
     });
 };
+
+const getOutput = (filePath: string): string | undefined =>
+    fs.existsSync(path.join(OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(OUTPUT_DIR, filePath), "utf-8") : undefined;

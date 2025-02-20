@@ -4,11 +4,12 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type Reporter, WarnMessage, type CompilationProfile } from "@quatico/websmith-api";
+import { WarnMessage, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
 import path from "node:path";
-import type ts from "typescript";
+import ts from "typescript";
+import { Compiler } from "../Compiler";
+import { type CompilerOptions } from "../CompilerOptions";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
-
 export type AddonConfig = {
     addons?: string[];
     addonsDir: string;
@@ -47,8 +48,8 @@ export class AddonRegistry {
      *          or by the 'addons' property in the configuration.
      */
     public getAvailableAddons(profile?: string): CompilerAddons {
-        this.reportMissingAddons(profile);
         const expectedNames = this.getExpectedAddons(profile);
+        this.reportMissingAddons(expectedNames, profile);
         const results =
             expectedNames.length === 0 && profile === "*"
                 ? Array.from(this.availableAddons.values())
@@ -69,22 +70,42 @@ export class AddonRegistry {
      * @returns An array of unique addon names that are expected for the given profile or 'addons' config.
      */
     private getExpectedAddons(profile?: string): string[] {
-        const { profiles = {}, addons = [] } = this.config;
+        const { profiles = {}, addons = [], system, reporter, addonsDir } = this.config;
         const requestedAddons = addons.filter(it => it.length > 0);
-
         const profileAddons = profile ? (profiles[profile]?.addons ?? []) : [];
+        const targetAddons = [...new Set([...requestedAddons, ...profileAddons])];
 
-        return [...new Set([...requestedAddons, ...profileAddons])];
+        const addonsToCompile = system
+            .readDirectory(addonsDir)
+            .filter(it => targetAddons.includes(getAddonName(it)))
+            .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
+            .filter(isSourceFile)
+            .map(it => path.dirname(it));
+
+        if (addonsToCompile.length > 0) {
+            const targetDir: string = path.join(path.dirname(addonsDir), "lib");
+            const compiledAddons = system
+                .readDirectory(targetDir)
+                .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
+                .map(it => getAddonName(it));
+
+            const missingAddons = targetAddons.filter(it => !compiledAddons.includes(it));
+            if (missingAddons.length > 0) {
+                // Compile all addons in the addons directory
+                new Compiler(compileAddonOptions(reporter, system, { buildDir: addonsDir }), system).compile();
+            }
+        }
+        return targetAddons;
     }
 
-    private getMissingAddons(profile?: string): string[] {
-        return this.getExpectedAddons(profile).filter(name => !this.availableAddons.has(name));
+    private getMissingAddons(expectedNames: string[] = []): string[] {
+        return expectedNames.filter(name => !this.availableAddons.has(name));
     }
 
-    private reportMissingAddons(profile?: string): void {
+    private reportMissingAddons(expectedNames: string[] = [], profile?: string): void {
         const { reporter } = this.config;
 
-        const missing = this.getMissingAddons(profile).join(", ");
+        const missing = this.getMissingAddons(expectedNames).join(", ");
         if (missing.length > 0) {
             reporter.reportDiagnostic(
                 new WarnMessage(
@@ -104,29 +125,52 @@ export class AddonRegistry {
         }
 
         if (addonsDir) {
-            system
+            // Load compiled addons from addons directory first
+            const loadedAddons = system
                 .readDirectory(addonsDir, [".js", ".jsx"])
                 .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
-                .forEach(filePath => {
-                    const addonName = getAddonName(filePath);
-                    if (!addonName) {
-                        return;
+                .reduce((acc: string[], filePath) => {
+                    const addonName = loadAddon(system, filePath, map, reporter, addonsDir);
+                    if (addonName) {
+                        acc.push(addonName);
                     }
-                    if (map.has(addonName)) {
-                        reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${addonName}" in "${addonsDir}".`));
-                        return;
-                    }
-                    const addon = createAddon(system, filePath, addonName);
-                    if (typeof addon.activate === "function") {
-                        map.set(addonName, addon);
-                    } else {
-                        reporter.reportDiagnostic(new WarnMessage(`No "activate" function found for addon "${addonName}" in "${addonsDir}".`));
-                    }
-                });
+                    return acc;
+                }, []);
+            // Load remaining addons from source
+            system
+                .readDirectory(addonsDir, [".ts", ".tsx"])
+                .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
+                .filter(curDir => !loadedAddons.includes(getAddonName(curDir))) // filter out already loaded addons
+                .forEach(filePath => loadAddon(system, filePath, map, reporter, addonsDir));
         }
         return map;
     }
 }
+
+const loadAddon = (
+    system: ts.System,
+    filePath: string,
+    map: Map<string, CompilerAddon>,
+    reporter: Reporter,
+    addonsDir: string
+): string | undefined => {
+    const addonName = getAddonName(filePath);
+
+    if (!addonName) {
+        return;
+    }
+    if (map.has(addonName)) {
+        reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${addonName}" in "${addonsDir}".`));
+        return;
+    }
+    const addon = createAddon(system, filePath, addonName);
+    if (typeof addon.activate === "function") {
+        map.set(addonName, addon);
+    } else {
+        reporter.reportDiagnostic(new WarnMessage(`No "activate" function found for addon "${addonName}" in "${addonsDir}".`));
+    }
+    return addonName;
+};
 
 const createAddon = (system: ts.System, filePath: string, addonName: string): CompilerAddon => {
     const importPath = getImportPath(system, filePath);
@@ -144,3 +188,42 @@ const getAddonName = (filePath: string) =>
         .replace(path.sep + path.basename(filePath), "")
         .split(path.sep)
         .slice(-1)[0];
+
+const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || filePath.endsWith(".tsx");
+
+const compileAddonOptions = (reporter: Reporter, system: ts.System, overrides: Partial<CompilerOptions>): CompilerOptions => {
+    const addonsDir: string = resolvePath(system, overrides.buildDir!);
+    const buildDir: string = path.dirname(addonsDir);
+    const outDir: string = path.join(buildDir, "lib");
+    return {
+        debug: false,
+        watch: false,
+        ...overrides,
+        reporter,
+        buildDir,
+        tsConfig: {
+            outDir,
+            module: ts.ModuleKind.ES2020,
+            target: ts.ScriptTarget.ES2020,
+            esModuleInterop: true,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            configFilePath: overrides?.tsConfigFile ?? path.join(buildDir, "tsconfig.json"),
+            ...overrides?.tsConfig,
+        },
+        profiles: overrides?.profiles ?? ["*"],
+        cliArgs: {
+            options: { outDir },
+            fileNames: system.readDirectory(addonsDir).filter(isSourceFile),
+            errors: [],
+            ...overrides?.cliArgs,
+        },
+    };
+};
+
+const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
+    let resolvedPath = path.join(...pathSegments);
+    if (!path.isAbsolute(resolvedPath)) {
+        resolvedPath = path.join(fs.getCurrentDirectory(), ...pathSegments);
+    }
+    return resolvedPath;
+};
