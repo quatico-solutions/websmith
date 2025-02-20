@@ -230,31 +230,6 @@ describe("getExpectedAddons", () => {
     });
 });
 
-describe("getMissingAddons", () => {
-    it("returns empty w/o addons", () => {
-        const testObj = new AddonRegistry({ addonsDir: "./target", reporter, system });
-
-        // @ts-expect-error private property access
-        expect(testObj.getMissingAddons()).toHaveLength(0);
-    });
-
-    it("returns missing addons w/ missing addons", () => {
-        const testObj = new AddonRegistry({ addons: ["missing"], addonsDir: "./target", reporter, system });
-
-        // @ts-expect-error private property access
-        expect(testObj.getMissingAddons()).toEqual(["missing"]);
-    });
-
-    it("returns missing addons w/ missing and available addons", () => {
-        createAddon("target/expected/addon");
-
-        const testObj = new AddonRegistry({ addons: ["missing", "expected"], addonsDir: "./target", reporter, system });
-
-        // @ts-expect-error private property access
-        expect(testObj.getMissingAddons()).toEqual(["missing"]);
-    });
-});
-
 describe("reportMissingAddons", () => {
     it("reports missing addons directory", () => {
         reporter.reportDiagnostic = jest.fn();
@@ -262,7 +237,7 @@ describe("reportMissingAddons", () => {
         const testObj = new AddonRegistry({ addonsDir: "./expected", reporter, system });
 
         // @ts-expect-error private property access
-        testObj.reportMissingAddons(undefined, []);
+        testObj.reportMissingAddons(undefined);
 
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "./expected" does not exist.'));
     });

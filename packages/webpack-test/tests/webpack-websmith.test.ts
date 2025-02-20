@@ -14,7 +14,7 @@ import ts from "typescript";
 
 const OUTPUT_DIR = path.join(__dirname, "..", "lib");
 const SOURCE_DIR = path.join(__dirname, "..", "src");
-const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "lib");
+const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
 
 const webpackDefaults = {
     output: {
