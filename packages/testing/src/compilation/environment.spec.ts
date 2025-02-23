@@ -47,7 +47,6 @@ describe("compilationEnv", () => {
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
             },
-            profiles: ["*"],
             cliArgs: {
                 errors: [],
                 options: {},

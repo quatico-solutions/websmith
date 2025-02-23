@@ -34,11 +34,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .option("-p, --project <projectPath>", 'Path to the configuration file, or to a folder with a "tsconfig.json".', "./tsconfig.json")
         .option("-s, --sourceMap", "Enable the output of sourceMap information.", false)
         .option("-o, --transpileOnly", "Enable the transpile only mode", undefined)
-        .option(
-            "-l, --profiles <profileList>",
-            "Comma-separated list of profile names to use a specific configuration and list of addons.",
-            undefined
-        )
+        .option("-l, --profile <profileName>", "Name of the profile to use with a specific compiler configuration and list of addons.", undefined)
         .option("-w, --watch", "Enable watch mode.", false)
         .allowExcessArguments() // Allow unknown options to be passed to the compiler
         .allowUnknownOption(true)
@@ -63,10 +59,10 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             if (unknownArgs?.length > 0) {
                 options.additionalArguments = parseUnknownArguments(unknownArgs);
             }
-            if (options.profiles && hasInvalidProfiles(options.profiles, options.config)) {
+            if (options.profile && hasInvalidProfile(options.profile, options.config)) {
                 reporter.reportDiagnostic(
                     new WarnMessage(
-                        `Custom profile configuration "${options.profiles.join(", ")}" found, but no profile provided.\n` +
+                        `Custom profile configuration "${options.profile}" found, but no profile provided.\n` +
                             `\tSome custom addons may not be applied during compilation.`
                     )
                 );
@@ -111,16 +107,17 @@ const addonConfig = (command: Command, compilationConfig?: CompilationConfig, op
     ...(!!options?.config?.profiles && { profiles: options?.config?.profiles }),
 });
 
-export const hasInvalidProfiles = (profiles?: string[], config?: CompilationConfig) => {
-    if (profiles === undefined || profiles.length === 0 || (profiles[0] === "*" && profiles.length === 1)) {
+export const hasInvalidProfile = (profile?: string, config?: CompilationConfig) => {
+    if (profile === undefined) {
         return false;
     }
     if (config === undefined) {
         return true;
     }
     const definedProfiles = Object.keys(config?.profiles ?? []);
+    const selectedProfiles = [...(config?.profiles?.[profile]?.depends ?? []), profile];
 
-    return !profiles.every(it => definedProfiles.includes(it));
+    return !selectedProfiles.every(it => definedProfiles.includes(it));
 };
 
 const parseUnknownArguments = (unknownArgs: string[]): Map<string, unknown> => {

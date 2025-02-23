@@ -85,8 +85,7 @@ describe("project bundling", () => {
             },
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
-                profiles: ["noWrite"],
-                webpackTarget: "noWrite",
+                profile: "noWrite",
             },
         });
 

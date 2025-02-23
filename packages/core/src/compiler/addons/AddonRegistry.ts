@@ -210,7 +210,7 @@ const compileAddonOptions = (reporter: Reporter, system: ts.System, overrides: P
             configFilePath: overrides?.tsConfigFile ?? path.join(buildDir, "tsconfig.json"),
             ...overrides?.tsConfig,
         },
-        profiles: overrides?.profiles ?? ["*"],
+        profile: overrides?.profile,
         cliArgs: {
             options: { outDir },
             fileNames: system.readDirectory(addonsDir).filter(isSourceFile),

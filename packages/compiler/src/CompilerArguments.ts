@@ -12,7 +12,7 @@ export interface CompilerArguments {
     files?: string[];
     project?: string;
     sourceMap?: boolean;
-    profiles?: string;
+    profile?: string;
     transpileOnly?: boolean;
     watch?: boolean;
 }

@@ -7,4 +7,4 @@
 export type { CompilationConfig } from "./CompilationConfig";
 export { resolveCompilationConfig, resolvePaths } from "./resolve-compiler-config";
 export { resolveProjectConfig } from "./resolve-project-config";
-export { resolveProfiles } from "./resolve-profiles";
+export { resolveProfile } from "./resolve-profile";

@@ -18,7 +18,6 @@ describe("createOptions", () => {
             reporter: expect.any(NoReporter),
             cliArgs: expect.any(Object),
             debug: false,
-            profiles: [],
             watch: false,
         });
     });
@@ -148,7 +147,6 @@ describe("createOptions", () => {
                 outDir: "/lib",
             },
 
-            profiles: [],
             cliArgs: {
                 fileNames: ["/expected/one/addon.ts"],
                 errors: [],

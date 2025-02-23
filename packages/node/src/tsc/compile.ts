@@ -20,7 +20,6 @@ const defaultWebsmithConfig = (tsConfig: ts.CompilerOptions = {}): WebsmithOptio
         debug: false,
         tsConfig,
         reporter,
-        profiles: [],
         cliArgs: resolveProjectConfig(tsConfig?.project ?? path.join(__dirname, "..", "tsconfig.json"), system),
         watch: false,
     };
@@ -41,12 +40,12 @@ export const compile = async (files: string[], config?: { tsConfig?: ts.Compiler
         }
         websmithConfig = { ...defaultWebsmithConfig(tsConfig), ...(tsConfig ? { tsConfig } : {}), ...websmithConfig };
 
-        const { profiles } = websmithConfig;
+        const { profile } = websmithConfig;
         const { addons, profiles: profileMap, addonsDir } = websmithConfig.config ?? {};
         const addonsMerged = addons?.length
             ? addons
             : Object.entries(profileMap ?? {})
-                  .filter(([profile]) => profiles?.includes(profile))
+                  .filter(([cur]) => profile === cur)
                   .map(([_, value]) => value.addons ?? [])
                   .flat();
         let addonRegistry: AddonRegistry | undefined = undefined;

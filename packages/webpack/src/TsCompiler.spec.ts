@@ -9,7 +9,7 @@ import { type Reporter } from "@quatico/websmith-api";
 import { type CompileFragment, type CompilerOptions, NoReporter } from "@quatico/websmith-core";
 import fs from "node:fs";
 import path from "node:path";
-import type ts from "typescript";
+import ts from "typescript";
 import { TsCompiler } from "./TsCompiler";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
@@ -53,9 +53,8 @@ describe("TsCompiler", () => {
         testObj = new TestCompiler(
             {
                 buildDir: path.resolve("./__TEMP__"),
-                tsConfig: { declaration: true, target: 99, noEmitOnError: true },
+                tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext, noEmitOnError: true },
                 reporter,
-                profiles: ["*"],
                 cliArgs: { options: {}, fileNames: [expected], errors: [] },
                 debug: true,
                 watch: false,
@@ -79,7 +78,7 @@ describe("TsCompiler", () => {
         expect(() => testObj.build("./src/one.ts")).toThrow(new Error("TsCompiler.build() not called with ts.sys as the active ts.System"));
     });
 
-    it('should provide transpiled compilation fragment w/ build, default config, "*" target and source code', () => {
+    it("should provide transpiled compilation fragment w/ build, default config, no profile and source code", () => {
         const expected = { version: 42, files: [{ name: "expected.ts", text: "expected" }] };
         const target = jest.fn().mockReturnValue(expected);
         testObj.stubEmitSourceFile(target);
@@ -87,7 +86,7 @@ describe("TsCompiler", () => {
         const actual = testObj.build("expected.ts");
 
         expect(actual).toEqual(expected);
-        expect(target).toHaveBeenCalledWith("expected.ts", "*", true);
+        expect(target).toHaveBeenCalledWith("expected.ts", undefined, false);
     });
 
     it("should fail with invalid source code", () => {
@@ -111,10 +110,9 @@ describe("Transpilation", () => {
         testObj = new TestCompiler(
             {
                 buildDir: path.resolve("./__TEMP__"),
-                tsConfig: { declaration: true, target: 99, noEmitOnError: true },
+                tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext, noEmitOnError: true },
                 reporter,
-                profiles: ["*"],
-                cliArgs: { options: { declaration: true, target: 99 }, fileNames: [expected], errors: [] },
+                cliArgs: { options: { declaration: true, target: ts.ScriptTarget.ESNext }, fileNames: [expected], errors: [] },
                 debug: true,
                 watch: false,
             },
@@ -140,21 +138,23 @@ describe("Transpilation", () => {
                 configFile: path.resolve("./__TEMP__/websmith.config.json"),
                 config: {
                     profiles: {
-                        fragment: { tsConfig: { declaration: true } },
-                        write: { tsConfig: { module: 1, target: 1 } },
+                        fragment: {
+                            depends: ["write"],
+                            tsConfig: { declaration: true },
+                        },
+                        write: { tsConfig: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5 } },
                     },
                     addonsDir: "./addons",
                 },
-                tsConfig: { target: 99, outDir: path.resolve("./__TEMP__/.build"), noEmitOnError: true },
+                tsConfig: { target: ts.ScriptTarget.ESNext, outDir: path.resolve("./__TEMP__/.build"), noEmitOnError: true },
                 reporter,
-                profiles: ["fragment", "write"],
-                cliArgs: { options: { target: 99 }, fileNames: [expected], errors: [] },
+                cliArgs: { options: { target: ts.ScriptTarget.ESNext }, fileNames: [expected], errors: [] },
                 debug: false,
                 watch: false,
             },
             {
                 configFile: path.resolve("__TEMP__", "websmith.config.json"),
-                webpackTarget: "fragment",
+                profile: "fragment",
             }
         );
 
