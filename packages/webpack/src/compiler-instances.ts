@@ -31,6 +31,6 @@ export const getCompilerInstance = (
         }
         setInstanceInCache(compiler, options.instanceName, instance);
     }
-    instance.loaderConfig = options;
+    instance.updateLoaderConfig(options);
     return instance;
 };
