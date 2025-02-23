@@ -62,8 +62,7 @@ module.exports = {
                             config: {
                                 addonsDir: join(__dirname, "addons"),
                             },
-                            profiles: ["executeAddons"],
-                            webpackTarget: "executeAddons",
+                            profile: "executeAddons",
                         },
                     },
                 ],

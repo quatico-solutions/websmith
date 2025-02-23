@@ -27,7 +27,6 @@ export const resolveCompilerOptions = (system: ts.System, overrides?: Partial<Co
             configFilePath: overrides?.tsConfigFile ?? "./tsconfig.json",
             ...overrides?.tsConfig,
         },
-        profiles: overrides?.profiles ?? ["*"],
         cliArgs: {
             options: { outDir: overrides?.tsConfig?.outDir ?? DEFAULT_OUT_DIR },
             fileNames: system.readDirectory(buildDir),

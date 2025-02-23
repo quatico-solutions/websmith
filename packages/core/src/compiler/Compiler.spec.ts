@@ -731,7 +731,7 @@ describe("watch", () => {
         testObj.closeAllWatchers();
     });
 
-    it("should output to multiple profiles outDir w/ multiple profiles and outDir override", () => {
+    it("should output to multiple profiles outDir w/ dependent profiles and outDir override", () => {
         const { entry, fileSystem } = compileSystem({
             "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
@@ -741,11 +741,14 @@ describe("watch", () => {
             config: {
                 profiles: {
                     target1: { tsConfig: { outDir: "/target1" } },
-                    target2: { tsConfig: { outDir: "/target2", declaration: false } },
+                    target2: {
+                        depends: ["target1"],
+                        tsConfig: { outDir: "/target2", declaration: false },
+                    },
                 },
             },
             tsConfig: { declaration: true },
-            profiles: ["target1", "target2"],
+            profile: "target2",
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
         });
@@ -771,7 +774,7 @@ describe("watch", () => {
         testObj.closeAllWatchers();
     });
 
-    it("should output to multiple profiles outDir w/ multiple profiles, transpileOnly and outDir override", () => {
+    it("should output to multiple profiles outDir w/ dependent profiles, transpileOnly and outDir override", () => {
         const { entry, fileSystem } = compileSystem({
             "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
@@ -782,13 +785,14 @@ describe("watch", () => {
                 profiles: {
                     target1: { tsConfig: { outDir: "/target1" } },
                     target2: {
+                        depends: ["target1"],
                         tsConfig: { outDir: "/target2", declaration: false },
                     },
                 },
                 transpileOnly: true,
             },
             tsConfig: { declaration: true },
-            profiles: ["target1", "target2"],
+            profile: "target2",
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
         });
@@ -837,7 +841,7 @@ describe("watch", () => {
                 },
             },
             tsConfig: { declaration: true },
-            profiles: ["target1"],
+            profile: "target1",
             cliArgs: {
                 options: { outDir: "/build" },
                 fileNames: ["/src/shared1.ts", "/src/shared2.ts"],
@@ -889,7 +893,7 @@ describe("watch", () => {
                 },
             },
             tsConfig: { declaration: true },
-            profiles: ["target1"],
+            profile: "target1",
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
         });

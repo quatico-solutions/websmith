@@ -11,7 +11,7 @@ import { compileSystem } from "@quatico/websmith-testing";
 import { Command } from "commander";
 import path from "node:path";
 import type ts from "typescript";
-import { addCompileCommand, hasInvalidProfiles } from "./command";
+import { addCompileCommand, hasInvalidProfile } from "./command";
 import { createOptions } from "./options";
 
 describe("addCompileCommand", () => {
@@ -96,7 +96,7 @@ describe("addCompileCommand", () => {
             wildcardDirectories: { [""]: 1 },
         });
         expect(actual.reporter).toBeDefined();
-        expect(actual.profiles).toEqual([]);
+        expect(actual.profile).toBeUndefined();
         expect(actual.watch).toBe(false);
     });
 
@@ -115,7 +115,7 @@ describe("addCompileCommand", () => {
 
         addCompileCommand(new Command(), target).parse(["--project", "expected/tsconfig.json"], { from: "user" });
 
-        expect(target.getOptions().tsConfig.configFilePath).toEqual(expect.stringContaining("/expected/tsconfig.json"));
+        expect(target.getOptions().tsConfig!.configFilePath).toEqual(expect.stringContaining("/expected/tsconfig.json"));
     });
 
     it("should yield sourceMap option w/ --sourceMap cli argument", () => {
@@ -124,7 +124,7 @@ describe("addCompileCommand", () => {
 
         addCompileCommand(new Command(), target).parse(["--sourceMap"], { from: "user" });
 
-        expect(target.getOptions().tsConfig.sourceMap).toBe(true);
+        expect(target.getOptions().tsConfig!.sourceMap).toBe(true);
     });
 
     it("should yield debug compiler option w/ --debug cli argument", () => {
@@ -295,31 +295,22 @@ describe("addCompileCommand#addons", () => {
     });
 });
 
-describe("addCompileCommand#profiles", () => {
-    it("should yield options profiles w/ --profiles cli argument and single value", () => {
+describe("addCompileCommand#profile", () => {
+    it("should yield options profile w/ --profile cli argument and single value", () => {
         const testSystem = compileSystem().fileSystem;
         const target = new Compiler(createOptions({ project: "./tsconfig.json" }, new NoReporter(), testSystem), testSystem);
 
-        addCompileCommand(new Command(), target).parse(["--profiles", "expected"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--profile", "expected"], { from: "user" });
 
-        expect(target.getOptions().profiles).toEqual(["expected"]);
+        expect(target.getOptions().profile).toEqual(["expected"]);
     });
 
-    it("should yield options profiles w/ --profiles cli argument and comma separated values", () => {
-        const testSystem = compileSystem().fileSystem;
-        const target = new Compiler(createOptions({}, new NoReporter(), testSystem), testSystem);
-
-        addCompileCommand(new Command(), target).parse(["--profiles", "one, two, three"], { from: "user" });
-
-        expect(target.getOptions().profiles).toEqual(["one", "two", "three"]);
-    });
-
-    it("should yield warning w/ --profiles cli argument and unknown name", () => {
+    it("should yield warning w/ --profile cli argument and unknown name", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
         const { fileSystem: testSystem, addons } = compileSystem({ reporter: target });
 
-        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(["--profiles", "unknown"], {
+        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(["--profile", "unknown"], {
             from: "user",
         });
 
@@ -330,7 +321,7 @@ describe("addCompileCommand#profiles", () => {
         );
     });
 
-    it("should not yield any warning w/ --profiles cli argument and known names", () => {
+    it("should not yield any warning w/ --profile cli argument and known name", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
         const { fileSystem: testSystem, addons } = compileSystem({
@@ -338,50 +329,14 @@ describe("addCompileCommand#profiles", () => {
             reporter: target,
         });
 
-        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(["--profiles", "expected"], {
+        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(["--profile", "expected"], {
             from: "user",
         });
 
         expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
 
-    it("should not yield any warning w/ --profiles cli argument and multiple known names", () => {
-        const target = new NoReporter();
-        target.reportDiagnostic = jest.fn();
-        const { fileSystem: testSystem, addons } = compileSystem({
-            files: { "./websmith.config.json": '{ "profiles": {"zip": {}, "zap": {}, "zup": {}} }' },
-            reporter: target,
-        });
-
-        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(
-            ["--profiles", "zip, zap, zup"],
-            { from: "user" }
-        );
-
-        expect(target.reportDiagnostic).not.toHaveBeenCalled();
-    });
-
-    it("should yield warning w/ --profiles cli argument, known and unknown names", () => {
-        const target = new NoReporter();
-        target.reportDiagnostic = jest.fn();
-        const { fileSystem: testSystem, addons } = compileSystem({
-            files: { "./websmith.config.json": '{ "profiles": {"whatever": {}, "known": {}} }' },
-            reporter: target,
-        });
-
-        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(
-            ["--profiles", "unknown, known"],
-            { from: "user" }
-        );
-
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(
-            new WarnMessage(
-                'Custom profile configuration "unknown, known" found, but no profile provided.\n\tSome custom addons may not be applied during compilation.'
-            )
-        );
-    });
-
-    it("should yield warning w/ --profiles cli argument, known name but missing addons for profile", () => {
+    it("should yield warning w/ --profile cli argument, known name but missing addons for profile", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
         const { fileSystem: testSystem, addons } = compileSystem({
@@ -390,82 +345,27 @@ describe("addCompileCommand#profiles", () => {
         });
         expect(testSystem.fileExists("./tsconfig.json")).toBe(true);
 
-        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(["--profiles", "known"], {
+        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(["--profile", "known"], {
             from: "user",
         });
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "known": "missing".'));
     });
-
-    it("should yield warning w/ --profiles cli argument, multiple known names but missing addons for profiles", () => {
-        const target = new NoReporter();
-        target.reportDiagnostic = jest.fn();
-        const { fileSystem: testSystem, addons } = compileSystem({
-            files: {
-                "./websmith.config.json":
-                    '{ "profiles": {"zip": { "addons": ["missing1"]}, "zap": { "addons": ["missing2"]}, "zup": { "addons": ["missing3"]}} }',
-            },
-            reporter: target,
-        });
-
-        addCompileCommand(new Command(), new Compiler(createOptions({}, target, testSystem), testSystem, addons)).parse(
-            ["--profiles", "zip, zap, zup"],
-            { from: "user" }
-        );
-
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "zip": "missing1".'));
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "zap": "missing2".'));
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "zup": "missing3".'));
-    });
 });
 
-describe("hasInvalidProfiles", () => {
+describe("hasInvalidProfile", () => {
     it("should return true w/o CompilationConfig", () => {
-        expect(hasInvalidProfiles(["whatever"])).toBe(true);
+        expect(hasInvalidProfile("whatever")).toBe(true);
     });
 
     it("should return false w/ valid profile and CompilationConfig", () => {
         expect(
-            hasInvalidProfiles(["valid"], {
+            hasInvalidProfile("valid", {
                 profiles: {
                     valid: {},
                 },
             } as any)
         ).toBe(false);
-    });
-
-    it("should return true w/ invalid and valid profile and CompilationConfig", () => {
-        expect(
-            hasInvalidProfiles(["valid", "invalid"], {
-                profiles: {
-                    valid: {},
-                },
-            } as any)
-        ).toBe(true);
-    });
-
-    it('should return false w/ "*" profile and others in CompilationConfig', () => {
-        expect(
-            hasInvalidProfiles(["*"], {
-                profiles: {
-                    one: {},
-                    two: {},
-                    three: {},
-                },
-            } as any)
-        ).toBe(false);
-    });
-
-    it('should return true w/ "*" and invalid profile and CompilationConfig', () => {
-        expect(
-            hasInvalidProfiles(["*", "invalid"], {
-                profiles: {
-                    one: {},
-                    two: {},
-                    three: {},
-                },
-            } as any)
-        ).toBe(true);
     });
 });
 

@@ -28,9 +28,9 @@ describe("processResultAndFinish", () => {
     it("should report an error w/o outputText", () => {
         const testObj = { callback: jest.fn(), resourcePath: "/expected/test.ts" } as unknown as LoaderContext<any>;
 
-        processResultAndFinish(testObj, { version: 0, files: [] }, ["expected"]);
+        processResultAndFinish(testObj, { version: 0, files: [] }, "expected");
 
-        expect(testObj.callback).toHaveBeenCalledWith(new Error('No processed output found for "/expected/test.ts" with profiles "expected"'));
+        expect(testObj.callback).toHaveBeenCalledWith(new Error('No processed output found for "/expected/test.ts" with profile "expected"'));
     });
 
     it("should yield the output and sourceMap w/ output and sourceMap files", () => {
@@ -46,7 +46,7 @@ describe("processResultAndFinish", () => {
                     { name: "/expected/test.js.map", text: JSON.stringify(expected), writeByteOrderMark: false },
                 ],
             },
-            ["expected"]
+            "expected"
         );
 
         expect(testObj.callback).toHaveBeenCalledWith(undefined, "expected-js-output", expected);

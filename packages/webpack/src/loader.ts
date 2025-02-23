@@ -28,5 +28,5 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     const fragment = instance.build(this.resourcePath);
     this.version = instance.version;
 
-    processResultAndFinish(this, fragment, instance.profiles);
+    processResultAndFinish(this, fragment, instance.getProfile());
 }

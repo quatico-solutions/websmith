@@ -101,24 +101,22 @@ export class Compiler {
     }
 
     public compile(): ts.EmitResult {
-        const { profiles } = this.options;
+        const { profile } = this.options;
         this.createProfileContextsIfNecessary();
 
         const results: ts.EmitResult[] = [];
-        if (!profiles?.length) {
+        if (!profile) {
             const ctx = this.getContext();
             if (ctx) {
                 const result = this.emitResult(undefined, ctx); // no profile
                 results.push(this.options ? result : this.report(ctx.getProgram(), result));
             }
         } else {
-            profiles.forEach((profile: string) => {
-                const ctx = this.getContext(profile);
-                if (ctx) {
-                    const result = this.emitResult(profile, ctx);
-                    results.push(this.options.config?.transpileOnly ? result : this.report(ctx.getProgram(), result));
-                }
-            });
+            const ctx = this.getContext(profile);
+            if (ctx) {
+                const result = this.emitResult(profile, ctx);
+                results.push(this.options.config?.transpileOnly ? result : this.report(ctx.getProgram(), result));
+            }
         }
 
         return results.filter(cur => !!cur).length < 1
@@ -153,13 +151,9 @@ export class Compiler {
         this.createProfileContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {
-            const profiles: string[] = this.getDefinedProfiles();
             this.getRootFiles().forEach(curFile => {
-                if (this.options?.profiles?.[0] === "*") {
-                    profiles.push("*");
-                }
-                profiles.forEach(profile => this.emitSourceFile(curFile, profile, true));
-                this.registerWatch(curFile, profiles);
+                this.emitSourceFile(curFile, this.options.profile, true);
+                this.registerWatch(curFile, this.options.profile);
             });
         } else {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
@@ -167,8 +161,12 @@ export class Compiler {
         return this;
     }
 
-    public registerWatch(filePath: string, profileNames = this.options.profiles): this {
+    public registerWatch(filePath: string, profile = this.options.profile): this {
         if (!this.system.watchFile) {
+            return this;
+        }
+
+        if (!profile) {
             return this;
         }
 
@@ -176,15 +174,13 @@ export class Compiler {
             this.system.watchFile(
                 filePath,
                 fileName =>
-                    (profileNames ?? []).forEach(profile =>
-                        fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                            ? this.emitSourceFile(fileName, profile, true, true)
-                            : this.contextMap.has(profile) &&
-                              this.contextMap
-                                  .get(profile)!
-                                  .resolveDependency(fileName)
-                                  .map(cur => this.emitSourceFile(cur, profile, true, true))
-                    ),
+                    fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
+                        ? this.emitSourceFile(fileName, profile, true, true)
+                        : this.contextMap.has(profile) &&
+                          this.contextMap
+                              .get(profile)!
+                              .resolveDependency(fileName)
+                              .map(cur => this.emitSourceFile(cur, profile, true, true)),
                 50,
                 {
                     // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
@@ -204,15 +200,16 @@ export class Compiler {
     }
 
     protected createProfileContextsIfNecessary(): this {
-        const { profiles } = this.options;
+        const { profile } = this.options;
+        const selectedProfiles = profile ? [...(this.options.config?.profiles?.[profile]?.depends ?? []), profile] : [];
 
-        if (!profiles?.length) {
+        if (!selectedProfiles.length) {
             const ctx = this.getContext()!;
             this.addons?.getAvailableAddons().forEach(addon => {
                 addon.activate(ctx);
             });
         } else {
-            profiles.forEach((profile: string) => {
+            selectedProfiles.forEach((profile: string) => {
                 if (this.contextMap.has(profile)) {
                     return;
                 }
@@ -275,8 +272,12 @@ export class Compiler {
     }
 
     protected getDefinedProfiles(name?: string): string[] {
-        const profiles = Object.keys(this.options.config?.profiles ?? []);
-        return name ? profiles.filter(cur => cur === name) : profiles;
+        const profiles = Object.keys(this.options.config?.profiles ?? {});
+        if (!name) {
+            return profiles;
+        }
+        const selectedProfiles = [...(this.options.config?.profiles?.[name]?.depends ?? []), name];
+        return profiles.filter(cur => selectedProfiles.includes(cur));
     }
 
     private processOutput(

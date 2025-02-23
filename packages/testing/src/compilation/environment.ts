@@ -67,7 +67,7 @@ export class CompilationEnv {
 
         this.compilerOptions = resolveCompilerOptions(this.system, {
             buildDir: this.buildDir,
-            profiles: options?.compilerOptions?.profiles?.length ? options.compilerOptions.profiles : ["*"],
+            profile: options?.compilerOptions?.profile,
             config: {
                 profiles: {
                     "*": {
@@ -351,7 +351,6 @@ export class CompilationEnv {
                         esModuleInterop: true,
                         moduleResolution: ts.ModuleResolutionKind.NodeNext,
                     },
-                    profiles: ["*"],
                     cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
                 this.system
