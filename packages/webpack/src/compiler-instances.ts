@@ -21,6 +21,7 @@ export const getCompilerInstance = (
     const compiler = context._compiler;
     let instance = getInstanceFromCache(compiler, options.instanceName);
     if (!instance) {
+        // TODO: Resolve compiler options
         instance = new TsCompiler(createOptions(options), dependencyCallback, options);
         if (compiler) {
             addCompilationHooks(compiler, options, {

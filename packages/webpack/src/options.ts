@@ -17,6 +17,7 @@ import path from "node:path";
 import ts from "typescript";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
+// TODO: Resolve compiler options
 export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const { config, configFile, debug = false, tsConfigFile = "./tsconfig.json", profile, tsConfig, transpileOnly } = args;
 

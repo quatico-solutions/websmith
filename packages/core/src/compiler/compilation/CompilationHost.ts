@@ -5,16 +5,16 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import ts, { type CompilerOptions, type IScriptSnapshot, type LanguageServiceHost } from "typescript";
+import ts from "typescript";
 
-export class CompilationHost implements LanguageServiceHost {
-    private currentHost: LanguageServiceHost;
+export class CompilationHost implements ts.LanguageServiceHost {
+    private currentHost: ts.LanguageServiceHost;
 
-    constructor(defaultHost: LanguageServiceHost) {
+    constructor(defaultHost: ts.LanguageServiceHost) {
         this.currentHost = defaultHost;
     }
 
-    public setLanguageHost(host: LanguageServiceHost): this {
+    public setLanguageHost(host: ts.LanguageServiceHost): this {
         this.currentHost = host;
         return this;
     }
@@ -67,7 +67,7 @@ export class CompilationHost implements LanguageServiceHost {
         return this.currentHost.getDirectories(directoryName);
     }
 
-    public getCompilationSettings(): CompilerOptions {
+    public getCompilationSettings(): ts.CompilerOptions {
         return this.currentHost.getCompilationSettings();
     }
 
@@ -83,7 +83,7 @@ export class CompilationHost implements LanguageServiceHost {
         return this.currentHost.getScriptVersion(fileName);
     }
 
-    public getScriptSnapshot(fileName: string): IScriptSnapshot | undefined {
+    public getScriptSnapshot(fileName: string): ts.IScriptSnapshot | undefined {
         return this.currentHost.getScriptSnapshot(fileName);
     }
 
@@ -91,7 +91,7 @@ export class CompilationHost implements LanguageServiceHost {
         return this.currentHost.getCurrentDirectory();
     }
 
-    public getDefaultLibFileName(options: CompilerOptions): string {
+    public getDefaultLibFileName(options: ts.CompilerOptions): string {
         return this.currentHost.getDefaultLibFileName(options);
     }
 

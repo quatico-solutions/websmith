@@ -52,6 +52,7 @@ const resolveLoaderOptions = (
         plugin => plugin && typeof plugin === "object" && plugin.constructor?.name === "ForkTsCheckerWebpackPlugin"
     );
 
+    // TODO: Resolve compiler options
     return Object.assign({}, options, createOptions(options), {
         instanceName,
         // Set default transpileOnly to true if there is an instance of ForkTsCheckerWebpackPlugin

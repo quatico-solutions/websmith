@@ -65,6 +65,7 @@ export class CompilationEnv {
             this.system.createDirectory(outDir);
         }
 
+        // TODO: Resolve compiler options
         this.compilerOptions = resolveCompilerOptions(this.system, {
             buildDir: this.buildDir,
             profile: options?.compilerOptions?.profile,
@@ -103,6 +104,7 @@ export class CompilationEnv {
         return resolveProjectPath(this.system, this.rootDir, this.compilerOptions.tsConfig.outDir ?? DEFAULT_OUT_DIR);
     }
 
+    // TODO: Resolve compiler options
     public getCompilerOptions(): CompilerOptions {
         return this.compilerOptions;
     }
@@ -340,6 +342,7 @@ export class CompilationEnv {
             .map(it => path.dirname(it));
 
         addonsToCompile.forEach(curDir => {
+            // TODO: Resolve compiler options
             new Compiler(
                 {
                     ...resolveCompilerOptions(this.system, {
