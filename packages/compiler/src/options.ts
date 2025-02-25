@@ -16,6 +16,7 @@ import path from "node:path";
 import ts from "typescript";
 import { type CompilerArguments } from "./CompilerArguments";
 
+// TODO: Resolve compiler options
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const { configFile, debug = false, project = "./tsconfig.json", sourceMap = false, profile, transpileOnly, watch = false } = args;
 

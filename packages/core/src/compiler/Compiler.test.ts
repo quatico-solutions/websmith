@@ -9,6 +9,7 @@ describe("end-2-end compile w/ websmith", () => {
             "src/two.ts": `whatever`,
         });
 
+        // TODO: Resolve compiler options
         const actual = new Compiler(
             resolveCompilerOptions(target, {
                 tsConfig: { outDir: "./bin" },

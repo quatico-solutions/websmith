@@ -6,7 +6,7 @@
  */
 export { Compiler } from "./Compiler";
 export type { CompileFragment } from "./Compiler";
-export type { CompilerOptions } from "./CompilerOptions";
+export * from "./options";
 export { DefaultReporter } from "./DefaultReporter";
 export { NoReporter } from "./NoReporter";
 export * from "./addons";

@@ -12,6 +12,7 @@ import path from "node:path";
 const DEFAULT_BUILD_DIR = "./src";
 const DEFAULT_OUT_DIR = "./dist";
 
+// TODO: Resolve compiler options
 export const resolveCompilerOptions = (system: ts.System, overrides?: Partial<CompilerOptions>): CompilerOptions => {
     const reporter = new ReporterMock(system);
     const buildDir: string = resolvePath(system, overrides?.buildDir ?? DEFAULT_BUILD_DIR);

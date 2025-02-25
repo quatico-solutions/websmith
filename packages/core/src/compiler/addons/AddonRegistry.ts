@@ -8,7 +8,7 @@ import { WarnMessage, type CompilationProfile, type Reporter } from "@quatico/we
 import path from "node:path";
 import ts from "typescript";
 import { Compiler } from "../Compiler";
-import { type CompilerOptions } from "../CompilerOptions";
+import { type CompilerOptions } from "../options";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 export type AddonConfig = {
     addons?: string[];
@@ -191,6 +191,7 @@ const getAddonName = (filePath: string) =>
 
 const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || filePath.endsWith(".tsx");
 
+// TODO: Resolve compiler options
 const compileAddonOptions = (reporter: Reporter, system: ts.System, overrides: Partial<CompilerOptions>): CompilerOptions => {
     const addonsDir: string = resolvePath(system, overrides.buildDir!);
     const buildDir: string = path.dirname(addonsDir);

@@ -6,17 +6,17 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { ErrorMessage, type Reporter, type CompilationProfile } from "@quatico/websmith-api";
+import { ErrorMessage, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
 import path from "node:path";
-import ts, { PollingWatchKind, WatchFileKind } from "typescript";
+import ts from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
 import { type AddonRegistry } from "./addons";
 import { type FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
-import { type CompilerOptions } from "./CompilerOptions";
 import { type CompilationConfig } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
+import { type CompilerOptions } from "./options";
 
 export type CompileFragment = {
     version: number;
@@ -80,6 +80,7 @@ export class Compiler {
         return this.addons;
     }
 
+    // TODO: Resolve compiler options
     public getOptions(): CompilerOptions {
         return this.options;
     }
@@ -185,8 +186,8 @@ export class Compiler {
                 {
                     // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
                     // In addition, the ts.System.getModifiedTime will report incorrect timeStamps, making it impossible to prevent the double firing.
-                    watchFile: WatchFileKind.PriorityPollingInterval,
-                    fallbackPolling: PollingWatchKind.FixedInterval,
+                    watchFile: ts.WatchFileKind.PriorityPollingInterval,
+                    fallbackPolling: ts.PollingWatchKind.FixedInterval,
                 }
             )
         );
@@ -226,12 +227,17 @@ export class Compiler {
     protected createCompilationContext(profile?: string): CompilationContext {
         const { buildDir, config, configFile, tsConfig, cliArgs, watch } = this.options;
         const { tsConfig: options = {}, config: profileConfig } = getProfile(profile, config);
+        const mergedTsConfig = { ...tsConfig, ...options };
         return new CompilationContext({
             buildDir,
-            tsConfig: { ...tsConfig, ...options },
+            tsConfig: mergedTsConfig,
             projectDir: path.dirname(configFile ?? cliArgs.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
-            program: ts.createProgram({ rootNames: this.getRootFiles(), options: tsConfig, host: createCompileHost(tsConfig) }),
+            program: ts.createProgram({
+                rootNames: this.getRootFiles(),
+                options: mergedTsConfig,
+                host: createCompileHost(mergedTsConfig),
+            }),
             cliArgs: { ...cliArgs, options: { ...tsConfig, ...options } },
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,

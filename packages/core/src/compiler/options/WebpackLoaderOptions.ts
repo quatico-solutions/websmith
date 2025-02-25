@@ -1,6 +1,6 @@
-import type { BaseOptions } from "@quatico/websmith-core";
+import type { BaseOptions } from "./BaseOptions";
 
-export type WebsmithLoaderOptions = BaseOptions & {
+export type WebpackLoaderOptions = BaseOptions & {
     /**
      * Whether to only transpile the code without emitting any output.
      * Overrides the `transpileOnly` specified in the `config`.

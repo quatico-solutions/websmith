@@ -6,12 +6,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 import path from "node:path";
-import type { LanguageService, Program } from "typescript";
 import ts from "typescript";
-import { ReporterMock, resolveCompilerOptions, compileSystem } from "../../test";
-import { type CompileFragment, Compiler } from "./Compiler";
-import { type CompilerOptions } from "./CompilerOptions";
+import { compileSystem, ReporterMock, resolveCompilerOptions } from "../../test";
 import { type CompilationContext } from "./compilation";
+import { type CompileFragment, Compiler } from "./Compiler";
+import { type CompilerOptions } from "./options";
 
 class CompilerTestClass extends Compiler {
     constructor(options: CompilerOptions, system: ts.System) {
@@ -30,14 +29,16 @@ class CompilerTestClass extends Compiler {
         return super.createProfileContextsIfNecessary();
     }
 
-    public getProgram(): Program | undefined {
+    public getProgram(): ts.Program | undefined {
         return this.program;
     }
 
-    public getLanguageService(): LanguageService {
+    // TODO: Resolve compiler optionss
+    public getLanguageService(): ts.LanguageService {
         return this.langService;
     }
 
+    // TODO: Resolve compiler options
     public getOptions(): CompilerOptions {
         return this.options;
     }
