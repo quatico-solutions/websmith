@@ -13,7 +13,8 @@ describe("foobar-replace-processor addon", () => {
         testObj = compilationEnv("./__TEST__", {
             compilerOptions: { tsConfig: { outDir: "dist" } },
             virtual: false,
-        }).addAddons(["foobar-replace-transformer", "foobar-replace-processor"], path.join(__dirname, "../src"));
+        });
+        testObj.addAddons(["foobar-replace-transformer", "foobar-replace-processor"], path.join(__dirname, "../src"));
     });
 
     afterEach(() => {

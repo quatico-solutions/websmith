@@ -67,17 +67,23 @@ export class CompilationEnv {
 
         // TODO: Resolve compiler options
         this.compilerOptions = resolveCompilerOptions(this.system, {
+            ...compilerOptions,
             buildDir: this.buildDir,
-            profile: options?.compilerOptions?.profile,
+            profile: compilerOptions?.profile ?? "*",
             config: {
+                ...compilerOptions.config,
                 profiles: {
                     "*": {
                         tsConfig: { outDir },
                     },
+                    ...(compilerOptions.config?.profiles ?? {}),
                 },
             },
-            tsConfig: { configFilePath: `${this.rootDir}/tsconfig.json`, outDir },
-            ...compilerOptions,
+            tsConfig: {
+                configFilePath: `${this.rootDir}/tsconfig.json`,
+                ...(compilerOptions?.tsConfig ?? {}),
+                outDir,
+            },
         });
 
         this.addonsConfig = {
@@ -339,7 +345,8 @@ export class CompilationEnv {
         const addonsToCompile = this.system
             .readDirectory(addonsTargetDir)
             .filter(isSourceFile)
-            .map(it => path.dirname(it));
+            .map(it => path.dirname(it))
+            .filter((item, pos, self) => self.indexOf(item) == pos);
 
         addonsToCompile.forEach(curDir => {
             // TODO: Resolve compiler options

@@ -133,7 +133,7 @@ describe("webpack w/ websmith", () => {
                     profile: "unknown",
                 },
             })
-        ).rejects.toThrow("No profile found for 'profile' with name 'unknown'.");
+        ).rejects.toThrow("Found missing profile(s) 'unknown' in available profile(s) 'existing'.");
     });
 
     it("should use default profile w/o configured profile", async () => {

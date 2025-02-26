@@ -61,12 +61,12 @@ describe("compilationEnv", () => {
         const actual = testObj.getCompilerOptions();
 
         expect(actual).toMatchObject({
-            buildDir: "./expected-src",
+            buildDir: "/target/expected-src",
             tsConfig: {
-                configFilePath: "./tsconfig.json",
+                configFilePath: "/target/tsconfig.json",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
-                outDir: "./expected-out",
+                outDir: "/target/expected-out",
             },
         });
     });
