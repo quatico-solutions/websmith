@@ -1,12 +1,15 @@
-import { resolveCompilerOptions, compileSystem } from "../../test";
+import { compileSystem } from "../testing";
+import { resolveCompilerOptions } from "../../test";
 import { Compiler } from "./Compiler";
 
 describe("end-2-end compile w/ websmith", () => {
     it("should yield compiled file", () => {
         const { fileSystem: target } = compileSystem({
-            "tsconfig.json": "{}",
-            "src/one.ts": `whatever`,
-            "src/two.ts": `whatever`,
+            files: {
+                "tsconfig.json": "{}",
+                "src/one.ts": `whatever`,
+                "src/two.ts": `whatever`,
+            },
         });
 
         // TODO: Resolve compiler options

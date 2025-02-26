@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { compileSystem } from "../../../test";
+import { compileSystem } from "../../testing";
 import { resolveProjectConfig } from "./resolve-project-config";
 
 describe("empty config", () => {
@@ -40,10 +40,12 @@ describe("empty config", () => {
 describe("valid config", () => {
     it("yields default value with valid config file", () => {
         const { fileSystem: target } = compileSystem({
-            "tsconfig.json": JSON.stringify({
-                include: ["foobar.ts"],
-            }),
-            "foobar.ts": `class Foobar {}`,
+            files: {
+                "tsconfig.json": JSON.stringify({
+                    include: ["foobar.ts"],
+                }),
+                "foobar.ts": `class Foobar {}`,
+            },
         });
 
         const actual = resolveProjectConfig("tsconfig.json", target);
@@ -60,10 +62,12 @@ describe("valid config", () => {
 
     it("yields no error with matching includes", () => {
         const { fileSystem: target } = compileSystem({
-            "tsconfig.json": JSON.stringify({
-                include: ["foobar.ts"],
-            }),
-            "foobar.ts": `class Foobar {}`,
+            files: {
+                "tsconfig.json": JSON.stringify({
+                    include: ["foobar.ts"],
+                }),
+                "foobar.ts": `class Foobar {}`,
+            },
         });
 
         const actual = resolveProjectConfig("tsconfig.json", target);
@@ -74,17 +78,19 @@ describe("valid config", () => {
 
 describe("default config", () => {
     const { fileSystem: target } = compileSystem({
-        "tsconfig.json": JSON.stringify({
-            include: ["**/*.tsx"],
-            compilerOptions: {
-                strict: true,
-                lib: ["dom", "es2015"],
-                jsx: "react",
-            },
-        }),
-        "/one.tsx": `class One {}`,
-        "/two.tsx": `class Two {}`,
-        "/three.tsx": `class Three {}`,
+        files: {
+            "tsconfig.json": JSON.stringify({
+                include: ["**/*.tsx"],
+                compilerOptions: {
+                    strict: true,
+                    lib: ["dom", "es2015"],
+                    jsx: "react",
+                },
+            }),
+            "/one.tsx": `class One {}`,
+            "/two.tsx": `class Two {}`,
+            "/three.tsx": `class Three {}`,
+        },
     });
 
     it("yields default value with valid config file", () => {

@@ -5,7 +5,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { WarnMessage } from "@quatico/websmith-api";
+import { type CompilerArguments, WarnMessage } from "@quatico/websmith-api";
 import {
     AddonRegistry,
     type CompilationConfig,
@@ -16,9 +16,8 @@ import {
 } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
-import { type CompilerArguments } from "./CompilerArguments";
-import { compileSystem } from "./compiler-system";
-import { createOptions } from "./options";
+import { createSystem } from "./compiler-system";
+import { createOptions } from "@quatico/websmith-core";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
     parent
@@ -50,7 +49,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         })
         .action((args: CompilerArguments, command: Command) => {
             // TODO: Add files from CLI argument
-            const system = compiler?.getSystem() ?? compileSystem();
+            const system = compiler?.getSystem() ?? createSystem();
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
             // TODO: Resolve compiler options
             const options = createOptions(args, reporter, system);

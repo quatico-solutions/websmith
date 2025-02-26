@@ -4,16 +4,14 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import type ts from "typescript";
-import { createBrowserSystem, getVersionedFile, type CompileSystemOptions } from "../src/environment";
+import { AddonRegistry, NoReporter } from "../compiler";
+import { createBrowserSystem, getVersionedFile } from "../environment";
+import { type CompileSystem } from "./CompileSystem";
+import { type CompileSystemOptions } from "./CompileSystemOptions";
 
-export type CompileSystem = {
-    fileSystem: ts.System;
-    getSourceFile(fileName: string): { entry?: ts.SourceFile; fileSystem: ts.System };
-};
+export const compileSystem = (options?: CompileSystemOptions): CompileSystem => {
+    const { files, addonConfig, reporter, useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher } = options ?? {};
 
-export const compileSystem = (files?: Record<string, string>, options?: CompileSystemOptions): CompileSystem => {
-    const { useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher } = options ?? {};
     const fileSystem = createBrowserSystem({ ...files }, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher });
     if (addLibDefaults) {
         if (!fileSystem.fileExists("./tsconfig.json")) {
@@ -23,8 +21,20 @@ export const compileSystem = (files?: Record<string, string>, options?: CompileS
             fileSystem.createDirectory("./addons");
         }
     }
+
+    const { addons = [], addonsDir = "./addons", profiles } = addonConfig ?? {};
+
+    const registry = new AddonRegistry({
+        addons,
+        addonsDir,
+        profiles,
+        reporter: reporter ?? new NoReporter(),
+        system: fileSystem,
+    });
+
     return {
         fileSystem,
+        addons: registry,
         getSourceFile: (fileName: string) => ({
             entry: getVersionedFile(fileName, fileSystem),
             fileSystem,

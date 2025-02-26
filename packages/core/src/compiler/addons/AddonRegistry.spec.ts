@@ -6,13 +6,14 @@
  */
 import { WarnMessage } from "@quatico/websmith-api";
 import type ts from "typescript";
-import { ReporterMock, compileSystem } from "../../../test";
+import { ReporterMock } from "../../../test";
+import { compileSystem } from "../../testing";
 import { AddonRegistry } from "./AddonRegistry";
 
 let system: ts.System;
 let reporter: ReporterMock;
 beforeEach(() => {
-    system = compileSystem({}, { addLibDefaults: false }).fileSystem;
+    system = compileSystem({ addLibDefaults: false }).fileSystem;
     reporter = new ReporterMock(system);
 });
 

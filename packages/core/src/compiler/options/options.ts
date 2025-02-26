@@ -4,17 +4,12 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import {
-    type CompilerOptions,
-    NoReporter,
-    resolveCompilationConfig,
-    resolveProfile,
-    resolveProjectConfig as resolveTsConfig,
-    resolvePaths,
-} from "@quatico/websmith-core";
+import { type CompilerArguments } from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
-import { type CompilerArguments } from "./CompilerArguments";
+import { resolveCompilationConfig, resolvePaths, resolveProfile, resolveProjectConfig as resolveTsConfig } from "../config";
+import { NoReporter } from "../NoReporter";
+import { type CompilerOptions } from "./CompilerOptions";
 
 // TODO: Resolve compiler options
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {

@@ -21,11 +21,6 @@ class TestCompiler extends TsCompiler {
         this.sys = super.getSystem();
     }
 
-    public setProgram(program: ts.Program): this {
-        this.program = program;
-        return this;
-    }
-
     public setSystem(system: ts.System | undefined): this {
         this.sys = system;
         return this;
@@ -61,15 +56,6 @@ describe("TsCompiler", () => {
             },
             { configFile: "./websmith.config.json" }
         );
-    });
-
-    it("should return the program", () => {
-        const expected = {} as ts.Program;
-        testObj.setProgram(expected);
-
-        const actual = testObj.getProgram();
-
-        expect(actual).toBe(expected);
     });
 
     it("should throw error in build w/o system", () => {

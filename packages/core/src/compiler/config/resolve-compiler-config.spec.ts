@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { ErrorMessage } from "@quatico/websmith-api";
-import { compileSystem } from "../../../test";
+import { compileSystem } from "../../testing";
 import { NoReporter } from "../NoReporter";
 import { resolveCompilationConfig } from "./resolve-compiler-config";
 
@@ -27,7 +27,7 @@ describe("resolveCompilationConfig", () => {
     });
 
     it("should return undefined w/ existing path but invalid config file", () => {
-        const { fileSystem: target } = compileSystem({ "./invalid-config.json": "" });
+        const { fileSystem: target } = compileSystem({ files: { "./invalid-config.json": "" } });
 
         const actual = resolveCompilationConfig("./invalid-config.json", new NoReporter(), target);
 
@@ -35,7 +35,7 @@ describe("resolveCompilationConfig", () => {
     });
 
     it("should return defaults w/ existing path and empty config file", () => {
-        const { fileSystem: target } = compileSystem({ "./empty-config.json": JSON.stringify({}) });
+        const { fileSystem: target } = compileSystem({ files: { "./empty-config.json": JSON.stringify({}) } });
 
         const actual = resolveCompilationConfig("./empty-config.json", new NoReporter(), target);
 
@@ -44,19 +44,21 @@ describe("resolveCompilationConfig", () => {
 
     it("should return config properties w/ existing path and full config", () => {
         const { fileSystem: target } = compileSystem({
-            "./target-config.json": JSON.stringify({
-                addons: ["addon1", "addon2"],
-                addonsDir: "./addons",
-                profiles: {
-                    profile1: {
-                        addons: ["other-addon"],
-                        tsConfig: {
-                            outDir: "./dist",
+            files: {
+                "./target-config.json": JSON.stringify({
+                    addons: ["addon1", "addon2"],
+                    addonsDir: "./addons",
+                    profiles: {
+                        profile1: {
+                            addons: ["other-addon"],
+                            tsConfig: {
+                                outDir: "./dist",
+                            },
                         },
                     },
-                },
-                transpileOnly: true,
-            }),
+                    transpileOnly: true,
+                }),
+            },
         });
 
         const actual = resolveCompilationConfig("./target-config.json", new NoReporter(), target);
@@ -80,13 +82,15 @@ describe("resolveCompilationConfig", () => {
         const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
 
         const { fileSystem } = compileSystem({
-            "./target-config.json": JSON.stringify({
-                profiles: {
-                    profile1: {
-                        depends: ["unknown-profile"],
+            files: {
+                "./target-config.json": JSON.stringify({
+                    profiles: {
+                        profile1: {
+                            depends: ["unknown-profile"],
+                        },
                     },
-                },
-            }),
+                }),
+            },
         });
 
         resolveCompilationConfig("./target-config.json", new NoReporter(), fileSystem);
@@ -98,21 +102,23 @@ describe("resolveCompilationConfig", () => {
         const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
 
         const { fileSystem } = compileSystem({
-            "./target-config.json": JSON.stringify({
-                profiles: {
-                    profile1: {
-                        depends: ["unknown-profile", "profile2"],
-                        tsConfig: {
-                            outDir: "./dist",
+            files: {
+                "./target-config.json": JSON.stringify({
+                    profiles: {
+                        profile1: {
+                            depends: ["unknown-profile", "profile2"],
+                            tsConfig: {
+                                outDir: "./dist",
+                            },
+                        },
+                        profile2: {
+                            tsConfig: {
+                                outDir: "./dist",
+                            },
                         },
                     },
-                    profile2: {
-                        tsConfig: {
-                            outDir: "./dist",
-                        },
-                    },
-                },
-            }),
+                }),
+            },
         });
 
         resolveCompilationConfig("./target-config.json", new NoReporter(), fileSystem);

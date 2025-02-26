@@ -5,8 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 export { createBrowserSystem } from "./browser-system";
+export { type BrowserSystemOptions } from "./BrowserSystemOptions";
 export { createCompileHost, createWatchHost, injectTransformers } from "./compile-service";
-export type { CompileSystemOptions } from "./CompileSystemOptions";
 export { createLanguageService, createLanguageServiceHost } from "./language-service";
 export { createSystem, createVersionedFile, createVersionedFiles, getVersionedFile, isNodeJs, readFiles, recursiveFindByFilter } from "./system";
 export type { VersionedFile } from "./VersionedFile";

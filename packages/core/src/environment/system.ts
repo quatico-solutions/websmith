@@ -8,7 +8,7 @@ import path from "node:path";
 import ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
 import { createBrowserSystem } from "./browser-system";
-import { type CompileSystemOptions } from "./CompileSystemOptions";
+import { type BrowserSystemOptions } from "./BrowserSystemOptions";
 import type { VersionedFile } from "./VersionedFile";
 
 export const isNodeJs = (): boolean => typeof module !== "undefined" && module.exports;
@@ -25,7 +25,7 @@ export const isNodeJs = (): boolean => typeof module !== "undefined" && module.e
  *
  * @param files The returned file system should at least contain.
  */
-export const createSystem = (files?: { [name: string]: string }, options?: CompileSystemOptions): ts.System => {
+export const createSystem = (files?: { [name: string]: string }, options?: BrowserSystemOptions): ts.System => {
     if (isNodeJs()) {
         return ts.sys;
     }

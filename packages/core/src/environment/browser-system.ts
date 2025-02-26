@@ -10,10 +10,10 @@ import createHashFn from "create-hash";
 import path from "node:path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
-import { type CompileSystemOptions } from "./CompileSystemOptions";
+import { type BrowserSystemOptions } from "./BrowserSystemOptions";
 import { PathWatcherRegistry } from "./PathWatcherRegistry";
 
-export const createBrowserSystem = (files?: Record<string, string>, options: CompileSystemOptions = {}): ts.System => {
+export const createBrowserSystem = (files?: Record<string, string>, options: BrowserSystemOptions = {}): ts.System => {
     const { useCaseSensitiveFileNames = false, addLibDefaults = false, fileWatcher } = options;
     const initialTime = Date.now();
     const knownFiles = Object.entries({ ...(files ?? {}), ...(addLibDefaults ? tsLibDefaults : {}) }).reduce(
