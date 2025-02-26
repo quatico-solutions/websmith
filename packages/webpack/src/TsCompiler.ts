@@ -29,10 +29,11 @@ export class TsCompiler extends Compiler {
         const compilationConfig = loadCompilationConfig(loaderConfig, options, system);
         const { addons, profiles: profileMap, addonsDir } = compilationConfig;
         const profileName = loaderConfig.profile ?? options.profile;
+        const selectedProfiles = profileName ? [...(options.config?.profiles?.[profileName]?.depends ?? []), profileName] : [];
         const addonsMerged = addons?.length
             ? addons
             : Object.entries(profileMap ?? {})
-                  .filter(([name]) => profileName === name)
+                  .filter(([name]) => selectedProfiles.includes(name))
                   // eslint-disable-next-line @typescript-eslint/no-unused-vars
                   .map(([_, value]) => value.addons ?? [])
                   .flat();
@@ -94,6 +95,7 @@ export class TsCompiler extends Compiler {
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
                 const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
                 this.error(new WebpackError(message));
+                throw new Error(message);
             });
         }
 
@@ -105,11 +107,11 @@ export class TsCompiler extends Compiler {
     }
 
     private getFragmentProfile(profile: string): string {
-        const available = super.getDefinedProfiles(profile);
+        const available = super.getDefinedProfiles();
         const selected = [...(this.getOptions().config?.profiles?.[profile]?.depends ?? []), profile];
         const missing = selected.filter(cur => !available.includes(cur));
         if (missing.length) {
-            const noProfileError = `Found missing profiles '${missing.join(", ")}' with 'profile' name '${profile}'.`;
+            const noProfileError = `Found missing profile(s) '${missing.join(", ")}' in available profile(s) '${available.join(", ")}'.`;
             this.error(new WebpackError(noProfileError));
             throw new Error(noProfileError);
         }

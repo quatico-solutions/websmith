@@ -42,10 +42,12 @@ export const compile = async (files: string[], config?: { tsConfig?: ts.Compiler
 
         const { profile } = websmithConfig;
         const { addons, profiles: profileMap, addonsDir } = websmithConfig.config ?? {};
+        // TODO: Resolve compiler options
+        const selectedProfiles = profile ? [...(profileMap?.[profile]?.depends ?? []), profile] : [];
         const addonsMerged = addons?.length
             ? addons
             : Object.entries(profileMap ?? {})
-                  .filter(([cur]) => profile === cur)
+                  .filter(([cur]) => selectedProfiles?.length && selectedProfiles?.includes(cur))
                   .map(([_, value]) => value.addons ?? [])
                   .flat();
         let addonRegistry: AddonRegistry | undefined = undefined;
