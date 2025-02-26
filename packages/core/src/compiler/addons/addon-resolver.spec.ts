@@ -5,8 +5,9 @@
  * ---------------------------------------------------------------------------------------------
  */
 import type ts from "typescript";
-import { NoReporter } from "../../../src/compiler/NoReporter";
-import { ReporterMock, compileSystem } from "../../../test";
+import { NoReporter } from "../../compiler/NoReporter";
+import { ReporterMock } from "../../../test";
+import { compileSystem } from "../../testing";
 import { createResolver } from "./addon-resolver";
 
 jest.mock("/addons/one/addon", () => ({ activate: () => undefined }), {

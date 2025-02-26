@@ -101,7 +101,7 @@ export class CompilationEnv {
     }
 
     public getOutDir(): string {
-        return resolveProjectPath(this.system, this.rootDir, this.compilerOptions.tsConfig.outDir ?? DEFAULT_OUT_DIR);
+        return resolveProjectPath(this.system, this.rootDir, this.compilerOptions.tsConfig?.outDir ?? DEFAULT_OUT_DIR);
     }
 
     // TODO: Resolve compiler options
@@ -300,7 +300,7 @@ export class CompilationEnv {
     }
 
     public getCompiledDir(): string {
-        return resolveProjectPath(this.system, this.rootDir, this.getCompilerOptions().tsConfig.outDir ?? DEFAULT_OUT_DIR);
+        return resolveProjectPath(this.system, this.rootDir, this.getCompilerOptions().tsConfig?.outDir ?? DEFAULT_OUT_DIR);
     }
 
     public getCompiledFiles(relativePath?: string): ProjectFiles {

@@ -66,10 +66,6 @@ export class TsCompiler extends Compiler {
         super.setOptions({ ...options, ...loaderConfig, config: { ...options.config, ...compilationConfig } });
     }
 
-    public getProgram(): ts.Program | undefined {
-        return this.program;
-    }
-
     public build(resourcePath: string): CompileFragment {
         if (this.getSystem() !== ts.sys) {
             throw new Error("TsCompiler.build() not called with ts.sys as the active ts.System");
@@ -77,7 +73,7 @@ export class TsCompiler extends Compiler {
 
         const fileName = uPath.normalize(resourcePath);
         if (this.profile) {
-            const selectedProfiles = this.options.config?.profiles?.[this.profile]?.depends ?? [];
+            const selectedProfiles = this.getOptions().config?.profiles?.[this.profile]?.depends ?? [];
             selectedProfiles
                 .filter((profile: string) => profile !== this.profile)
                 .forEach((profile: string) => {
@@ -85,8 +81,7 @@ export class TsCompiler extends Compiler {
                     this.emitSourceFile(fileName, profile, true);
 
                     // TODO: We cannot apply the resultProcessors to the resulting fragment, because webpack has not written the file yet.
-                    this.contextMap
-                        .get(profile)
+                    this.getContext(profile)
                         ?.getResultProcessors()
                         .forEach(cur => cur([fileName]));
                 });
@@ -111,7 +106,7 @@ export class TsCompiler extends Compiler {
 
     private getFragmentProfile(profile: string): string {
         const available = super.getDefinedProfiles(profile);
-        const selected = [...(this.options.config?.profiles?.[profile]?.depends ?? []), profile];
+        const selected = [...(this.getOptions().config?.profiles?.[profile]?.depends ?? []), profile];
         const missing = selected.filter(cur => !available.includes(cur));
         if (missing.length) {
             const noProfileError = `Found missing profiles '${missing.join(", ")}' with 'profile' name '${profile}'.`;

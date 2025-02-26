@@ -4,8 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { NoReporter } from "@quatico/websmith-core";
-import { compileSystem } from "@quatico/websmith-testing";
+import { NoReporter } from "../NoReporter";
+import { compileSystem } from "../../testing";
 import { createOptions } from "./options";
 
 describe("createOptions", () => {

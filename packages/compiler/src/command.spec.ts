@@ -6,13 +6,12 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
-import { Compiler, NoReporter } from "@quatico/websmith-core";
+import { Compiler, createOptions, NoReporter } from "@quatico/websmith-core";
 import { compileSystem } from "@quatico/websmith-testing";
 import { Command } from "commander";
 import path from "node:path";
 import type ts from "typescript";
 import { addCompileCommand, hasInvalidProfile } from "./command";
-import { createOptions } from "./options";
 
 describe("addCompileCommand", () => {
     it("should yield additionalArguments w/ unknown argument", () => {
@@ -302,7 +301,7 @@ describe("addCompileCommand#profile", () => {
 
         addCompileCommand(new Command(), target).parse(["--profile", "expected"], { from: "user" });
 
-        expect(target.getOptions().profile).toEqual(["expected"]);
+        expect(target.getOptions().profile).toEqual("expected");
     });
 
     it("should yield warning w/ --profile cli argument and unknown name", () => {

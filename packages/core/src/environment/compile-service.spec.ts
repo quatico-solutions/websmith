@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { compileSystem } from "../../test";
+import { compileSystem } from "../testing";
 import { resolveProjectConfig } from "../compiler";
 import { NoReporter } from "../compiler/NoReporter";
 import { createWatchHost } from "./compile-service";
@@ -33,7 +33,7 @@ describe("createWatchHost", () => {
         });
 
         it("returns true for existing path", () => {
-            const { fileSystem: target } = compileSystem({ "folder/one.js": `class One {}` });
+            const { fileSystem: target } = compileSystem({ files: { "folder/one.js": `class One {}` } });
             const config = resolveProjectConfig("tsconfig.json", target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -55,7 +55,7 @@ describe("createWatchHost", () => {
         });
 
         it("returns true for existing path", () => {
-            const { fileSystem: target } = compileSystem({ "folder/one.js": `class One {}` });
+            const { fileSystem: target } = compileSystem({ files: { "folder/one.js": `class One {}` } });
             const config = resolveProjectConfig("tsconfig.json", target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -100,9 +100,11 @@ describe("createWatchHost", () => {
 
         it("returns file path array for existing path with content", () => {
             const { fileSystem: target } = compileSystem({
-                "folder/one.js": `class One {}`,
-                "folder/two.js": `class Two {}`,
-                "folder/foo/three.js": `class Three {}`,
+                files: {
+                    "folder/one.js": `class One {}`,
+                    "folder/two.js": `class Two {}`,
+                    "folder/foo/three.js": `class Three {}`,
+                },
             });
             const config = resolveProjectConfig("tsconfig.json", target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
@@ -114,9 +116,11 @@ describe("createWatchHost", () => {
 
         it("returns empty array for existing path with no directories", () => {
             const { fileSystem: target } = compileSystem({
-                "folder/one.js": `class One {}`,
-                "folder/two.js": `class Two {}`,
-                "folder/foo/three.js": `class Three {}`,
+                files: {
+                    "folder/one.js": `class One {}`,
+                    "folder/two.js": `class Two {}`,
+                    "folder/foo/three.js": `class Three {}`,
+                },
             });
             const config = resolveProjectConfig("tsconfig.json", target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
@@ -129,7 +133,7 @@ describe("createWatchHost", () => {
 
     describe("getNewLine", () => {
         it("return same new line character", () => {
-            const { fileSystem: target } = compileSystem({ "tsconfig.json": "{}" });
+            const { fileSystem: target } = compileSystem({ files: { "tsconfig.json": "{}" } });
             const config = resolveProjectConfig("tsconfig.json", target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -139,7 +143,7 @@ describe("createWatchHost", () => {
 
     describe("useCaseSensitiveFileNames", () => {
         it("return same value", () => {
-            const { fileSystem: target } = compileSystem({}, { useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames });
+            const { fileSystem: target } = compileSystem({ useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames });
             const config = resolveProjectConfig("tsconfig.json", target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -160,9 +164,11 @@ describe("createWatchHost", () => {
 
         it("returns empty array for existing directory with non-matching file names", () => {
             const { fileSystem: target } = compileSystem({
-                "folder/one.js": `class One {}`,
-                "folder/two.js": `class Two {}`,
-                "folder/foo/three.js": `class Three {}`,
+                files: {
+                    "folder/one.js": `class One {}`,
+                    "folder/two.js": `class Two {}`,
+                    "folder/foo/three.js": `class Three {}`,
+                },
             });
             const config = resolveProjectConfig("tsconfig.json", target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
@@ -174,9 +180,11 @@ describe("createWatchHost", () => {
 
         it("returns file paths for existing directory and matching file names", () => {
             const { fileSystem: target } = compileSystem({
-                "folder/one.js": `class One {}`,
-                "folder/two.js": `class Two {}`,
-                "folder/foo/three.js": `class Three {}`,
+                files: {
+                    "folder/one.js": `class One {}`,
+                    "folder/two.js": `class Two {}`,
+                    "folder/foo/three.js": `class Three {}`,
+                },
             });
             const config = resolveProjectConfig("tsconfig.json", target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
@@ -200,7 +208,7 @@ describe("createWatchHost", () => {
 
         it("returns file content for existing file", () => {
             const { fileSystem: target } = compileSystem({
-                "folder/one.js": `class One {}`,
+                files: { "folder/one.js": `class One {}` },
             });
             const config = resolveProjectConfig("tsconfig.json", target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());

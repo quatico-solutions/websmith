@@ -7,7 +7,8 @@
  */
 import path from "node:path";
 import ts from "typescript";
-import { compileSystem, ReporterMock, resolveCompilerOptions } from "../../test";
+import { ReporterMock, resolveCompilerOptions } from "../../test";
+import { compileSystem } from "../testing";
 import { type CompilationContext } from "./compilation";
 import { type CompileFragment, Compiler } from "./Compiler";
 import { type CompilerOptions } from "./options";
@@ -21,26 +22,12 @@ class CompilerTestClass extends Compiler {
         return super.report(program, result);
     }
 
-    public emitSourceFile(fileName: string, profile: string, writeFile: boolean, skipCache = false): CompileFragment {
+    public emitSourceFile(fileName: string, profile?: string, writeFile?: boolean, skipCache = false): CompileFragment {
         return super.emitSourceFile(fileName, profile, writeFile, skipCache);
     }
 
     public createProfileContextsIfNecessary(): this {
         return super.createProfileContextsIfNecessary();
-    }
-
-    public getProgram(): ts.Program | undefined {
-        return this.program;
-    }
-
-    // TODO: Resolve compiler optionss
-    public getLanguageService(): ts.LanguageService {
-        return this.langService;
-    }
-
-    // TODO: Resolve compiler options
-    public getOptions(): CompilerOptions {
-        return this.options;
     }
 
     public createCompilationContext(profile: string): CompilationContext {
@@ -70,12 +57,13 @@ describe("setOptions", () => {
 
         testObj.setOptions(expected);
 
-        expect(testObj.getOptions()).toEqual(expected);
+        // reporter is not set in the expected object
+        expect(testObj.getOptions()).toMatchObject(expected);
     });
 
     it("yields buildDir with compiler options", () => {
         const { entry, fileSystem: target } = compileSystem({
-            "src/target.ts": `class Target {}`,
+            files: { "src/target.ts": `class Target {}` },
         }).getSourceFile("src/target.ts");
 
         new CompilerTestClass(
@@ -166,6 +154,7 @@ describe("compile", () => {
                     },
                 },
             },
+            profile: "*",
         });
 
         testObj.compile();
@@ -175,9 +164,7 @@ describe("compile", () => {
 
     it("yields output w/ with defaults", () => {
         const { fileSystem } = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         });
 
         new CompilerTestClass(resolveCompilerOptions(fileSystem), fileSystem).compile();
@@ -190,9 +177,7 @@ describe("compile", () => {
 
     it("yields output w/ with addons but w/o profiles", () => {
         const { fileSystem } = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         });
 
         new CompilerTestClass(
@@ -225,16 +210,14 @@ describe("compile", () => {
 describe("emitSourceFile", () => {
     it("yields modified client function w/ annotated arrow function", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: true },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -248,16 +231,14 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function w/ annotated arrow function2", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: true },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -271,9 +252,7 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, no declaration, no sourceMap w/ transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: false, sourceMap: false },
@@ -281,7 +260,7 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -292,9 +271,11 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, no declaration, no declaration map, no sourceMap w/ transpileOnly and declaration", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
+            files: {
+                "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
+            },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: true, declarationMap: false, sourceMap: false },
@@ -302,7 +283,7 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -313,9 +294,11 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, no declaration, no declaration map, no sourceMap w/ transpileOnly, declaration and declarationMap", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
+            files: {
+                "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
+            },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: true, declarationMap: true, sourceMap: false },
@@ -323,7 +306,7 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -334,9 +317,11 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, no declaration, sourceMap w/ transpileOnly and sourceMap", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
+            files: {
+                "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
+            },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: false, declarationMap: false, sourceMap: true },
@@ -344,7 +329,7 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -358,16 +343,18 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, no declaration, no sourceMap w/ no transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
+            files: {
+                "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
+            },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -378,16 +365,18 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, declaration, no declaration map, no sourceMap w/ no transpileOnly and declaration", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
+            files: {
+                "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
+            },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: true, declarationMap: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -402,16 +391,18 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, declaration, declaration map, no sourceMap w/ no transpileOnly, declaration and declarationMap", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
+            files: {
+                "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
+            },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: true, declarationMap: true, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -429,16 +420,18 @@ describe("emitSourceFile", () => {
 
     it("yields modified client function, no declaration, sourceMap w/ no transpileOnly and sourceMap", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
+            files: {
+                "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
+            },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: false, declarationMap: false, sourceMap: true },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -452,9 +445,11 @@ describe("emitSourceFile", () => {
 
     it("yields transpiled client function w/ transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
+            files: {
+                "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
+            },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: false, declarationMap: false, sourceMap: false },
@@ -462,7 +457,7 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -473,16 +468,18 @@ describe("emitSourceFile", () => {
 
     it("yields transpiled client function w/o transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
+            files: {
+                "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
+            },
         }).getSourceFile("src/target.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: { declaration: false, declarationMap: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -493,7 +490,7 @@ describe("emitSourceFile", () => {
 
     it("yields transpiled json w/ transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/config.json": `{"name":"test"}`,
+            files: { "src/config.json": `{"name":"test"}` },
         }).getSourceFile("src/config.json");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: {
@@ -508,14 +505,14 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("config.json", actual)).toMatchInlineSnapshot(`"{"name":"test"}"`);
     });
 
     it("yields transpiled json w/o transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/config.json": `{"name":"test"}`,
+            files: { "src/config.json": `{"name":"test"}` },
         }).getSourceFile("src/config.json");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: {
@@ -528,7 +525,7 @@ describe("emitSourceFile", () => {
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("config.json", actual)).toMatchInlineSnapshot(`
             "{ "name": "test" }
@@ -538,12 +535,7 @@ describe("emitSourceFile", () => {
 
     it("yields transpiled d.ts w/ transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "types/style.d.ts": `
-                declare module "*.scss" {
-                    const content: Record<exportName, string[]>;
-                    export = content;
-                }
-            `,
+            files: { "types/style.d.ts": `declare module "*.scss" { const content: Record<exportName, string[]>; export = content; }` },
         }).getSourceFile("types/style.d.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: {
@@ -559,19 +551,14 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(actual.files).toEqual([]);
     });
 
     it("yields transpiled d.ts w/o transpileOnly", () => {
         const { entry, fileSystem } = compileSystem({
-            "types/style.d.ts": `
-                declare module "*.scss" {
-                    const content: Record<exportName, string[]>;
-                    export = content;
-                }
-            `,
+            files: { "types/style.d.ts": `declare module "*.scss" { const content: Record<exportName, string[]>; export = content; }` },
         }).getSourceFile("types/style.d.ts");
         const target = resolveCompilerOptions(fileSystem, {
             tsConfig: {
@@ -587,7 +574,7 @@ describe("emitSourceFile", () => {
             buildDir: "./types",
         });
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, "*", false);
+        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
         expect(actual.files).toEqual([]);
     });
@@ -596,9 +583,7 @@ describe("emitSourceFile", () => {
 describe("report", () => {
     it("yields result's messageText", () => {
         const fileSystem = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).fileSystem;
         const options = resolveCompilerOptions(fileSystem);
         const target = options.reporter as ReporterMock;
@@ -645,9 +630,7 @@ describe("report", () => {
 
     it("yields emitSkipped true", () => {
         const fileSystem = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).fileSystem;
 
         const actual = new CompilerTestClass(resolveCompilerOptions(fileSystem), fileSystem).report(
@@ -672,17 +655,16 @@ describe("report", () => {
 describe("watch", () => {
     it("should output to buildDir w/o outDir override", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
         const options = resolveCompilerOptions(fileSystem, {
             config: {
-                profiles: { "*": { config: "whatever" } },
+                profiles: { target: { config: "whatever" } },
             },
             tsConfig: { declaration: true, outDir: "/build" },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             watch: true,
+            profile: "target",
         });
 
         const testObj = new Compiler(options, fileSystem);
@@ -703,17 +685,16 @@ describe("watch", () => {
 
     it("should output to outDir w/ target outDir override", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
         const options = resolveCompilerOptions(fileSystem, {
             config: {
-                profiles: { "*": { tsConfig: { outDir: "/build" } } },
+                profiles: { target: { tsConfig: { outDir: "/build" } } },
             },
             tsConfig: { declaration: true },
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
+            profile: "target",
         });
 
         const testObj = new Compiler(options, fileSystem);
@@ -734,9 +715,7 @@ describe("watch", () => {
 
     it("should output to multiple profiles outDir w/ dependent profiles and outDir override", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
         const options = resolveCompilerOptions(fileSystem, {
             config: {
@@ -749,9 +728,9 @@ describe("watch", () => {
                 },
             },
             tsConfig: { declaration: true },
-            profile: "target2",
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
+            profile: "target2",
         });
 
         const testObj = new Compiler(options, fileSystem);
@@ -777,9 +756,11 @@ describe("watch", () => {
 
     it("should output to multiple profiles outDir w/ dependent profiles, transpileOnly and outDir override", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
+            files: {
+                "src/target.ts": `
                 export const computeDate = async (): Promise<Date> => new Date();
             `,
+            },
         }).getSourceFile("src/target.ts");
         const options = resolveCompilerOptions(fileSystem, {
             config: {
@@ -793,9 +774,9 @@ describe("watch", () => {
                 transpileOnly: true,
             },
             tsConfig: { declaration: true },
-            profile: "target2",
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
+            profile: "target2",
         });
 
         const testObj = new Compiler(options, fileSystem);
@@ -815,51 +796,53 @@ describe("watch", () => {
     it("yields multiple code transpilations w/ a shared asset dependency", () => {
         const target = jest.fn();
         const { fileSystem } = compileSystem({
-            "src/shared.scss": `
+            files: {
+                "src/shared.scss": `
                 {
                     .shared {
                         display: none;
                     }
                 }
             `,
-            "src/shared1.ts": `
+                "src/shared1.ts": `
                 import "./shared.scss";
                 
                 @customElement("shared-one")
                 export class Shared1 {}
             `,
-            "src/shared2.ts": `
+                "src/shared2.ts": `
                 import "./shared.scss";
                 
                 @customElement("shared-two")
                 export class Shared2 {}
             `,
-        });
-        const options = resolveCompilerOptions(fileSystem, {
-            config: {
-                profiles: {
-                    target1: { tsConfig: { outDir: "/target1" } },
-                },
             },
-            tsConfig: { declaration: true },
-            profile: "target1",
-            cliArgs: {
-                options: { outDir: "/build" },
-                fileNames: ["/src/shared1.ts", "/src/shared2.ts"],
-                errors: [],
-            },
-            watch: true,
         });
 
-        const testObj = new CompilerTestClass(options, fileSystem);
+        const testObj = new CompilerTestClass(
+            resolveCompilerOptions(fileSystem, {
+                config: {
+                    profiles: {
+                        target1: { tsConfig: { outDir: "/target1" } },
+                    },
+                },
+                tsConfig: { declaration: true },
+                cliArgs: {
+                    options: { outDir: "/build" },
+                    fileNames: ["/src/shared1.ts", "/src/shared2.ts"],
+                    errors: [],
+                },
+                watch: true,
+                profile: "target1",
+            }),
+            fileSystem
+        );
         testObj.emitSourceFile = target;
 
         testObj.watch();
 
-        Array.from(testObj.contextMap.values()).forEach(cur => {
-            cur.addAssetDependency("/build/shared.scss", "/src/shared1.ts");
-            cur.addAssetDependency("/build/shared.scss", "/src/shared2.ts");
-        });
+        testObj.getContext("target1")!.addAssetDependency("/build/shared.scss", "/src/shared1.ts");
+        testObj.getContext("target1")!.addAssetDependency("/build/shared.scss", "/src/shared2.ts");
 
         expect(target).toHaveBeenNthCalledWith(1, "/src/shared1.ts", "target1", true);
         expect(target).toHaveBeenNthCalledWith(2, "/src/shared2.ts", "target1", true);
@@ -883,9 +866,7 @@ describe("watch", () => {
 
     it("yields a single emitSourceFile invocation per file change", () => {
         const { entry, fileSystem } = compileSystem({
-            "src/target.ts": `
-                export const computeDate = async (): Promise<Date> => new Date();
-            `,
+            files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
         const options = resolveCompilerOptions(fileSystem, {
             config: {
@@ -894,9 +875,9 @@ describe("watch", () => {
                 },
             },
             tsConfig: { declaration: true },
-            profile: "target1",
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
+            profile: "target1",
         });
 
         const testObj = new CompilerTestClass(options, fileSystem);

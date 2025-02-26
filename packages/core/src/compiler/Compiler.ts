@@ -31,14 +31,12 @@ type CompilationFragment = {
 };
 
 export class Compiler {
-    public contextMap!: Map<string, CompilationContext>;
-    public version: number;
-
-    protected program?: ts.Program;
-    protected compilationHost!: CompilationHost;
-    protected langService!: ts.LanguageService;
-    protected options!: CompilerOptions;
-
+    private version: number;
+    private program?: ts.Program;
+    private compilationHost!: CompilationHost;
+    private langService!: ts.LanguageService;
+    private options!: CompilerOptions;
+    private contextMap!: Map<string, CompilationContext>;
     private configPath!: string;
     private reporter!: Reporter;
     private system!: ts.System;
@@ -57,6 +55,14 @@ export class Compiler {
         this.transpileOnly = this.options.config?.transpileOnly ?? false;
     }
 
+    public getVersion(): number {
+        return this.version;
+    }
+
+    public getLanguageService(): ts.LanguageService {
+        return this.langService;
+    }
+
     public getContext(profile?: string): CompilationContext | undefined {
         if (profile) {
             return this.contextMap.get(profile);
@@ -66,6 +72,10 @@ export class Compiler {
             this.contextMap.set("default", this.createCompilationContext());
         }
         return this.contextMap.get("default");
+    }
+
+    public hasContext(profile?: string): boolean {
+        return profile ? this.contextMap.has(profile) : true;
     }
 
     public getSystem(): ts.System {
@@ -80,15 +90,22 @@ export class Compiler {
         return this.addons;
     }
 
+    public getProgram(): ts.Program | undefined {
+        return this.program;
+    }
+
     // TODO: Resolve compiler options
     public getOptions(): CompilerOptions {
         return this.options;
     }
 
     public setOptions(options: CompilerOptions): this {
-        this.options = options;
-        this.reporter = options.reporter ?? new DefaultReporter(this.system);
-
+        // TODO: Resolve compiler options
+        this.options = {
+            ...options,
+            reporter: options.reporter ?? new DefaultReporter(this.system),
+        };
+        this.reporter = options.reporter;
         this.compilationHost = new CompilationHost(createSharedHost(this.system) as ts.LanguageServiceHost);
         this.langService = ts.createLanguageService(this.compilationHost, ts.createDocumentRegistry());
         this.program = this.langService.getProgram();
@@ -102,23 +119,19 @@ export class Compiler {
     }
 
     public compile(): ts.EmitResult {
+        // TODO: Resolve compiler options
         const { profile } = this.options;
+        const selectedProfiles = profile ? [...(this.options.config?.profiles?.[profile]?.depends ?? []), profile] : [undefined];
         this.createProfileContextsIfNecessary();
 
         const results: ts.EmitResult[] = [];
-        if (!profile) {
-            const ctx = this.getContext();
+        selectedProfiles.forEach(curProfile => {
+            const ctx = this.getContext(curProfile);
             if (ctx) {
-                const result = this.emitResult(undefined, ctx); // no profile
-                results.push(this.options ? result : this.report(ctx.getProgram(), result));
-            }
-        } else {
-            const ctx = this.getContext(profile);
-            if (ctx) {
-                const result = this.emitResult(profile, ctx);
+                const result = this.emitResult(curProfile, ctx);
                 results.push(this.options.config?.transpileOnly ? result : this.report(ctx.getProgram(), result));
             }
-        }
+        });
 
         return results.filter(cur => !!cur).length < 1
             ? { emitSkipped: true, diagnostics: [] }
@@ -152,36 +165,53 @@ export class Compiler {
         this.createProfileContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {
-            this.getRootFiles().forEach(curFile => {
-                this.emitSourceFile(curFile, this.options.profile, true);
-                this.registerWatch(curFile, this.options.profile);
-            });
+            const profiles = this.options.profile
+                ? [...(this.options.config?.profiles?.[this.options.profile]?.depends ?? []), this.options.profile]
+                : [];
+            if (profiles.length) {
+                this.getRootFiles().forEach(curFile => {
+                    profiles.forEach(curProfile => this.emitSourceFile(curFile, curProfile, true));
+                    this.registerWatch(curFile, profiles);
+                });
+            } else {
+                this.getRootFiles().forEach(curFile => {
+                    this.emitSourceFile(curFile, undefined, true);
+                    this.registerWatch(curFile);
+                });
+            }
         } else {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
         }
         return this;
     }
 
-    public registerWatch(filePath: string, profile = this.options.profile): this {
-        if (!this.system.watchFile) {
-            return this;
-        }
-
-        if (!profile) {
+    public registerWatch(filePath: string, profileNames?: string[]): this {
+        if (typeof this.system.watchFile !== "function") {
+            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
             return this;
         }
 
         this.fileWatchers.push(
             this.system.watchFile(
                 filePath,
-                fileName =>
-                    fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                        ? this.emitSourceFile(fileName, profile, true, true)
-                        : this.contextMap.has(profile) &&
-                          this.contextMap
-                              .get(profile)!
-                              .resolveDependency(fileName)
-                              .map(cur => this.emitSourceFile(cur, profile, true, true)),
+                fileName => {
+                    if (!profileNames?.length) {
+                        return fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
+                            ? this.emitSourceFile(fileName, undefined, true, true)
+                            : this.getContext()!
+                                  .resolveDependency(fileName)
+                                  .map(cur => this.emitSourceFile(cur, undefined, true, true));
+                    } else {
+                        return profileNames.forEach(profile =>
+                            fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
+                                ? this.emitSourceFile(fileName, profile, true, true)
+                                : this.hasContext(profile) &&
+                                  this.getContext(profile)!
+                                      .resolveDependency(fileName)
+                                      .map(cur => this.emitSourceFile(cur, profile, true, true))
+                        );
+                    }
+                },
                 50,
                 {
                     // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
@@ -205,9 +235,9 @@ export class Compiler {
         const selectedProfiles = profile ? [...(this.options.config?.profiles?.[profile]?.depends ?? []), profile] : [];
 
         if (!selectedProfiles.length) {
-            const ctx = this.getContext()!;
             this.addons?.getAvailableAddons().forEach(addon => {
-                addon.activate(ctx);
+                // context for default profile exists
+                addon.activate(this.getContext()!);
             });
         } else {
             selectedProfiles.forEach((profile: string) => {
@@ -226,6 +256,8 @@ export class Compiler {
 
     protected createCompilationContext(profile?: string): CompilationContext {
         const { buildDir, config, configFile, tsConfig, cliArgs, watch } = this.options;
+        // TODO: Resolve compiler options
+        const selectedProfiles = profile ? [...(config?.profiles?.[profile]?.depends ?? []), profile] : [];
         const { tsConfig: options = {}, config: profileConfig } = getProfile(profile, config);
         const mergedTsConfig = { ...tsConfig, ...options };
         return new CompilationContext({
@@ -243,7 +275,7 @@ export class Compiler {
             reporter: this.reporter,
             ...(!!profileConfig && { config: profileConfig }),
             profile,
-            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath) }),
+            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, selectedProfiles) }),
             registerDependencyCallback: this.dependencyCallback,
         });
     }
