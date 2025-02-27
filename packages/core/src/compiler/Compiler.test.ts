@@ -1,5 +1,5 @@
 import { compileSystem } from "../testing";
-import { resolveCompilerOptions } from "../../test";
+import { ReporterMock, resolveCompilerOptions } from "../../test";
 import { Compiler } from "./Compiler";
 
 describe("end-2-end compile w/ websmith", () => {
@@ -15,6 +15,7 @@ describe("end-2-end compile w/ websmith", () => {
         // TODO: Resolve compiler options
         const actual = new Compiler(
             resolveCompilerOptions(target, {
+                reporter: new ReporterMock(target),
                 tsConfig: { outDir: "./bin" },
             }),
             target
