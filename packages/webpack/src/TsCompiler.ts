@@ -95,7 +95,6 @@ export class TsCompiler extends Compiler {
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
                 const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
                 this.error(new WebpackError(message));
-                throw new Error(message);
             });
         }
 

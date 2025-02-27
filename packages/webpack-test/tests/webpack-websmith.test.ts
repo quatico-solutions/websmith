@@ -368,7 +368,44 @@ describe("webpack w/ websmith, multiple profiles", () => {
         });
     });
 
-    it("should non-transformed functions with named profile and single entry", async () => {
+    it("should yield non-transformed functions with no profile and single entry", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: undefined,
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("server.js")).toBeUndefined();
+    });
+
+    it("should yield non-transformed functions with no profile and separate entries", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: undefined,
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("server.js")).toContain("function getFoobarServer");
+    });
+
+    it("should yield transformed functions with existing profile, dependent profile and single entry", async () => {
         await webpack(undefined, {
             webpack: {
                 ...webpackDefaults,
@@ -379,146 +416,107 @@ describe("webpack w/ websmith, multiple profiles", () => {
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 profile: "client",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getSERVERClient");
+        expect(getOutput("server.js")).toBeUndefined();
+    });
+
+    it("should yield non-transformed functions with existing profile and single entry", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "server",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("server.js")).toBeUndefined();
+    });
+
+    it("should yield transformed functions with existing profile, dependent profile and separate entries", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "client",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getSERVERClient");
+        expect(getOutput("server.js")).toContain("function getSERVERServer");
+    });
+
+    it("should yield transformed functions with existing profile, dependent profile and imported server function", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function-with-import.ts"),
+                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "client",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getSERVERClient");
+        expect(getOutput("client.js")).toContain("function getSERVERServer");
+        expect(getOutput("server.js")).toContain("function getSERVERServer");
+    });
+
+    it("should yield transformed functions with existing profile and imported server function", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function-with-import.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "server",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("client.js")).toContain("function getFoobarServer");
+        expect(getOutput("server.js")).toBeUndefined();
+    });
+
+    it("should yield transformed functions with existing profile and separate entries", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "server",
             },
         });
 
         expect(getOutput("client.js")).toContain("function getFoobarClient");
         expect(getOutput("client.js")).not.toContain("Server");
-        expect(getOutput("server.js")).toBeUndefined();
-    });
-
-    it("should transformed functions with existing profile, selected profile and both entries", async () => {
-        await webpack(undefined, {
-            webpack: {
-                ...webpackDefaults,
-                entry: {
-                    client: path.join(SOURCE_DIR, "client-function.ts"),
-                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
-                },
-            },
-            websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
-                profile: "client",
-            },
-        });
-
-        expect(getOutput("client.js")).toContain("function getCLIENTClient");
-        expect(getOutput("client.js")).not.toContain("Server");
-        expect(getOutput("server.js")).toContain("function getCLIENTServer");
-        expect(getOutput("server.js")).not.toContain("Client");
-    });
-
-    it("should transformed functions with multiple profiles, profile selected and imported server function", async () => {
-        await webpack(undefined, {
-            webpack: {
-                ...webpackDefaults,
-                entry: {
-                    client: path.join(SOURCE_DIR, "client-function-with-import.ts"),
-                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
-                },
-            },
-            websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
-                profile: "client",
-            },
-        });
-
-        expect(getOutput("client.js")).toContain("function getCLIENTClient");
-        expect(getOutput("client.js")).toContain("function getCLIENTServer");
-        expect(getOutput("server.js")).toContain("function getCLIENTServer");
-        expect(getOutput("server.js")).not.toContain("Client");
-    });
-
-    it("should transformed functions with dependent profiles, profile selected and imported server function", async () => {
-        await webpack(undefined, {
-            webpack: {
-                ...webpackDefaults,
-                entry: {
-                    client: path.join(SOURCE_DIR, "client-function-with-import.ts"),
-                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
-                },
-            },
-            websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
-                profile: "client",
-            },
-        });
-
-        expect(getOutput("client.js")).toContain("function getSERVERClient");
-        expect(getOutput("client.js")).toContain("function getSERVERServer");
-        expect(getOutput("server.js")).toContain("function getSERVERServer");
-        expect(getOutput("server.js")).not.toContain("Client");
-    });
-
-    it("should transformed functions with profile selected and imported server function", async () => {
-        await webpack(undefined, {
-            webpack: {
-                ...webpackDefaults,
-                entry: {
-                    client: path.join(SOURCE_DIR, "client-function-with-import.ts"),
-                },
-            },
-            websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
-                profile: "server",
-            },
-        });
-
-        expect(getOutput("client.js")).toContain("function getSERVERClient");
-        expect(getOutput("client.js")).toContain("function getSERVERServer");
-        expect(getOutput("server.js")).toBeUndefined();
-    });
-
-    it("should processed functions with profile selected and imported server function", async () => {
-        writeWebsmithOptions({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                client: {
-                    depends: ["server"],
-                    addons: ["client-processor"],
-                },
-                server: {
-                    addons: ["server-processor"],
-                },
-            },
-        });
-
-        await webpack(undefined, {
-            webpack: {
-                ...webpackDefaults,
-                entry: {
-                    client: path.join(SOURCE_DIR, "client-function-with-import.ts"),
-                },
-            },
-            websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
-                profile: "server",
-            },
-        });
-
-        expect(getOutput("client.js")).toContain("function getSERVERClient");
-        expect(getOutput("client.js")).toContain("function getSERVERServer");
-        expect(getOutput("server.js")).toBeUndefined();
-    });
-
-    it("should transformed functions with profile selected server", async () => {
-        await webpack(undefined, {
-            webpack: {
-                ...webpackDefaults,
-                entry: {
-                    client: path.join(SOURCE_DIR, "client-function.ts"),
-                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
-                },
-            },
-            websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
-                profile: "server",
-            },
-        });
-
-        expect(getOutput("client.js")).toContain("function getSERVERClient");
-        expect(getOutput("client.js")).not.toContain("Server");
-        expect(getOutput("server.js")).toContain("function getSERVERServer");
+        expect(getOutput("server.js")).toContain("function getFoobarServer");
         expect(getOutput("server.js")).not.toContain("Client");
     });
 });
