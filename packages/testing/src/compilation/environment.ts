@@ -15,13 +15,13 @@ import {
     DefaultReporter,
     compilerAddons,
     createBrowserSystem,
+    resolveCompilerOptions,
 } from "@quatico/websmith-core";
 import fs from "node:fs";
 import { Module } from "node:module";
 import path from "node:path";
 import requireFromString from "require-from-string";
 import ts from "typescript";
-import { resolveCompilerOptions } from "../resolve-options";
 import { copyDirectory } from "./copy-directory";
 import { resolvePath } from "./resolve-path";
 

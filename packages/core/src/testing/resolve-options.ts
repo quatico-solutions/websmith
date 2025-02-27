@@ -4,24 +4,23 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilerOptions } from "@quatico/websmith-core";
+import path from "node:path";
 import ts from "typescript";
-import { ReporterMock } from "./ReporterMock";
-import { resolvePath } from "./compilation/resolve-path";
+import { DefaultReporter, type CompilerOptions } from "../compiler";
 
 const DEFAULT_BUILD_DIR = "./src";
 const DEFAULT_OUT_DIR = "./dist";
 
 // TODO: Resolve compiler options
 export const resolveCompilerOptions = (system: ts.System, overrides?: Partial<CompilerOptions>): CompilerOptions => {
-    const reporter = new ReporterMock(system);
     const buildDir: string = resolvePath(system, overrides?.buildDir ?? DEFAULT_BUILD_DIR);
+
     return {
-        buildDir,
-        reporter,
+        reporter: new DefaultReporter(system),
         debug: false,
         watch: false,
         ...overrides,
+        buildDir,
         tsConfig: {
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.Latest,
@@ -35,4 +34,12 @@ export const resolveCompilerOptions = (system: ts.System, overrides?: Partial<Co
             ...overrides?.cliArgs,
         },
     };
+};
+
+export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
+    let resolvedPath = path.join(...pathSegments);
+    if (!path.isAbsolute(resolvedPath)) {
+        resolvedPath = path.join(fs.getCurrentDirectory(), ...pathSegments);
+    }
+    return resolvedPath;
 };
