@@ -8,13 +8,13 @@
 
 [![CI](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml/badge.svg)](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml)  [![npm version](https://badge.fury.io/js/@quatico%2Fwebsmith-compiler.svg)](https://www.npmjs.com/search?q=%40quatico)
 
-This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It provides additional API for customizing the compilation process of the original compiler. You can provide your own compiler addons to modify the compilation input before the actual compilation process. Addons can
+This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It's a drop-in replacement for the `tsc` command and provides additional API for customizing the compilation process with addons. Provide your own compiler addons to modify the compilation input "before" the actual compilation process, during the compilation process or "after" compiled artifacts are created. An addon can
 
 * consume the unmodified source files to generate additional information based on the original source code,
 * create additional new input files and add them to the compilation process, or
 * modify input files to change module dependencies and modify imports/exports.
 
-An addon can also access all processed source files as whole and reason about the entire compilation target. Standard API for TypeScript transformers is fully integrated, thus existing `ts.CustomTransformers` can be simply called from within every addon.
+Compiler addons can also access all transpiled files as whole and reason about the entire compilation target. The standard API for TypeScript transformers is fully integrated, thus existing `ts.CustomTransformers` can be simply called from within every addon.
 
 ## Getting started
 
@@ -49,13 +49,13 @@ The default configuration uses your `tsconfig.json` file to compile the TypeScri
 pnpm build
 ```
 
-## Custom compiler addons
+## Customizing the compilation process
 
-websmith's compiler addons are a powerful mechanism to generate new source files or restructure module dependencies before the compilation, or transform source code during the actual compilation process. You can use it to process non TypeScript files with e.g. with Sass or PostCSS, generate documentation files for e.g. Storybook, or post process your transpiled output. Addons can modify source files before, during or after they are transpiled by the original TypeScript compiler, or consume them as input to generated additional files non-compilation related files.
+Add a compiler addon to generate new source files or restructure module dependencies before the actual compilation process. Use addons to process non-script files during the compilation, e.g., using Sass or PostCSS, or to generate documentation with YAML or Markdown and add them to the transpiled output.
 
-### Nature of an addon
+### Using compiler addons
 
-An addon is a directory containing an ES module named `addon.ts` or `addon.js`. This file must have an exported function named `activate` that takes an `AddonContext` as its only parameter. The `activate` function is called when the compilation process is started.
+An addon is a directory containing an ECMAScript module named `addon.ts` or `addon.js`. The file must have an exported function named `activate` that takes an `AddonContext` as its only parameter. Addons can register generators, processors or transformers to the compilation process:
 
 ```javascript
 // ./addons/foobar-transformer/addon.ts
@@ -75,85 +75,88 @@ export const activate = (ctx: AddonContext) => {
 }
 ```
 
-### Where to place your addon code?
+The `activate` function is called when the compilation process is started.
 
-Place your addon in a separate folder in the `./addons` directory. The folder name is used as addon name, if no explicit name is provided. The `addons` directory should be located in the root of the project, i.e. next to your `tsconfig.json`. The `addons` directory is not part of the TypeScript compilation process. You can specify a different location for your addons using the CLI argument `--addonsDir`.
+### Placing addons in your project
 
-### Configure which addons to use
+Add for every addon a separate folder within the `./addons` directory. The folder name is used as addon name, if no explicit name is provided. The `addons` directory should be placed in the root of the project, i.e. next to your `tsconfig.json`. The `addons` directory is not part of your project's compilation process. You can specify a different location for your addons using the CLI argument `--addonsDir`.
 
-Add the CLI argument `--addons` to specify which addons to use. Provide a comma-separated list of addon names, i.e. the directory names of your addons.
+### Define which addons to use
 
-By default all addons found in the addon directory are applied.
+Use the CLI argument `--addons` to specify which addons to use. Provide a comma-separated list of addon names, i.e. the directory names of your addons.
+By default no addon is applied, even if addons are present in the `./addons` directory.
 
-### Use the websmith configuration file
+### Provide a websmith configuration file
 
-websmith looks for a `websmith.config.json` file in the root of your project. If it exists, it is used to configure the compilation process. The configuration file can be used to specify which addons to use. Provide a lists of addon names or define compilation profiles with addons names to apply different addons for different profiles.
+Websmith looks for a `websmith.config.json` file in the root of your project. If it exists, it is used to configure the compilation process. The configuration file can be used to specify which addons to use. Provide a lists of addon names or define compilation profile to apply different addons for different profiles.
 
-Add an "addons" section to the `websmith.config.json` with the addon names to apply. This default list of addons will be applied for every compilation. The addon name is the addon directory name if not specified otherwise:
+Add an `addons` section to the `websmith.config.json` with the addon names to apply. All mentioned addons will be applied during the compilation:
 
 ```json
-// websmith.config.json
+// ./websmith.config.json
 { 
     "addonsDir": "../my-addons",
     "addons": ["foobar-transformer"],
 }
 ```
 
-You can also define compilation profiles in the config file and specify a different list of addons for every profile:
+You can also define compilation profiles in the config file to use separate lists of addons for different compilation targets:
 
 ```json
-// websmith.config.json
+// ./websmith.config.json
 {
     "profiles": {
-        "one": {
-            "addons": ["addon-foo", "addon-bar"],
+        "client": {
+            "addons": ["generate-client-proxies", "create-component-documentation"],
         },
-        "two": {
-            "addons": ["addon-zip"],
+        "server": {
+            "addons": ["generate-service-functions"],
         }
     }
 }
 ```
 
-Run the websmith compiler with selected profiles `websmith --profiles one, two` to apply specific addons during compilation. If a profile specific addon list is provided, the default addons list will be replaced, i.e., the no addon of the defaults list will be applied.
+Use `--profile` to run websmith with selected profile, e.g., `websmith --profile server`. If you use `--addons` in combination with `--profile`, the profile addons will be replaced by the addons provided with `--addons`. If you're having problems with addons not being correctly applied, please check the order of addon names. The order of addons in the config file is important! Addons are applied in the order they are defined.
 
-## Custom compilation profiles
+## Using compilation profiles
 
-websmith supports custom configurations for different compilation profiles. A compilation profile is a set of options that specify the environment for a compilation output. You can define a custom compilation profile by adding a `profiles` section to the `websmith.config.json` file. The `profiles` section contains a unique profile `name` and a set of options. The `name` is used to specify the profile when calling the websmith compiler. The options are used to configure the compilation process. The options contain the following sections:
+A compilation profile is a set of options that specify the environment for a compilation output. You can define a custom compilation profile by adding a `profiles` section to the `websmith.config.json` file. The `profiles` section contains a unique profile `name` and a set of options. The `name` is used to specify the profile when calling the websmith compiler. The options are used to configure the compilation process. The options contain the following sections:
 
 * `addons`: a list of addon names to apply for this profile
 * `config`: profile specific configuration properties defined by your addon
-* `options`: a set of compiler options for the TypeScript compiler to use for this profile
+* `tsConfig`: a set of compiler options for the TypeScript compiler to use for this profile
 
-An example for a custom compilation profile could be:
+An example for a custom compilation profile:
 
 ```json
-// websmith.config.json
+// ./websmith.config.json
 {
     "profiles": {
-        "one": {
-            "addons": ["addon-zip", "addon-zap"],
+        "client": {
+            "addons": ["generate-client-proxies", "create-component-documentation"],
             "config": {
-                "foo": "bar",
-                "baz": "qux"
+                "publicPath": "/assets",
+                "apiUrl": "https://api.example.com"
             },
-            "options": {
-                "outDir": "../dist/one",
+            "tsConfig": {
+                "outDir": "dist/client",
+                "module": "esnext",
+                "target": "esnext",
+            }
+        },
+        "server": {
+            "addons": ["generate-service-functions"],
+            "tsConfig": {
+                "outDir": "dist/server",
                 "module": "commonjs",
                 "target": "es5",
             }
-        },
-        "two": {
-            "addons": ["addon-zip"],
+
         }
     }
 }
 ```
 
-### Apply different addons for different profiles
-
-Run websmith with the CLI argument `--profiles` to select a specific profile. You can specify a single profile or multiple profiles by separating them with a comma. If multiple profiles are specified, the compiler will build the profiles in the specified order.
-
-## Writing your own addon
+## Implementing compiler addons
 
 See [Write your own addon](docs/write-your-own-addon.md) for detailed instructions and examples on how to write your own addon.
