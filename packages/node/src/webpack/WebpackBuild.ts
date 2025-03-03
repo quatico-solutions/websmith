@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { type WebsmithLoaderOptions } from "@quatico/websmith-webpack";
+import { type WebsmithLoaderOptions } from "websmith-loader";
 import { split } from "lodash";
 import path from "node:path";
 import tildify from "tildify";
@@ -111,7 +111,7 @@ export class WebpackBuild {
             }
             if (
                 this.websmithLoaderOptions &&
-                (rule?.loader?.includes("@quatico/websmith-webpack") || rule?.loader?.includes("packages/webpack/src/index.ts"))
+                (rule?.loader?.includes("websmith-loader") || rule?.loader?.includes("packages/webpack/src/index.ts"))
             ) {
                 this.injectWebsmithLoaderOptions(rule, this.websmithLoaderOptions);
             }

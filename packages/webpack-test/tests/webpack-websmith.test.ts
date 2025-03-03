@@ -7,8 +7,8 @@ import ts from "typescript";
 
 // TODO: ts-loader options caching seems broken, we need to understand where to fix it
 // This workaround is not working, we need to find a better solution
-// jest.mock("@quatico/websmith-webpack", () => ({
-//     ...jest.requireActual("@quatico/websmith-webpack"),
+// jest.mock("websmith-loader", () => ({
+//     ...jest.requireActual("websmith-loader"),
 //     getInstanceFromCache: jest.fn(),
 // }));
 
@@ -26,7 +26,7 @@ const webpackDefaults = {
                 test: /\.[jt]s?$/,
                 use: [
                     {
-                        loader: require.resolve("@quatico/websmith-webpack"),
+                        loader: require.resolve("websmith-loader"),
                         options: {
                             transpileOnly: true,
                             tsConfigFile: path.join(__dirname, "..", "tsconfig.json"),
