@@ -29,7 +29,7 @@ const webpackDefaults = {
                 exclude: [/node_modules/],
                 use: [
                     {
-                        loader: require.resolve("@quatico/websmith-webpack"),
+                        loader: require.resolve("websmith-loader"),
                         options: {
                             transpileOnly: true,
                             tsConfigFile: path.join(__dirname, "..", "tsconfig.json"),

@@ -17,7 +17,7 @@ Visit the [websmith github repository](https://github.com/quatico-solutions/webs
 Install the websmith webpack loader using npm:
 
 ```sh
-npm i -D @quatico/websmith-webpack
+npm i -D websmith-loader
 ```
 
 ### Add websmith configuration
@@ -39,7 +39,7 @@ A `websmith.config.json` file is needed to configure which addons should be used
 
 ### Add webpack configuration
 
-Now we can use the `@quatico/websmith-webpack` loader and the websmith configuration to configure webpack.
+Now we can use the `websmith-loader` loader and the websmith configuration to configure webpack.
 
 ```javascript
 // webpack.config.js
@@ -56,7 +56,7 @@ module.exports = {
                 exclude: [/node_modules/],
                 use: [
                     {
-                        loader: "@quatico/websmith-webpack",
+                        loader: "websmith-loader",
                         options: {
                             tsConfigFile: join(__dirname, "tsconfig.json"),
                             config: {

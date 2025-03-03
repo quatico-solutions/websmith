@@ -13,7 +13,7 @@ const config: Config = {
         "@quatico/websmith-api": "<rootDir>/../api/src",
         "@quatico/websmith-core": "<rootDir>/../core/src",
         "@quatico/websmith-testing": "<rootDir>/../testing/src",
-        "@quatico/websmith-webpack": "<rootDir>/../webpack/src",
+        "websmith-loader": "<rootDir>/../webpack/src",
     },
     testRegex: "tests/.*test\\.(tsx?)$",
     testTimeout: 60000,

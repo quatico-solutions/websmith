@@ -1,4 +1,4 @@
-import { type WebsmithLoaderOptions } from "@quatico/websmith-webpack";
+import { type WebsmithLoaderOptions } from "websmith-loader";
 import { type LoaderOptions as TsLoaderOptions } from "ts-loader/dist/interfaces";
 import { type Configuration } from "webpack";
 import { WebpackBuild } from "./WebpackBuild";

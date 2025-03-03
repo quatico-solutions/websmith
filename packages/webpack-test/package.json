@@ -1,5 +1,5 @@
 {
-    "name": "@quatico/websmith-webpack-test",
+    "name": "websmith-loader-test",
     "description": "End-to-end test package for the websmith webpack-loader",
     "version": "0.6.3",
     "author": "Quatico Solutions AG",
@@ -19,7 +19,7 @@
         "@nx/eslint-plugin": "^18.3.4",
         "@quatico/websmith-core": "workspace:*",
         "@quatico/websmith-node": "workspace:*",
-        "@quatico/websmith-webpack": "workspace:*",
+        "websmith-loader": "workspace:*",
         "@types/jest": "^29.5.14",
         "@types/node": "20",
         "@types/react": "18",

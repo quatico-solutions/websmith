@@ -6,7 +6,7 @@
  */
 
 import { webpack } from "@quatico/websmith-node";
-import { type WebsmithLoaderOptions } from "@quatico/websmith-webpack";
+import { type WebsmithLoaderOptions } from "websmith-loader";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -32,7 +32,7 @@ const webpackDefaults = {
                 exclude: /node_modules/,
                 use: [
                     {
-                        loader: require.resolve("@quatico/websmith-webpack"),
+                        loader: require.resolve("websmith-loader"),
                         options: {
                             transpileOnly: true,
                             tsConfigFile: path.join(__dirname, "..", "tsconfig.json"),

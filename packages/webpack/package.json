@@ -1,5 +1,5 @@
 {
-    "name": "@quatico/websmith-webpack",
+    "name": "websmith-loader",
     "description": "Webpack loader for @quatico/websmith-compiler",
     "version": "0.6.3",
     "author": "Quatico Solutions AG",
