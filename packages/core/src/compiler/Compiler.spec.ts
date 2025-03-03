@@ -7,8 +7,8 @@
  */
 import path from "node:path";
 import ts from "typescript";
-import { ReporterMock, resolveCompilerOptions } from "../../test";
-import { compileSystem } from "../testing";
+import { ReporterMock } from "../../test";
+import { compileSystem, resolveCompilerOptions } from "../testing";
 import { type CompilationContext } from "./compilation";
 import { type CompileFragment, Compiler } from "./Compiler";
 import { type CompilerOptions } from "./options";

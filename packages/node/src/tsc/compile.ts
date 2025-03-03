@@ -4,7 +4,7 @@ import {
     DefaultReporter,
     Compiler as WebsmithCompiler,
     resolveCompilationConfig,
-    resolveProjectConfig,
+    parsedCommandLine,
 } from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
@@ -20,7 +20,7 @@ const defaultWebsmithConfig = (tsConfig: ts.CompilerOptions = {}): WebsmithOptio
         debug: false,
         tsConfig,
         reporter,
-        cliArgs: resolveProjectConfig(tsConfig?.project ?? path.join(__dirname, "..", "tsconfig.json"), system),
+        cliArgs: parsedCommandLine(tsConfig?.project ?? path.join(__dirname, "..", "tsconfig.json"), system),
         watch: false,
     };
 };

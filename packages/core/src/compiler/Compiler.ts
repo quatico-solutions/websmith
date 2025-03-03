@@ -263,7 +263,7 @@ export class Compiler {
         return new CompilationContext({
             buildDir,
             tsConfig: mergedTsConfig,
-            projectDir: path.dirname(configFile ?? cliArgs.raw?.configFilePath ?? this.system.getCurrentDirectory()),
+            projectDir: path.dirname(configFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
             program: ts.createProgram({
                 rootNames: this.getRootFiles(),
