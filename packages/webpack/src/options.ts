@@ -5,14 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type Reporter } from "@quatico/websmith-api";
-import {
-    type CompilerOptions,
-    NoReporter,
-    resolveCompilationConfig,
-    resolveProfile,
-    resolveProjectConfig as resolveTsConfig,
-    resolvePaths,
-} from "@quatico/websmith-core";
+import { type CompilerOptions, NoReporter, parsedCommandLine, resolveCompilationConfig, resolvePaths, resolveProfile } from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
@@ -21,7 +14,7 @@ import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const { config, configFile, debug = false, tsConfigFile = "./tsconfig.json", profile, tsConfig, transpileOnly } = args;
 
-    const cliArgs = resolveTsConfig(tsConfigFile, system);
+    const cliArgs = parsedCommandLine(tsConfigFile, system);
     cliArgs.options = { ...cliArgs.options, ...tsConfig };
     const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system) : undefined;
 

@@ -1,5 +1,5 @@
-import { compileSystem } from "../testing";
-import { ReporterMock, resolveCompilerOptions } from "../../test";
+import { ReporterMock } from "../../test";
+import { compileSystem, resolveCompilerOptions } from "../testing";
 import { Compiler } from "./Compiler";
 
 describe("end-2-end compile w/ websmith", () => {

@@ -5,13 +5,13 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { compileSystem } from "../../testing";
-import { resolveProjectConfig } from "./resolve-project-config";
+import { parsedCommandLine } from "./parsed-command-line";
 
-describe("empty config", () => {
+describe("parsedCommandLine w/ empty tsconfig.json", () => {
     it("yields empty config with empty config file", () => {
         const { fileSystem: target } = compileSystem();
 
-        const actual = resolveProjectConfig("tsconfig.json", target);
+        const actual = parsedCommandLine("tsconfig.json", target);
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual([]);
@@ -26,7 +26,7 @@ describe("empty config", () => {
     it("yields error with no matching includes", () => {
         const { fileSystem: target } = compileSystem();
 
-        const actual = resolveProjectConfig("tsconfig.json", target);
+        const actual = parsedCommandLine("tsconfig.json", target);
 
         expect(actual.errors[0]).toEqual(
             expect.objectContaining({
@@ -37,7 +37,7 @@ describe("empty config", () => {
     });
 });
 
-describe("valid config", () => {
+describe("parsedCommandLine w/ valid tsconfig.json", () => {
     it("yields default value with valid config file", () => {
         const { fileSystem: target } = compileSystem({
             files: {
@@ -48,7 +48,7 @@ describe("valid config", () => {
             },
         });
 
-        const actual = resolveProjectConfig("tsconfig.json", target);
+        const actual = parsedCommandLine("tsconfig.json", target);
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual(["/foobar.ts"]);
@@ -70,13 +70,13 @@ describe("valid config", () => {
             },
         });
 
-        const actual = resolveProjectConfig("tsconfig.json", target);
+        const actual = parsedCommandLine("tsconfig.json", target);
 
         expect(actual.errors).toEqual([]);
     });
 });
 
-describe("default config", () => {
+describe("parsedCommandLine w/ default tsconfig.json", () => {
     const { fileSystem: target } = compileSystem({
         files: {
             "tsconfig.json": JSON.stringify({
@@ -94,7 +94,7 @@ describe("default config", () => {
     });
 
     it("yields default value with valid config file", () => {
-        const actual = resolveProjectConfig("tsconfig.json", target);
+        const actual = parsedCommandLine("tsconfig.json", target);
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual(["/one.tsx", "/two.tsx", "/three.tsx"]);
@@ -119,7 +119,7 @@ describe("default config", () => {
     });
 
     it("yields no error with matching includes", () => {
-        const actual = resolveProjectConfig("tsconfig.json", target);
+        const actual = parsedCommandLine("tsconfig.json", target);
 
         expect(actual.errors).toEqual([]);
     });

@@ -10,10 +10,10 @@ import ts from "typescript";
 /**
  * Parses tsconfig.json files and creates parsed command line options.
  *
- * @param configFilePath
+ * @param tsConfigFile
  * @param system
  */
-export const resolveProjectConfig = (configFilePath: string, system: ts.System): ts.ParsedCommandLine | never => {
+export const parsedCommandLine = (tsConfigFile: string, system: ts.System): ts.ParsedCommandLine | never => {
     let errorMessage: string | ts.DiagnosticMessageChain = "Could not find a valid 'tsconfig.json'.";
 
     const parseHost: ts.ParseConfigFileHost = {
@@ -24,7 +24,7 @@ export const resolveProjectConfig = (configFilePath: string, system: ts.System):
     };
 
     const result = ts.getParsedCommandLineOfConfigFile(
-        system.resolvePath(configFilePath),
+        system.resolvePath(tsConfigFile),
         {} /* no extra compiler options */,
         parseHost,
         undefined /* no extended config cache */,
