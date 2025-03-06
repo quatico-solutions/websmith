@@ -5,6 +5,6 @@
  * ---------------------------------------------------------------------------------------------
  */
 export type { CompilerArguments } from "@quatico/websmith-api";
-export { Compiler, createBrowserSystem, createOptions, DefaultReporter, getVersionedFile, NoReporter } from "@quatico/websmith-core";
+export { Compiler, createBrowserSystem, resolveCompilerOptions, DefaultReporter, getVersionedFile, NoReporter } from "@quatico/websmith-core";
 export type { CompilerOptions } from "@quatico/websmith-core";
 export { addCompileCommand } from "./command";

@@ -25,6 +25,7 @@ export class TsCompiler extends Compiler {
     public readonly error: (err: WebpackError) => void;
 
     constructor(options: CompilerOptions, dependencyCallback: (filePath: string) => void, loaderConfig: WebsmithLoaderConfig = {}) {
+        // TODO: Resolve compiler options
         const system = ts.sys;
         const compilationConfig = loadCompilationConfig(loaderConfig, options, system);
         const { addons, profiles: profileMap, addonsDir } = compilationConfig;

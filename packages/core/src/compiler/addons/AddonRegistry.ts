@@ -8,7 +8,6 @@ import { WarnMessage, type CompilationProfile, type Reporter } from "@quatico/we
 import path from "node:path";
 import ts from "typescript";
 import { Compiler } from "../Compiler";
-import { resolveCompilerOptions } from "../options";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 export type AddonConfig = {
     addons?: string[];
@@ -95,24 +94,22 @@ export class AddonRegistry {
                 const targetDir = resolvePath(system, addonsDir);
                 const buildDir = path.dirname(targetDir);
                 const outDir = path.join(buildDir, "lib");
-                new Compiler(
-                    resolveCompilerOptions(system, {
-                        buildDir,
-                        reporter,
-                        tsConfig: {
-                            outDir,
-                            module: ts.ModuleKind.ES2020,
-                            target: ts.ScriptTarget.ES2020,
-                            esModuleInterop: true,
-                            moduleResolution: ts.ModuleResolutionKind.Node10,
-                        },
-                        cliArgs: {
-                            options: { outDir },
-                            fileNames: system.readDirectory(targetDir).filter(isSourceFile),
-                            errors: [],
-                        },
-                    })
-                ).compile();
+                new Compiler({
+                    buildDir,
+                    reporter,
+                    tsConfig: {
+                        outDir,
+                        module: ts.ModuleKind.ES2020,
+                        target: ts.ScriptTarget.ES2020,
+                        esModuleInterop: true,
+                        moduleResolution: ts.ModuleResolutionKind.Node10,
+                    },
+                    cliArgs: {
+                        options: { outDir },
+                        fileNames: system.readDirectory(targetDir).filter(isSourceFile),
+                        errors: [],
+                    },
+                }).compile();
             }
         }
         return targetAddons;
