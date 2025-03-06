@@ -51,7 +51,6 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             // TODO: Add files from CLI argument
             const system = compiler?.getSystem() ?? createSystem();
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
-            // TODO: Resolve compiler options
             const options = createOptions(args, reporter, system);
             options.configFile = args.configFile ?? "./websmith.config.json";
             const compilationConfig = resolveCompilationConfig(options.configFile, reporter, system);

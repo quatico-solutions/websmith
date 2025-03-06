@@ -414,6 +414,9 @@ importers:
       create-hash:
         specifier: 1.2.0
         version: 1.2.0
+      deepmerge:
+        specifier: ^4.3.1
+        version: 4.3.1
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -430,6 +433,9 @@ importers:
       '@nx/eslint-plugin':
         specifier: ^18.3.4
         version: 18.3.4(@babel/traverse@7.24.5)(@swc/core@1.5.0)(@types/node@20.12.8)(@typescript-eslint/parser@8.22.0(eslint@9.19.0)(typescript@5.7.3))(eslint-config-prettier@10.0.1(eslint@9.19.0))(eslint@9.19.0)(nx@18.3.4(@swc/core@1.5.0))(typescript@5.7.3)
+      '@types/deepmerge':
+        specifier: ^2.2.3
+        version: 2.2.3
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -620,9 +626,6 @@ importers:
       '@quatico/websmith-core':
         specifier: workspace:*
         version: link:../core
-      '@quatico/websmith-webpack':
-        specifier: workspace:*
-        version: link:../webpack
       '@types/cross-spawn':
         specifier: ^6.0.6
         version: 6.0.6
@@ -707,6 +710,9 @@ importers:
       webpack:
         specifier: ^5.97.1
         version: 5.97.1(@swc/core@1.5.0)
+      websmith-loader:
+        specifier: workspace:*
+        version: link:../webpack
 
   packages/testing:
     dependencies:
@@ -907,9 +913,6 @@ importers:
       '@quatico/websmith-node':
         specifier: workspace:*
         version: link:../node
-      '@quatico/websmith-webpack':
-        specifier: workspace:*
-        version: link:../webpack
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -967,6 +970,9 @@ importers:
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.12.8)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.5.0)(@types/node@20.12.8)(typescript@5.7.3))
+      memfs:
+        specifier: ^4.17.0
+        version: 4.17.0
       prettier:
         specifier: ^3.4.2
         version: 3.4.2
@@ -1000,6 +1006,9 @@ importers:
       webpack-cli:
         specifier: ^6.0.1
         version: 6.0.1(webpack@5.97.1)
+      websmith-loader:
+        specifier: workspace:*
+        version: link:../webpack
 
 packages:
 
@@ -2088,6 +2097,10 @@ packages:
 
   '@types/cross-spawn@6.0.6':
     resolution: {integrity: sha512-fXRhhUkG4H3TQk5dBhQ7m/JDdSNHKwR2BBia62lhwEIq9xGiQKLxd6LymNhn47SjXhsUEPmxi+PKw2OkW4LLjA==}
+
+  '@types/deepmerge@2.2.3':
+    resolution: {integrity: sha512-ct4srnukH/SHdVPyJIFV73YJIt9PTYTaqQbjrCvRrbc9LxHdGcJb132SuWwnDTPyx5UjCVS/I00wj0i5IXfqSA==}
+    deprecated: This is a stub types definition. deepmerge provides its own type definitions, so you do not need this installed.
 
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
@@ -6472,6 +6485,10 @@ snapshots:
   '@types/cross-spawn@6.0.6':
     dependencies:
       '@types/node': 20.12.8
+
+  '@types/deepmerge@2.2.3':
+    dependencies:
+      deepmerge: 4.3.1
 
   '@types/eslint-scope@3.7.7':
     dependencies:
