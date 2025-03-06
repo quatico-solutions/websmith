@@ -23,7 +23,7 @@ describe("resolveCompilationConfig", () => {
 
         const actual = resolveCompilationConfig("/does-not-exists.json", new NoReporter(), target);
 
-        expect(actual).toBeUndefined();
+        expect(actual).toEqual({});
     });
 
     it("should return undefined w/ existing path but invalid config file", () => {
@@ -31,7 +31,7 @@ describe("resolveCompilationConfig", () => {
 
         const actual = resolveCompilationConfig("./invalid-config.json", new NoReporter(), target);
 
-        expect(actual).toBeUndefined();
+        expect(actual).toEqual({});
     });
 
     it("should return defaults w/ existing path and empty config file", () => {

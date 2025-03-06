@@ -49,32 +49,30 @@ export const resolveCompilationConfig = (configFilePath: string | undefined, rep
         return {};
     }
 
-    if (configFilePath) {
-        const resolvedPath = system.resolvePath(configFilePath);
-        if (!system.fileExists(resolvedPath)) {
-            reporter.reportDiagnostic(new WarnMessage(`No configuration file found at ${resolvedPath}.`));
-        } else {
-            const content = system.readFile(resolvedPath);
-            if (content) {
-                const config = parse(content ?? "{}");
-                const result = { ...updatePaths(config.config ?? config, path.dirname(resolvedPath), system) };
-                if (result.profiles) {
-                    Object.entries(result.profiles).forEach(([_name, profile]) => {
-                        if (profile.addons?.length) {
-                            profile.addons = [...(profile.addons ?? []), ...(result.addons ?? [])];
-                        }
-                        if (profile.depends?.length) {
-                            profile.depends.forEach(dep => {
-                                if (!result.profiles?.[dep]) {
-                                    reporter.reportDiagnostic(new ErrorMessage(`Unknown profile '${dep}' in 'depends' of '${configFilePath}'.`));
-                                }
-                            });
-                        }
-                    });
-                }
-                return result;
+    const resolvedPath = system.resolvePath(configFilePath);
+    if (!system.fileExists(resolvedPath)) {
+        reporter.reportDiagnostic(new WarnMessage(`No configuration file found at ${resolvedPath}.`));
+    } else {
+        const content = system.readFile(resolvedPath);
+        if (content) {
+            const config = parse(content ?? "{}") as CompilationConfig;
+            const result = { ...updatePaths(config, path.dirname(resolvedPath), system) };
+            if (result.profiles) {
+                Object.entries(result.profiles).forEach(([_name, profile]) => {
+                    if (profile.addons?.length) {
+                        profile.addons = [...(profile.addons ?? []), ...(result.addons ?? [])];
+                    }
+                    if (profile.depends?.length) {
+                        profile.depends.forEach(dep => {
+                            if (!result.profiles?.[dep]) {
+                                reporter.reportDiagnostic(new ErrorMessage(`Unknown profile '${dep}' in 'depends' of '${configFilePath}'.`));
+                            }
+                        });
+                    }
+                });
             }
+            return result;
         }
     }
-    return undefined;
+    return {};
 };
