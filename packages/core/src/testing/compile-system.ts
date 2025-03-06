@@ -9,13 +9,26 @@ import { AddonRegistry, NoReporter } from "../compiler";
 import { createBrowserSystem, getVersionedFile } from "../environment";
 import { type CompileSystem } from "./CompileSystem";
 import { type CompileSystemOptions } from "./CompileSystemOptions";
+import { resolvePath } from "../environment/browser-system";
 export const compileSystem = (options?: CompileSystemOptions): CompileSystem => {
-    const { files, addonConfig, reporter, useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher, buildDir = "./" } = options ?? {};
+    const { files, addonConfig, reporter, useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher, buildDir = "./src" } = options ?? {};
 
-    const resolvedAddonsDir = path.join(buildDir, "addons");
-    const projectDir = path.dirname(buildDir);
+    const resolvedAddonsDir = resolvePath(path.join(buildDir, "addons"));
+    const projectDir = resolvePath(path.dirname(buildDir));
 
-    const fileSystem = createBrowserSystem({ ...files }, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher });
+    let resolvedFiles = files;
+    if (resolvedFiles) {
+        resolvedFiles = Object.entries(resolvedFiles).reduce(
+            (acc, [key, value]) => {
+                const resolvedPath = resolvePath(key);
+                acc[resolvedPath] = value;
+                return acc;
+            },
+            {} as Record<string, string>
+        );
+    }
+
+    const fileSystem = createBrowserSystem({ ...resolvedFiles }, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher });
     if (addLibDefaults) {
         if (!fileSystem.fileExists(path.join(projectDir, "tsconfig.json"))) {
             fileSystem.writeFile(path.join(projectDir, "tsconfig.json"), "{}");
@@ -39,7 +52,7 @@ export const compileSystem = (options?: CompileSystemOptions): CompileSystem => 
         fileSystem,
         addons: registry,
         getSourceFile: (fileName: string) => ({
-            entry: getVersionedFile(fileName, fileSystem),
+            entry: getVersionedFile(resolvePath(fileName), fileSystem),
             fileSystem,
         }),
     };

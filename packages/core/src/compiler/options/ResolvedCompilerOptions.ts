@@ -8,7 +8,6 @@ import { type CompilerOptions } from "./CompilerOptions";
 import { type WebpackLoaderOptions } from "./WebpackLoaderOptions";
 
 const DEFAULT_BUILD_DIR = "./src";
-const DEFAULT_OUT_DIR = "./dist";
 
 export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly configFile?: string;
@@ -24,7 +23,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly cliArgs: ts.ParsedCommandLine;
     constructor(
         private system: ts.System,
-        options: CompilerOptions,
+        options: Partial<CompilerOptions>,
         private addons?: string[],
         loaderOptions?: WebpackLoaderOptions
     ) {
@@ -44,20 +43,22 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         } = resolvedOptions;
         this.buildDir = resolvePath(system, buildDir ?? DEFAULT_BUILD_DIR);
         this.tsConfigFile = resolvePath(system, tsConfigFile ?? path.join(path.dirname(this.buildDir), "tsconfig.json"));
+        this.profile = resolveProfile(profile, this.config, this.reporter);
+        const { outDir: profileOutdir } = getTsConfig(resolvedOptions, this.profile);
+        const outDir = profileOutdir ?? tsConfig?.outDir;
         this.cliArgs = deepmerge<ts.ParsedCommandLine>(
             {
-                options: { outDir: tsConfig?.outDir ?? DEFAULT_OUT_DIR },
+                ...(outDir && { options: { outDir: resolvePath(system, outDir) } }),
                 fileNames: this.system.readDirectory(this.buildDir),
                 errors: [],
             },
             deepmerge<ts.ParsedCommandLine>(parsedCommandLine(this.tsConfigFile, system), cliArgs ?? {})
         );
+        this.configFile = configFile ?? this.cliArgs?.options?.configFilePath ?? this.cliArgs?.raw?.configFilePath;
+        this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(this.configFile, this.reporter, system), config ?? {});
 
         this.watch = watch;
         this.debug = debug;
-        this.configFile = configFile;
-        this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(configFile, this.reporter, system), config ?? {});
-        this.profile = resolveProfile(profile, this.config, this.reporter);
         this.additionalArguments = additionalArguments;
 
         const projectDirectory =
