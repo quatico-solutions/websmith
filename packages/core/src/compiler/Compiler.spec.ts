@@ -8,7 +8,8 @@
 import path from "node:path";
 import ts from "typescript";
 import { ReporterMock } from "../../test";
-import { compileSystem, resolveCompilerOptions } from "../testing";
+import { compileSystem } from "../testing";
+import { resolveCompilerOptions } from "./options";
 import { type CompilationContext } from "./compilation";
 import { type CompileFragment, Compiler } from "./Compiler";
 import { type CompilerOptions } from "./options";
@@ -107,10 +108,17 @@ describe("createCompilationContext", () => {
         expect(actual).toMatchObject({
             buildDir: "/src",
             cliArgs: {
-                errors: [],
+                errors: [
+                    {
+                        category: 1,
+                        code: 18003,
+                        messageText:
+                            "No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.",
+                    },
+                ],
                 fileNames: [],
                 options: {
-                    configFilePath: "./tsconfig.json",
+                    configFilePath: "/tsconfig.json",
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
                 },
@@ -743,11 +751,11 @@ describe("watch", () => {
                     target1: { tsConfig: { outDir: "/target1" } },
                     target2: {
                         depends: ["target1"],
-                        tsConfig: { outDir: "/target2", declaration: false },
+                        tsConfig: { outDir: "/target2", declaration: true },
                     },
                 },
             },
-            tsConfig: { declaration: true },
+            tsConfig: { declaration: false },
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
             profile: "target2",
@@ -766,10 +774,13 @@ describe("watch", () => {
         "
         `);
         expect(fileSystem.readFile("/target2/target.js")).toMatchInlineSnapshot(`
-        "export const computeDate = async () => new Date();
-        "
+            "export const computeDate = async () => new Date();
+            "
         `);
-        expect(fileSystem.readFile("/target2/target.d.ts")).toMatchInlineSnapshot(`undefined`);
+        expect(fileSystem.readFile("/target2/target.d.ts")).toMatchInlineSnapshot(`
+            "export declare const computeDate: () => Promise<Date>;
+            "
+        `);
 
         testObj.closeAllWatchers();
     });
@@ -866,8 +877,9 @@ describe("watch", () => {
         testObj.getContext("target1")!.addAssetDependency("/build/shared.scss", "/src/shared1.ts");
         testObj.getContext("target1")!.addAssetDependency("/build/shared.scss", "/src/shared2.ts");
 
-        expect(target).toHaveBeenNthCalledWith(1, "/src/shared1.ts", "target1", true);
-        expect(target).toHaveBeenNthCalledWith(2, "/src/shared2.ts", "target1", true);
+        expect(target).toHaveBeenNthCalledWith(1, "/src/shared.scss", "target1", true);
+        expect(target).toHaveBeenNthCalledWith(2, "/src/shared1.ts", "target1", true);
+        expect(target).toHaveBeenNthCalledWith(3, "/src/shared2.ts", "target1", true);
 
         target.mockClear();
 

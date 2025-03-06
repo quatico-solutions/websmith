@@ -48,6 +48,124 @@ describe("ResolvedCompilerOptions", () => {
             },
         });
     });
+
+    it("should return defaults w/o any param", () => {
+        const { fileSystem } = compileSystem();
+
+        const actual = new ResolvedCompilerOptions(fileSystem, {}).getOptions();
+
+        expect(actual).toEqual(
+            expect.objectContaining({
+                debug: false,
+                watch: false,
+            })
+        );
+    });
+
+    it("should return project config w/ custom but empty tsconfig.json", () => {
+        const { fileSystem: target } = compileSystem({
+            files: {
+                "./expected/tsconfig.json": "{}",
+            },
+        });
+
+        const actual = new ResolvedCompilerOptions(target, { tsConfigFile: "./expected/tsconfig.json" }).getOptions();
+
+        expect(actual).toMatchObject({
+            configFile: "/expected/tsconfig.json",
+        });
+    });
+
+    it("should return expected path w/ custom addons directory and '*' target", () => {
+        const { addons } = compileSystem({
+            files: {
+                "./expected/addon-foo/addon.js": "export const activate = () => {};",
+            },
+            addonConfig: { addonsDir: "./expected" },
+        });
+        jest.mock(
+            "/expected/addon-foo/addon",
+            () => {
+                return { activate: jest.fn() };
+            },
+            { virtual: true }
+        );
+
+        const actual = addons.getAvailableAddons("*");
+
+        expect(actual.getNames()).toEqual(["addon-foo"]);
+    });
+
+    it("should return debug path w/ debug true", () => {
+        const { fileSystem: target } = compileSystem();
+
+        const actual = new ResolvedCompilerOptions(target, { debug: true }).getOptions();
+
+        expect(actual).toEqual(expect.objectContaining({ debug: true }));
+    });
+
+    it("should return watch path w/ watch true", () => {
+        const { fileSystem: target } = compileSystem();
+
+        const actual = new ResolvedCompilerOptions(target, { watch: true }).getOptions();
+
+        expect(actual).toEqual(expect.objectContaining({ watch: true }));
+    });
+
+    it("should return config w/ valid compiler config json", () => {
+        const { fileSystem: target } = compileSystem({
+            files: {
+                "websmith.config.json": '{ "profiles": { "whatever": { "addons": [ "one", "two", "three" ] } } }',
+            },
+        });
+
+        const actual = new ResolvedCompilerOptions(target, { configFile: "./websmith.config.json" }).getOptions();
+
+        expect(actual.config).toEqual({
+            profiles: { whatever: { addons: ["one", "two", "three"] } },
+        });
+    });
+
+    it("should return config w/ valid addonsDir, addons in compiler config json", () => {
+        const { fileSystem: target } = compileSystem({
+            files: {
+                "./tsconfig.json": '{ "include": ["**/*.ts"] }',
+                "/expected/one/addon.ts": "export const activate = () => {};",
+                "websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }',
+            },
+        });
+        jest.mock(
+            "/expected/one/addon",
+            () => {
+                return { activate: jest.fn() };
+            },
+            { virtual: true }
+        );
+
+        const actual = new ResolvedCompilerOptions(target, { configFile: "./websmith.config.json" }).getOptions();
+
+        expect(actual).toMatchObject({
+            buildDir: "/src",
+            config: {
+                addons: ["one", "two"],
+                addonsDir: "/expected",
+            },
+            tsConfig: {
+                configFilePath: "/tsconfig.json",
+            },
+
+            cliArgs: {
+                fileNames: ["/expected/one/addon.ts"],
+                errors: [],
+                options: {
+                    configFilePath: "/tsconfig.json",
+                },
+                raw: {
+                    include: ["**/*.ts"],
+                },
+            },
+        });
+    });
 });
 
 describe("ResolvedCompilerOptions#additionalArguments", () => {
@@ -73,7 +191,7 @@ describe("ResolvedCompilerOptions#configFile", () => {
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
-        expect(testObj.configFile).toBeUndefined();
+        expect(testObj.configFile).toBe("/tsconfig.json");
     });
 
     it("should yield passed value", () => {
@@ -252,7 +370,6 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "./dist",
             configFilePath: "/tsconfig.json",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
@@ -269,7 +386,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         } as any);
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "./expected",
+            outDir: "/expected",
             configFilePath: "/tsconfig.json",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
@@ -295,7 +412,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "./expected",
+            outDir: "/expected",
             configFilePath: "/tsconfig.json",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
@@ -494,7 +611,6 @@ describe("ResolvedCompilerOptions#cliArgs", () => {
             fileNames: [],
             options: {
                 configFilePath: "/tsconfig.json",
-                outDir: "./dist",
             },
             raw: {},
             typeAcquisition: {
@@ -811,7 +927,6 @@ describe("ResolvedCompilerOptions#getOptions", () => {
                 fileNames: [],
                 options: {
                     configFilePath: "/tsconfig.json",
-                    outDir: "./dist",
                 },
                 projectReferences: undefined,
                 raw: {},
@@ -826,12 +941,11 @@ describe("ResolvedCompilerOptions#getOptions", () => {
                 },
             },
             config: {},
-            configFile: undefined,
+            configFile: "/tsconfig.json",
             debug: false,
             profile: undefined,
             reporter: expect.any(DefaultReporter),
             tsConfig: {
-                outDir: "./dist",
                 configFilePath: "/tsconfig.json",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
