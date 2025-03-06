@@ -8,7 +8,7 @@ import { WarnMessage, type CompilationProfile, type Reporter } from "@quatico/we
 import path from "node:path";
 import ts from "typescript";
 import { Compiler } from "../Compiler";
-import { type CompilerOptions } from "../options";
+import { resolveCompilerOptions } from "../options";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 export type AddonConfig = {
     addons?: string[];
@@ -92,7 +92,27 @@ export class AddonRegistry {
             const missingAddons = targetAddons.filter(it => !compiledAddons.includes(it));
             if (missingAddons.length > 0) {
                 // Compile all addons in the addons directory
-                new Compiler(compileAddonOptions(reporter, system, { buildDir: addonsDir }), system).compile();
+                const targetDir = resolvePath(system, addonsDir);
+                const buildDir = path.dirname(targetDir);
+                const outDir = path.join(buildDir, "lib");
+                new Compiler(
+                    resolveCompilerOptions(system, {
+                        buildDir,
+                        reporter,
+                        tsConfig: {
+                            outDir,
+                            module: ts.ModuleKind.ES2020,
+                            target: ts.ScriptTarget.ES2020,
+                            esModuleInterop: true,
+                            moduleResolution: ts.ModuleResolutionKind.Node10,
+                        },
+                        cliArgs: {
+                            options: { outDir },
+                            fileNames: system.readDirectory(targetDir).filter(isSourceFile),
+                            errors: [],
+                        },
+                    })
+                ).compile();
             }
         }
         return targetAddons;
@@ -190,36 +210,6 @@ const getAddonName = (filePath: string) =>
         .slice(-1)[0];
 
 const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || filePath.endsWith(".tsx");
-
-// TODO: Resolve compiler options
-const compileAddonOptions = (reporter: Reporter, system: ts.System, overrides: Partial<CompilerOptions>): CompilerOptions => {
-    const addonsDir: string = resolvePath(system, overrides.buildDir!);
-    const buildDir: string = path.dirname(addonsDir);
-    const outDir: string = path.join(buildDir, "lib");
-    return {
-        debug: false,
-        watch: false,
-        ...overrides,
-        reporter,
-        buildDir,
-        tsConfig: {
-            outDir,
-            module: ts.ModuleKind.ES2020,
-            target: ts.ScriptTarget.ES2020,
-            esModuleInterop: true,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
-            configFilePath: overrides?.tsConfigFile ?? path.join(buildDir, "tsconfig.json"),
-            ...overrides?.tsConfig,
-        },
-        profile: overrides?.profile,
-        cliArgs: {
-            options: { outDir },
-            fileNames: system.readDirectory(addonsDir).filter(isSourceFile),
-            errors: [],
-            ...overrides?.cliArgs,
-        },
-    };
-};
 
 const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
     let resolvedPath = path.join(...pathSegments);

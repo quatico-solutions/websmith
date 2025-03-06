@@ -1,0 +1,899 @@
+import ts from "typescript";
+import { ReporterMock } from "../../../test";
+import { compileSystem } from "../../testing";
+import { ResolvedCompilerOptions } from "./ResolvedCompilerOptions";
+import { DefaultReporter } from "../DefaultReporter";
+
+describe("ResolvedCompilerOptions", () => {
+    it("should yield passed values", () => {
+        const { fileSystem } = compileSystem({ buildDir: "/build" });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            buildDir: "/build",
+            reporter: new ReporterMock(fileSystem),
+            cliArgs: {
+                options: {
+                    outDir: "./dist",
+                },
+                fileNames: [],
+                errors: [],
+            },
+        });
+
+        expect(testObj.buildDir).toBe("/build");
+        expect(testObj.reporter).toBeInstanceOf(ReporterMock);
+        expect(testObj.cliArgs).toEqual({
+            options: {
+                configFilePath: "/tsconfig.json",
+                outDir: "./dist",
+            },
+            compileOnSave: false,
+            fileNames: [],
+            errors: [
+                {
+                    category: 1,
+                    code: 18003,
+                    messageText:
+                        "No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.",
+                },
+            ],
+            raw: {},
+            typeAcquisition: {
+                enable: false,
+                exclude: [],
+                include: [],
+            },
+            wildcardDirectories: {
+                "": 1,
+            },
+        });
+    });
+});
+
+describe("ResolvedCompilerOptions#additionalArguments", () => {
+    it("should yield undefined if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.additionalArguments).toBeUndefined();
+    });
+
+    it("should yield passed value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { additionalArguments: { test: "test" } } as any);
+
+        expect(testObj.additionalArguments).toEqual({ test: "test" });
+    });
+});
+describe("ResolvedCompilerOptions#configFile", () => {
+    it("should yield undefined if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.configFile).toBeUndefined();
+    });
+
+    it("should yield passed value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            configFile: "tsconfig.json",
+        } as any);
+
+        expect(testObj.configFile).toBe("tsconfig.json");
+    });
+
+    it("should yield overridden value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            {
+                configFile: "whatever",
+            } as any,
+            undefined,
+            {
+                configFile: "tsconfig.json",
+            } as any
+        );
+
+        expect(testObj.configFile).toBe("tsconfig.json");
+    });
+});
+
+describe("ResolvedCompilerOptions#config", () => {
+    it("should yield undefined if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.config).toEqual({});
+    });
+
+    it("should yield passed value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                addons: ["addon1", "addon2"],
+            },
+        } as any);
+
+        expect(testObj.config).toEqual({
+            addons: ["addon1", "addon2"],
+        });
+    });
+
+    it("should yield overridden values", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            {
+                config: {
+                    addons: ["addon1", "addon2"],
+                    addonsDir: "./other",
+                    transpileOnly: true,
+                },
+            } as any,
+            undefined,
+            {
+                config: {
+                    addons: ["addon3", "addon4"],
+                    addonsDir: "./expected",
+                },
+            } as any
+        );
+
+        expect(testObj.config).toEqual({
+            addons: ["addon1", "addon2", "addon3", "addon4"],
+            addonsDir: "./expected",
+            transpileOnly: true,
+        });
+    });
+});
+
+describe("ResolvedCompilerOptions#debug", () => {
+    it("should yield false if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.debug).toBe(false);
+    });
+
+    it("should yield true if passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any);
+
+        expect(testObj.debug).toBe(true);
+    });
+
+    it("should yield overridden value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any, undefined, { debug: false } as any);
+
+        expect(testObj.debug).toBe(false);
+    });
+});
+
+describe("ResolvedCompilerOptions#watch", () => {
+    it("should yield false if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.watch).toBe(false);
+    });
+
+    it("should yield true if passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { watch: true } as any);
+
+        expect(testObj.watch).toBe(true);
+    });
+
+    it("should yield overridden value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { watch: true } as any, undefined, { watch: false } as any);
+
+        expect(testObj.watch).toBe(false);
+    });
+});
+
+describe("ResolvedCompilerOptions#tsConfigFile", () => {
+    it("should yield empty object if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.tsConfigFile).toBe("/tsconfig.json");
+    });
+
+    it("should yield passed value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            tsConfigFile: "tsconfig.json",
+        } as any);
+
+        expect(testObj.tsConfigFile).toBe("/tsconfig.json");
+    });
+
+    it("should yield overridden value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            {
+                tsConfigFile: "whatever",
+            } as any,
+            undefined,
+            {
+                tsConfigFile: "tsconfig.json",
+            } as any
+        );
+
+        expect(testObj.tsConfigFile).toBe("/tsconfig.json");
+    });
+});
+
+describe("ResolvedCompilerOptions#tsConfig", () => {
+    it("should yield empty object if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.tsConfig).toEqual({
+            outDir: "./dist",
+            configFilePath: "/tsconfig.json",
+            module: ts.ModuleKind.ESNext,
+            target: ts.ScriptTarget.ESNext,
+        });
+    });
+
+    it("should yield passed value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            tsConfig: {
+                outDir: "./expected",
+            },
+        } as any);
+
+        expect(testObj.tsConfig).toEqual({
+            outDir: "./expected",
+            configFilePath: "/tsconfig.json",
+            module: ts.ModuleKind.ESNext,
+            target: ts.ScriptTarget.ESNext,
+        });
+    });
+
+    it("should yield overridden value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            {
+                tsConfig: {
+                    outDir: "whatever",
+                },
+            } as any,
+            undefined,
+            {
+                tsConfig: {
+                    outDir: "./expected",
+                },
+            } as any
+        );
+
+        expect(testObj.tsConfig).toEqual({
+            outDir: "./expected",
+            configFilePath: "/tsconfig.json",
+            module: ts.ModuleKind.ESNext,
+            target: ts.ScriptTarget.ESNext,
+        });
+    });
+
+    it("should yield profile value with matching profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            {
+                profile: "target",
+                tsConfig: {
+                    outDir: "./other",
+                },
+                config: {
+                    profiles: {
+                        target: {
+                            tsConfig: {
+                                outDir: "./expected",
+                            },
+                        },
+                    },
+                },
+            } as any,
+            undefined,
+            {
+                tsConfig: {
+                    outDir: "./whatever",
+                },
+            } as any
+        );
+
+        expect(testObj.tsConfig).toEqual({
+            outDir: "./expected",
+            configFilePath: "/tsconfig.json",
+            module: ts.ModuleKind.ESNext,
+            target: ts.ScriptTarget.ESNext,
+        });
+    });
+
+    it("should yield overridden values w/o matching profile", () => {
+        jest.spyOn(console, "warn").mockImplementation(() => {});
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            {
+                profile: "unknown",
+                tsConfig: {
+                    outDir: "./other",
+                },
+                config: {
+                    profiles: {
+                        target: {
+                            tsConfig: {
+                                outDir: "./whatever",
+                            },
+                        },
+                    },
+                },
+            } as any,
+            undefined,
+            {
+                tsConfig: {
+                    outDir: "./expected",
+                },
+            } as any
+        );
+
+        expect(testObj.tsConfig).toEqual({
+            outDir: "./expected",
+            configFilePath: "/tsconfig.json",
+            module: ts.ModuleKind.ESNext,
+            target: ts.ScriptTarget.ESNext,
+        });
+    });
+});
+
+describe("ResolvedCompilerOptions#profile", () => {
+    it("should yield undefined if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.profile).toBeUndefined();
+    });
+
+    it("should yield passed value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target" } as any);
+
+        expect(testObj.profile).toBe("target");
+    });
+
+    it("should yield overridden value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target" } as any, undefined, { profile: "expected" } as any);
+
+        expect(testObj.profile).toBe("expected");
+    });
+});
+
+describe("ResolvedCompilerOptions#buildDir", () => {
+    it("should yield current directory if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.buildDir).toBe("/src");
+    });
+
+    it("should yield overridden value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { buildDir: "./expected" } as any);
+
+        expect(testObj.buildDir).toBe("/expected");
+    });
+});
+
+describe("ResolvedCompilerOptions#projectDir", () => {
+    it("should yield current directory if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.projectDir).toBe("/");
+    });
+
+    it("should yield directory of configFile if passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            configFile: "./expected/tsconfig.json",
+        } as any);
+
+        expect(testObj.projectDir).toBe("./expected");
+    });
+
+    it("should yield overridden value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            {
+                configFile: "/whatever/tsconfig.json",
+            } as any,
+            undefined,
+            {
+                configFile: "/expected/tsconfig.json",
+            } as any
+        );
+
+        expect(testObj.projectDir).toBe("/expected");
+    });
+});
+
+describe("ResolvedCompilerOptions#reporter", () => {
+    it("should yield default reporter if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.reporter).toBeInstanceOf(DefaultReporter);
+    });
+
+    it("should yield overridden value", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new ReporterMock(fileSystem) } as any);
+
+        expect(testObj.reporter).toBeInstanceOf(ReporterMock);
+    });
+});
+
+describe("ResolvedCompilerOptions#cliArgs", () => {
+    it("should yield empty object if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.cliArgs).toEqual({
+            compileOnSave: false,
+            errors: [
+                {
+                    category: 1,
+                    code: 18003,
+                    messageText:
+                        "No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.",
+                },
+            ],
+            fileNames: [],
+            options: {
+                configFilePath: "/tsconfig.json",
+                outDir: "./dist",
+            },
+            raw: {},
+            typeAcquisition: {
+                enable: false,
+                exclude: [],
+                include: [],
+            },
+            wildcardDirectories: {
+                "": 1,
+            },
+        });
+    });
+
+    it("should yield passed values", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            cliArgs: {
+                options: {
+                    outDir: "./expected",
+                    rootDir: "./root",
+                },
+            },
+        } as any);
+
+        expect(testObj.cliArgs).toMatchObject({
+            options: {
+                configFilePath: "/tsconfig.json",
+                outDir: "./expected",
+                rootDir: "./root",
+            },
+        });
+    });
+
+    it("should yield merged values", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            {
+                cliArgs: {
+                    options: {
+                        outDir: "./expected",
+                    },
+                },
+            } as any,
+            undefined,
+            {
+                cliArgs: {
+                    options: {
+                        rootDir: "./root",
+                    },
+                },
+            } as any
+        );
+
+        expect(testObj.cliArgs).toMatchObject({
+            options: {
+                configFilePath: "/tsconfig.json",
+                outDir: "./expected",
+                rootDir: "./root",
+            },
+        });
+    });
+});
+
+describe("ResolvedCompilerOptions#getSelectedProfiles", () => {
+    it("should yield empty array with no profiles", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.getSelectedProfiles()).toEqual([]);
+    });
+    it("should yield profiles with available profile and selected profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            profile: "expected",
+            config: {
+                profiles: {
+                    expected: {},
+                },
+            },
+        } as any);
+
+        expect(testObj.getSelectedProfiles()).toEqual(["expected"]);
+    });
+
+    it("should yield profiles with available profile and passed profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    expected: {},
+                },
+            },
+        } as any);
+
+        expect(testObj.getSelectedProfiles("expected")).toEqual(["expected"]);
+    });
+
+    it("should yield profiles with existing dependent profile and passed profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    expected: {
+                        depends: ["dependent"],
+                    },
+                    dependent: {},
+                },
+            },
+        } as any);
+
+        expect(testObj.getSelectedProfiles("expected")).toEqual(["dependent", "expected"]);
+    });
+
+    it("should yield profiles with non-existing dependent profile and passed profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    expected: {
+                        depends: ["dependent"],
+                    },
+                },
+            },
+        } as any);
+
+        expect(testObj.getSelectedProfiles("expected")).toEqual(["expected"]);
+    });
+
+    it("should yield profiles with multiple existing dependent profiles and passed profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    expected: {
+                        depends: ["dependent1", "dependent2"],
+                    },
+                    dependent1: {},
+                    dependent2: {},
+                },
+            },
+        } as any);
+
+        expect(testObj.getSelectedProfiles("expected")).toEqual(["dependent1", "dependent2", "expected"]);
+    });
+
+    it("should yield profiles with multiple non-existing dependent profiles and passed profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    expected: {
+                        depends: ["dependent1", "dependent2"],
+                    },
+                    dependent2: {},
+                },
+            },
+        } as any);
+
+        expect(testObj.getSelectedProfiles("expected")).toEqual(["dependent2", "expected"]);
+    });
+
+    it("should yield profiles with chained existing dependent profiles and passed profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    expected: {
+                        depends: ["dependent2"],
+                    },
+                    dependent1: {},
+                    dependent2: {
+                        depends: ["dependent1"],
+                    },
+                    dependent3: {},
+                },
+            },
+        } as any);
+
+        expect(testObj.getSelectedProfiles("expected")).toEqual(["dependent1", "dependent2", "expected"]);
+    });
+});
+
+describe("ResolvedCompilerOptions#getAddons", () => {
+    it("should yield empty array with no addons", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.getAddons()).toEqual([]);
+    });
+
+    it("should yield addons from config", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                addons: ["addon1", "addon2"],
+            },
+        } as any);
+
+        expect(testObj.getAddons()).toEqual(["addon1", "addon2"]);
+    });
+
+    it("should yield addons from selected profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            profile: "expected",
+            config: {
+                profiles: {
+                    expected: {
+                        addons: ["addon1", "addon2"],
+                    },
+                },
+            },
+        } as any);
+
+        expect(testObj.getAddons()).toEqual(["addon1", "addon2"]);
+    });
+
+    it("should yield addons from profile with matching profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    expected: {
+                        addons: ["addon1", "addon2"],
+                    },
+                },
+            },
+        } as any);
+
+        expect(testObj.getAddons("expected")).toEqual(["addon1", "addon2"]);
+    });
+
+    it("should yield addons from profile with dependent profile", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    expected: {
+                        depends: ["dependent"],
+                        addons: ["addon3", "addon4"],
+                    },
+                    dependent: {
+                        addons: ["addon1", "addon2"],
+                    },
+                },
+            },
+        } as any);
+
+        expect(testObj.getAddons("expected")).toEqual(["addon1", "addon2", "addon3", "addon4"]);
+    });
+
+    it("should yield addons from profile with config addons and dependent profile addons", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                addons: ["addon1", "addon2"],
+                profiles: {
+                    expected: {
+                        depends: ["dependent"],
+                        addons: ["addon5", "addon6"],
+                    },
+                    dependent: {
+                        addons: ["addon3", "addon4"],
+                    },
+                },
+            },
+        } as any);
+
+        expect(testObj.getAddons("expected")).toEqual(["addon1", "addon2", "addon3", "addon4", "addon5", "addon6"]);
+    });
+});
+
+describe("ResolvedCompilerOptions#getOptions", () => {
+    it("should yield empty object if not passed", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+
+        expect(testObj.getOptions()).toEqual({
+            additionalArguments: undefined,
+            buildDir: "/src",
+            cliArgs: {
+                compileOnSave: false,
+                errors: [
+                    {
+                        category: 1,
+                        code: 18003,
+                        file: undefined,
+                        length: undefined,
+                        messageText:
+                            "No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.",
+                        reportsDeprecated: undefined,
+                        reportsUnnecessary: undefined,
+                        start: undefined,
+                    },
+                ],
+                fileNames: [],
+                options: {
+                    configFilePath: "/tsconfig.json",
+                    outDir: "./dist",
+                },
+                projectReferences: undefined,
+                raw: {},
+                typeAcquisition: {
+                    enable: false,
+                    exclude: [],
+                    include: [],
+                },
+                watchOptions: undefined,
+                wildcardDirectories: {
+                    "": 1,
+                },
+            },
+            config: {},
+            configFile: undefined,
+            debug: false,
+            profile: undefined,
+            reporter: expect.any(DefaultReporter),
+            tsConfig: {
+                outDir: "./dist",
+                configFilePath: "/tsconfig.json",
+                module: ts.ModuleKind.ESNext,
+                target: ts.ScriptTarget.ESNext,
+            },
+            tsConfigFile: "/tsconfig.json",
+            watch: false,
+        });
+    });
+
+    it("should yield passed values", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            cliArgs: {
+                options: {
+                    outDir: "./expected",
+                    rootDir: "./root",
+                },
+            },
+        } as any);
+
+        expect(testObj.getOptions()).toMatchObject({
+            cliArgs: {
+                options: {
+                    configFilePath: "/tsconfig.json",
+                    outDir: "./expected",
+                    rootDir: "./root",
+                },
+            },
+        });
+    });
+
+    it("should yield merged values", () => {
+        const { fileSystem } = compileSystem();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            {
+                cliArgs: {
+                    options: {
+                        outDir: "./expected",
+                    },
+                },
+            } as any,
+            undefined,
+            {
+                cliArgs: {
+                    options: {
+                        rootDir: "./root",
+                    },
+                },
+            } as any
+        );
+
+        expect(testObj.getOptions()).toMatchObject({
+            cliArgs: {
+                options: {
+                    configFilePath: "/tsconfig.json",
+                    outDir: "./expected",
+                    rootDir: "./root",
+                },
+            },
+        });
+    });
+});

@@ -15,7 +15,7 @@ describe("resolveCompilationConfig", () => {
 
         const actual = resolveCompilationConfig("", new NoReporter(), target);
 
-        expect(actual).toBeUndefined();
+        expect(actual).toEqual({});
     });
 
     it("should return undefined w/ non-existing path", () => {

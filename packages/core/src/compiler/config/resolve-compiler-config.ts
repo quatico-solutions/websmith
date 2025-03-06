@@ -43,7 +43,11 @@ const resolvePath = (filePath: string, basePath: string, system: ts.System): str
     return path.isAbsolute(filePath) ? filePath : system.resolvePath(path.join(basePath, filePath));
 };
 
-export const resolveCompilationConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilationConfig | undefined => {
+export const resolveCompilationConfig = (configFilePath: string | undefined, reporter: Reporter, system: ts.System): CompilationConfig => {
+    if (!configFilePath) {
+        return {};
+    }
+
     if (configFilePath) {
         const resolvedPath = system.resolvePath(configFilePath);
         if (!system.fileExists(resolvedPath)) {
