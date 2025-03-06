@@ -4,6 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { parse } from "comment-json";
 import type { CompilationProfile } from "@quatico/websmith-api";
 import { ErrorMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
 import path from "node:path";
@@ -55,7 +56,7 @@ export const resolveCompilationConfig = (configFilePath: string | undefined, rep
         } else {
             const content = system.readFile(resolvedPath);
             if (content) {
-                const config = JSON.parse(content ?? "{}");
+                const config = parse(content ?? "{}");
                 const result = { ...updatePaths(config.config ?? config, path.dirname(resolvedPath), system) };
                 if (result.profiles) {
                     Object.entries(result.profiles).forEach(([_name, profile]) => {

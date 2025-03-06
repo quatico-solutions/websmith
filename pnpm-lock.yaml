@@ -411,6 +411,9 @@ importers:
       '@quatico/websmith-api':
         specifier: workspace:*
         version: link:../api
+      comment-json:
+        specifier: ^4.2.5
+        version: 4.2.5
       create-hash:
         specifier: 1.2.0
         version: 1.2.0
@@ -433,6 +436,9 @@ importers:
       '@nx/eslint-plugin':
         specifier: ^18.3.4
         version: 18.3.4(@babel/traverse@7.24.5)(@swc/core@1.5.0)(@types/node@20.12.8)(@typescript-eslint/parser@8.22.0(eslint@9.19.0)(typescript@5.7.3))(eslint-config-prettier@10.0.1(eslint@9.19.0))(eslint@9.19.0)(nx@18.3.4(@swc/core@1.5.0))(typescript@5.7.3)
+      '@types/comment-json':
+        specifier: ^2.4.5
+        version: 2.4.5
       '@types/deepmerge':
         specifier: ^2.2.3
         version: 2.2.3
@@ -810,6 +816,9 @@ importers:
       '@quatico/websmith-core':
         specifier: workspace:*
         version: link:../core
+      comment-json:
+        specifier: ^4.2.5
+        version: 4.2.5
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.6
@@ -823,6 +832,9 @@ importers:
       '@quatico/websmith-testing':
         specifier: workspace:*
         version: link:../testing
+      '@types/comment-json':
+        specifier: ^2.4.5
+        version: 2.4.5
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -970,9 +982,6 @@ importers:
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.12.8)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.5.0)(@types/node@20.12.8)(typescript@5.7.3))
-      memfs:
-        specifier: ^4.17.0
-        version: 4.17.0
       prettier:
         specifier: ^3.4.2
         version: 3.4.2
@@ -2095,6 +2104,10 @@ packages:
   '@types/babel__traverse@7.20.5':
     resolution: {integrity: sha512-WXCyOcRtH37HAUkpXhUduaxdm82b4GSlyTqajXviN4EfiuPgNYR109xMCKvpl6zPIpua0DGlMEDCq+g8EdoheQ==}
 
+  '@types/comment-json@2.4.5':
+    resolution: {integrity: sha512-Zc70LYxV8bri2tcIVVAYQ33dsGOvcZ3Hx7MdMKEJ+cWIt5BqpjAi5Kxcxe3rplp+g6qIenPoxx44k9nGqUstmg==}
+    deprecated: This is a stub types definition. comment-json provides its own type definitions, so you do not need this installed.
+
   '@types/cross-spawn@6.0.6':
     resolution: {integrity: sha512-fXRhhUkG4H3TQk5dBhQ7m/JDdSNHKwR2BBia62lhwEIq9xGiQKLxd6LymNhn47SjXhsUEPmxi+PKw2OkW4LLjA==}
 
@@ -2494,6 +2507,9 @@ packages:
     resolution: {integrity: sha512-itaWrbYbqpGXkGhZPGUulwnhVf5Hpy1xiCFsGqyIGglbBxmG5vSjxQen3/WGOjPpNEv1RtBLKxbmVXm8HpJStQ==}
     engines: {node: '>= 0.4'}
 
+  array-timsort@1.0.3:
+    resolution: {integrity: sha512-/+3GRL7dDAGEfM6TseQk/U+mi18TU2Ms9I3UlLdUMhz2hbvGNTKdj9xniwXfUqgYhHxRx0+8UnKkvlNwVU+cWQ==}
+
   array-union@2.1.0:
     resolution: {integrity: sha512-HGyxoOTYUyCM6stUe6EJgnd4EoewAI7zMdfqO+kGjnlZmBDz/cR5pf8r/cR4Wq60sL/p0IkcjUEEPwS3GFrIyw==}
     engines: {node: '>=8'}
@@ -2773,6 +2789,10 @@ packages:
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
 
+  comment-json@4.2.5:
+    resolution: {integrity: sha512-bKw/r35jR3HGt5PEPm1ljsQQGyCrR8sFGNiN5L+ykDHdpO8Smxkrkla9Yi6NkQyUrb8V54PGhfMs6NrIwtxtdw==}
+    engines: {node: '>= 6'}
+
   concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
 
@@ -2792,6 +2812,9 @@ packages:
 
   core-js-compat@3.40.0:
     resolution: {integrity: sha512-0XEDpr5y5mijvw8Lbc6E5AkjrHfp7eEoPlu36SWeAbcL8fn1G1ANe8DBlo2XoNN89oVpxWwOjYIPVzR4ZvsKCQ==}
+
+  core-util-is@1.0.3:
+    resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
 
   cosmiconfig@6.0.0:
     resolution: {integrity: sha512-xb3ZL6+L8b9JLLCx3ZdoZy4+2ECphCMo2PwqgP1tlfVq6M6YReyzBJtvWWtbDSpNr9hn96pkCiZqUcFEc+54Qg==}
@@ -3457,6 +3480,10 @@ packages:
 
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
+    engines: {node: '>=8'}
+
+  has-own-prop@2.0.0:
+    resolution: {integrity: sha512-Pq0h+hvsVm6dDEa8x82GnLSYHOzNDt7f0ddFa3FqcQlgzEiptPqL+XrOJNavjOzSYiYWIrgeVYYgGlLmnxwilQ==}
     engines: {node: '>=8'}
 
   has-property-descriptors@1.0.2:
@@ -4413,6 +4440,10 @@ packages:
   regjsparser@0.9.1:
     resolution: {integrity: sha512-dQUtn90WanSNl+7mQKcXAgZxvUe7Z0SqXlgzv0za4LwiUhyzBC58yQO3liFoUgu8GiJVInAhJjkj1N0EtQ5nkQ==}
     hasBin: true
+
+  repeat-string@1.6.1:
+    resolution: {integrity: sha512-PV0dzCYDNfRi1jCDbJzpW7jNNDRuCOG/jI5ctQcGKt/clZD+YcPS3yIlWuTJMmESC8aevCFmWJy5wjAFgNqN6w==}
+    engines: {node: '>=0.10'}
 
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
@@ -6482,6 +6513,10 @@ snapshots:
     dependencies:
       '@babel/types': 7.24.5
 
+  '@types/comment-json@2.4.5':
+    dependencies:
+      comment-json: 4.2.5
+
   '@types/cross-spawn@6.0.6':
     dependencies:
       '@types/node': 20.12.8
@@ -6959,6 +6994,8 @@ snapshots:
       get-intrinsic: 1.2.4
       is-string: 1.0.7
 
+  array-timsort@1.0.3: {}
+
   array-union@2.1.0: {}
 
   array.prototype.findlastindex@1.2.5:
@@ -7302,6 +7339,14 @@ snapshots:
 
   commander@2.20.3: {}
 
+  comment-json@4.2.5:
+    dependencies:
+      array-timsort: 1.0.3
+      core-util-is: 1.0.3
+      esprima: 4.0.1
+      has-own-prop: 2.0.0
+      repeat-string: 1.6.1
+
   concat-map@0.0.1: {}
 
   concurrently@9.1.2:
@@ -7325,6 +7370,8 @@ snapshots:
   core-js-compat@3.40.0:
     dependencies:
       browserslist: 4.24.4
+
+  core-util-is@1.0.3: {}
 
   cosmiconfig@6.0.0:
     dependencies:
@@ -8096,6 +8143,8 @@ snapshots:
   has-flag@3.0.0: {}
 
   has-flag@4.0.0: {}
+
+  has-own-prop@2.0.0: {}
 
   has-property-descriptors@1.0.2:
     dependencies:
@@ -9235,6 +9284,8 @@ snapshots:
   regjsparser@0.9.1:
     dependencies:
       jsesc: 0.5.0
+
+  repeat-string@1.6.1: {}
 
   require-directory@2.1.1: {}
 
