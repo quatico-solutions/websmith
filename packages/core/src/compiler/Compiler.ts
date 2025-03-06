@@ -15,8 +15,7 @@ import { type FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
 import { type CompilationConfig } from "./config";
-import { DefaultReporter } from "./DefaultReporter";
-import { type CompilerOptions } from "./options";
+import { resolveCompilerOptions, type CompilerOptions } from "./options";
 
 export type CompileFragment = {
     version: number;
@@ -45,7 +44,7 @@ export class Compiler {
     private addons?: AddonRegistry;
     private transpileOnly: boolean;
 
-    constructor(options: CompilerOptions, system?: ts.System, addons?: AddonRegistry, dependencyCallback?: (filePath: string) => void) {
+    constructor(options: Partial<CompilerOptions>, system?: ts.System, addons?: AddonRegistry, dependencyCallback?: (filePath: string) => void) {
         this.version = 0;
         this.contextMap = new Map();
         this.addons = addons;
@@ -94,18 +93,13 @@ export class Compiler {
         return this.program;
     }
 
-    // TODO: Resolve compiler options
     public getOptions(): CompilerOptions {
         return this.options;
     }
 
-    public setOptions(options: CompilerOptions): this {
-        // TODO: Resolve compiler options
-        this.options = {
-            ...options,
-            reporter: options.reporter ?? new DefaultReporter(this.system),
-        };
-        this.reporter = options.reporter;
+    public setOptions(options: Partial<CompilerOptions>): this {
+        this.options = resolveCompilerOptions(this.system, options);
+        this.reporter = this.options.reporter;
         this.compilationHost = new CompilationHost(createSharedHost(this.system) as ts.LanguageServiceHost);
         this.langService = ts.createLanguageService(this.compilationHost, ts.createDocumentRegistry());
         this.program = this.langService.getProgram();
@@ -119,8 +113,8 @@ export class Compiler {
     }
 
     public compile(): ts.EmitResult {
-        // TODO: Resolve compiler options
         const { profile } = this.options;
+        // TODO: Resolve compiler options
         const selectedProfiles = profile ? [...(this.options.config?.profiles?.[profile]?.depends ?? []), profile] : [undefined];
         this.createProfileContextsIfNecessary();
 

@@ -9,13 +9,12 @@ import path from "node:path";
 import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { compileSystem } from "../testing";
-import { resolveCompilerOptions } from "./options";
 import { type CompilationContext } from "./compilation";
 import { type CompileFragment, Compiler } from "./Compiler";
 import { type CompilerOptions } from "./options";
 
 class CompilerTestClass extends Compiler {
-    constructor(options: CompilerOptions, system: ts.System) {
+    constructor(options: Partial<CompilerOptions>, system: ts.System) {
         super(options, system);
     }
 
@@ -40,7 +39,7 @@ describe("getSystem", () => {
     it("returns the system passed to options", () => {
         const { fileSystem: expected } = compileSystem();
 
-        const testObj = new CompilerTestClass(resolveCompilerOptions(expected, { reporter: new ReporterMock(expected) }), expected);
+        const testObj = new CompilerTestClass({ reporter: new ReporterMock(expected) }, expected);
 
         expect(testObj.getSystem()).toBe(expected);
     });
@@ -54,7 +53,7 @@ describe("setOptions", () => {
             },
         } as unknown as CompilerOptions;
         const { fileSystem: target } = compileSystem();
-        const testObj = new CompilerTestClass(resolveCompilerOptions(target, { reporter: new ReporterMock(target) }), target);
+        const testObj = new CompilerTestClass({ reporter: new ReporterMock(target) }, target);
 
         testObj.setOptions(expected);
 
@@ -68,11 +67,11 @@ describe("setOptions", () => {
         }).getSourceFile("src/target.ts");
 
         new CompilerTestClass(
-            resolveCompilerOptions(target, {
+            {
                 reporter: new ReporterMock(target),
                 tsConfig: { outDir: "/expected" },
                 cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-            }),
+            },
             target
         ).watch();
 
@@ -88,7 +87,7 @@ describe("createCompilationContext", () => {
     it("initializes the CompilationContext meeting to AddonContext API requirements", () => {
         const expected = { field: "expected-value", output: "expected-output.json" };
         const { fileSystem } = compileSystem();
-        const target = resolveCompilerOptions(fileSystem, { reporter: new ReporterMock(fileSystem) });
+        const target = { reporter: new ReporterMock(fileSystem) };
 
         const actual = new CompilerTestClass(
             {
@@ -141,7 +140,7 @@ describe("compile", () => {
     it("calls report", () => {
         const { fileSystem } = compileSystem();
 
-        const testObj = new CompilerTestClass(resolveCompilerOptions(fileSystem, { reporter: new ReporterMock(fileSystem) }), fileSystem);
+        const testObj = new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, fileSystem);
         testObj.report = jest.fn();
 
         testObj.compile();
@@ -151,7 +150,7 @@ describe("compile", () => {
 
     it("updates the CompilerOptions with the target specific overrides", () => {
         const { fileSystem } = compileSystem();
-        const target = resolveCompilerOptions(fileSystem, { reporter: new ReporterMock(fileSystem), config: { profiles: { "*": {} } } });
+        const target = { reporter: new ReporterMock(fileSystem), config: { profiles: { "*": {} } } };
 
         const testObj = new CompilerTestClass(target, fileSystem).setOptions({
             ...target,
@@ -176,7 +175,7 @@ describe("compile", () => {
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         });
 
-        new CompilerTestClass(resolveCompilerOptions(fileSystem, { reporter: new ReporterMock(fileSystem) }), fileSystem).compile();
+        new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, fileSystem).compile();
 
         expect(fileSystem.readFile("/src/target.js")).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -221,11 +220,11 @@ describe("emitSourceFile", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: true },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -243,11 +242,11 @@ describe("emitSourceFile", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: true },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -265,12 +264,12 @@ describe("emitSourceFile", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -289,12 +288,12 @@ describe("emitSourceFile", () => {
             `,
             },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: true, declarationMap: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -313,12 +312,12 @@ describe("emitSourceFile", () => {
             `,
             },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: true, declarationMap: true, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -337,12 +336,12 @@ describe("emitSourceFile", () => {
             `,
             },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: false, declarationMap: false, sourceMap: true },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -364,11 +363,11 @@ describe("emitSourceFile", () => {
             `,
             },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -387,11 +386,11 @@ describe("emitSourceFile", () => {
             `,
             },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: true, declarationMap: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -414,11 +413,11 @@ describe("emitSourceFile", () => {
             `,
             },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: true, declarationMap: true, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -444,11 +443,11 @@ describe("emitSourceFile", () => {
             `,
             },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: false, declarationMap: false, sourceMap: true },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -470,12 +469,12 @@ describe("emitSourceFile", () => {
             `,
             },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: false, declarationMap: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -494,11 +493,11 @@ describe("emitSourceFile", () => {
             `,
             },
         }).getSourceFile("src/target.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: false, declarationMap: false, sourceMap: false },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -513,7 +512,7 @@ describe("emitSourceFile", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "src/config.json": `{"name":"test"}` },
         }).getSourceFile("src/config.json");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: {
                 declaration: false,
@@ -525,7 +524,7 @@ describe("emitSourceFile", () => {
             },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -536,7 +535,7 @@ describe("emitSourceFile", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "src/config.json": `{"name":"test"}` },
         }).getSourceFile("src/config.json");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: {
                 declaration: false,
@@ -546,7 +545,7 @@ describe("emitSourceFile", () => {
                 outDir: "/build",
             },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -560,7 +559,7 @@ describe("emitSourceFile", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "types/style.d.ts": `declare module "*.scss" { const content: Record<exportName, string[]>; export = content; }` },
         }).getSourceFile("types/style.d.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: {
                 declaration: false,
@@ -573,7 +572,7 @@ describe("emitSourceFile", () => {
             },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -584,7 +583,7 @@ describe("emitSourceFile", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "types/style.d.ts": `declare module "*.scss" { const content: Record<exportName, string[]>; export = content; }` },
         }).getSourceFile("types/style.d.ts");
-        const target = resolveCompilerOptions(fileSystem, {
+        const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: {
                 declaration: false,
@@ -597,7 +596,7 @@ describe("emitSourceFile", () => {
             },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             buildDir: "./types",
-        });
+        };
 
         const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
 
@@ -610,8 +609,8 @@ describe("report", () => {
         const fileSystem = compileSystem({
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).fileSystem;
-        const options = resolveCompilerOptions(fileSystem, { reporter: new ReporterMock(fileSystem) });
-        const target = options.reporter as ReporterMock;
+        const options = { reporter: new ReporterMock(fileSystem) };
+        const target = options.reporter;
 
         new CompilerTestClass(options, fileSystem).report(
             {
@@ -632,8 +631,8 @@ describe("report", () => {
 
     it("yields program's messageText", () => {
         const fileSystem = compileSystem().fileSystem;
-        const options = resolveCompilerOptions(fileSystem, { reporter: new ReporterMock(fileSystem) });
-        const target = options.reporter as ReporterMock;
+        const options = { reporter: new ReporterMock(fileSystem) };
+        const target = options.reporter;
 
         new CompilerTestClass(options, fileSystem).report(
             {
@@ -658,7 +657,7 @@ describe("report", () => {
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).fileSystem;
 
-        const actual = new CompilerTestClass(resolveCompilerOptions(fileSystem, { reporter: new ReporterMock(fileSystem) }), fileSystem).report(
+        const actual = new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, fileSystem).report(
             {
                 getCompilerOptions: () => ({}),
                 getConfigFileParsingDiagnostics: () => [],
@@ -682,7 +681,7 @@ describe("watch", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
-        const options = resolveCompilerOptions(fileSystem, {
+        const options = {
             reporter: new ReporterMock(fileSystem),
             config: {
                 profiles: { target: { config: "whatever" } },
@@ -691,7 +690,7 @@ describe("watch", () => {
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             watch: true,
             profile: "target",
-        });
+        };
 
         const testObj = new Compiler(options, fileSystem);
 
@@ -713,7 +712,7 @@ describe("watch", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
-        const options = resolveCompilerOptions(fileSystem, {
+        const options = {
             reporter: new ReporterMock(fileSystem),
             config: {
                 profiles: { target: { tsConfig: { outDir: "/build" } } },
@@ -722,7 +721,7 @@ describe("watch", () => {
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
             profile: "target",
-        });
+        };
 
         const testObj = new Compiler(options, fileSystem);
 
@@ -744,7 +743,7 @@ describe("watch", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
-        const options = resolveCompilerOptions(fileSystem, {
+        const options = {
             reporter: new ReporterMock(fileSystem),
             config: {
                 profiles: {
@@ -759,7 +758,7 @@ describe("watch", () => {
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
             profile: "target2",
-        });
+        };
 
         const testObj = new Compiler(options, fileSystem);
 
@@ -793,7 +792,7 @@ describe("watch", () => {
             `,
             },
         }).getSourceFile("src/target.ts");
-        const options = resolveCompilerOptions(fileSystem, {
+        const options = {
             reporter: new ReporterMock(fileSystem),
             config: {
                 profiles: {
@@ -809,7 +808,7 @@ describe("watch", () => {
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
             profile: "target2",
-        });
+        };
 
         const testObj = new Compiler(options, fileSystem);
 
@@ -852,7 +851,7 @@ describe("watch", () => {
         });
 
         const testObj = new CompilerTestClass(
-            resolveCompilerOptions(fileSystem, {
+            {
                 reporter: new ReporterMock(fileSystem),
                 config: {
                     profiles: {
@@ -867,7 +866,7 @@ describe("watch", () => {
                 },
                 watch: true,
                 profile: "target1",
-            }),
+            },
             fileSystem
         );
         testObj.emitSourceFile = target;
@@ -902,7 +901,7 @@ describe("watch", () => {
         const { entry, fileSystem } = compileSystem({
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).getSourceFile("src/target.ts");
-        const options = resolveCompilerOptions(fileSystem, {
+        const options = {
             reporter: new ReporterMock(fileSystem),
             config: {
                 profiles: {
@@ -913,7 +912,7 @@ describe("watch", () => {
             cliArgs: { options: { outDir: "/build" }, fileNames: [entry!.fileName], errors: [] },
             watch: true,
             profile: "target1",
-        });
+        };
 
         const testObj = new CompilerTestClass(options, fileSystem);
 
