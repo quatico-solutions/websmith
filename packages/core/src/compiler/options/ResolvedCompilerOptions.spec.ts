@@ -420,6 +420,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
     });
 
     it("should yield profile value with matching profile", () => {
+        jest.spyOn(console, "warn").mockImplementation(() => {});
         const { fileSystem } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(

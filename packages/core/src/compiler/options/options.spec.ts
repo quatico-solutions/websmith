@@ -4,8 +4,9 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { NoReporter } from "../NoReporter";
+import ts from "typescript";
 import { compileSystem } from "../../testing";
+import { NoReporter } from "../NoReporter";
 import { createOptions } from "./options";
 
 describe("createOptions", () => {
@@ -30,9 +31,10 @@ describe("createOptions", () => {
         const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
-            configFilePath: "/expected/tsconfig.json",
-            outDir: "/",
+            configFilePath: "/tsconfig.json",
             sourceMap: false,
+            module: ts.ModuleKind.ESNext,
+            target: ts.ScriptTarget.ESNext,
         });
     });
 
@@ -104,14 +106,13 @@ describe("createOptions", () => {
         const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
-            buildDir: "/",
+            buildDir: "/src",
             config: {
                 addons: ["one", "two"],
                 addonsDir: "/expected",
             },
             tsConfig: {
                 configFilePath: "/tsconfig.json",
-                outDir: "/",
             },
 
             cliArgs: {
@@ -119,7 +120,6 @@ describe("createOptions", () => {
                 errors: [],
                 options: {
                     configFilePath: "/tsconfig.json",
-                    outDir: "/",
                 },
                 raw: {
                     include: ["**/*.ts"],
