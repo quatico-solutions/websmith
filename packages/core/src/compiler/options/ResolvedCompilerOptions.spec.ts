@@ -24,30 +24,12 @@ describe("ResolvedCompilerOptions", () => {
         expect(testObj.reporter).toBeInstanceOf(ReporterMock);
         expect(testObj.cliArgs).toEqual({
             options: {
-                configFilePath: "/tsconfig.json",
                 outDir: "./dist",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
             },
-            compileOnSave: false,
             fileNames: [],
-            errors: [
-                {
-                    category: 1,
-                    code: 18003,
-                    messageText:
-                        "No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.",
-                },
-            ],
-            raw: {},
-            typeAcquisition: {
-                enable: false,
-                exclude: [],
-                include: [],
-            },
-            wildcardDirectories: {
-                "": 1,
-            },
+            errors: [],
         });
     });
 
@@ -144,7 +126,7 @@ describe("ResolvedCompilerOptions", () => {
             { virtual: true }
         );
 
-        const actual = new ResolvedCompilerOptions(target, { configFile: "./websmith.config.json" }).getOptions();
+        const actual = new ResolvedCompilerOptions(target, { configFile: "./websmith.config.json", tsConfigFile: "./tsconfig.json" }).getOptions();
 
         expect(actual).toMatchObject({
             buildDir: "/src",
@@ -195,7 +177,7 @@ describe("ResolvedCompilerOptions#configFile", () => {
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
-        expect(testObj.tsConfigFile).toBe("/tsconfig.json");
+        expect(testObj.tsConfigFile).toBeUndefined();
     });
 
     it("should yield passed value", () => {
@@ -331,12 +313,12 @@ describe("ResolvedCompilerOptions#watch", () => {
 });
 
 describe("ResolvedCompilerOptions#tsConfigFile", () => {
-    it("should yield empty object if not passed", () => {
+    it("should yield undefined if not passed", () => {
         const { fileSystem } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
-        expect(testObj.tsConfigFile).toBe("/tsconfig.json");
+        expect(testObj.tsConfigFile).toBeUndefined();
     });
 
     it("should yield passed value", () => {
@@ -368,19 +350,18 @@ describe("ResolvedCompilerOptions#tsConfigFile", () => {
 });
 
 describe("ResolvedCompilerOptions#tsConfig", () => {
-    it("should yield empty object if not passed", () => {
+    it("should yield default config if not passed", () => {
         const { fileSystem } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
         expect(testObj.tsConfig).toEqual({
-            configFilePath: "/tsconfig.json",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
         });
     });
 
-    it("should yield passed value", () => {
+    it("should yield passed value with defaults", () => {
         const { fileSystem } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
@@ -391,7 +372,6 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
 
         expect(testObj.tsConfig).toEqual({
             outDir: "./expected",
-            configFilePath: "/tsconfig.json",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
         });
@@ -417,7 +397,6 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
 
         expect(testObj.tsConfig).toEqual({
             outDir: "./expected",
-            configFilePath: "/tsconfig.json",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
         });
@@ -454,7 +433,6 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
 
         expect(testObj.tsConfig).toEqual({
             outDir: "./expected",
-            configFilePath: "/tsconfig.json",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
         });
@@ -491,7 +469,6 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
 
         expect(testObj.tsConfig).toEqual({
             outDir: "./expected",
-            configFilePath: "/tsconfig.json",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
         });
@@ -604,29 +581,11 @@ describe("ResolvedCompilerOptions#cliArgs", () => {
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
         expect(testObj.cliArgs).toEqual({
-            compileOnSave: false,
-            errors: [
-                {
-                    category: 1,
-                    code: 18003,
-                    messageText:
-                        "No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.",
-                },
-            ],
+            errors: [],
             fileNames: [],
             options: {
-                configFilePath: "/tsconfig.json",
                 target: ts.ScriptTarget.ESNext,
                 module: ts.ModuleKind.ESNext,
-            },
-            raw: {},
-            typeAcquisition: {
-                enable: false,
-                exclude: [],
-                include: [],
-            },
-            wildcardDirectories: {
-                "": 1,
             },
         });
     });
@@ -645,7 +604,6 @@ describe("ResolvedCompilerOptions#cliArgs", () => {
 
         expect(testObj.cliArgs).toMatchObject({
             options: {
-                configFilePath: "/tsconfig.json",
                 outDir: "./expected",
                 rootDir: "./root",
             },
@@ -676,7 +634,6 @@ describe("ResolvedCompilerOptions#cliArgs", () => {
 
         expect(testObj.cliArgs).toMatchObject({
             options: {
-                configFilePath: "/tsconfig.json",
                 outDir: "./expected",
                 rootDir: "./root",
             },
@@ -908,7 +865,7 @@ describe("ResolvedCompilerOptions#getAddons", () => {
 });
 
 describe("ResolvedCompilerOptions#getOptions", () => {
-    it("should yield empty object if not passed", () => {
+    it("should yield default options if not passed", () => {
         const { fileSystem } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
@@ -917,36 +874,11 @@ describe("ResolvedCompilerOptions#getOptions", () => {
             additionalArguments: undefined,
             buildDir: "/src",
             cliArgs: {
-                compileOnSave: false,
-                errors: [
-                    {
-                        category: 1,
-                        code: 18003,
-                        file: undefined,
-                        length: undefined,
-                        messageText:
-                            "No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.",
-                        reportsDeprecated: undefined,
-                        reportsUnnecessary: undefined,
-                        start: undefined,
-                    },
-                ],
+                errors: [],
                 fileNames: [],
                 options: {
-                    configFilePath: "/tsconfig.json",
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
-                },
-                projectReferences: undefined,
-                raw: {},
-                typeAcquisition: {
-                    enable: false,
-                    exclude: [],
-                    include: [],
-                },
-                watchOptions: undefined,
-                wildcardDirectories: {
-                    "": 1,
                 },
             },
             config: {},
@@ -954,11 +886,9 @@ describe("ResolvedCompilerOptions#getOptions", () => {
             profile: undefined,
             reporter: expect.any(DefaultReporter),
             tsConfig: {
-                configFilePath: "/tsconfig.json",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
             },
-            tsConfigFile: "/tsconfig.json",
             watch: false,
         });
     });
@@ -978,7 +908,6 @@ describe("ResolvedCompilerOptions#getOptions", () => {
         expect(testObj.getOptions()).toMatchObject({
             cliArgs: {
                 options: {
-                    configFilePath: "/tsconfig.json",
                     outDir: "./expected",
                     rootDir: "./root",
                 },
@@ -1011,7 +940,6 @@ describe("ResolvedCompilerOptions#getOptions", () => {
         expect(testObj.getOptions()).toMatchObject({
             cliArgs: {
                 options: {
-                    configFilePath: "/tsconfig.json",
                     outDir: "./expected",
                     rootDir: "./root",
                 },

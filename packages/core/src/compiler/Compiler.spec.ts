@@ -107,17 +107,9 @@ describe("createCompilationContext", () => {
         expect(actual).toMatchObject({
             buildDir: "/src",
             cliArgs: {
-                errors: [
-                    {
-                        category: 1,
-                        code: 18003,
-                        messageText:
-                            "No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.",
-                    },
-                ],
+                errors: [],
                 fileNames: [],
                 options: {
-                    configFilePath: "/tsconfig.json",
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
                 },
@@ -130,6 +122,86 @@ describe("createCompilationContext", () => {
         });
 
         expect(actual.getProgram()).toBeDefined();
+        expect(actual.getLanguageHost()).toBeDefined();
+        expect(actual.getSystem()).toBeDefined();
+        expect(actual.getReporter()).toStrictEqual(target.reporter);
+        expect(actual.getProfileConfig()).toStrictEqual(expected);
+    });
+
+    it.only("initializes the CompilationContext with tsconfig.json meeting to AddonContext API requirements", () => {
+        const expected = { field: "expected-value", output: "expected-output.json" };
+        const { fileSystem } = compileSystem({
+            files: {
+                "./expected/tsconfig.json": `
+                {
+                    "include": ["**/*.ts"],
+                }
+                `,
+            },
+        });
+        const target = { reporter: new ReporterMock(fileSystem) };
+
+        const actual = new CompilerTestClass(
+            {
+                ...target,
+                configFile: "./expected/websmith.config.json",
+                tsConfigFile: "./expected/tsconfig.json",
+                config: {
+                    profiles: {
+                        "*": {
+                            config: expected,
+                        },
+                    },
+                },
+            },
+            fileSystem
+        ).createCompilationContext("*");
+
+        expect(actual).toMatchObject({
+            ResultProcessors: [],
+            generators: [],
+            processors: [],
+            transformers: {},
+            rootFiles: [],
+            cliArgs: {
+                compileOnSave: false,
+                errors: [
+                    {
+                        category: 1,
+                        code: 18003,
+                        messageText:
+                            "No inputs were found in config file '/expected/tsconfig.json'. Specified 'include' paths were '[\"**/*.ts\"]' and 'exclude' paths were '[]'.",
+                    },
+                ],
+                fileNames: [],
+                options: {
+                    configFilePath: "/expected/tsconfig.json",
+                    module: ts.ModuleKind.ESNext,
+                    target: ts.ScriptTarget.ESNext,
+                },
+                projectReferences: undefined,
+                raw: {
+                    include: ["**/*.ts"],
+                },
+                typeAcquisition: {
+                    enable: false,
+                    exclude: [],
+                    include: [],
+                },
+                watchOptions: undefined,
+                wildcardDirectories: {
+                    "/expected": 1,
+                },
+            },
+            config: {
+                field: "expected-value",
+                output: "expected-output.json",
+            },
+            projectDir: "./expected",
+        });
+
+        expect(actual.getProgram()).toBeDefined();
+        expect(actual.getLanguageHost()).toBeDefined();
         expect(actual.getSystem()).toBeDefined();
         expect(actual.getReporter()).toStrictEqual(target.reporter);
         expect(actual.getProfileConfig()).toStrictEqual(expected);
@@ -883,9 +955,9 @@ describe("watch", () => {
         testObj.getContext("target1")!.addAssetDependency("/build/shared.scss", "/src/shared1.ts");
         testObj.getContext("target1")!.addAssetDependency("/build/shared.scss", "/src/shared2.ts");
 
-        expect(target).toHaveBeenNthCalledWith(1, "/src/shared.scss", "target1", true);
-        expect(target).toHaveBeenNthCalledWith(2, "/src/shared1.ts", "target1", true);
-        expect(target).toHaveBeenNthCalledWith(3, "/src/shared2.ts", "target1", true);
+        expect(target).toHaveBeenNthCalledWith(1, "/src/shared1.ts", "target1", true);
+        expect(target).toHaveBeenNthCalledWith(2, "/src/shared2.ts", "target1", true);
+        expect(target).toHaveBeenNthCalledWith(3, "/src/shared.scss", "target1", true);
 
         target.mockClear();
 

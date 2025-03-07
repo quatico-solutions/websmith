@@ -16,7 +16,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
 
     const cliArgs = parsedCommandLine(project, system);
     return resolveCompilerOptions(system, {
-        ...cliArgs,
+        cliArgs,
         reporter,
         configFile,
         debug,

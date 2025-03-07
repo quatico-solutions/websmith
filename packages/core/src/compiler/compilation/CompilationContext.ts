@@ -10,6 +10,7 @@ import path from "node:path";
 import ts from "typescript";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
+import { CompilationHost } from "./CompilationHost";
 import { createSharedHost } from "./shared-host";
 
 export type CompilationContextOptions = {
@@ -34,10 +35,10 @@ export class CompilationContext implements AddonContext {
     protected ResultProcessors: ResultProcessor[] = [];
     protected rootFiles: string[];
 
-    // @ts-expect-error TODO: Unused variable
-    private buildDir: string;
     private cache: FileCache;
     private languageHost: ts.LanguageServiceHost;
+    private languageService: ts.LanguageService;
+    private compilationHost: CompilationHost;
     private reporter: Reporter;
     private cliArgs: ts.ParsedCommandLine;
     private system: ts.System;
@@ -51,27 +52,27 @@ export class CompilationContext implements AddonContext {
     private assetCodeDependency: Map<string, string[]> = new Map();
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, config, program, tsConfig, projectDir, rootFiles, system, profile, cliArgs, watchCallback, registerDependencyCallback } =
-            options;
-        this.buildDir = buildDir;
+        const { config, program, tsConfig, projectDir, rootFiles, system, profile, cliArgs, watchCallback, registerDependencyCallback } = options;
         this.rootFiles = rootFiles;
         this.cliArgs = cliArgs;
         this.projectDir = projectDir;
         this.transformers = {};
         this.processors = [];
         this.generators = [];
-        this.languageHost = this.createLanguageServiceHost({
-            system,
-            tsConfig,
-            profile,
-        });
-        this.cache = new FileCache(system);
-        this.reporter = options.reporter;
         this.system = system;
         this.program = program;
         this.config = config;
         this.watchCallback = watchCallback ?? (() => undefined);
         this.registerDependencyCb = registerDependencyCallback;
+        this.languageHost = this.createLanguageServiceHost({
+            system,
+            tsConfig,
+            profile,
+        });
+        this.reporter = options.reporter;
+        this.compilationHost = new CompilationHost(this.languageHost);
+        this.languageService = ts.createLanguageService(this.compilationHost, ts.createDocumentRegistry());
+        this.cache = new FileCache(this.system);
     }
 
     public getSystem(): ts.System {
@@ -88,6 +89,10 @@ export class CompilationContext implements AddonContext {
 
     public getProgram(): ts.Program {
         return this.program;
+    }
+
+    public getLanguageService(): ts.LanguageService {
+        return this.languageService;
     }
 
     public getProfileConfig(): unknown {

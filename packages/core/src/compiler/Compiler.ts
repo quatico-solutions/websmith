@@ -13,7 +13,7 @@ import { createCompileHost, createSystem, recursiveFindByFilter } from "../envir
 import { type AddonRegistry } from "./addons";
 import { type FileCache } from "./cache";
 import { concat } from "./collections";
-import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
+import { CompilationContext } from "./compilation";
 import { resolveCompilerOptions, type CompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
@@ -30,9 +30,6 @@ type CompilationFragment = {
 
 export class Compiler {
     private version: number;
-    private program?: ts.Program;
-    private compilationHost!: CompilationHost;
-    private langService!: ts.LanguageService;
     private options!: ResolvedCompilerOptions;
     private contextMap!: Map<string, CompilationContext>;
     private configPath!: string;
@@ -55,10 +52,6 @@ export class Compiler {
 
     public getVersion(): number {
         return this.version;
-    }
-
-    public getLanguageService(): ts.LanguageService {
-        return this.langService;
     }
 
     public getContext(profile?: string): CompilationContext | undefined {
@@ -88,10 +81,6 @@ export class Compiler {
         return this.addons;
     }
 
-    public getProgram(): ts.Program | undefined {
-        return this.program;
-    }
-
     public getOptions(): CompilerOptions {
         return this.options;
     }
@@ -99,10 +88,6 @@ export class Compiler {
     public setOptions(options: Partial<CompilerOptions>): this {
         this.options = resolveCompilerOptions(this.system, options);
         this.reporter = this.options.reporter;
-        this.compilationHost = new CompilationHost(createSharedHost(this.system) as ts.LanguageServiceHost);
-        this.langService = ts.createLanguageService(this.compilationHost, ts.createDocumentRegistry());
-        this.program = this.langService.getProgram();
-
         if (!options.debug) {
             console.debug = () => undefined;
             console.log = () => undefined;
@@ -120,8 +105,11 @@ export class Compiler {
         selectedProfiles.forEach(curProfile => {
             const ctx = this.getContext(curProfile);
             if (ctx) {
-                const result = this.emitResult(curProfile, ctx);
-                results.push(this.options.config?.transpileOnly ? result : this.report(ctx.getProgram(), result));
+                // FIXME: This could be bug, we should always report diagnostics, even if transpileOnly is true.
+                // const result = this.emitResult(curProfile, ctx);
+                // results.push(this.options.config?.transpileOnly ? result : this.report(ctx.getProgram(), result));
+                // Enable for now: reporting of diagnostics, even if transpileOnly is true.
+                results.push(this.report(ctx.getProgram(), this.emitResult(curProfile, ctx)));
             }
         });
 
@@ -223,8 +211,7 @@ export class Compiler {
     }
 
     protected createProfileContextsIfNecessary(): this {
-        const { profile } = this.options;
-        const selectedProfiles = profile ? [...(this.options.config?.profiles?.[profile]?.depends ?? []), profile] : [];
+        const selectedProfiles = this.options.getSelectedProfiles();
 
         if (!selectedProfiles.length) {
             this.addons?.getAvailableAddons().forEach(addon => {
@@ -345,8 +332,8 @@ export class Compiler {
             }
         }
 
-        this.compilationHost.setLanguageHost(ctx.getLanguageHost());
-        return { ...this.langService.getEmitOutput(fileName), diagnostics: this.langService.getSyntacticDiagnostics(fileName) };
+        const langService = ctx.getLanguageService();
+        return { ...langService.getEmitOutput(fileName), diagnostics: langService.getSyntacticDiagnostics(fileName) };
     }
 
     private transpileSourceCode({ content, ctx, fileName }: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
