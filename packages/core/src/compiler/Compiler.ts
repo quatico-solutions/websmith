@@ -6,7 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { ErrorMessage, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
+import { ErrorMessage, type Reporter } from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
@@ -14,8 +14,7 @@ import { type AddonRegistry } from "./addons";
 import { type FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
-import { type CompilationConfig } from "./config";
-import { resolveCompilerOptions, type CompilerOptions } from "./options";
+import { resolveCompilerOptions, type CompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
     version: number;
@@ -34,7 +33,7 @@ export class Compiler {
     private program?: ts.Program;
     private compilationHost!: CompilationHost;
     private langService!: ts.LanguageService;
-    private options!: CompilerOptions;
+    private options!: ResolvedCompilerOptions;
     private contextMap!: Map<string, CompilationContext>;
     private configPath!: string;
     private reporter!: Reporter;
@@ -114,8 +113,7 @@ export class Compiler {
 
     public compile(): ts.EmitResult {
         const { profile } = this.options;
-        // TODO: Resolve compiler options
-        const selectedProfiles = profile ? [...(this.options.config?.profiles?.[profile]?.depends ?? []), profile] : [undefined];
+        const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
         this.createProfileContextsIfNecessary();
 
         const results: ts.EmitResult[] = [];
@@ -249,25 +247,23 @@ export class Compiler {
     }
 
     protected createCompilationContext(profile?: string): CompilationContext {
-        const { buildDir, config, configFile, tsConfig, cliArgs, watch } = this.options;
-        // TODO: Resolve compiler options
-        const selectedProfiles = profile ? [...(config?.profiles?.[profile]?.depends ?? []), profile] : [];
-        const { tsConfig: options = {}, config: profileConfig } = getProfile(profile, config);
-        const mergedTsConfig = { ...tsConfig, ...options };
+        const { buildDir, configFile, cliArgs, watch } = this.options;
+        const selectedProfiles = this.options.getSelectedProfiles(profile);
+        const profileOptions = this.options.getOptions(profile);
         return new CompilationContext({
             buildDir,
-            tsConfig: mergedTsConfig,
+            tsConfig: profileOptions.tsConfig ?? {},
             projectDir: path.dirname(configFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
             program: ts.createProgram({
                 rootNames: this.getRootFiles(),
-                options: mergedTsConfig,
-                host: createCompileHost(mergedTsConfig),
+                options: profileOptions.tsConfig ?? {},
+                host: createCompileHost(profileOptions.tsConfig ?? {}),
             }),
-            cliArgs: { ...cliArgs, options: { ...tsConfig, ...options } },
+            cliArgs: profileOptions.cliArgs,
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,
-            ...(!!profileConfig && { config: profileConfig }),
+            ...(profile && { config: this.options.config?.profiles?.[profile]?.config }),
             profile,
             ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, selectedProfiles) }),
             registerDependencyCallback: this.dependencyCallback,
@@ -409,14 +405,6 @@ export class Compiler {
         files.forEach(cur => this.system.writeFile(cur.name, cur.text));
     }
 }
-
-const getProfile = (name?: string, config?: CompilationConfig): CompilationProfile => {
-    if (config && name) {
-        const { profiles = {} } = config;
-        return profiles[name] ?? {};
-    }
-    return {};
-};
 
 const createDiagnostic = ({
     source,

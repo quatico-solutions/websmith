@@ -92,7 +92,7 @@ describe("createCompilationContext", () => {
         const actual = new CompilerTestClass(
             {
                 ...target,
-                configFile: "./expected/webshmith.config.json",
+                configFile: "./expected/websmith.config.json",
                 config: {
                     profiles: {
                         "*": {
@@ -167,7 +167,14 @@ describe("compile", () => {
 
         testObj.compile();
 
-        expect(testObj.getContext("*")?.getCliArgs().options).toEqual(expect.objectContaining({ outDir: "./lib/expected" }));
+        expect(testObj.getContext("*")?.getCliArgs().options).toEqual(
+            expect.objectContaining({
+                configFilePath: "/tsconfig.json",
+                outDir: "./lib/expected",
+                module: ts.ModuleKind.ESNext,
+                target: ts.ScriptTarget.ESNext,
+            })
+        );
     });
 
     it("yields output w/ with defaults", () => {
