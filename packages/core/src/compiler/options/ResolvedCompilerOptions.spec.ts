@@ -26,6 +26,8 @@ describe("ResolvedCompilerOptions", () => {
             options: {
                 configFilePath: "/tsconfig.json",
                 outDir: "./dist",
+                module: ts.ModuleKind.ESNext,
+                target: ts.ScriptTarget.ESNext,
             },
             compileOnSave: false,
             fileNames: [],
@@ -72,7 +74,7 @@ describe("ResolvedCompilerOptions", () => {
         const actual = new ResolvedCompilerOptions(target, { tsConfigFile: "./expected/tsconfig.json" }).getOptions();
 
         expect(actual).toMatchObject({
-            configFile: "/expected/tsconfig.json",
+            tsConfigFile: "/expected/tsconfig.json",
         });
     });
 
@@ -152,6 +154,8 @@ describe("ResolvedCompilerOptions", () => {
             },
             tsConfig: {
                 configFilePath: "/tsconfig.json",
+                target: ts.ScriptTarget.ESNext,
+                module: ts.ModuleKind.ESNext,
             },
 
             cliArgs: {
@@ -191,7 +195,7 @@ describe("ResolvedCompilerOptions#configFile", () => {
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
-        expect(testObj.configFile).toBe("/tsconfig.json");
+        expect(testObj.tsConfigFile).toBe("/tsconfig.json");
     });
 
     it("should yield passed value", () => {
@@ -386,7 +390,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         } as any);
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "/expected",
+            outDir: "./expected",
             configFilePath: "/tsconfig.json",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
@@ -412,7 +416,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "/expected",
+            outDir: "./expected",
             configFilePath: "/tsconfig.json",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
@@ -612,6 +616,8 @@ describe("ResolvedCompilerOptions#cliArgs", () => {
             fileNames: [],
             options: {
                 configFilePath: "/tsconfig.json",
+                target: ts.ScriptTarget.ESNext,
+                module: ts.ModuleKind.ESNext,
             },
             raw: {},
             typeAcquisition: {
@@ -928,6 +934,8 @@ describe("ResolvedCompilerOptions#getOptions", () => {
                 fileNames: [],
                 options: {
                     configFilePath: "/tsconfig.json",
+                    module: ts.ModuleKind.ESNext,
+                    target: ts.ScriptTarget.ESNext,
                 },
                 projectReferences: undefined,
                 raw: {},
@@ -942,7 +950,6 @@ describe("ResolvedCompilerOptions#getOptions", () => {
                 },
             },
             config: {},
-            configFile: "/tsconfig.json",
             debug: false,
             profile: undefined,
             reporter: expect.any(DefaultReporter),

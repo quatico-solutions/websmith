@@ -28,7 +28,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         loaderOptions?: WebpackLoaderOptions
     ) {
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
-        const resolvedOptions = deepmerge<CompilerOptions>(options, loaderOptions ?? {});
+        let resolvedOptions = deepmerge<CompilerOptions>(options, loaderOptions ?? {});
         const {
             additionalArguments,
             buildDir,
@@ -41,38 +41,49 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             tsConfigFile,
             watch = false,
         } = resolvedOptions;
+        this.watch = watch;
+        this.debug = debug;
+        this.additionalArguments = additionalArguments;
         this.buildDir = resolvePath(system, buildDir ?? DEFAULT_BUILD_DIR);
-        this.tsConfigFile = resolvePath(system, tsConfigFile ?? path.join(path.dirname(this.buildDir), "tsconfig.json"));
+
+        // resolve tsconfig
+        const tsConfigFilePath = tsConfigFile ?? cliArgs?.options?.configFilePath ?? cliArgs?.raw?.configFilePath;
+        this.tsConfigFile = resolvePath(system, tsConfigFilePath ?? path.join(path.dirname(this.buildDir), "tsconfig.json"));
+        resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
+        this.tsConfig = getTsConfig(resolvedOptions);
+        if (profile) {
+            this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, getTsConfig(resolvedOptions, profile));
+        }
+
+        // resolve websmith config
+        this.configFile = configFile;
+        this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(this.configFile, this.reporter, system), config ?? {});
+
+        // resolve cli args
         this.profile = resolveProfile(profile, this.config, this.reporter);
         const { outDir: profileOutdir } = getTsConfig(resolvedOptions, this.profile);
         const outDir = profileOutdir ?? tsConfig?.outDir;
         this.cliArgs = deepmerge<ts.ParsedCommandLine>(
             {
-                ...(outDir && { options: { outDir: resolvePath(system, outDir) } }),
+                options: {
+                    ...(outDir && { outDir: resolvePath(system, outDir) }),
+                    ...(this.tsConfig && { ...this.tsConfig }),
+                },
                 fileNames: this.system.readDirectory(this.buildDir),
                 errors: [],
             },
             deepmerge<ts.ParsedCommandLine>(parsedCommandLine(this.tsConfigFile, system), cliArgs ?? {})
         );
-        this.configFile = configFile ?? this.cliArgs?.options?.configFilePath ?? this.cliArgs?.raw?.configFilePath;
-        this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(this.configFile, this.reporter, system), config ?? {});
 
-        this.watch = watch;
-        this.debug = debug;
-        this.additionalArguments = additionalArguments;
+        if (this.tsConfig?.sourceMap === false) {
+            delete this.cliArgs?.options?.inlineSources;
+        }
 
+        // resolve project directory
         const projectDirectory =
             (configFile && path.dirname(configFile)) ?? (this.cliArgs.raw?.configFilePath && path.dirname(this.cliArgs.raw?.configFilePath));
         if (projectDirectory) {
             this.cliArgs.options = resolvePaths(this.cliArgs.options, projectDirectory, this.system);
-        }
-
-        this.tsConfig = deepmerge<ts.CompilerOptions>(getTsConfig(resolvedOptions), this.cliArgs?.options ?? {});
-        if (this.profile) {
-            this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, getTsConfig(resolvedOptions, this.profile));
-        }
-        if (this.tsConfig?.sourceMap === false) {
-            delete this.cliArgs?.options?.inlineSources;
         }
     }
 
@@ -108,7 +119,14 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             watch: this.watch,
         };
         if (profile) {
-            return { ...options, tsConfig: getTsConfig(options, this.profile) };
+            const profileTsConfig = getTsConfig(options, profile);
+            return {
+                ...options,
+                tsConfig: profileTsConfig,
+                config: getProfile(profile, this.config),
+                cliArgs: deepmerge<ts.ParsedCommandLine>(this.cliArgs, { options: profileTsConfig }),
+                profile,
+            };
         }
         return options;
     }
@@ -150,9 +168,10 @@ const getDependentProfiles = (existingProfiles: string[], profileName?: string, 
  * @returns Merged ts.CompilerOptions, where the profile options override the CLI options, which override the tsconfig.json options.
  */
 const getTsConfig = (options: CompilerOptions, profileName?: string): ts.CompilerOptions => {
-    const { tsConfig, config, profile, cliArgs } = options;
+    const { tsConfig, config, profile, cliArgs, tsConfigFile } = options;
     const profileConfig = getProfile(profileName ?? profile, config);
     return {
+        configFilePath: tsConfigFile,
         module: ts.ModuleKind.ESNext,
         target: ts.ScriptTarget.Latest,
         ...deepmerge<ts.CompilerOptions>(deepmerge<ts.CompilerOptions>(tsConfig ?? {}, cliArgs?.options ?? {}), profileConfig?.tsConfig ?? {}),

@@ -11,7 +11,6 @@ import { NoReporter } from "../NoReporter";
 import { type CompilerOptions } from "./CompilerOptions";
 import { resolveCompilerOptions } from "./resolveCompilerOptions";
 
-// TODO: Resolve compiler options
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const { configFile, debug = false, project = "./tsconfig.json", sourceMap = false, profile, transpileOnly, watch = false } = args;
 
