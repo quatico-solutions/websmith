@@ -36,19 +36,20 @@ describe("compilationEnv", () => {
     });
 
     it("should yield default compiler options with defaults", () => {
-        const testObj = compilationEnv("/target");
+        const testObj = compilationEnv("/target").addProjectFromSource({
+            "index.ts": `export class Target {}`,
+        });
 
         const actual = testObj.getCompilerOptions();
 
         expect(actual).toMatchObject({
-            buildDir: "/target/src",
+            buildDir: "/target",
             tsConfig: {
                 configFilePath: "/target/tsconfig.json",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
             },
             cliArgs: {
-                errors: [],
                 options: {},
             },
             watch: false,
@@ -61,7 +62,7 @@ describe("compilationEnv", () => {
         const actual = testObj.getCompilerOptions();
 
         expect(actual).toMatchObject({
-            buildDir: "/target/expected-src",
+            buildDir: "/target",
             tsConfig: {
                 configFilePath: "/target/tsconfig.json",
                 module: ts.ModuleKind.ESNext,
@@ -139,7 +140,8 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual).toHaveLength(0);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json"]);
+        expect(actual).toHaveLength(1);
     });
 
     it("should yield project with project source and file names", () => {
@@ -150,8 +152,12 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/src/index.ts", "/target/src/target.ts"]);
-        expect(actual.getContents()).toEqual([`export * from "./target";`, `export class Target {}`]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/target.ts"]);
+        expect(actual.getContents()).toEqual([
+            '{"compilerOptions":{"outDir":"/target/dist","target":"ESNext","module":"ESNext","esModuleInterop":true},"include":["/target/src/**/*.ts","/target/src/**/*.tsx"],"exclude":["node_modules","/target/dist"]}',
+            `export * from "./target";`,
+            `export class Target {}`,
+        ]);
     });
 
     it("should yield project with project source and relative paths", () => {
@@ -162,7 +168,7 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/src/expected/index.ts", "/target/src/expected/target.ts"]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/expected/index.ts", "/target/src/expected/target.ts"]);
     });
 
     it("should yield project with project source and relative src paths", () => {
@@ -173,7 +179,7 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/src/index.ts", "/target/src/target.ts"]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/target.ts"]);
     });
 
     it("should yield project with project source and absolute paths", () => {
@@ -184,7 +190,7 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/src/index.ts", "/target/src/target.ts"]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/target.ts"]);
     });
 
     it("should yield empty project with invalid absolute paths", () => {
@@ -196,7 +202,8 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual).toHaveLength(0);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json"]);
+        expect(actual).toHaveLength(1);
         expect(testObj.getSystem().readFile("/whatever-path/index.ts")).toBe(`export * from "./target";`);
         expect(testObj.getSystem().readFile("/whatever-path/target.ts")).toBe(`export class Target {}`);
     });
@@ -211,7 +218,7 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/src/index.ts", "/target/src/target.ts", "/target/tsconfig.json"]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/target.ts"]);
     });
 
     it("should yield projects with multiple projects in default projects path", () => {
@@ -225,8 +232,13 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/src/index.ts", "/target/src/one.ts", "/target/src/two.ts"]);
-        expect(actual.getContents()).toEqual([`export * from "./two";`, `export class One {}`, `export class Two {}`]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/one.ts", "/target/src/two.ts"]);
+        expect(actual.getContents()).toEqual([
+            '{"compilerOptions":{"outDir":"/target/dist","target":"ESNext","module":"ESNext","esModuleInterop":true},"include":["/target/src/**/*.ts","/target/src/**/*.tsx"],"exclude":["node_modules","/target/dist"]}',
+            `export * from "./two";`,
+            `export class One {}`,
+            `export class Two {}`,
+        ]);
     });
 
     it("should yield project with single project in custom projects path", () => {
@@ -239,7 +251,7 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles().getPaths();
 
-        expect(actual).toEqual(["/target/src/index.ts", "/target/src/target.ts", "/target/tsconfig.json"]);
+        expect(actual).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/target.ts"]);
     });
 
     it("should yield project and add files with file name", () => {
@@ -249,8 +261,12 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/src/index.ts", "/target/src/target.ts"]);
-        expect(actual.getContents()).toEqual([`export * from "./target";`, `export class Target {}`]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/target.ts"]);
+        expect(actual.getContents()).toEqual([
+            '{"compilerOptions":{"outDir":"/target/dist","target":"ESNext","module":"ESNext","esModuleInterop":true},"include":["/target/src/**/*.ts","/target/src/**/*.tsx"],"exclude":["node_modules","/target/dist"]}',
+            `export * from "./target";`,
+            `export class Target {}`,
+        ]);
     });
 
     it("should yield project and add files with relative paths", () => {
@@ -260,7 +276,7 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/src/expected-dir/index.ts", "/target/src/expected-dir/target.ts"]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/expected-dir/index.ts", "/target/src/expected-dir/target.ts"]);
     });
 
     it("should yield project and add files with relative src paths", () => {
@@ -270,7 +286,7 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/src/index.ts", "/target/src/target.ts"]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/target.ts"]);
     });
 
     it("should yield project and add files with absolute paths", () => {
@@ -280,7 +296,7 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/expected-project/index.ts", "/target/expected-project/target.ts"]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/expected-project/index.ts", "/target/expected-project/target.ts"]);
     });
 
     it("should yield empty project with invalid absolute paths added", () => {
@@ -290,8 +306,13 @@ describe("compilationEnv#projects", () => {
 
         const actual = testObj.getProjectFiles();
 
-        expect(actual).toHaveLength(0);
-        expect(testObj.getSystem().readDirectory("/")).toEqual(["/expected-project/index.ts", "/expected-project/target.ts"]);
+        expect(actual.getPaths()).toEqual(["/target/tsconfig.json"]);
+        expect(actual).toHaveLength(1);
+        expect(testObj.getSystem().readDirectory("/")).toEqual([
+            "/target/tsconfig.json",
+            "/expected-project/index.ts",
+            "/expected-project/target.ts",
+        ]);
     });
 });
 

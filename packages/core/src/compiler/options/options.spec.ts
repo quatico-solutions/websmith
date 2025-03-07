@@ -31,7 +31,7 @@ describe("createOptions", () => {
         const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
-            configFilePath: "/tsconfig.json",
+            configFilePath: "/expected/tsconfig.json",
             sourceMap: false,
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
@@ -103,7 +103,7 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target);
+        const actual = createOptions({ configFile: "./websmith.config.json", project: "./tsconfig.json" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
             buildDir: "/src",

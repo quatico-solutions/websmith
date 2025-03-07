@@ -1,5 +1,5 @@
 import { type CompilationProfile, type Reporter } from "@quatico/websmith-api";
-import deepmerge from "deepmerge";
+import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
 import ts from "typescript";
 import { parsedCommandLine, resolveCompilationConfig, resolvePaths, resolveProfile, type CompilationConfig } from "../config";
@@ -48,16 +48,16 @@ export class ResolvedCompilerOptions implements CompilerOptions {
 
         // resolve tsconfig
         const tsConfigFilePath = tsConfigFile ?? cliArgs?.options?.configFilePath ?? cliArgs?.raw?.configFilePath;
-        this.tsConfigFile = resolvePath(system, tsConfigFilePath ?? path.join(path.dirname(this.buildDir), "tsconfig.json"));
+        this.tsConfigFile = tsConfigFilePath ? resolvePath(system, tsConfigFilePath) : undefined;
         resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
         this.tsConfig = getTsConfig(resolvedOptions);
         if (profile) {
-            this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, getTsConfig(resolvedOptions, profile));
+            this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, getTsConfig(resolvedOptions, profile), { arrayMerge });
         }
 
         // resolve websmith config
         this.configFile = configFile;
-        this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(this.configFile, this.reporter, system), config ?? {});
+        this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(this.configFile, this.reporter, system), config ?? {}, { arrayMerge });
 
         // resolve cli args
         this.profile = resolveProfile(profile, this.config, this.reporter);
@@ -72,7 +72,10 @@ export class ResolvedCompilerOptions implements CompilerOptions {
                 fileNames: this.system.readDirectory(this.buildDir),
                 errors: [],
             },
-            deepmerge<ts.ParsedCommandLine>(parsedCommandLine(this.tsConfigFile, system), cliArgs ?? {})
+            this.tsConfigFile
+                ? deepmerge<ts.ParsedCommandLine>(parsedCommandLine(this.tsConfigFile, system), cliArgs ?? {}, { arrayMerge })
+                : (cliArgs ?? {}),
+            { arrayMerge }
         );
 
         if (this.tsConfig?.sourceMap === false) {
@@ -124,7 +127,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
                 ...options,
                 tsConfig: profileTsConfig,
                 config: getProfile(profile, this.config),
-                cliArgs: deepmerge<ts.ParsedCommandLine>(this.cliArgs, { options: profileTsConfig }),
+                cliArgs: deepmerge<ts.ParsedCommandLine>(this.cliArgs, { options: profileTsConfig }, { arrayMerge }),
                 profile,
             };
         }
@@ -174,7 +177,11 @@ const getTsConfig = (options: CompilerOptions, profileName?: string): ts.Compile
         configFilePath: tsConfigFile,
         module: ts.ModuleKind.ESNext,
         target: ts.ScriptTarget.Latest,
-        ...deepmerge<ts.CompilerOptions>(deepmerge<ts.CompilerOptions>(tsConfig ?? {}, cliArgs?.options ?? {}), profileConfig?.tsConfig ?? {}),
+        ...deepmerge<ts.CompilerOptions>(
+            deepmerge<ts.CompilerOptions>(tsConfig ?? {}, cliArgs?.options ?? {}, { arrayMerge }),
+            profileConfig?.tsConfig ?? {},
+            { arrayMerge }
+        ),
     };
 };
 
@@ -192,4 +199,18 @@ export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
         resolvedPath = path.join(fs.getCurrentDirectory(), ...pathSegments);
     }
     return resolvedPath;
+};
+
+const arrayMerge = (target: unknown[], source: unknown[], _options?: ArrayMergeOptions) => arrayUnique(source.concat(target));
+
+const arrayUnique = (array: unknown[]) => {
+    const result = array.concat();
+    for (let i = 0; i < result.length; ++i) {
+        for (let j = i + 1; j < result.length; ++j) {
+            if (result[i] === result[j]) {
+                result.splice(j--, 1);
+            }
+        }
+    }
+    return result;
 };

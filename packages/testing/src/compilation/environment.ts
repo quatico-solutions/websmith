@@ -41,12 +41,14 @@ export class CompilationEnv {
     private addonsConfig: AddonConfig;
 
     constructor(rootDir?: string, options?: Partial<CompilationOptions>, addonConfig?: Partial<AddonConfig>) {
-        const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames, addLibDefaults, fileWatcher } = options ?? {};
+        const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames, addLibDefaults, fileWatcher, reporter } = options ?? {};
+        const buildDir = options?.compilerOptions?.buildDir ?? DEFAULT_BUILD_DIR;
+        const outDir = options?.compilerOptions?.tsConfig?.outDir ?? DEFAULT_OUT_DIR;
         this.virtual = virtual;
         this.system = this.virtual ? createBrowserSystem(undefined, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher }) : ts.sys;
         this.rootDir = resolvePath(this.system, rootDir ?? DEFAULT_ROOT_DIR);
-        this.buildDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.buildDir ?? DEFAULT_BUILD_DIR);
-        const outDir = resolvePath(this.system, this.rootDir, options?.compilerOptions?.tsConfig?.outDir ?? DEFAULT_OUT_DIR);
+        this.buildDir = resolvePath(this.system, this.rootDir, buildDir);
+        const resolvedOutDir = resolvePath(this.system, this.rootDir, outDir);
 
         if (this.system.directoryExists(this.rootDir)) {
             this.deleteDirectory(this.rootDir);
@@ -61,34 +63,43 @@ export class CompilationEnv {
             this.system.createDirectory(this.buildDir);
         }
 
-        if (!this.system.directoryExists(outDir)) {
-            this.system.createDirectory(outDir);
+        if (!this.system.directoryExists(resolvedOutDir)) {
+            this.system.createDirectory(resolvedOutDir);
+        }
+
+        const configFilePath = `${this.rootDir}/tsconfig.json`;
+
+        if (!this.system.fileExists(configFilePath)) {
+            this.system.writeFile(
+                configFilePath,
+                JSON.stringify({
+                    compilerOptions: {
+                        outDir: resolvedOutDir,
+                        target: "ESNext",
+                        module: "ESNext",
+                        esModuleInterop: true,
+                    },
+                    include: [`${this.buildDir}/**/*.ts`, `${this.buildDir}/**/*.tsx`],
+                    exclude: [`node_modules`, resolvedOutDir],
+                })
+            );
         }
 
         // TODO: Resolve compiler options
         this.compilerOptions = resolveCompilerOptions(this.system, {
             ...compilerOptions,
-            buildDir: this.buildDir,
-            profile: compilerOptions?.profile ?? "*",
-            config: {
-                ...compilerOptions.config,
-                profiles: {
-                    "*": {
-                        tsConfig: { outDir },
-                    },
-                    ...(compilerOptions.config?.profiles ?? {}),
-                },
-            },
+            reporter,
+            buildDir: this.rootDir,
             tsConfig: {
-                configFilePath: `${this.rootDir}/tsconfig.json`,
+                configFilePath,
                 ...(compilerOptions?.tsConfig ?? {}),
-                outDir,
+                outDir: resolvedOutDir,
             },
         });
 
         this.addonsConfig = {
             addonsDir: path.join(this.rootDir, "./addons"),
-            reporter: new DefaultReporter(this.system),
+            reporter: reporter ?? new DefaultReporter(this.system),
             system: this.system,
             ...(addonConfig ?? {}),
         };
@@ -277,32 +288,30 @@ export class CompilationEnv {
         return file ? projectFile(this.system, this.buildDir, file) : undefined;
     }
 
-    public compile(): this & CompilationResult {
+    public compile(): CompilationResult {
         const result = new Compiler(this.compilerOptions, this.system, this.getOrCreateAddonRegistry()).compile();
-        // @ts-expect-error - method is not part of the original object
-        this.getDiagnostics = () => result.diagnostics;
-        // @ts-expect-error - method is not part of the original object
-        this.hasEmitSkipped = () => result.emitSkipped;
-        // @ts-expect-error - method is not part of the original object
-        this.getEmittedFiles = () => result.emittedFiles ?? [];
-        // @ts-expect-error - method is not part of the original object
-        this.hasFailures = () => result.diagnostics.some(it => it.category === ts.DiagnosticCategory.Error);
-        // @ts-expect-error - method is not part of the original object
-        this.getFailureReport = (filter?: string) => {
-            const report = ts.formatDiagnostics(result.diagnostics, {
-                getCanonicalFileName: (path: string) => path,
-                getCurrentDirectory: () => this.system.getCurrentDirectory(),
-                getNewLine: () => this.system.newLine,
-            });
-            return filter
-                ? report
-                      .split("\n")
-                      .filter(it => it.includes(filter))
-                      .join("\n")
-                : report;
+        return {
+            getCompiledDir: () => this.getCompiledDir(),
+            getCompiledFiles: () => this.getCompiledFiles(),
+            getCompiledFile: (filePath: string) => this.getCompiledFile(filePath),
+            getDiagnostics: () => result.diagnostics ?? [],
+            hasEmitSkipped: () => result.emitSkipped ?? false,
+            getEmittedFiles: () => result.emittedFiles ?? [],
+            hasFailures: () => result.diagnostics.some(it => it.category === ts.DiagnosticCategory.Error),
+            getFailureReport: (filter?: string) => {
+                const report = ts.formatDiagnostics(result?.diagnostics ?? [], {
+                    getCanonicalFileName: (path: string) => path,
+                    getCurrentDirectory: () => this.system.getCurrentDirectory(),
+                    getNewLine: () => this.system.newLine,
+                });
+                return filter
+                    ? report
+                          .split("\n")
+                          .filter(it => it.includes(filter))
+                          .join("\n")
+                    : report;
+            },
         };
-        // @ts-expect-error - New methods were added to the object
-        return this;
     }
 
     public getCompiledDir(): string {
@@ -359,7 +368,7 @@ export class CompilationEnv {
                         module: ts.ModuleKind.CommonJS,
                         target: ts.ScriptTarget.ES5,
                         esModuleInterop: true,
-                        moduleResolution: ts.ModuleResolutionKind.NodeNext,
+                        moduleResolution: ts.ModuleResolutionKind.Node10,
                     },
                     cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
@@ -417,11 +426,14 @@ export class CompilationEnv {
 }
 
 export type CompilationResult = {
+    getCompiledDir: () => string;
+    getCompiledFiles: () => ProjectFiles;
+    getCompiledFile: (filePath: string) => ProjectFile | undefined;
     hasEmitSkipped: () => boolean;
     getEmittedFiles: () => string[];
     hasFailures: () => boolean;
     getFailureReport: (filter?: string) => string;
-    getDiagnostics: () => ts.Diagnostic[];
+    getDiagnostics: () => readonly ts.Diagnostic[];
 };
 
 export type CompilationOptions = CompileSystemOptions & {

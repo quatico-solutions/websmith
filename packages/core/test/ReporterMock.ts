@@ -11,11 +11,11 @@ import { DefaultReporter } from "../src/compiler";
 export class ReporterMock extends DefaultReporter {
     public message?: string = "";
 
-    public reportWatchStatus(diagnostic: ts.Diagnostic) {
+    public reportWatchStatus(_diagnostic: ts.Diagnostic) {
         // do nothing
     }
 
-    protected logProblem(message: string, category: ts.DiagnosticCategory): void {
+    protected logProblem(message: string, _category: ts.DiagnosticCategory): void {
         this.message += `${message ?? ""}\n`;
     }
 }
