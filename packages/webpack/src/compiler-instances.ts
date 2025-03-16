@@ -22,7 +22,7 @@ export const getCompilerInstance = (
     let instance = getInstanceFromCache(compiler, options.instanceName);
     if (!instance) {
         // TODO: Resolve compiler options
-        instance = new TsCompiler(createOptions(options), dependencyCallback, options);
+        instance = new TsCompiler(createOptions(options, undefined, undefined), options, dependencyCallback);
         if (compiler) {
             addCompilationHooks(compiler, options, {
                 websmithCompiler: instance,

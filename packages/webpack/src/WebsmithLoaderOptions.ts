@@ -1,9 +1,0 @@
-import type { BaseOptions } from "@quatico/websmith-core";
-
-export type WebsmithLoaderOptions = BaseOptions & {
-    /**
-     * Whether to only transpile the code without emitting any output.
-     * Overrides the `transpileOnly` specified in the `config`.
-     */
-    transpileOnly?: boolean;
-};

@@ -97,7 +97,7 @@ export class CompilationEnv {
         });
 
         this.addonsConfig = {
-            addonsDir: path.join(this.rootDir, "./addons"),
+            addonsDir: resolvePath(this.system, this.rootDir, "./addons"),
             reporter: reporter ?? new DefaultReporter(this.system),
             system: this.system,
             ...(addonConfig ?? {}),
@@ -288,7 +288,7 @@ export class CompilationEnv {
     }
 
     public compile(): CompilationResult {
-        const result = new Compiler(this.compilerOptions, this.system, this.getOrCreateAddonRegistry()).compile();
+        const result = new Compiler(this.compilerOptions, undefined, this.system, this.getOrCreateAddonRegistry()).compile();
         return {
             getCompiledDir: () => this.getCompiledDir(),
             getCompiledFiles: () => this.getCompiledFiles(),
@@ -365,12 +365,13 @@ export class CompilationEnv {
                     }),
                     tsConfig: {
                         module: ts.ModuleKind.CommonJS,
-                        target: ts.ScriptTarget.ES5,
+                        target: ts.ScriptTarget.ES2020,
                         esModuleInterop: true,
                         moduleResolution: ts.ModuleResolutionKind.Node10,
                     },
                     cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
+                {},
                 this.system
             ).compile();
         });

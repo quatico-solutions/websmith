@@ -1,7 +1,7 @@
 import { type WebpackError } from "webpack";
-import { type WebsmithLoaderOptions } from "./WebsmithLoaderOptions";
+import { type WebpackLoaderOptions } from "@quatico/websmith-core";
 
-export type WebsmithLoaderConfig = WebsmithLoaderOptions & {
+export type WebsmithLoaderConfig = WebpackLoaderOptions & {
     warn?: (err: WebpackError) => void;
     error?: (err: WebpackError) => void;
     instanceName?: string;
