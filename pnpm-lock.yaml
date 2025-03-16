@@ -436,12 +436,6 @@ importers:
       '@nx/eslint-plugin':
         specifier: ^18.3.4
         version: 18.3.4(@babel/traverse@7.24.5)(@swc/core@1.5.0)(@types/node@20.12.8)(@typescript-eslint/parser@8.22.0(eslint@9.19.0)(typescript@5.7.3))(eslint-config-prettier@10.0.1(eslint@9.19.0))(eslint@9.19.0)(nx@18.3.4(@swc/core@1.5.0))(typescript@5.7.3)
-      '@types/comment-json':
-        specifier: ^2.4.5
-        version: 2.4.5
-      '@types/deepmerge':
-        specifier: ^2.2.3
-        version: 2.2.3
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -832,9 +826,6 @@ importers:
       '@quatico/websmith-testing':
         specifier: workspace:*
         version: link:../testing
-      '@types/comment-json':
-        specifier: ^2.4.5
-        version: 2.4.5
       '@types/jest':
         specifier: ^29.5.14
         version: 29.5.14
@@ -2104,16 +2095,8 @@ packages:
   '@types/babel__traverse@7.20.5':
     resolution: {integrity: sha512-WXCyOcRtH37HAUkpXhUduaxdm82b4GSlyTqajXviN4EfiuPgNYR109xMCKvpl6zPIpua0DGlMEDCq+g8EdoheQ==}
 
-  '@types/comment-json@2.4.5':
-    resolution: {integrity: sha512-Zc70LYxV8bri2tcIVVAYQ33dsGOvcZ3Hx7MdMKEJ+cWIt5BqpjAi5Kxcxe3rplp+g6qIenPoxx44k9nGqUstmg==}
-    deprecated: This is a stub types definition. comment-json provides its own type definitions, so you do not need this installed.
-
   '@types/cross-spawn@6.0.6':
     resolution: {integrity: sha512-fXRhhUkG4H3TQk5dBhQ7m/JDdSNHKwR2BBia62lhwEIq9xGiQKLxd6LymNhn47SjXhsUEPmxi+PKw2OkW4LLjA==}
-
-  '@types/deepmerge@2.2.3':
-    resolution: {integrity: sha512-ct4srnukH/SHdVPyJIFV73YJIt9PTYTaqQbjrCvRrbc9LxHdGcJb132SuWwnDTPyx5UjCVS/I00wj0i5IXfqSA==}
-    deprecated: This is a stub types definition. deepmerge provides its own type definitions, so you do not need this installed.
 
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
@@ -6513,17 +6496,9 @@ snapshots:
     dependencies:
       '@babel/types': 7.24.5
 
-  '@types/comment-json@2.4.5':
-    dependencies:
-      comment-json: 4.2.5
-
   '@types/cross-spawn@6.0.6':
     dependencies:
       '@types/node': 20.12.8
-
-  '@types/deepmerge@2.2.3':
-    dependencies:
-      deepmerge: 4.3.1
 
   '@types/eslint-scope@3.7.7':
     dependencies:

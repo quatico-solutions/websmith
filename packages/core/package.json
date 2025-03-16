@@ -37,8 +37,6 @@
         "@eslint/compat": "^1.2.6",
         "@eslint/js": "^9.19.0",
         "@nx/eslint-plugin": "^18.3.4",
-        "@types/comment-json": "^2.4.5",
-        "@types/deepmerge": "^2.2.3",
         "@types/jest": "^29.5.14",
         "@types/lodash": "^4.17.15",
         "@types/node": "20",
