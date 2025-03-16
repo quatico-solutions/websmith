@@ -35,6 +35,9 @@ describe("createOptions", () => {
             sourceMap: false,
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            jsx: ts.JsxEmit.Preserve,
+            esModuleInterop: true,
         });
     });
 

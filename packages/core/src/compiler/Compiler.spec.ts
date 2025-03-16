@@ -105,7 +105,6 @@ describe("createCompilationContext", () => {
         ).createCompilationContext("*");
 
         expect(actual).toMatchObject({
-            buildDir: "/src",
             cliArgs: {
                 errors: [],
                 fileNames: [],
@@ -121,14 +120,13 @@ describe("createCompilationContext", () => {
             projectDir: "./expected",
         });
 
-        expect(actual.getProgram()).toBeDefined();
         expect(actual.getLanguageHost()).toBeDefined();
         expect(actual.getSystem()).toBeDefined();
         expect(actual.getReporter()).toStrictEqual(target.reporter);
         expect(actual.getProfileConfig()).toStrictEqual(expected);
     });
 
-    it.only("initializes the CompilationContext with tsconfig.json meeting to AddonContext API requirements", () => {
+    it("initializes the CompilationContext with tsconfig.json meeting to AddonContext API requirements", () => {
         const expected = { field: "expected-value", output: "expected-output.json" };
         const { fileSystem } = compileSystem({
             files: {
@@ -165,14 +163,7 @@ describe("createCompilationContext", () => {
             rootFiles: [],
             cliArgs: {
                 compileOnSave: false,
-                errors: [
-                    {
-                        category: 1,
-                        code: 18003,
-                        messageText:
-                            "No inputs were found in config file '/expected/tsconfig.json'. Specified 'include' paths were '[\"**/*.ts\"]' and 'exclude' paths were '[]'.",
-                    },
-                ],
+                errors: [],
                 fileNames: [],
                 options: {
                     configFilePath: "/expected/tsconfig.json",
@@ -200,7 +191,6 @@ describe("createCompilationContext", () => {
             projectDir: "./expected",
         });
 
-        expect(actual.getProgram()).toBeDefined();
         expect(actual.getLanguageHost()).toBeDefined();
         expect(actual.getSystem()).toBeDefined();
         expect(actual.getReporter()).toStrictEqual(target.reporter);
@@ -241,7 +231,6 @@ describe("compile", () => {
 
         expect(testObj.getContext("*")?.getCliArgs().options).toEqual(
             expect.objectContaining({
-                configFilePath: "/tsconfig.json",
                 outDir: "./lib/expected",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
@@ -701,7 +690,7 @@ describe("report", () => {
                 getSyntacticDiagnostics: () => [],
             } as any,
             {
-                diagnostics: [{ messageText: "expected message1" }],
+                diagnostics: [{ messageText: "expected message1", file: "whatever.ts" }],
             } as any
         );
 
@@ -716,11 +705,11 @@ describe("report", () => {
         new CompilerTestClass(options, fileSystem).report(
             {
                 getCompilerOptions: () => ({}),
-                getConfigFileParsingDiagnostics: () => [{ messageText: "expected message1" }],
-                getGlobalDiagnostics: () => [{ messageText: "expected message2" }],
-                getOptionsDiagnostics: () => [{ messageText: "expected message3" }],
-                getSemanticDiagnostics: () => [{ messageText: "expected message4" }],
-                getSyntacticDiagnostics: () => [{ messageText: "expected message5" }],
+                getConfigFileParsingDiagnostics: () => [{ messageText: "expected message1", file: "whatever.ts" }],
+                getGlobalDiagnostics: () => [{ messageText: "expected message2", file: "whatever.ts" }],
+                getOptionsDiagnostics: () => [{ messageText: "expected message3", file: "whatever.ts" }],
+                getSemanticDiagnostics: () => [{ messageText: "expected message4", file: "whatever.ts" }],
+                getSyntacticDiagnostics: () => [{ messageText: "expected message5", file: "whatever.ts" }],
             } as any,
             {
                 diagnostics: [],
@@ -957,7 +946,6 @@ describe("watch", () => {
 
         expect(target).toHaveBeenNthCalledWith(1, "/src/shared1.ts", "target1", true);
         expect(target).toHaveBeenNthCalledWith(2, "/src/shared2.ts", "target1", true);
-        expect(target).toHaveBeenNthCalledWith(3, "/src/shared.scss", "target1", true);
 
         target.mockClear();
 

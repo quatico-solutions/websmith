@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import path from "node:path";
 import ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
 import { createBrowserSystem } from "./browser-system";
@@ -39,13 +38,11 @@ export const readFiles = (paths: string[], system: ts.System = ts.sys): { [name:
         return result;
     }, {});
 
-export const recursiveFindByFilter = (filePath: string, filter: (name: string) => boolean = () => true, system: ts.System = ts.sys): string[] =>
-    system
-        .readDirectory(filePath)
-        .flatMap(it =>
-            system.directoryExists(path.join(filePath, it)) ? recursiveFindByFilter(path.join(filePath, it), filter) : path.join(filePath, it)
-        )
-        .filter(filter);
+export const recursiveFindByFilter = (
+    filePath: string,
+    filter: (name: string) => boolean = ignoreConfigFiles,
+    system: ts.System = ts.sys
+): string[] => system.readDirectory(filePath).filter(filter);
 
 export const createVersionedFiles = (files: { [name: string]: string }, tsConfig: ts.CompilerOptions): { [name: string]: VersionedFile } => {
     return Object.keys(files).reduce((result: { [name: string]: VersionedFile }, name: string) => {
@@ -64,3 +61,5 @@ export const createVersionedFile = (name: string, content: string, tsConfig: ts.
         version: 0,
     };
 };
+
+export const ignoreConfigFiles = (name: string): boolean => ["tsconfig", "websmith.config"].find(it => name.includes(it)) === undefined;

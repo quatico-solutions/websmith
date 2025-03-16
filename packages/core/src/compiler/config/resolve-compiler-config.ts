@@ -14,7 +14,7 @@ import { type CompilationConfig } from "./CompilationConfig";
 const updatePaths = (config: CompilationConfig, basePath: string, system: ts.System): CompilationConfig => {
     return {
         ...config,
-        ...(config.addonsDir && { addonsDir: resolvePath(config.addonsDir, basePath, system) }),
+        ...(config.addonsDir && { addonsDir: resolvePath(system, basePath, config.addonsDir) }),
         ...(config.profiles && {
             profiles: Object.fromEntries(Object.entries(config.profiles).map(([name, profile]) => [name, updateProfile(profile, basePath, system)])),
         }),
@@ -31,17 +31,21 @@ const updateProfile = (profile: CompilationProfile, basePath: string, system: ts
 export const resolvePaths = (tsConfig: ts.CompilerOptions, basePath: string, system: ts.System): ts.CompilerOptions => {
     return {
         ...tsConfig,
-        ...(tsConfig.outDir && { outDir: resolvePath(tsConfig.outDir, basePath, system) }),
+        ...(tsConfig.outDir && { outDir: resolvePath(system, basePath, tsConfig.outDir) }),
         ...(tsConfig.paths && {
             paths: Object.fromEntries(
-                Object.entries(tsConfig.paths).map(value => [value[0], value[1].map(cur => resolvePath(cur, basePath, system))])
+                Object.entries(tsConfig.paths).map(value => [value[0], value[1].map(cur => resolvePath(system, basePath, cur))])
             ),
         }),
     };
 };
 
-const resolvePath = (filePath: string, basePath: string, system: ts.System): string => {
-    return path.isAbsolute(filePath) ? filePath : system.resolvePath(path.join(basePath, filePath));
+export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
+    let resolvedPath = path.join(...pathSegments);
+    if (!path.isAbsolute(resolvedPath)) {
+        resolvedPath = path.join(fs.getCurrentDirectory(), ...pathSegments);
+    }
+    return resolvedPath;
 };
 
 export const resolveCompilationConfig = (configFilePath: string | undefined, reporter: Reporter, system: ts.System): CompilationConfig => {

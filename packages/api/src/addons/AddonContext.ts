@@ -22,11 +22,6 @@ export interface AddonContext<O = unknown> {
     getSystem(): ts.System;
 
     /**
-     * Returns the program executing the current compilation process.
-     */
-    getProgram(): ts.Program;
-
-    /**
      * Returns the command line options used to run the compiler.
      */
     getCliArgs(): ts.ParsedCommandLine;

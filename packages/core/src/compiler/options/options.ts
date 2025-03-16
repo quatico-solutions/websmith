@@ -26,7 +26,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
             sourceMap,
         },
         config: {
-            transpileOnly,
+            ...(transpileOnly && { transpileOnly }),
         },
     });
 };

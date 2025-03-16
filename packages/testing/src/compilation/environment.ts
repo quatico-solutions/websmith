@@ -16,6 +16,7 @@ import {
     compilerAddons,
     createBrowserSystem,
     resolveCompilerOptions,
+    resolvePath,
 } from "@quatico/websmith-core";
 import fs from "node:fs";
 import { Module } from "node:module";
@@ -23,9 +24,8 @@ import path from "node:path";
 import requireFromString from "require-from-string";
 import ts from "typescript";
 import { copyDirectory } from "./copy-directory";
-import { resolvePath } from "./resolve-path";
 
-const DEFAULT_ROOT_DIR = "/";
+const DEFAULT_ROOT_DIR = "./";
 const DEFAULT_BUILD_DIR = "./src";
 const DEFAULT_OUT_DIR = "./dist";
 const DEFAULT_PROJECTS_SOURCE_DIR = "../test-projects";
@@ -68,7 +68,6 @@ export class CompilationEnv {
         }
 
         const configFilePath = `${this.rootDir}/tsconfig.json`;
-
         if (!this.system.fileExists(configFilePath)) {
             this.system.writeFile(
                 configFilePath,
@@ -80,7 +79,7 @@ export class CompilationEnv {
                         esModuleInterop: true,
                     },
                     include: [`${this.buildDir}/**/*.ts`, `${this.buildDir}/**/*.tsx`],
-                    exclude: [`node_modules`, resolvedOutDir],
+                    exclude: ["node_modules", resolvedOutDir],
                 })
             );
         }
