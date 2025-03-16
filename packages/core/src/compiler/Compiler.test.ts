@@ -18,6 +18,7 @@ describe("end-2-end compile w/ websmith", () => {
                 reporter: new ReporterMock(target),
                 tsConfig: { outDir: "./bin" },
             }),
+            undefined,
             target
         ).compile();
 

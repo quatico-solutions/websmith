@@ -14,7 +14,7 @@ import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const { config, configFile, debug = false, tsConfigFile = "./tsconfig.json", profile, tsConfig, transpileOnly } = args;
 
-    const cliArgs = parsedCommandLine(tsConfigFile, system);
+    const cliArgs = parsedCommandLine(tsConfigFile, args, system);
     cliArgs.options = { ...cliArgs.options, ...tsConfig };
     const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system) : undefined;
 

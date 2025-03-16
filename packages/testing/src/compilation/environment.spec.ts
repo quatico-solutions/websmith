@@ -26,9 +26,9 @@ describe("compilationEnv", () => {
 
         expect(testObj.isVirtual()).toBe(false);
         expect(testObj.getRootDir()).toBe(path.resolve("./expected"));
-        expect(testObj.getAddonsDir()).toBe(path.resolve(testObj.getRootDir(), "./addons"));
-        expect(testObj.getProjectDir()).toBe(path.resolve(testObj.getRootDir(), "./src"));
-        expect(testObj.getCompiledDir()).toBe(path.resolve(testObj.getRootDir(), "./dist"));
+        expect(testObj.getAddonsDir()).toBe(path.resolve("./expected/addons"));
+        expect(testObj.getProjectDir()).toBe(path.resolve("./expected/src"));
+        expect(testObj.getCompiledDir()).toBe(path.resolve("./expected/dist"));
         expect(testObj.getSystem()).toEqual(ts.sys);
         expect(testObj.getSystem().useCaseSensitiveFileNames).toBe(ts.sys.useCaseSensitiveFileNames);
 

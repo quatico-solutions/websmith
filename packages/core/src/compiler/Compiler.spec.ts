@@ -10,12 +10,12 @@ import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { compileSystem } from "../testing";
 import { type CompilationContext } from "./compilation";
-import { type CompileFragment, Compiler } from "./Compiler";
-import { type CompilerOptions } from "./options";
+import { Compiler, type CompileFragment } from "./Compiler";
+import { type CompilerOptions, type WebpackLoaderOptions } from "./options";
 
 class CompilerTestClass extends Compiler {
-    constructor(options: Partial<CompilerOptions>, system: ts.System) {
-        super(options, system);
+    constructor(options: Partial<CompilerOptions>, loaderOptions: Partial<WebpackLoaderOptions>, system: ts.System) {
+        super(options, loaderOptions, system);
     }
 
     public report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
@@ -39,7 +39,7 @@ describe("getSystem", () => {
     it("returns the system passed to options", () => {
         const { fileSystem: expected } = compileSystem();
 
-        const testObj = new CompilerTestClass({ reporter: new ReporterMock(expected) }, expected);
+        const testObj = new CompilerTestClass({ reporter: new ReporterMock(expected) }, {}, expected);
 
         expect(testObj.getSystem()).toBe(expected);
     });
@@ -53,7 +53,7 @@ describe("setOptions", () => {
             },
         } as unknown as CompilerOptions;
         const { fileSystem: target } = compileSystem();
-        const testObj = new CompilerTestClass({ reporter: new ReporterMock(target) }, target);
+        const testObj = new CompilerTestClass({ reporter: new ReporterMock(target) }, {}, target);
 
         testObj.setOptions(expected);
 
@@ -72,6 +72,7 @@ describe("setOptions", () => {
                 tsConfig: { outDir: "/expected" },
                 cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             },
+            {},
             target
         ).watch();
 
@@ -101,6 +102,7 @@ describe("createCompilationContext", () => {
                     },
                 },
             },
+            {},
             fileSystem
         ).createCompilationContext("*");
 
@@ -152,6 +154,7 @@ describe("createCompilationContext", () => {
                     },
                 },
             },
+            {},
             fileSystem
         ).createCompilationContext("*");
 
@@ -202,7 +205,7 @@ describe("compile", () => {
     it("calls report", () => {
         const { fileSystem } = compileSystem();
 
-        const testObj = new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, fileSystem);
+        const testObj = new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, {}, fileSystem);
         testObj.report = jest.fn();
 
         testObj.compile();
@@ -214,7 +217,7 @@ describe("compile", () => {
         const { fileSystem } = compileSystem();
         const target = { reporter: new ReporterMock(fileSystem), config: { profiles: { "*": {} } } };
 
-        const testObj = new CompilerTestClass(target, fileSystem).setOptions({
+        const testObj = new CompilerTestClass(target, {}, fileSystem).setOptions({
             ...target,
             config: {
                 ...target.config,
@@ -243,7 +246,7 @@ describe("compile", () => {
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         });
 
-        new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, fileSystem).compile();
+        new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, {}, fileSystem).compile();
 
         expect(fileSystem.readFile("/src/target.js")).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -273,6 +276,7 @@ describe("compile", () => {
                     errors: [],
                 },
             },
+            {},
             fileSystem
         ).compile();
 
@@ -294,7 +298,9 @@ describe("emitSourceFile", () => {
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -316,7 +322,9 @@ describe("emitSourceFile", () => {
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -339,7 +347,9 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -363,7 +373,9 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -387,7 +399,9 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -411,7 +425,9 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -437,7 +453,9 @@ describe("emitSourceFile", () => {
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -460,7 +478,9 @@ describe("emitSourceFile", () => {
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -487,7 +507,9 @@ describe("emitSourceFile", () => {
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -517,7 +539,9 @@ describe("emitSourceFile", () => {
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -544,7 +568,9 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -567,7 +593,9 @@ describe("emitSourceFile", () => {
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("target.js", actual)).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -594,7 +622,9 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("config.json", actual)).toMatchInlineSnapshot(`"{"name":"test"}"`);
     });
@@ -615,7 +645,9 @@ describe("emitSourceFile", () => {
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(getText("config.json", actual)).toMatchInlineSnapshot(`
             "{ "name": "test" }
@@ -642,7 +674,9 @@ describe("emitSourceFile", () => {
             config: { transpileOnly: true },
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(actual.files).toEqual([]);
     });
@@ -666,7 +700,9 @@ describe("emitSourceFile", () => {
             buildDir: "./types",
         };
 
-        const actual = new CompilerTestClass(target, fileSystem).createProfileContextsIfNecessary().emitSourceFile(entry!.fileName, undefined, false);
+        const actual = new CompilerTestClass(target, {}, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(entry!.fileName, undefined, false);
 
         expect(actual.files).toEqual([]);
     });
@@ -680,7 +716,7 @@ describe("report", () => {
         const options = { reporter: new ReporterMock(fileSystem) };
         const target = options.reporter;
 
-        new CompilerTestClass(options, fileSystem).report(
+        new CompilerTestClass(options, {}, fileSystem).report(
             {
                 getCompilerOptions: () => ({}),
                 getConfigFileParsingDiagnostics: () => [],
@@ -702,7 +738,7 @@ describe("report", () => {
         const options = { reporter: new ReporterMock(fileSystem) };
         const target = options.reporter;
 
-        new CompilerTestClass(options, fileSystem).report(
+        new CompilerTestClass(options, {}, fileSystem).report(
             {
                 getCompilerOptions: () => ({}),
                 getConfigFileParsingDiagnostics: () => [{ messageText: "expected message1", file: "whatever.ts" }],
@@ -725,7 +761,7 @@ describe("report", () => {
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).fileSystem;
 
-        const actual = new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, fileSystem).report(
+        const actual = new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, {}, fileSystem).report(
             {
                 getCompilerOptions: () => ({}),
                 getConfigFileParsingDiagnostics: () => [],
@@ -760,7 +796,7 @@ describe("watch", () => {
             profile: "target",
         };
 
-        const testObj = new Compiler(options, fileSystem);
+        const testObj = new Compiler(options, {}, fileSystem);
 
         testObj.watch();
 
@@ -791,7 +827,7 @@ describe("watch", () => {
             profile: "target",
         };
 
-        const testObj = new Compiler(options, fileSystem);
+        const testObj = new Compiler(options, {}, fileSystem);
 
         testObj.watch();
 
@@ -828,7 +864,7 @@ describe("watch", () => {
             profile: "target2",
         };
 
-        const testObj = new Compiler(options, fileSystem);
+        const testObj = new Compiler(options, {}, fileSystem);
 
         testObj.watch();
 
@@ -878,7 +914,7 @@ describe("watch", () => {
             profile: "target2",
         };
 
-        const testObj = new Compiler(options, fileSystem);
+        const testObj = new Compiler(options, {}, fileSystem);
 
         testObj.watch();
 
@@ -935,6 +971,7 @@ describe("watch", () => {
                 watch: true,
                 profile: "target1",
             },
+            {},
             fileSystem
         );
         testObj.emitSourceFile = target;
@@ -981,7 +1018,7 @@ describe("watch", () => {
             profile: "target1",
         };
 
-        const testObj = new CompilerTestClass(options, fileSystem);
+        const testObj = new CompilerTestClass(options, {}, fileSystem);
 
         const target = jest.fn();
         testObj.emitSourceFile = target;

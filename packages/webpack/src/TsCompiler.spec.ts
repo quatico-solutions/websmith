@@ -17,7 +17,7 @@ class TestCompiler extends TsCompiler {
     private sys: ts.System | undefined;
 
     constructor(options: CompilerOptions, loaderConfig?: WebsmithLoaderConfig) {
-        super(options, path => console.info(`dependency ${path} added`), loaderConfig);
+        super(options, loaderConfig, path => console.info(`dependency ${path} added`, undefined, undefined));
         this.sys = super.getSystem();
     }
 
@@ -72,7 +72,7 @@ describe("TsCompiler", () => {
         const actual = testObj.build("expected.ts");
 
         expect(actual).toEqual(expected);
-        expect(target).toHaveBeenCalledWith("expected.ts", undefined, false);
+        expect(target).toHaveBeenCalledWith(path.resolve("./__TEMP__/expected.ts"), undefined, false);
     });
 
     it("should fail with invalid source code", () => {
@@ -90,12 +90,12 @@ describe("TsCompiler", () => {
 
 describe("Transpilation", () => {
     it('should provide transpiled compilation fragment w/ build, default "*" target and source code', () => {
-        const expected = path.resolve("./__TEMP__/one.ts");
+        const expected = "./__TEMP__/one.ts";
         createSource(expected, "export const one = () => 1;");
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
-                buildDir: path.resolve("./__TEMP__"),
+                buildDir: "./__TEMP__",
                 tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext, noEmitOnError: true },
                 reporter,
                 cliArgs: { options: { declaration: true, target: ts.ScriptTarget.ESNext }, fileNames: [expected], errors: [] },
@@ -115,13 +115,13 @@ describe("Transpilation", () => {
     });
 
     it('should provide transpiled compilation fragment w/ build, "fragment" and "write" target and source code', () => {
-        const expected = path.resolve("./__TEMP__/one.ts");
+        const expected = "./__TEMP__/one.ts";
         createSource(expected, "export const one = () => 1;");
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
-                buildDir: path.resolve("./__TEMP__"),
-                configFile: path.resolve("./__TEMP__/websmith.config.json"),
+                buildDir: "./__TEMP__",
+                configFile: "./__TEMP__/websmith.config.json",
                 config: {
                     profiles: {
                         fragment: {
@@ -132,23 +132,28 @@ describe("Transpilation", () => {
                     },
                     addonsDir: "./addons",
                 },
-                tsConfig: { target: ts.ScriptTarget.ESNext, outDir: path.resolve("./__TEMP__/.build"), noEmitOnError: true },
+                tsConfig: { target: ts.ScriptTarget.ESNext, outDir: "./__TEMP__/.build", noEmitOnError: true },
                 reporter,
                 cliArgs: { options: { target: ts.ScriptTarget.ESNext }, fileNames: [expected], errors: [] },
-                debug: false,
-                watch: false,
             },
             {
-                configFile: path.resolve("__TEMP__", "websmith.config.json"),
+                configFile: "./__TEMP__/websmith.config.json",
                 profile: "fragment",
             }
         );
 
         const actual = testObj.build(expected);
 
-        expect(actual.files.map(f => f.name)).toEqual([path.resolve("./__TEMP__/.build/one.js"), path.resolve("./__TEMP__/.build/one.d.ts")]);
-        expect(actual.files.find(f => f.name.endsWith(".js"))?.text).toBe("export const one = () => 1;\n");
-        expect(actual.files.find(f => f.name.endsWith(".d.ts"))?.text).toBe("export declare const one: () => number;\n");
+        expect(actual.files.map(f => f.name)).toEqual([
+            path.resolve("./__TEMP__/__TEMP__/.build/__TEMP__/one.js.map"),
+            path.resolve("./__TEMP__/__TEMP__/.build/__TEMP__/one.js"),
+            path.resolve("./__TEMP__/__TEMP__/.build/__TEMP__/one.d.ts.map"),
+            path.resolve("./__TEMP__/__TEMP__/.build/__TEMP__/one.d.ts"),
+        ]);
+        expect(actual.files.find(f => f.name.endsWith(".js"))?.text).toBe("export const one = () => 1;\n//# sourceMappingURL=one.js.map");
+        expect(actual.files.find(f => f.name.endsWith(".d.ts"))?.text).toBe(
+            "export declare const one: () => number;\n//# sourceMappingURL=one.d.ts.map"
+        );
         expect(fs.readFileSync(path.resolve("./__TEMP__/.build/one.js"), "utf8")).toMatchInlineSnapshot(`
             ""use strict";
             Object.defineProperty(exports, "__esModule", { value: true });
@@ -157,7 +162,7 @@ describe("Transpilation", () => {
             exports.one = one;
             "
         `);
-        expect(fs.existsSync(path.resolve("./__TEMP__/.build/one.d.ts"))).toBe(false);
+        expect(fs.existsSync(path.resolve("./__TEMP__/.build/one.d.ts"))).toMatchInlineSnapshot();
 
         fs.rmSync(path.resolve("./__TEMP__"), { recursive: true, force: true });
     });

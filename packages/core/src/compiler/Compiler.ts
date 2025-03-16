@@ -14,7 +14,7 @@ import { type AddonRegistry } from "./addons";
 import { type FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
-import { resolveCompilerOptions, type CompilerOptions, type ResolvedCompilerOptions } from "./options";
+import { resolveCompilerOptions, type WebpackLoaderOptions, type CompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
     version: number;
@@ -40,12 +40,18 @@ export class Compiler {
     private addons?: AddonRegistry;
     private transpileOnly: boolean;
 
-    constructor(options: Partial<CompilerOptions>, system?: ts.System, addons?: AddonRegistry, dependencyCallback?: (filePath: string) => void) {
+    constructor(
+        options: Partial<CompilerOptions>,
+        loaderOptions?: Partial<WebpackLoaderOptions>,
+        system?: ts.System,
+        addons?: AddonRegistry,
+        dependencyCallback?: (filePath: string) => void
+    ) {
         this.version = 0;
         this.contextMap = new Map();
         this.addons = addons;
         this.system = system ?? createSystem();
-        this.setOptions(options);
+        this.setOptions(options, loaderOptions);
         this.dependencyCallback = dependencyCallback;
         this.transpileOnly = this.options.config?.transpileOnly ?? false;
     }
@@ -81,13 +87,13 @@ export class Compiler {
         return this.addons;
     }
 
-    public getOptions(): CompilerOptions {
+    public getOptions(): ResolvedCompilerOptions {
         return this.options;
     }
 
-    public setOptions(options: Partial<CompilerOptions>): this {
+    public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
         // TODO: This is a workaround, as the options are not correctly resolved otherwise.
-        this.options = resolveCompilerOptions(this.system, { tsConfigFile: "./tsconfig.json", ...options });
+        this.options = resolveCompilerOptions(this.system, { tsConfigFile: "./tsconfig.json", ...options }, undefined, loaderOptions);
         this.reporter = this.options.reporter;
         if (!options.debug) {
             console.debug = () => undefined;
@@ -294,7 +300,7 @@ export class Compiler {
         if (!name) {
             return profiles;
         }
-        const selectedProfiles = [...(this.options.config?.profiles?.[name]?.depends ?? []), name];
+        const selectedProfiles = this.options.getSelectedProfiles(name);
         return profiles.filter(cur => selectedProfiles.includes(cur));
     }
 
