@@ -20,7 +20,7 @@ const defaultWebsmithConfig = (tsConfig: ts.CompilerOptions = {}): WebsmithOptio
         debug: false,
         tsConfig,
         reporter,
-        cliArgs: parsedCommandLine(tsConfig?.project ?? path.join(__dirname, "..", "tsconfig.json"), system),
+        cliArgs: parsedCommandLine(tsConfig?.project ?? path.join(__dirname, "..", "tsconfig.json"), {}, system),
         watch: false,
     };
 };

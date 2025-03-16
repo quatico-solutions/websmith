@@ -36,11 +36,11 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         this.debug = debug;
         // TODO: Workaround for the missing 'additionalArguments' after deepmerge
         this.additionalArguments = options.additionalArguments;
-        this.buildDir = resolvePath(system, buildDir ?? DEFAULT_BUILD_DIR);
+        this.buildDir = resolvePath(this.system, buildDir ?? DEFAULT_BUILD_DIR);
 
         // resolve tsconfig
         const tsConfigFilePath = tsConfigFile ?? cliArgs?.options?.configFilePath ?? cliArgs?.raw?.configFilePath;
-        this.tsConfigFile = tsConfigFilePath ? resolvePath(system, tsConfigFilePath) : undefined;
+        this.tsConfigFile = tsConfigFilePath ? resolvePath(this.system, tsConfigFilePath) : undefined;
         resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
         this.tsConfig = getTsConfig(resolvedOptions);
         if (profile) {
@@ -49,26 +49,29 @@ export class ResolvedCompilerOptions implements CompilerOptions {
 
         // resolve websmith config
         this.configFile = configFile;
-        this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(this.configFile, this.reporter, system), config ?? {}, { arrayMerge });
+        this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(this.configFile, this.reporter, this.system), config ?? {}, {
+            arrayMerge,
+        });
 
         // resolve cli args
         this.profile = resolveProfile(profile, this.config, this.reporter);
         const { outDir: profileOutdir } = getTsConfig(resolvedOptions, this.profile);
         const outDir = profileOutdir ?? tsConfig?.outDir;
+        const premergedCliArgs = { ...(cliArgs ?? {}), options: { ...(cliArgs?.options ?? {}), outDir } };
         this.cliArgs = deepmerge<ts.ParsedCommandLine>(
             {
                 options: {
-                    ...(outDir && { outDir: resolvePath(system, outDir) }),
+                    ...(outDir && { outDir }),
                     ...(this.tsConfig && { ...this.tsConfig }),
                 },
                 fileNames: cliArgs?.fileNames?.length
                     ? cliArgs.fileNames
-                    : recursiveFindByFilter(this.system.resolvePath(path.join(path.dirname(this.buildDir))), undefined, this.system),
+                    : recursiveFindByFilter(this.system.resolvePath(this.buildDir), undefined, this.system),
                 errors: [],
             },
             this.tsConfigFile
-                ? deepmerge<ts.ParsedCommandLine>(parsedCommandLine(this.tsConfigFile, system), cliArgs ?? {}, { arrayMerge })
-                : (cliArgs ?? {}),
+                ? deepmerge<ts.ParsedCommandLine>(parsedCommandLine(this.tsConfigFile, {}, system), premergedCliArgs, { arrayMerge })
+                : premergedCliArgs,
             { arrayMerge }
         );
 

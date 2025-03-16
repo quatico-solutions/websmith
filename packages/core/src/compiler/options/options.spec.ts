@@ -36,6 +36,7 @@ describe("createOptions", () => {
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
+            project: "./expected/tsconfig.json",
             jsx: ts.JsxEmit.Preserve,
             esModuleInterop: true,
         });

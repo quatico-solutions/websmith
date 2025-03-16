@@ -12,9 +12,9 @@ import { type CompilerOptions } from "./CompilerOptions";
 import { resolveCompilerOptions } from "./resolveCompilerOptions";
 
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
-    const { configFile, debug = false, project = "./tsconfig.json", sourceMap = false, profile, transpileOnly, watch = false } = args;
+    const { configFile, debug = false, profile, project = "./tsconfig.json", sourceMap = false, transpileOnly, watch = false } = args;
 
-    const cliArgs = parsedCommandLine(project, system);
+    const cliArgs = parsedCommandLine(project, args, system);
     return resolveCompilerOptions(system, {
         cliArgs,
         reporter,
