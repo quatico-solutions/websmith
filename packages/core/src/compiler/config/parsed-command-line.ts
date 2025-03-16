@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { aggregateMessages } from "@quatico/websmith-api";
+import { aggregateMessages, type CompilerArguments } from "@quatico/websmith-api";
 import ts from "typescript";
 
 /**
@@ -13,7 +13,7 @@ import ts from "typescript";
  * @param tsConfigFile
  * @param system
  */
-export const parsedCommandLine = (tsConfigFile: string, system: ts.System): ts.ParsedCommandLine | never => {
+export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments, system: ts.System): ts.ParsedCommandLine | never => {
     let errorMessage: string | ts.DiagnosticMessageChain = "Could not find a valid 'tsconfig.json'.";
 
     const parseHost: ts.ParseConfigFileHost = {
@@ -23,9 +23,11 @@ export const parsedCommandLine = (tsConfigFile: string, system: ts.System): ts.P
         },
     };
 
+    const argsResult = ts.parseCommandLine(createArgs(args));
+
     const result = ts.getParsedCommandLineOfConfigFile(
         system.resolvePath(tsConfigFile),
-        {} /* no extra compiler options */,
+        argsResult.options,
         parseHost,
         undefined /* no extended config cache */,
         undefined /* no extra watch options */,
@@ -37,3 +39,11 @@ export const parsedCommandLine = (tsConfigFile: string, system: ts.System): ts.P
     }
     return result;
 };
+
+export const createArgs = (args: CompilerArguments): string[] =>
+    Object.entries(args).reduce((acc: string[], [key, value]) => {
+        if (typeof value === "boolean" && value === true) {
+            return acc.concat(`--${key}`);
+        }
+        return acc.concat(`--${key}`, String(value));
+    }, []);

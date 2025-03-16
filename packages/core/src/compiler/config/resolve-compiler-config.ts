@@ -43,6 +43,9 @@ export const resolvePaths = (tsConfig: ts.CompilerOptions, basePath: string, sys
 export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
     let resolvedPath = path.join(...pathSegments);
     if (!path.isAbsolute(resolvedPath)) {
+        if (!resolvedPath.startsWith(".")) {
+            resolvedPath = `./${resolvedPath}`;
+        }
         resolvedPath = path.join(fs.getCurrentDirectory(), ...pathSegments);
     }
     return resolvedPath;

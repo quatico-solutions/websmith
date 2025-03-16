@@ -10,8 +10,12 @@ import { Compiler, NoReporter } from "@quatico/websmith-core";
 import { compileSystem } from "@quatico/websmith-testing";
 import { Command } from "commander";
 import path from "node:path";
-import type ts from "typescript";
+import ts from "typescript";
 import { addCompileCommand, hasInvalidProfile } from "./command";
+
+beforeAll(() => {
+    jest.spyOn(console, "time").mockImplementation(() => {});
+});
 
 describe("addCompileCommand", () => {
     it("should yield additionalArguments w/ unknown argument", () => {
@@ -57,31 +61,38 @@ describe("addCompileCommand", () => {
         );
         expect(actual.buildDir).toEqual(expect.stringContaining(path.sep));
         expect(actual.watch).toBe(false);
-        expect(actual.config).toBeUndefined();
+        expect(actual.config).toEqual({});
         expect(actual.debug).toBe(false);
         const compilerOptions = {
+            all: false,
+            allowJs: false,
+            checkJs: false,
             configFilePath: "/tsconfig.json",
-            inlineSources: undefined,
-            outDir: "/",
+            declaration: false,
+            declarationMap: false,
+            emitDeclarationOnly: false,
+            esModuleInterop: false,
+            help: false,
+            init: false,
+            jsx: ts.JsxEmit.Preserve,
+            module: ts.ModuleKind.CommonJS,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            noEmit: false,
+            pretty: false,
+            project: "./tsconfig.json",
+            removeComments: false,
+            showConfig: false,
             sourceMap: false,
+            strict: false,
+            target: ts.ScriptTarget.ES5,
+            version: false,
+            watch: false,
         };
         expect(actual.tsConfig).toEqual(compilerOptions);
 
         expect({ wildcardDirectories: {}, ...actual.cliArgs }).toEqual({
             options: compilerOptions,
-            errors: [
-                {
-                    category: 1,
-                    code: 18003,
-                    file: undefined,
-                    length: undefined,
-                    messageText:
-                        "No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '[\"**/*\"]' and 'exclude' paths were '[]'.",
-                    reportsDeprecated: undefined,
-                    reportsUnnecessary: undefined,
-                    start: undefined,
-                },
-            ],
+            errors: [],
             typeAcquisition: {
                 include: [],
                 exclude: [],
@@ -161,12 +172,12 @@ describe("addCompileCommand", () => {
         const testSystem = compileSystem().fileSystem;
         const target = new Compiler({ reporter: new NoReporter() }, testSystem);
 
-        addCompileCommand(new Command(), target).parse(["--debug", "--allowJs", "--strict"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--debug", "--fooBar", "--zipZap"], { from: "user" });
 
         expect(target.getOptions().additionalArguments).toEqual(
             new Map([
-                ["allowJs", true],
-                ["strict", true],
+                ["fooBar", true],
+                ["zipZap", true],
             ])
         );
     });
@@ -186,7 +197,7 @@ describe("addCompileCommand", () => {
         const target = new Compiler({ reporter: new NoReporter() }, testSystem);
         target.watch = jest.fn();
 
-        addCompileCommand(new Command(), target).parse(["--watch"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--watch", "--allowJs"], { from: "user" });
 
         expect(target.watch).toHaveBeenCalled();
     });
@@ -199,7 +210,7 @@ describe("addCompileCommand#addons", () => {
         const { fileSystem: testSystem, addons } = compileSystem({ reporter: target });
         const compiler = new Compiler({ reporter: new NoReporter() }, testSystem, addons);
 
-        addCompileCommand(new Command(), compiler).parse(["--addonsDir", "./unknown"], { from: "user" });
+        addCompileCommand(new Command(), compiler).parse(["--addonsDir", "./unknown", "--allowJs"], { from: "user" });
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "./unknown" does not exist.'));
     });
@@ -209,19 +220,19 @@ describe("addCompileCommand#addons", () => {
         createAddon(testSystem, "addons/expected/addon");
         const target = new Compiler({ reporter: new NoReporter() }, testSystem, addons);
 
-        addCompileCommand(new Command(), target).parse(["--addons", "expected"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--addons", "expected", "--allowJs"], { from: "user" });
 
         expect(addons.getAvailableAddons("*").getNames()).toEqual(["expected"]);
     });
 
     it("should yield options addons w/ --addons cli argument and multiple existing addons", () => {
-        const { fileSystem: testSystem, addons } = compileSystem();
+        const { fileSystem: testSystem, addons } = compileSystem({});
         createAddon(testSystem, "addons/zip/addon");
         createAddon(testSystem, "addons/zap/addon");
         createAddon(testSystem, "addons/zup/addon");
         const target = new Compiler({ reporter: new NoReporter() }, testSystem, addons);
 
-        addCompileCommand(new Command(), target).parse(["--addons", "zip, zap, zup"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--addons", "zip, zap, zup", "--allowJs"], { from: "user" });
 
         expect(addons.getAvailableAddons("*").getNames()).toEqual(["zip", "zap", "zup"]);
     });
@@ -230,7 +241,7 @@ describe("addCompileCommand#addons", () => {
         const { fileSystem: testSystem, addons } = compileSystem();
         const target = new Compiler({ reporter: new NoReporter() }, testSystem, addons);
 
-        addCompileCommand(new Command(), target).parse(["--addons", "unknown"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--addons", "unknown", "--allowJs"], { from: "user" });
 
         expect(addons.getAvailableAddons("*")).toHaveLength(0);
     });
@@ -240,7 +251,7 @@ describe("addCompileCommand#addons", () => {
         createAddon(testSystem, "addons/expected/addon");
         const target = new Compiler({ reporter: new NoReporter() }, testSystem, addons);
 
-        addCompileCommand(new Command(), target).parse(["--addons", "unknown, expected"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--addons", "unknown, expected", "--allowJs"], { from: "user" });
 
         expect(addons.getAvailableAddons("*").getNames()).toEqual(["expected"]);
     });
@@ -251,7 +262,7 @@ describe("addCompileCommand#addons", () => {
         const { fileSystem: testSystem, addons } = compileSystem({ reporter: target });
         const compiler = new Compiler({ reporter: target }, testSystem, addons);
 
-        addCompileCommand(new Command(), compiler).parse(["--addons", "unknown"], { from: "user" });
+        addCompileCommand(new Command(), compiler).parse(["--addons", "unknown", "--allowJs"], { from: "user" });
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
     });
@@ -263,7 +274,7 @@ describe("addCompileCommand#addons", () => {
         createAddon(testSystem, "addons/existing/addon");
         const compiler = new Compiler({ reporter: target }, testSystem, addons);
 
-        addCompileCommand(new Command(), compiler).parse(["--addons", "existing, unknown"], { from: "user" });
+        addCompileCommand(new Command(), compiler).parse(["--addons", "existing, unknown", "--allowJs"], { from: "user" });
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
     });
@@ -275,7 +286,7 @@ describe("addCompileCommand#addons", () => {
         createAddon(testSystem, "expected/one/addon");
         const target = new Compiler({ reporter: new NoReporter() }, testSystem, addons);
 
-        addCompileCommand(new Command(), target).parse([], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--allowJs"], { from: "user" });
 
         expect(addons).toMatchObject({
             config: {
@@ -299,17 +310,17 @@ describe("addCompileCommand#profile", () => {
         const testSystem = compileSystem().fileSystem;
         const target = new Compiler({ tsConfigFile: "./tsconfig.json", reporter: new NoReporter() }, testSystem);
 
-        addCompileCommand(new Command(), target).parse(["--profile", "expected"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--profile", "expected", "--allowJs"], { from: "user" });
 
         expect(target.getOptions().profile).toEqual("expected");
     });
 
     it("should yield warning w/ --profile cli argument and unknown name", () => {
         const target = new NoReporter();
-        target.reportDiagnostic = jest.fn();
+        jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {});
         const { fileSystem: testSystem, addons } = compileSystem({ reporter: target });
 
-        addCompileCommand(new Command(), new Compiler({ reporter: new NoReporter() }, testSystem, addons)).parse(["--profile", "unknown"], {
+        addCompileCommand(new Command(), new Compiler({ reporter: target }, testSystem, addons)).parse(["--profile", "unknown"], {
             from: "user",
         });
 
