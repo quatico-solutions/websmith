@@ -16,7 +16,6 @@ import { createSharedHost } from "./shared-host";
 export type CompilationContextOptions = {
     buildDir: string;
     config?: unknown;
-    program: ts.Program;
     tsConfig: ts.CompilerOptions;
     projectDir: string;
     reporter: Reporter;
@@ -43,7 +42,6 @@ export class CompilationContext implements AddonContext {
     private cliArgs: ts.ParsedCommandLine;
     private system: ts.System;
     private projectDir: string;
-    private program: ts.Program;
     private config: unknown;
     private watchCallback: (filePath: string) => void;
     private registerDependencyCb?: (filePath: string) => void;
@@ -52,7 +50,7 @@ export class CompilationContext implements AddonContext {
     private assetCodeDependency: Map<string, string[]> = new Map();
 
     constructor(options: CompilationContextOptions) {
-        const { config, program, tsConfig, projectDir, rootFiles, system, profile, cliArgs, watchCallback, registerDependencyCallback } = options;
+        const { config, tsConfig, projectDir, rootFiles, system, profile, cliArgs, watchCallback, registerDependencyCallback } = options;
         this.rootFiles = rootFiles;
         this.cliArgs = cliArgs;
         this.projectDir = projectDir;
@@ -60,7 +58,6 @@ export class CompilationContext implements AddonContext {
         this.processors = [];
         this.generators = [];
         this.system = system;
-        this.program = program;
         this.config = config;
         this.watchCallback = watchCallback ?? (() => undefined);
         this.registerDependencyCb = registerDependencyCallback;
@@ -85,10 +82,6 @@ export class CompilationContext implements AddonContext {
 
     public getReporter(): Reporter {
         return this.reporter;
-    }
-
-    public getProgram(): ts.Program {
-        return this.program;
     }
 
     public getLanguageService(): ts.LanguageService {

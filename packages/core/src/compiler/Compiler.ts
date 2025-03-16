@@ -86,11 +86,16 @@ export class Compiler {
     }
 
     public setOptions(options: Partial<CompilerOptions>): this {
-        this.options = resolveCompilerOptions(this.system, options);
+        // TODO: This is a workaround, as the options are not correctly resolved otherwise.
+        this.options = resolveCompilerOptions(this.system, { tsConfigFile: "./tsconfig.json", ...options });
         this.reporter = this.options.reporter;
         if (!options.debug) {
             console.debug = () => undefined;
             console.log = () => undefined;
+        }
+
+        if (this.options.cliArgs?.errors?.length) {
+            this.options.cliArgs.errors = this.options.cliArgs.errors.filter(cur => this.options.cliArgs?.projectReferences?.length || cur.file); // Filter out global diagnostics
         }
 
         return this;
@@ -100,6 +105,8 @@ export class Compiler {
         const { profile } = this.options;
         const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
         this.createProfileContextsIfNecessary();
+        const profileOptions = this.options.getOptions(profile);
+        const program = this.createProgram(profileOptions.tsConfig);
 
         const results: ts.EmitResult[] = [];
         selectedProfiles.forEach(curProfile => {
@@ -109,7 +116,7 @@ export class Compiler {
                 // const result = this.emitResult(curProfile, ctx);
                 // results.push(this.options.config?.transpileOnly ? result : this.report(ctx.getProgram(), result));
                 // Enable for now: reporting of diagnostics, even if transpileOnly is true.
-                results.push(this.report(ctx.getProgram(), this.emitResult(curProfile, ctx)));
+                results.push(this.report(program, this.emitResult(curProfile, ctx)));
             }
         });
 
@@ -212,11 +219,11 @@ export class Compiler {
 
     protected createProfileContextsIfNecessary(): this {
         const selectedProfiles = this.options.getSelectedProfiles();
-
         if (!selectedProfiles.length) {
+            // Create default context in any case, context for default profile exists
+            const defaultCtx = this.getContext()!;
             this.addons?.getAvailableAddons().forEach(addon => {
-                // context for default profile exists
-                addon.activate(this.getContext()!);
+                addon.activate(defaultCtx);
             });
         } else {
             selectedProfiles.forEach((profile: string) => {
@@ -234,19 +241,14 @@ export class Compiler {
     }
 
     protected createCompilationContext(profile?: string): CompilationContext {
-        const { buildDir, configFile, cliArgs, watch } = this.options;
+        const { buildDir, configFile, tsConfigFile, cliArgs, watch } = this.options;
         const selectedProfiles = this.options.getSelectedProfiles(profile);
         const profileOptions = this.options.getOptions(profile);
         return new CompilationContext({
             buildDir,
             tsConfig: profileOptions.tsConfig ?? {},
-            projectDir: path.dirname(configFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
+            projectDir: path.dirname(configFile ?? tsConfigFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
-            program: ts.createProgram({
-                rootNames: this.getRootFiles(),
-                options: profileOptions.tsConfig ?? {},
-                host: createCompileHost(profileOptions.tsConfig ?? {}),
-            }),
             cliArgs: profileOptions.cliArgs,
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,
@@ -281,6 +283,7 @@ export class Compiler {
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         ts.getPreEmitDiagnostics(program)
             .concat(result.diagnostics)
+            .filter(cur => program?.getProjectReferences?.()?.length || cur.file) // Filter out global diagnostics
             .forEach(cur => this.reporter.reportDiagnostic(cur));
 
         return result;
@@ -293,6 +296,14 @@ export class Compiler {
         }
         const selectedProfiles = [...(this.options.config?.profiles?.[name]?.depends ?? []), name];
         return profiles.filter(cur => selectedProfiles.includes(cur));
+    }
+
+    private createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
+        return ts.createProgram({
+            rootNames: this.getRootFiles(),
+            options: tsConfig ?? {},
+            host: createCompileHost(tsConfig ?? {}),
+        });
     }
 
     private processOutput(
@@ -383,9 +394,7 @@ export class Compiler {
 
         return cliArgs?.fileNames
             ? cliArgs.fileNames
-            : recursiveFindByFilter(this.system.resolvePath(path.join(path.dirname(this.configPath), "./src")), (cur: string) =>
-                  ["ts", "tsx", "js", "jsx"].some(it => path.extname(cur).includes(it))
-              );
+            : recursiveFindByFilter(this.system.resolvePath(path.join(path.dirname(this.configPath), "./src")), undefined, this.system);
     }
 
     private writeOutputFiles(files: ts.OutputFile[]) {

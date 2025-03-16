@@ -27,6 +27,9 @@ describe("ResolvedCompilerOptions", () => {
                 outDir: "./dist",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Node10,
+                jsx: ts.JsxEmit.Preserve,
+                esModuleInterop: true,
             },
             fileNames: [],
             errors: [],
@@ -40,8 +43,27 @@ describe("ResolvedCompilerOptions", () => {
 
         expect(actual).toEqual(
             expect.objectContaining({
-                debug: false,
-                watch: false,
+                buildDir: "/src",
+                cliArgs: {
+                    errors: [],
+                    fileNames: [],
+                    options: {
+                        module: ts.ModuleKind.ESNext,
+                        target: ts.ScriptTarget.ESNext,
+                        moduleResolution: ts.ModuleResolutionKind.Node10,
+                        jsx: ts.JsxEmit.Preserve,
+                        esModuleInterop: true,
+                    },
+                },
+                config: {},
+                reporter: expect.any(DefaultReporter),
+                tsConfig: {
+                    module: ts.ModuleKind.ESNext,
+                    target: ts.ScriptTarget.ESNext,
+                    moduleResolution: ts.ModuleResolutionKind.Node10,
+                    jsx: ts.JsxEmit.Preserve,
+                    esModuleInterop: true,
+                },
             })
         );
     });
@@ -358,6 +380,9 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         expect(testObj.tsConfig).toEqual({
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            jsx: ts.JsxEmit.Preserve,
+            esModuleInterop: true,
         });
     });
 
@@ -374,6 +399,9 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
             outDir: "./expected",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            jsx: ts.JsxEmit.Preserve,
+            esModuleInterop: true,
         });
     });
 
@@ -399,6 +427,9 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
             outDir: "./expected",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            jsx: ts.JsxEmit.Preserve,
+            esModuleInterop: true,
         });
     });
 
@@ -435,6 +466,9 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
             outDir: "./expected",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            jsx: ts.JsxEmit.Preserve,
+            esModuleInterop: true,
         });
     });
 
@@ -471,6 +505,9 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
             outDir: "./expected",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            jsx: ts.JsxEmit.Preserve,
+            esModuleInterop: true,
         });
     });
 });
@@ -586,6 +623,9 @@ describe("ResolvedCompilerOptions#cliArgs", () => {
             options: {
                 target: ts.ScriptTarget.ESNext,
                 module: ts.ModuleKind.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Node10,
+                jsx: ts.JsxEmit.Preserve,
+                esModuleInterop: true,
             },
         });
     });
@@ -871,7 +911,6 @@ describe("ResolvedCompilerOptions#getOptions", () => {
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
         expect(testObj.getOptions()).toEqual({
-            additionalArguments: undefined,
             buildDir: "/src",
             cliArgs: {
                 errors: [],
@@ -879,17 +918,20 @@ describe("ResolvedCompilerOptions#getOptions", () => {
                 options: {
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
+                    moduleResolution: ts.ModuleResolutionKind.Node10,
+                    jsx: ts.JsxEmit.Preserve,
+                    esModuleInterop: true,
                 },
             },
             config: {},
-            debug: false,
-            profile: undefined,
             reporter: expect.any(DefaultReporter),
             tsConfig: {
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Node10,
+                jsx: ts.JsxEmit.Preserve,
+                esModuleInterop: true,
             },
-            watch: false,
         });
     });
 

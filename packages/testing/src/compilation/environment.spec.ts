@@ -90,7 +90,7 @@ describe("compilationEnv#addons", () => {
     });
 
     it("should yield no addons with invalid addon source", () => {
-        console.warn = jest.fn();
+        jest.spyOn(console, "warn").mockImplementation(() => {});
         const testObj = compilationEnv("/target").addAddon("invalid-addon", { "addon.ts": `export const NO_ACTIVATE_FUNCTION = true;` });
 
         const actual = testObj.getActiveAddons("*").getNames();
@@ -397,6 +397,8 @@ describe("compilationEnv#compiled", () => {
     });
 
     it("should yield compilation errors with illegal project files", () => {
+        jest.spyOn(console, "error").mockImplementation(() => {});
+
         const testObj = compilationEnv("/target", {
             compilerOptions: { tsConfig: { noEmitOnError: true } },
         })

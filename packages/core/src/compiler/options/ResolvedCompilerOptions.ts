@@ -1,9 +1,11 @@
 import { type CompilationProfile, type Reporter } from "@quatico/websmith-api";
 import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
-import ts from "typescript";
-import { parsedCommandLine, resolveCompilationConfig, resolvePaths, resolveProfile, type CompilationConfig } from "../config";
+import type ts from "typescript";
+import { recursiveFindByFilter } from "../../environment";
+import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, type CompilationConfig } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
+import { tsDefaults } from "../defaults";
 import { type CompilerOptions } from "./CompilerOptions";
 import { type WebpackLoaderOptions } from "./WebpackLoaderOptions";
 
@@ -29,21 +31,11 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     ) {
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
         let resolvedOptions = deepmerge<CompilerOptions>(options, loaderOptions ?? {});
-        const {
-            additionalArguments,
-            buildDir,
-            cliArgs,
-            config,
-            configFile,
-            debug = false,
-            profile,
-            tsConfig,
-            tsConfigFile,
-            watch = false,
-        } = resolvedOptions;
+        const { buildDir, cliArgs, config, configFile, debug = false, profile, tsConfig, tsConfigFile, watch = false } = resolvedOptions;
         this.watch = watch;
         this.debug = debug;
-        this.additionalArguments = additionalArguments;
+        // TODO: Workaround for the missing 'additionalArguments' after deepmerge
+        this.additionalArguments = options.additionalArguments;
         this.buildDir = resolvePath(system, buildDir ?? DEFAULT_BUILD_DIR);
 
         // resolve tsconfig
@@ -69,7 +61,9 @@ export class ResolvedCompilerOptions implements CompilerOptions {
                     ...(outDir && { outDir: resolvePath(system, outDir) }),
                     ...(this.tsConfig && { ...this.tsConfig }),
                 },
-                fileNames: this.system.readDirectory(this.buildDir),
+                fileNames: cliArgs?.fileNames?.length
+                    ? cliArgs.fileNames
+                    : recursiveFindByFilter(this.system.resolvePath(path.join(path.dirname(this.buildDir))), undefined, this.system),
                 errors: [],
             },
             this.tsConfigFile
@@ -109,17 +103,17 @@ export class ResolvedCompilerOptions implements CompilerOptions {
 
     public getOptions(profile?: string): CompilerOptions {
         const options = {
-            additionalArguments: this.additionalArguments,
+            ...(this.additionalArguments && { additionalArguments: this.additionalArguments }),
             buildDir: this.buildDir,
             cliArgs: this.cliArgs,
-            config: this.config,
-            configFile: this.configFile,
-            debug: this.debug,
-            profile: this.profile,
+            ...(this.config && { config: this.config }),
+            ...(this.configFile && { configFile: this.configFile }),
+            ...(this.debug && { debug: this.debug }),
+            ...(this.profile && { profile: this.profile }),
             reporter: this.reporter,
-            tsConfig: this.tsConfig,
-            tsConfigFile: this.tsConfigFile,
-            watch: this.watch,
+            ...(this.tsConfig && { tsConfig: this.tsConfig }),
+            ...(this.tsConfigFile && { tsConfigFile: this.tsConfigFile }),
+            ...(this.watch && { watch: this.watch }),
         };
         if (profile) {
             const profileTsConfig = getTsConfig(options, profile);
@@ -174,9 +168,8 @@ const getTsConfig = (options: CompilerOptions, profileName?: string): ts.Compile
     const { tsConfig, config, profile, cliArgs, tsConfigFile } = options;
     const profileConfig = getProfile(profileName ?? profile, config);
     return {
-        configFilePath: tsConfigFile,
-        module: ts.ModuleKind.ESNext,
-        target: ts.ScriptTarget.Latest,
+        ...(tsConfigFile && { configFilePath: tsConfigFile }),
+        ...tsDefaults,
         ...deepmerge<ts.CompilerOptions>(
             deepmerge<ts.CompilerOptions>(tsConfig ?? {}, cliArgs?.options ?? {}, { arrayMerge }),
             profileConfig?.tsConfig ?? {},
@@ -191,14 +184,6 @@ const getProfile = (name?: string, config?: CompilationConfig): CompilationProfi
         return profiles[name] ?? {};
     }
     return {};
-};
-
-export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
-    let resolvedPath = path.join(...pathSegments);
-    if (!path.isAbsolute(resolvedPath)) {
-        resolvedPath = path.join(fs.getCurrentDirectory(), ...pathSegments);
-    }
-    return resolvedPath;
 };
 
 const arrayMerge = (target: unknown[], source: unknown[], _options?: ArrayMergeOptions) => arrayUnique(source.concat(target));

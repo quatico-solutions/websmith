@@ -7,6 +7,7 @@
 import { WarnMessage, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
+import { resolvePath } from "../config";
 import { Compiler } from "../Compiler";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 export type AddonConfig = {
@@ -207,11 +208,3 @@ const getAddonName = (filePath: string) =>
         .slice(-1)[0];
 
 const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || filePath.endsWith(".tsx");
-
-const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
-    let resolvedPath = path.join(...pathSegments);
-    if (!path.isAbsolute(resolvedPath)) {
-        resolvedPath = path.join(fs.getCurrentDirectory(), ...pathSegments);
-    }
-    return resolvedPath;
-};
