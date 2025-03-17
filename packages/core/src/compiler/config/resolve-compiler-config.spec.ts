@@ -7,7 +7,7 @@
 import { ErrorMessage } from "@quatico/websmith-api";
 import { compileSystem } from "../../testing";
 import { NoReporter } from "../NoReporter";
-import { resolveCompilationConfig } from "./resolve-compiler-config";
+import { resolveCompilationConfig, resolvePath } from "./resolve-compiler-config";
 
 describe("resolveCompilationConfig", () => {
     it("should return undefined w/ empty path", () => {
@@ -124,5 +124,63 @@ describe("resolveCompilationConfig", () => {
         resolveCompilationConfig("./target-config.json", new NoReporter(), fileSystem);
 
         expect(targetFn).toHaveBeenCalledWith(new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'."));
+    });
+});
+
+describe("resolvePath", () => {
+    const { fileSystem } = compileSystem();
+
+    it("returns valid path relative to basePath", () => {
+        const actual = resolvePath(fileSystem, "./", "./src");
+
+        expect(actual).toEqual("/src");
+    });
+
+    it("returns valid path additional basePath and relative path", () => {
+        const actual = resolvePath(fileSystem, "./target", "./src");
+
+        expect(actual).toEqual("/target/src");
+    });
+
+    it("returns valid path with absolute path and absolute path", () => {
+        const actual = resolvePath(fileSystem, "/target", "/src");
+
+        expect(actual).toEqual("/src");
+    });
+
+    it("returns valid path with absolute path", () => {
+        const actual = resolvePath(fileSystem, "/target");
+
+        expect(actual).toEqual("/target");
+    });
+
+    it("returns valid path with absolute path and overlapping relative path", () => {
+        const actual = resolvePath(fileSystem, "/target/src", "./src");
+
+        expect(actual).toEqual("/target/src");
+    });
+
+    it("returns valid path with relative path and overlapping relative path", () => {
+        const actual = resolvePath(fileSystem, "./target/src", "./src");
+
+        expect(actual).toEqual("/target/src");
+    });
+
+    it("returns valid path with relative path and multiple overlapping segments", () => {
+        const actual = resolvePath(fileSystem, "./target/expected/src", "./expected/src");
+
+        expect(actual).toEqual("/target/expected/src");
+    });
+
+    it("returns valid path with relative path and multiple overlapping filepath segments", () => {
+        const actual = resolvePath(fileSystem, "./target/expected/src", "./expected/src/target/index.ts");
+
+        expect(actual).toEqual("/target/expected/src/target/index.ts");
+    });
+
+    it("returns valid path with relative path and overlapping file path", () => {
+        const actual = resolvePath(fileSystem, "./target/src", "./src/index.ts");
+
+        expect(actual).toEqual("/target/src/index.ts");
     });
 });

@@ -117,7 +117,7 @@ export class CompilationEnv {
     }
 
     public getOutDir(): string {
-        return resolveProjectPath(this.system, this.rootDir, this.compilerOptions.tsConfig?.outDir ?? DEFAULT_OUT_DIR);
+        return resolvePath(this.system, this.rootDir, this.compilerOptions.tsConfig?.outDir ?? DEFAULT_OUT_DIR);
     }
 
     // TODO: Resolve compiler options
@@ -187,7 +187,7 @@ export class CompilationEnv {
         if (isFiles(addonSource)) {
             this.addFiles(this.resolveAddonSourcePaths(addonName, addonSource, addonTargetPath));
         } else {
-            const addonsSourceDir = resolveProjectPath(this.system, this.rootDir, path.join(addonSource ?? DEFAULT_ADDONS_SOURCE_DIR, addonName));
+            const addonsSourceDir = resolvePath(this.system, this.rootDir, path.join(addonSource ?? DEFAULT_ADDONS_SOURCE_DIR, addonName));
             const sourceFs = this.system.directoryExists(addonsSourceDir) ? this.system : ts.sys;
             copyDirectory({ system: sourceFs, path: addonsSourceDir, kind: "addons" }, { system: this.system, path: addonTargetPath });
             addonImportDir = addonsSourceDir;
@@ -201,7 +201,7 @@ export class CompilationEnv {
 
     public addAddons(addonNames: string[], addonsSourceDir?: string): this {
         const addonsDir = this.addonsConfig.addonsDir;
-        const addonsSourceDirPath = resolveProjectPath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
+        const addonsSourceDirPath = resolvePath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
         const sourceFs = this.system.directoryExists(addonsSourceDirPath) ? this.system : ts.sys;
         addonNames.forEach(addon => {
             copyDirectory(
@@ -229,7 +229,7 @@ export class CompilationEnv {
     public addProjectFromSource(source: Record<string, string>): this {
         this.addFiles(
             Object.entries(source).reduce((acc: Record<string, string>, [filePath, content]) => {
-                acc[resolveProjectPath(this.system, this.buildDir, filePath)] = content;
+                acc[resolvePath(this.system, this.buildDir, filePath)] = content;
                 return acc;
             }, {})
         );
@@ -245,7 +245,7 @@ export class CompilationEnv {
      * @returns this instance
      */
     public addProjectFromDisk(projectName: string, projectsSourceDir?: string): this {
-        const projectsSourcePath = resolveProjectPath(this.system, this.rootDir, projectsSourceDir ?? DEFAULT_PROJECTS_SOURCE_DIR);
+        const projectsSourcePath = resolvePath(this.system, this.rootDir, projectsSourceDir ?? DEFAULT_PROJECTS_SOURCE_DIR);
         const sourceFs = this.system.directoryExists(projectsSourcePath) ? this.system : ts.sys;
         copyDirectory(
             { system: sourceFs, path: path.join(projectsSourcePath, projectName), kind: "project" },
@@ -258,12 +258,12 @@ export class CompilationEnv {
     }
 
     public addProjectFile(relativePath: string, content: string): this {
-        this.addFile(resolveProjectPath(this.system, this.rootDir, relativePath), content);
+        this.addFile(resolvePath(this.system, this.rootDir, relativePath), content);
         return this;
     }
 
     public getProjectFiles(relativePath?: string): ProjectFiles {
-        const targetDir = relativePath ? resolveProjectPath(this.system, this.rootDir, relativePath) : this.rootDir;
+        const targetDir = relativePath ? resolvePath(this.system, this.rootDir, relativePath) : this.rootDir;
         return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.system, this.rootDir, it)));
     }
 
@@ -273,12 +273,12 @@ export class CompilationEnv {
     }
 
     public addSourceFile(relativePath: string, content: string): this {
-        this.addFile(resolveProjectPath(this.system, this.buildDir, relativePath), content);
+        this.addFile(resolvePath(this.system, this.buildDir, relativePath), content);
         return this;
     }
 
     public getSourceFiles(relativePath?: string): ProjectFiles {
-        const targetDir = relativePath ? resolveProjectPath(this.system, this.buildDir, relativePath) : this.buildDir;
+        const targetDir = relativePath ? resolvePath(this.system, this.buildDir, relativePath) : this.buildDir;
         return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.system, this.buildDir, it)));
     }
 
@@ -314,11 +314,11 @@ export class CompilationEnv {
     }
 
     public getCompiledDir(): string {
-        return resolveProjectPath(this.system, this.rootDir, this.getCompilerOptions().tsConfig?.outDir ?? DEFAULT_OUT_DIR);
+        return resolvePath(this.system, this.rootDir, this.getCompilerOptions().tsConfig?.outDir ?? DEFAULT_OUT_DIR);
     }
 
     public getCompiledFiles(relativePath?: string): ProjectFiles {
-        const targetDir = relativePath ? resolveProjectPath(this.system, this.rootDir, relativePath) : this.getCompiledDir();
+        const targetDir = relativePath ? resolvePath(this.system, this.rootDir, relativePath) : this.getCompiledDir();
         return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.getSystem(), this.buildDir, it)));
     }
 
@@ -408,7 +408,7 @@ export class CompilationEnv {
 
     private addFile(filePath: string, content: string): void {
         if (!path.isAbsolute(filePath)) {
-            filePath = resolveProjectPath(this.system, this.buildDir, filePath);
+            filePath = resolvePath(this.system, this.buildDir, filePath);
         }
         this.system.writeFile(filePath, content);
         if (isSourceFile(filePath)) {
@@ -449,23 +449,9 @@ export interface ProjectFile {
 }
 
 export const projectFile = (system: ts.System, buildDir: string, relativePath: string): ProjectFile => ({
-    getPath: () => resolveProjectPath(system, buildDir, relativePath),
-    getContent: () => system.readFile(resolveProjectPath(system, buildDir, relativePath)),
+    getPath: () => resolvePath(system, buildDir, relativePath),
+    getContent: () => system.readFile(resolvePath(system, buildDir, relativePath)),
 });
-
-const resolveProjectPath = (system: ts.System, buildDir: string, relativePath: string) => {
-    let filePath;
-    if (path.isAbsolute(relativePath)) {
-        filePath = resolvePath(system, relativePath);
-    } else {
-        if (relativePath.includes(path.basename(buildDir))) {
-            filePath = resolvePath(system, path.dirname(buildDir), relativePath);
-        } else {
-            filePath = resolvePath(system, buildDir, relativePath);
-        }
-    }
-    return filePath;
-};
 
 const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || filePath.endsWith(".tsx");
 

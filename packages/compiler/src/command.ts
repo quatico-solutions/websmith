@@ -123,7 +123,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                         system,
                     });
                 }
-                compiler = new Compiler(options, system, addons);
+                compiler = new Compiler(options, {}, system, addons);
             } else {
                 compiler
                     .setOptions(options)

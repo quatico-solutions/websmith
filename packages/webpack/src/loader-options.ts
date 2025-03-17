@@ -5,11 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 
+import { type WebpackLoaderOptions } from "@quatico/websmith-core";
 import { createHash } from "node:crypto";
 import { type LoaderContext } from "webpack";
 import { createOptions } from "./options";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
-import { type WebsmithLoaderOptions } from "./WebsmithLoaderOptions";
 
 const loaderOptionsCache: {
     [name: string]: WeakMap<WebsmithLoaderConfig, WebsmithLoaderConfig>;
@@ -63,7 +63,7 @@ const resolveLoaderOptions = (
 export const getOptionsHash = (options: WebsmithLoaderConfig) => {
     const hash = createHash("sha256");
     Object.keys(options).forEach(key => {
-        const value = options[key as keyof WebsmithLoaderOptions];
+        const value = options[key as keyof WebpackLoaderOptions];
         if (value !== undefined) {
             // eslint-disable-next-line @typescript-eslint/no-base-to-string
             const valueString = isFunction(value) ? value.toString() : JSON.stringify(value);

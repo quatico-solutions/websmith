@@ -29,8 +29,8 @@ beforeEach(() => {
             debug: false,
             watch: false,
         },
-        () => undefined,
-        { configFile: "./websmith.config.json", instanceName: "target-instance" }
+        { configFile: "./websmith.config.json", instanceName: "target-instance" },
+        () => undefined
     );
 });
 

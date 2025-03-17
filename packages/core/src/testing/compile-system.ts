@@ -38,7 +38,7 @@ export const compileSystem = (options?: CompileSystemOptions): CompileSystem => 
         }
     }
 
-    const { addons = [], addonsDir = path.join(buildDir, "addons"), profiles } = addonConfig ?? {};
+    const { addons = [], addonsDir = resolvedAddonsDir, profiles } = addonConfig ?? {};
 
     const registry = new AddonRegistry({
         addons,

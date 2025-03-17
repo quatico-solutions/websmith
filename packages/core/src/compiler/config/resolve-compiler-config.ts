@@ -32,6 +32,7 @@ export const resolvePaths = (tsConfig: ts.CompilerOptions, basePath: string, sys
     return {
         ...tsConfig,
         ...(tsConfig.outDir && { outDir: resolvePath(system, basePath, tsConfig.outDir) }),
+        ...(tsConfig.rootDir && { rootDir: resolvePath(system, basePath, tsConfig.rootDir) }),
         ...(tsConfig.paths && {
             paths: Object.fromEntries(
                 Object.entries(tsConfig.paths).map(value => [value[0], value[1].map(cur => resolvePath(system, basePath, cur))])
@@ -40,15 +41,35 @@ export const resolvePaths = (tsConfig: ts.CompilerOptions, basePath: string, sys
     };
 };
 
-export const resolvePath = (fs: ts.System, ...pathSegments: string[]) => {
-    let resolvedPath = path.join(...pathSegments);
-    if (!path.isAbsolute(resolvedPath)) {
-        if (!resolvedPath.startsWith(".")) {
-            resolvedPath = `./${resolvedPath}`;
+export const resolvePath = (system: ts.System, basePath: string, relativePath = "") => {
+    let filePath = basePath;
+    if (relativePath) {
+        if (path.isAbsolute(relativePath)) {
+            filePath = relativePath;
+        } else {
+            filePath = removeOverlappingSegments(basePath, relativePath);
         }
-        resolvedPath = path.join(fs.getCurrentDirectory(), ...pathSegments);
     }
-    return resolvedPath;
+    return system.resolvePath(filePath);
+};
+
+const removeOverlappingSegments = (basePath: string, relativePath: string) => {
+    const basePathSegments = basePath.split(path.sep).filter(it => it !== ".");
+    const relativePathSegments = relativePath.split(path.sep).filter(it => it !== ".");
+    const startIndex = basePathSegments.findIndex(it => it === relativePathSegments[0]);
+    const overlappingSegments = [];
+    if (startIndex >= 0) {
+        for (let i = 0; i < basePathSegments.length - startIndex; i++) {
+            if (basePathSegments[i + startIndex] === relativePathSegments[i]) {
+                overlappingSegments.push(relativePathSegments[i]);
+            } else {
+                break;
+            }
+        }
+
+        return path.join(basePathSegments.slice(0, -overlappingSegments.length).join(path.sep), relativePathSegments.join(path.sep));
+    }
+    return path.join(basePathSegments.join(path.sep), relativePathSegments.join(path.sep));
 };
 
 export const resolveCompilationConfig = (configFilePath: string | undefined, reporter: Reporter, system: ts.System): CompilationConfig => {
