@@ -89,25 +89,23 @@ describe("TsCompiler", () => {
 });
 
 describe("Transpilation", () => {
-    it('should provide transpiled compilation fragment w/ build, default "*" target and source code', () => {
-        const expected = "./__TEMP__/one.ts";
+    it("should provide transpiled compilation fragment w/ build, default target and source code", () => {
+        const expected = "./__TEMP__/src/one.ts";
         createSource(expected, "export const one = () => 1;");
-        const reporter = new NoReporter();
-        testObj = new TestCompiler(
+
+        const actual = new TestCompiler(
             {
-                buildDir: "./__TEMP__",
+                buildDir: "./__TEMP__/src",
                 tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext, noEmitOnError: true },
-                reporter,
+                reporter: new NoReporter(),
                 cliArgs: { options: { declaration: true, target: ts.ScriptTarget.ESNext }, fileNames: [expected], errors: [] },
                 debug: true,
                 watch: false,
             },
-            { configFile: "./websmith.config.json" }
-        );
+            { configFile: "./__TEMP__/websmith.config.json" }
+        ).build(expected);
 
-        const actual = testObj.build(expected);
-
-        expect(actual.files.map(f => f.name)).toEqual([path.resolve("./__TEMP__/one.js"), path.resolve("./__TEMP__/one.d.ts")]);
+        expect(actual.files.map(f => f.name)).toEqual([path.resolve("./__TEMP__/src/one.js"), path.resolve("./__TEMP__/src/one.d.ts")]);
         expect(actual.files.find(f => f.name.endsWith(".js"))?.text).toBe("export const one = () => 1;\n");
         expect(actual.files.find(f => f.name.endsWith(".d.ts"))?.text).toBe("export declare const one: () => number;\n");
 
@@ -115,20 +113,19 @@ describe("Transpilation", () => {
     });
 
     it('should provide transpiled compilation fragment w/ build, "fragment" and "write" target and source code', () => {
-        const expected = "./__TEMP__/one.ts";
+        const expected = "./__TEMP__/src/one.ts";
         createSource(expected, "export const one = () => 1;");
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
-                buildDir: "./__TEMP__",
-                configFile: "./__TEMP__/websmith.config.json",
+                buildDir: "./__TEMP__/src",
                 config: {
                     profiles: {
                         fragment: {
                             depends: ["write"],
                             tsConfig: { declaration: true },
                         },
-                        write: { tsConfig: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5 } },
+                        write: { tsConfig: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5, declarationMap: true, sourceMap: true } },
                     },
                     addonsDir: "./addons",
                 },
@@ -145,24 +142,31 @@ describe("Transpilation", () => {
         const actual = testObj.build(expected);
 
         expect(actual.files.map(f => f.name)).toEqual([
-            path.resolve("./__TEMP__/__TEMP__/.build/__TEMP__/one.js.map"),
-            path.resolve("./__TEMP__/__TEMP__/.build/__TEMP__/one.js"),
-            path.resolve("./__TEMP__/__TEMP__/.build/__TEMP__/one.d.ts.map"),
-            path.resolve("./__TEMP__/__TEMP__/.build/__TEMP__/one.d.ts"),
+            path.resolve("./__TEMP__/.build/one.js.map"),
+            path.resolve("./__TEMP__/.build/one.js"),
+            path.resolve("./__TEMP__/.build/one.d.ts.map"),
+            path.resolve("./__TEMP__/.build/one.d.ts"),
         ]);
-        expect(actual.files.find(f => f.name.endsWith(".js"))?.text).toBe("export const one = () => 1;\n//# sourceMappingURL=one.js.map");
-        expect(actual.files.find(f => f.name.endsWith(".d.ts"))?.text).toBe(
-            "export declare const one: () => number;\n//# sourceMappingURL=one.d.ts.map"
+        expect(actual.files.find(f => f.name.endsWith("one.js.map"))?.text).toMatchInlineSnapshot(
+            `"{"version":3,"file":"one.js","sourceRoot":"","sources":["../src/one.ts"],"names":[],"mappings":";;;AAAO,IAAM,GAAG,GAAG,cAAM,OAAA,CAAC,EAAD,CAAC,CAAC;AAAd,QAAA,GAAG,OAAW"}"`
         );
-        expect(fs.readFileSync(path.resolve("./__TEMP__/.build/one.js"), "utf8")).toMatchInlineSnapshot(`
+        expect(actual.files.find(f => f.name.endsWith("one.js"))?.text).toMatchInlineSnapshot(`
             ""use strict";
             Object.defineProperty(exports, "__esModule", { value: true });
             exports.one = void 0;
             var one = function () { return 1; };
             exports.one = one;
-            "
+            //# sourceMappingURL=one.js.map"
         `);
-        expect(fs.existsSync(path.resolve("./__TEMP__/.build/one.d.ts"))).toMatchInlineSnapshot();
+        expect(actual.files.find(f => f.name.endsWith("one.d.ts.map"))?.text).toMatchInlineSnapshot(
+            `"{"version":3,"file":"one.d.ts","sourceRoot":"","sources":["../src/one.ts"],"names":[],"mappings":"AAAA,eAAO,MAAM,GAAG,cAAU,CAAC"}"`
+        );
+        expect(actual.files.find(f => f.name.endsWith("one.d.ts"))?.text).toMatchInlineSnapshot(`
+            "export declare const one: () => number;
+            //# sourceMappingURL=one.d.ts.map"
+        `);
+        expect(fs.existsSync(path.resolve("./__TEMP__/.build/one.js"))).toMatchInlineSnapshot(`true`);
+        expect(fs.existsSync(path.resolve("./__TEMP__/.build/one.d.ts"))).toMatchInlineSnapshot(`true`);
 
         fs.rmSync(path.resolve("./__TEMP__"), { recursive: true, force: true });
     });

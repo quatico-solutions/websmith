@@ -1,8 +1,8 @@
 import ts from "typescript";
 import { ReporterMock } from "../../../test";
 import { compileSystem } from "../../testing";
-import { ResolvedCompilerOptions } from "./ResolvedCompilerOptions";
 import { DefaultReporter } from "../DefaultReporter";
+import { ResolvedCompilerOptions } from "./ResolvedCompilerOptions";
 
 describe("ResolvedCompilerOptions", () => {
     it("should yield passed values", () => {
@@ -24,7 +24,7 @@ describe("ResolvedCompilerOptions", () => {
         expect(testObj.reporter).toBeInstanceOf(ReporterMock);
         expect(testObj.cliArgs).toEqual({
             options: {
-                outDir: "./dist",
+                outDir: "/dist",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
                 moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -209,7 +209,7 @@ describe("ResolvedCompilerOptions#configFile", () => {
             configFile: "tsconfig.json",
         } as any);
 
-        expect(testObj.configFile).toBe("tsconfig.json");
+        expect(testObj.configFile).toBe("/tsconfig.json");
     });
 
     it("should yield overridden value", () => {
@@ -226,7 +226,7 @@ describe("ResolvedCompilerOptions#configFile", () => {
             } as any
         );
 
-        expect(testObj.configFile).toBe("tsconfig.json");
+        expect(testObj.configFile).toBe("/tsconfig.json");
     });
 });
 
@@ -275,7 +275,7 @@ describe("ResolvedCompilerOptions#config", () => {
         );
 
         expect(testObj.config).toEqual({
-            addons: ["addon1", "addon2", "addon3", "addon4"],
+            addons: ["addon3", "addon4"],
             addonsDir: "./expected",
             transpileOnly: true,
         });
@@ -644,8 +644,8 @@ describe("ResolvedCompilerOptions#cliArgs", () => {
 
         expect(testObj.cliArgs).toMatchObject({
             options: {
-                outDir: "./expected",
-                rootDir: "./root",
+                outDir: "/expected",
+                rootDir: "/root",
             },
         });
     });
@@ -674,8 +674,8 @@ describe("ResolvedCompilerOptions#cliArgs", () => {
 
         expect(testObj.cliArgs).toMatchObject({
             options: {
-                outDir: "./expected",
-                rootDir: "./root",
+                outDir: "/expected",
+                rootDir: "/root",
             },
         });
     });
@@ -898,6 +898,7 @@ describe("ResolvedCompilerOptions#getAddons", () => {
                     },
                 },
             },
+            profile: "expected",
         } as any);
 
         expect(testObj.getAddons("expected")).toEqual(["addon1", "addon2", "addon3", "addon4", "addon5", "addon6"]);
@@ -924,6 +925,7 @@ describe("ResolvedCompilerOptions#getOptions", () => {
                 },
             },
             config: {},
+            configFile: "/",
             reporter: expect.any(DefaultReporter),
             tsConfig: {
                 module: ts.ModuleKind.ESNext,
@@ -950,8 +952,8 @@ describe("ResolvedCompilerOptions#getOptions", () => {
         expect(testObj.getOptions()).toMatchObject({
             cliArgs: {
                 options: {
-                    outDir: "./expected",
-                    rootDir: "./root",
+                    outDir: "/expected",
+                    rootDir: "/root",
                 },
             },
         });
@@ -982,8 +984,8 @@ describe("ResolvedCompilerOptions#getOptions", () => {
         expect(testObj.getOptions()).toMatchObject({
             cliArgs: {
                 options: {
-                    outDir: "./expected",
-                    rootDir: "./root",
+                    outDir: "/expected",
+                    rootDir: "/root",
                 },
             },
         });

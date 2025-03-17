@@ -24,8 +24,8 @@ beforeEach(() => {
             reporter,
             cliArgs: { options: { outDir: ".build" }, fileNames: [], errors: [] },
         },
-        () => undefined,
-        { configFile: "./websmith.config.json", instanceName: "target-instance" }
+        { configFile: "./websmith.config.json", instanceName: "target-instance" },
+        () => undefined
     );
 });
 

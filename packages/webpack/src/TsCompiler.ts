@@ -6,15 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import {
-    AddonRegistry,
-    type CompilationConfig,
-    type CompileFragment,
-    Compiler,
-    type CompilerOptions,
-    resolveCompilationConfig,
-    type WebpackLoaderOptions,
-} from "@quatico/websmith-core";
+import { type CompileFragment, Compiler, type CompilerOptions, resolvePath, type WebpackLoaderOptions } from "@quatico/websmith-core";
 import ts from "typescript";
 import { WebpackError } from "webpack";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
@@ -27,34 +19,10 @@ export class TsCompiler extends Compiler {
     constructor(options: CompilerOptions, loaderOptions: WebsmithLoaderConfig = {}, dependencyCallback: (filePath: string) => void) {
         // TODO: Resolve compiler options
         const system = ts.sys;
-        const compilationConfig = loadCompilationConfig(options, loaderOptions, system);
-        const { addons, profiles: profileMap, addonsDir } = compilationConfig;
-        const profileName = loaderOptions.profile ?? options.profile;
-        const selectedProfiles = profileName ? [...(options.config?.profiles?.[profileName]?.depends ?? []), profileName] : [];
-        const addonsMerged = addons?.length
-            ? addons
-            : Object.entries(profileMap ?? {})
-                  .filter(([name]) => selectedProfiles.includes(name))
-                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                  .map(([_, value]) => value.addons ?? [])
-                  .flat();
-
-        super(
-            { ...options, config: { ...options.config, ...compilationConfig } },
-            loaderOptions,
-            system,
-            addonsMerged.length
-                ? new AddonRegistry({
-                      addons: addonsMerged,
-                      addonsDir: addonsDir ?? options.config?.addonsDir ?? "./addons",
-                      reporter: options.reporter,
-                      system,
-                  })
-                : undefined,
-            dependencyCallback
-        );
+        super(options, loaderOptions, system, undefined, dependencyCallback);
         this.warn = loaderOptions.warn ?? ((err: WebpackError) => console.warn(err.message));
         this.error = loaderOptions.error ?? ((err: WebpackError) => console.error(err.message));
+        const profileName = this.getOptions().profile;
         this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
         super.createProfileContextsIfNecessary();
     }
@@ -64,9 +32,7 @@ export class TsCompiler extends Compiler {
     }
 
     public updateLoaderConfig(loaderOptions: WebpackLoaderOptions): void {
-        const options = super.getOptions();
-        const compilationConfig = loadCompilationConfig(options, loaderOptions, this.getSystem());
-        super.setOptions({ ...options, config: { ...options.config, ...compilationConfig } }, loaderOptions);
+        super.setOptions(super.getOptions(), loaderOptions);
     }
 
     public build(resourcePath: string): CompileFragment {
@@ -74,7 +40,9 @@ export class TsCompiler extends Compiler {
             throw new Error("TsCompiler.build() not called with ts.sys as the active ts.System");
         }
 
-        const filePath = this.getSystem().resolvePath(resourcePath);
+        const { buildDir } = this.getOptions();
+
+        const filePath = resolvePath(this.getSystem(), buildDir, resourcePath);
         if (this.profile) {
             const selectedProfiles = this.getOptions().getSelectedProfiles(this.profile);
             selectedProfiles
@@ -120,19 +88,3 @@ export class TsCompiler extends Compiler {
         return profile;
     }
 }
-
-const loadCompilationConfig = (options: CompilerOptions, loaderOptions: WebpackLoaderOptions, system: ts.System): CompilationConfig => {
-    // Prefer config values from webpack loaderConfig, but fallback to values from websmith.config.json
-    const { configFile = loaderOptions.configFile ?? options.configFile, transpileOnly } = loaderOptions;
-    const addons = loaderOptions.config?.addons ?? options.config?.addons ?? [];
-    const addonsDir = loaderOptions.config?.addonsDir ?? options.config?.addonsDir;
-    let results: CompilationConfig = {
-        ...(addons.length && { addons }),
-        ...(!!addonsDir && { addonsDir }),
-        ...(!!transpileOnly && { transpileOnly }),
-    };
-    if (configFile) {
-        results = { ...resolveCompilationConfig(configFile, options.reporter, system), ...results };
-    }
-    return results;
-};

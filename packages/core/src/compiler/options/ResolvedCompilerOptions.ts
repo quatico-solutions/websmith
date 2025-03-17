@@ -23,72 +23,106 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly watch?: boolean;
     public readonly additionalArguments?: Map<string, unknown>;
     public readonly cliArgs: ts.ParsedCommandLine;
+    public readonly addons?: string[];
+    public readonly addonsDir?: string;
+    public readonly projectDir: string;
     constructor(
         private system: ts.System,
         options: Partial<CompilerOptions>,
-        private addons?: string[],
+        addons?: string[],
         loaderOptions?: WebpackLoaderOptions
     ) {
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
-        let resolvedOptions = deepmerge<CompilerOptions>(options, loaderOptions ?? {});
-        const { buildDir, cliArgs, config, configFile, debug = false, profile, tsConfig, tsConfigFile, watch = false } = resolvedOptions;
+        const compilationConfig = loadCompilationConfig(options, loaderOptions ?? {}, this.reporter, this.system);
+        let resolvedOptions = deepmerge<CompilerOptions>({ ...options, config: { ...options.config, ...compilationConfig } }, loaderOptions ?? {});
+        const {
+            buildDir,
+            cliArgs = { options: {}, fileNames: [], errors: [] },
+            config,
+            configFile,
+            debug = false,
+            profile,
+            tsConfig,
+            tsConfigFile,
+            watch = false,
+        } = resolvedOptions;
+        this.projectDir =
+            (configFile && path.dirname(configFile)) ??
+            (cliArgs.raw?.configFilePath && path.dirname(cliArgs.raw?.configFilePath)) ??
+            this.system.getCurrentDirectory();
         this.watch = watch;
         this.debug = debug;
         // TODO: Workaround for the missing 'additionalArguments' after deepmerge
         this.additionalArguments = options.additionalArguments;
         this.buildDir = resolvePath(this.system, buildDir ?? DEFAULT_BUILD_DIR);
 
-        // resolve tsconfig
-        const tsConfigFilePath = tsConfigFile ?? cliArgs?.options?.configFilePath ?? cliArgs?.raw?.configFilePath;
-        this.tsConfigFile = tsConfigFilePath ? resolvePath(this.system, tsConfigFilePath) : undefined;
-        resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
-        this.tsConfig = getTsConfig(resolvedOptions);
-        if (profile) {
-            this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, getTsConfig(resolvedOptions, profile), { arrayMerge });
-        }
-
         // resolve websmith config
-        this.configFile = configFile;
-        this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(this.configFile, this.reporter, this.system), config ?? {}, {
-            arrayMerge,
-        });
+        this.configFile = resolvePath(this.system, this.projectDir, configFile);
+        this.config = deepmerge<CompilationConfig>(
+            this.system.fileExists(this.configFile) ? resolveCompilationConfig(this.configFile, this.reporter, this.system) : {},
+            config ?? {},
+            {
+                arrayMerge,
+            }
+        );
+        this.tsConfigFile = tsConfigFile ? resolvePath(this.system, this.projectDir, tsConfigFile) : undefined;
+
+        // profiles
+        const profileName = loaderOptions?.profile ?? options.profile;
+        const existingProfiles = Object.keys(resolvedOptions.config?.profiles ?? {});
+        const selectedProfiles = getDependentProfiles(existingProfiles, profileName, this.config).filter(cur => existingProfiles.includes(cur));
+
+        // addons
+        this.addonsDir = resolvePath(this.system, this.projectDir, this.config?.addonsDir ?? "./addons");
+        this.addons = addons?.length
+            ? addons
+            : [...(this.config?.addons ?? []), ...selectedProfiles.map(name => getProfile(name, this.config)?.addons ?? []).flat()];
+
+        // resolve tsconfig
+        resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
+        this.tsConfig = getTsConfig(this.system, this.projectDir, resolvedOptions);
+        if (profile) {
+            this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, getTsConfig(this.system, this.projectDir, resolvedOptions, profile), {
+                arrayMerge,
+            });
+        }
 
         // resolve cli args
         this.profile = resolveProfile(profile, this.config, this.reporter);
-        const { outDir: profileOutdir } = getTsConfig(resolvedOptions, this.profile);
-        const outDir = profileOutdir ?? tsConfig?.outDir;
-        const premergedCliArgs = { ...(cliArgs ?? {}), options: { ...(cliArgs?.options ?? {}), outDir } };
-        this.cliArgs = deepmerge<ts.ParsedCommandLine>(
+        if (this.projectDir) {
+            cliArgs.options = resolvePaths(cliArgs.options, this.projectDir, this.system);
+        }
+        const { outDir: profileOutDir, rootDir: profileRootDir } = getTsConfig(this.system, this.projectDir, resolvedOptions, this.profile);
+        const outDir = (profileOutDir ?? tsConfig?.outDir) ? resolvePath(this.system, this.projectDir, profileOutDir ?? tsConfig?.outDir) : undefined;
+        const rootDir =
+            (profileRootDir ?? tsConfig?.rootDir) ? resolvePath(this.system, this.projectDir, profileRootDir ?? tsConfig?.rootDir) : undefined;
+
+        const premergedCliArgs = { ...(cliArgs ?? {}), options: { ...(cliArgs?.options ?? {}), outDir, rootDir } };
+
+        const argsOne = deepmerge<ts.ParsedCommandLine>(
+            this.tsConfigFile && this.system.fileExists(this.tsConfigFile) ? parsedCommandLine(this.tsConfigFile, {}, system) : {},
             {
                 options: {
                     ...(outDir && { outDir }),
                     ...(this.tsConfig && { ...this.tsConfig }),
                 },
-                fileNames: cliArgs?.fileNames?.length
-                    ? cliArgs.fileNames
-                    : recursiveFindByFilter(this.system.resolvePath(this.buildDir), undefined, this.system),
-                errors: [],
             },
-            this.tsConfigFile
-                ? deepmerge<ts.ParsedCommandLine>(parsedCommandLine(this.tsConfigFile, {}, system), premergedCliArgs, { arrayMerge })
-                : premergedCliArgs,
             { arrayMerge }
         );
+
+        const argsTwo = {
+            ...premergedCliArgs,
+            fileNames: cliArgs?.fileNames?.length
+                ? cliArgs.fileNames.map(fileName => this.system.resolvePath(fileName))
+                : recursiveFindByFilter(this.system.resolvePath(this.buildDir), undefined, this.system),
+            errors: [],
+        };
+
+        this.cliArgs = deepmerge<ts.ParsedCommandLine>(argsOne, argsTwo, { arrayMerge });
 
         if (this.tsConfig?.sourceMap === false) {
             delete this.cliArgs?.options?.inlineSources;
         }
-
-        // resolve project directory
-        const projectDirectory =
-            (configFile && path.dirname(configFile)) ?? (this.cliArgs.raw?.configFilePath && path.dirname(this.cliArgs.raw?.configFilePath));
-        if (projectDirectory) {
-            this.cliArgs.options = resolvePaths(this.cliArgs.options, projectDirectory, this.system);
-        }
-    }
-
-    get projectDir(): string {
-        return path.dirname(this.configFile ?? this.cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory());
     }
 
     public getAddons(profileName?: string): string[] {
@@ -119,7 +153,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             ...(this.watch && { watch: this.watch }),
         };
         if (profile) {
-            const profileTsConfig = getTsConfig(options, profile);
+            const profileTsConfig = getTsConfig(this.system, this.projectDir, options, profile);
             return {
                 ...options,
                 tsConfig: profileTsConfig,
@@ -163,21 +197,20 @@ const getDependentProfiles = (existingProfiles: string[], profileName?: string, 
  * Returns the resolved compiler options, optionally for the given profile. The ts.CompilerOptions are merged from the
  * tsconfig.json, the CLI arguments, the profile options.
  *
- * @param options Provided websmith compiler options.
- * @param profileName Given profile name.
  * @returns Merged ts.CompilerOptions, where the profile options override the CLI options, which override the tsconfig.json options.
  */
-const getTsConfig = (options: CompilerOptions, profileName?: string): ts.CompilerOptions => {
+const getTsConfig = (system: ts.System, projectDir: string, options: CompilerOptions, profileName?: string): ts.CompilerOptions => {
     const { tsConfig, config, profile, cliArgs, tsConfigFile } = options;
-    const profileConfig = getProfile(profileName ?? profile, config);
+    const profileTsConfig = getDependentProfiles(Object.keys(options.config?.profiles ?? []), profileName ?? profile, options.config)
+        .map(cur => getProfile(cur, config))
+        .reduce((acc: ts.CompilerOptions, cur) => deepmerge<ts.CompilerOptions>(acc, cur.tsConfig ?? {}, { arrayMerge }), {});
+
     return {
-        ...(tsConfigFile && { configFilePath: tsConfigFile }),
+        ...(tsConfigFile && { configFilePath: resolvePath(system, projectDir, tsConfigFile) }),
         ...tsDefaults,
-        ...deepmerge<ts.CompilerOptions>(
-            deepmerge<ts.CompilerOptions>(tsConfig ?? {}, cliArgs?.options ?? {}, { arrayMerge }),
-            profileConfig?.tsConfig ?? {},
-            { arrayMerge }
-        ),
+        ...deepmerge<ts.CompilerOptions>(deepmerge<ts.CompilerOptions>(tsConfig ?? {}, cliArgs?.options ?? {}, { arrayMerge }), profileTsConfig, {
+            arrayMerge,
+        }),
     };
 };
 
@@ -201,4 +234,25 @@ const arrayUnique = (array: unknown[]) => {
         }
     }
     return result;
+};
+
+const loadCompilationConfig = (
+    options: Partial<CompilerOptions>,
+    loaderOptions: Partial<WebpackLoaderOptions>,
+    reporter: Reporter,
+    system: ts.System
+): CompilationConfig => {
+    // Prefer config values from webpack loaderConfig, but fallback to values from websmith.config.json
+    const { configFile = loaderOptions.configFile ?? options.configFile, transpileOnly } = loaderOptions;
+    const addons = loaderOptions.config?.addons ?? options.config?.addons ?? [];
+    const addonsDir = loaderOptions.config?.addonsDir ?? options.config?.addonsDir;
+    let results: CompilationConfig = {
+        ...(addons.length && { addons }),
+        ...(!!addonsDir && { addonsDir }),
+        ...(!!transpileOnly && { transpileOnly }),
+    };
+    if (configFile && system.fileExists(configFile)) {
+        results = { ...resolveCompilationConfig(configFile, reporter, system), ...results };
+    }
+    return results;
 };

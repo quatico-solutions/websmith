@@ -119,7 +119,7 @@ describe("createCompilationContext", () => {
                 field: "expected-value",
                 output: "expected-output.json",
             },
-            projectDir: "./expected",
+            projectDir: "/expected",
         });
 
         expect(actual.getLanguageHost()).toBeDefined();
@@ -191,7 +191,7 @@ describe("createCompilationContext", () => {
                 field: "expected-value",
                 output: "expected-output.json",
             },
-            projectDir: "./expected",
+            projectDir: "/expected",
         });
 
         expect(actual.getLanguageHost()).toBeDefined();

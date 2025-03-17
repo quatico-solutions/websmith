@@ -10,7 +10,7 @@ import { ErrorMessage, type Reporter } from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
-import { type AddonRegistry } from "./addons";
+import { AddonRegistry } from "./addons";
 import { type FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
@@ -98,6 +98,18 @@ export class Compiler {
         if (!options.debug) {
             console.debug = () => undefined;
             console.log = () => undefined;
+        }
+
+        const { addons, addonsDir } = this.options;
+        if (!this.addons) {
+            this.addons = addons?.length
+                ? new AddonRegistry({
+                      addons,
+                      addonsDir: addonsDir ?? options.config?.addonsDir ?? "./addons",
+                      reporter: this.reporter,
+                      system: this.system,
+                  })
+                : undefined;
         }
 
         if (this.options.cliArgs?.errors?.length) {

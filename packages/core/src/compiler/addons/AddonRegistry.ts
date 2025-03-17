@@ -7,8 +7,8 @@
 import { WarnMessage, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
-import { resolvePath } from "../config";
 import { Compiler } from "../Compiler";
+import { resolvePath } from "../config";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 export type AddonConfig = {
     addons?: string[];
@@ -83,7 +83,7 @@ export class AddonRegistry {
             .map(it => path.dirname(it));
 
         if (addonsToCompile.length > 0) {
-            const targetDir: string = path.join(path.dirname(addonsDir), "lib");
+            const targetDir: string = resolvePath(system, addonsDir, "./lib");
             const compiledAddons = system
                 .readDirectory(targetDir)
                 .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
@@ -94,7 +94,7 @@ export class AddonRegistry {
                 // Compile all addons in the addons directory
                 const targetDir = resolvePath(system, addonsDir);
                 const buildDir = path.dirname(targetDir);
-                const outDir = path.join(buildDir, "lib");
+                const outDir = resolvePath(system, buildDir, "./lib");
                 new Compiler({
                     buildDir,
                     reporter,
