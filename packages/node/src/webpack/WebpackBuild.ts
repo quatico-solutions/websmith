@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { type WebsmithLoaderOptions } from "websmith-loader";
+import { type WebpackLoaderOptions } from "@quatico/websmith-core";
 import { split } from "lodash";
 import path from "node:path";
 import tildify from "tildify";
@@ -19,7 +19,7 @@ export class WebpackBuild {
     private failedAlready: boolean;
     private config: Configuration;
     private tsLoaderOptions?: Partial<TsLoaderOptions>;
-    private websmithLoaderOptions?: WebsmithLoaderOptions;
+    private websmithLoaderOptions?: WebpackLoaderOptions;
     private outputFileSystem?: any;
     private inputFileSystem?: any;
     private watchFileSystem?: any;
@@ -46,7 +46,7 @@ export class WebpackBuild {
         return this.tsLoaderOptions;
     }
 
-    public setWebsmithLoaderOptions(options?: WebsmithLoaderOptions): this {
+    public setWebsmithLoaderOptions(options?: WebpackLoaderOptions): this {
         this.websmithLoaderOptions = options;
         return this;
     }
@@ -129,7 +129,7 @@ export class WebpackBuild {
         }
     }
 
-    private injectWebsmithLoaderOptions(rule: webpack.RuleSetRule, options: WebsmithLoaderOptions) {
+    private injectWebsmithLoaderOptions(rule: webpack.RuleSetRule, options: WebpackLoaderOptions) {
         if (typeof rule.options === "object") {
             rule.options = { ...rule.options, ...options };
         } else {
