@@ -60,7 +60,7 @@ export const compile = async (files: string[], config?: { tsConfig?: ts.Compiler
             });
         }
 
-        const results = new WebsmithCompiler(websmithConfig, system, addonRegistry).compile();
+        const results = new WebsmithCompiler(websmithConfig, {}, system, addonRegistry).compile();
 
         const output = results.diagnostics;
         const reporter2 = new ReporterMock(ts.sys);
