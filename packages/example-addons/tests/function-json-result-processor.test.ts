@@ -10,7 +10,10 @@ import path from "node:path";
 describe("function-json-result-processor addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", { virtual: false }).addAddon("function-json-result-processor", path.join(__dirname, "../src"));
+        testObj = compilationEnv("./__TEST__", {
+            virtual: false,
+            compilerOptions: { tsConfig: { skipLibCheck: true } },
+        }).addAddon("function-json-result-processor", path.join(__dirname, "../src"));
     });
 
     afterEach(() => {

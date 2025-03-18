@@ -10,7 +10,10 @@ import path from "node:path";
 describe("foo-added-generator addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", { virtual: false }).addAddon("foo-added-generator", path.join(__dirname, "../src"));
+        testObj = compilationEnv("./__TEST__", { virtual: false, compilerOptions: { tsConfig: { skipLibCheck: true } } }).addAddon(
+            "foo-added-generator",
+            path.join(__dirname, "../src")
+        );
     });
 
     afterEach(() => {

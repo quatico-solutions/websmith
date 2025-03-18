@@ -13,6 +13,7 @@ import {
     type CompilerAddons,
     type CompilerOptions,
     DefaultReporter,
+    type ResolvedCompilerOptions,
     compilerAddons,
     createBrowserSystem,
     resolveCompilerOptions,
@@ -32,7 +33,7 @@ const DEFAULT_PROJECTS_SOURCE_DIR = "../test-projects";
 const DEFAULT_ADDONS_SOURCE_DIR = "../addons";
 
 export class CompilationEnv {
-    private compilerOptions: CompilerOptions;
+    private compilerOptions: ResolvedCompilerOptions;
     private rootDir: string;
     private buildDir: string;
     private system: ts.System;
@@ -120,8 +121,7 @@ export class CompilationEnv {
         return resolvePath(this.system, this.rootDir, this.compilerOptions.tsConfig?.outDir ?? DEFAULT_OUT_DIR);
     }
 
-    // TODO: Resolve compiler options
-    public getCompilerOptions(): CompilerOptions {
+    public getCompilerOptions(): ResolvedCompilerOptions {
         return this.compilerOptions;
     }
 
@@ -195,6 +195,11 @@ export class CompilationEnv {
 
         this.compileAddons(addonImportDir, this.addonsConfig.addonsDir);
         this.getOrCreateAddonRegistry().refresh();
+        if (!this.addonsConfig.addons) {
+            this.addonsConfig.addons = [addonName];
+        } else {
+            this.addonsConfig.addons.push(addonName);
+        }
 
         return this;
     }
@@ -211,6 +216,11 @@ export class CompilationEnv {
         });
         this.compileAddons(addonsSourceDirPath, addonsDir);
         this.getOrCreateAddonRegistry().refresh();
+        if (!this.addonsConfig.addons) {
+            this.addonsConfig.addons = [...addonNames];
+        } else {
+            this.addonsConfig.addons.push(...addonNames);
+        }
 
         return this;
     }
@@ -331,7 +341,7 @@ export class CompilationEnv {
         if (!this.addons) {
             this.addons = new AddonRegistry(this.addonsConfig);
         }
-        return this.addons;
+        return this.addons.setConfig(this.addonsConfig);
     }
 
     private resolveAddonSourcePaths(addonName: string, addonFiles: Record<string, string>, addonTargetPath: string): Record<string, string> {
@@ -365,9 +375,11 @@ export class CompilationEnv {
                     }),
                     tsConfig: {
                         module: ts.ModuleKind.CommonJS,
-                        target: ts.ScriptTarget.ES2020,
+                        target: ts.ScriptTarget.ES5,
                         esModuleInterop: true,
                         moduleResolution: ts.ModuleResolutionKind.Node10,
+                        types: ["node"],
+                        skipLibCheck: true,
                     },
                     cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                 },
