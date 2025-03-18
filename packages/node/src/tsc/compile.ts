@@ -1,66 +1,25 @@
-import {
-    type CompilerOptions as WebsmithOptions,
-    AddonRegistry,
-    DefaultReporter,
-    Compiler as WebsmithCompiler,
-    resolveCompilationConfig,
-    parsedCommandLine,
-} from "@quatico/websmith-core";
+import { type CompilerOptions as WebsmithOptions, DefaultReporter, Compiler as WebsmithCompiler } from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
 import { Compiler as TscCompiler } from "./Compiler";
 
-const ADDONS_DIR = path.join(__dirname, "..", "..", "..", "sandbox-addons", "lib");
-
-const defaultWebsmithConfig = (tsConfig: ts.CompilerOptions = {}): WebsmithOptions => {
-    const system = ts.sys;
-    const reporter = new DefaultReporter(system);
-    return {
-        buildDir: "../src",
-        debug: false,
-        tsConfig,
-        reporter,
-        cliArgs: parsedCommandLine(tsConfig?.project ?? path.join(__dirname, "..", "tsconfig.json"), {}, system),
-        watch: false,
-    };
-};
+const ADDONS_DIR = path.join(__dirname, "..", "..", "..", "example-addons", "lib");
 
 export const compile = async (files: string[], config?: { tsConfig?: ts.CompilerOptions; websmith?: Partial<WebsmithOptions> }): Promise<string> => {
     const { tsConfig, websmith } = config ?? {};
     if (websmith) {
-        const system = ts.sys;
-        const reporter = new DefaultReporter(system);
-        let websmithConfig = { ...websmith } as WebsmithOptions;
-        if (files && files.length > 0) {
-            websmithConfig.cliArgs = { ...(websmithConfig.cliArgs ?? {}), fileNames: files };
+        if (files?.length) {
+            if (!websmith.cliArgs) {
+                websmith.cliArgs = { fileNames: [], options: {}, errors: [] };
+            }
+            websmith.cliArgs = { ...(websmith.cliArgs ?? {}), fileNames: files };
         }
-        if (websmithConfig.configFile) {
-            const config = resolveCompilationConfig(websmithConfig.configFile, reporter, system);
-            websmithConfig.config = { ...websmithConfig.config, ...config };
+        if (tsConfig) {
+            websmith.tsConfig = { ...tsConfig, ...(websmith.tsConfig ?? {}) };
         }
-        websmithConfig = { ...defaultWebsmithConfig(tsConfig), ...(tsConfig ? { tsConfig } : {}), ...websmithConfig };
+        websmith.config = { ...(websmith.config ?? {}), addonsDir: ADDONS_DIR };
 
-        const { profile } = websmithConfig;
-        const { addons, profiles: profileMap, addonsDir } = websmithConfig.config ?? {};
-        // TODO: Resolve compiler options
-        const selectedProfiles = profile ? [...(profileMap?.[profile]?.depends ?? []), profile] : [];
-        const addonsMerged = addons?.length
-            ? addons
-            : Object.entries(profileMap ?? {})
-                  .filter(([cur]) => selectedProfiles?.length && selectedProfiles?.includes(cur))
-                  .map(([_, value]) => value.addons ?? [])
-                  .flat();
-        let addonRegistry: AddonRegistry | undefined = undefined;
-        if (addonsMerged.length) {
-            addonRegistry = new AddonRegistry({
-                addons: addonsMerged,
-                addonsDir: addonsDir ?? ADDONS_DIR,
-                reporter,
-                system: system,
-            });
-        }
-
-        const results = new WebsmithCompiler(websmithConfig, {}, system, addonRegistry).compile();
+        const results = new WebsmithCompiler(websmith, {}, ts.sys).compile();
 
         const output = results.diagnostics;
         const reporter2 = new ReporterMock(ts.sys);

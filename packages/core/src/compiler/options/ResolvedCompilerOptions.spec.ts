@@ -396,7 +396,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         } as any);
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "./expected",
+            outDir: "/expected",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -424,7 +424,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "./expected",
+            outDir: "/expected",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -463,7 +463,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "./expected",
+            outDir: "/expected",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -502,7 +502,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "./expected",
+            outDir: "/expected",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -569,7 +569,7 @@ describe("ResolvedCompilerOptions#projectDir", () => {
         const { fileSystem } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
-            configFile: "./expected/tsconfig.json",
+            configFile: "./expected/websmith.config.json",
         } as any);
 
         expect(testObj.projectDir).toBe("./expected");
@@ -581,11 +581,11 @@ describe("ResolvedCompilerOptions#projectDir", () => {
         const testObj = new ResolvedCompilerOptions(
             fileSystem,
             {
-                configFile: "/whatever/tsconfig.json",
+                configFile: "/whatever/websmith.config.json",
             } as any,
             undefined,
             {
-                configFile: "/expected/tsconfig.json",
+                configFile: "/expected/websmith.config.json",
             } as any
         );
 
@@ -925,7 +925,6 @@ describe("ResolvedCompilerOptions#getOptions", () => {
                 },
             },
             config: {},
-            configFile: "/",
             reporter: expect.any(DefaultReporter),
             tsConfig: {
                 module: ts.ModuleKind.ESNext,

@@ -40,7 +40,9 @@ const webpackDefaults = {
 
 beforeAll(() => {
     if (fs.readdirSync(ADDONS_DIR).length === 0) {
-        throw new Error("Package 'sandbox-addons' is not built, run 'pnpm build' in the root directory");
+        throw new Error(
+            "No addons found in package 'example-addons'. Did you use the 'lib' folder and forget to run 'pnpm build' in the package directory"
+        );
     }
 });
 

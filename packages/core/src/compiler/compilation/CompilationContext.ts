@@ -183,10 +183,6 @@ export class CompilationContext implements AddonContext {
         return this.languageHost;
     }
 
-    // public getBasePath(fileName: string): string {
-    //     return Object.keys(this.tsconfig.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? this.buildDir;
-    // }
-
     public registerTransformer(transformers: ts.CustomTransformers): this {
         Object.keys(transformers).forEach(kind => {
             // @ts-expect-error ts.CustomTransformers defines too many implicit any

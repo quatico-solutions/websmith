@@ -95,6 +95,7 @@ export class Compiler {
         // TODO: This is a workaround, as the options are not correctly resolved otherwise.
         this.options = resolveCompilerOptions(this.system, { tsConfigFile: "./tsconfig.json", ...options }, undefined, loaderOptions);
         this.reporter = this.options.reporter;
+        // TODO: Remove this once the options are correctly resolved.
         if (!options.debug) {
             console.debug = () => undefined;
             console.log = () => undefined;

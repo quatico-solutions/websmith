@@ -6,7 +6,7 @@
  */
 
 import { webpack } from "@quatico/websmith-node";
-import { type WebsmithLoaderOptions } from "websmith-loader";
+import { type WebpackLoaderOptions } from "@quatico/websmith-core";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -108,7 +108,7 @@ describe("project bundling", () => {
     });
 });
 
-const writeWebsmithOptions = (options: Partial<WebsmithLoaderOptions>) => {
+const writeWebsmithOptions = (options: Partial<WebpackLoaderOptions>) => {
     fs.mkdirSync(OUTPUT_DIR, {
         recursive: true,
     });
