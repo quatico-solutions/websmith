@@ -134,10 +134,6 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         return [...(this.config?.addons ?? []), ...(addons ?? [])];
     }
 
-    // public getAddonConfig(): AddonConfig {
-    //     return addonConfig(command, compilationConfig, options),
-    // }
-
     public getOptions(profile?: string): CompilerOptions {
         const options = {
             ...(this.additionalArguments && { additionalArguments: this.additionalArguments }),

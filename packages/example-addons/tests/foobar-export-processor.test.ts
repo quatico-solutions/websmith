@@ -10,7 +10,10 @@ import path from "node:path";
 describe("foobar-export-processor addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", { virtual: false }).addAddon("foobar-export-processor", path.join(__dirname, "../src"));
+        testObj = compilationEnv("./__TEST__", { virtual: false, compilerOptions: { tsConfig: { skipLibCheck: true } } }).addAddon(
+            "foobar-export-processor",
+            path.join(__dirname, "../src")
+        );
     });
 
     afterEach(() => {

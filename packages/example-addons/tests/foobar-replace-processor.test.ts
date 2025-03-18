@@ -11,7 +11,7 @@ describe("foobar-replace-processor addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__", {
-            compilerOptions: { tsConfig: { outDir: "dist" } },
+            compilerOptions: { tsConfig: { outDir: "dist", skipLibCheck: true } },
             virtual: false,
         });
         testObj.addAddons(["foobar-replace-transformer", "foobar-replace-processor"], path.join(__dirname, "../src"));
