@@ -34,7 +34,9 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     ) {
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
         const compilationConfig = loadCompilationConfig(options, loaderOptions ?? {}, this.reporter, this.system);
-        let resolvedOptions = deepmerge<CompilerOptions>({ ...options, config: { ...options.config, ...compilationConfig } }, loaderOptions ?? {});
+        let resolvedOptions = deepmerge<CompilerOptions>({ ...options, config: { ...options.config, ...compilationConfig } }, loaderOptions ?? {}, {
+            arrayMerge,
+        });
         const {
             buildDir,
             cliArgs = { options: {}, fileNames: [], errors: [] },
@@ -46,25 +48,28 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             tsConfigFile,
             watch = false,
         } = resolvedOptions;
-        this.projectDir =
-            (configFile && path.dirname(configFile)) ??
-            (cliArgs.raw?.configFilePath && path.dirname(cliArgs.raw?.configFilePath)) ??
-            this.system.getCurrentDirectory();
         this.watch = watch;
         this.debug = debug;
         // TODO: Workaround for the missing 'additionalArguments' after deepmerge
         this.additionalArguments = options.additionalArguments;
         this.buildDir = resolvePath(this.system, buildDir ?? DEFAULT_BUILD_DIR);
 
+        this.projectDir =
+            (configFile && path.dirname(configFile)) ??
+            (tsConfigFile && path.dirname(tsConfigFile)) ??
+            (cliArgs.raw?.configFilePath && path.dirname(cliArgs.raw?.configFilePath)) ??
+            this.system.getCurrentDirectory();
         // resolve websmith config
-        this.configFile = resolvePath(this.system, this.projectDir, configFile);
-        this.config = deepmerge<CompilationConfig>(
-            this.system.fileExists(this.configFile) ? resolveCompilationConfig(this.configFile, this.reporter, this.system) : {},
-            config ?? {},
-            {
+        if (configFile) {
+            this.configFile = resolvePath(this.system, this.projectDir, configFile);
+        }
+        if (this.configFile && this.system.fileExists(this.configFile)) {
+            this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(this.configFile, this.reporter, this.system), config ?? {}, {
                 arrayMerge,
-            }
-        );
+            });
+        } else {
+            this.config = config ?? {};
+        }
         this.tsConfigFile = tsConfigFile ? resolvePath(this.system, this.projectDir, tsConfigFile) : undefined;
 
         // profiles
@@ -90,37 +95,42 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         // resolve cli args
         this.profile = resolveProfile(profile, this.config, this.reporter);
         if (this.projectDir) {
-            cliArgs.options = resolvePaths(cliArgs.options, this.projectDir, this.system);
+            cliArgs.options = resolvePaths(cliArgs.options ?? {}, this.projectDir, this.system);
         }
         const { outDir: profileOutDir, rootDir: profileRootDir } = getTsConfig(this.system, this.projectDir, resolvedOptions, this.profile);
         const outDir = (profileOutDir ?? tsConfig?.outDir) ? resolvePath(this.system, this.projectDir, profileOutDir ?? tsConfig?.outDir) : undefined;
         const rootDir =
             (profileRootDir ?? tsConfig?.rootDir) ? resolvePath(this.system, this.projectDir, profileRootDir ?? tsConfig?.rootDir) : undefined;
 
-        const premergedCliArgs = { ...(cliArgs ?? {}), options: { ...(cliArgs?.options ?? {}), outDir, rootDir } };
+        const premergedCliArgs = {
+            ...(cliArgs ?? {}),
+            options: { ...(cliArgs?.options ?? {}), ...(outDir && { outDir }), ...(rootDir && { rootDir }) },
+        };
 
-        const argsOne = deepmerge<ts.ParsedCommandLine>(
-            this.tsConfigFile && this.system.fileExists(this.tsConfigFile) ? parsedCommandLine(this.tsConfigFile, {}, system) : {},
-            {
-                options: {
-                    ...(outDir && { outDir }),
-                    ...(this.tsConfig && { ...this.tsConfig }),
+        this.cliArgs = deepmerge<ts.ParsedCommandLine>(
+            deepmerge<ts.ParsedCommandLine>(
+                this.tsConfigFile && this.system.fileExists(this.tsConfigFile) ? parsedCommandLine(this.tsConfigFile, {}, system) : {},
+                {
+                    options: {
+                        ...(outDir && { outDir }),
+                        ...(this.tsConfig && { ...this.tsConfig }),
+                    },
                 },
+                { arrayMerge }
+            ),
+            {
+                ...premergedCliArgs,
+                fileNames: cliArgs?.fileNames?.length
+                    ? cliArgs.fileNames.map(fileName => this.system.resolvePath(fileName))
+                    : recursiveFindByFilter(this.system.resolvePath(this.buildDir), undefined, this.system),
+                errors: [],
             },
             { arrayMerge }
         );
-
-        const argsTwo = {
-            ...premergedCliArgs,
-            fileNames: cliArgs?.fileNames?.length
-                ? cliArgs.fileNames.map(fileName => this.system.resolvePath(fileName))
-                : recursiveFindByFilter(this.system.resolvePath(this.buildDir), undefined, this.system),
-            errors: [],
-        };
-
-        this.cliArgs = deepmerge<ts.ParsedCommandLine>(argsOne, argsTwo, { arrayMerge });
+        this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, this.cliArgs?.options ?? {}, { arrayMerge });
 
         if (this.tsConfig?.sourceMap === false) {
+            delete this.tsConfig?.inlineSources;
             delete this.cliArgs?.options?.inlineSources;
         }
     }

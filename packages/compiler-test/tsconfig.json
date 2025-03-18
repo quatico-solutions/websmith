@@ -4,5 +4,5 @@
         "outDir": "./lib",
         "noEmit": true
     },
-    "include": ["src/**/*.ts", "tests/bar-addon.test.ts"]
+    "include": ["src/**/*.ts"]
 }
