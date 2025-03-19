@@ -14,7 +14,6 @@ import { CompilationHost } from "./CompilationHost";
 import { createSharedHost } from "./shared-host";
 
 export type CompilationContextOptions = {
-    buildDir: string;
     config?: unknown;
     tsConfig: ts.CompilerOptions;
     projectDir: string;

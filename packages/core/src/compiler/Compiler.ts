@@ -260,11 +260,10 @@ export class Compiler {
     }
 
     protected createCompilationContext(profile?: string): CompilationContext {
-        const { buildDir, configFile, tsConfigFile, cliArgs, watch } = this.options;
+        const { configFile, tsConfigFile, cliArgs, watch } = this.options;
         const selectedProfiles = this.options.getSelectedProfiles(profile);
         const profileOptions = this.options.getOptions(profile);
         return new CompilationContext({
-            buildDir,
             tsConfig: profileOptions.tsConfig ?? {},
             projectDir: path.dirname(configFile ?? tsConfigFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
