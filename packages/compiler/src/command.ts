@@ -117,7 +117,6 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 let addons;
                 if (command.opts().addonsDir || command.opts().addons) {
                     addons = new AddonRegistry({
-                        // TODO: Resolve compiler options
                         ...addonConfig(command, compilationConfig, options),
                         reporter,
                         system,
@@ -140,7 +139,6 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
     return parent;
 };
 
-// TODO: Resolve compiler options
 const addonConfig = (command: Command, compilationConfig?: CompilationConfig, options?: CompilerOptions) => ({
     addons:
         (command.opts().addons ?? compilationConfig?.addons?.join(",") ?? "")
