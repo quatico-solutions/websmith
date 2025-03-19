@@ -4,11 +4,11 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilationConfig as WebsmithOptions } from "@quatico/websmith-core";
 import { webpack } from "@quatico/websmith-node";
 import ForkTsCheckerWebpackPlugin from "fork-ts-checker-webpack-plugin";
 import fs from "node:fs";
 import path from "node:path";
+import { getOutput, writeWebsmithConfig } from "./test-files";
 
 const OUTPUT_DIR = path.join(__dirname, "..", "lib");
 const SOURCE_DIR = path.join(__dirname, "..", "src");
@@ -47,7 +47,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should yield compiled output with no profile", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
         });
 
@@ -59,14 +59,13 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        const output = fs.readFileSync(path.resolve(OUTPUT_DIR, "main.js")).toString();
-        expect(output).toContain('/***/ "./src/functions/getDate.ts":');
-        expect(output).toContain('/***/ "./src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
     });
 
     it("should yield compiled and generated output with transpileOnly true", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 valid: {
@@ -84,16 +83,14 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(fs.readFileSync(path.resolve(OUTPUT_DIR, "output.yaml")).toString()).toContain("exports: [getDate]");
-
-        const output = fs.readFileSync(path.resolve(OUTPUT_DIR, "main.js")).toString();
-        expect(output).toContain('/***/ "./src/functions/getDate.ts":');
-        expect(output).toContain('/***/ "./src/model/index.ts":');
+        expect(getOutput("output.yaml")).toContain("exports: [getDate]");
+        expect(getOutput("main.js")).toContain('/***/ "./src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
     });
 
     it("should throw error with transpileOnly false", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 valid: {
@@ -115,7 +112,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should throw error with unknown profile name", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 existing: {
@@ -137,7 +134,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should use default profile w/o configured profile", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 writeOnly: {
@@ -165,7 +162,7 @@ describe("webpack w/ websmith", () => {
         webpackConfig.module.rules[0].use.unshift({
             loader: "thread-loader",
         } as any);
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 noWrite: {
@@ -183,17 +180,15 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(fs.statSync(path.resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
-        const output = fs.readFileSync(path.resolve(OUTPUT_DIR, "main.js")).toString();
-        expect(output).toContain('/***/ "./src/functions/getDate.ts":');
-        expect(output).toContain('/***/ "./src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./src/model/index.ts":');
     });
 
     it("should bundle invalid TypeScript file w/ transpileOnly being used", async () => {
         fs.writeFileSync(path.join(SOURCE_DIR, "invalid.ts"), "this is no valid source code", {
             encoding: "utf-8",
         });
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 noWrite: {
@@ -211,16 +206,14 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(fs.statSync(path.resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
-        const output = fs.readFileSync(path.resolve(OUTPUT_DIR, "main.js")).toString();
-        expect(output).toContain('/***/ "./src/invalid.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./src/invalid.ts":');
         expect(actual).toMatch(/successfully/);
 
         fs.rmSync(path.resolve(SOURCE_DIR, "invalid.ts"), { force: true });
     });
 
     it("should bundle the file w/ fork-ts-checker-webpack-plugin being used", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 noWrite: {
@@ -238,19 +231,8 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(fs.statSync(path.resolve(OUTPUT_DIR, "main.js")).isFile()).toBe(true);
-        const output = fs.readFileSync(path.resolve(OUTPUT_DIR, "main.js")).toString();
-        expect(output).toContain('/***/ "./src/functions/getDate.ts":');
-        expect(output).toContain('/***/ "./src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
     });
 });
-
-const writeWebsmithOptions = (options: Partial<WebsmithOptions>) => {
-    fs.mkdirSync(OUTPUT_DIR, {
-        recursive: true,
-    });
-    fs.writeFileSync(path.join(OUTPUT_DIR, "websmith.config.json"), JSON.stringify(options), {
-        encoding: "utf-8",
-    });
-};

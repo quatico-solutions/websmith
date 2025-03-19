@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { type CompilationConfig as WebsmithOptions } from "@quatico/websmith-core";
 import { webpack } from "@quatico/websmith-node";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { writeWebsmithConfig, getOutput } from "./test-files";
 
 // TODO: ts-loader options caching seems broken, we need to understand where to fix it
 // This workaround is not working, we need to find a better solution
@@ -56,7 +56,7 @@ afterEach(() => {
 
 describe("webpack w/ websmith", () => {
     it("should build foobar-arrow.js with ES2020 and addonsDir", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
         });
 
@@ -74,7 +74,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should build foobar-function.js with ES2020 and addonsDir", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
         });
 
@@ -138,7 +138,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should generate YAML file with profiles in file-config, addonsDir and profile selected", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "target-profile": {
@@ -164,7 +164,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should generate YAML file with profile in file-config, addonsDir, generic profile selected", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "*": {
@@ -187,7 +187,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should transform foobar functions with profiles in file-config, addonsDir and generic profile selected", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "*": {
@@ -209,7 +209,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should generate YAML file with profile in file-config, addonsDir and named profile selected", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "profile-zip": {
@@ -268,7 +268,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should transform foobar functions with addonsDir and existing profile in config-file", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "profile-transform": {
@@ -297,7 +297,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should transform foobar functions with addonsDir and dependent profiles in config-file", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "profile-transform": {
@@ -330,7 +330,7 @@ describe("webpack w/ websmith", () => {
     });
 
     it("should transform foobar functions with named profile and addonsDir, chained addons in config-file", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "profile-transform": {
@@ -356,7 +356,7 @@ describe("webpack w/ websmith", () => {
 
 describe("webpack w/ websmith, multiple profiles", () => {
     beforeEach(() => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 client: {
@@ -522,15 +522,3 @@ describe("webpack w/ websmith, multiple profiles", () => {
         expect(getOutput("server.js")).not.toContain("Client");
     });
 });
-
-const writeWebsmithOptions = (options: Partial<WebsmithOptions>) => {
-    fs.mkdirSync(OUTPUT_DIR, {
-        recursive: true,
-    });
-    fs.writeFileSync(path.join(OUTPUT_DIR, "websmith.config.json"), JSON.stringify(options), {
-        encoding: "utf-8",
-    });
-};
-
-const getOutput = (filePath: string): string | undefined =>
-    fs.existsSync(path.join(OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(OUTPUT_DIR, filePath), "utf-8") : undefined;

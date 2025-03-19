@@ -1,4 +1,4 @@
-import { type CompilationConfig as WebsmithOptions } from "@quatico/websmith-core";
+import { type CompilationConfig } from "@quatico/websmith-core";
 import { compile } from "@quatico/websmith-node";
 import fs from "node:fs";
 import path from "node:path";
@@ -110,7 +110,7 @@ describe("compile w/ websmith", () => {
     });
 
     it("should generate YAML file with profile in file-config, addonsDir, and one profile selected", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "target-profile": {
@@ -133,7 +133,7 @@ describe("compile w/ websmith", () => {
     });
 
     it("should not generate YAML file with named profile, addonsDir and profile in file-config", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "target-profile": {
@@ -155,7 +155,7 @@ describe("compile w/ websmith", () => {
     });
 
     it("should generate YAML file with profiles in file-config, addonsDir and generic profile selected", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "*": {
@@ -177,7 +177,7 @@ describe("compile w/ websmith", () => {
     });
 
     it("should transform foobar functions with profiles in file-config, addonsDir and generic profile selected", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "*": {
@@ -199,7 +199,7 @@ describe("compile w/ websmith", () => {
     });
 
     it("should generate YAML file with named profile and addonsDir, one profile in file-config", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "target-profile": {
@@ -257,7 +257,7 @@ describe("compile w/ websmith", () => {
     });
 
     it("should transform foobar functions with named profile and addonsDir, multiple existing profile in config-file", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "profile-transform": {
@@ -285,7 +285,7 @@ describe("compile w/ websmith", () => {
     });
 
     it("should transform foobar functions with multiple named profiles and addonsDir, dependent profiles selected", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "profile-transform": {
@@ -315,7 +315,7 @@ describe("compile w/ websmith", () => {
     });
 
     it("should transform foobar functions with named profile and addonsDir, chained addons in config-file", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
                 "profile-transform": {
@@ -338,11 +338,11 @@ describe("compile w/ websmith", () => {
     });
 });
 
-const writeWebsmithOptions = (options: Partial<WebsmithOptions>) => {
+const writeWebsmithConfig = (config?: CompilationConfig) => {
     fs.mkdirSync(OUTPUT_DIR, {
         recursive: true,
     });
-    fs.writeFileSync(path.join(OUTPUT_DIR, "websmith.config.json"), JSON.stringify(options), {
+    fs.writeFileSync(path.join(OUTPUT_DIR, "websmith.config.json"), JSON.stringify(config), {
         encoding: "utf-8",
     });
 };
