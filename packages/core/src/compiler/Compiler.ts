@@ -95,11 +95,6 @@ export class Compiler {
         // TODO: This is a workaround, as the options are not correctly resolved otherwise.
         this.options = resolveCompilerOptions(this.system, { tsConfigFile: "./tsconfig.json", ...options }, undefined, loaderOptions);
         this.reporter = this.options.reporter;
-        // TODO: Remove this once the options are correctly resolved.
-        if (!options.debug) {
-            console.debug = () => undefined;
-            console.log = () => undefined;
-        }
 
         const { addons, addonsDir } = this.options;
         if (!this.addons) {
@@ -131,10 +126,6 @@ export class Compiler {
         selectedProfiles.forEach(curProfile => {
             const ctx = this.getContext(curProfile);
             if (ctx) {
-                // FIXME: This could be bug, we should always report diagnostics, even if transpileOnly is true.
-                // const result = this.emitResult(curProfile, ctx);
-                // results.push(this.options.config?.transpileOnly ? result : this.report(ctx.getProgram(), result));
-                // Enable for now: reporting of diagnostics, even if transpileOnly is true.
                 results.push(this.report(program, this.emitResult(curProfile, ctx)));
             }
         });
