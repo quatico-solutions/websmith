@@ -156,7 +156,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toMatch(/successfully/);
     });
 
-    // TODO: Preloaders seem to be broken with the current project setup
+    // TODO: Skipped Test: Preloaders seem to be broken with the current project setup
     it.skip("should bundle the file w/ thread-loader being used", async () => {
         const webpackConfig = { ...webpackDefaults };
         webpackConfig.module.rules[0].use.unshift({

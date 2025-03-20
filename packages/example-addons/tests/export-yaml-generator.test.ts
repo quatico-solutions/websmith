@@ -24,7 +24,7 @@ describe("export-yaml-generator addon", () => {
         testObj.cleanUp();
     });
 
-    // TODO: BUG in addon? The test fails as the addon does not report on exported classes.
+    // TODO: Skipped Test: BUG in addon? The test fails as the addon does not report on exported classes.
     it.skip("should create additional input files and add them to compilation", () => {
         testObj
             .addProjectFromSource({
