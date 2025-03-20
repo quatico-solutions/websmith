@@ -85,7 +85,6 @@ export class CompilationEnv {
             );
         }
 
-        // TODO: Resolve compiler options
         this.compilerOptions = resolveCompilerOptions(this.system, {
             ...compilerOptions,
             reporter,
@@ -367,7 +366,6 @@ export class CompilationEnv {
             .filter((item, pos, self) => self.indexOf(item) == pos);
 
         addonsToCompile.forEach(curDir => {
-            // TODO: Resolve compiler options
             new Compiler(
                 {
                     ...resolveCompilerOptions(this.system, {

@@ -53,7 +53,7 @@ const resolveLoaderOptions = (
     );
 
     // TODO: Resolve compiler options
-    return Object.assign({}, options, createOptions(options), {
+    return Object.assign({}, createOptions(options), {
         instanceName,
         // Set default transpileOnly to true if there is an instance of ForkTsCheckerWebpackPlugin
         ...(hasForkTsCheckerWebpackPlugin && { transpileOnly: hasForkTsCheckerWebpackPlugin }),
