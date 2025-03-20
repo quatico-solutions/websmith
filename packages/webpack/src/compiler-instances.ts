@@ -4,13 +4,14 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { DefaultReporter } from "@quatico/websmith-core";
 import { type LoaderContext } from "webpack";
 import { CompilationQueue } from "./CompilationQueue";
 import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
-import { createOptions } from "./options";
 import { TsCompiler } from "./TsCompiler";
 import { addCompilationHooks } from "./webpack-hooks";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
+import ts from "typescript";
 
 export const getCompilerInstance = (
     options: WebsmithLoaderConfig,
@@ -21,8 +22,16 @@ export const getCompilerInstance = (
     const compiler = context._compiler;
     let instance = getInstanceFromCache(compiler, options.instanceName);
     if (!instance) {
-        // TODO: Resolve compiler options
-        instance = new TsCompiler(createOptions(options, undefined, undefined), options, dependencyCallback);
+        const system = ts.sys;
+        instance = new TsCompiler(
+            {
+                buildDir: system.getCurrentDirectory(),
+                cliArgs: { options: {}, fileNames: [], errors: [] },
+                reporter: new DefaultReporter(system),
+            },
+            options,
+            dependencyCallback
+        );
         if (compiler) {
             addCompilationHooks(compiler, options, {
                 websmithCompiler: instance,

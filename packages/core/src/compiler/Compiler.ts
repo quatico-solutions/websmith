@@ -92,7 +92,6 @@ export class Compiler {
     }
 
     public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
-        // TODO: This is a workaround, as the options are not correctly resolved otherwise.
         this.options = resolveCompilerOptions(this.system, { tsConfigFile: "./tsconfig.json", ...options }, undefined, loaderOptions);
         this.reporter = this.options.reporter;
 
