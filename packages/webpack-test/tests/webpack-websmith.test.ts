@@ -107,7 +107,7 @@ describe("webpack w/ websmith", () => {
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
-    // TODO: This test does not work for this webpack setup. Can we observe a change within the output chunk?
+    // TODO: Skipped Test: This test does not work for this webpack setup. Can we observe a change within the output chunk?
     it.skip("should generate additional files with addonDir and addon selected", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: { ...webpackDefaults },
