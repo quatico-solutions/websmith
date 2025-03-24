@@ -1,3 +1,9 @@
+/*
+ * ---------------------------------------------------------------------------------------------
+ *   Copyright (c) Quatico Solutions AG. All rights reserved.
+ *   Licensed under the MIT License. See LICENSE in the project root for license information.
+ * ---------------------------------------------------------------------------------------------
+ */
 import { type CompilerOptions as WebsmithOptions, DefaultReporter, Compiler as WebsmithCompiler } from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
