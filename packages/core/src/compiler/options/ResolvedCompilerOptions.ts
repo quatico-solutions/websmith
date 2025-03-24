@@ -228,19 +228,14 @@ const getProfile = (name?: string, config?: CompilationConfig): CompilationProfi
     return {};
 };
 
-const arrayMerge = (target: unknown[], source: unknown[], _options?: ArrayMergeOptions) => arrayUnique(source.concat(target));
-
-const arrayUnique = (array: unknown[]) => {
-    const result = array.concat();
-    for (let i = 0; i < result.length; ++i) {
-        for (let j = i + 1; j < result.length; ++j) {
-            if (result[i] === result[j]) {
-                result.splice(j--, 1);
-            }
-        }
-    }
-    return result;
-};
+/**
+ * Merges two arrays and removes duplicates.
+ *
+ * @param target - The target array.
+ * @param source - The source array.
+ * @returns A new array that is the result of merging the target and source arrays and removing duplicates.
+ */
+const arrayMerge = (target: unknown[], source: unknown[], _options?: ArrayMergeOptions) => [...new Set([...source, ...target])];
 
 const loadCompilationConfig = (
     options: Partial<CompilerOptions>,
