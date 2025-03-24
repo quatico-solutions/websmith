@@ -8,29 +8,34 @@
 
 [![CI](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml/badge.svg)](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml)  [![npm version](https://badge.fury.io/js/@quatico%2Fwebsmith-compiler.svg)](https://www.npmjs.com/search?q=%40quatico)
 
-This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It's a drop-in replacement for the `tsc` command and provides additional API for customizing the compilation process with addons. Provide your own compiler addons to modify the compilation input "before" the actual compilation process, during the compilation process or "after" compiled artifacts are created. An addon can
+This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It's a drop-in replacement for the `tsc` command with additional customization options for the compilation process. You can apply compiler addons to modify the compilation input "before", during and "after" compiled artifacts are created. Even non-script files can be processed during the compilation process. Use the `websmith` command with an addon:
 
-* consume the unmodified source files to generate additional information based on the original source code,
-* create additional new input files and add them to the compilation process, or
-* modify input files to change module dependencies and modify imports/exports.
+* To generate additional configuration or documentation based on the original source code,
+* To create additional new source files and add them to the compilation process, or
+* To change module dependencies with new or modified imports/exports.
 
-Compiler addons can also access all transpiled files as whole and reason about the entire compilation target. The standard API for TypeScript transformers is fully integrated, thus existing `ts.CustomTransformers` can be simply called from within every addon.
+Compiler addons can also access all transpiled files as whole and reason about the entire compilation target. The standard API for TypeScript transformers is fully integrated, thus existing `ts.CustomTransformers` can be simply called from within an addon.
 
 ## Getting started
 
+Whenever you use the `tsc` command to compile your TypeScript project, you can replace it with the `websmith` command to apply compiler addons.
+
 ### Installation
 
-Install the following packages to add websmith to your TypeScript project. For example, execute the following command in your command line environment using `pnpm`:
+Add websmith to your TypeScript project with the `@quatico/websmith-compiler` package. For example, use the following command with `pnpm`:
 
 ```bash
-pnpm add typescript @quatico/websmith-compiler @quatico/websmith-api --dev
+pnpm add --dev @quatico/websmith-compiler
 ```
 
-### Add websmith to package.json
+If you don't have added the "typescript" dependency yet, add it to your project too.
+
+### Use websmith in your package.json
 
 In your package.json, add the `websmith` command as your build target to the `scripts` section:
 
  ```json
+// ./package.json
  {
      //...
      "scripts": {
@@ -41,82 +46,94 @@ In your package.json, add the `websmith` command as your build target to the `sc
  }
  ```
 
-### Build your project
+The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation process with CLI arguments (e.g., `--addons`) or in the `websmith.config.json` file:
 
-The default configuration uses your `tsconfig.json` file to compile the TypeScript files and looks for compiler addons in the `./addons` directory.
+```json
+// ./websmith.config.json
+{
+    "addons": ["generate-client-proxies", "create-component-documentations"],
+}
+```
+
+Place your `websmith.config.json` file in the root of your project and add your addons to the `addons` directory next to it. Read more about addons in the [Customizing the compilation process](#customizing-the-compilation-process) section.
+
+### Use websmith with webpack
+
+You can use `websmith-loader` as drop-in replacement for the `ts-loader` to apply websmith addons to your TypeScript files.
+
+Install the `websmith-loader` package:
 
 ```bash
-pnpm build
+pnpm add --dev websmith-loader
+```
+
+In your webpack configuration, replace the `ts-loader` with the `websmith-loader`:
+
+```javascript
+module.exports = {
+    // ...
+    module: {
+        rules: [{ test: /\.tsx?$/, loader: 'websmith-loader' }],
+    },
+};
+```
+
+Add the `websmith-loader` to the `rules` section of your webpack configuration. The `websmith-loader` is configured with the `websmith.config.json` file in the root of your project or with the `config` option in the `websmith-loader` section:
+
+```javascript
+module.exports = {
+    // ...
+    module: {
+        rules: [{ test: /\.tsx?$/, loader: 'websmith-loader', options: { 
+            config: {
+                addonsDir: "./addons",
+                addons: ["export-yaml-configuration"],
+            },
+        } }],
+    },
+};
 ```
 
 ## Customizing the compilation process
 
-Add a compiler addon to generate new source files or restructure module dependencies before the actual compilation process. Use addons to process non-script files during the compilation, e.g., using Sass or PostCSS, or to generate documentation with YAML or Markdown and add them to the transpiled output.
+Compiler addons can be used for code generation, but also to process non-script files during the compilation, e.g. for style compilation with Sass or PostCSS, for documentation with YAML or Markdown.
 
-### Using compiler addons
+### Create a compiler addon
 
-An addon is a directory containing an ECMAScript module named `addon.ts` or `addon.js`. The file must have an exported function named `activate` that takes an `AddonContext` as its only parameter. Addons can register generators, processors or transformers to the compilation process:
+Websmith addons are ECMAScript modules with an `activate` function that takes an `AddonContext` as its only parameter. Install the `@quatico/websmith-api` package to use the `AddonContext` type:
+
+```bash
+pnpm add --dev @quatico/websmith-api
+```
+
+Create an directory e.g. `my-code-generator` in the `addons` folder in your project folder and add an ECMAScript module named `addon.ts` or `addon.js`:
 
 ```javascript
-// ./addons/foobar-transformer/addon.ts
+// ./addons/my-code-generator/addon.ts
 import { AddonContext } from '@quatico/websmith-api';
 import ts from "typescript";
 
 export const activate = (ctx: AddonContext) => {
     
-    // Use one of the register methods to add a generator, processor or transformer to the compilation process.
     ctx.registerGenerator((fileName: string, content: string): void => {
-        // for example, register a source generator
+        // for example, register a source generator to generate additional source inputs 
     });
     
     ctx.registerProcessor((fileName: string, content: string): string | never => {
-        // or, register a source processor
+        // or, register a source processor manipulate the source input before it's compiled
+    });
+
+    ctx.registerTransformer((options: ts.CustomTransformers): ts.CustomTransformers => {
+        // or, register a TypeScript transformer to manipulate the source input during the compilation
+    });
+
+    ctx.registerResultProcessor((fileNames: string[]): void => {
+        // or, register a result processor to manipulate the compiled output after the compilation
     });
 }
 ```
 
-The `activate` function is called when the compilation process is started.
-
-### Placing addons in your project
-
-Add for every addon a separate folder within the `./addons` directory. The folder name is used as addon name, if no explicit name is provided. The `addons` directory should be placed in the root of the project, i.e. next to your `tsconfig.json`. The `addons` directory is not part of your project's compilation process. You can specify a different location for your addons using the CLI argument `--addonsDir`.
-
-### Define which addons to use
-
-Use the CLI argument `--addons` to specify which addons to use. Provide a comma-separated list of addon names, i.e. the directory names of your addons.
-By default no addon is applied, even if addons are present in the `./addons` directory.
-
-### Provide a websmith configuration file
-
-Websmith looks for a `websmith.config.json` file in the root of your project. If it exists, it is used to configure the compilation process. The configuration file can be used to specify which addons to use. Provide a lists of addon names or define compilation profile to apply different addons for different profiles.
-
-Add an `addons` section to the `websmith.config.json` with the addon names to apply. All mentioned addons will be applied during the compilation:
-
-```json
-// ./websmith.config.json
-{ 
-    "addonsDir": "../my-addons",
-    "addons": ["foobar-transformer"],
-}
-```
-
-You can also define compilation profiles in the config file to use separate lists of addons for different compilation targets:
-
-```json
-// ./websmith.config.json
-{
-    "profiles": {
-        "client": {
-            "addons": ["generate-client-proxies", "create-component-documentation"],
-        },
-        "server": {
-            "addons": ["generate-service-functions"],
-        }
-    }
-}
-```
-
-Use `--profile` to run websmith with selected profile, e.g., `websmith --profile server`. If you use `--addons` in combination with `--profile`, the profile addons will be replaced by the addons provided with `--addons`. If you're having problems with addons not being correctly applied, please check the order of addon names. The order of addons in the config file is important! Addons are applied in the order they are defined.
+The file must have an exported function named `activate` that takes an `AddonContext` as its only parameter.
 
 ## Using compilation profiles
 
