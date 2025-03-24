@@ -135,6 +135,27 @@ export const activate = (ctx: AddonContext) => {
 
 The file must have an exported function named `activate` that takes an `AddonContext` as its only parameter.
 
+Read more about implementing addons in the [Write your own addon](docs/write-your-own-addon.md) section for detailed instructions and examples.
+
+### Find addon examples
+
+You can find a few examples for addons in the [@quatico/websmith-examples](https://github.com/quatico-solutions/websmith/tree/main/packages/example-addons) package.
+
+Install the `@quatico/websmith-examples` package to use the examples:
+
+```bash
+pnpm add --dev @quatico/websmith-examples
+```
+
+The `@quatico/websmith-examples` package contains the following examples:
+
+* `generate-client-proxies`: a simple addon to generate client proxies
+* `create-component-documentations`: a simple addon to create component documentations
+* `export-yaml-configuration`: a simple addon to export the configuration as YAML file
+* `foobar-added-generator`: a simple addon to generate additional source files
+* `foobar-export-processor`: a simple addon to process the compiled output after the compilation
+* `foobar-replace-transformer`: a simple addon to replace the source code during the compilation
+
 ## Using compilation profiles
 
 A compilation profile is a set of options that specify the environment for a compilation output. You can define a custom compilation profile by adding a `profiles` section to the `websmith.config.json` file. The `profiles` section contains a unique profile `name` and a set of options. The `name` is used to specify the profile when calling the websmith compiler. The options are used to configure the compilation process. The options contain the following sections:
@@ -174,6 +195,12 @@ An example for a custom compilation profile:
 }
 ```
 
-## Implementing compiler addons
+### Use a compilation profile
 
-See [Write your own addon](docs/write-your-own-addon.md) for detailed instructions and examples on how to write your own addon.
+To use a compilation profile, specify the profile name when calling the websmith compiler:
+
+```bash
+websmith --profile client
+```
+
+The compilation profile is applied to the compilation process and the addons are activated with the profile specific options.

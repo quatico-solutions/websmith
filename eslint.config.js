@@ -72,7 +72,7 @@ module.exports = [
                         ["@quatico/websmith-api", __dirname + "/packages/api/src"],
                         ["@quatico/websmith-compiler", __dirname + "/packages/compiler/src"],
                         ["@quatico/websmith-core", __dirname + "/packages/core/src"],
-                        ["@quatico/websmith-example-addons", __dirname + "/packages/example-addons/src"],
+                        ["@quatico/websmith-examples", __dirname + "/packages/example-addons/src"],
                         ["@quatico/websmith-node", __dirname + "/packages/node/src"],
                         ["@quatico/websmith-testing", __dirname + "/packages/testing/src"],
                         ["websmith-loader", __dirname + "/packages/webpack/src"],
