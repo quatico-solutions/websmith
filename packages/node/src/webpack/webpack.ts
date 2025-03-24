@@ -1,3 +1,9 @@
+/*
+ * ---------------------------------------------------------------------------------------------
+ *   Copyright (c) Quatico Solutions AG. All rights reserved.
+ *   Licensed under the MIT License. See LICENSE in the project root for license information.
+ * ---------------------------------------------------------------------------------------------
+ */
 import { type WebpackLoaderOptions } from "@quatico/websmith-core";
 import { type LoaderOptions as TsLoaderOptions } from "ts-loader/dist/interfaces";
 import { type Configuration } from "webpack";

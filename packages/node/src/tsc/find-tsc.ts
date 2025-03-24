@@ -1,3 +1,9 @@
+/*
+ * ---------------------------------------------------------------------------------------------
+ *   Copyright (c) Quatico Solutions AG. All rights reserved.
+ *   Licensed under the MIT License. See LICENSE in the project root for license information.
+ * ---------------------------------------------------------------------------------------------
+ */
 /* eslint-disable max-len */
 import os from "node:os";
 import path from "node:path";
