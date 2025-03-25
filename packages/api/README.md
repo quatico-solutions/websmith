@@ -4,63 +4,72 @@
    Licensed under the MIT License. See LICENSE in the project root for license information.
  ---------------------------------------------------------------------------------------------
 -->
-# websmith-api
+# @quatico/websmith-api
 
-The websmith API package provides interfaces and functionality to implement custom **addons** for the websmith compiler.
+The websmith API package provides interfaces and functionality to implement compiler **addons** to customize the compilation process.
 
-Visit the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
+Compiler addons can be used to modify the compilation artifacts before, during and after the compiled output is created. Even non-script files can be created and processed in the compilation process. Use the `websmith` command with an addon:
+
+* To generate additional configuration or documentation based on the original source code,
+* To create additional new source files and add them to the compilation process, or
+* To change module dependencies with new or modified imports/exports.
+
+Compiler addons can also access all transpiled files as whole and reason about the entire compilation target. The standard API for TypeScript transformers is fully integrated, thus existing `ts.CustomTransformers` can be simply called from within an addon.
+
+For a general introduction to websmith see the [websmith github repository](https://github.com/quatico-solutions/websmith).
 
 ## Getting started
 
+The websmith API package is a peer dependency of the [websmith compiler](https://github.com/quatico-solutions/websmith) and provides the interfaces and functionality to implement compiler addons.
+
 ### Installation
 
-Install the `websmith-api` package using npm:
+Install the API package using pnpm:
 
 ```sh
-npm i -D @quatico/websmith-api
+pnpm add --dev @quatico/websmith-api
 ```
 
-### Create an addon
+## Implementing compiler addons
 
-websmith addons are located by default within the `addons` folder. Add a named folder using your addon name, e.g., `addon-foo` and place within this folder an ES module called `addon.ts` with an activate function implementing the `AddonActivator` interface.
+Create an directory e.g. `my-code-generator` in the `addons` folder in your project folder and add an ECMAScript module named `addon.ts`:
 
 ```typescript
-// ./addons/addon-foo/addon.ts
+// ./addons/component-doc-generator/addon.ts
 import type { AddonContext, AddonActivator } from "@quatico/websmith-api";
 import { readFileSync, writeFileSync } from "fs";
 
-type FooConfig = {
+export type ComponentDocConfig = {
     apiCollectionPath: string;
 };
 
-export const activate: AddonActivator = (ctx: AddonContext) => {
-    // Use one of the register methods to add a generator, processor or transformer to the compilation process.
+export const activate: AddonActivator = (ctx: AddonContext<ComponentDocConfig>) => {
+    // Use one of the register methods to add a generator to the compilation process.
     ctx.registerGenerator((fileName: string, content: string): void => {
-        const { apiCollectionPath } = ctx.getProfileConfig() as FooConfig;
+        const { apiCollectionPath } = ctx.getProfileConfig();
         // Collect all TypeScript files containing foo in their filename
-        if (/\/.*foo.*\\.ts$/.test(fileName)) {
+        if (/\/.*Component.*\\.ts$/.test(fileName)) {
             writeFileSync(apiCollectionPath, readFileSync(apiCollectionPath).toString() + `\n- ${fileName}`);
         }
     });
 };
 ```
 
-### Integrate the addon in the websmith configuration
+The `addon.ts` file must export an `activate` function implementing the `AddonActivator` interface. The `AddonActivator` type is a function that takes an `AddonContext` object as argument. You can use the `AddonContext` object to register a "generator", "processor", transformer" or "resultProcessor to the compilation process.
 
-Register your addon by adding a config file `websmith.config.json` to your project folder. Add a `profiles` definition for your project with an `addons` property mentioning your addon:
+For more information on how to implement addons, see the [write your own addon](../../docs/write-your-own-addon.md) documentation.
+
+## Activate a compiler addon
+
+You can activate your addon by using the `--addons` command line parameter when calling the websmith compiler. Add the `--addons` parameter to the build command in the `package.json` file:
 
 ```json
-// websmith.config.json
+// ./package.json
 {
-    "profiles": {
-        "*": {
-            "addons": ["addon-foo"],
-            "config": {
-                "apiCollectionPath": "./foo-functions.yml"
-            }
-        }
+    "scripts": {
+        "build": "websmith --addons component-doc-generator"
     }
 }
 ```
 
-For more information, visit the extensive [Write your own addon](../../docs/write-your-own-addon.md) documentation.
+See the [compiler README]([../compiler/README.md](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md)) for more options on how to use addons.
