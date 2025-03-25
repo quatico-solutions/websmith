@@ -26,16 +26,16 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         // .argument("[files]", "relative path to the files that should be compiled")
         .showHelpAfterError("Add --help for additional information.")
         .description("Compiles typescript source code and applies addons to transform source before or after emit.")
-        .option("-a, --addons <addons>", "Comma-separated list of addons to apply. All found addons will be applied by default.")
+        .option("-a, --addons <addons>", "Comma-separated list of addons to apply. No addons are applied by default.")
         .option("-f, --addonsDir <directoryPath>", 'Directory path to the "addons" folder.', "./addons")
         .option("-c, --configFile <filePath>", 'File path to the "websmith.config.json".', "./websmith.config.json")
         .option("--debug", "Enable the output of debug information.", false)
         .option(
             "-p, --project <projectPath>",
-            "Compile the project given the path to its configuration file, or to a folder with a 'tsconfig.json'",
+            "Compile the project given the path to its configuration file, or to a folder with a 'tsconfig.json'.",
             "./tsconfig.json"
         )
-        .option("-o, --transpileOnly", "Enable the transpile only mode")
+        .option("-o, --transpileOnly", "Enable the transpile only mode.")
         .option("-l, --profile <profileName>", "Name of the profile to use with a specific compiler configuration and list of addons.")
         .option("-h, --help", "Print this message.", false)
         .option("-w, --watch", "Enable watch mode.", false)
