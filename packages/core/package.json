@@ -1,7 +1,7 @@
 {
     "name": "@quatico/websmith-core",
     "version": "0.6.3",
-    "description": "A frontend for the TypeScript compiler",
+    "description": "Shared library functions for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
     "main": "src/index.ts",
