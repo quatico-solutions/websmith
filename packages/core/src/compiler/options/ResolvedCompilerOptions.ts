@@ -1,3 +1,9 @@
+/*
+ * ---------------------------------------------------------------------------------------------
+ *   Copyright (c) Quatico Solutions AG. All rights reserved.
+ *   Licensed under the MIT License. See LICENSE in the project root for license information.
+ * ---------------------------------------------------------------------------------------------
+ */
 import { type CompilationProfile, type Reporter } from "@quatico/websmith-api";
 import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
