@@ -1,18 +1,24 @@
-import { compileOptions, compileSystem } from "../../test";
+import { ReporterMock } from "../../test";
+import { compileSystem } from "../testing";
+import { resolveCompilerOptions } from "./options";
 import { Compiler } from "./Compiler";
 
-describe("end-2-end compile", () => {
+describe("end-2-end compile w/ websmith", () => {
     it("should yield compiled file", () => {
         const { fileSystem: target } = compileSystem({
-            "tsconfig.json": "{}",
-            "src/one.ts": `whatever`,
-            "src/two.ts": `whatever`,
+            files: {
+                "tsconfig.json": "{}",
+                "src/one.ts": `whatever`,
+                "src/two.ts": `whatever`,
+            },
         });
 
         const actual = new Compiler(
-            compileOptions(target, {
+            resolveCompilerOptions(target, {
+                reporter: new ReporterMock(target),
                 tsConfig: { outDir: "./bin" },
             }),
+            undefined,
             target
         ).compile();
 

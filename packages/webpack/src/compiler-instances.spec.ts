@@ -5,8 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { NoReporter } from "@quatico/websmith-core";
-import { rmSync } from "fs";
-import { join } from "path";
+import fs from "node:fs";
+import path from "node:path";
 import webpack, { type Compiler, type LoaderContext } from "webpack";
 import { TsCompiler } from "./TsCompiler";
 import { getCompilerInstance } from "./compiler-instances";
@@ -14,7 +14,7 @@ import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
 
 let compiler: Compiler;
 let tsCompiler: TsCompiler;
-const projectDir = join(__dirname, "..");
+const projectDir = path.join(__dirname, "..");
 
 beforeEach(() => {
     compiler = webpack({});
@@ -29,21 +29,25 @@ beforeEach(() => {
             debug: false,
             watch: false,
         },
-        () => undefined,
-        { addonsDir: "./addons", configFile: "./websmith.config.json", instanceName: "target-instance" }
+        { configFile: "./websmith.config.json", instanceName: "target-instance" },
+        () => undefined
     );
 });
 
 afterEach(() => {
     compiler.close(() => undefined);
-    rmSync("./.build", { recursive: true, force: true });
+    fs.rmSync("./.build", { recursive: true, force: true });
 });
 
 describe("getCompilerInstance", () => {
     it("should create a TsCompiler instance w/o instance in cache", () => {
         const target = { _compiler: {} as Compiler } as LoaderContext<any>;
         const actual = getCompilerInstance(
-            { configFile: join(projectDir, "websmith.config.json"), project: join(projectDir, "tsconfig.json"), instanceName: "target-instance" },
+            {
+                tsConfigFile: path.join(projectDir, "tsconfig.json"),
+                configFile: path.join(projectDir, "websmith.config.json"),
+                instanceName: "target-instance",
+            },
             target,
             path => console.info(`dependency ${path} added`)
         );

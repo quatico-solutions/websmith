@@ -5,15 +5,15 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
-import { join } from "node:path";
+import path from "node:path";
 
-describe("export-yaml-generator", () => {
+describe("export-yaml-generator addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__/export-yaml-generator", {
-            compilerOptions: { tsConfig: { outDir: "dist" } },
+        testObj = compilationEnv("./__TEST__", {
+            compilerOptions: { tsConfig: { outDir: "dist", skipLibCheck: true } },
             virtual: false,
-        }).addAddon("export-yaml-generator", join(__dirname, "../src"));
+        }).addAddon("export-yaml-generator", path.join(__dirname, "../src"));
     });
 
     afterEach(() => {
@@ -24,7 +24,7 @@ describe("export-yaml-generator", () => {
         testObj.cleanUp();
     });
 
-    // TODO: BUG in addon? The test fails as the addon does not report on exported classes.
+    // TODO: Skipped Test: BUG in addon? The test fails as the addon does not report on exported classes.
     it.skip("should create additional input files and add them to compilation", () => {
         testObj
             .addProjectFromSource({
@@ -33,16 +33,9 @@ describe("export-yaml-generator", () => {
             })
             .compile();
 
-        const actual = testObj
-            .getCompiledFiles()
-            .getPaths()
-            .map(it => it.substring(it.indexOf("/__TEST__")));
+        const actual = testObj.getCompiledFiles().getPaths("/__TEST__");
 
-        expect(actual).toEqual([
-            "/__TEST__/export-yaml-generator/dist/bar.js",
-            "/__TEST__/export-yaml-generator/dist/foo.js",
-            "/__TEST__/export-yaml-generator/dist/output.yaml",
-        ]);
+        expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js", "/__TEST__/dist/output.yaml"]);
         expect(testObj.getCompiledFile("output.yaml")?.getContent()).toEqual(expect.stringContaining("exports: [Foo]"));
     });
 });

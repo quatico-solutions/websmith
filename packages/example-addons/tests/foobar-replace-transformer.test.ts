@@ -5,15 +5,15 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
-import { join } from "node:path";
+import path from "node:path";
 
-describe("foobar-replace-transformer", () => {
+describe("foobar-replace-transformer addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
-        testObj = compilationEnv("./__TEST__/foobar-replace-transformer", {
-            compilerOptions: { tsConfig: { outDir: "dist" } },
+        testObj = compilationEnv("./__TEST__", {
+            compilerOptions: { tsConfig: { outDir: "dist", skipLibCheck: true } },
             virtual: false,
-        }).addAddon("foobar-replace-transformer", join(__dirname, "../src"));
+        }).addAddon("foobar-replace-transformer", path.join(__dirname, "../src"));
     });
 
     afterEach(() => {
@@ -24,6 +24,27 @@ describe("foobar-replace-transformer", () => {
         testObj.cleanUp();
     });
 
+    it("should replace 'foobar' with 'barfoo'", () => {
+        testObj
+            .addProjectFromSource({
+                "target.ts": `
+                    function foobar(): void {
+                        console.log("Hello, Foo!");
+                    }
+                `,
+            })
+            .compile();
+
+        const actual = testObj.getCompiledFile("target.js")!.getContent();
+
+        expect(actual).toMatchInlineSnapshot(`
+            "function barfoo() {
+                console.log("Hello, Foo!");
+            }
+            "
+        `);
+    });
+
     it("should replace 'foo' with 'bar' in the output files", () => {
         testObj
             .addProjectFromSource({
@@ -32,12 +53,9 @@ describe("foobar-replace-transformer", () => {
             })
             .compile();
 
-        const actual = testObj
-            .getCompiledFiles()
-            .getPaths()
-            .map(it => it.substring(it.indexOf("/__TEST__")));
+        const actual = testObj.getCompiledFiles().getPaths("/__TEST__");
 
-        expect(actual).toEqual(["/__TEST__/foobar-replace-transformer/dist/bar.js", "/__TEST__/foobar-replace-transformer/dist/foo.js"]);
+        expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js"]);
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo"));
     });
 });

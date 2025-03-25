@@ -4,9 +4,10 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { compileSystem } from "../../../test";
+import { ErrorMessage } from "@quatico/websmith-api";
+import { compileSystem } from "../../testing";
 import { NoReporter } from "../NoReporter";
-import { resolveCompilationConfig } from "./resolve-compiler-config";
+import { resolveCompilationConfig, resolvePath } from "./resolve-compiler-config";
 
 describe("resolveCompilationConfig", () => {
     it("should return undefined w/ empty path", () => {
@@ -14,7 +15,7 @@ describe("resolveCompilationConfig", () => {
 
         const actual = resolveCompilationConfig("", new NoReporter(), target);
 
-        expect(actual).toBeUndefined();
+        expect(actual).toEqual({});
     });
 
     it("should return undefined w/ non-existing path", () => {
@@ -22,22 +23,164 @@ describe("resolveCompilationConfig", () => {
 
         const actual = resolveCompilationConfig("/does-not-exists.json", new NoReporter(), target);
 
-        expect(actual).toBeUndefined();
+        expect(actual).toEqual({});
     });
 
     it("should return undefined w/ existing path but invalid config file", () => {
-        const { fileSystem: target } = compileSystem({ "./invalid-config.json": "" });
+        const { fileSystem: target } = compileSystem({ files: { "./invalid-config.json": "" } });
 
         const actual = resolveCompilationConfig("./invalid-config.json", new NoReporter(), target);
 
-        expect(actual).toBeUndefined();
+        expect(actual).toEqual({});
     });
 
     it("should return defaults w/ existing path and empty config file", () => {
-        const { fileSystem: target } = compileSystem({ "./empty-config.json": "{}" });
+        const { fileSystem: target } = compileSystem({ files: { "./empty-config.json": JSON.stringify({}) } });
 
         const actual = resolveCompilationConfig("./empty-config.json", new NoReporter(), target);
 
         expect(actual).toEqual({});
+    });
+
+    it("should return config properties w/ existing path and full config", () => {
+        const { fileSystem: target } = compileSystem({
+            files: {
+                "./target-config.json": JSON.stringify({
+                    addons: ["addon1", "addon2"],
+                    addonsDir: "./addons",
+                    profiles: {
+                        profile1: {
+                            addons: ["other-addon"],
+                            tsConfig: {
+                                outDir: "./dist",
+                            },
+                        },
+                    },
+                    transpileOnly: true,
+                }),
+            },
+        });
+
+        const actual = resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+
+        expect(actual).toEqual({
+            addons: ["addon1", "addon2"],
+            addonsDir: "/addons",
+            profiles: {
+                profile1: {
+                    addons: ["other-addon", "addon1", "addon2"],
+                    tsConfig: {
+                        outDir: "/dist",
+                    },
+                },
+            },
+            transpileOnly: true,
+        });
+    });
+
+    it("should throw error w/ non-existing profile dependencies", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+
+        const { fileSystem } = compileSystem({
+            files: {
+                "./target-config.json": JSON.stringify({
+                    profiles: {
+                        profile1: {
+                            depends: ["unknown-profile"],
+                        },
+                    },
+                }),
+            },
+        });
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), fileSystem);
+
+        expect(targetFn).toHaveBeenCalledWith(new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'."));
+    });
+
+    it("should throw error w/ existing and non-existing profile dependencies", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+
+        const { fileSystem } = compileSystem({
+            files: {
+                "./target-config.json": JSON.stringify({
+                    profiles: {
+                        profile1: {
+                            depends: ["unknown-profile", "profile2"],
+                            tsConfig: {
+                                outDir: "./dist",
+                            },
+                        },
+                        profile2: {
+                            tsConfig: {
+                                outDir: "./dist",
+                            },
+                        },
+                    },
+                }),
+            },
+        });
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), fileSystem);
+
+        expect(targetFn).toHaveBeenCalledWith(new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'."));
+    });
+});
+
+describe("resolvePath", () => {
+    const { fileSystem } = compileSystem();
+
+    it("returns valid path relative to basePath", () => {
+        const actual = resolvePath(fileSystem, "./", "./src");
+
+        expect(actual).toEqual("/src");
+    });
+
+    it("returns valid path additional basePath and relative path", () => {
+        const actual = resolvePath(fileSystem, "./target", "./src");
+
+        expect(actual).toEqual("/target/src");
+    });
+
+    it("returns valid path with absolute path and absolute path", () => {
+        const actual = resolvePath(fileSystem, "/target", "/src");
+
+        expect(actual).toEqual("/src");
+    });
+
+    it("returns valid path with absolute path", () => {
+        const actual = resolvePath(fileSystem, "/target");
+
+        expect(actual).toEqual("/target");
+    });
+
+    it("returns valid path with absolute path and overlapping relative path", () => {
+        const actual = resolvePath(fileSystem, "/target/src", "./src");
+
+        expect(actual).toEqual("/target/src");
+    });
+
+    it("returns valid path with relative path and overlapping relative path", () => {
+        const actual = resolvePath(fileSystem, "./target/src", "./src");
+
+        expect(actual).toEqual("/target/src");
+    });
+
+    it("returns valid path with relative path and multiple overlapping segments", () => {
+        const actual = resolvePath(fileSystem, "./target/expected/src", "./expected/src");
+
+        expect(actual).toEqual("/target/expected/src");
+    });
+
+    it("returns valid path with relative path and multiple overlapping filepath segments", () => {
+        const actual = resolvePath(fileSystem, "./target/expected/src", "./expected/src/target/index.ts");
+
+        expect(actual).toEqual("/target/expected/src/target/index.ts");
+    });
+
+    it("returns valid path with relative path and overlapping file path", () => {
+        const actual = resolvePath(fileSystem, "./target/src", "./src/index.ts");
+
+        expect(actual).toEqual("/target/src/index.ts");
     });
 });

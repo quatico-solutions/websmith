@@ -5,29 +5,23 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type Reporter } from "@quatico/websmith-api";
-import {
-    type CompilerOptions,
-    NoReporter,
-    resolveCompilationConfig,
-    resolveTargets,
-    resolveProjectConfig as resolveTsConfig,
-    updateCompilerOptions,
-} from "@quatico/websmith-core";
-import { dirname } from "node:path";
+import { type CompilerOptions, NoReporter, parsedCommandLine, resolveCompilationConfig, resolvePaths, resolveProfile } from "@quatico/websmith-core";
+import path from "node:path";
 import ts from "typescript";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
+// TODO: Resolve compiler options
 export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
-    const { buildDir, config, configFile, debug = false, project = "./tsconfig.json", targets = ["*"], tsConfig, transpileOnly } = args;
+    const { config, configFile, debug = false, tsConfigFile = "./tsconfig.json", profile, tsConfig, transpileOnly } = args;
 
-    const cliArgs = resolveTsConfig(project, system);
+    const cliArgs = parsedCommandLine(tsConfigFile, args, system);
     cliArgs.options = { ...cliArgs.options, ...tsConfig };
     const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system) : undefined;
 
-    const projectDirectory = (configFile && dirname(configFile)) ?? (cliArgs.raw?.configFilePath && dirname(cliArgs.raw?.configFilePath));
-    cliArgs.options.outDir = system.resolvePath(cliArgs.options.outDir ?? buildDir ?? "./lib");
+    const projectDirectory = (configFile && path.dirname(configFile)) ?? (cliArgs.raw?.configFilePath && path.dirname(cliArgs.raw?.configFilePath));
+    cliArgs.options.outDir = system.resolvePath(cliArgs.options.outDir ?? "./lib");
     if (projectDirectory) {
-        cliArgs.options = updateCompilerOptions(cliArgs.options, system, projectDirectory);
+        cliArgs.options = resolvePaths(cliArgs.options, projectDirectory, system);
     }
 
     if (cliArgs.options.sourceMap === false) {
@@ -44,13 +38,13 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
     }
 
     return {
-        buildDir: buildDir ?? system.getCurrentDirectory(),
+        buildDir: system.getCurrentDirectory(),
         cliArgs,
         ...(mergedConfig && { config: mergedConfig }),
         ...(configFile && { configFile }),
         debug,
         reporter,
-        targets: resolveTargets(targets, compilationConfig, reporter),
+        profile: resolveProfile(profile, compilationConfig, reporter),
         tsConfig: cliArgs.options,
         watch: false,
     };

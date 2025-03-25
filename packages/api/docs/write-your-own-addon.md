@@ -17,7 +17,7 @@ Depending on the purpose of your addon, you can use generators, processors or tr
 
 - `Generators` are executed before everything else and receive an unmodified source file, regardless of how many other generators are executed before. They can create additional source input or other output files that are not processed by the TypeScript compiler. `Generators` cannot alter the source code, giving every Generator the guarantee to receive the unmodified source as created by the developer. `Generators` are executed once per file, before all other processors or transformers.
 - `Processors` can consume source files, possibly modified by prior processors, and input files created by `Generators`. They can modify all aspects of an input file, even change module dependencies and modify imports/exports. `Processors` are executed once per file, after all `Generators` but before the standard TypeScript compilation.
-- `ResultProcessors` have access to **all** unmodified and transformed source files from the compilation process. They cannot alter the source files, but can consume to the processed source code and compilation results. `ResultProcessors` are executed once per target after the actual compilation is completed.
+- `ResultProcessors` have access to **all** unmodified and transformed source files from the compilation process. They cannot alter the source files, but can consume to the processed source code and compilation results. `ResultProcessors` are executed once per profile after the actual compilation is completed.
 - `Transformers` can be used to alter the generated JavaScript result during the transpilation. They are merged ("before", "after", "afterDeclarations") and executed together once per file, after the `Processors`. `Transformers` are standard TypeScript [CustomTransformers](https://github.com/microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter) that allow you to modify the code as the TypeScript to JavaScript transpilation takes place.
 
 ### 1.1 What kind to use?
@@ -38,7 +38,7 @@ The following list should help you to decide what kind to use for your purpose:
 The following example shows how to implement a `Generator` that creates additional input files for the compilation:
 
 ```typescript
-// ./addons/example-generator/addon.ts
+// ./addons/foo-added-generator/addon.ts
 import { AddonContext, InfoMessage } from "@quatico/websmith-api";
 import { basename, dirname, extname, join } from "path";
 
@@ -69,7 +69,7 @@ export const activate = (ctx: AddonContext) => {
 The following example shows how to implement a `Processor` that modifies the exports of "foobar" functions:
 
 ```typescript
-// ./addons/example-processor/addon.ts
+// ./addons/foobar-export-processor/addon.ts
 import { AddonContext } from "@quatico/websmith-api";
 import ts from "typescript";
 
@@ -112,14 +112,14 @@ export const activate = (ctx: AddonContext) => {
 
 ## 4 Implement a ResultProcessor
 
-`ResultProcessors` follow the same approach as `Generator` but are executed after the compilation is completed. They are executed once per target, not once per file. A `ResultProcessor` can access the processed source file content, possibly modified by processors with `ctx.getFileContent()`, and the unmodified source file content with `ctx.getSystem().readFile()`. `ResultProcessors` are executed executed only once **per target**, not once **per file**.
+`ResultProcessors` follow the same approach as `Generator` but are executed after the compilation is completed. They are executed once per profile, not once per file. A `ResultProcessor` can access the processed source file content, possibly modified by processors with `ctx.getFileContent()`, and the unmodified source file content with `ctx.getSystem().readFile()`. `ResultProcessors` are executed executed only once **per profile**, not once **per file**.
 
 ### 4.1 Example ResultProcessor
 
 The following example shows how to implement a `ResultProcessor` that creates JSON data with found function names:
 
 ```typescript
-// ./addons/example-result-processor/addon.ts
+// ./addons/function-json-result-processor/addon.ts
 import { AddonContext, InfoMessage } from "@quatico/websmith-api";
 import { basename, extname, join } from "path";
 import ts from "typescript";
@@ -183,7 +183,7 @@ VisualStudio Code users can leverage the extension [TypeScript AST Explorer](htt
 The following example shows how to implement a `Transformer` that modifies the source code inside a module:
 
 ```typescript
-// ./addons/example-transformer/addon.ts
+// ./addons/foobar-replace-transformer/addon.ts
 import { AddonContext } from "@quatico/websmith-api";
 import ts from "typescript";
 
@@ -221,7 +221,7 @@ Websmith addons receive the `AddonContext` in the `activate` function. The `Addo
 - the current compilation program (`ctx.getProgram()`)
 - the reporter (`ctx.getReporter()`)
 - the command-line options used to run the compiler (`ctx.getConfig()`)
-- the configuration specific for this compilation target (`ctx.getTargetConfig()`)
+- the configuration specific for this compilation profile (`ctx.getProfileConfig()`)
 - the up to date input file content (`ctx.getFileContent(filePath)`)
 
 ### 6.2 Error reporting
@@ -260,7 +260,7 @@ boundary System
     create AddonContext
     compiler -> AddonContext: compile
     activate AddonContext
-    loop for each target
+    loop for each profile
         loop for each source code file
             AddonContext -> AddonContext: read(fileName)
             create sourceFiles

@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { join } from "node:path";
+import path from "node:path";
 import type ts from "typescript";
 
 type SourcePath = {
@@ -61,7 +61,7 @@ const copyFile = (source: SourceFilePath, target: TargetPath) => {
             // kind === "project"
             filePath = srcPath.substring(srcPath.indexOf(subDirName) + subDirName.length + 1);
         }
-        const targetPath = join(target.path, filePath);
+        const targetPath = path.join(target.path, filePath);
         target.system.writeFile(targetPath, fileContent);
     }
 };

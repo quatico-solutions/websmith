@@ -6,14 +6,14 @@
  */
 
 import { webpack } from "@quatico/websmith-node";
-import { type WebsmithLoaderOptions } from "@quatico/websmith-webpack";
-import fs, { readdirSync, readFileSync, rmSync } from "node:fs";
-import path, { resolve } from "node:path";
+import fs from "node:fs";
+import path from "node:path";
 import ts from "typescript";
+import { getOutput, writeWebsmithConfig } from "./test-files";
 
 const OUTPUT_DIR = path.join(__dirname, "..", "lib");
 const SOURCE_DIR = path.join(__dirname, "..", "src");
-const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "lib");
+const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
 
 const tsDefaults = {
     moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -32,10 +32,10 @@ const webpackDefaults = {
                 exclude: /node_modules/,
                 use: [
                     {
-                        loader: require.resolve("@quatico/websmith-webpack"),
+                        loader: require.resolve("websmith-loader"),
                         options: {
                             transpileOnly: true,
-                            project: path.join(__dirname, "..", "tsconfig.json"),
+                            tsConfigFile: path.join(__dirname, "..", "tsconfig.json"),
                         },
                     },
                     {
@@ -53,18 +53,15 @@ const webpackDefaults = {
 
 describe("project bundling", () => {
     afterEach(() => {
-        rmSync(resolve(OUTPUT_DIR), { recursive: true, force: true });
+        fs.rmSync(path.resolve(OUTPUT_DIR), { recursive: true, force: true });
     });
 
     it("yields bundled output", async () => {
-        writeWebsmithOptions({
-            config: {
-                addonsDir: ADDONS_DIR,
-                targets: {
-                    noWrite: {
-                        writeFile: false,
-                        addons: ["export-yaml-generator"],
-                    },
+        writeWebsmithConfig({
+            addonsDir: ADDONS_DIR,
+            profiles: {
+                noWrite: {
+                    addons: ["export-yaml-generator"],
                 },
             },
         });
@@ -86,12 +83,11 @@ describe("project bundling", () => {
             },
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
-                targets: ["noWrite"],
-                webpackTarget: "noWrite",
+                profile: "noWrite",
             },
         });
 
-        expect(readdirSync(OUTPUT_DIR)).toEqual([
+        expect(fs.readdirSync(OUTPUT_DIR)).toEqual([
             "functions.js",
             "functions.js.map",
             "main.js",
@@ -100,21 +96,12 @@ describe("project bundling", () => {
             "websmith.config.json",
         ]);
 
-        const expected = readFileSync(resolve(OUTPUT_DIR, "output.yaml")).toString();
+        const expected = getOutput("output.yaml");
         [
-            `-file: "${resolve(SOURCE_DIR, "index.tsx")}"\nexports: [render]`,
-            `-file: "${resolve(SOURCE_DIR, "functions/getDate.ts")}"\nexports: [getDate]`,
-            `-file: "${resolve(SOURCE_DIR, "model/index.ts")}"\nexports: []`,
-            `-file: "${resolve(SOURCE_DIR, "model/create-message.ts")}"\nexports: [createMessage]`,
+            `-file: "${path.resolve(SOURCE_DIR, "index.tsx")}"\nexports: [render]`,
+            `-file: "${path.resolve(SOURCE_DIR, "functions/getDate.ts")}"\nexports: [getDate]`,
+            `-file: "${path.resolve(SOURCE_DIR, "model/index.ts")}"\nexports: []`,
+            `-file: "${path.resolve(SOURCE_DIR, "model/create-message.ts")}"\nexports: [createMessage]`,
         ].forEach(it => expect(expected).toContain(it));
     });
 });
-
-const writeWebsmithOptions = (options: Partial<WebsmithLoaderOptions>) => {
-    fs.mkdirSync(OUTPUT_DIR, {
-        recursive: true,
-    });
-    fs.writeFileSync(path.join(OUTPUT_DIR, "websmith.config.json"), JSON.stringify(options), {
-        encoding: "utf-8",
-    });
-};

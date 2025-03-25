@@ -17,7 +17,7 @@ Visit the [websmith github repository](https://github.com/quatico-solutions/webs
 Install the websmith webpack loader using npm:
 
 ```sh
-npm i -D @quatico/websmith-webpack
+npm i -D websmith-loader
 ```
 
 ### Add websmith configuration
@@ -27,20 +27,19 @@ A `websmith.config.json` file is needed to configure which addons should be used
 ```json
 // websmith.config.json
 {
-    "targets": {
+    "profiles": {
         "executeAddons": {
             "addons": ["my-addon"],
-            "writeFile": false,
         },
     }
 }
 ```
 
-**Note:** The webpack loader will expect a target called `executeAddons` which we need to configure in the webpack configuration.
+**Note:** The webpack loader will expect a profile called `executeAddons` which we need to configure in the webpack configuration.
 
 ### Add webpack configuration
 
-Now we can use the `@quatico/websmith-webpack` loader and the websmith configuration to configure webpack.
+Now we can use the `websmith-loader` loader and the websmith configuration to configure webpack.
 
 ```javascript
 // webpack.config.js
@@ -57,12 +56,13 @@ module.exports = {
                 exclude: [/node_modules/],
                 use: [
                     {
-                        loader: "@quatico/websmith-webpack",
+                        loader: "websmith-loader",
                         options: {
-                            project: join(__dirname, "tsconfig.json"),
-                            config,
-                            targets: "executeAddons",
-                            webpackTarget: "executeAddons",
+                            tsConfigFile: join(__dirname, "tsconfig.json"),
+                            config: {
+                                addonsDir: join(__dirname, "addons"),
+                            },
+                            profile: "executeAddons",
                         },
                     },
                 ],
@@ -75,7 +75,7 @@ module.exports = {
 
 ### Bundle your project
 
-You can run webpack in one of your build targets with:
+You can run webpack in one of your build profiles with:
 
 ```sh
 webpack

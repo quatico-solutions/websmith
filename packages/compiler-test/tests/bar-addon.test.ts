@@ -5,11 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { compilationEnv } from "@quatico/websmith-testing";
-import { join } from "node:path";
+import path from "node:path";
 
-describe("test-project-foo", () => {
+describe("compile test-project-foo w/ compilationEnv", () => {
     it("should install addon successfully", () => {
-        const testObj = compilationEnv("__TEST__").addAddon("foo-addon", join(__dirname, "../test-data/addons"));
+        const testObj = compilationEnv("__TEST__").addAddon("foo-addon", path.join(__dirname, "../test-data/addons"));
 
         const actual = testObj.getActiveAddons("*").getNames();
 
@@ -17,8 +17,8 @@ describe("test-project-foo", () => {
     });
 
     it("should contain source file", () => {
-        const testObj = compilationEnv("__TEST__").addProjectFile(
-            "src/foo.ts",
+        const testObj = compilationEnv("__TEST__").addSourceFile(
+            "foo.ts",
             `
                 export const foo = () => {
                     console.log("foo");
@@ -38,7 +38,7 @@ describe("test-project-foo", () => {
     });
 
     it("should compile source project from disk", () => {
-        const actual = compilationEnv("__TEST__").addProjectFromDisk("test-project-foo", join(__dirname, "../test-data/projects")).compile();
+        const actual = compilationEnv("__TEST__").addProjectFromDisk("test-project-foo", path.join(__dirname, "../test-data/projects")).compile();
 
         expect(actual.getCompiledFile("foo.js")!.getContent()).toMatchInlineSnapshot(`
             "export const foo = () => {
@@ -49,8 +49,8 @@ describe("test-project-foo", () => {
     });
 
     it("should compile source file content", () => {
-        const testObj = compilationEnv("__TEST__").addProjectFile(
-            "src/foo.ts",
+        const testObj = compilationEnv("__TEST__").addSourceFile(
+            "foo.ts",
             `
             export const foo = () => {
                 console.log("foo");

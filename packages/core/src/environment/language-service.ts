@@ -23,20 +23,20 @@ import type { VersionedFile } from "./VersionedFile";
  * TODO: For support of incremental parsing, we should NOT create a new snapshot every time.
  *
  * @param sourceFiles
- * @param options
+ * @param tsConfig
  * @param compilerHost
  * @param system
  */
 export const createLanguageServiceHost = (
     sourceFiles: { [name: string]: VersionedFile },
-    options: ts.CompilerOptions,
+    tsConfig: ts.CompilerOptions,
     compilerHost: ts.CompilerHost,
     system: ts.System,
     transformers?: ts.CustomTransformers
 ): ts.LanguageServiceHost => ({
     ...compilerHost,
     fileExists: system.fileExists,
-    getCompilationSettings: () => options,
+    getCompilationSettings: () => tsConfig,
     getCurrentDirectory: () => process.cwd(),
     getCustomTransformers: () => transformers,
     getDefaultLibFileName: opts => ts.getDefaultLibFilePath(opts),
@@ -68,13 +68,13 @@ export const createLanguageServiceHost = (
  * code that has changed.
  *
  * @param sourceFiles
- * @param options
+ * @param tsConfig
  * @param system
  * @param transformers
  */
 export const createLanguageService = (
     sourceFiles: { [name: string]: VersionedFile },
-    options: ts.CompilerOptions,
+    tsConfig: ts.CompilerOptions,
     system: ts.System,
     transformers?: ts.CustomTransformers
-) => ts.createLanguageService(createLanguageServiceHost(sourceFiles, options, ts.createCompilerHost(options), system, transformers));
+) => ts.createLanguageService(createLanguageServiceHost(sourceFiles, tsConfig, ts.createCompilerHost(tsConfig), system, transformers));

@@ -5,8 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { compileSystem } from "../../test";
-import { resolveProjectConfig } from "../compiler";
+import { compileSystem } from "../testing";
+import { parsedCommandLine } from "../compiler";
 import { NoReporter } from "../compiler/NoReporter";
 import { createWatchHost } from "./compile-service";
 
@@ -14,7 +14,7 @@ describe("createWatchHost", () => {
     describe("createHash", () => {
         it("returns same hash code", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             expect(testObj.createHash!("Foobar")).toHaveLength(64);
@@ -24,7 +24,7 @@ describe("createWatchHost", () => {
     describe("directoryExists", () => {
         it("returns false for non-existing path", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.directoryExists!("does-not-exist");
@@ -33,8 +33,8 @@ describe("createWatchHost", () => {
         });
 
         it("returns true for existing path", () => {
-            const { fileSystem: target } = compileSystem({ "folder/one.js": `class One {}` });
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const { fileSystem: target } = compileSystem({ files: { "folder/one.js": `class One {}` } });
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.directoryExists!("folder");
@@ -46,7 +46,7 @@ describe("createWatchHost", () => {
     describe("fileExists", () => {
         it("returns false for non-existing path", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.fileExists("does-not-exist.js");
@@ -55,8 +55,8 @@ describe("createWatchHost", () => {
         });
 
         it("returns true for existing path", () => {
-            const { fileSystem: target } = compileSystem({ "folder/one.js": `class One {}` });
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const { fileSystem: target } = compileSystem({ files: { "folder/one.js": `class One {}` } });
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.fileExists("folder/one.js");
@@ -68,7 +68,7 @@ describe("createWatchHost", () => {
     describe("getCurrentDirectory", () => {
         it("returns root directory", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             expect(testObj.getCurrentDirectory()).toBe("/");
@@ -78,7 +78,7 @@ describe("createWatchHost", () => {
     describe("getDefaultLibFileName", () => {
         it("returns lib.es2015.d.ts", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.getDefaultLibFileName(config.options);
@@ -90,7 +90,7 @@ describe("createWatchHost", () => {
     describe("getDirectories", () => {
         it("returns empty array for non-existing path", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.getDirectories!("does-not-exist");
@@ -100,11 +100,13 @@ describe("createWatchHost", () => {
 
         it("returns file path array for existing path with content", () => {
             const { fileSystem: target } = compileSystem({
-                "folder/one.js": `class One {}`,
-                "folder/two.js": `class Two {}`,
-                "folder/foo/three.js": `class Three {}`,
+                files: {
+                    "folder/one.js": `class One {}`,
+                    "folder/two.js": `class Two {}`,
+                    "folder/foo/three.js": `class Three {}`,
+                },
             });
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.getDirectories!("folder");
@@ -114,11 +116,13 @@ describe("createWatchHost", () => {
 
         it("returns empty array for existing path with no directories", () => {
             const { fileSystem: target } = compileSystem({
-                "folder/one.js": `class One {}`,
-                "folder/two.js": `class Two {}`,
-                "folder/foo/three.js": `class Three {}`,
+                files: {
+                    "folder/one.js": `class One {}`,
+                    "folder/two.js": `class Two {}`,
+                    "folder/foo/three.js": `class Three {}`,
+                },
             });
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.getDirectories!("folder/foo");
@@ -129,8 +133,8 @@ describe("createWatchHost", () => {
 
     describe("getNewLine", () => {
         it("return same new line character", () => {
-            const { fileSystem: target } = compileSystem({ "tsconfig.json": "{}" });
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const { fileSystem: target } = compileSystem({ files: { "tsconfig.json": "{}" } });
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             expect(testObj.getNewLine()).toBe("\n");
@@ -139,8 +143,8 @@ describe("createWatchHost", () => {
 
     describe("useCaseSensitiveFileNames", () => {
         it("return same value", () => {
-            const { fileSystem: target } = compileSystem({}, { useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames });
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const { fileSystem: target } = compileSystem({ useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames });
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             expect(testObj.useCaseSensitiveFileNames()).toBe(ts.sys.useCaseSensitiveFileNames);
@@ -150,7 +154,7 @@ describe("createWatchHost", () => {
     describe("readDirectory", () => {
         it("returns empty array for non-existing directory path", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.readDirectory!("does-not-exist", [".scss"], [], []);
@@ -160,11 +164,13 @@ describe("createWatchHost", () => {
 
         it("returns empty array for existing directory with non-matching file names", () => {
             const { fileSystem: target } = compileSystem({
-                "folder/one.js": `class One {}`,
-                "folder/two.js": `class Two {}`,
-                "folder/foo/three.js": `class Three {}`,
+                files: {
+                    "folder/one.js": `class One {}`,
+                    "folder/two.js": `class Two {}`,
+                    "folder/foo/three.js": `class Three {}`,
+                },
             });
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.readDirectory!("folder/foo", [".scss"], [], []);
@@ -174,11 +180,13 @@ describe("createWatchHost", () => {
 
         it("returns file paths for existing directory and matching file names", () => {
             const { fileSystem: target } = compileSystem({
-                "folder/one.js": `class One {}`,
-                "folder/two.js": `class Two {}`,
-                "folder/foo/three.js": `class Three {}`,
+                files: {
+                    "folder/one.js": `class One {}`,
+                    "folder/two.js": `class Two {}`,
+                    "folder/foo/three.js": `class Three {}`,
+                },
             });
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.readDirectory!("folder/foo", [".js"], [], []);
@@ -190,7 +198,7 @@ describe("createWatchHost", () => {
     describe("readFile", () => {
         it("returns undefined for non-existing file", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.readFile("non-existing.js");
@@ -200,9 +208,9 @@ describe("createWatchHost", () => {
 
         it("returns file content for existing file", () => {
             const { fileSystem: target } = compileSystem({
-                "folder/one.js": `class One {}`,
+                files: { "folder/one.js": `class One {}` },
             });
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.readFile("folder/one.js");
@@ -214,7 +222,7 @@ describe("createWatchHost", () => {
     describe("realpath", () => {
         it("returns input path with relative path", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.realpath!("./whatever.js");
@@ -224,7 +232,7 @@ describe("createWatchHost", () => {
 
         it("returns input path with absolute path", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.realpath!("/foobar/whatever.js");
@@ -234,7 +242,7 @@ describe("createWatchHost", () => {
 
         it("returns absolute path with directory path", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.realpath!("foobar");
@@ -244,7 +252,7 @@ describe("createWatchHost", () => {
 
         it("returns input path with file path", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.realpath!("foobar.tsx");
@@ -254,7 +262,7 @@ describe("createWatchHost", () => {
 
         it("returns current directory with empty path", () => {
             const { fileSystem: target } = compileSystem();
-            const config = resolveProjectConfig("tsconfig.json", target);
+            const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.realpath!("");

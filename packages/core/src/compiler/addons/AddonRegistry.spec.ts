@@ -6,13 +6,14 @@
  */
 import { WarnMessage } from "@quatico/websmith-api";
 import type ts from "typescript";
-import { ReporterMock, compileSystem } from "../../../test";
+import { ReporterMock } from "../../../test";
+import { compileSystem } from "../../testing";
 import { AddonRegistry } from "./AddonRegistry";
 
 let system: ts.System;
 let reporter: ReporterMock;
 beforeEach(() => {
-    system = compileSystem({}, { withDefaultFiles: false }).fileSystem;
+    system = compileSystem({ addLibDefaults: false }).fileSystem;
     reporter = new ReporterMock(system);
 });
 
@@ -92,18 +93,18 @@ describe("getAvailableAddons", () => {
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "does-not-exist".'));
     });
 
-    it("reports warning w/ target config and non-existing addons name", () => {
+    it("reports warning w/ profile config and non-existing addons name", () => {
         system.createDirectory("./addons");
         reporter.reportDiagnostic = jest.fn();
 
         new AddonRegistry({
             addonsDir: "./addons",
-            targets: { target: { addons: ["does-not-exist"] } },
+            profiles: { target: { addons: ["does-not-exist"] } },
             reporter,
             system,
         }).getAvailableAddons("target");
 
-        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "target": "does-not-exist".'));
+        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "target": "does-not-exist".'));
     });
 });
 
@@ -193,9 +194,9 @@ describe("getExpectedAddons", () => {
         expect(testObj.getExpectedAddons()).toEqual(["one", "two", "three"]);
     });
 
-    it("returns target addons w/ target", () => {
+    it("returns profile addons w/ profile name", () => {
         const testObj = new AddonRegistry({
-            targets: { target: { addons: ["one", "two", "three"] } },
+            profiles: { target: { addons: ["one", "two", "three"] } },
             addonsDir: "./empty",
             reporter,
             system,
@@ -205,9 +206,9 @@ describe("getExpectedAddons", () => {
         expect(testObj.getExpectedAddons("target")).toEqual(["one", "two", "three"]);
     });
 
-    it("returns empty w/ target and no addons", () => {
+    it("returns empty w/ profile name and no addons", () => {
         const testObj = new AddonRegistry({
-            targets: { target: { addons: [] } },
+            profiles: { target: { addons: [] } },
             addonsDir: "./empty",
             reporter,
             system,
@@ -217,9 +218,9 @@ describe("getExpectedAddons", () => {
         expect(testObj.getExpectedAddons("target")).toHaveLength(0);
     });
 
-    it("returns empty w/ target and no target", () => {
+    it("returns empty w/ profile and no profile name", () => {
         const testObj = new AddonRegistry({
-            targets: { target: { addons: ["one", "two", "three"] } },
+            profiles: { target: { addons: ["one", "two", "three"] } },
             addonsDir: "./empty",
             reporter,
             system,
@@ -230,31 +231,6 @@ describe("getExpectedAddons", () => {
     });
 });
 
-describe("getMissingAddons", () => {
-    it("returns empty w/o addons", () => {
-        const testObj = new AddonRegistry({ addonsDir: "./target", reporter, system });
-
-        // @ts-expect-error private property access
-        expect(testObj.getMissingAddons()).toHaveLength(0);
-    });
-
-    it("returns missing addons w/ missing addons", () => {
-        const testObj = new AddonRegistry({ addons: ["missing"], addonsDir: "./target", reporter, system });
-
-        // @ts-expect-error private property access
-        expect(testObj.getMissingAddons()).toEqual(["missing"]);
-    });
-
-    it("returns missing addons w/ missing and available addons", () => {
-        createAddon("target/expected/addon");
-
-        const testObj = new AddonRegistry({ addons: ["missing", "expected"], addonsDir: "./target", reporter, system });
-
-        // @ts-expect-error private property access
-        expect(testObj.getMissingAddons()).toEqual(["missing"]);
-    });
-});
-
 describe("reportMissingAddons", () => {
     it("reports missing addons directory", () => {
         reporter.reportDiagnostic = jest.fn();
@@ -262,7 +238,7 @@ describe("reportMissingAddons", () => {
         const testObj = new AddonRegistry({ addonsDir: "./expected", reporter, system });
 
         // @ts-expect-error private property access
-        testObj.reportMissingAddons(undefined, []);
+        testObj.reportMissingAddons(undefined);
 
         expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "./expected" does not exist.'));
     });
@@ -286,27 +262,27 @@ describe("reportMissingAddons", () => {
         expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
     });
 
-    it("reports missing target addons w/ missing target addons", () => {
+    it("reports missing addons w/ missing profile addons", () => {
         system.createDirectory("./target");
         reporter.reportDiagnostic = jest.fn();
 
         new AddonRegistry({
-            targets: { target: { addons: ["missing"] } },
+            profiles: { target: { addons: ["missing"] } },
             addonsDir: "./target",
             reporter,
             system,
         }).getAvailableAddons("target");
 
-        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for target "target": "missing".'));
+        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "target": "missing".'));
     });
 
-    it("does not report missing target addons w/o missing target addons", () => {
+    it("does not report missing addons w/o missing profile addons", () => {
         system.createDirectory("./target");
         createAddon("target/expected/addon");
         reporter.reportDiagnostic = jest.fn();
 
         new AddonRegistry({
-            targets: { target: { addons: ["expected"] } },
+            profiles: { target: { addons: ["expected"] } },
             addonsDir: "./target",
             reporter,
             system,

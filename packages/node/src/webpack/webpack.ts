@@ -1,4 +1,4 @@
-import { type WebsmithLoaderOptions } from "@quatico/websmith-webpack";
+import { type WebpackLoaderOptions } from "@quatico/websmith-core";
 import { type LoaderOptions as TsLoaderOptions } from "ts-loader/dist/interfaces";
 import { type Configuration } from "webpack";
 import { WebpackBuild } from "./WebpackBuild";
@@ -9,7 +9,7 @@ export const webpack = async (
     config?: {
         webpack?: Configuration;
         tsLoader?: Partial<TsLoaderOptions>;
-        websmith?: WebsmithLoaderOptions;
+        websmith?: WebpackLoaderOptions;
         outputFileSystem?: IFs;
     }
 ): Promise<string> => {

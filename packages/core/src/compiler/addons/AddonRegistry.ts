@@ -4,15 +4,16 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type Reporter, WarnMessage, type TargetConfig } from "@quatico/websmith-api";
-import path, { basename, extname } from "node:path";
-import type ts from "typescript";
+import { WarnMessage, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
+import path from "node:path";
+import ts from "typescript";
+import { Compiler } from "../Compiler";
+import { resolvePath } from "../config";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
-
 export type AddonConfig = {
     addons?: string[];
     addonsDir: string;
-    targets?: Record<string, TargetConfig>;
+    profiles?: Record<string, CompilationProfile>;
     reporter: Reporter;
     system: ts.System;
 };
@@ -36,21 +37,21 @@ export class AddonRegistry {
     }
 
     /**
-     * Retrieves the available compiler addons based on the specified target. Only addons that are
+     * Retrieves the available compiler addons based on the specified profile. Only addons that are
      * provided in the 'addonsDir' are requested. If unavailable addons are requested, a warning message
      * is emitted to the registry's reporter.
      *
-     * @param target - An optional string specifying the target for which to retrieve the addons.
+     * @param profile - An optional string specifying the profile name for which to retrieve the addons.
      *                 If not provided, the function will retrieve addons specified by the 'addons'
      *                 property in the configuration, or an empty array.
-     * @returns A `CompilerAddons` object containing the available addons for the specified 'target'
+     * @returns A `CompilerAddons` object containing the available addons for the specified 'profile'
      *          or by the 'addons' property in the configuration.
      */
-    public getAvailableAddons(target?: string): CompilerAddons {
-        this.reportMissingAddons(target);
-        const expectedNames = this.getExpectedAddons(target);
+    public getAvailableAddons(profile?: string): CompilerAddons {
+        const expectedNames = this.getExpectedAddons(profile);
+        this.reportMissingAddons(expectedNames, profile);
         const results =
-            expectedNames.length === 0 && target === "*"
+            expectedNames.length === 0 && profile === "*"
                 ? Array.from(this.availableAddons.values())
                 : [...this.availableAddons].filter(([name]) => expectedNames.includes(name)).map(([, addon]) => addon);
         return compilerAddons(results);
@@ -62,32 +63,72 @@ export class AddonRegistry {
     }
 
     /**
-     * Retrieves the list of expected addons based on the provided 'target' and the 'addons'
+     * Retrieves the list of expected addons based on the provided 'profile' and the 'addons'
      * property from the configuration.
      *
-     * @param target - An optional string representing the target for which to retrieve addons.
-     * @returns An array of unique addon names that are expected for the given target or 'addons' config.
+     * @param profile - An optional string representing the profile for which to retrieve addons.
+     * @returns An array of unique addon names that are expected for the given profile or 'addons' config.
      */
-    private getExpectedAddons(target?: string): string[] {
-        const { targets = {}, addons = [] } = this.config;
+    private getExpectedAddons(profile?: string): string[] {
+        const { profiles = {}, addons = [], system, reporter, addonsDir } = this.config;
         const requestedAddons = addons.filter(it => it.length > 0);
+        const profileAddons = profile ? (profiles[profile]?.addons ?? []) : [];
+        const targetAddons = [...new Set([...requestedAddons, ...profileAddons])];
 
-        const targetAddons = target ? (targets[target]?.addons ?? []) : [];
+        const addonsToCompile = system
+            .readDirectory(addonsDir)
+            .filter(it => targetAddons.includes(getAddonName(it)))
+            .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
+            .filter(isSourceFile)
+            .map(it => path.dirname(it));
 
-        return [...new Set([...requestedAddons, ...targetAddons])];
+        if (addonsToCompile.length > 0) {
+            const targetDir: string = resolvePath(system, addonsDir, "./lib");
+            const compiledAddons = system
+                .readDirectory(targetDir)
+                .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
+                .map(it => getAddonName(it));
+
+            const missingAddons = targetAddons.filter(it => !compiledAddons.includes(it));
+            if (missingAddons.length > 0) {
+                // Compile all addons in the addons directory
+                const targetDir = resolvePath(system, addonsDir);
+                const buildDir = path.dirname(targetDir);
+                const outDir = resolvePath(system, buildDir, "./lib");
+                new Compiler({
+                    buildDir,
+                    reporter,
+                    tsConfig: {
+                        outDir,
+                        module: ts.ModuleKind.ES2020,
+                        target: ts.ScriptTarget.ES2020,
+                        esModuleInterop: true,
+                        moduleResolution: ts.ModuleResolutionKind.Node10,
+                    },
+                    cliArgs: {
+                        options: { outDir },
+                        fileNames: system.readDirectory(targetDir).filter(isSourceFile),
+                        errors: [],
+                    },
+                }).compile();
+            }
+        }
+        return targetAddons;
     }
 
-    private getMissingAddons(target?: string): string[] {
-        return this.getExpectedAddons(target).filter(name => !this.availableAddons.has(name));
+    private getMissingAddons(expectedNames: string[] = []): string[] {
+        return expectedNames.filter(name => !this.availableAddons.has(name));
     }
 
-    private reportMissingAddons(target?: string): void {
+    private reportMissingAddons(expectedNames: string[] = [], profile?: string): void {
         const { reporter } = this.config;
 
-        const missing = this.getMissingAddons(target).join(", ");
+        const missing = this.getMissingAddons(expectedNames).join(", ");
         if (missing.length > 0) {
             reporter.reportDiagnostic(
-                new WarnMessage(target && target !== "*" ? `Missing addons for target "${target}": "${missing}".` : `Missing addons: "${missing}".`)
+                new WarnMessage(
+                    profile && profile !== "*" ? `Missing addons for profile "${profile}": "${missing}".` : `Missing addons: "${missing}".`
+                )
             );
         }
     }
@@ -102,29 +143,52 @@ export class AddonRegistry {
         }
 
         if (addonsDir) {
-            system
+            // Load compiled addons from addons directory first
+            const loadedAddons = system
                 .readDirectory(addonsDir, [".js", ".jsx"])
-                .filter(dirName => basename(dirName, extname(dirName)).toLocaleLowerCase() === "addon")
-                .forEach(filePath => {
-                    const addonName = getAddonName(filePath);
-                    if (!addonName) {
-                        return;
+                .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
+                .reduce((acc: string[], filePath) => {
+                    const addonName = loadAddon(system, filePath, map, reporter, addonsDir);
+                    if (addonName) {
+                        acc.push(addonName);
                     }
-                    if (map.has(addonName)) {
-                        reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${addonName}" in "${addonsDir}".`));
-                        return;
-                    }
-                    const addon = createAddon(system, filePath, addonName);
-                    if (typeof addon.activate === "function") {
-                        map.set(addonName, addon);
-                    } else {
-                        reporter.reportDiagnostic(new WarnMessage(`No "activate" function found for addon "${addonName}" in "${addonsDir}".`));
-                    }
-                });
+                    return acc;
+                }, []);
+            // Load remaining addons from source
+            system
+                .readDirectory(addonsDir, [".ts", ".tsx"])
+                .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
+                .filter(curDir => !loadedAddons.includes(getAddonName(curDir))) // filter out already loaded addons
+                .forEach(filePath => loadAddon(system, filePath, map, reporter, addonsDir));
         }
         return map;
     }
 }
+
+const loadAddon = (
+    system: ts.System,
+    filePath: string,
+    map: Map<string, CompilerAddon>,
+    reporter: Reporter,
+    addonsDir: string
+): string | undefined => {
+    const addonName = getAddonName(filePath);
+
+    if (!addonName) {
+        return;
+    }
+    if (map.has(addonName)) {
+        reporter.reportDiagnostic(new WarnMessage(`Duplicate addon name "${addonName}" in "${addonsDir}".`));
+        return;
+    }
+    const addon = createAddon(system, filePath, addonName);
+    if (typeof addon.activate === "function") {
+        map.set(addonName, addon);
+    } else {
+        reporter.reportDiagnostic(new WarnMessage(`No "activate" function found for addon "${addonName}" in "${addonsDir}".`));
+    }
+    return addonName;
+};
 
 const createAddon = (system: ts.System, filePath: string, addonName: string): CompilerAddon => {
     const importPath = getImportPath(system, filePath);
@@ -134,11 +198,13 @@ const createAddon = (system: ts.System, filePath: string, addonName: string): Co
 
 const getImportPath = (system: ts.System, filePath: string) => {
     const resolvedPath = system.resolvePath(filePath);
-    return extname(resolvedPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g) ? resolvedPath.replace(extname(resolvedPath), "") : resolvedPath;
+    return path.extname(resolvedPath).match(/^(?!.*\.d\.tsx?$).*\.[j]sx?$/g) ? resolvedPath.replace(path.extname(resolvedPath), "") : resolvedPath;
 };
 
 const getAddonName = (filePath: string) =>
     filePath
-        .replace(path.sep + basename(filePath), "")
+        .replace(path.sep + path.basename(filePath), "")
         .split(path.sep)
         .slice(-1)[0];
+
+const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || filePath.endsWith(".tsx");

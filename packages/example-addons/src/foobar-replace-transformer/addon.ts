@@ -5,35 +5,19 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext } from "@quatico/websmith-api";
-import ts from "typescript";
-
-export const activate = (ctx: AddonContext): void => {
-    ctx.registerTransformer({ before: [createTransformer()] });
-};
+import { createReplaceIdentifierTransformer } from "./replace-identifier-transformer";
 
 /**
- * Create a transformer that replaces every "foobar" identifier with "barfoo".
+ * Example addon with a transformer that modifies the source code inside a
+ * module.
  *
- * @returns A TS transformer factory.
+ * This addon finds all "foobar" identifiers in the source file and
+ * replaces them with the string "barfoo".
+ *
+ * @param ctx The compilation context for this addon.
  */
-const createTransformer = (): ts.TransformerFactory<ts.SourceFile> => {
-    return (ctx: ts.TransformationContext): ts.Transformer<ts.SourceFile> => {
-        return (sf: ts.SourceFile): ts.SourceFile => {
-            const visitor = (node: ts.Node): ts.Node => {
-                // Visit child nodes of source files
-                if (ts.isSourceFile(node)) {
-                    return ts.visitEachChild(node, visitor, ctx);
-                }
-                // Replace foobar with barfoo identifiers
-                if (ts.isIdentifier(node)) {
-                    const identifier = node.getText();
-                    if (identifier.match(/foobar/gi)) {
-                        return ctx.factory.createIdentifier(identifier.replace(/foobar/gi, "barfoo"));
-                    }
-                }
-                return ts.visitEachChild(node, visitor, ctx);
-            };
-            return ts.visitNode(sf, visitor, ts.isSourceFile);
-        };
-    };
+export const activate = (ctx: AddonContext): void => {
+    ctx.registerTransformer({
+        before: [createReplaceIdentifierTransformer()],
+    });
 };

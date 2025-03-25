@@ -36,7 +36,7 @@ type FooConfig = {
 export const activate: AddonActivator = (ctx: AddonContext) => {
     // Use one of the register methods to add a generator, processor or transformer to the compilation process.
     ctx.registerGenerator((fileName: string, content: string): void => {
-        const { apiCollectionPath } = ctx.getTargetConfig() as FooConfig;
+        const { apiCollectionPath } = ctx.getProfileConfig() as FooConfig;
         // Collect all TypeScript files containing foo in their filename
         if (/\/.*foo.*\\.ts$/.test(fileName)) {
             writeFileSync(apiCollectionPath, readFileSync(apiCollectionPath).toString() + `\n- ${fileName}`);
@@ -47,15 +47,14 @@ export const activate: AddonActivator = (ctx: AddonContext) => {
 
 ### Integrate the addon in the websmith configuration
 
-Register your addon by adding a config file `websmith.config.json` to your project folder. Add a `targets` definition for your project with an `addons` property mentioning your addon:
+Register your addon by adding a config file `websmith.config.json` to your project folder. Add a `profiles` definition for your project with an `addons` property mentioning your addon:
 
 ```json
 // websmith.config.json
 {
-    "targets": {
+    "profiles": {
         "*": {
             "addons": ["addon-foo"],
-            "writeFile": true,
             "config": {
                 "apiCollectionPath": "./foo-functions.yml"
             }

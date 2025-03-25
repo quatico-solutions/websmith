@@ -38,4 +38,4 @@ If you used `ts-loader` for webpack before, you probably used the `transpileOnly
 websmith --transpileOnly --watch
 ```
 
-If you use webpack, you can integrate [@quatico/websmith-webpack](https://github.com/quatico-solutions/websmith/tree/develop/packages/webpack/README.md) into your current webpack setup.
+If you use webpack, you can integrate [websmith-loader](https://github.com/quatico-solutions/websmith/tree/develop/packages/webpack/README.md) into your current webpack setup.

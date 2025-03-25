@@ -7,58 +7,15 @@
  */
 // @ts-expect-error no type declarations
 import createHashFn from "create-hash";
-import { dirname, extname, isAbsolute, join, normalize } from "node:path";
+import path from "node:path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
+import { type BrowserSystemOptions } from "./BrowserSystemOptions";
+import { PathWatcherRegistry } from "./PathWatcherRegistry";
 
-class PathWatcherRegistry {
-    private readonly registry: Map<string, ts.FileWatcherCallback[]> = new Map();
-
-    callWatchers(path: string, event: ts.FileWatcherEventKind, recursive = false): this {
-        this.getWatchers(path)?.forEach(callback => callback(path, event));
-        if (recursive) {
-            this.getAllWatchers(dirname(path))?.forEach(callback => callback(path, event));
-        }
-        return this;
-    }
-
-    addWatcher(path: string, callback: ts.FileWatcherCallback): this {
-        if (!this.isWatched(path)) {
-            this.registry.set(resolvePath(path), []);
-        }
-        this.getWatchers(path)?.push(callback);
-        return this;
-    }
-
-    removeWatcher(path: string, callback: ts.FileWatcherCallback): this {
-        if (this.isWatched(path)) {
-            this.registry.set(
-                resolvePath(path),
-                this.getWatchers(path).filter(cur => cur !== callback)
-            );
-        }
-
-        return this;
-    }
-
-    isWatched(path: string): boolean {
-        return this.registry.has(resolvePath(path));
-    }
-
-    getWatchers(path: string): ts.FileWatcherCallback[] {
-        return this.registry.get(resolvePath(path)) ?? [];
-    }
-
-    getAllWatchers(path: string): ts.FileWatcherCallback[] {
-        const resolved = resolvePath(path);
-        return Array.from(this.registry.keys()).reduce((acc: ts.FileWatcherCallback[], cur: string) => {
-            acc = acc.concat(resolved.startsWith(cur) ? (this.registry.get(cur) ?? []) : []);
-            return acc;
-        }, []);
-    }
-}
-
-export const createBrowserSystem = (files?: Record<string, string>, useCaseSensitiveFileNames = false, addLibDefaults = false): ts.System => {
+export const createBrowserSystem = (files?: Record<string, string>, options: BrowserSystemOptions = {}): ts.System => {
+    const { useCaseSensitiveFileNames = false, addLibDefaults = false, fileWatcher } = options;
+    const initialTime = Date.now();
     const knownFiles = Object.entries({ ...(files ?? {}), ...(addLibDefaults ? tsLibDefaults : {}) }).reduce(
         (acc: Record<string, string>, [name, content]) => {
             acc[resolvePath(name)] = content;
@@ -66,6 +23,11 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
         },
         {}
     );
+
+    const modifiedTimes = Object.entries(knownFiles).reduce((acc: Record<string, number>, [name, _content]) => {
+        acc[resolvePath(name)] = initialTime;
+        return acc;
+    }, {});
 
     const pathWatchers = new PathWatcherRegistry();
 
@@ -79,12 +41,15 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
                 resolved = resolved + "/";
             }
             knownFiles[resolved] = "";
+            modifiedTimes[resolved] = Date.now();
             pathWatchers.callWatchers(dirPath, ts.FileWatcherEventKind.Created, true);
         },
         createHash: (data: string): string => createHashFn("sha256").update(data).digest("hex"),
         deleteFile: (filePath: string): void => {
             if (filePath && filePath.length > 0) {
-                delete knownFiles[resolvePath(filePath)];
+                const absolutePath = resolvePath(filePath);
+                delete knownFiles[absolutePath];
+                delete modifiedTimes[absolutePath];
                 pathWatchers.callWatchers(filePath, ts.FileWatcherEventKind.Deleted, true);
             }
         },
@@ -132,11 +97,11 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
             if (filePath === "") {
                 return "/";
             }
-            return extname(filePath) !== "" || (isAbsolute(filePath) && !filePath.startsWith(".")) ? filePath : join("/", filePath);
+            return path.extname(filePath) !== "" || (path.isAbsolute(filePath) && !filePath.startsWith(".")) ? filePath : path.join("/", filePath);
         },
         resolvePath: (filePath: string): string => resolvePath(filePath),
         watchFile: (path: string, callback: ts.FileWatcherCallback): ts.FileWatcher => {
-            pathWatchers.addWatcher(path, callback);
+            pathWatchers.addWatcher(path, callback ?? fileWatcher);
             return {
                 close() {
                     pathWatchers.removeWatcher(path, callback);
@@ -144,7 +109,7 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
             };
         },
         watchDirectory: (path: string, callback: ts.DirectoryWatcherCallback): ts.FileWatcher => {
-            pathWatchers.addWatcher(path, callback);
+            pathWatchers.addWatcher(path, callback ?? fileWatcher);
             return {
                 close() {
                     pathWatchers.removeWatcher(path, callback);
@@ -156,9 +121,15 @@ export const createBrowserSystem = (files?: Record<string, string>, useCaseSensi
         },
         writeFile: (filePath: string, contents: string): void => {
             if (filePath && filePath.length > 0) {
-                knownFiles[resolvePath(filePath)] = contents;
+                const absolutePath = resolvePath(filePath);
+                knownFiles[absolutePath] = contents;
+                modifiedTimes[absolutePath] = Date.now();
                 pathWatchers.callWatchers(filePath, ts.FileWatcherEventKind.Changed, true);
             }
+        },
+        getModifiedTime: (filePath: string): Date | undefined => {
+            const value = modifiedTimes[resolvePath(filePath)];
+            return value ? new Date(value) : undefined;
         },
     };
 };
@@ -176,14 +147,14 @@ export const resolvePath = (filePath: string): string => {
     } else if (filePath.startsWith("//")) {
         result = filePath.substring(1);
     } else if (!filePath.startsWith("/")) {
-        result = join("/", filePath);
+        result = path.join("/", filePath);
     }
 
     if (result.endsWith("/")) {
         result = result.slice(0, -1);
     }
 
-    return normalize(result);
+    return path.normalize(result);
 };
 
 export const resolveDirectories = (dirPath: string, knownPaths: string[]): string[] => {
@@ -206,5 +177,5 @@ export const isDirectoryName = (filePath: string): boolean => {
     if (!filePath) {
         return false;
     }
-    return extname(filePath) === "" || filePath.endsWith("/");
+    return path.extname(filePath) === "" || filePath.endsWith("/");
 };

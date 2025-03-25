@@ -4,13 +4,14 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { dirname, join } from "node:path";
+import path from "node:path";
 import ts from "typescript";
 
 export const createSharedHost = (sys: ts.System = ts.sys) => ({
     getNewLine: () => sys.newLine,
     getCurrentDirectory: () => sys.getCurrentDirectory(),
-    getDefaultLibFileName: (options: ts.CompilerOptions) => join(dirname(ts.getDefaultLibFilePath(options)), ts.getDefaultLibFileName(options)),
+    getDefaultLibFileName: (tsConfig: ts.CompilerOptions) =>
+        path.join(path.dirname(ts.getDefaultLibFilePath(tsConfig)), ts.getDefaultLibFileName(tsConfig)),
     fileExists: sys.fileExists,
     readFile: sys.readFile,
     readDirectory: sys.readDirectory,

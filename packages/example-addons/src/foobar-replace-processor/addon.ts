@@ -6,7 +6,7 @@
  */
 import { type AddonContext, ErrorMessage, type Processor } from "@quatico/websmith-api";
 import ts from "typescript";
-import { createTransformer } from "./foobar-transformer";
+import { createReplaceIdentifierTransformer } from "../foobar-replace-transformer";
 
 export const activate = (ctx: AddonContext): void => {
     ctx.registerProcessor(createProcessor(ctx));
@@ -22,7 +22,7 @@ const createProcessor =
     (ctx: AddonContext): Processor =>
     (fileName: string, content: string): string => {
         const file = ts.createSourceFile(fileName, content, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest, true);
-        const result = ts.transform(file, [createTransformer()], ctx.getCliArgs().options);
+        const result = ts.transform(file, [createReplaceIdentifierTransformer(/foobar/gi, "barfoo")], ctx.getCliArgs().options);
         if (result.diagnostics && result.diagnostics.length > 0) {
             result.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, file)));
             return "";

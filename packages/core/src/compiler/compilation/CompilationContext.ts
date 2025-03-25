@@ -6,22 +6,21 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext, type Generator, type Processor, type Reporter, type ResultProcessor } from "@quatico/websmith-api";
-import { extname, isAbsolute, join } from "node:path";
+import path from "node:path";
 import ts from "typescript";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
+import { CompilationHost } from "./CompilationHost";
 import { createSharedHost } from "./shared-host";
 
 export type CompilationContextOptions = {
-    buildDir: string;
     config?: unknown;
-    program: ts.Program;
     tsConfig: ts.CompilerOptions;
     projectDir: string;
     reporter: Reporter;
     rootFiles: string[];
     system: ts.System;
-    target?: string;
+    profile?: string;
     cliArgs: ts.ParsedCommandLine;
     watchCallback?: (filePath: string) => void;
     registerDependencyCallback?: (filePath: string) => void;
@@ -34,15 +33,14 @@ export class CompilationContext implements AddonContext {
     protected ResultProcessors: ResultProcessor[] = [];
     protected rootFiles: string[];
 
-    // @ts-expect-error TODO: Unused variable
-    private buildDir: string;
     private cache: FileCache;
     private languageHost: ts.LanguageServiceHost;
+    private languageService: ts.LanguageService;
+    private compilationHost: CompilationHost;
     private reporter: Reporter;
     private cliArgs: ts.ParsedCommandLine;
     private system: ts.System;
     private projectDir: string;
-    private program: ts.Program;
     private config: unknown;
     private watchCallback: (filePath: string) => void;
     private registerDependencyCb?: (filePath: string) => void;
@@ -51,27 +49,26 @@ export class CompilationContext implements AddonContext {
     private assetCodeDependency: Map<string, string[]> = new Map();
 
     constructor(options: CompilationContextOptions) {
-        const { buildDir, config, program, tsConfig, projectDir, rootFiles, system, target, cliArgs, watchCallback, registerDependencyCallback } =
-            options;
-        this.buildDir = buildDir;
+        const { config, tsConfig, projectDir, rootFiles, system, profile, cliArgs, watchCallback, registerDependencyCallback } = options;
         this.rootFiles = rootFiles;
         this.cliArgs = cliArgs;
         this.projectDir = projectDir;
         this.transformers = {};
         this.processors = [];
         this.generators = [];
-        this.languageHost = this.createLanguageServiceHost({
-            system,
-            options: tsConfig,
-            target,
-        });
-        this.cache = new FileCache(system);
-        this.reporter = options.reporter;
         this.system = system;
-        this.program = program;
         this.config = config;
         this.watchCallback = watchCallback ?? (() => undefined);
         this.registerDependencyCb = registerDependencyCallback;
+        this.languageHost = this.createLanguageServiceHost({
+            system,
+            tsConfig,
+            profile,
+        });
+        this.reporter = options.reporter;
+        this.compilationHost = new CompilationHost(this.languageHost);
+        this.languageService = ts.createLanguageService(this.compilationHost, ts.createDocumentRegistry());
+        this.cache = new FileCache(this.system);
     }
 
     public getSystem(): ts.System {
@@ -86,11 +83,11 @@ export class CompilationContext implements AddonContext {
         return this.reporter;
     }
 
-    public getProgram(): ts.Program {
-        return this.program;
+    public getLanguageService(): ts.LanguageService {
+        return this.languageService;
     }
 
-    public getTargetConfig(): unknown {
+    public getProfileConfig(): unknown {
         return this.config ?? {};
     }
 
@@ -101,7 +98,9 @@ export class CompilationContext implements AddonContext {
 
     public addInputFile(filePath: string): void {
         if (!this.isCodeFileExtension(filePath)) {
-            console.error(`Only code files are supported for addInputFile. ${extname(filePath)} of ${filePath} is no valid code file extension.`);
+            console.error(
+                `Only code files are supported for addInputFile. ${path.extname(filePath)} of ${filePath} is no valid code file extension.`
+            );
             return;
         }
 
@@ -135,7 +134,7 @@ export class CompilationContext implements AddonContext {
         // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
         if (this.isCodeFileExtension(childPath)) {
             console.error(
-                `Only non-code files are supported for addAssetDependency. ${extname(childPath)} of ${childPath} is a code file extension.`
+                `Only non-code files are supported for addAssetDependency. ${path.extname(childPath)} of ${childPath} is a code file extension.`
             );
             return;
         }
@@ -149,7 +148,9 @@ export class CompilationContext implements AddonContext {
 
     public addVirtualFile(filePath: string, fileContent: string): void {
         if (!this.isCodeFileExtension(filePath)) {
-            console.error(`Only code files are supported for addInputFile. ${extname(filePath)} of ${filePath} is no valid code file extension.`);
+            console.error(
+                `Only code files are supported for addInputFile. ${path.extname(filePath)} of ${filePath} is no valid code file extension.`
+            );
             return;
         }
         if (!this.rootFiles.includes(filePath)) {
@@ -165,8 +166,8 @@ export class CompilationContext implements AddonContext {
         this.cache.removeCachedFile(filePath);
     }
 
-    public resolvePath(path: string): string {
-        return isAbsolute(path) ? path : this.system.resolvePath(join(this.projectDir, path));
+    public resolvePath(filePath: string): string {
+        return path.isAbsolute(filePath) ? filePath : this.system.resolvePath(path.join(this.projectDir, filePath));
     }
 
     public getFileContent(filePath: string): string {
@@ -180,10 +181,6 @@ export class CompilationContext implements AddonContext {
     public getLanguageHost(): ts.LanguageServiceHost {
         return this.languageHost;
     }
-
-    // public getBasePath(fileName: string): string {
-    //     return Object.keys(this.tsconfig.wildcardDirectories ?? {}).find(it => fileName.includes(it)) ?? this.buildDir;
-    // }
 
     public registerTransformer(transformers: ts.CustomTransformers): this {
         Object.keys(transformers).forEach(kind => {
@@ -226,19 +223,19 @@ export class CompilationContext implements AddonContext {
 
     private createLanguageServiceHost({
         system,
-        options,
-        target,
+        tsConfig,
+        profile,
     }: {
         system: ts.System;
-        options: ts.CompilerOptions;
-        target?: string;
+        tsConfig: ts.CompilerOptions;
+        profile?: string;
     }): ts.LanguageServiceHost {
         return {
             ...createSharedHost(system),
             getScriptVersion: (fileName: string) => {
                 fileName = system.resolvePath(fileName);
                 const version = this.cache.getVersion(fileName).toString();
-                return target ? `${fileName}:${version}:${target}` : `${fileName}:${version}`;
+                return profile ? `${fileName}:${version}:${profile}` : `${fileName}:${version}`;
             },
             getScriptSnapshot: (fileName: string) => {
                 fileName = system.resolvePath(fileName);
@@ -266,7 +263,7 @@ export class CompilationContext implements AddonContext {
                 return ts.ScriptSnapshot.fromString(content);
             },
             getScriptFileNames: (): string[] => this.rootFiles,
-            getCompilationSettings: () => options,
+            getCompilationSettings: () => tsConfig,
             getCustomTransformers: (): ts.CustomTransformers => this.transformers,
         };
     }

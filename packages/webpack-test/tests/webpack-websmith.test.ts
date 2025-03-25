@@ -1,26 +1,20 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { type CompilationConfig as WebsmithOptions } from "@quatico/websmith-core";
 import { webpack } from "@quatico/websmith-node";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { writeWebsmithConfig, getOutput } from "./test-files";
 
 // TODO: ts-loader options caching seems broken, we need to understand where to fix it
 // This workaround is not working, we need to find a better solution
-// jest.mock("@quatico/websmith-webpack", () => ({
-//     ...jest.requireActual("@quatico/websmith-webpack"),
+// jest.mock("websmith-loader", () => ({
+//     ...jest.requireActual("websmith-loader"),
 //     getInstanceFromCache: jest.fn(),
 // }));
 
 const OUTPUT_DIR = path.join(__dirname, "..", "lib");
 const SOURCE_DIR = path.join(__dirname, "..", "src");
-const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "lib");
-
-const tsDefaults = {
-    moduleResolution: ts.ModuleResolutionKind.Node10,
-    outDir: OUTPUT_DIR,
-    removeComments: true,
-};
+const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
 
 const webpackDefaults = {
     output: {
@@ -32,17 +26,10 @@ const webpackDefaults = {
                 test: /\.[jt]s?$/,
                 use: [
                     {
-                        loader: require.resolve("@quatico/websmith-webpack"),
+                        loader: require.resolve("websmith-loader"),
                         options: {
                             transpileOnly: true,
-                            project: path.join(__dirname, "..", "tsconfig.json"),
-                        },
-                    },
-                    {
-                        loader: require.resolve("ts-loader"),
-                        options: {
-                            transpileOnly: true,
-                            configFile: path.join(__dirname, "..", "tsconfig.json"),
+                            tsConfigFile: path.join(__dirname, "..", "tsconfig.json"),
                         },
                     },
                 ],
@@ -53,7 +40,9 @@ const webpackDefaults = {
 
 beforeAll(() => {
     if (fs.readdirSync(ADDONS_DIR).length === 0) {
-        throw new Error("Package 'sandbox-addons' is not built, run 'pnpm build' in the root directory");
+        throw new Error(
+            "No addons found in package 'example-addons'. Did you use the 'lib' folder and forget to run 'pnpm build' in the package directory"
+        );
     }
 });
 
@@ -65,108 +54,94 @@ afterEach(() => {
     fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 });
 
-describe("webpack", () => {
+describe("webpack w/ websmith", () => {
     it("should build foobar-arrow.js with ES2020 and addonsDir", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
         });
 
         await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: {
-                compilerOptions: {
-                    target: ts.ScriptTarget.ES2020,
-                    project: path.join(__dirname, "..", "tsconfig.json"),
-                },
-            },
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                tsConfig: {
+                    target: ts.ScriptTarget.ES2020,
+                },
             },
         });
 
-        expect(fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8")).toMatchSnapshot();
+        expect(getOutput("main.js")).toMatchSnapshot();
     });
 
     it("should build foobar-function.js with ES2020 and addonsDir", async () => {
-        writeWebsmithOptions({
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
         });
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: {
-                compilerOptions: {
-                    target: ts.ScriptTarget.ES2020,
-                    project: path.join(__dirname, "..", "tsconfig.json"),
-                },
-            },
             websmith: {
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                tsConfig: {
+                    target: ts.ScriptTarget.ES2020,
+                },
             },
         });
 
-        expect(fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8")).toMatchSnapshot();
+        expect(getOutput("main.js")).toMatchSnapshot();
     });
 
-    it("should generate YAML file with addonsDir, addons and all targets selected", async () => {
+    it("should generate YAML file with addonsDir and addon selected", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
-                targets: ["*"],
-                webpackTarget: "*",
-                addonsDir: ADDONS_DIR,
-                addons: ["export-yaml-generator"],
-            },
-        });
-
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
-        expect(actual).toContain("function foobar");
-        expect(actual).toContain("function getFoobar");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
-    });
-
-    // TODO: This test does not work for this webpack setup. Can we observe a change within the output chunk?
-    it.skip("should generate additional files with addonDir, addons and all targets selected", async () => {
-        await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
-            webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
-            websmith: {
-                targets: ["*"],
-                webpackTarget: "*",
                 config: {
                     addonsDir: ADDONS_DIR,
-                    addons: ["example-generator"],
+                    addons: ["export-yaml-generator"],
                 },
             },
         });
 
-        expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-arrow-added.js"), "utf-8")).toMatchSnapshot();
+        expect(getOutput("main.js")).toContain("function foobar");
+        expect(getOutput("main.js")).toContain("function getFoobar");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
-    it("should transform foobar functions with addonDir, addons and all targets selected", async () => {
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
+    // TODO: Skipped Test: This test does not work for this webpack setup. Can we observe a change within the output chunk?
+    it.skip("should generate additional files with addonDir and addon selected", async () => {
+        await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
-                targets: ["*"],
-                webpackTarget: "*",
-                addonsDir: ADDONS_DIR,
-                addons: ["example-transformer"],
+                config: {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["foo-added-generator"],
+                },
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
+        expect(getOutput("foobar-arrow-added.js")).toMatchSnapshot();
     });
 
-    it("should generate YAML file with all targets and addonsDir, named target in file-config", async () => {
-        writeWebsmithOptions({
+    it("should transform foobar functions with addonDir and addon selected", async () => {
+        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...webpackDefaults },
+            websmith: {
+                config: {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["foobar-replace-transformer"],
+                },
+            },
+        });
+
+        expect(getOutput("main.js")).toContain("function barfoo");
+        expect(getOutput("main.js")).toContain("function getbarfoo");
+    });
+
+    it("should generate YAML file with profiles in file-config, addonsDir and profile selected", async () => {
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
-            targets: {
-                named: {
+            profiles: {
+                "target-profile": {
                     addons: ["export-yaml-generator"],
                 },
             },
@@ -174,81 +149,70 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
-                addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
-                targets: ["named"],
-                webpackTarget: "named",
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                config: {
+                    addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                },
+                profile: "target-profile",
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
-        expect(actual).toContain("function foobar");
-        expect(actual).toContain("function getFoobar");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("main.js")).toContain("function foobar");
+        expect(getOutput("main.js")).toContain("function getFoobar");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
-    it("should generate YAML file with all targets and addonsDir, generic target in file-config", async () => {
-        writeWebsmithOptions({
+    it("should generate YAML file with profile in file-config, addonsDir, generic profile selected", async () => {
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 "*": {
                     addons: ["export-yaml-generator"],
-                    writeFile: true,
                 },
             },
         });
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
-                targets: ["*"],
-                webpackTarget: "*",
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "*",
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
-        expect(actual).toContain("function foobar");
-        expect(actual).toContain("function getFoobar");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("main.js")).toContain("function foobar");
+        expect(getOutput("main.js")).toContain("function getFoobar");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
-    it("should transform foobar functions with all targets and addonsDir, generic target in file-config", async () => {
-        writeWebsmithOptions({
+    it("should transform foobar functions with profiles in file-config, addonsDir and generic profile selected", async () => {
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
-            targets: {
+            profiles: {
                 "*": {
-                    addons: ["example-transformer"],
-                    writeFile: true,
+                    addons: ["foobar-replace-transformer"],
                 },
             },
         });
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
-                targets: ["*"],
-                webpackTarget: "*",
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "*",
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
+        expect(getOutput("main.js")).toContain("function barfoo");
+        expect(getOutput("main.js")).toContain("function getbarfoo");
     });
 
-    it("should generate YAML file with named target and addonsDir, named target in file-config", async () => {
-        writeWebsmithOptions({
+    it("should generate YAML file with profile in file-config, addonsDir and named profile selected", async () => {
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
-            targets: {
-                "target-zip": {
+            profiles: {
+                "profile-zip": {
                     addons: ["export-yaml-generator"],
                 },
             },
@@ -256,102 +220,94 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
-                targets: ["target-zip"],
-                webpackTarget: "target-zip",
+                profile: "profile-zip",
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
-        expect(actual).toContain("function foobar");
-        expect(actual).toContain("function getFoobar");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("main.js")).toContain("function foobar");
+        expect(getOutput("main.js")).toContain("function getFoobar");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
     it("should transform foobar functions with addonsDir and addons config", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
-                    addons: ["example-transformer"],
+                    addons: ["foobar-replace-transformer"],
                 },
+                profile: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
+        expect(getOutput("main.js")).toContain("function barfoo");
+        expect(getOutput("main.js")).toContain("function getbarfoo");
     });
 
-    it("should transform foobar functions with addonsDir, addons and targets config but no target selected", async () => {
+    it("should transform foobar functions with addonsDir, addons and profiles in config but no profile selected", async () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
-                    addons: ["example-transformer"],
-                    targets: {
-                        "target-expected": {
-                            addons: ["example-transformer"],
+                    addons: ["foobar-replace-transformer"],
+                    profiles: {
+                        "profile-expected": {
+                            addons: ["foobar-replace-transformer"],
                         },
                     },
                 },
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
+        expect(getOutput("main.js")).toContain("function barfoo");
+        expect(getOutput("main.js")).toContain("function getbarfoo");
     });
 
-    it("should transform foobar functions with named target and addonsDir, multiple named targets in config-file", async () => {
-        writeWebsmithOptions({
+    it("should transform foobar functions with addonsDir and existing profile in config-file", async () => {
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
-            targets: {
-                "target-transform": {
-                    addons: ["example-transformer"],
+            profiles: {
+                "profile-transform": {
+                    addons: ["foobar-replace-transformer"],
                 },
-                "target-generate": {
-                    addons: ["example-generator"],
+                "profile-generate": {
+                    addons: ["foo-added-generator"],
                 },
-                "target-process": {
-                    addons: ["example-processor"],
+                "profile-process": {
+                    addons: ["foobar-export-processor"],
                 },
             },
         });
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
-                targets: ["target-transform"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
                 config: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                profile: "profile-transform",
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
+        expect(getOutput("main.js")).toContain("function barfoo");
+        expect(getOutput("main.js")).toContain("function getbarfoo");
     });
 
-    it("should transform foobar functions with multiple named targets and addonsDir, multiple targets in config-file", async () => {
-        writeWebsmithOptions({
+    it("should transform foobar functions with addonsDir and dependent profiles in config-file", async () => {
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
-            targets: {
-                "target-transform": {
-                    addons: ["example-transformer"],
+            profiles: {
+                "profile-transform": {
+                    addons: ["foobar-replace-transformer"],
                 },
-                "target-generate": {
-                    addons: ["example-generator"],
+                "profile-generate": {
+                    addons: ["foo-added-generator"],
                 },
-                "target-process": {
+                "profile-process": {
+                    depends: ["profile-transform"],
                     addons: ["export-yaml-generator"],
                 },
             },
@@ -359,53 +315,210 @@ describe("webpack", () => {
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
-                addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
-                targets: ["target-transform", "target-process"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                config: {
+                    addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
+                },
+                profile: "profile-process",
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
-        expect(actual).toContain("function barfoo");
-        expect(actual).toContain("function getbarfoo");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("main.js")).toContain("function barfoo");
+        expect(getOutput("main.js")).toContain("function getbarfoo");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
-    it("should transform foobar functions with named target and addonsDir, chained addons in config-file", async () => {
-        writeWebsmithOptions({
+    it("should transform foobar functions with named profile and addonsDir, chained addons in config-file", async () => {
+        writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
-            targets: {
-                "target-transform": {
-                    addons: ["example-transformer", "export-yaml-generator"],
+            profiles: {
+                "profile-transform": {
+                    addons: ["foobar-replace-transformer", "export-yaml-generator"],
                 },
             },
         });
 
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
-            tsLoader: { compilerOptions: { ...tsDefaults } },
             websmith: {
-                targets: ["target-transform"],
                 configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "profile-transform",
             },
         });
 
-        const actual = fs.readFileSync(path.join(OUTPUT_DIR, "main.js"), "utf-8");
+        const actual = getOutput("main.js");
         expect(actual).toContain("function barfoo");
         expect(actual).toContain("function getbarfoo");
-        const actual2 = fs.readFileSync(path.join(OUTPUT_DIR, "output.yaml"), "utf-8");
-        expect(actual2).toContain("exports: [getFoobar]");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 });
 
-const writeWebsmithOptions = (options: Partial<WebsmithOptions>) => {
-    fs.mkdirSync(OUTPUT_DIR, {
-        recursive: true,
+describe("webpack w/ websmith, multiple profiles", () => {
+    beforeEach(() => {
+        writeWebsmithConfig({
+            addonsDir: ADDONS_DIR,
+            profiles: {
+                client: {
+                    depends: ["server"],
+                    addons: ["client-transformer"],
+                },
+                server: {
+                    addons: ["server-transformer"],
+                },
+            },
+        });
     });
-    fs.writeFileSync(path.join(OUTPUT_DIR, "websmith.config.json"), JSON.stringify(options), {
-        encoding: "utf-8",
+
+    it("should yield non-transformed functions with no profile and single entry", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: undefined,
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("server.js")).toBeUndefined();
     });
-};
+
+    it("should yield non-transformed functions with no profile and separate entries", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: undefined,
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("server.js")).toContain("function getFoobarServer");
+    });
+
+    it("should yield transformed functions with existing profile, dependent profile and single entry", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "client",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getSERVERClient");
+        expect(getOutput("server.js")).toBeUndefined();
+    });
+
+    it("should yield non-transformed functions with existing profile and single entry", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "server",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("server.js")).toBeUndefined();
+    });
+
+    it("should yield transformed functions with existing profile, dependent profile and separate entries", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "client",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getSERVERClient");
+        expect(getOutput("server.js")).toContain("function getSERVERServer");
+    });
+
+    it("should yield transformed functions with existing profile, dependent profile and imported server function", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function-with-import.ts"),
+                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "client",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getSERVERClient");
+        expect(getOutput("client.js")).toContain("function getSERVERServer");
+        expect(getOutput("server.js")).toContain("function getSERVERServer");
+    });
+
+    it("should yield transformed functions with existing profile and imported server function", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function-with-import.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "server",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("client.js")).toContain("function getFoobarServer");
+        expect(getOutput("server.js")).toBeUndefined();
+    });
+
+    it("should yield transformed functions with existing profile and separate entries", async () => {
+        await webpack(undefined, {
+            webpack: {
+                ...webpackDefaults,
+                entry: {
+                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                },
+            },
+            websmith: {
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                profile: "server",
+            },
+        });
+
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("client.js")).not.toContain("Server");
+        expect(getOutput("server.js")).toContain("function getFoobarServer");
+        expect(getOutput("server.js")).not.toContain("Client");
+    });
+});

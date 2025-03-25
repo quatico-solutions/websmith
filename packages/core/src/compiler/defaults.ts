@@ -9,11 +9,9 @@ import ts from "typescript";
 export const tsDefaults: ts.CompilerOptions = {
     ...ts.getDefaultCompilerOptions(),
     esModuleInterop: true,
-    jsx: ts.JsxEmit.React,
     module: ts.ModuleKind.ESNext,
-    moduleResolution: ts.ModuleResolutionKind.NodeNext,
-    strict: true,
-    target: ts.ScriptTarget.Latest,
+    moduleResolution: ts.ModuleResolutionKind.Node10,
+    target: ts.ScriptTarget.ESNext,
 };
 
 /**

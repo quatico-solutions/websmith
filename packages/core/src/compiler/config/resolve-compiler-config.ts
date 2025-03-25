@@ -4,61 +4,103 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import type { TargetConfig } from "@quatico/websmith-api";
-import { type Reporter, WarnMessage } from "@quatico/websmith-api";
-import { dirname, isAbsolute, join } from "node:path";
+import { parse } from "comment-json";
+import type { CompilationProfile } from "@quatico/websmith-api";
+import { ErrorMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
+import path from "node:path";
 import type ts from "typescript";
 import { type CompilationConfig } from "./CompilationConfig";
 
-export const resolveCompilationConfig = (configFilePath: string, reporter: Reporter, system: ts.System): CompilationConfig | undefined => {
-    if (configFilePath) {
-        const resolvedPath = system.resolvePath(configFilePath);
-        if (!system.fileExists(resolvedPath)) {
-            reporter.reportDiagnostic(new WarnMessage(`No configuration file found at ${resolvedPath}.`));
-        } else {
-            const content = system.readFile(resolvedPath);
-            if (content) {
-                const config = JSON.parse(content ?? "{}");
-
-                // TODO: Do we need further validation for the config per target?
-                return { ...updatePaths(config.config ?? config, system, dirname(resolvedPath)) };
-            }
-        }
-    }
-    return undefined;
-};
-
-const updatePaths = (config: CompilationConfig, system: ts.System, basePath: string): CompilationConfig => {
+const updatePaths = (config: CompilationConfig, basePath: string, system: ts.System): CompilationConfig => {
     return {
         ...config,
-        ...(config.addonsDir && { addonsDir: resolvePath(config.addonsDir, system, basePath) }),
-        ...(config.targets && {
-            targets: Object.fromEntries(
-                Object.entries(config.targets).map(([name, target]) => [name, updateTargetConfigs(target, system, basePath)])
-            ),
+        ...(config.addonsDir && { addonsDir: resolvePath(system, basePath, config.addonsDir) }),
+        ...(config.profiles && {
+            profiles: Object.fromEntries(Object.entries(config.profiles).map(([name, profile]) => [name, updateProfile(profile, basePath, system)])),
         }),
     };
 };
 
-const updateTargetConfigs = (target: TargetConfig, system: ts.System, basePath: string): TargetConfig => {
+const updateProfile = (profile: CompilationProfile, basePath: string, system: ts.System): CompilationProfile => {
     return {
-        ...target,
-        ...(target.options && { options: updateCompilerOptions(target.options, system, basePath) }),
+        ...profile,
+        ...(profile.tsConfig && { tsConfig: resolvePaths(profile.tsConfig, basePath, system) }),
     };
 };
 
-export const updateCompilerOptions = (options: ts.CompilerOptions, system: ts.System, basePath: string): ts.CompilerOptions => {
+export const resolvePaths = (tsConfig: ts.CompilerOptions, basePath: string, system: ts.System): ts.CompilerOptions => {
     return {
-        ...options,
-        ...(options.outDir && { outDir: resolvePath(options.outDir, system, basePath) }),
-        ...(options.paths && {
+        ...tsConfig,
+        ...(tsConfig.outDir && { outDir: resolvePath(system, basePath, tsConfig.outDir) }),
+        ...(tsConfig.rootDir && { rootDir: resolvePath(system, basePath, tsConfig.rootDir) }),
+        ...(tsConfig.paths && {
             paths: Object.fromEntries(
-                Object.entries(options.paths).map(value => [value[0], value[1].map(cur => resolvePath(cur, system, basePath))])
+                Object.entries(tsConfig.paths).map(value => [value[0], value[1].map(cur => resolvePath(system, basePath, cur))])
             ),
         }),
     };
 };
 
-const resolvePath = (path: string, system: ts.System, basePath: string): string => {
-    return isAbsolute(path) ? path : system.resolvePath(join(basePath, path));
+export const resolvePath = (system: ts.System, basePath: string, relativePath = "") => {
+    let filePath = basePath;
+    if (relativePath) {
+        if (path.isAbsolute(relativePath)) {
+            filePath = relativePath;
+        } else {
+            filePath = removeOverlappingSegments(basePath, relativePath);
+        }
+    }
+    return system.resolvePath(filePath);
+};
+
+const removeOverlappingSegments = (basePath: string, relativePath: string) => {
+    const basePathSegments = basePath.split(path.sep).filter(it => it !== ".");
+    const relativePathSegments = relativePath.split(path.sep).filter(it => it !== ".");
+    const startIndex = basePathSegments.findIndex(it => it === relativePathSegments[0]);
+    const overlappingSegments = [];
+    if (startIndex >= 0) {
+        for (let i = 0; i < basePathSegments.length - startIndex; i++) {
+            if (basePathSegments[i + startIndex] === relativePathSegments[i]) {
+                overlappingSegments.push(relativePathSegments[i]);
+            } else {
+                break;
+            }
+        }
+
+        return path.join(basePathSegments.slice(0, -overlappingSegments.length).join(path.sep), relativePathSegments.join(path.sep));
+    }
+    return path.join(basePathSegments.join(path.sep), relativePathSegments.join(path.sep));
+};
+
+export const resolveCompilationConfig = (configFilePath: string | undefined, reporter: Reporter, system: ts.System): CompilationConfig => {
+    if (!configFilePath) {
+        return {};
+    }
+
+    const resolvedPath = system.resolvePath(configFilePath);
+    if (!system.fileExists(resolvedPath)) {
+        reporter.reportDiagnostic(new WarnMessage(`No configuration file found at ${resolvedPath}.`));
+    } else {
+        const content = system.readFile(resolvedPath);
+        if (content) {
+            const config = parse(content ?? "{}") as CompilationConfig;
+            const result = { ...updatePaths(config, path.dirname(resolvedPath), system) };
+            if (result.profiles) {
+                Object.entries(result.profiles).forEach(([_name, profile]) => {
+                    if (profile.addons?.length) {
+                        profile.addons = [...(profile.addons ?? []), ...(result.addons ?? [])];
+                    }
+                    if (profile.depends?.length) {
+                        profile.depends.forEach(dep => {
+                            if (!result.profiles?.[dep]) {
+                                reporter.reportDiagnostic(new ErrorMessage(`Unknown profile '${dep}' in 'depends' of '${configFilePath}'.`));
+                            }
+                        });
+                    }
+                });
+            }
+            return result;
+        }
+    }
+    return {};
 };

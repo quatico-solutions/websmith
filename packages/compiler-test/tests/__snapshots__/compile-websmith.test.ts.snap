@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`compile should build foobar-arrow.js with ES2020 and addonsDir 1`] = `
+exports[`compile w/ websmith should build foobar-arrow.js with ES2020 and addonsDir 1`] = `
 "export const getFoobar = (date) => {
     return foobar(date);
 };
@@ -10,7 +10,7 @@ const foobar = (date) => {
 "
 `;
 
-exports[`compile should build foobar-function.js with ES2020 and addonsDir 1`] = `
+exports[`compile w/ websmith should build foobar-function.js with ES2020 and addonsDir 1`] = `
 "export function getFoobar(date) {
     return foobar(date);
 }
@@ -20,7 +20,7 @@ function foobar(date) {
 "
 `;
 
-exports[`compile should generate additional files with addonDir, addons and all targets selected 1`] = `
+exports[`compile w/ websmith should generate additional files with addonDir and one addon selected 1`] = `
 "export const getFoobar = (date) => {
     return foobar(date);
 };

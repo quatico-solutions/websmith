@@ -5,7 +5,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { readFileSync } from "node:fs";
+import fs from "node:fs";
+import { parse } from "comment-json";
 import { Compilation, type Compiler, type LoaderContext, NormalModule, type Stats } from "webpack";
 import { type WebpackLoaderContext } from "./loader";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
@@ -60,7 +61,7 @@ const makeCompilation = (loaderContext: WebpackLoaderContext) => {
                 // TODO: Do we need to cache the compiler instance here?
                 // const instance = getCompilerInstance(options, context, dependencyCallback);
                 if (options.configFile && loaderContext.websmithCompiler) {
-                    loaderContext.websmithCompiler.loaderConfig = JSON.parse(readFileSync(options.configFile).toString());
+                    loaderContext.websmithCompiler.updateLoaderConfig(parse(fs.readFileSync(options.configFile).toString()) as WebsmithLoaderConfig);
                 }
             }
         });

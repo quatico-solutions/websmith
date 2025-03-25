@@ -5,7 +5,14 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type Reporter } from "@quatico/websmith-api";
-import { AddonRegistry, type AddonConfig, NoReporter, createBrowserSystem, getVersionedFile } from "@quatico/websmith-core";
+import {
+    AddonRegistry,
+    NoReporter,
+    createBrowserSystem,
+    getVersionedFile,
+    type AddonConfig,
+    type CompileSystemOptions as CoreSystemOptions,
+} from "@quatico/websmith-core";
 import type ts from "typescript";
 
 export type CompileSystem = {
@@ -14,19 +21,17 @@ export type CompileSystem = {
     addons: AddonRegistry;
 };
 
-export type CompileSystemOptions = {
-    useCaseSensitiveFileNames?: boolean;
-    withDefaultFiles?: boolean;
+export type CompileSystemOptions = CoreSystemOptions & {
     files?: Record<string, string>;
     addonConfig?: Partial<AddonConfig>;
     reporter?: Reporter;
 };
 
 export const compileSystem = (options?: CompileSystemOptions): CompileSystem => {
-    const { files, addonConfig, reporter, useCaseSensitiveFileNames = false, withDefaultFiles = true } = options ?? {};
+    const { files, addonConfig, reporter, useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher } = options ?? {};
 
-    const fileSystem = createBrowserSystem({ ...files }, useCaseSensitiveFileNames);
-    if (withDefaultFiles) {
+    const fileSystem = createBrowserSystem({ ...files }, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher });
+    if (addLibDefaults) {
         if (!fileSystem.fileExists("./tsconfig.json")) {
             fileSystem.writeFile("./tsconfig.json", "{}");
         }
@@ -35,12 +40,12 @@ export const compileSystem = (options?: CompileSystemOptions): CompileSystem => 
         }
     }
 
-    const { addons = [], addonsDir = "./addons", targets } = addonConfig ?? {};
+    const { addons = [], addonsDir = "./addons", profiles } = addonConfig ?? {};
 
     const registry = new AddonRegistry({
         addons,
         addonsDir,
-        targets,
+        profiles,
         reporter: reporter ?? new NoReporter(),
         system: fileSystem,
     });

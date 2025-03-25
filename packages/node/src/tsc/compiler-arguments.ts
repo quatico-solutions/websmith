@@ -2,8 +2,8 @@ import { isArray } from "lodash";
 import type ts from "typescript";
 import { parseNumberValue } from "../compiler-options";
 
-export const parseCliArguments = (tsOptions: ts.CompilerOptions, files: string[]) =>
-    Object.entries(tsOptions)
+export const parseCliArguments = (tsConfig: ts.CompilerOptions, files: string[]) =>
+    Object.entries(tsConfig)
         .reduce((acc: string[], [key, value]) => {
             if (value === false) {
                 return acc;

@@ -11,7 +11,7 @@ const config: Config = {
     ...baseConfig,
     moduleNameMapper: {
         "@quatico/websmith-core": "<rootDir>/../core/src",
-        "@quatico/websmith-webpack": "<rootDir>/../webpack/src",
+        "websmith-loader": "<rootDir>/../webpack/src",
     },
     setupFilesAfterEnv: ["./test/jest.setup.ts"],
     testRegex: "(tests|src)/.+\\.spec\\.ts$",

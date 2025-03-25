@@ -20,18 +20,18 @@ export class Compiler {
     private stdout: string;
     private stderr: string;
     private failedAlready: boolean;
-    private tsOptions: ts.CompilerOptions;
+    private tsConfig: ts.CompilerOptions;
 
-    constructor(tsOptions?: ts.CompilerOptions) {
+    constructor(tsConfig?: ts.CompilerOptions) {
         this.logger = new Logger(`[tsc]`);
         this.stdout = "";
         this.stderr = "";
         this.failedAlready = false;
-        this.tsOptions = tsOptions ?? tsDefaults;
+        this.tsConfig = tsConfig ?? tsDefaults;
     }
 
-    public getTsOptions(): ts.CompilerOptions {
-        return this.tsOptions;
+    public getTsConfig(): ts.CompilerOptions {
+        return this.tsConfig;
     }
 
     public async compile(files?: string[]): Promise<string> {
@@ -47,7 +47,7 @@ export class Compiler {
 
         const result = await new Promise<string>((resolve, reject) => {
             try {
-                const tscCliArgs = parseCliArguments(this.tsOptions, files);
+                const tscCliArgs = parseCliArguments(this.tsConfig, files);
                 this.logger.log(`✔ Found a typescript compiler at: "${tildify(tscPath)}"`);
                 this.logger.log(`► Spawning the compilation command: "${[TSC_EXECUTABLE, ...tscCliArgs].join(" ")}"\n`);
                 this.createProcess(tscPath, tscCliArgs, reject, resolve);

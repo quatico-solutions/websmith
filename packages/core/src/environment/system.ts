@@ -4,10 +4,10 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { join } from "node:path";
 import ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
 import { createBrowserSystem } from "./browser-system";
+import { type BrowserSystemOptions } from "./BrowserSystemOptions";
 import type { VersionedFile } from "./VersionedFile";
 
 export const isNodeJs = (): boolean => typeof module !== "undefined" && module.exports;
@@ -24,12 +24,12 @@ export const isNodeJs = (): boolean => typeof module !== "undefined" && module.e
  *
  * @param files The returned file system should at least contain.
  */
-export const createSystem = (files?: { [name: string]: string }): ts.System => {
+export const createSystem = (files?: { [name: string]: string }, options?: BrowserSystemOptions): ts.System => {
     if (isNodeJs()) {
         return ts.sys;
     }
     const knownFiles = { ...(files || tsLibDefaults) }; // clone files
-    return createBrowserSystem(knownFiles);
+    return createBrowserSystem(knownFiles, options);
 };
 
 export const readFiles = (paths: string[], system: ts.System = ts.sys): { [name: string]: string } =>
@@ -38,15 +38,15 @@ export const readFiles = (paths: string[], system: ts.System = ts.sys): { [name:
         return result;
     }, {});
 
-export const recursiveFindByFilter = (path: string, filter: (name: string) => boolean = () => true, system: ts.System = ts.sys): string[] =>
-    system
-        .readDirectory(path)
-        .flatMap(it => (system.directoryExists(join(path, it)) ? recursiveFindByFilter(join(path, it), filter) : join(path, it)))
-        .filter(filter);
+export const recursiveFindByFilter = (
+    filePath: string,
+    filter: (name: string) => boolean = ignoreConfigFiles,
+    system: ts.System = ts.sys
+): string[] => system.readDirectory(filePath).filter(filter);
 
-export const createVersionedFiles = (files: { [name: string]: string }, options: ts.CompilerOptions): { [name: string]: VersionedFile } => {
+export const createVersionedFiles = (files: { [name: string]: string }, tsConfig: ts.CompilerOptions): { [name: string]: VersionedFile } => {
     return Object.keys(files).reduce((result: { [name: string]: VersionedFile }, name: string) => {
-        result[name] = createVersionedFile(name, files[name], options);
+        result[name] = createVersionedFile(name, files[name], tsConfig);
         return result;
     }, {});
 };
@@ -54,10 +54,12 @@ export const createVersionedFiles = (files: { [name: string]: string }, options:
 export const getVersionedFile = (filePath: string, system: ts.System): ts.SourceFile | undefined =>
     createVersionedFiles(readFiles([filePath], system), tsDefaults)[filePath];
 
-export const createVersionedFile = (name: string, content: string, options: ts.CompilerOptions): VersionedFile => {
+export const createVersionedFile = (name: string, content: string, tsConfig: ts.CompilerOptions): VersionedFile => {
     const scriptKind = name.endsWith(".ts") ? undefined : ts.ScriptKind.Deferred;
     return {
-        ...ts.createSourceFile(name, content, options.target || ts.ScriptTarget.Latest, true, scriptKind),
+        ...ts.createSourceFile(name, content, tsConfig.target || ts.ScriptTarget.Latest, true, scriptKind),
         version: 0,
     };
 };
+
+export const ignoreConfigFiles = (name: string): boolean => ["tsconfig", "websmith.config"].find(it => name.includes(it)) === undefined;

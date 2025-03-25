@@ -5,7 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { ReporterMock, compileSystem } from "../../../test";
+import { compileSystem } from "../../testing";
+import { ReporterMock } from "../../../test";
 import { CompilationContext, type CompilationContextOptions } from "./CompilationContext";
 
 class CompilationContextTestClass extends CompilationContext {
@@ -48,21 +49,17 @@ class CompilationContextTestClass extends CompilationContext {
 
 let testObj: CompilationContextTestClass;
 let testSystem: ts.System;
-let testProgram: ts.Program;
 
 beforeEach(() => {
     testSystem = compileSystem().fileSystem;
-    testProgram = ts.createProgram({ options: {}, rootNames: [] });
     testObj = new CompilationContextTestClass({
-        buildDir: "",
         tsConfig: {},
         projectDir: testSystem.getCurrentDirectory(),
         reporter: new ReporterMock(testSystem),
         rootFiles: [],
         system: testSystem,
-        program: testProgram,
         cliArgs: { options: {}, fileNames: [], errors: [] },
-        target: "test",
+        profile: "test",
     });
 });
 
@@ -181,15 +178,13 @@ describe("registerProcessor", () => {
 describe("resolvePath", () => {
     beforeEach(() => {
         testObj = new CompilationContextTestClass({
-            buildDir: "",
             tsConfig: {},
             projectDir: "/expected",
             reporter: new ReporterMock(testSystem),
             rootFiles: [],
             system: testSystem,
-            program: testProgram,
             cliArgs: { options: {}, fileNames: [], errors: [] },
-            target: "test",
+            profile: "test",
         });
     });
 
@@ -270,15 +265,13 @@ describe("addAssetDependency", () => {
     it("registers dependency with dependency callback function w/ dependency callback function provided", () => {
         const target = jest.fn();
         testObj = new CompilationContextTestClass({
-            buildDir: "",
             tsConfig: {},
             projectDir: testSystem.getCurrentDirectory(),
             reporter: new ReporterMock(testSystem),
             rootFiles: [],
             system: testSystem,
-            program: testProgram,
             cliArgs: { options: {}, fileNames: [], errors: [] },
-            target: "test",
+            profile: "test",
             registerDependencyCallback: target,
         });
 

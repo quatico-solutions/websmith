@@ -18,7 +18,6 @@ describe("createOptions", () => {
             reporter: expect.any(NoReporter),
             cliArgs: expect.any(Object),
             debug: false,
-            targets: ["*"],
             watch: false,
         });
     });
@@ -26,7 +25,11 @@ describe("createOptions", () => {
     it("should return project config w/ custom but empty tsconfig.json", () => {
         const { fileSystem: target } = compileSystem({ files: { "./expected/tsconfig.json": "{}" } });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json", instanceName: "target-instance" }, new NoReporter(), target).tsConfig;
+        const actual = createOptions(
+            { tsConfigFile: "./expected/tsconfig.json", instanceName: "target-instance" },
+            new NoReporter(),
+            target
+        ).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -39,7 +42,11 @@ describe("createOptions", () => {
             files: { "./expected/tsconfig.json": `${JSON.stringify({ compilerOptions: { strict: true } })}` },
         });
 
-        const actual = createOptions({ project: "./expected/tsconfig.json", instanceName: "target-instance" }, new NoReporter(), target).tsConfig;
+        const actual = createOptions(
+            { tsConfigFile: "./expected/tsconfig.json", instanceName: "target-instance" },
+            new NoReporter(),
+            target
+        ).tsConfig;
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
@@ -54,7 +61,7 @@ describe("createOptions", () => {
         });
 
         const actual = createOptions(
-            { project: "./expected/tsconfig.json", instanceName: "target-instance", tsConfig: { strict: true } },
+            { tsConfigFile: "./expected/tsconfig.json", instanceName: "target-instance", tsConfig: { strict: true } },
             new NoReporter(),
             target
         ).tsConfig;
@@ -100,14 +107,14 @@ describe("createOptions", () => {
             files: {
                 "./tsconfig.json": "{}",
                 "websmith.config.json": `
-                { "targets": { "whatever": { "addons": [ "one", "two", "three" ], "writeFile": true } } }
+                { "profiles": { "whatever": { "addons": [ "one", "two", "three" ] } } }
             `,
             },
         });
         const actual = createOptions({ configFile: "./websmith.config.json", instanceName: "target-instance" }, new NoReporter(), target).config;
 
         expect(actual).toEqual({
-            targets: { whatever: { addons: ["one", "two", "three"], writeFile: true } },
+            profiles: { whatever: { addons: ["one", "two", "three"] } },
         });
     });
 
@@ -140,7 +147,6 @@ describe("createOptions", () => {
                 outDir: "/lib",
             },
 
-            targets: ["*"],
             cliArgs: {
                 fileNames: ["/expected/one/addon.ts"],
                 errors: [],

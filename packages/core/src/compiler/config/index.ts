@@ -5,6 +5,6 @@
  * ---------------------------------------------------------------------------------------------
  */
 export type { CompilationConfig } from "./CompilationConfig";
-export { resolveCompilationConfig, updateCompilerOptions } from "./resolve-compiler-config";
-export { resolveProjectConfig } from "./resolve-project-config";
-export { resolveTargets } from "./resolve-targets";
+export { resolveCompilationConfig, resolvePaths, resolvePath } from "./resolve-compiler-config";
+export { parsedCommandLine } from "./parsed-command-line";
+export { resolveProfile } from "./resolve-profile";

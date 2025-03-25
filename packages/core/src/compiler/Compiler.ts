@@ -6,17 +6,15 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { ErrorMessage, type Reporter, type TargetConfig } from "@quatico/websmith-api";
-import { dirname, extname, join } from "node:path";
-import ts, { PollingWatchKind, WatchFileKind } from "typescript";
+import { ErrorMessage, type Reporter } from "@quatico/websmith-api";
+import path from "node:path";
+import ts from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
+import { AddonRegistry } from "./addons";
 import { type FileCache } from "./cache";
 import { concat } from "./collections";
-import { CompilationContext, CompilationHost, createSharedHost } from "./compilation";
-import { type CompilerOptions } from "./CompilerOptions";
-import { type CompilationConfig } from "./config";
-import { DefaultReporter } from "./DefaultReporter";
-import { type AddonRegistry } from "./addons";
+import { CompilationContext } from "./compilation";
+import { resolveCompilerOptions, type WebpackLoaderOptions, type CompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
     version: number;
@@ -31,14 +29,9 @@ type CompilationFragment = {
 };
 
 export class Compiler {
-    public contextMap!: Map<string, CompilationContext>;
-    public version: number;
-
-    protected program?: ts.Program;
-    protected compilationHost!: CompilationHost;
-    protected langService!: ts.LanguageService;
-    protected options!: CompilerOptions;
-
+    private version: number;
+    private options!: ResolvedCompilerOptions;
+    private contextMap!: Map<string, CompilationContext>;
     private configPath!: string;
     private reporter!: Reporter;
     private system!: ts.System;
@@ -47,25 +40,39 @@ export class Compiler {
     private addons?: AddonRegistry;
     private transpileOnly: boolean;
 
-    constructor(options: CompilerOptions, system?: ts.System, addons?: AddonRegistry, dependencyCallback?: (filePath: string) => void) {
+    constructor(
+        options: Partial<CompilerOptions>,
+        loaderOptions?: Partial<WebpackLoaderOptions>,
+        system?: ts.System,
+        addons?: AddonRegistry,
+        dependencyCallback?: (filePath: string) => void
+    ) {
         this.version = 0;
         this.contextMap = new Map();
         this.addons = addons;
         this.system = system ?? createSystem();
-        this.setOptions(options);
+        this.setOptions(options, loaderOptions);
         this.dependencyCallback = dependencyCallback;
         this.transpileOnly = this.options.config?.transpileOnly ?? false;
     }
 
-    public getContext(target?: string): CompilationContext | undefined {
-        if (target) {
-            return this.contextMap.get(target);
+    public getVersion(): number {
+        return this.version;
+    }
+
+    public getContext(profile?: string): CompilationContext | undefined {
+        if (profile) {
+            return this.contextMap.get(profile);
         }
         const defaultCtx = this.contextMap.get("default");
         if (!defaultCtx) {
-            this.contextMap.set("default", this.createCompilationContext(this.options, undefined, this.dependencyCallback));
+            this.contextMap.set("default", this.createCompilationContext());
         }
         return this.contextMap.get("default");
+    }
+
+    public hasContext(profile?: string): boolean {
+        return profile ? this.contextMap.has(profile) : true;
     }
 
     public getSystem(): ts.System {
@@ -80,46 +87,47 @@ export class Compiler {
         return this.addons;
     }
 
-    public getOptions(): CompilerOptions {
+    public getOptions(): ResolvedCompilerOptions {
         return this.options;
     }
 
-    public setOptions(options: CompilerOptions): this {
-        this.options = options;
-        this.reporter = options.reporter ?? new DefaultReporter(this.system);
+    public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
+        this.options = resolveCompilerOptions(this.system, { tsConfigFile: "./tsconfig.json", ...options }, undefined, loaderOptions);
+        this.reporter = this.options.reporter;
 
-        this.compilationHost = new CompilationHost(createSharedHost(this.system) as ts.LanguageServiceHost);
-        this.langService = ts.createLanguageService(this.compilationHost, ts.createDocumentRegistry());
-        this.program = this.langService.getProgram();
+        const { addons, addonsDir } = this.options;
+        if (!this.addons) {
+            this.addons = addons?.length
+                ? new AddonRegistry({
+                      addons,
+                      addonsDir: addonsDir ?? options.config?.addonsDir ?? "./addons",
+                      reporter: this.reporter,
+                      system: this.system,
+                  })
+                : undefined;
+        }
 
-        if (!options.debug) {
-            console.debug = () => undefined;
-            console.log = () => undefined;
+        if (this.options.cliArgs?.errors?.length) {
+            this.options.cliArgs.errors = this.options.cliArgs.errors.filter(cur => this.options.cliArgs?.projectReferences?.length || cur.file); // Filter out global diagnostics
         }
 
         return this;
     }
 
     public compile(): ts.EmitResult {
-        const { targets } = this.options;
-        this.createTargetContextsIfNecessary();
+        const { profile } = this.options;
+        const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
+        this.createProfileContextsIfNecessary();
+        const profileOptions = this.options.getOptions(profile);
+        const program = this.createProgram(profileOptions.tsConfig);
 
         const results: ts.EmitResult[] = [];
-        if (!targets?.length) {
-            const ctx = this.getContext();
+        selectedProfiles.forEach(curProfile => {
+            const ctx = this.getContext(curProfile);
             if (ctx) {
-                const result = this.emitResult(undefined, ctx); // no target
-                results.push(this.options ? result : this.report(ctx.getProgram(), result));
+                results.push(this.report(program, this.emitResult(curProfile, ctx)));
             }
-        } else {
-            targets.forEach((target: string) => {
-                const ctx = this.getContext(target);
-                if (ctx) {
-                    const result = this.emitResult(target, ctx);
-                    results.push(this.options.config?.transpileOnly ? result : this.report(ctx.getProgram(), result));
-                }
-            });
-        }
+        });
 
         return results.filter(cur => !!cur).length < 1
             ? { emitSkipped: true, diagnostics: [] }
@@ -130,13 +138,11 @@ export class Compiler {
               };
     }
 
-    private emitResult(target: string | undefined, ctx: CompilationContext): ts.EmitResult {
+    private emitResult(profile: string | undefined, ctx: CompilationContext): ts.EmitResult {
         const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
-        const { config } = this.options;
-        const { writeFile = true } = getTargetConfig(target, config);
 
         for (const fileName of this.getRootFiles()) {
-            const fragment = this.emitSourceFile(fileName, target, writeFile);
+            const fragment = this.emitSourceFile(fileName, profile);
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
             } else {
@@ -152,47 +158,62 @@ export class Compiler {
     }
 
     public watch(): this {
-        this.createTargetContextsIfNecessary();
+        this.createProfileContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {
-            const emitTargets: string[] = this.getWritingTargets();
-            this.getRootFiles().forEach(cur => {
-                if (this.options?.targets?.[0] === "*") {
-                    emitTargets.push("*");
-                }
-                emitTargets.forEach(target => this.emitSourceFile(cur, target, true));
-                this.registerWatch(cur, emitTargets);
-            });
+            const profiles = this.options.profile
+                ? [...(this.options.config?.profiles?.[this.options.profile]?.depends ?? []), this.options.profile]
+                : [];
+            if (profiles.length) {
+                this.getRootFiles().forEach(curFile => {
+                    profiles.forEach(curProfile => this.emitSourceFile(curFile, curProfile, true));
+                    this.registerWatch(curFile, profiles);
+                });
+            } else {
+                this.getRootFiles().forEach(curFile => {
+                    this.emitSourceFile(curFile, undefined, true);
+                    this.registerWatch(curFile);
+                });
+            }
         } else {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
         }
         return this;
     }
 
-    public registerWatch(filePath: string, emitTargets: string[]): this {
-        if (!this.system.watchFile) {
+    public registerWatch(filePath: string, profileNames?: string[]): this {
+        if (typeof this.system.watchFile !== "function") {
+            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
             return this;
         }
 
         this.fileWatchers.push(
             this.system.watchFile(
                 filePath,
-                fileName =>
-                    emitTargets.forEach(target =>
-                        fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                            ? this.emitSourceFile(fileName, target, true, true)
-                            : this.contextMap.has(target) &&
-                              this.contextMap
-                                  .get(target)!
+                fileName => {
+                    if (!profileNames?.length) {
+                        return fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
+                            ? this.emitSourceFile(fileName, undefined, true, true)
+                            : this.getContext()!
                                   .resolveDependency(fileName)
-                                  .map(cur => this.emitSourceFile(cur, target, true, true))
-                    ),
+                                  .map(cur => this.emitSourceFile(cur, undefined, true, true));
+                    } else {
+                        return profileNames.forEach(profile =>
+                            fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
+                                ? this.emitSourceFile(fileName, profile, true, true)
+                                : this.hasContext(profile) &&
+                                  this.getContext(profile)!
+                                      .resolveDependency(fileName)
+                                      .map(cur => this.emitSourceFile(cur, profile, true, true))
+                        );
+                    }
+                },
                 50,
                 {
                     // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
                     // In addition, the ts.System.getModifiedTime will report incorrect timeStamps, making it impossible to prevent the double firing.
-                    watchFile: WatchFileKind.PriorityPollingInterval,
-                    fallbackPolling: PollingWatchKind.FixedInterval,
+                    watchFile: ts.WatchFileKind.PriorityPollingInterval,
+                    fallbackPolling: ts.PollingWatchKind.FixedInterval,
                 }
             )
         );
@@ -205,62 +226,57 @@ export class Compiler {
         return this;
     }
 
-    protected createTargetContextsIfNecessary(): this {
-        const { targets } = this.options;
-
-        if (!targets?.length) {
-            const ctx = this.getContext()!;
+    protected createProfileContextsIfNecessary(): this {
+        const selectedProfiles = this.options.getSelectedProfiles();
+        if (!selectedProfiles.length) {
+            // Create default context in any case, context for default profile exists
+            const defaultCtx = this.getContext()!;
             this.addons?.getAvailableAddons().forEach(addon => {
-                addon.activate(ctx);
+                addon.activate(defaultCtx);
             });
         } else {
-            targets.forEach((target: string) => {
-                if (this.contextMap.has(target)) {
+            selectedProfiles.forEach((profile: string) => {
+                if (this.contextMap.has(profile)) {
                     return;
                 }
-                const ctx = this.createCompilationContext(this.options, target, this.dependencyCallback);
-                this.addons?.getAvailableAddons(target).forEach(addon => {
+                const ctx = this.createCompilationContext(profile);
+                this.addons?.getAvailableAddons(profile).forEach(addon => {
                     addon.activate(ctx);
                 });
-                this.contextMap.set(target, ctx);
+                this.contextMap.set(profile, ctx);
             });
         }
         return this;
     }
 
-    protected createCompilationContext(
-        compileOptions: CompilerOptions,
-        target?: string,
-        registerDependencyCallback?: (filePath: string) => void
-    ): CompilationContext {
-        const { buildDir, config, configFile, tsConfig, cliArgs, watch } = compileOptions;
-        const { options = {}, config: targetConfig } = getTargetConfig(target, config);
+    protected createCompilationContext(profile?: string): CompilationContext {
+        const { configFile, tsConfigFile, cliArgs, watch } = this.options;
+        const selectedProfiles = this.options.getSelectedProfiles(profile);
+        const profileOptions = this.options.getOptions(profile);
         return new CompilationContext({
-            buildDir,
-            tsConfig: { ...tsConfig, ...options },
-            projectDir: dirname(configFile ?? cliArgs.raw?.configFilePath ?? this.system.getCurrentDirectory()),
+            tsConfig: profileOptions.tsConfig ?? {},
+            projectDir: path.dirname(configFile ?? tsConfigFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
-            program: ts.createProgram({ rootNames: this.getRootFiles(), options: tsConfig, host: createCompileHost(tsConfig) }),
-            cliArgs: { ...cliArgs, options: { ...tsConfig, ...options } },
+            cliArgs: profileOptions.cliArgs,
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,
-            ...(!!targetConfig && { config: targetConfig }),
-            target,
-            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.getWritingTargets()) }),
-            registerDependencyCallback,
+            ...(profile && { config: this.options.config?.profiles?.[profile]?.config }),
+            profile,
+            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, selectedProfiles) }),
+            registerDependencyCallback: this.dependencyCallback,
         });
     }
 
-    protected emitSourceFile(fileName: string, target?: string, writeFile = true, skipCache = false): CompileFragment {
+    protected emitSourceFile(fileName: string, profile?: string, writeFile = true, skipCache = false): CompileFragment {
         const filePath = this.system.resolvePath(fileName);
-        const ctx = this.getContext(target);
+        const ctx = this.getContext(profile);
         const cache = ctx?.getCache();
 
         if (ctx && cache) {
             if (!skipCache && !cache.hasChanged(filePath)) {
                 return { files: [], content: "", ...cache.getCachedFile(filePath) };
             }
-            let content = this.system.readFile(fileName) ?? ctx.getCache().getCachedFile(fileName)?.content ?? "";
+            let content = this.system.readFile(fileName) ?? cache.getCachedFile(fileName)?.content ?? "";
 
             ctx.getGenerators().forEach(cur => cur(fileName, content));
             ctx.getProcessors().forEach(cur => (content = cur(fileName, content)));
@@ -269,25 +285,33 @@ export class Compiler {
             return this.processOutput(cache, this.transpile({ fileName, ctx, content }), writeFile, fileName);
         }
 
-        throw new Error(`No target ${target} configured`);
+        throw new Error(`No profile with name "${profile}" configured.`);
     }
 
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
         ts.getPreEmitDiagnostics(program)
             .concat(result.diagnostics)
+            .filter(cur => program?.getProjectReferences?.()?.length || cur.file) // Filter out global diagnostics
             .forEach(cur => this.reporter.reportDiagnostic(cur));
 
         return result;
     }
 
-    protected getNonWritingTargets(): string[] {
-        const { targets, config } = this.options;
-        return targets?.filter(cur => !getTargetConfig(cur, config).writeFile) ?? [];
+    protected getDefinedProfiles(name?: string): string[] {
+        const profiles = Object.keys(this.options.config?.profiles ?? {});
+        if (!name) {
+            return profiles;
+        }
+        const selectedProfiles = this.options.getSelectedProfiles(name);
+        return profiles.filter(cur => selectedProfiles.includes(cur));
     }
 
-    protected getWritingTargets(): string[] {
-        const { targets, config } = this.options;
-        return targets?.filter(cur => getTargetConfig(cur, config).writeFile) ?? [];
+    private createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
+        return ts.createProgram({
+            rootNames: this.getRootFiles(),
+            options: tsConfig ?? {},
+            host: createCompileHost(tsConfig ?? {}),
+        });
     }
 
     private processOutput(
@@ -327,8 +351,8 @@ export class Compiler {
             }
         }
 
-        this.compilationHost.setLanguageHost(ctx.getLanguageHost());
-        return { ...this.langService.getEmitOutput(fileName), diagnostics: this.langService.getSyntacticDiagnostics(fileName) };
+        const langService = ctx.getLanguageService();
+        return { ...langService.getEmitOutput(fileName), diagnostics: langService.getSyntacticDiagnostics(fileName) };
     }
 
     private transpileSourceCode({ content, ctx, fileName }: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
@@ -378,23 +402,13 @@ export class Compiler {
 
         return cliArgs?.fileNames
             ? cliArgs.fileNames
-            : recursiveFindByFilter(this.system.resolvePath(join(dirname(this.configPath), "./src")), (path: string) =>
-                  ["ts", "tsx", "js", "jsx"].some(it => extname(path).includes(it))
-              );
+            : recursiveFindByFilter(this.system.resolvePath(path.join(path.dirname(this.configPath), "./src")), undefined, this.system);
     }
 
     private writeOutputFiles(files: ts.OutputFile[]) {
         files.forEach(cur => this.system.writeFile(cur.name, cur.text));
     }
 }
-
-const getTargetConfig = (target?: string, config?: CompilationConfig): TargetConfig => {
-    if (config && target) {
-        const { targets = {} } = config;
-        return targets[target] ?? {};
-    }
-    return {};
-};
 
 const createDiagnostic = ({
     source,

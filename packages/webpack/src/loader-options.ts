@@ -5,11 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 
+import { type WebpackLoaderOptions } from "@quatico/websmith-core";
 import { createHash } from "node:crypto";
 import { type LoaderContext } from "webpack";
 import { createOptions } from "./options";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
-import { type WebsmithLoaderOptions } from "./WebsmithLoaderOptions";
 
 const loaderOptionsCache: {
     [name: string]: WeakMap<WebsmithLoaderConfig, WebsmithLoaderConfig>;
@@ -52,13 +52,8 @@ const resolveLoaderOptions = (
         plugin => plugin && typeof plugin === "object" && plugin.constructor?.name === "ForkTsCheckerWebpackPlugin"
     );
 
-    // We need to remove empty addons to avoid overriding the default options
-    // eslint-disable-next-line no-prototype-builtins
-    if (options.hasOwnProperty("addons") && (options.addons === undefined || options.addons.length === 0)) {
-        delete options.addons;
-    }
-
-    return Object.assign({}, options, createOptions(options), {
+    // TODO: Resolve compiler options
+    return Object.assign({}, createOptions(options), {
         instanceName,
         // Set default transpileOnly to true if there is an instance of ForkTsCheckerWebpackPlugin
         ...(hasForkTsCheckerWebpackPlugin && { transpileOnly: hasForkTsCheckerWebpackPlugin }),
@@ -68,7 +63,7 @@ const resolveLoaderOptions = (
 export const getOptionsHash = (options: WebsmithLoaderConfig) => {
     const hash = createHash("sha256");
     Object.keys(options).forEach(key => {
-        const value = options[key as keyof WebsmithLoaderOptions];
+        const value = options[key as keyof WebpackLoaderOptions];
         if (value !== undefined) {
             // eslint-disable-next-line @typescript-eslint/no-base-to-string
             const valueString = isFunction(value) ? value.toString() : JSON.stringify(value);
