@@ -40,7 +40,6 @@ In your package.json, add the `websmith` command as your build target to the `sc
      //...
      "scripts": {
          "build": "websmith",
-         //...
      },
      //...
  }
@@ -139,7 +138,7 @@ Read more about implementing addons in the [Write your own addon](docs/write-you
 
 ### Find addon examples
 
-You can find a few examples for addons in the [@quatico/websmith-examples](https://github.com/quatico-solutions/websmith/tree/main/packages/example-addons) package.
+You can find a few examples for addons in the [@quatico/websmith-examples](https://github.com/quatico-solutions/websmith/tree/develop/packages/example-addons/README.md) package.
 
 Install the `@quatico/websmith-examples` package to use the examples:
 
@@ -195,12 +194,17 @@ An example for a custom compilation profile:
 }
 ```
 
-### Use a compilation profile
+### Activate a compilation profile
 
-To use a compilation profile, specify the profile name when calling the websmith compiler:
+To use a compilation profile, specify the profile name when calling the websmith compiler in your `package.json` file:
 
-```bash
-websmith --profile client
+```json
+// ./package.json
+{
+    "scripts": {
+        "build": "websmith --profile client"
+    }
+}w
 ```
 
-The compilation profile is applied to the compilation process and the addons are activated with the profile specific options.
+The compilation profile is applied to the compilation process and the addons are activated with the profile specific options. For more information on how to activate addons, see the [compiler README](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md).
