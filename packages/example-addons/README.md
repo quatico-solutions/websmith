@@ -4,9 +4,11 @@
    Licensed under the MIT License. See LICENSE in the project root for license information.
  ---------------------------------------------------------------------------------------------
 -->
-# websmith-examples
+# @quatico/websmith-examples
 
 A set of example addons to create your own `Generators`, `Processors` or `ResultProcessors` via the [@quatico/websmith-api](https://github.com/quatico-solutions/websmith/tree/develop/packages/api/README.md) to customize the compilation process.
+
+See the [websmith github repository](https://github.com/quatico-solutions/websmith) for a general introduction to the websmith compiler.
 
 ## Example Generator
 
