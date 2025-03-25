@@ -4,8 +4,8 @@
    Licensed under the MIT License. See LICENSE in the project root for license information.
  ---------------------------------------------------------------------------------------------
 -->
-# websmith-core
+# @quatico/websmith-core
 
-This is an **internal module** for the websmith compiler. You most likely don't want to use this package directly. If you want to integrate websmith into your build process go to [@quatico/websmith-compiler](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md) for the compiler's CLI tool or to [websmith-loader](https://github.com/quatico-solutions/websmith/tree/develop/packages/webpack/README.md) for the webpack plugin.
+This package contains shared library functions for the websmith compiler. It's a peer dependency of the [@quatico/websmith-compiler](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md) package and should not be used directly. If you want to integrate websmith into your build process go to [@quatico/websmith-compiler](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md) for the `websmith` command line tool or to [websmith-loader](https://github.com/quatico-solutions/websmith/tree/develop/packages/webpack/README.md) for the webpack loader.
 
-Visit the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
+See the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
