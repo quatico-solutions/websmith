@@ -5,5 +5,5 @@
  * ---------------------------------------------------------------------------------------------
  */
 export * from "./Logger";
-export * from "./tsc";
+export * from "./websmith";
 export * from "./webpack";
