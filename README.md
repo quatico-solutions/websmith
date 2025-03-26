@@ -8,7 +8,7 @@
 
 [![CI](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml/badge.svg)](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml)  [![npm version](https://badge.fury.io/js/@quatico%2Fwebsmith-compiler.svg)](https://www.npmjs.com/search?q=%40quatico)
 
-This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It's a drop-in replacement for the `tsc` command with additional customization options for the compilation process. You can apply compiler addons to modify the compilation input "before", during and "after" compiled artifacts are created. Even non-script files can be processed during the compilation process. Use the `websmith` command with an addon:
+This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It's a drop-in replacement for the `tsc` command with additional customization options for the compilation output. You can apply compiler addons to modify the compilation input before, during and after compiled artifacts are created. Even non-script files can be processed during the compilation process. Use the `websmith` command with an addon:
 
 * To generate additional configuration or documentation based on the original source code,
 * To create additional new source files and add them to the compilation process, or
@@ -40,13 +40,12 @@ In your package.json, add the `websmith` command as your build target to the `sc
      //...
      "scripts": {
          "build": "websmith",
-         //...
      },
      //...
  }
  ```
 
-The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation process with CLI arguments (e.g., `--addons`) or in the `websmith.config.json` file:
+The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation output with CLI arguments (e.g., `--addons`) or in the `websmith.config.json` file:
 
 ```json
 // ./websmith.config.json
@@ -55,7 +54,7 @@ The default configuration uses the `tsconfig.json` file in your project root to 
 }
 ```
 
-Place your `websmith.config.json` file in the root of your project and add your addons to the `addons` directory next to it. Read more about addons in the [Customizing the compilation process](#customizing-the-compilation-process) section.
+Place your `websmith.config.json` file in the root of your project and add your addons to the `addons` directory next to it. Read more about addons in the [Customizing the compilation output](#customizing-the-compilation-output) section.
 
 ### Use websmith with webpack
 
@@ -94,7 +93,7 @@ module.exports = {
 };
 ```
 
-## Customizing the compilation process
+<a name="customizing-the-compilation-output"></a>## Customizing the compilation output
 
 Compiler addons can be used for code generation, but also to process non-script files during the compilation, e.g. for style compilation with Sass or PostCSS, for documentation with YAML or Markdown.
 
@@ -139,7 +138,7 @@ Read more about implementing addons in the [Write your own addon](docs/write-you
 
 ### Find addon examples
 
-You can find a few examples for addons in the [@quatico/websmith-examples](https://github.com/quatico-solutions/websmith/tree/main/packages/example-addons) package.
+You can find a few examples for addons in the [@quatico/websmith-examples](https://github.com/quatico-solutions/websmith/tree/develop/packages/example-addons/README.md) package.
 
 Install the `@quatico/websmith-examples` package to use the examples:
 
@@ -195,12 +194,17 @@ An example for a custom compilation profile:
 }
 ```
 
-### Use a compilation profile
+### Activate a compilation profile
 
-To use a compilation profile, specify the profile name when calling the websmith compiler:
+To use a compilation profile, specify the profile name when calling the websmith compiler in your `package.json` file:
 
-```bash
-websmith --profile client
+```json
+// ./package.json
+{
+    "scripts": {
+        "build": "websmith --profile client"
+    }
+}w
 ```
 
-The compilation profile is applied to the compilation process and the addons are activated with the profile specific options.
+The compilation profile is applied to the compilation process and the addons are activated with the profile specific options. For more information on how to activate addons, see the [compiler README](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md).

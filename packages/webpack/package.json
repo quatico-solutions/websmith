@@ -1,7 +1,7 @@
 {
     "name": "websmith-loader",
-    "description": "Webpack loader for @quatico/websmith-compiler",
     "version": "0.6.3",
+    "description": "A webpack loader for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
     "main": "src/index.ts",

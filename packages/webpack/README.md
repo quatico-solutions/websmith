@@ -4,25 +4,63 @@
    Licensed under the MIT License. See LICENSE in the project root for license information.
  ---------------------------------------------------------------------------------------------
 -->
-# websmith-webpack
+# websmith-loader
 
-A custom webpack loader to add the websmith compiler to your build and bundling process.
+A drop-in replacement for the [ts-loader](https://github.com/TypeStrong/ts-loader) to add the websmith compiler to your build and bundling process. Websmith provides an [API to create compiler addons](https://github.com/quatico-solutions/websmith/tree/develop/packages/api/README.md) to modify the compilation input before, during and after compiled artifacts are created, [compilation profiles](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md#compilation-profiles) to specify individual environments for different outputs, and integrates seamlessly with `webpack` build commands.
 
 Visit the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
 
 ## Getting started
 
+Whenever you use the `ts-loader` to compile your TypeScript project, you can replace it with the `websmith-loader` command and apply compiler addons.
+
 ### Installation
 
-Install the websmith webpack loader using npm:
+Add the loader to your TypeScript project with the `websmith-loader` package. For example, use the following command with `pnpm`:
 
 ```sh
-npm i -D websmith-loader
+pnpm add --dev @quatico/websmith-compiler
 ```
+
+### Use websmith-loader in your webpack configuration
+
+You can use the `websmith-loader` loader in your webpack configuration by adding the following entry to your `module.rules` configuration:
+
+```javascript
+// ./webpack.config.js
+const { join } = require("path");
+
+module.exports = {
+    // ...
+    module: {
+        rules: [
+            {
+                test: /\.(?:[j|t]sx?)$/,
+                use: [
+                    {
+                        loader: "websmith-loader",
+                        options: {
+                            tsConfigFile: join(__dirname, "tsconfig.json"),
+                            config: {
+                                addonsDir: join(__dirname, "addons"),
+                                addons: ["export-yaml-generator"],
+                            },
+                            transpileOnly: true,
+                        },
+                    },
+                ],
+            },
+            // ...
+        ],
+    },
+};
+```
+
+The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Add a custom compilation config to the loader options or use the `websmith.config.json` file to configure the compilation output.
 
 ### Add websmith configuration
 
-A `websmith.config.json` file is needed to configure which addons should be used by websmith during the webpack compilation process:
+You can use a `websmith.config.json` file to configure which addons should be used for what profile by websmith during the webpack compilation process:
 
 ```json
 // websmith.config.json
@@ -37,46 +75,4 @@ A `websmith.config.json` file is needed to configure which addons should be used
 
 **Note:** The webpack loader will expect a profile called `executeAddons` which we need to configure in the webpack configuration.
 
-### Add webpack configuration
-
-Now we can use the `websmith-loader` loader and the websmith configuration to configure webpack.
-
-```javascript
-// webpack.config.js
-const { join } = require("path");
-
-module.exports = {
-    ...
-    module: {
-        rules: [
-            ...,
-            {
-                test: /\.(?:[j|t]sx?)$/,
-                include: [sourceDir],
-                exclude: [/node_modules/],
-                use: [
-                    {
-                        loader: "websmith-loader",
-                        options: {
-                            tsConfigFile: join(__dirname, "tsconfig.json"),
-                            config: {
-                                addonsDir: join(__dirname, "addons"),
-                            },
-                            profile: "executeAddons",
-                        },
-                    },
-                ],
-            },
-            ...
-        ],
-    },
-};
-```
-
-### Bundle your project
-
-You can run webpack in one of your build profiles with:
-
-```sh
-webpack
-```
+Read more about compilation profiles in the [websmith compiler documentation](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md#compilation-profiles). Or check out more details on the configuration file in the [compiler documentation](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md#websmith-configuration-file).
