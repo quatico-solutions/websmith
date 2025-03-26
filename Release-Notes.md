@@ -14,11 +14,12 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Added
 
-- TBA
-
+-
+  
 ### Removed
 
-- TBA
+- Compiler targets
+-
 
 ### Changed
 
@@ -27,6 +28,58 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 ### Fixed
 
 - TBA
+
+## [0.7.0] - 2025-03-26
+
+Compilation Profiles are here. This release replaces compiler targets with compilation profiles. Choose a single profile to customize the compilation output with individual compiler options, different outDir and addons selection. A compilation profile can depend on other profiles. Dependent profiles contribute addons and compiler options, which are applied in the order of the dependency chain. With the introduction of profiles, we've aligned how compiler options are composed. The websmith CLI becomes a drop-in replacement for the `tsc` command and the `websmith-loader` a drop-in replacement for the `ts-loader`.
+
+## Added
+
+- 🚀 Added new library package `@quatico/websmith-node` for running websmith in Node.JS as compiler and with webpack
+- 🚀 Added JIT compilation of websmith addons from TypeScript source
+- 🚀 Added test coverage for example addons
+- 🚀 Added webpack-loader fixes for compiler instance cache
+
+### Removed
+
+- 🔧 Removed buildDir from compilation context
+- 🔧 Removed artificial default values for compiler options in CLI, webpack loader and testing environment
+
+## Changed
+
+- 🔥 Renamed package `@quatico/websmith-webpack` to `websmith-loader`
+- 🔥 Renamed private package `example-addons` to published package `@quatico/websmith-examples`
+- 🔥 Renamed package `test` to `compiler-test`
+- 🔥 Renamed configuration properties to achieve better consistent naming across all packages
+  - "project" → "tsConfigFile"
+  - "target" → "profile"
+  - "targets" → "profiles"
+  - "TargetConfig" → "CompilationProfile"
+- 🔧 Moved `compileSystem` into package `core` to be used in production code
+- 🔧 Encapsulated compiler state for Compiler and TsCompiler with separated ResolvedCompilerOptions as abstraction
+- 🔧 Unified path resolution for all paths in tsConfig, config, and cliArgs
+- 🔧 Inlined LanguageHost and CompilationHost into CompilationContext
+- 🔧 Aligned all CLI arguments with the tsc compiler, added missing options
+- 🔨 Upgraded project dependencies to eslint9 flat config
+- 🔨 Added eslint-plugin-unicorn for better node imports linting
+- 🔨 Enforced prefix 'node:' to all node library imports
+- 🔨 Upgraded project dependencies and introduced project-based jest configuration
+- 🔨 Replaced @swc/jest with consistent ts-jest configuration
+- 📚 Improved overall documentation with better wording in README files of all packages
+- 📚 Enhanced documentation for core webpack and testing packages
+- 📚 Provided more sophisticated documentation for compiler command and CLI parameters
+- 📚 Provided documentation for Addon API with better overview in API package
+- 📚 Improved main README file for better overview
+- 🧪 Improved E2E test fixture for websmith-loader to test multiple and chained entries
+
+### Fixed
+
+- 🐛 Fixed an issue with webpack tests with multiple and chained entries
+- 🐛 Fixed an issue with eslint-plugin-unicorn rules with node import issues
+- 🐛 Fixed various issues with resolved options and hidden error logs
+- 🐛 Fixed typing issues with with comment-json for parsing
+- 🧪 Fixed an issue with testTimeout in github pipelines for various test suites to pass
+- 🧪 Fixed an issue with reported compilation diagnostics in E2E and integration tests
 
 ## [0.6.3] - 2025-01-23
 

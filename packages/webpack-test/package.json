@@ -1,7 +1,7 @@
 {
     "name": "websmith-loader-test",
     "description": "End-to-end test package for the websmith webpack-loader",
-    "version": "0.6.3",
+    "version": "0.7.0",
     "author": "Quatico Solutions AG",
     "private": true,
     "scripts": {

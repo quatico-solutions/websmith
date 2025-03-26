@@ -1,6 +1,6 @@
 {
     "name": "@quatico/websmith-compiler",
-    "version": "0.6.3",
+    "version": "0.7.0",
     "description": "A CLI for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
