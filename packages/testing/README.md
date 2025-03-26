@@ -90,7 +90,7 @@ describe('FoobarAddon', () => {
     it('should compile', () => {
         compilation = compilationEnv("./__TEST__", { virtual: false })
                 .addAddon("my-addon", join(__dirname, "../addons"))
-                .addProjectFromSource({ /* your project code here */ })
+                .addProjectFromSource({ /* your project files here, path: content */ })
                 .compile();
 
         // expect compiled results from disk with same API as before
@@ -182,25 +182,59 @@ Get the project files in the compilation environment. The project files are stor
 
 Get a project file by its path. The project file can be stored in memory or on disk and can be accessed with the `ProjectFile` object. The `filePath` can be relative or absolute.
 
+### `getSourceFiles(relativePath?: string): ProjectFiles`
+
+Get the source files from the project. The source files are stored in memory or on disk and can be accessed with the `ProjectFiles` object. The `relativePath` is the path to the source files relative to the compilation root.
+
+### `getSourceFile(filePath: string): ProjectFile | undefined`
+
+Get a source file by its path. The source file can be stored in memory or on disk and can be accessed with the `ProjectFile` object. The `filePath` can be relative or absolute.
+
+#### `cleanUp(options: "project" | "addons" | "all" = "all"): CompilationEnv`
+
+Remove all compiled files from memory. Use `options` parameter to remove only project or addon files. This method can be called after each test to clean created files.  
+
 ### 3.3 Compilation Results
 
 #### `compile(): CompilationResults`
 
 Compile the project and addons. The compiled files are stored in memory and can be accessed with the `CompilationResults` object.
 
-#### `getCompiledFiles(): CompiledFiles`
+#### `getCompiledDir(): string`
 
-Get the compiled files from the project and addons. The compiled files are stored in memory and can be accessed with the `CompiledFiles` object.
+Get the compiled directory. The compiled directory is the directory where the compiled files are stored.
 
-#### `getCompiledFile(path: string): CompiledFile`
+#### `getCompiledFiles(): ProjectFile`
 
-Get a compiled file by its path. The compiled file is stored in memory and can be accessed with the `CompiledFile` object.
+Get the compiled files from the project and addons. The compiled files are stored in memory and can be accessed with the `ProjectFile` object.
 
-#### `cleanUp(options: "project" | "addons" | "all" = "all"): CompilationEnv`
+#### `getCompiledFile(path: string): ProjectFile`
 
-Remove all compiled files from memory. Use `options` parameter to remove only project or addon files. This method can be called after each test to clean created files.  
+Get a compiled file by its path. The compiled file is stored in memory and can be accessed with the `ProjectFile` object.
 
-### 3.4 Project and Compiled Files
+#### `getDiagnostics(): Diagnostic[]`
+
+Get the diagnostics from the compilation. The diagnostics are stored in memory and can be accessed with the `Diagnostic` object.
+
+#### `hasEmitSkipped(): boolean`
+
+Check if the compilation has skipped any files.
+
+#### `getEmittedFiles(): string[]`
+
+Get the emitted files from the compilation. The emitted files are stored in memory and can be accessed with the `EmittedFiles` object.
+
+#### `hasFailures(): boolean`
+
+Check if the compilation has failures.
+
+#### `getFailureReport(filter?: string): string`
+
+Get the failure report from the compilation. The failure report is stored in memory and can be accessed with the `FailureReport` object.
+
+### 3.4 Project Files
+
+The `ProjectFile` object provides a simple API to access the file's content and path.
 
 #### `getPaths(): string[]`
 
