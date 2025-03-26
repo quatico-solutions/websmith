@@ -8,7 +8,7 @@
 
 [![CI](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml/badge.svg)](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml)  [![npm version](https://badge.fury.io/js/@quatico%2Fwebsmith-compiler.svg)](https://www.npmjs.com/search?q=%40quatico)
 
-This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It's a drop-in replacement for the `tsc` command with additional customization options for the compilation output. You can apply compiler addons to modify the compilation input before, during and after compiled artifacts are created. Even non-script files can be processed during the compilation process. Use the `websmith` command with an addon:
+This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript#readme). It's a drop-in replacement for the `tsc` command with additional customization options for the compilation output. You can apply compiler addons to modify the compilation input before, during and after compiled artifacts are created. Even non-script files can be processed during the compilation process. Use the `websmith` command with an addon:
 
 * To generate additional configuration or documentation based on the original source code,
 * To create additional new source files and add them to the compilation process, or
@@ -93,7 +93,7 @@ module.exports = {
 };
 ```
 
-<a name="customizing-the-compilation-output"></a>## Customizing the compilation output
+## <a name="customizing-the-compilation-output"></a>Customizing the compilation output
 
 Compiler addons can be used for code generation, but also to process non-script files during the compilation, e.g. for style compilation with Sass or PostCSS, for documentation with YAML or Markdown.
 
@@ -134,11 +134,11 @@ export const activate = (ctx: AddonContext) => {
 
 The file must have an exported function named `activate` that takes an `AddonContext` as its only parameter.
 
-Read more about implementing addons in the [Write your own addon](docs/write-your-own-addon.md) section for detailed instructions and examples.
+Read more about implementing addons in the [Write your own addon](packages/api/docs/write-your-own-addon.md) section for detailed instructions and examples.
 
 ### Find addon examples
 
-You can find a few examples for addons in the [@quatico/websmith-examples](https://github.com/quatico-solutions/websmith/tree/develop/packages/example-addons/README.md) package.
+You can find a few examples for addons in the [@quatico/websmith-examples](packages/example-addons#readme) package.
 
 Install the `@quatico/websmith-examples` package to use the examples:
 
@@ -207,4 +207,4 @@ To use a compilation profile, specify the profile name when calling the websmith
 }w
 ```
 
-The compilation profile is applied to the compilation process and the addons are activated with the profile specific options. For more information on how to activate addons, see the [compiler README](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md).
+The compilation profile is applied to the compilation process and the addons are activated with the profile specific options. For more information on how to activate addons, see the [compiler README](packages/compiler#readme).
