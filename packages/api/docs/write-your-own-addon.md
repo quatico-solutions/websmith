@@ -7,7 +7,7 @@
 
 # Write your own addon
 
-The websmith compiler frontend provides an addon API to customize the compilation process of the underlying TypeScript compiler. An addon is an ES module named `addon.ts` or `addon.js` with an exported function named `activate`. The `activate` function takes an `AddonContext` as its only parameter and is called when the compilation process is started. The `AddonContext` provides access to the underlying TypeScript compiler and API to register different kinds of transformers, processors or generators.
+The websmith compiler frontend provides an addon API to customize the compilation output of the underlying TypeScript compiler. An addon is an ES module named `addon.ts` or `addon.js` with an exported function named `activate`. The `activate` function takes an `AddonContext` as its only parameter and is called when the compilation process is started. The `AddonContext` provides access to the underlying TypeScript compiler and API to register different kinds of transformers, processors or generators.
 
 All addons must be located in separate folders inside the dedicated *"addons"* directory. The folder name is used as addon name, if no explicit name is provided. The *"addons"* directory should be located in the root of the project, i.e. next to your `tsconfig.json`. The *"addons"* directory is not part of the TypeScript compilation process. You can specify a different location for your addons using the CLI argument `--addonsDir`.
 
@@ -31,7 +31,7 @@ The following list should help you to decide what kind to use for your purpose:
 
 ## 2 Implement a Generator
 
-`Generators` allow you to generate additional information **per file** with the unprocessed input source files and persist them on the system (`ctx.getSystem().writeFile(filePath)`) for other addons that are executed later on (`ctx.getSystem.readFile(filePath)`). You can even add a newly written file to the compilation process with `ctx.addInputFile(filePath)`.
+`Generators` allow you to generate additional information **per file** with the unprocessed input source files and persist them on the system (`ctx.getSystem().writeFile(filePath)`) for other addons that are executed later on (`ctx.getSystem.readFile(filePath)`). You can even add newly written files to the compilation process with `ctx.addInputFile(filePath)`.
 
 ### 2.1 Example Generator
 

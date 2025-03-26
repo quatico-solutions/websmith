@@ -6,11 +6,11 @@
 -->
 # @quatico/websmith-compiler
 
-Websmith is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It's a drop-in replacement for the `tsc` command with additional customization options for the compilation process. It provides an [API to create compiler addons](https://github.com/quatico-solutions/websmith/tree/develop/packages/api/README.md) to modify the compilation input "before", during and "after" compiled artifacts are created, [compilation profiles](#compilation-profiles) to specify individual environments for different outputs, and integrates seamlessly with the `tsc` and `webpack` build commands.
+Websmith is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It's a drop-in replacement for the `tsc` command with additional customization options for the compilation output. It provides an [API to create compiler addons](https://github.com/quatico-solutions/websmith/tree/develop/packages/api/README.md) to modify the compilation input before, during and after compiled artifacts are created, [compilation profiles](#compilation-profiles) to specify individual environments for different outputs, and integrates seamlessly with the `tsc` and `webpack` build commands.
 
 ## Getting started
 
-Whenever you use the `tsc` command to compile your TypeScript project, you can replace it with the `websmith` command to apply compiler addons.
+Whenever you use the `tsc` command to compile your TypeScript project, you can replace it with the `websmith` command and apply compiler addons.
 
 ### Installation
 
@@ -30,7 +30,7 @@ Run the compiler as binary via NodeJS with the following command:
 websmith
 ```
 
-The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation process with CLI arguments (e.g., `--addons`) or in the `websmith.config.json`.
+The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation output with CLI arguments (e.g., `--addons`) or in the `websmith.config.json`.
 
 Websmith provides a high performance watch mode options, similar to the `ts-loader` for webpack:
 
@@ -64,7 +64,7 @@ Compiler addons can be used to modify the compilation artifacts before, during a
 
 ## Command line parameters
 
-The `websmith` command supports the same command line parameters as the `tsc` command. In addition, it supports parameters to customize the compilation process, like:
+The `websmith` command supports the same command line parameters as the `tsc` command. In addition, it supports parameters to customize the compilation output, like:
 
 * `--addons <addons>`: Comma-separated list of addons to apply. No addons are applied by default.
 * `--addonsDir <directoryPath>`: Directory path to the "addons" folder. Defaults to `./addons`.
@@ -81,7 +81,7 @@ A compilation profile is a set of options that specify the environment for a com
 
 ### Define a compilation profile
 
-You can define a compilation profile by adding a `profiles` section to the `websmith.config.json` file. The `profiles` section contains a unique profile `name` and a set of options. The `name` is used to specify the profile when calling the websmith compiler. The options are used to configure the compilation process. The options contain the following sections:
+You can define a compilation profile by adding a `profiles` section to the `websmith.config.json` file. The `profiles` section contains a unique profile `name` and a set of options. The `name` is used to specify the profile when calling the websmith compiler. The options are used to configure the compilation output. The options contain the following sections:
 
 * `addons`: A list of addon names to apply for this profile
 * `tsConfig`: The TypeScript compiler options for this profile
@@ -116,3 +116,16 @@ You can apply a compilation profile by using the `--profile` command line parame
     }
 }
 ```
+
+## Websmith configuration file
+
+The `websmith.config.json` file is used to configure the compilation output. It's placed in your project root and may contain the following sections:
+
+* `addons`: A list of compiler addons
+* `addonsDir`: Relative path to the directory containing the addons.
+* `profiles`: A list of compilation profiles
+* `transpileOnly`: Whether the compiler should emit any output.
+
+The `profiles` section contains a record of compilation profiles. See above for more details on configuring profiles.
+
+You can place your `websmith.config.json` file in the root of your project or use the `--configFile` parameter to specify a different path.

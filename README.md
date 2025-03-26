@@ -8,7 +8,7 @@
 
 [![CI](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml/badge.svg)](https://github.com/quatico-solutions/websmith/actions/workflows/protect-stable.yml)  [![npm version](https://badge.fury.io/js/@quatico%2Fwebsmith-compiler.svg)](https://www.npmjs.com/search?q=%40quatico)
 
-This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It's a drop-in replacement for the `tsc` command with additional customization options for the compilation process. You can apply compiler addons to modify the compilation input "before", during and "after" compiled artifacts are created. Even non-script files can be processed during the compilation process. Use the `websmith` command with an addon:
+This project is a compiler frontend for the [TypeScript compiler](https://github.com/microsoft/TypeScript). It's a drop-in replacement for the `tsc` command with additional customization options for the compilation output. You can apply compiler addons to modify the compilation input before, during and after compiled artifacts are created. Even non-script files can be processed during the compilation process. Use the `websmith` command with an addon:
 
 * To generate additional configuration or documentation based on the original source code,
 * To create additional new source files and add them to the compilation process, or
@@ -45,7 +45,7 @@ In your package.json, add the `websmith` command as your build target to the `sc
  }
  ```
 
-The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation process with CLI arguments (e.g., `--addons`) or in the `websmith.config.json` file:
+The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation output with CLI arguments (e.g., `--addons`) or in the `websmith.config.json` file:
 
 ```json
 // ./websmith.config.json
@@ -54,7 +54,7 @@ The default configuration uses the `tsconfig.json` file in your project root to 
 }
 ```
 
-Place your `websmith.config.json` file in the root of your project and add your addons to the `addons` directory next to it. Read more about addons in the [Customizing the compilation process](#customizing-the-compilation-process) section.
+Place your `websmith.config.json` file in the root of your project and add your addons to the `addons` directory next to it. Read more about addons in the [Customizing the compilation output](#customizing-the-compilation-output) section.
 
 ### Use websmith with webpack
 
@@ -93,7 +93,7 @@ module.exports = {
 };
 ```
 
-## Customizing the compilation process
+<a name="customizing-the-compilation-output"></a>## Customizing the compilation output
 
 Compiler addons can be used for code generation, but also to process non-script files during the compilation, e.g. for style compilation with Sass or PostCSS, for documentation with YAML or Markdown.
 

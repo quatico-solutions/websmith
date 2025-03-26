@@ -6,7 +6,7 @@
 -->
 # @quatico/websmith-api
 
-The websmith API package provides interfaces and functionality to implement compiler **addons** to customize the compilation process.
+The websmith API package provides interfaces and functionality to implement compiler **addons** to customize the compilation output.
 
 Compiler addons can be used to modify the compilation artifacts before, during and after the compiled output is created. Even non-script files can be created and processed in the compilation process. Use the `websmith` command with an addon:
 
