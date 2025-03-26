@@ -6,9 +6,9 @@
 -->
 # websmith-loader
 
-A drop-in replacement for the [ts-loader](https://github.com/TypeStrong/ts-loader) to add the websmith compiler to your build and bundling process. Websmith provides an [API to create compiler addons](https://github.com/quatico-solutions/websmith/tree/develop/packages/api/README.md) to modify the compilation input before, during and after compiled artifacts are created, [compilation profiles](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md#compilation-profiles) to specify individual environments for different outputs, and integrates seamlessly with `webpack` build commands.
+A drop-in replacement for the [ts-loader](https://github.com/TypeStrong/ts-loader#readme) to add the websmith compiler to your build and bundling process. Websmith provides an [API to create compiler addons](https://github.com/quatico-solutions/websmith/tree/develop/packages/api#readme) to modify the compilation input before, during and after compiled artifacts are created, [compilation profiles](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md#compilation-profiles) to specify individual environments for different outputs, and integrates seamlessly with `webpack` build commands.
 
-Visit the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
+Visit the [websmith github repository](https://github.com/quatico-solutions/websmith#readme) for more information and examples.
 
 ## Getting started
 
