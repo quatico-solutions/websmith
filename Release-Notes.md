@@ -14,12 +14,11 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Added
 
--
+- TBA
   
 ### Removed
 
-- Compiler targets
--
+- TBA
 
 ### Changed
 
@@ -29,11 +28,18 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.1] - 2025-03-27
+
+### Fixed
+
+- 🐛 Fixed source links in markdown documentation files
+- 🐛 Fixed links and cross-anchors in markdown documentation files
+
 ## [0.7.0] - 2025-03-26
 
 Compilation Profiles are here. This release replaces compiler targets with compilation profiles. Choose a single profile to customize the compilation output with individual compiler options, different outDir and addons selection. A compilation profile can depend on other profiles. Dependent profiles contribute addons and compiler options, which are applied in the order of the dependency chain. With the introduction of profiles, we've aligned how compiler options are composed. The websmith CLI becomes a drop-in replacement for the `tsc` command and the `websmith-loader` a drop-in replacement for the `ts-loader`.
 
-## Added
+### Added
 
 - 🚀 Added new library package `@quatico/websmith-node` for running websmith in Node.JS as compiler and with webpack
 - 🚀 Added JIT compilation of websmith addons from TypeScript source
@@ -45,7 +51,7 @@ Compilation Profiles are here. This release replaces compiler targets with compi
 - 🔧 Removed buildDir from compilation context
 - 🔧 Removed artificial default values for compiler options in CLI, webpack loader and testing environment
 
-## Changed
+### Changed
 
 - 🔥 Renamed package `@quatico/websmith-webpack` to `websmith-loader`
 - 🔥 Renamed private package `example-addons` to published package `@quatico/websmith-examples`
