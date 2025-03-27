@@ -118,6 +118,20 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().configFile).toEqual(expect.stringContaining("/expected/websmith.config.json"));
     });
 
+    it("should report missing config file w/o existing cli argument", () => {
+        const testSystem = compileSystem({}).fileSystem;
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--configFile", "./does-not-exist/websmith.config.json"], { from: "user" });
+
+        expect(target.getOptions().config).toEqual({});
+        expect(target.getReporter().reportDiagnostic).toHaveBeenNthCalledWith(
+            1,
+            new WarnMessage(`No configuration file found at ${"/does-not-exist/websmith.config.json"}.`)
+        );
+    });
+
     it("should yield project option w/ --project cli argument", () => {
         const testSystem = compileSystem({ files: { "./expected/tsconfig.json": "{}" } }).fileSystem;
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
