@@ -97,9 +97,8 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             // TODO: Add files from CLI argument
             const system = compiler?.getSystem() ?? createSystem();
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
-            const options = createOptions(args, reporter, system);
-            options.configFile = args.configFile ?? "./websmith.config.json";
-            const compilationConfig = resolveCompilationConfig(options.configFile, reporter, system);
+            const compilationConfig = resolveCompilationConfig(args.configFile ?? "./websmith.config.json", reporter, system);
+            const options = createOptions({ ...args, configFile: args.configFile ?? "./websmith.config.json" }, reporter, system);
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
             if (unknownArgs?.length > 0) {
                 options.additionalArguments = parseUnknownArguments(unknownArgs);
