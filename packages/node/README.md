@@ -117,4 +117,4 @@ const logs = await webpack(["./src/index.ts"], {
 });
 ```
 
-See the [websmith github repository](https://github.com/quatico-solutions/websmith) for more information and examples.
+See the [websmith github repository](https://github.com/quatico-solutions/websmith#readme) for more information and examples.

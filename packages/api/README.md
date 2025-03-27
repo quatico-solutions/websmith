@@ -16,11 +16,11 @@ Compiler addons can be used to modify the compilation artifacts before, during a
 
 Compiler addons can also access all transpiled files as whole and reason about the entire compilation target. The standard API for TypeScript transformers is fully integrated, thus existing `ts.CustomTransformers` can be simply called from within an addon.
 
-For a general introduction to websmith see the [websmith github repository](https://github.com/quatico-solutions/websmith).
+For a general introduction to websmith see the [websmith github repository](https://github.com/quatico-solutions/websmith#readme).
 
 ## Getting started
 
-The websmith API package is a peer dependency of the [websmith compiler](https://github.com/quatico-solutions/websmith) and provides the interfaces and functionality to implement compiler addons.
+The websmith API package is a peer dependency of the [websmith compiler](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler#readme) and provides the interfaces and functionality to implement compiler addons.
 
 ### Installation
 
@@ -57,7 +57,7 @@ export const activate: AddonActivator = (ctx: AddonContext<ComponentDocConfig>) 
 
 The `addon.ts` file must export an `activate` function implementing the `AddonActivator` interface. The `AddonActivator` type is a function that takes an `AddonContext` object as argument. You can use the `AddonContext` object to register a "generator", "processor", transformer" or "resultProcessor to the compilation process.
 
-For more information on how to implement addons, see the [write your own addon](../../docs/write-your-own-addon.md) documentation.
+For more information on how to implement addons, see the [write your own addon](docs/write-your-own-addon.md) documentation.
 
 ## Activate a compiler addon
 
@@ -72,4 +72,4 @@ You can activate your addon by using the `--addons` command line parameter when 
 }
 ```
 
-See the [compiler README]([../compiler/README.md](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md)) for more options on how to use addons.
+See the [compiler README](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler#readme) for more options on how to use addons.
