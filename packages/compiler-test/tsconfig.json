@@ -2,7 +2,7 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "outDir": "./lib",
-        "noEmit": true
+        "incremental": false
     },
     "include": ["src/**/*.ts"]
 }
