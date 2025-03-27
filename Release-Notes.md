@@ -28,6 +28,12 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.2] - 2025-03-27
+
+### Fixed
+
+- 🐛 Fixed an issue with package exports in `@quatico/websmith-core`
+
 ## [0.7.1] - 2025-03-27
 
 ### Fixed
