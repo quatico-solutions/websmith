@@ -7,6 +7,6 @@
         "noEmit": false,
         "moduleResolution": "node"
     },
-    "exclude": ["src/**/*.spec.ts", "test/**/*.ts"],
+    "exclude": ["src/**/*.spec.ts", "test/**/*.ts", "src/**/*.test.ts"],
     "include": ["src/**/*.ts"]
 }
