@@ -87,6 +87,11 @@ export class Compiler {
         return this.addons;
     }
 
+    public setAddonRegistry(addons: AddonRegistry): this {
+        this.addons = addons;
+        return this;
+    }
+
     public getOptions(): ResolvedCompilerOptions {
         return this.options;
     }

@@ -11,7 +11,6 @@ import {
     Compiler,
     type CompilerAddon,
     type CompilerAddons,
-    type CompilerOptions,
     DefaultReporter,
     type ResolvedCompilerOptions,
     compilerAddons,
@@ -42,14 +41,25 @@ export class CompilationEnv {
     private addonsConfig: AddonConfig;
 
     constructor(rootDir?: string, options?: Partial<CompilationOptions>, addonConfig?: Partial<AddonConfig>) {
-        const { virtual = true, compilerOptions = {}, useCaseSensitiveFileNames, addLibDefaults, fileWatcher, reporter } = options ?? {};
-        const buildDir = options?.compilerOptions?.buildDir ?? DEFAULT_BUILD_DIR;
-        const outDir = options?.compilerOptions?.tsConfig?.outDir ?? DEFAULT_OUT_DIR;
+        const { virtual = true, useCaseSensitiveFileNames, addLibDefaults, fileWatcher, reporter } = options ?? {};
+        const buildDir = options?.buildDir ?? DEFAULT_BUILD_DIR;
         this.virtual = virtual;
         this.system = this.virtual ? createBrowserSystem(undefined, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher }) : ts.sys;
         this.rootDir = resolvePath(this.system, rootDir ?? DEFAULT_ROOT_DIR);
         this.buildDir = resolvePath(this.system, this.rootDir, buildDir);
-        const resolvedOutDir = resolvePath(this.system, this.rootDir, outDir);
+        const configFilePath = `${this.rootDir}/tsconfig.json`;
+        this.compilerOptions = resolveCompilerOptions(
+            this.system,
+            {
+                tsConfigFile: configFilePath,
+                reporter,
+                ...options,
+                buildDir: this.rootDir,
+                tsConfig: { outDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.outDir ?? DEFAULT_OUT_DIR), ...options?.tsConfig },
+            },
+            addonConfig?.addons
+        );
+        const resolvedOutDir = this.compilerOptions.tsConfig!.outDir!;
 
         if (this.system.directoryExists(this.rootDir)) {
             this.deleteDirectory(this.rootDir);
@@ -68,7 +78,6 @@ export class CompilationEnv {
             this.system.createDirectory(resolvedOutDir);
         }
 
-        const configFilePath = `${this.rootDir}/tsconfig.json`;
         if (!this.system.fileExists(configFilePath)) {
             this.system.writeFile(
                 configFilePath,
@@ -84,17 +93,6 @@ export class CompilationEnv {
                 })
             );
         }
-
-        this.compilerOptions = resolveCompilerOptions(this.system, {
-            ...compilerOptions,
-            reporter,
-            buildDir: this.rootDir,
-            tsConfig: {
-                configFilePath,
-                ...(compilerOptions?.tsConfig ?? {}),
-                outDir: resolvedOutDir,
-            },
-        });
 
         this.addonsConfig = {
             addonsDir: resolvePath(this.system, this.rootDir, "./addons"),
@@ -323,7 +321,7 @@ export class CompilationEnv {
     }
 
     public getCompiledDir(): string {
-        return resolvePath(this.system, this.rootDir, this.getCompilerOptions().tsConfig?.outDir ?? DEFAULT_OUT_DIR);
+        return this.compilerOptions.tsConfig!.outDir!;
     }
 
     public getCompiledFiles(relativePath?: string): ProjectFiles {
@@ -447,7 +445,6 @@ export type CompilationResult = {
 };
 
 export type CompilationOptions = CompileSystemOptions & {
-    compilerOptions?: Partial<CompilerOptions>;
     virtual?: boolean;
 };
 
