@@ -225,7 +225,20 @@ describe("addCompileCommand#addons", () => {
 
         addCompileCommand(new Command(), compiler).parse(["--addonsDir", "./unknown", "--allowJs"], { from: "user" });
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "./unknown" does not exist.'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "/unknown" does not exist.'));
+    });
+
+    it("should show warning w/ --addonsDir cli argument and non-existing path", () => {
+        const { fileSystem: testSystem } = compileSystem({ files: { "./websmith.config.json": "{}" } });
+        testSystem.writeFile("./websmith.config.json", "{}");
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--addonsDir", "./unknown"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
+            new WarnMessage(`Addons directory "${testSystem.resolvePath("./unknown")}" does not exist.`)
+        );
     });
 
     it("should yield options addons w/ --addons cli argument and existing addon", () => {
@@ -301,7 +314,7 @@ describe("addCompileCommand#addons", () => {
 
         addCompileCommand(new Command(), target).parse(["--allowJs"], { from: "user" });
 
-        expect(addons).toMatchObject({
+        expect(target.getAddonRegistry()).toMatchObject({
             config: {
                 addons: ["one", "two"],
                 addonsDir: "/expected",
