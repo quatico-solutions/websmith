@@ -19,7 +19,7 @@ Whenever you use the `ts-loader` to compile your TypeScript project, you can rep
 Add the loader to your TypeScript project with the `websmith-loader` package. For example, use the following command with `pnpm`:
 
 ```sh
-pnpm add --dev @quatico/websmith-compiler
+pnpm add --dev websmith-loader
 ```
 
 ### Use websmith-loader in your webpack configuration
