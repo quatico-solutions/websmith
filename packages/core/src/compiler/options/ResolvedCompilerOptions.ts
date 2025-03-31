@@ -69,13 +69,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         if (configFile) {
             this.configFile = resolvePath(this.system, this.projectDir, configFile);
         }
-        if (this.configFile && this.system.fileExists(this.configFile)) {
-            this.config = deepmerge<CompilationConfig>(resolveCompilationConfig(this.configFile, this.reporter, this.system), config ?? {}, {
-                arrayMerge,
-            });
-        } else {
-            this.config = config ?? {};
-        }
+        this.config = deepmerge<CompilationConfig>(compilationConfig, config ?? {}, { arrayMerge });
         this.tsConfigFile = tsConfigFile ? resolvePath(this.system, this.projectDir, tsConfigFile) : undefined;
 
         // profiles
@@ -258,7 +252,7 @@ const loadCompilationConfig = (
         ...(!!addonsDir && { addonsDir }),
         ...(!!transpileOnly && { transpileOnly }),
     };
-    if (configFile && system.fileExists(configFile)) {
+    if (configFile) {
         results = { ...resolveCompilationConfig(configFile, reporter, system), ...results };
     }
     return results;
