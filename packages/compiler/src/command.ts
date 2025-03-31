@@ -92,7 +92,6 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
             const configFile = args.configFile ?? "./websmith.config.json";
             const options = createOptions({ ...args, configFile }, reporter, system);
-
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
             if (unknownArgs?.length > 0) {
                 options.additionalArguments = parseUnknownArguments(unknownArgs);
