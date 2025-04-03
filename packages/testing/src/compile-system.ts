@@ -4,14 +4,13 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type Reporter } from "@quatico/websmith-api";
 import {
     AddonRegistry,
     NoReporter,
     createBrowserSystem,
     getVersionedFile,
     type AddonConfig,
-    type CompileSystemOptions as CoreSystemOptions,
+    type CompileSystemOptions,
 } from "@quatico/websmith-core";
 import type ts from "typescript";
 
@@ -21,14 +20,10 @@ export type CompileSystem = {
     addons: AddonRegistry;
 };
 
-export type CompileSystemOptions = CoreSystemOptions & {
-    files?: Record<string, string>;
-    addonConfig?: Partial<AddonConfig>;
-    reporter?: Reporter;
-};
+export { type CompileSystemOptions };
 
-export const compileSystem = (options?: CompileSystemOptions): CompileSystem => {
-    const { files, addonConfig, reporter, useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher } = options ?? {};
+export const compileSystem = (options?: CompileSystemOptions, addonConfig?: Partial<AddonConfig>): CompileSystem => {
+    const { addLibDefaults = true, files, fileWatcher, reporter, useCaseSensitiveFileNames = false } = options ?? {};
 
     const fileSystem = createBrowserSystem({ ...files }, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher });
     if (addLibDefaults) {

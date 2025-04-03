@@ -5,13 +5,13 @@
  * ---------------------------------------------------------------------------------------------
  */
 import path from "node:path";
-import { AddonRegistry, NoReporter } from "../compiler";
+import { type AddonConfig, AddonRegistry, NoReporter } from "../compiler";
 import { createBrowserSystem, getVersionedFile } from "../environment";
+import { resolvePath } from "../environment/browser-system";
 import { type CompileSystem } from "./CompileSystem";
 import { type CompileSystemOptions } from "./CompileSystemOptions";
-import { resolvePath } from "../environment/browser-system";
-export const compileSystem = (options?: CompileSystemOptions): CompileSystem => {
-    const { files, addonConfig, reporter, useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher, buildDir = "./src" } = options ?? {};
+export const compileSystem = (options?: CompileSystemOptions, addonConfig?: Partial<AddonConfig>): CompileSystem => {
+    const { files, reporter, useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher, buildDir = "./src" } = options ?? {};
 
     const resolvedAddonsDir = resolvePath(path.join(buildDir, "addons"));
     const projectDir = resolvePath(path.dirname(buildDir));

@@ -57,7 +57,7 @@ describe("compilationEnv", () => {
     });
 
     it("should yield custom compiler options with custom overrides", () => {
-        const testObj = compilationEnv("/target", { compilerOptions: { buildDir: "./expected-src", tsConfig: { outDir: "./expected-out" } } });
+        const testObj = compilationEnv("/target", { buildDir: "./expected-src", tsConfig: { outDir: "./expected-out" } });
 
         const actual = testObj.getCompilerOptions();
 
@@ -400,7 +400,7 @@ describe("compilationEnv#compiled", () => {
         jest.spyOn(console, "error").mockImplementation(() => {});
 
         const testObj = compilationEnv("/target", {
-            compilerOptions: { tsConfig: { noEmitOnError: true } },
+            tsConfig: { noEmitOnError: true },
         })
             .addProjectFromSource({
                 "index.ts": `export * from './target';`,

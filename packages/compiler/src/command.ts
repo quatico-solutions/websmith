@@ -6,18 +6,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type CompilerArguments, WarnMessage } from "@quatico/websmith-api";
-import {
-    AddonRegistry,
-    type CompilationConfig,
-    Compiler,
-    type CompilerOptions,
-    DefaultReporter,
-    resolveCompilationConfig,
-} from "@quatico/websmith-core";
+import { AddonRegistry, type CompilationConfig, Compiler, type CompilerOptions, createOptions, DefaultReporter } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
+import type ts from "typescript";
 import { createSystem } from "./compiler-system";
-import { createOptions } from "@quatico/websmith-core";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
     parent
@@ -97,8 +90,8 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             // TODO: Add files from CLI argument
             const system = compiler?.getSystem() ?? createSystem();
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
-            const compilationConfig = resolveCompilationConfig(args.configFile ?? "./websmith.config.json", reporter, system);
-            const options = createOptions({ ...args, configFile: args.configFile ?? "./websmith.config.json" }, reporter, system);
+            const configFile = args.configFile ?? "./websmith.config.json";
+            const options = createOptions({ ...args, configFile }, reporter, system);
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
             if (unknownArgs?.length > 0) {
                 options.additionalArguments = parseUnknownArguments(unknownArgs);
@@ -112,21 +105,25 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 );
             }
 
-            if (compiler === undefined) {
-                let addons;
-                if (command.opts().addonsDir || command.opts().addons) {
-                    addons = new AddonRegistry({
-                        ...addonConfig(command, compilationConfig, options),
-                        reporter,
-                        system,
-                    });
-                }
-                compiler = new Compiler(options, {}, system, addons);
+            if (compiler) {
+                compiler.setOptions(options);
             } else {
-                compiler
-                    .setOptions(options)
-                    .getAddonRegistry()
-                    ?.setConfig(addonConfig(command, compilationConfig, options));
+                compiler = new Compiler(options, {}, system);
+            }
+
+            const addons = compiler.getAddonRegistry();
+            if (command.opts().addonsDir || command.opts().addons) {
+                if (addons) {
+                    addons.setConfig(addonConfig(command, compiler.getSystem(), options));
+                } else {
+                    compiler.setAddonRegistry(
+                        new AddonRegistry({
+                            ...addonConfig(command, compiler.getSystem(), options),
+                            reporter,
+                            system,
+                        })
+                    );
+                }
             }
 
             if (args.watch) {
@@ -138,18 +135,21 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
     return parent;
 };
 
-const addonConfig = (command: Command, compilationConfig?: CompilationConfig, options?: CompilerOptions) => ({
-    addons:
-        (command.opts().addons ?? compilationConfig?.addons?.join(",") ?? "")
-            ?.split(",")
-            .map((it: string) => it.trim())
-            .filter((it: string) => it.length > 0) ?? [],
+const addonConfig = (command: Command, system: ts.System, options?: CompilerOptions) => {
+    const { config } = options ?? {};
+    const addons = command.opts().addons ?? config?.addons?.join(",") ?? "";
+    return {
+        addons:
+            addons
+                ?.split(",")
+                .map((it: string) => it.trim())
+                .filter((it: string) => it.length > 0) ?? [],
 
-    addonsDir:
-        command.opts().addonsDir && command.opts().addonsDir !== "./addons" ? command.opts().addonsDir : (compilationConfig?.addonsDir ?? "./addons"),
+        addonsDir: system.resolvePath(command.opts().addonsDir !== "./addons" ? command.opts().addonsDir : (config?.addonsDir ?? "./addons")),
 
-    ...(!!options?.config?.profiles && { profiles: options?.config?.profiles }),
-});
+        ...(!!options?.config?.profiles && { profiles: options?.config?.profiles }),
+    };
+};
 
 export const hasInvalidProfile = (profile?: string, config?: CompilationConfig) => {
     if (profile === undefined) {

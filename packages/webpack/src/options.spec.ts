@@ -74,13 +74,15 @@ describe("createOptions", () => {
     });
 
     it("should return expected path w/ custom addons directory", () => {
-        const { addons } = compileSystem({
-            files: {
-                "./tsconfig.json": "{}",
-                "./expected/addon-foo/addon.js": "export const activate = () => {};",
+        const { addons } = compileSystem(
+            {
+                files: {
+                    "./tsconfig.json": "{}",
+                    "./expected/addon-foo/addon.js": "export const activate = () => {};",
+                },
             },
-            addonConfig: { addons: ["addon-foo"], addonsDir: "./expected" },
-        });
+            { addons: ["addon-foo"], addonsDir: "./expected" }
+        );
         jest.mock(
             "/expected/addon-foo/addon",
             () => {
