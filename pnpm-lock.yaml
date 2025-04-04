@@ -89,9 +89,6 @@ importers:
       license-check-and-add:
         specifier: 4.0.5
         version: 4.0.5
-      memfs:
-        specifier: ^4.17.0
-        version: 4.17.0
       nx:
         specifier: ^18.3.4
         version: 18.3.4(@swc/core@1.5.0)
@@ -493,9 +490,6 @@ importers:
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@20.12.8)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.5.0)(@types/node@20.12.8)(typescript@5.7.3))
-      memfs:
-        specifier: ^4.17.0
-        version: 4.17.0
       prettier:
         specifier: ^3.4.2
         version: 3.4.2
@@ -722,6 +716,9 @@ importers:
       '@quatico/websmith-core':
         specifier: workspace:*
         version: link:../core
+      memfs:
+        specifier: ^4.17.0
+        version: 4.17.0
       require-from-string:
         specifier: ^2.0.2
         version: 2.0.2

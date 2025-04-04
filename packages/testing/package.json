@@ -37,6 +37,7 @@
     "dependencies": {
         "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-core": "workspace:*",
+        "memfs": "^4.17.0",
         "require-from-string": "^2.0.2"
     },
     "devDependencies": {
