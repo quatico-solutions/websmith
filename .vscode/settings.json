@@ -8,7 +8,6 @@
     "explorer.fileNesting.patterns": {
         "package.json": "pnpm-workspace.yaml, pnpm-lock.yaml"
     },
-    "jest.jestCommandLine": "node_modules/.bin/jest",
     "npm.packageManager": "pnpm",
     "search.exclude": {
         "pnpm-lock.yaml": true
