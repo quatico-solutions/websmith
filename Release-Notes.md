@@ -28,6 +28,17 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.3] - 2025-04-04
+
+### Fixed
+
+- 🐛 Fixed an issue where websmith CLI with --configFile and unknown file path does not report failure <https://github.com/quatico-solutions/websmith/issues/66>
+- 🐛 Fixed an issue where websmith CLI with --addonsDir and unknown path does not report failure <https://github.com/quatico-solutions/websmith/issues/59>
+
+### Changed
+
+- 🔧 Removes unused memfs dependencies and mocks from tests
+
 ## [0.7.2] - 2025-03-27
 
 ### Fixed
