@@ -99,7 +99,7 @@ export class Compiler {
     public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
         this.options = resolveCompilerOptions(
             this.system,
-            { tsConfigFile: options.tsConfigFile ?? options.tsConfig?.project ?? "./tsconfig.json", ...options },
+            { ...options, tsConfigFile: options.tsConfigFile ?? options.tsConfig?.project ?? "./tsconfig.json" },
             undefined,
             loaderOptions
         );
