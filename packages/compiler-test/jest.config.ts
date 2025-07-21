@@ -17,6 +17,7 @@ const config: Config = {
     },
     testRegex: "tests/.*(test|spec)\\.(js|ts)$",
     testTimeout: 60000,
+    maxWorkers: 1, // runInBand: true is not supported as config option
 };
 
 export default config;

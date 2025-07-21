@@ -17,6 +17,7 @@
         "@eslint/compat": "^1.2.6",
         "@eslint/js": "^9.19.0",
         "@nx/eslint-plugin": "^18.3.4",
+        "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-core": "workspace:*",
         "@quatico/websmith-node": "workspace:*",
         "@quatico/websmith-testing": "workspace:*",

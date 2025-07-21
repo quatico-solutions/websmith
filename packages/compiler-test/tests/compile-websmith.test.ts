@@ -10,11 +10,12 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 
-const OUTPUT_DIR = path.join(__dirname, "..", "lib");
+const OUTPUT_DIR = path.join(__dirname, "..", "output", "lib");
 const SOURCE_DIR = path.join(__dirname, "..", "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
 
 beforeAll(() => {
+    jest.spyOn(console, "log").mockImplementation(() => {});
     if (fs.readdirSync(ADDONS_DIR).length === 0) {
         throw new Error(
             "No addons found in package 'example-addons'. Did you use the 'lib' folder and forget to run 'pnpm build' in the package directory"
@@ -26,7 +27,7 @@ const tsDefaults = {
     target: ts.ScriptTarget.ESNext,
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Node10,
-    project: path.join(__dirname, "..", "tsconfig.json"),
+    project: path.join(OUTPUT_DIR, "tsconfig.json"),
     outDir: OUTPUT_DIR,
     removeComments: true,
     skipLibCheck: true,
@@ -43,6 +44,113 @@ afterEach(() => {
 });
 
 describe("compile w/ websmith", () => {
+    it("should not build js and d.ts with defaults", async () => {
+        const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
+            tsConfig: {},
+            websmith: {},
+        });
+
+        expect(result).toBe(""); // errors are expected
+        expect(getOutput("foobar-arrow.js")).toBeUndefined();
+        expect(getOutput("foobar-arrow.d.ts")).toBeUndefined();
+    });
+
+    it("should build js and d.ts with outDir and noEmit false", async () => {
+        const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
+            tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+            websmith: {},
+        });
+
+        expect(result).toBe(""); // errors are expected
+        expect(getOutput("foobar-arrow.js")).toBeDefined();
+        expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
+        expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
+        expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
+    });
+
+    it("should build js and no d.ts with tsconfig.json", async () => {
+        writeTsConfig({ outDir: OUTPUT_DIR, noEmit: false, module: 99, target: 99, declaration: true, declarationMap: true });
+
+        const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
+            tsConfig: { project: path.join(OUTPUT_DIR, "tsconfig.json") },
+            websmith: {},
+        });
+
+        expect(result).toBe(""); // errors are expected
+        expect(getOutput("foobar-arrow.js")).toBeDefined();
+        expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
+        expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
+        expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
+    });
+
+    it("should build js and d.ts with tsconfig.json and overriding tsconfig props", async () => {
+        writeTsConfig({ outDir: OUTPUT_DIR, noEmit: true, module: 1, target: 1, declaration: true, declarationMap: true });
+
+        const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
+            tsConfig: { noEmit: false, module: 99, target: 99, project: path.join(OUTPUT_DIR, "tsconfig.json") },
+            websmith: {},
+        });
+
+        expect(result).toBe(""); // errors are expected
+        expect(getOutput("foobar-arrow.js")).toBeDefined();
+        expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
+        expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
+        expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
+    });
+
+    it("should build js and d.ts with tsconfig.json, tsconfig props and overriding profile props", async () => {
+        writeTsConfig({ outDir: OUTPUT_DIR, noEmit: true, module: 1, target: 1, declaration: true, declarationMap: true });
+
+        const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
+            tsConfig: { noEmit: true, module: 1, target: 1, project: path.join(OUTPUT_DIR, "tsconfig.json") },
+            websmith: {
+                config: {
+                    profiles: {
+                        "target-profile": {
+                            tsConfig: {
+                                noEmit: false,
+                                target: 99,
+                                module: 99,
+                            },
+                        },
+                    },
+                },
+                profile: "target-profile",
+            },
+        });
+
+        expect(result).toBe(""); // errors are expected
+        expect(getOutput("foobar-arrow.js")).toBeDefined();
+        expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
+        expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
+        expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
+    });
+
+    it("should build js and d.ts with tsconfig.json, tsconfig props and overriding props in websmith config", async () => {
+        writeTsConfig({ outDir: OUTPUT_DIR, noEmit: true, module: 1, target: 1, declaration: true, declarationMap: true });
+        writeWebsmithConfig({
+            profiles: {
+                "target-profile": {
+                    tsConfig: { noEmit: false, target: 99, module: 99 },
+                },
+            },
+        });
+
+        const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
+            tsConfig: { noEmit: true, module: 1, target: 1, project: path.join(OUTPUT_DIR, "tsconfig.json") },
+            websmith: {
+                profile: "target-profile",
+                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+            },
+        });
+
+        expect(result).toBe(""); // errors are expected
+        expect(getOutput("foobar-arrow.js")).toBeDefined();
+        expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
+        expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
+        expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
+    });
+
     it("should build foobar-arrow.js with ES2020 and addonsDir", async () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { ...tsDefaults, target: ts.ScriptTarget.ES2020 },
@@ -55,6 +163,21 @@ describe("compile w/ websmith", () => {
 
         expect(result).toBe("");
         expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
+    });
+
+    it("should build foobar-arrow.d.ts with ES2020 and addonsDir", async () => {
+        const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
+            tsConfig: { ...tsDefaults, target: ts.ScriptTarget.ES2020, declaration: true, declarationMap: true },
+            websmith: {
+                config: {
+                    addonsDir: ADDONS_DIR,
+                },
+            },
+        });
+
+        expect(result).toBe("");
+        expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
+        expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
     });
 
     it("should build foobar-function.js with ES2020 and addonsDir", async () => {
@@ -349,6 +472,15 @@ const writeWebsmithConfig = (config?: CompilationConfig) => {
         recursive: true,
     });
     fs.writeFileSync(path.join(OUTPUT_DIR, "websmith.config.json"), JSON.stringify(config), {
+        encoding: "utf-8",
+    });
+};
+
+const writeTsConfig = (config?: ts.CompilerOptions) => {
+    fs.mkdirSync(OUTPUT_DIR, {
+        recursive: true,
+    });
+    fs.writeFileSync(path.join(OUTPUT_DIR, "tsconfig.json"), JSON.stringify(config), {
         encoding: "utf-8",
     });
 };
