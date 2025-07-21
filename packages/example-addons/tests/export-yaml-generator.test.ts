@@ -11,7 +11,7 @@ describe("export-yaml-generator addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__", {
-            compilerOptions: { tsConfig: { outDir: "dist", skipLibCheck: true } },
+            tsConfig: { outDir: "dist", skipLibCheck: true },
             virtual: false,
         }).addAddon("export-yaml-generator", path.join(__dirname, "../src"));
     });

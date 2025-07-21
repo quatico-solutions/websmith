@@ -11,7 +11,7 @@ describe("foobar-replace-transformer addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__", {
-            compilerOptions: { tsConfig: { outDir: "dist", skipLibCheck: true } },
+            tsConfig: { outDir: "dist", skipLibCheck: true },
             virtual: false,
         }).addAddon("foobar-replace-transformer", path.join(__dirname, "../src"));
     });

@@ -12,7 +12,7 @@ describe("function-json-result-processor addon", () => {
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__", {
             virtual: false,
-            compilerOptions: { tsConfig: { skipLibCheck: true } },
+            tsConfig: { skipLibCheck: true },
         }).addAddon("function-json-result-processor", path.join(__dirname, "../src"));
     });
 
