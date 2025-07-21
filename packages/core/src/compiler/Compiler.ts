@@ -97,7 +97,12 @@ export class Compiler {
     }
 
     public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
-        this.options = resolveCompilerOptions(this.system, { tsConfigFile: "./tsconfig.json", ...options }, undefined, loaderOptions);
+        this.options = resolveCompilerOptions(
+            this.system,
+            { tsConfigFile: options.tsConfigFile ?? options.tsConfig?.project ?? "./tsconfig.json", ...options },
+            undefined,
+            loaderOptions
+        );
         this.reporter = this.options.reporter;
 
         const { addons, addonsDir } = this.options;

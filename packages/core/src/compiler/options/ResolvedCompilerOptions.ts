@@ -211,9 +211,14 @@ const getTsConfig = (system: ts.System, projectDir: string, options: CompilerOpt
         .map(cur => getProfile(cur, config))
         .reduce((acc: ts.CompilerOptions, cur) => deepmerge<ts.CompilerOptions>(acc, cur.tsConfig ?? {}, { arrayMerge }), {});
 
+    // Read tsconfig.json if it exists
+    const tsConfigOptions: ts.ParsedCommandLine =
+        tsConfigFile && system.fileExists(tsConfigFile) ? parsedCommandLine(tsConfigFile, {}, system) : { options: {}, fileNames: [], errors: [] };
+
     return {
-        ...(tsConfigFile && { configFilePath: resolvePath(system, projectDir, tsConfigFile) }),
         ...tsDefaults,
+        ...(tsConfigFile && { configFilePath: resolvePath(system, projectDir, tsConfigFile) }),
+        ...(tsConfigOptions && { ...tsConfigOptions.options, ...tsConfigOptions.raw }),
         ...deepmerge<ts.CompilerOptions>(deepmerge<ts.CompilerOptions>(tsConfig ?? {}, cliArgs?.options ?? {}, { arrayMerge }), profileTsConfig, {
             arrayMerge,
         }),
