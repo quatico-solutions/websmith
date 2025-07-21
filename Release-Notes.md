@@ -28,6 +28,27 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.4] - 2025-07-21
+
+This release fixes issues where properties from ts.CompilerOptions were not correctly applied to the compiler options. It also improves test coverage and dependency management.
+
+### Added
+
+- Added comprehensive test cases for bin.ts in packages/compiler/src/bin.spec.ts, including scenarios for handling arguments, command parsing, and error handling. This ensures robust test coverage for the CLI functionality.
+- Enhanced compile-websmith.test.ts in packages/compiler-test/tests with additional test cases to validate various tsconfig and websmith configurations, including overrides and profiles.
+  
+### Removed
+
+- Removed ts-node as a dependency from package.json files in packages/compiler-test and packages/compiler, likely due to its redundancy or replacement.
+
+### Changed
+
+- Updated the @types/node dependency version to 20.19.9 across multiple package.json files for consistency.
+
+### Fixed
+
+- Fixed an issue where properties from ts.CompilerOptions were not correctly applied to the compiler options.
+
 ## [0.7.3] - 2025-04-04
 
 ### Fixed
