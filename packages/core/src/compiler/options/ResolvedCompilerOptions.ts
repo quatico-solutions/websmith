@@ -218,7 +218,7 @@ const getTsConfig = (system: ts.System, projectDir: string, options: CompilerOpt
     return {
         ...tsDefaults,
         ...(tsConfigFile && { configFilePath: resolvePath(system, projectDir, tsConfigFile) }),
-        ...(tsConfigOptions && { ...tsConfigOptions.options, ...tsConfigOptions.raw }),
+        ...(tsConfigOptions && deepmerge(tsConfigOptions.raw ?? {}, tsConfigOptions.options ?? {}, { arrayMerge })),
         ...deepmerge<ts.CompilerOptions>(deepmerge<ts.CompilerOptions>(tsConfig ?? {}, cliArgs?.options ?? {}, { arrayMerge }), profileTsConfig, {
             arrayMerge,
         }),
