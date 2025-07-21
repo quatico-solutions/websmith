@@ -516,7 +516,7 @@ describe("emitSourceFile", () => {
             "
         `);
         expect(getText("target.d.ts", actual)).toMatchInlineSnapshot(`
-            "export declare const computeDate: () => Promise<Date>;
+            "export      const computeDate: () => Promise<Date>;
             //# sourceMappingURL=target.d.ts.map"
         `);
         expect(getText("target.d.ts.map", actual)).toMatchInlineSnapshot(

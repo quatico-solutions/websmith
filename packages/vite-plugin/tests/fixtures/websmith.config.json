@@ -1,0 +1,11 @@
+{
+    "addonsDir": "../example-addons/src",
+    "profiles": {
+        "test": {
+            "addons": ["export-yaml-generator"]
+        },
+        "development": {
+            "addons": ["export-yaml-generator"]
+        }
+    }
+}

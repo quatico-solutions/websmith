@@ -2,7 +2,9 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "outDir": "./lib",
-        "noEmit": false
+        "noEmit": false,
+        "target": "es2015",
+        "module": "commonjs"
     },
     "include": ["src/**/*.ts"],
     "exclude": ["node_modules", "lib"]
