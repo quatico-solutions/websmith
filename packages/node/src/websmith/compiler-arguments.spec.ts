@@ -19,6 +19,12 @@ describe("parseCliArguments", () => {
         expect(result).toEqual(["--noEmit"]);
     });
 
+    it("should return array with project argument", () => {
+        const result = parseCliArguments({ project: "expected/tsconfig.json" }, []);
+
+        expect(result).toEqual(["--project", "expected/tsconfig.json"]);
+    });
+
     it("should return array with string value argument", () => {
         const result = parseCliArguments({ outDir: "out" }, []);
 
