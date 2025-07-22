@@ -4,7 +4,8 @@
     "description": "Addon API library for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
-    "main": "src/index.ts",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
     "publishConfig": {
         "main": "lib/index.js",
         "types": "lib/index.d.ts"

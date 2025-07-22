@@ -38,6 +38,16 @@ Websmith provides a high performance watch mode options, similar to the `ts-load
 websmith --transpileOnly --watch
 ```
 
+### Bundled Version
+
+For environments where ES module resolution issues occur, websmith provides a bundled version that includes all dependencies in a single executable file:
+
+```bash
+websmith-bundled
+```
+
+The bundled version is built using webpack and provides the same functionality as the regular websmith command while avoiding module resolution conflicts. This is particularly useful in complex monorepo setups or when dealing with mixed ES module/CommonJS environments.
+
 ### Use websmith in your package.json
 
 In your package.json, add the `websmith` command as your build target to the `scripts` section:

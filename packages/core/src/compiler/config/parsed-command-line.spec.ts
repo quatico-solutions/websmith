@@ -352,4 +352,10 @@ describe("createArgs", () => {
 
         expect(actual).toEqual(["--lib", "dom,es2015"]);
     });
+
+    it("returns array with key and undefined value", () => {
+        const actual = createArgs({ addons: undefined });
+
+        expect(actual).toEqual([]);
+    });
 });

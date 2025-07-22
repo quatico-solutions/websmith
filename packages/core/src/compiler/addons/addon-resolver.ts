@@ -32,8 +32,11 @@ export const createResolver =
 export const resolveName = (name: string, localPath: string, system: ts.System): CompilerAddon | undefined => {
     try {
         const compilerPath = __dirname ? `${__dirname}/..` : "";
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-require-imports
-        const addonModule = require(system.resolvePath(`${compilerPath}${localPath}/addon`));
+        const addonPath = system.resolvePath(`${compilerPath}${localPath}/addon`);
+
+         
+        // Use eval to prevent webpack from trying to bundle this dynamic require
+        const addonModule = eval("require")(addonPath);
         return {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
             activate: addonModule.activate,

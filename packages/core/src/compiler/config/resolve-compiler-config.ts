@@ -5,8 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { parse } from "comment-json";
-import type { CompilationProfile } from "@quatico/websmith-api";
-import { ErrorMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
+import type { CompilationProfile , ErrorMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
 import path from "node:path";
 import type ts from "typescript";
 import { type CompilationConfig } from "./CompilationConfig";

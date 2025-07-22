@@ -45,5 +45,8 @@ export const createArgs = (args: CompilerArguments): string[] =>
         if (typeof value === "boolean" && value === true) {
             return acc.concat(`--${key}`);
         }
-        return acc.concat(`--${key}`, String(value));
+        if (typeof value === "string" && value.length > 0) {
+            return acc.concat(`--${key}`, String(value));
+        }
+        return acc;
     }, []);

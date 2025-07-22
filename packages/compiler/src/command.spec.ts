@@ -64,28 +64,13 @@ describe("addCompileCommand", () => {
         expect(actual.config).toEqual({});
         expect(actual.debug).toBe(false);
         const compilerOptions = {
-            allowJs: false,
-            checkJs: false,
             configFilePath: "/tsconfig.json",
-            declaration: false,
-            declarationMap: false,
-            emitDeclarationOnly: false,
-            esModuleInterop: false,
-            help: false,
-            init: false,
+            esModuleInterop: true,
             jsx: ts.JsxEmit.Preserve,
-            module: ts.ModuleKind.CommonJS,
+            module: ts.ModuleKind.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
-            noEmit: false,
-            pretty: false,
-            project: "./tsconfig.json",
-            removeComments: false,
-            showConfig: false,
             sourceMap: false,
-            strict: false,
-            target: ts.ScriptTarget.ES5,
-            version: false,
-            watch: false,
+            target: ts.ScriptTarget.ESNext,
         };
         expect(actual.tsConfig).toEqual(compilerOptions);
 
@@ -244,6 +229,7 @@ describe("addCompileCommand#addons", () => {
     it("should yield options addons w/ --addons cli argument and existing addon", () => {
         const { fileSystem: testSystem, addons } = compileSystem();
         createAddon(testSystem, "addons/expected/addon");
+
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
 
         addCompileCommand(new Command(), target).parse(["--addons", "expected", "--allowJs"], { from: "user" });
@@ -312,7 +298,7 @@ describe("addCompileCommand#addons", () => {
         createAddon(testSystem, "expected/one/addon");
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
 
-        addCompileCommand(new Command(), target).parse(["--allowJs"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--allowJs", "--configFile", "./websmith.config.json"], { from: "user" });
 
         expect(target.getAddonRegistry()).toMatchObject({
             config: {
@@ -365,9 +351,12 @@ describe("addCompileCommand#profile", () => {
             reporter: target,
         });
 
-        addCompileCommand(new Command(), new Compiler({ reporter: target }, {}, testSystem, addons)).parse(["--profile", "expected"], {
-            from: "user",
-        });
+        addCompileCommand(new Command(), new Compiler({ reporter: target }, {}, testSystem, addons)).parse(
+            ["--profile", "expected", "--configFile", "./websmith.config.json"],
+            {
+                from: "user",
+            }
+        );
 
         expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
@@ -385,7 +374,20 @@ describe("addCompileCommand#profile", () => {
             from: "user",
         });
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "known": "missing".'));
+        expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
+            1,
+            new WarnMessage('Missing profile: The following profile is passed but not configured "known".')
+        );
+        expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
+            2,
+            new WarnMessage(
+                'Custom profile configuration "known" found, but no profile provided.\n\tSome custom addons may not be applied during compilation.'
+            )
+        );
+        expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
+            3,
+            new WarnMessage('Missing profile: The following profile is passed but not configured "known".')
+        );
     });
 });
 

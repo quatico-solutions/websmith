@@ -15,18 +15,23 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
     const { configFile, debug = false, profile, project = "./tsconfig.json", sourceMap = false, transpileOnly, watch = false } = args;
 
     const cliArgs = parsedCommandLine(project, args, system);
-    return resolveCompilerOptions(system, {
-        cliArgs,
-        reporter,
-        configFile,
-        debug,
-        profile,
-        watch,
-        tsConfig: {
-            sourceMap,
+    return resolveCompilerOptions(
+        system,
+        {
+            cliArgs,
+            reporter,
+            configFile,
+            debug,
+            profile,
+            watch,
+            tsConfig: {
+                sourceMap,
+            },
+            config: {
+                ...(transpileOnly && { transpileOnly }),
+                addonsDir: args.addonsDir,
+            },
         },
-        config: {
-            ...(transpileOnly && { transpileOnly }),
-        },
-    });
+        args.addons ? args.addons.split(",") : undefined
+    );
 };

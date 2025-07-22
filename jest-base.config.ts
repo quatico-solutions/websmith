@@ -14,7 +14,7 @@ export const config: Config = {
     modulePathIgnorePatterns: ["<rootDir>/lib/", "<rootDir>/__TEMP__/"],
     prettierPath: null,
     setupFilesAfterEnv: ["../../jest.setup.ts"],
-    testRegex: "src/.*spec\\.(tsx?)$",
+    testRegex: "src/.*(test|spec)\\.ts$",
     transform: {
         "^.+\\.(js|ts)$": ["ts-jest", { diagnostics: false, isolatedModules: true }],
     },
