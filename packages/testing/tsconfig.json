@@ -6,6 +6,6 @@
         "moduleResolution": "node",
         "module": "commonjs"
     },
-    "exclude": ["src/**/*.spec.ts"],
+    "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.test.ts"],
     "include": ["src/**/*.ts"]
 }

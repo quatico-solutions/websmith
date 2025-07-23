@@ -4,14 +4,6 @@
     "description": "Testing library for simplifying the testing of websmith addons",
     "author": "Quatico Solutions AG",
     "license": "MIT",
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
-    "files": [
-        "LICENSE",
-        "README.md",
-        "lib",
-        "docs"
-    ],
     "repository": {
         "type": "git",
         "url": "git+https://github.com/quatico-solutions/websmith.git"
@@ -20,6 +12,12 @@
         "url": "https://github.com/quatico-solutions/websmith/issues"
     },
     "homepage": "https://github.com/quatico-solutions/websmith#readme",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "files": [
+        "README.md",
+        "lib"
+    ],
     "scripts": {
         "clean": "rimraf lib bin coverage",
         "lint": "eslint \"{src,test}/**/*.ts\" --color",
@@ -36,6 +34,10 @@
         "@quatico/websmith-core": "workspace:*",
         "memfs": "^4.17.0",
         "require-from-string": "^2.0.2"
+    },
+    "peerDependencies": {
+        "jest": "28.x",
+        "typescript": "5.x"
     },
     "devDependencies": {
         "@eslint/compat": "^1.2.6",
@@ -63,9 +65,5 @@
         "ts-jest": "^29.2.5",
         "typescript": "5.7.3",
         "typescript-eslint": "^8.22.0"
-    },
-    "peerDependencies": {
-        "jest": "28.x",
-        "typescript": "5.x"
     }
 }

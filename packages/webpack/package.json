@@ -4,13 +4,6 @@
     "description": "A webpack loader for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
-    "files": [
-        "LICENSE",
-        "README.md",
-        "lib"
-    ],
     "repository": {
         "type": "git",
         "url": "git+https://github.com/quatico-solutions/websmith.git"
@@ -19,6 +12,12 @@
         "url": "https://github.com/quatico-solutions/websmith/issues"
     },
     "homepage": "https://github.com/quatico-solutions/websmith#readme",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "files": [
+        "README.md",
+        "lib"
+    ],
     "scripts": {
         "clean": "rimraf lib coverage",
         "lint": "eslint \"{src,tests}/**/*.{js,ts,tsx}\" --color",
@@ -33,6 +32,9 @@
         "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-core": "workspace:*",
         "comment-json": "^4.2.5"
+    },
+    "peerDependencies": {
+        "webpack": "5.x"
     },
     "devDependencies": {
         "@eslint/compat": "^1.2.6",
@@ -63,8 +65,5 @@
         "typescript-eslint": "^8.22.0",
         "webpack": "^5.97.1",
         "webpack-cli": "^6.0.1"
-    },
-    "peerDependencies": {
-        "webpack": "5.x"
     }
 }
