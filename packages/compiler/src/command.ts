@@ -11,10 +11,11 @@ import { type Command, program } from "commander";
 import parseArgs from "minimist";
 import type ts from "typescript";
 import { createSystem } from "./compiler-system";
+import { getVersion } from "./get-version";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
     parent
-        .version("0.7.5", "-v, --version", "Print the compiler's version.")
+        .version(getVersion(), "-v, --version", "Print the compiler's version.")
         .showSuggestionAfterError()
         // TODO: Add option to compile single files only?
         // .argument("[files]", "relative path to the files that should be compiled")
