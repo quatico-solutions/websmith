@@ -14,6 +14,7 @@ import { createSystem } from "./compiler-system";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
     parent
+        .version("0.7.5", "-v, --version", "Print the compiler's version.")
         .showSuggestionAfterError()
         // TODO: Add option to compile single files only?
         // .argument("[files]", "relative path to the files that should be compiled")
@@ -26,9 +27,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .option("-p, --project <projectPath>", "Compile the project given the path to its configuration file, or to a folder with a 'tsconfig.json'.")
         .option("-o, --transpileOnly", "Enable the transpile only mode.")
         .option("-l, --profile <profileName>", "Name of the profile to use with a specific compiler configuration and list of addons.")
-        .option("-h, --help", "Print this message.")
         .option("-w, --watch", "Enable watch mode.")
-        .option("--v, --version", "Print the compiler's version.")
         .option("--init", "Initializes a TypeScript project and creates a tsconfig.json file.")
         .option("--showConfig", "Print the final configuration instead of building.")
         .option("-b, --build", "Build one or more projects and their dependencies, if out of date.")
