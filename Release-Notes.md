@@ -28,6 +28,24 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.6] - 2025-01-23
+
+This release improves the websmith CLI help system and implements dynamic version handling to maintain consistency with package.json.
+
+### Added
+
+- ✨ Added dynamic version reading from package.json at runtime to ensure CLI version always matches package version
+- 📚 Added proper help message display for `websmith --help` command with complete option listing
+
+### Changed
+
+- 🔧 Refactored version reading logic into separate `get-version` module for better maintainability
+
+### Fixed
+
+- 🐛 Fixed websmith CLI help command not displaying properly due to custom option conflicts
+- 🐛 Fixed lib folder structure where package.json was incorrectly copied during TypeScript compilation
+
 ## [0.7.5] - 2025-07-23
 
 This release improves the websmith CLI by aligning the behavior with the tsc compiler.
