@@ -128,8 +128,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
 const addonConfig = (command: Command, system: ts.System, options?: CompilerOptions) => {
     const { config } = options ?? {};
     const addons = command.opts().addons ?? config?.addons?.join(",") ?? "";
-    const addonsDir =
-        command.opts().addonsDir && command.opts().addonsDir !== "./addons" ? command.opts().addonsDir : (config?.addonsDir ?? "./addons");
+    const addonsDir = command.opts().addonsDir ?? config?.addonsDir ?? "./addons";
     return {
         addons:
             addons
