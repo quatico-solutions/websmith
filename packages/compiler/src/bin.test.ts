@@ -34,7 +34,7 @@ afterEach(() => {
     fs.rmSync(path.resolve(PROJECT_DIR), { recursive: true, force: true });
 });
 
-describe("bin.ts", () => {
+describe("bin.ts e2e tests", () => {
     it("should yield script file with single file and emit true", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false });
 
