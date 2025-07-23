@@ -128,5 +128,11 @@ module.exports = [
             "no-console": "off",
         },
     },
+    {
+        files: ["**/packages/testing/**/*.ts", "**/packages/webpack/**/*.ts"],
+        rules: {
+            "@typescript-eslint/no-redundant-type-constituents": "off",
+        },
+    },
     { ignores: ["**/dist/*", "**/lib/*"] },
 ];

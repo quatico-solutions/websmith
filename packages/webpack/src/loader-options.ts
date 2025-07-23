@@ -33,7 +33,10 @@ export const getLoaderOptions = (context: LoaderContext<WebsmithLoaderConfig>): 
 
     const cache = loaderOptionsCache[instanceName];
     if (cache.has(options)) {
-        return cache.get(options) as WebsmithLoaderConfig;
+        const cachedOptions = cache.get(options);
+        if (cachedOptions) {
+            return cachedOptions;
+        }
     }
 
     const resolvedOptions = resolveLoaderOptions(instanceName, options, context);
