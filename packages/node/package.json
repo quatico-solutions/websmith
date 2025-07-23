@@ -4,13 +4,6 @@
     "description": "Node library for running websmith with CLI and webpack in Node.js",
     "author": "Quatico Solutions AG",
     "license": "MIT",
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
-    "files": [
-        "LICENSE",
-        "README.md",
-        "lib"
-    ],
     "repository": {
         "type": "git",
         "url": "git+https://github.com/quatico-solutions/websmith.git"
@@ -19,6 +12,12 @@
         "url": "https://github.com/quatico-solutions/websmith/issues"
     },
     "homepage": "https://github.com/quatico-solutions/websmith#readme",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "files": [
+        "README.md",
+        "lib"
+    ],
     "scripts": {
         "clean": "rimraf lib bin coverage",
         "lint": "eslint \"{src,test}/**/*.ts\" --color",
@@ -29,6 +28,18 @@
         "test": "jest",
         "test:update-snapshots": "pnpm test -u",
         "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
+    },
+    "dependencies": {
+        "cross-spawn": "^7.0.6",
+        "lodash": "^4.17.21",
+        "path-exists": "^5.0.0",
+        "tildify": "^3.0.0"
+    },
+    "peerDependencies": {
+        "@quatico/websmith-core": "workspace:*",
+        "ts-loader": "9.x",
+        "typescript": "5.x",
+        "webpack": "5.x"
     },
     "devDependencies": {
         "@eslint/compat": "^1.2.6",
@@ -64,17 +75,5 @@
         "typescript": "5.7.3",
         "typescript-eslint": "^8.22.0",
         "webpack": "^5.97.1"
-    },
-    "dependencies": {
-        "cross-spawn": "^7.0.6",
-        "lodash": "^4.17.21",
-        "path-exists": "^5.0.0",
-        "tildify": "^3.0.0"
-    },
-    "peerDependencies": {
-        "@quatico/websmith-core": "workspace:*",
-        "ts-loader": "9.x",
-        "typescript": "5.x",
-        "webpack": "5.x"
     }
 }

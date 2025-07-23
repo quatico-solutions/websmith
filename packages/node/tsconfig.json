@@ -5,6 +5,6 @@
         "incremental": false,
         "noEmit": false
     },
-    "exclude": ["src/**/*.spec.ts"],
-    "include": ["src/**/*.ts"]
+    "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.test.ts", "test/**/*.ts"],
+    "include": ["src/**/*.tss"]
 }
