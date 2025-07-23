@@ -298,7 +298,7 @@ describe("addCompileCommand#addons", () => {
         createAddon(testSystem, "expected/one/addon");
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
 
-        addCompileCommand(new Command(), target).parse(["--allowJs", "--configFile", "./websmith.config.json"], { from: "user" });
+        addCompileCommand(new Command(), target).parse(["--allowJs", "--configFile", "websmith.config.json"], { from: "user" });
 
         expect(target.getAddonRegistry()).toMatchObject({
             config: {

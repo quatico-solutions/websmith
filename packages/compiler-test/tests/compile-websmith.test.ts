@@ -15,6 +15,7 @@ const SOURCE_DIR = path.join(__dirname, "..", "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
 
 beforeAll(() => {
+    fs.rmSync(path.resolve(path.join(__dirname, "..", "..", "example-addons", "lib")), { recursive: true, force: true });
     jest.spyOn(console, "log").mockImplementation(() => {});
     if (fs.readdirSync(ADDONS_DIR).length === 0) {
         throw new Error(

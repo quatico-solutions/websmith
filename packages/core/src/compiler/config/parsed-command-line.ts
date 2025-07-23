@@ -45,8 +45,9 @@ export const createArgs = (args: CompilerArguments): string[] =>
         if (typeof value === "boolean" && value === true) {
             return acc.concat(`--${key}`);
         }
-        if (typeof value === "string" && value.length > 0) {
-            return acc.concat(`--${key}`, String(value));
+        if (value === undefined) {
+            return acc;
         }
-        return acc;
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        return acc.concat(`--${key}`, String(value));
     }, []);

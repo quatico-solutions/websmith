@@ -37,7 +37,7 @@
         "@eslint/js": "^9.19.0",
         "@nx/eslint-plugin": "^18.3.4",
         "@quatico/websmith-testing": "workspace:*",
-        "@quatico/websmith-example-addons": "workspace:*",
+        "@quatico/websmith-examples": "workspace:*",
         "@types/jest": "^29.5.14",
         "@types/minimist": "^1.2.5",
         "@types/node": "20.19.9",

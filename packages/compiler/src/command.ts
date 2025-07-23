@@ -104,18 +104,16 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             }
 
             const addons = compiler.getAddonRegistry();
-            if (command.opts().addonsDir || command.opts().addons) {
-                if (addons) {
-                    addons.setConfig(addonConfig(command, compiler.getSystem(), options));
-                } else {
-                    compiler.setAddonRegistry(
-                        new AddonRegistry({
-                            ...addonConfig(command, compiler.getSystem(), options),
-                            reporter,
-                            system,
-                        })
-                    );
-                }
+            if (addons) {
+                addons.setConfig(addonConfig(command, compiler.getSystem(), options));
+            } else {
+                compiler.setAddonRegistry(
+                    new AddonRegistry({
+                        ...addonConfig(command, compiler.getSystem(), options),
+                        reporter,
+                        system,
+                    })
+                );
             }
 
             if (args.watch) {
@@ -130,6 +128,8 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
 const addonConfig = (command: Command, system: ts.System, options?: CompilerOptions) => {
     const { config } = options ?? {};
     const addons = command.opts().addons ?? config?.addons?.join(",") ?? "";
+    const addonsDir =
+        command.opts().addonsDir && command.opts().addonsDir !== "./addons" ? command.opts().addonsDir : (config?.addonsDir ?? "./addons");
     return {
         addons:
             addons
@@ -137,7 +137,7 @@ const addonConfig = (command: Command, system: ts.System, options?: CompilerOpti
                 .map((it: string) => it.trim())
                 .filter((it: string) => it.length > 0) ?? [],
 
-        addonsDir: system.resolvePath(command.opts().addonsDir !== "./addons" ? command.opts().addonsDir : (config?.addonsDir ?? "./addons")),
+        addonsDir: system.resolvePath(addonsDir),
 
         ...(!!options?.config?.profiles && { profiles: options?.config?.profiles }),
     };

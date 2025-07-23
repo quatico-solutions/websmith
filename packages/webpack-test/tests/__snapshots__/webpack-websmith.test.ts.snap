@@ -41,12 +41,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   getFoobar: () => (/* binding */ getFoobar)
 /* harmony export */ });
-/*
- * ---------------------------------------------------------------------------------------------
- *   Copyright (c) Quatico Solutions AG. All rights reserved.
- *   Licensed under the MIT License. See LICENSE in the project root for license information.
- * ---------------------------------------------------------------------------------------------
- */
 // @annotated()
 const getFoobar = (date) => {
     return foobar(date);
@@ -100,12 +94,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   getFoobar: () => (/* binding */ getFoobar)
 /* harmony export */ });
-/*
- * ---------------------------------------------------------------------------------------------
- *   Copyright (c) Quatico Solutions AG. All rights reserved.
- *   Licensed under the MIT License. See LICENSE in the project root for license information.
- * ---------------------------------------------------------------------------------------------
- */
 // @annotated()
 function getFoobar(date) {
     return foobar(date);

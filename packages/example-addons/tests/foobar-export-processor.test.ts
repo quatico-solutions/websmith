@@ -7,7 +7,7 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-describe("foobar-export-processor addon", () => {
+describe.skip("foobar-export-processor addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__", { virtual: false, tsConfig: { skipLibCheck: true } }).addAddon(

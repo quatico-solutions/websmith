@@ -45,6 +45,7 @@ const webpackDefaults = {
 };
 
 beforeAll(() => {
+    fs.rmSync(path.resolve(path.join(__dirname, "..", "..", "example-addons", "lib")), { recursive: true, force: true });
     if (fs.readdirSync(ADDONS_DIR).length === 0) {
         throw new Error(
             "No addons found in package 'example-addons'. Did you use the 'lib' folder and forget to run 'pnpm build' in the package directory"

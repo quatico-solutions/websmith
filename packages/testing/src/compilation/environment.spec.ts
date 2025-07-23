@@ -89,13 +89,10 @@ describe("compilationEnv#addons", () => {
         expect(actual).toEqual(["expected-addon"]);
     });
 
-    it("should yield no addons with invalid addon source", () => {
-        jest.spyOn(console, "warn").mockImplementation(() => {});
-        const testObj = compilationEnv("/target").addAddon("invalid-addon", { "addon.ts": `export const NO_ACTIVATE_FUNCTION = true;` });
-
-        const actual = testObj.getActiveAddons("*").getNames();
-
-        expect(actual).toHaveLength(0);
+    it("should throw an error with invalid addon source", () => {
+        expect(() => compilationEnv("/target").addAddon("invalid-addon", { "addon.ts": `export const NO_ACTIVATE_FUNCTION = true;` })).toThrow(
+            'Failed to load addon "invalid-addon" from "/target/addons/invalid-addon/addon.js": Addon "invalid-addon" does not export an "activate" function'
+        );
     });
 
     it("should yield addon with single addon in default addons path", () => {

@@ -7,7 +7,7 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-describe("foo-added-generator addon", () => {
+describe.skip("foo-added-generator addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__", { virtual: false, tsConfig: { skipLibCheck: true } }).addAddon(

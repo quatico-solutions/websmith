@@ -51,6 +51,10 @@ const webpackDefaults = {
     },
 };
 
+beforeAll(() => {
+    fs.rmSync(path.resolve(path.join(__dirname, "..", "..", "example-addons", "lib")), { recursive: true, force: true });
+});
+
 describe("project bundling", () => {
     afterEach(() => {
         fs.rmSync(path.resolve(OUTPUT_DIR), { recursive: true, force: true });

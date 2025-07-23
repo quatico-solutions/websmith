@@ -10,6 +10,7 @@ import ts from "typescript";
 import { Compiler } from "../Compiler";
 import { resolvePath } from "../config";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
+
 export type AddonConfig = {
     addons?: string[];
     addonsDir: string;
@@ -265,7 +266,6 @@ const createAddon = (system: ts.System, filePath: string, addonName: string): Co
             throw new Error(`Addon "${addonName}" does not export an "activate" function`);
         }
 
-         
         return { getName: () => addonName, activate: module.activate as (context: AddonContext) => void };
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
