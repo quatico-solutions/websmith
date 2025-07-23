@@ -199,7 +199,8 @@ const getDependentProfiles = (existingProfiles: string[], profileName?: string, 
     if (profileName && existingProfiles.includes(profileName)) {
         results.add(profileName);
     }
-    for (const cur of [...depends].reverse()) {
+    for (let i = depends.length - 1; i >= 0; i--) {
+        const cur = depends[i];
         if (existingProfiles.includes(cur)) {
             results.add(cur);
             // Recursively get dependencies of dependencies
