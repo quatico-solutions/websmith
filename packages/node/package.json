@@ -4,11 +4,8 @@
     "description": "Node library for running websmith with CLI and webpack in Node.js",
     "author": "Quatico Solutions AG",
     "license": "MIT",
-    "main": "src/index.ts",
-    "publishConfig": {
-        "main": "lib/index.js",
-        "types": "lib/index.d.ts"
-    },
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
     "files": [
         "LICENSE",
         "README.md",

@@ -137,7 +137,7 @@ describe("bin.ts", () => {
         copySourceFile("foobar-function.ts");
 
         executeCompiler(
-            `--addonsDir ${ADDONS_DIR} --addons client-processor --project ${path.join(PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(PROJECT_DIR, "websmith.config.json")}`
+            `--addonsDir ${ADDONS_DIR} --project ${path.join(PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(PROJECT_DIR, "websmith.config.json")}`
         );
 
         expect(getOutput("foobar-function.js")).toMatchInlineSnapshot(`

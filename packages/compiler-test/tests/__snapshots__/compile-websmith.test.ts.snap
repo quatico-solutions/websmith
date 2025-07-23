@@ -26,13 +26,7 @@ function foobar(date) {
 `;
 
 exports[`compile w/ websmith should build js and d.ts with outDir and noEmit false 1`] = `
-"/*
- * ---------------------------------------------------------------------------------------------
- *   Copyright (c) Quatico Solutions AG. All rights reserved.
- *   Licensed under the MIT License. See LICENSE in the project root for license information.
- * ---------------------------------------------------------------------------------------------
- */
-// @annotated()
+"// @annotated()
 export const getFoobar = (date) => {
     return foobar(date);
 };
@@ -48,13 +42,7 @@ exports[`compile w/ websmith should build js and d.ts with outDir and noEmit fal
 `;
 
 exports[`compile w/ websmith should build js and d.ts with tsconfig.json and overriding tsconfig props 1`] = `
-"/*
- * ---------------------------------------------------------------------------------------------
- *   Copyright (c) Quatico Solutions AG. All rights reserved.
- *   Licensed under the MIT License. See LICENSE in the project root for license information.
- * ---------------------------------------------------------------------------------------------
- */
-// @annotated()
+"// @annotated()
 export const getFoobar = (date) => {
     return foobar(date);
 };
@@ -70,13 +58,7 @@ exports[`compile w/ websmith should build js and d.ts with tsconfig.json and ove
 `;
 
 exports[`compile w/ websmith should build js and d.ts with tsconfig.json, tsconfig props and overriding profile props 1`] = `
-"/*
- * ---------------------------------------------------------------------------------------------
- *   Copyright (c) Quatico Solutions AG. All rights reserved.
- *   Licensed under the MIT License. See LICENSE in the project root for license information.
- * ---------------------------------------------------------------------------------------------
- */
-// @annotated()
+"// @annotated()
 export const getFoobar = (date) => {
     return foobar(date);
 };
@@ -92,13 +74,7 @@ exports[`compile w/ websmith should build js and d.ts with tsconfig.json, tsconf
 `;
 
 exports[`compile w/ websmith should build js and d.ts with tsconfig.json, tsconfig props and overriding props in websmith config 1`] = `
-"/*
- * ---------------------------------------------------------------------------------------------
- *   Copyright (c) Quatico Solutions AG. All rights reserved.
- *   Licensed under the MIT License. See LICENSE in the project root for license information.
- * ---------------------------------------------------------------------------------------------
- */
-// @annotated()
+"// @annotated()
 export const getFoobar = (date) => {
     return foobar(date);
 };
@@ -114,18 +90,16 @@ exports[`compile w/ websmith should build js and d.ts with tsconfig.json, tsconf
 `;
 
 exports[`compile w/ websmith should build js and no d.ts with tsconfig.json 1`] = `
-"/*
- * ---------------------------------------------------------------------------------------------
- *   Copyright (c) Quatico Solutions AG. All rights reserved.
- *   Licensed under the MIT License. See LICENSE in the project root for license information.
- * ---------------------------------------------------------------------------------------------
- */
+""use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getFoobar = void 0;
 // @annotated()
-export const getFoobar = (date) => {
+var getFoobar = function (date) {
     return foobar(date);
 };
-const foobar = (date) => {
-    return \`foobar \${date.toISOString()}\`;
+exports.getFoobar = getFoobar;
+var foobar = function (date) {
+    return "foobar ".concat(date.toISOString());
 };
 "
 `;

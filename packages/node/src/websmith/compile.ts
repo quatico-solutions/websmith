@@ -5,11 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type CompilerOptions as WebsmithOptions, DefaultReporter, Compiler as WebsmithCompiler } from "@quatico/websmith-core";
-import path from "node:path";
 import ts from "typescript";
 import { Compiler as TscCompiler } from "./Compiler";
-
-const ADDONS_DIR = path.join(__dirname, "..", "..", "..", "example-addons", "lib");
 
 export const compile = async (files: string[], config?: { tsConfig?: ts.CompilerOptions; websmith?: Partial<WebsmithOptions> }): Promise<string> => {
     const { tsConfig, websmith } = config ?? {};
@@ -23,7 +20,7 @@ export const compile = async (files: string[], config?: { tsConfig?: ts.Compiler
         if (tsConfig) {
             websmith.tsConfig = { ...tsConfig, ...(websmith.tsConfig ?? {}) };
         }
-        websmith.config = { ...(websmith.config ?? {}), addonsDir: ADDONS_DIR };
+        websmith.config = { ...(websmith.config ?? {}) };
 
         const results = new WebsmithCompiler(websmith, {}, ts.sys).compile();
 

@@ -84,20 +84,22 @@ export class AddonRegistry {
             .map(it => path.dirname(it));
 
         if (addonsToCompile.length > 0) {
-            const targetDir: string = resolvePath(system, addonsDir, "./lib");
-            const compiledAddons = system
-                .readDirectory(targetDir)
-                .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
-                .map(it => getAddonName(it));
+            // Calculate lib directory - if addonsDir ends with 'src', go up one level
+            const buildDir = path.dirname(addonsDir);
+            const libDir = resolvePath(system, buildDir, "./lib");
+            const compiledAddons = system.directoryExists(libDir)
+                ? system
+                      .readDirectory(libDir)
+                      .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
+                      .map(it => getAddonName(it))
+                : [];
 
             const missingAddons = targetAddons.filter(it => !compiledAddons.includes(it));
             if (missingAddons.length > 0) {
                 // Compile all addons in the addons directory
-                const targetDir = resolvePath(system, addonsDir);
-                const buildDir = path.dirname(targetDir);
-                const outDir = resolvePath(system, buildDir, "./lib");
+                const outDir = libDir;
                 new Compiler({
-                    buildDir: targetDir, // Set buildDir to source directory to get correct relative paths
+                    buildDir: addonsDir, // Set buildDir to source directory to get correct relative paths
                     reporter,
                     tsConfig: {
                         outDir,
@@ -110,7 +112,7 @@ export class AddonRegistry {
                     },
                     cliArgs: {
                         options: { outDir },
-                        fileNames: system.readDirectory(targetDir).filter(isSourceFile),
+                        fileNames: system.readDirectory(addonsDir).filter(isSourceFile),
                         errors: [],
                     },
                 }).compile();
@@ -159,11 +161,52 @@ export class AddonRegistry {
                     }
                 });
 
-            // If no JS files found in addonsDir, look for compiled files in lib directory (production scenario)
+            // If no JS files found in addonsDir, check for TypeScript files and compile them first
             if (loadedAddons.length === 0) {
                 const buildDir = path.dirname(addonsDir);
                 const libDir = resolvePath(system, buildDir, "./lib");
 
+                // Check if we have TypeScript source files that need compilation
+                const sourceFiles = system
+                    .readDirectory(addonsDir, [".ts", ".tsx"])
+                    .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon");
+
+                if (sourceFiles.length > 0) {
+                    // Check if compiled versions exist
+                    const compiledAddons = system.directoryExists(libDir)
+                        ? system
+                              .readDirectory(libDir, [".js", ".jsx"])
+                              .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
+                              .map(it => getAddonName(it))
+                        : [];
+
+                    const sourceAddonNames = sourceFiles.map(it => getAddonName(it));
+                    const missingAddons = sourceAddonNames.filter(name => !compiledAddons.includes(name));
+
+                    // Compile missing addons
+                    if (missingAddons.length > 0) {
+                        new Compiler({
+                            buildDir: addonsDir,
+                            reporter,
+                            tsConfig: {
+                                outDir: libDir,
+                                module: ts.ModuleKind.CommonJS,
+                                target: ts.ScriptTarget.ES2020,
+                                esModuleInterop: true,
+                                moduleResolution: ts.ModuleResolutionKind.Node10,
+                                skipLibCheck: true,
+                                forceConsistentCasingInFileNames: true,
+                            },
+                            cliArgs: {
+                                options: { outDir: libDir },
+                                fileNames: system.readDirectory(addonsDir).filter(isSourceFile),
+                                errors: [],
+                            },
+                        }).compile();
+                    }
+                }
+
+                // Now try to load compiled files from lib directory
                 if (system.directoryExists(libDir)) {
                     system
                         .readDirectory(libDir, [".js", ".jsx"])
@@ -178,6 +221,7 @@ export class AddonRegistry {
             }
 
             // Finally, load remaining addons from source (only if not already loaded from compiled versions)
+            // This should rarely be used now that we compile first
             system
                 .readDirectory(addonsDir, [".ts", ".tsx"])
                 .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
