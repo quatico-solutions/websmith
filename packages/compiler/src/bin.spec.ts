@@ -15,29 +15,29 @@ jest.mock("./command", () => ({
 
 const mockedAddCompileCommand = commandModule.addCompileCommand as jest.MockedFunction<typeof commandModule.addCompileCommand>;
 
+let originalArgv: string[];
+let mockParse: jest.Mock;
+
+beforeEach(() => {
+    // Store original process.argv
+    originalArgv = process.argv;
+
+    // Create a mock parse function
+    mockParse = jest.fn();
+    mockedAddCompileCommand.mockReturnValue({
+        parse: mockParse,
+    } as any);
+
+    // Clear all mocks
+    jest.clearAllMocks();
+});
+
+afterEach(() => {
+    // Restore original process.argv
+    process.argv = originalArgv;
+});
+
 describe("bin.ts", () => {
-    let originalArgv: string[];
-    let mockParse: jest.Mock;
-
-    beforeEach(() => {
-        // Store original process.argv
-        originalArgv = process.argv;
-
-        // Create a mock parse function
-        mockParse = jest.fn();
-        mockedAddCompileCommand.mockReturnValue({
-            parse: mockParse,
-        } as any);
-
-        // Clear all mocks
-        jest.clearAllMocks();
-    });
-
-    afterEach(() => {
-        // Restore original process.argv
-        process.argv = originalArgv;
-    });
-
     it("should create Command instance and call addCompileCommand", async () => {
         // Mock process.argv for this test
         process.argv = ["node", "bin.ts", "--help"];
@@ -135,5 +135,26 @@ describe("bin.ts", () => {
             })
         );
         expect(mockParse).toHaveBeenCalledWith(testArgs);
+    });
+});
+
+describe("bin.ts --help", () => {
+    it("should handle help message", async () => {
+        process.argv = ["node", "bin.ts", "--help"];
+
+        await jest.isolateModulesAsync(async () => {
+            await import("./bin");
+        });
+
+        // Verify that addCompileCommand was called with a Command instance
+        expect(mockedAddCompileCommand).toHaveBeenCalledWith(
+            expect.objectContaining({
+                options: expect.any(Array),
+                commands: expect.any(Array),
+            })
+        );
+
+        // Verify that parse was called with the help argument
+        expect(mockParse).toHaveBeenCalledWith(["node", "bin.ts", "--help"]);
     });
 });
