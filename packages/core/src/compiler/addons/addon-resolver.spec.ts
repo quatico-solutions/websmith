@@ -30,39 +30,39 @@ beforeAll(() => {
 });
 
 describe("createResolver", () => {
-    it("reads addon.js files from existing addon folder", () => {
+    it("reads addon.js files from existing addon folder", async () => {
         const resolve = createResolver(new NoReporter(), testSystem);
 
-        const actual = resolve(["one"]);
+        const actual = await resolve(["one"]);
 
         expect(actual[0].activate).toEqual(expect.any(Function));
         expect(actual[0].getName()).toBe("one");
         expect(actual).toHaveLength(1);
     });
 
-    it("returns empty array for non-existing addon name", () => {
+    it("returns empty array for non-existing addon name", async () => {
         const resolve = createResolver(new NoReporter(), testSystem);
 
-        const actual = resolve(["DOESNOTEXIST"]);
+        const actual = await resolve(["DOESNOTEXIST"]);
 
         expect(actual).toEqual([]);
     });
 
-    it("returns only addons for existing names", () => {
+    it("returns only addons for existing names", async () => {
         const resolve = createResolver(new NoReporter(), testSystem);
 
-        const actual = resolve(["DOESNOTEXIST", "one"]);
+        const actual = await resolve(["DOESNOTEXIST", "one"]);
 
         expect(actual[0].activate).toEqual(expect.any(Function));
         expect(actual[0].getName()).toBe("one");
         expect(actual).toHaveLength(1);
     });
 
-    it("reports use of unknown addon names", () => {
+    it("reports use of unknown addon names", async () => {
         const target = new ReporterMock(testSystem);
         const resolve = createResolver(target, testSystem);
 
-        resolve(["DOESNOTEXIST"]);
+        await resolve(["DOESNOTEXIST"]);
 
         expect(target.message).toBe(`Warning: Couldn't find addon with name "DOESNOTEXIST".\n`);
     });
