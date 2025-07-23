@@ -28,6 +28,16 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.5] - 2025-07-23
+
+This release improves the websmith CLI by aligning the behavior with the tsc compiler.
+
+### Fixed
+
+- 🐛 Fixed an issue where the websmith CLI with --configFile and unknown file path does not report failure
+- 🐛 Fixed an issue where the websmith CLI with --addonsDir and unknown path does not report failure
+- 🐛 Fixed an issue where the websmith-loader does not apply the tsConfigFile property to the compiler options
+
 ## [0.7.4] - 2025-07-21
 
 This release fixes issues where properties from ts.CompilerOptions were not correctly applied to the compiler options. It also improves test coverage and dependency management.
