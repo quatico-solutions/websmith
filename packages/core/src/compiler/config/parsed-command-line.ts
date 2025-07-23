@@ -25,19 +25,27 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
 
     const argsResult = ts.parseCommandLine(createArgs(args));
 
-    const result = ts.getParsedCommandLineOfConfigFile(
-        system.resolvePath(tsConfigFile),
-        argsResult.options,
-        parseHost,
-        undefined /* no extended config cache */,
-        undefined /* no extra watch options */,
-        undefined /* no extra file extensions */
-    );
+    if (tsConfigFile && system.fileExists(tsConfigFile)) {
+        const result = ts.getParsedCommandLineOfConfigFile(
+            system.resolvePath(tsConfigFile),
+            argsResult.options,
+            parseHost,
+            undefined /* no extended config cache */,
+            undefined /* no extra watch options */,
+            undefined /* no extra file extensions */
+        );
 
-    if (!result) {
-        throw new Error(errorMessage);
+        if (!result) {
+            throw new Error(errorMessage);
+        }
+        return result;
     }
-    return result;
+
+    return {
+        options: argsResult.options,
+        fileNames: [],
+        errors: [],
+    };
 };
 
 export const createArgs = (args: CompilerArguments): string[] =>
