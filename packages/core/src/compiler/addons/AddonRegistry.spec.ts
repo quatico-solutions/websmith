@@ -36,13 +36,25 @@ describe("Ctor", () => {
         expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
     });
 
-    it("throws an error with valid and invalid addons in addons directory", () => {
+    it("logs warning with valid and invalid addons in addons directory", () => {
         createAddon("addons/expected/addon");
         createAddon("addons/invalid/addon", "export const whatever = () => {};", { whatever: jest.fn() });
 
-        expect(() => new AddonRegistry({ addonsDir: "./addons", reporter, system })).toThrow(
-            'Failed to load addon "invalid" from "/addons/invalid/addon.js": Addon "invalid" does not export an "activate" function'
+        reporter.reportDiagnostic = jest.fn();
+
+        const registry = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+
+        // Should log a warning for the invalid addon
+        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: 'Addon "invalid" does not export an "activate" function and will be ignored',
+            })
         );
+
+        // Should only include the valid addon
+        const availableAddons = registry.getAvailableAddons();
+        expect(availableAddons).toHaveLength(1);
+        expect(availableAddons[0].getName()).toBe("expected");
     });
 });
 

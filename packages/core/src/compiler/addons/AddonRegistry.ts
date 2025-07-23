@@ -263,7 +263,8 @@ export class AddonRegistry {
             }
 
             // In test environment, use Jest's module mocking
-            const isTestEnvironment = typeof jest !== "undefined" && jest.isMockFunction;
+            // Correct Jest environment detection: check if we're actually running in Jest
+            const isTestEnvironment = typeof jest !== "undefined" && typeof jest.fn === "function";
             let module: { activate?: unknown; default?: { activate?: unknown } } | undefined;
 
             if (isTestEnvironment) {
@@ -308,7 +309,11 @@ export class AddonRegistry {
             const addonModule = module?.default || module;
 
             if (!addonModule || typeof addonModule.activate !== "function") {
-                throw new Error(`Addon "${addonName}" does not export an "activate" function`);
+                // Return undefined and log warning instead of throwing error (restore original behavior)
+                this.config.reporter?.reportDiagnostic(
+                    new WarnMessage(`Addon "${addonName}" does not export an "activate" function and will be ignored`)
+                );
+                return;
             }
 
             const addon: CompilerAddon = {
@@ -318,8 +323,12 @@ export class AddonRegistry {
             this.availableAddons.set(addonName, addon);
             return addonName;
         } catch (error) {
+            // Log warning and return undefined instead of throwing error (restore original behavior)
             const errorMessage = error instanceof Error ? error.message : String(error);
-            throw new Error(`Failed to load addon "${addonName}" from "${getImportPath(system, filePath)}": ${errorMessage}`);
+            this.config.reporter?.reportDiagnostic(
+                new WarnMessage(`Failed to load addon "${addonName}" from "${getImportPath(system, filePath)}": ${errorMessage}`)
+            );
+            return;
         }
     }
 }
