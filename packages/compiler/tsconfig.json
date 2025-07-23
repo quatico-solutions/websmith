@@ -2,8 +2,8 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "module": "CommonJS",
-        "outDir": "./bin",
-        "noEmit": false,
+        "target": "ES2020",
+        "lib": ["ES2020"]
     },
     "exclude": ["src/**/*.spec.ts"],
     "include": ["src/**/*.ts"]

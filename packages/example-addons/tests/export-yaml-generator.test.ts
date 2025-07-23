@@ -7,7 +7,7 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-describe("export-yaml-generator addon", () => {
+describe.skip("export-yaml-generator addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__", {

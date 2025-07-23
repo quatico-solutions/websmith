@@ -81,11 +81,19 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         this.addonsDir = resolvePath(this.system, this.projectDir, this.config?.addonsDir ?? "./addons");
         this.addons = addons?.length
             ? addons
-            : [...(this.config?.addons ?? []), ...selectedProfiles.map(name => getProfile(name, this.config)?.addons ?? []).flat()];
+            : [
+                  ...(Array.isArray(this.config?.addons) ? this.config.addons : []),
+                  ...selectedProfiles
+                      .map(name => {
+                          const profile = getProfile(name, this.config);
+                          return Array.isArray(profile?.addons) ? profile.addons : [];
+                      })
+                      .flat(),
+              ];
 
         // resolve tsconfig
         resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
-        this.tsConfig = getTsConfig(this.system, this.projectDir, resolvedOptions);
+        this.tsConfig = getTsConfig(this.system, this.projectDir, resolvedOptions, profileName);
         if (profile) {
             this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, getTsConfig(this.system, this.projectDir, resolvedOptions, profile), {
                 arrayMerge,
@@ -109,7 +117,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
 
         this.cliArgs = deepmerge<ts.ParsedCommandLine>(
             deepmerge<ts.ParsedCommandLine>(
-                this.tsConfigFile && this.system.fileExists(this.tsConfigFile) ? parsedCommandLine(this.tsConfigFile, {}, system) : {},
+                this.tsConfigFile && this.system.fileExists(this.tsConfigFile) ? parsedCommandLine(this.tsConfigFile, {}, this.system) : {},
                 {
                     options: {
                         ...(outDir && { outDir }),
@@ -140,8 +148,11 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             return this.addons;
         }
         const targetProfile = profileName ?? this.profile;
-        const addons = this.getSelectedProfiles(targetProfile).flatMap(name => getProfile(name, this.config)?.addons ?? []);
-        return [...(this.config?.addons ?? []), ...(addons ?? [])];
+        const addons = this.getSelectedProfiles(targetProfile).flatMap(name => {
+            const profile = getProfile(name, this.config);
+            return Array.isArray(profile?.addons) ? profile.addons : [];
+        });
+        return [...(Array.isArray(this.config?.addons) ? this.config.addons : []), ...(Array.isArray(addons) ? addons : [])];
     }
 
     public getOptions(profile?: string): CompilerOptions {
@@ -188,7 +199,8 @@ const getDependentProfiles = (existingProfiles: string[], profileName?: string, 
     if (profileName && existingProfiles.includes(profileName)) {
         results.add(profileName);
     }
-    for (const cur of depends.reverse()) {
+    for (let i = depends.length - 1; i >= 0; i--) {
+        const cur = depends[i];
         if (existingProfiles.includes(cur)) {
             results.add(cur);
             // Recursively get dependencies of dependencies
@@ -212,13 +224,12 @@ const getTsConfig = (system: ts.System, projectDir: string, options: CompilerOpt
         .reduce((acc: ts.CompilerOptions, cur) => deepmerge<ts.CompilerOptions>(acc, cur.tsConfig ?? {}, { arrayMerge }), {});
 
     // Read tsconfig.json if it exists
-    const tsConfigOptions: ts.ParsedCommandLine =
-        tsConfigFile && system.fileExists(tsConfigFile) ? parsedCommandLine(tsConfigFile, {}, system) : { options: {}, fileNames: [], errors: [] };
+    const tsConfigOptions = tsConfigFile && system.fileExists(tsConfigFile) ? (parsedCommandLine(tsConfigFile, {}, system).options ?? {}) : {};
 
     return {
         ...tsDefaults,
         ...(tsConfigFile && { configFilePath: resolvePath(system, projectDir, tsConfigFile) }),
-        ...(tsConfigOptions && deepmerge(tsConfigOptions.raw ?? {}, tsConfigOptions.options ?? {}, { arrayMerge })),
+        ...tsConfigOptions,
         ...deepmerge<ts.CompilerOptions>(deepmerge<ts.CompilerOptions>(tsConfig ?? {}, cliArgs?.options ?? {}, { arrayMerge }), profileTsConfig, {
             arrayMerge,
         }),
@@ -240,7 +251,11 @@ const getProfile = (name?: string, config?: CompilationConfig): CompilationProfi
  * @param source - The source array.
  * @returns A new array that is the result of merging the target and source arrays and removing duplicates.
  */
-const arrayMerge = (target: unknown[], source: unknown[], _options?: ArrayMergeOptions) => [...new Set([...source, ...target])];
+const arrayMerge = (target: unknown[], source: unknown[], _options?: ArrayMergeOptions) => {
+    const targetArray = Array.isArray(target) ? target : [];
+    const sourceArray = Array.isArray(source) ? source : [];
+    return [...new Set([...sourceArray, ...targetArray])];
+};
 
 const loadCompilationConfig = (
     options: Partial<CompilerOptions>,

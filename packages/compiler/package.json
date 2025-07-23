@@ -4,11 +4,6 @@
     "description": "A CLI for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
-    "main": "src/index.ts",
-    "publishConfig": {
-        "main": "bin/index.js",
-        "types": "bin/index.d.ts"
-    },
     "bin": {
         "websmith": "bin/bin.js"
     },
@@ -29,10 +24,11 @@
         "clean": "rimraf lib bin coverage",
         "lint": "eslint \"{src,test}/**/*.ts\" --color",
         "lint:fix": "pnpm lint --fix",
-        "build": "tsc",
+        "build": "webpack",
         "watch": "tsc --watch",
-        "watch:test": "jest --watch",
-        "test": "jest --coverage",
+        "watch:test": "jest --testRegex=\".*\\.spec\\.ts$\" --watch",
+        "test": "jest --testRegex=\".*\\.spec\\.ts$\" --coverage",
+        "test:e2e": "jest --testRegex=\".*\\.test\\.ts$\"",
         "test:update-snapshots": "pnpm test -u",
         "dist": "cross-env-shell NODE_ENV=production \"pnpm clean && pnpm lint && pnpm test && pnpm build\""
     },
@@ -41,6 +37,7 @@
         "@eslint/js": "^9.19.0",
         "@nx/eslint-plugin": "^18.3.4",
         "@quatico/websmith-testing": "workspace:*",
+        "@quatico/websmith-examples": "workspace:*",
         "@types/jest": "^29.5.14",
         "@types/minimist": "^1.2.5",
         "@types/node": "20.19.9",
@@ -63,7 +60,10 @@
         "prettier": "^3.4.2",
         "rimraf": "6.0.1",
         "ts-jest": "^29.2.5",
-        "typescript-eslint": "^8.22.0"
+        "ts-loader": "^9.5.1",
+        "typescript-eslint": "^8.22.0",
+        "webpack": "^5.97.1",
+        "webpack-cli": "^6.0.1"
     },
     "dependencies": {
         "@quatico/websmith-api": "workspace:*",

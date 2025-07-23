@@ -8,10 +8,12 @@ import { webpack } from "@quatico/websmith-node";
 import ForkTsCheckerWebpackPlugin from "fork-ts-checker-webpack-plugin";
 import fs from "node:fs";
 import path from "node:path";
-import { getOutput, writeWebsmithConfig } from "./test-files";
+import { getOutput, writeTsConfig, writeWebsmithConfig } from "./test-files";
+import ts from "typescript";
 
-const OUTPUT_DIR = path.join(__dirname, "..", "lib");
-const SOURCE_DIR = path.join(__dirname, "..", "src");
+const PROJECT_DIR = path.join(__dirname, "..", "output");
+const OUTPUT_DIR = path.join(PROJECT_DIR, "lib");
+const SOURCE_DIR = path.join(PROJECT_DIR, "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
 
 const webpackDefaults = {
@@ -32,7 +34,7 @@ const webpackDefaults = {
                         loader: require.resolve("websmith-loader"),
                         options: {
                             transpileOnly: true,
-                            tsConfigFile: path.join(__dirname, "..", "tsconfig.json"),
+                            tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
                         },
                     },
                 ],
@@ -41,11 +43,44 @@ const webpackDefaults = {
     },
 };
 
-describe("webpack w/ websmith", () => {
-    afterEach(() => {
-        fs.rmSync(path.resolve(OUTPUT_DIR), { recursive: true, force: true });
-    });
+beforeAll(() => {
+    fs.rmSync(path.resolve(path.join(__dirname, "..", "..", "example-addons", "lib")), { recursive: true, force: true });
+});
 
+beforeEach(() => {
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+    fs.mkdirSync(SOURCE_DIR, { recursive: true });
+
+    // Copy all source files for each test
+    const originalSourceDir = path.join(__dirname, "..", "src");
+    const sourceFiles = fs.readdirSync(originalSourceDir);
+    for (const file of sourceFiles) {
+        const srcPath = path.join(originalSourceDir, file);
+        const destPath = path.join(SOURCE_DIR, file);
+        if (fs.statSync(srcPath).isDirectory()) {
+            fs.cpSync(srcPath, destPath, { recursive: true });
+        } else {
+            fs.copyFileSync(srcPath, destPath);
+        }
+    }
+
+    writeTsConfig({
+        moduleResolution: ts.ModuleResolutionKind.Node10,
+        outDir: OUTPUT_DIR,
+        target: ts.ScriptTarget.ESNext,
+        module: ts.ModuleKind.ESNext,
+        jsx: ts.JsxEmit.React,
+        noEmit: true,
+    });
+});
+
+afterEach(() => {
+    fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
+});
+
+describe("webpack w/ websmith", () => {
     it("should yield compiled output with no profile", async () => {
         writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
@@ -54,13 +89,13 @@ describe("webpack w/ websmith", () => {
         const actual = await webpack(undefined, {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
             },
         });
 
-        expect(getOutput("main.js")).toContain('/***/ "./src/functions/getDate.ts":');
-        expect(getOutput("main.js")).toContain('/***/ "./src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
     });
 
@@ -77,15 +112,15 @@ describe("webpack w/ websmith", () => {
         const actual = await webpack(undefined, {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 transpileOnly: true,
                 profile: "valid",
             },
         });
 
         expect(getOutput("output.yaml")).toContain("exports: [getDate]");
-        expect(getOutput("main.js")).toContain('/***/ "./src/functions/getDate.ts":');
-        expect(getOutput("main.js")).toContain('/***/ "./src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
     });
 
@@ -103,7 +138,7 @@ describe("webpack w/ websmith", () => {
             webpack(undefined, {
                 webpack: { ...webpackDefaults },
                 websmith: {
-                    configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                    configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                     transpileOnly: false,
                     profile: "valid",
                 },
@@ -125,7 +160,7 @@ describe("webpack w/ websmith", () => {
             webpack(undefined, {
                 webpack: { ...webpackDefaults },
                 websmith: {
-                    configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                    configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                     transpileOnly: true,
                     profile: "unknown",
                 },
@@ -146,7 +181,7 @@ describe("webpack w/ websmith", () => {
         const actual = await webpack(undefined, {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 transpileOnly: true,
                 profile: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
             },
@@ -174,14 +209,14 @@ describe("webpack w/ websmith", () => {
         await webpack(undefined, {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 transpileOnly: true,
                 profile: "noWrite",
             },
         });
 
-        expect(getOutput("main.js")).toContain('/***/ "./src/functions/getDate.ts":');
-        expect(getOutput("main.js")).toContain('/***/ "./src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
     });
 
     it("should bundle invalid TypeScript file w/ transpileOnly being used", async () => {
@@ -200,13 +235,13 @@ describe("webpack w/ websmith", () => {
         const actual = await webpack(undefined, {
             webpack: { ...webpackDefaults, entry: { main: path.join(SOURCE_DIR, "invalid.ts") }, devtool: "source-map" },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 transpileOnly: true,
                 profile: "noWrite",
             },
         });
 
-        expect(getOutput("main.js")).toContain('/***/ "./src/invalid.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./output/src/invalid.ts":');
         expect(actual).toMatch(/successfully/);
 
         fs.rmSync(path.resolve(SOURCE_DIR, "invalid.ts"), { force: true });
@@ -225,14 +260,14 @@ describe("webpack w/ websmith", () => {
         const actual = await webpack(undefined, {
             webpack: { ...webpackDefaults, plugins: [new ForkTsCheckerWebpackPlugin()] },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 transpileOnly: true,
                 profile: "noWrite",
             },
         });
 
-        expect(getOutput("main.js")).toContain('/***/ "./src/functions/getDate.ts":');
-        expect(getOutput("main.js")).toContain('/***/ "./src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
     });
 });

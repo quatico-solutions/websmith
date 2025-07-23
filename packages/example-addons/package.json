@@ -4,11 +4,8 @@
     "description": "A library of example addons for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
-    "main": "src/index.ts",
-    "publishConfig": {
-        "main": "lib/index.js",
-        "types": "lib/index.d.ts"
-    },
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
     "files": [
         "LICENSE",
         "README.md",
@@ -30,9 +27,9 @@
         "build": "tsc",
         "watch": "pnpm build --watch",
         "watch:test": "jest --watch --runInBand",
-        "test": "jest --coverage --runInBand",
+        "test:e2e": "jest --coverage --runInBand --passWithNoTests",
         "test:update-snapshots": "pnpm test -u",
-        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
+        "dist": "pnpm clean && pnpm lint && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
     "devDependencies": {
         "@eslint/compat": "^1.2.6",

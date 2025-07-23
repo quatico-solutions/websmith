@@ -8,6 +8,10 @@ import path from "node:path";
 import ts from "typescript";
 import { compilationEnv } from "./environment";
 
+beforeEach(() => {
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+});
+
 describe("compilationEnv", () => {
     it("should yield default configuration with defaults", () => {
         const testObj = compilationEnv("/expected");
@@ -89,13 +93,15 @@ describe("compilationEnv#addons", () => {
         expect(actual).toEqual(["expected-addon"]);
     });
 
-    it("should yield no addons with invalid addon source", () => {
-        jest.spyOn(console, "warn").mockImplementation(() => {});
-        const testObj = compilationEnv("/target").addAddon("invalid-addon", { "addon.ts": `export const NO_ACTIVATE_FUNCTION = true;` });
+    it("should log warning with invalid addon source", () => {
+        jest.spyOn(console, "error").mockImplementation(() => {});
+        const testObj = compilationEnv("/target");
 
-        const actual = testObj.getActiveAddons("*").getNames();
+        // Should not throw an exception but instead log a warning
+        expect(() => testObj.addAddon("invalid-addon", { "addon.ts": `export const NO_ACTIVATE_FUNCTION = true;` })).not.toThrow();
 
-        expect(actual).toHaveLength(0);
+        // Should have no available addons since the invalid addon is ignored
+        expect(testObj.getActiveAddons("*")).toHaveLength(0);
     });
 
     it("should yield addon with single addon in default addons path", () => {

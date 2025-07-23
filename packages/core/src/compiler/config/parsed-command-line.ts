@@ -25,19 +25,27 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
 
     const argsResult = ts.parseCommandLine(createArgs(args));
 
-    const result = ts.getParsedCommandLineOfConfigFile(
-        system.resolvePath(tsConfigFile),
-        argsResult.options,
-        parseHost,
-        undefined /* no extended config cache */,
-        undefined /* no extra watch options */,
-        undefined /* no extra file extensions */
-    );
+    if (tsConfigFile && system.fileExists(tsConfigFile)) {
+        const result = ts.getParsedCommandLineOfConfigFile(
+            system.resolvePath(tsConfigFile),
+            argsResult.options,
+            parseHost,
+            undefined /* no extended config cache */,
+            undefined /* no extra watch options */,
+            undefined /* no extra file extensions */
+        );
 
-    if (!result) {
-        throw new Error(errorMessage);
+        if (!result) {
+            throw new Error(errorMessage);
+        }
+        return result;
     }
-    return result;
+
+    return {
+        options: argsResult.options,
+        fileNames: [],
+        errors: [],
+    };
 };
 
 export const createArgs = (args: CompilerArguments): string[] =>
@@ -45,5 +53,9 @@ export const createArgs = (args: CompilerArguments): string[] =>
         if (typeof value === "boolean" && value === true) {
             return acc.concat(`--${key}`);
         }
-        return acc.concat(`--${key}`, String(value));
+        if (value === undefined) {
+            return acc;
+        }
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        return acc.concat(`--${key}`, value != null ? value.toString() : "");
     }, []);

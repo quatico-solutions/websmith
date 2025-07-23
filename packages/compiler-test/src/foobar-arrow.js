@@ -1,8 +1,7 @@
 // @annotated()
-export const getFoobar = (date: Date) => {
+export const getFoobar = (date) => {
     return foobar(date);
 };
-
-const foobar = (date: Date) => {
+const foobar = (date) => {
     return `foobar ${date.toISOString()}`;
 };

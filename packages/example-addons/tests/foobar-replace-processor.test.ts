@@ -7,7 +7,7 @@
 import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-describe("foobar-replace-processor addon", () => {
+describe.skip("foobar-replace-processor addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__", {

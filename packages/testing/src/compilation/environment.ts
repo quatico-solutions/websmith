@@ -55,7 +55,7 @@ export class CompilationEnv {
                 reporter,
                 ...options,
                 buildDir: this.rootDir,
-                tsConfig: { outDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.outDir ?? DEFAULT_OUT_DIR), ...options?.tsConfig },
+                tsConfig: { ...options?.tsConfig, outDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.outDir ?? DEFAULT_OUT_DIR) },
             },
             addonConfig?.addons
         );

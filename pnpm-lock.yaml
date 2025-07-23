@@ -231,6 +231,9 @@ importers:
       '@nx/eslint-plugin':
         specifier: ^18.3.4
         version: 18.3.4(@babel/traverse@7.24.5)(@swc/core@1.5.0)(@types/node@20.19.9)(@typescript-eslint/parser@8.22.0(eslint@9.19.0)(typescript@5.7.3))(eslint-config-prettier@10.0.1(eslint@9.19.0))(eslint@9.19.0)(nx@18.3.4(@swc/core@1.5.0))(typescript@5.7.3)
+      '@quatico/websmith-examples':
+        specifier: workspace:*
+        version: link:../example-addons
       '@quatico/websmith-testing':
         specifier: workspace:*
         version: link:../testing
@@ -300,9 +303,18 @@ importers:
       ts-jest:
         specifier: ^29.2.5
         version: 29.2.5(@babel/core@7.24.5)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.24.5))(jest@29.7.0(@types/node@20.19.9)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.5.0)(@types/node@20.19.9)(typescript@5.7.3)))(typescript@5.7.3)
+      ts-loader:
+        specifier: ^9.5.1
+        version: 9.5.2(typescript@5.7.3)(webpack@5.97.1)
       typescript-eslint:
         specifier: ^8.22.0
         version: 8.22.0(eslint@9.19.0)(typescript@5.7.3)
+      webpack:
+        specifier: ^5.97.1
+        version: 5.97.1(@swc/core@1.5.0)(webpack-cli@6.0.1)
+      webpack-cli:
+        specifier: ^6.0.1
+        version: 6.0.1(webpack@5.97.1)
 
   packages/compiler-test:
     devDependencies:

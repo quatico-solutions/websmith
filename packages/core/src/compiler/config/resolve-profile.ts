@@ -11,7 +11,7 @@ export const resolveProfile = (name: string | undefined, config: CompilationConf
     if (name) {
         const configured = Object.keys(config?.profiles ?? {});
         if (!configured.includes(name)) {
-            reporter.reportDiagnostic(new WarnMessage(`Missing profile: The following profile is passed but not configured "${name}"`));
+            reporter.reportDiagnostic(new WarnMessage(`Missing profile: The following profile is passed but not configured "${name}".`));
         }
     }
     return name;

@@ -12,7 +12,6 @@ const config: Config = {
     moduleNameMapper: {
         "@quatico/websmith-api": "<rootDir>/../api/src",
     },
-    testRegex: "src/.*(test|spec)\\.ts$",
 };
 
 export default config;

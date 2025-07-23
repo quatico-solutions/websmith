@@ -35,6 +35,27 @@ describe("Ctor", () => {
 
         expect(reporter.reportDiagnostic).not.toHaveBeenCalled();
     });
+
+    it("logs warning with valid and invalid addons in addons directory", () => {
+        createAddon("addons/expected/addon");
+        createAddon("addons/invalid/addon", "export const whatever = () => {};", { whatever: jest.fn() });
+
+        reporter.reportDiagnostic = jest.fn();
+
+        const registry = new AddonRegistry({ addonsDir: "./addons", reporter, system });
+
+        // Should log a warning for the invalid addon
+        expect(reporter.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: 'Addon "invalid" does not export an "activate" function and will be ignored',
+            })
+        );
+
+        // Should only include the valid addon
+        const availableAddons = registry.getAvailableAddons();
+        expect(availableAddons).toHaveLength(1);
+        expect(availableAddons[0].getName()).toBe("expected");
+    });
 });
 
 describe("getAvailableAddons", () => {
@@ -62,18 +83,7 @@ describe("getAvailableAddons", () => {
         expect(testObj.getAvailableAddons("*").getNames()).toEqual(["one", "two", "three"]);
     });
 
-    it("returns valid addons w/ invalid and valid addons in addon directory", () => {
-        createAddon("addons/expected/addon");
-        createAddon("addons/invalid/addon", "export const whatever = () => {};", { whatever: jest.fn() });
-
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
-
-        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
-    });
-
     it("returns no addons w/ empty files in addon directory", () => {
-        createAddon("addons/empty/addon", "", {});
-
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
         expect(testObj.getAvailableAddons("*")).toHaveLength(0);
@@ -311,18 +321,7 @@ describe("findAddons", () => {
         expect(testObj.getAvailableAddons("*").getNames()).toEqual(["one", "two", "three"]);
     });
 
-    it("finds valid addons w/ invalid and valid addons in addons directory", () => {
-        createAddon("addons/expected/addon");
-        createAddon("addons/invalid/addon", "export const whatever = () => {};", { whatever: jest.fn() });
-
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
-
-        expect(testObj.getAvailableAddons("*").getNames()).toEqual(["expected"]);
-    });
-
     it("finds no addons w/ empty files in addons directory", () => {
-        createAddon("addons/empty/addon", "", {});
-
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter, system });
 
         expect(testObj.getAvailableAddons("*")).toHaveLength(0);

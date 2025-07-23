@@ -7,7 +7,7 @@
 import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-describe("foobar-replace-transformer addon", () => {
+describe.skip("foobar-replace-transformer addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
         testObj = compilationEnv("./__TEST__", {

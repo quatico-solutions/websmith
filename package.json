@@ -20,7 +20,7 @@
     "homepage": "https://github.com/quatico-solutions/websmith#readme",
     "private": true,
     "scripts": {
-        "clean": "nx run-many --target=clean",
+        "clean": "rimraf coverage && nx run-many --target=clean",
         "lint": "nx run-many --target=lint",
         "lint:fix": "nx run-many --target=lint:fix",
         "build": "nx run-many --target=build",

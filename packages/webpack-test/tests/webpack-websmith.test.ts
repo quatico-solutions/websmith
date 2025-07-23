@@ -9,7 +9,9 @@ import { webpack } from "@quatico/websmith-node";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
-import { writeWebsmithConfig, getOutput } from "./test-files";
+import { writeWebsmithConfig, getOutput as getOutputBase, writeTsConfig } from "./test-files";
+
+const getOutput = (filePath: string) => getOutputBase(filePath, OUTPUT_DIR);
 
 // TODO: ts-loader options caching seems broken, we need to understand where to fix it
 // This workaround is not working, we need to find a better solution
@@ -18,8 +20,9 @@ import { writeWebsmithConfig, getOutput } from "./test-files";
 //     getInstanceFromCache: jest.fn(),
 // }));
 
-const OUTPUT_DIR = path.join(__dirname, "..", "lib");
-const SOURCE_DIR = path.join(__dirname, "..", "src");
+const PROJECT_DIR = path.join(__dirname, "..", "output");
+const OUTPUT_DIR = path.join(PROJECT_DIR, "lib");
+const SOURCE_DIR = path.join(PROJECT_DIR, "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
 
 const webpackDefaults = {
@@ -35,7 +38,7 @@ const webpackDefaults = {
                         loader: require.resolve("websmith-loader"),
                         options: {
                             transpileOnly: true,
-                            tsConfigFile: path.join(__dirname, "..", "tsconfig.json"),
+                            tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
                         },
                     },
                 ],
@@ -45,6 +48,7 @@ const webpackDefaults = {
 };
 
 beforeAll(() => {
+    fs.rmSync(path.resolve(path.join(__dirname, "..", "..", "example-addons", "lib")), { recursive: true, force: true });
     if (fs.readdirSync(ADDONS_DIR).length === 0) {
         throw new Error(
             "No addons found in package 'example-addons'. Did you use the 'lib' folder and forget to run 'pnpm build' in the package directory"
@@ -53,11 +57,32 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-    fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
+    jest.spyOn(console, "warn").mockImplementation(() => {});
+    fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+    fs.mkdirSync(SOURCE_DIR, { recursive: true });
+
+    // Copy all source files for each test
+    const originalSourceDir = path.join(__dirname, "..", "src");
+    const sourceFiles = fs.readdirSync(originalSourceDir);
+    for (const file of sourceFiles) {
+        const srcPath = path.join(originalSourceDir, file);
+        const destPath = path.join(SOURCE_DIR, file);
+        if (fs.statSync(srcPath).isDirectory()) {
+            fs.cpSync(srcPath, destPath, { recursive: true });
+        } else {
+            fs.copyFileSync(srcPath, destPath);
+        }
+    }
+
+    writeTsConfig({
+        target: ts.ScriptTarget.ES2020,
+        outDir: OUTPUT_DIR,
+    });
 });
 
 afterEach(() => {
-    fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
+    fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
 });
 
 describe("webpack w/ websmith", () => {
@@ -69,7 +94,7 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 tsConfig: {
                     target: ts.ScriptTarget.ES2020,
                 },
@@ -87,7 +112,7 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 tsConfig: {
                     target: ts.ScriptTarget.ES2020,
                 },
@@ -156,7 +181,7 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 config: {
                     addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 },
@@ -182,7 +207,7 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: "*",
             },
         });
@@ -205,7 +230,7 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: "*",
             },
         });
@@ -228,7 +253,7 @@ describe("webpack w/ websmith", () => {
             webpack: { ...webpackDefaults },
             websmith: {
                 profile: "profile-zip",
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
             },
         });
 
@@ -292,7 +317,7 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 config: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 profile: "profile-transform",
             },
@@ -322,7 +347,7 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 config: {
                     addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 },
@@ -333,7 +358,7 @@ describe("webpack w/ websmith", () => {
         expect(getOutput("main.js")).toContain("function barfoo");
         expect(getOutput("main.js")).toContain("function getbarfoo");
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
-    });
+    }, 180000); // Increase timeout to 3 minutes
 
     it("should transform foobar functions with named profile and addonsDir, chained addons in config-file", async () => {
         writeWebsmithConfig({
@@ -348,7 +373,7 @@ describe("webpack w/ websmith", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
             webpack: { ...webpackDefaults },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: "profile-transform",
             },
         });
@@ -374,6 +399,11 @@ describe("webpack w/ websmith, multiple profiles", () => {
                 },
             },
         });
+
+        writeTsConfig({
+            target: ts.ScriptTarget.ES2020,
+            outDir: OUTPUT_DIR,
+        });
     });
 
     it("should yield non-transformed functions with no profile and single entry", async () => {
@@ -385,7 +415,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
                 },
             },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: undefined,
             },
         });
@@ -404,7 +434,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
                 },
             },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: undefined,
             },
         });
@@ -422,7 +452,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
                 },
             },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: "client",
             },
         });
@@ -440,7 +470,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
                 },
             },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: "server",
             },
         });
@@ -459,7 +489,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
                 },
             },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: "client",
             },
         });
@@ -478,7 +508,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
                 },
             },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: "client",
             },
         });
@@ -497,7 +527,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
                 },
             },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: "server",
             },
         });
@@ -517,7 +547,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
                 },
             },
             websmith: {
-                configFile: path.join(OUTPUT_DIR, "websmith.config.json"),
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 profile: "server",
             },
         });

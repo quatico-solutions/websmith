@@ -11,6 +11,7 @@
         "lint:fix": "pnpm lint --fix",
         "build": "tsc",
         "watch": "tsc --watch",
+        "dist": "pnpm clean && pnpm lint && cross-env-shell NODE_ENV=production \"pnpm build\"",
         "test:e2e": "jest --verbose --runInBand"
     },
     "devDependencies": {
