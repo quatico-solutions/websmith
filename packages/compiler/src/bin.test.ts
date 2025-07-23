@@ -1,3 +1,9 @@
+/*
+ * ---------------------------------------------------------------------------------------------
+ *   Copyright (c) Quatico Solutions AG. All rights reserved.
+ *   Licensed under the MIT License. See LICENSE in the project root for license information.
+ * ---------------------------------------------------------------------------------------------
+ */
 import path from "node:path";
 import fs from "node:fs";
 import { execSync } from "node:child_process";
@@ -28,7 +34,7 @@ afterEach(() => {
     fs.rmSync(path.resolve(PROJECT_DIR), { recursive: true, force: true });
 });
 
-describe("bin.ts", () => {
+describe("bin.ts e2e tests", () => {
     it("should yield script file with single file and emit true", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false });
 

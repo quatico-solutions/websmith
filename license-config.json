@@ -54,6 +54,8 @@
         "**/.gitkeep",
         "**/.build",
         "**/test-data",
-        "**/__data__"
+        "**/__data__",
+        "**/__test-targets__",
+        "**/foobar-*"
     ]
 }

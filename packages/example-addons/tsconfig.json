@@ -9,5 +9,5 @@
         "noEmit": false
     },
     "include": ["src/**/*.ts"],
-    "exclude": ["tests/**/*.test.ts"]
+    "exclude": ["node_modules", "src/**/*.spec.ts", "tests/**/*.test.ts"]
 }
