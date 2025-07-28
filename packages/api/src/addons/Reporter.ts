@@ -14,4 +14,6 @@ export interface Reporter {
      */
     reportDiagnostic(diagnostic: ts.Diagnostic): void;
     reportWatchStatus(diagnostic: ts.Diagnostic, newLine?: string, tsConfig?: ts.CompilerOptions, errorCount?: number): void;
+    indent(): void;
+    unindent(): void;
 }

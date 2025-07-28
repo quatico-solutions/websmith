@@ -36,11 +36,17 @@ export class TsCompiler extends Compiler {
         const debugEnabled = this.getOptions().debug ?? false;
         if (debugEnabled) {
             if (this.loaderContext) {
-                // Use webpack's infrastructure logging
-                this.loaderContext.getLogger('websmith-loader').log(message);
+                // Use webpack's infrastructure logging properly
+                const logger = this.loaderContext.getLogger("websmith-loader");
+                if (logger) {
+                    logger.info(`[websmith-loader] ${message}`);
+                } else {
+                    // Fallback to console.log if logger is not available
+                    console.log(`[DEBUG] [websmith-loader] ${message}`);
+                }
             } else {
                 // Fallback to console.log if no loader context
-                console.log(`[DEBUG] ${message}`);
+                console.log(`[DEBUG] [websmith-loader] ${message}`);
             }
         }
     }
