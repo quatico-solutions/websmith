@@ -18,9 +18,9 @@ export class TsCompiler extends Compiler {
     private loaderContext?: LoaderContext<WebsmithLoaderConfig>;
 
     constructor(
-        options: CompilerOptions,
+        options: Partial<CompilerOptions>,
         loaderOptions: WebsmithLoaderConfig = {},
-        dependencyCallback: (filePath: string) => void,
+        dependencyCallback?: (filePath: string) => void,
         loaderContext?: LoaderContext<WebsmithLoaderConfig>
     ) {
         super(options, loaderOptions, ts.sys, undefined, dependencyCallback);
