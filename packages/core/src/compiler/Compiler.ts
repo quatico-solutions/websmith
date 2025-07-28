@@ -257,14 +257,14 @@ export class Compiler {
                     start: undefined,
                     length: undefined,
                 });
-                (this.reporter as DefaultReporter).indent?.();
+                this.reporter.indent();
             }
             const ctx = this.getContext(curProfile);
             if (ctx) {
                 results.push(this.report(program, this.emitResult(curProfile, ctx)));
             }
             if (this.options.debug) {
-                (this.reporter as DefaultReporter).unindent?.();
+                this.reporter.unindent();
             }
         });
 
