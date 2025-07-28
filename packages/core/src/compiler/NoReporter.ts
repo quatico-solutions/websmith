@@ -16,4 +16,12 @@ export class NoReporter implements Reporter {
     public reportWatchStatus(diagnostic: ts.Diagnostic, newLine = ""): void {
         // do nothing
     }
+
+    public indent(): void {
+        // do nothing
+    }
+
+    public unindent(): void {
+        // do nothing
+    }
 }
