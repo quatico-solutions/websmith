@@ -12,7 +12,7 @@ import { Logger } from "../Logger";
 
 export const TSC_EXECUTABLE = "tsc";
 
-export const findTsc = async (logger = new Logger("[tsc]")) => {
+export const findTsc = async (logger = new Logger()) => {
     // attempt to use tsc from sibling module
     const tscFromSiblingModule = path.join(__dirname, "..", "typescript", "bin", TSC_EXECUTABLE);
 

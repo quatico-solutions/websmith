@@ -32,7 +32,7 @@ export class WebpackBuild {
     private intermediateFileSystem?: any;
 
     constructor(config?: Configuration) {
-        this.logger = new Logger(`[webpack]`);
+        this.logger = new Logger();
         this.stdout = "";
         this.stderr = "";
         this.failedAlready = false;

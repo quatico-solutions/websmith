@@ -1,4 +1,3 @@
- 
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -15,6 +14,7 @@ import { type FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
 import { resolveCompilerOptions, type WebpackLoaderOptions, type CompilerOptions, type ResolvedCompilerOptions } from "./options";
+import type { DefaultReporter } from "./DefaultReporter";
 
 export type CompileFragment = {
     version: number;
@@ -58,6 +58,73 @@ export class Compiler {
 
     public getVersion(): number {
         return this.version;
+    }
+
+    private getProjectDir(): string {
+        return this.system.getCurrentDirectory();
+    }
+
+    private getRelativePath(fileName: string): string {
+        const projectDir = this.getProjectDir();
+        if (fileName.startsWith(projectDir)) {
+            const relativePath = fileName.substring(projectDir.length + 1); // +1 for the path separator
+            // Prefix relative paths with "./" for clarity
+            return relativePath.startsWith("./") ? relativePath : `./${relativePath}`;
+        }
+        return fileName;
+    }
+
+    private getConfigSummary(): string {
+        const config = this.options.config;
+        const cliArgs = this.options.cliArgs;
+        const summary: string[] = [];
+
+        // Basic config info
+        if (this.options.tsConfigFile) {
+            summary.push(`tsconfig: ${this.getRelativePath(this.options.tsConfigFile)}`);
+        }
+        if (config?.transpileOnly !== undefined) {
+            summary.push(`transpileOnly: ${config.transpileOnly}`);
+        }
+        if (config?.profiles && Object.keys(config.profiles).length > 0) {
+            summary.push(`profiles: ${Object.keys(config.profiles).join(", ")}`);
+        }
+        if (this.options.addonsDir) {
+            summary.push(`addonsDir: ${this.getRelativePath(this.options.addonsDir)}`);
+        }
+
+        // CLI args info
+        if (cliArgs?.options) {
+            const options = cliArgs.options;
+            if (options.outDir) {
+                summary.push(`outDir: ${this.getRelativePath(options.outDir)}`);
+            }
+            if (options.target) {
+                summary.push(`target: ${options.target}`);
+            }
+            if (options.module) {
+                summary.push(`module: ${options.module}`);
+            }
+            if (options.strict !== undefined) {
+                summary.push(`strict: ${options.strict}`);
+            }
+            if (options.sourceMap !== undefined) {
+                summary.push(`sourceMap: ${options.sourceMap}`);
+            }
+            if (options.declaration !== undefined) {
+                summary.push(`declaration: ${options.declaration}`);
+            }
+            if (options.emitDeclarationOnly !== undefined) {
+                summary.push(`emitDeclarationOnly: ${options.emitDeclarationOnly}`);
+            }
+        }
+
+        // Also check resolved options for outDir if not in CLI args
+        if (!cliArgs?.options?.outDir && this.options.tsConfig?.outDir) {
+            summary.push(`outDir: ${this.getRelativePath(this.options.tsConfig.outDir)}`);
+        }
+
+        return summary.length > 0 ? summary.join(", ") : "default settings";
     }
 
     public getContext(profile?: string): CompilationContext | undefined {
@@ -127,17 +194,91 @@ export class Compiler {
     public compile(): ts.EmitResult {
         const { profile } = this.options;
         const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
+
+        if (this.options.debug) {
+            this.reporter.reportDiagnostic({
+                category: ts.DiagnosticCategory.Message,
+                code: 0,
+                messageText: `Starting compilation with debug mode enabled`,
+                file: undefined,
+                start: undefined,
+                length: undefined,
+            });
+            (this.reporter as DefaultReporter).indent?.();
+            this.reporter.reportDiagnostic({
+                category: ts.DiagnosticCategory.Message,
+                code: 0,
+                messageText: `Project directory: ${this.getProjectDir()}`,
+                file: undefined,
+                start: undefined,
+                length: undefined,
+            });
+            this.reporter.reportDiagnostic({
+                category: ts.DiagnosticCategory.Message,
+                code: 0,
+                messageText: `Configuration: ${this.getConfigSummary()}`,
+                file: undefined,
+                start: undefined,
+                length: undefined,
+            });
+            this.reporter.reportDiagnostic({
+                category: ts.DiagnosticCategory.Message,
+                code: 0,
+                messageText: `Selected profiles: ${selectedProfiles.join(", ")}`,
+                file: undefined,
+                start: undefined,
+                length: undefined,
+            });
+        }
+
         this.createProfileContextsIfNecessary();
         const profileOptions = this.options.getOptions(profile);
         const program = this.createProgram(profileOptions.tsConfig);
 
+        if (this.options.debug) {
+            this.reporter.reportDiagnostic({
+                category: ts.DiagnosticCategory.Message,
+                code: 0,
+                messageText: `Created TypeScript program with ${program.getSourceFiles().length} source files`,
+                file: undefined,
+                start: undefined,
+                length: undefined,
+            });
+        }
+
         const results: ts.EmitResult[] = [];
         selectedProfiles.forEach(curProfile => {
+            if (this.options.debug) {
+                this.reporter.reportDiagnostic({
+                    category: ts.DiagnosticCategory.Message,
+                    code: 0,
+                    messageText: `Processing profile: ${curProfile ?? "default"}`,
+                    file: undefined,
+                    start: undefined,
+                    length: undefined,
+                });
+                (this.reporter as DefaultReporter).indent?.();
+            }
             const ctx = this.getContext(curProfile);
             if (ctx) {
                 results.push(this.report(program, this.emitResult(curProfile, ctx)));
             }
+            if (this.options.debug) {
+                (this.reporter as DefaultReporter).unindent?.();
+            }
         });
+
+        if (this.options.debug) {
+            this.reporter.reportDiagnostic({
+                category: ts.DiagnosticCategory.Message,
+                code: 0,
+                messageText: `Compilation completed with ${results.length} results`,
+                file: undefined,
+                start: undefined,
+                length: undefined,
+            });
+            (this.reporter as DefaultReporter).unindent?.();
+        }
 
         return results.filter(cur => !!cur).length < 1
             ? { emitSkipped: true, diagnostics: [] }
@@ -164,6 +305,7 @@ export class Compiler {
 
         const files = this.getRootFiles();
         ctx.getResultProcessors().forEach(cur => cur(files));
+
         return result;
     }
 
@@ -286,13 +428,18 @@ export class Compiler {
             if (!skipCache && !cache.hasChanged(filePath)) {
                 return { files: [], content: "", ...cache.getCachedFile(filePath) };
             }
+
             let content = this.system.readFile(fileName) ?? cache.getCachedFile(fileName)?.content ?? "";
 
             ctx.getGenerators().forEach(cur => cur(fileName, content));
+
             ctx.getProcessors().forEach(cur => (content = cur(fileName, content)));
+
             cache.updateSource(filePath, content);
 
-            return this.processOutput(cache, this.transpile({ fileName, ctx, content }), writeFile, fileName);
+            const result = this.processOutput(cache, this.transpile({ fileName, ctx, content }), writeFile, fileName);
+
+            return result;
         }
 
         throw new Error(`No profile with name "${profile}" configured.`);
@@ -349,15 +496,18 @@ export class Compiler {
 
     private transpile(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
         const { fileName, ctx } = compilationFragment;
+
         if (this.transpileOnly) {
             if (fileName.endsWith(".d.ts")) {
                 return undefined;
             } else {
                 const isSourceFile = (name: string) => name.match(/\.([cm]?ts|tsx)$/i);
                 if (!isSourceFile(fileName)) {
-                    return this.transpileJson(compilationFragment);
+                    const result = this.transpileJson(compilationFragment);
+                    return result;
                 }
-                return this.transpileSourceCode(compilationFragment);
+                const result = this.transpileSourceCode(compilationFragment);
+                return result;
             }
         }
 
@@ -368,11 +518,13 @@ export class Compiler {
     private transpileSourceCode({ content, ctx, fileName }: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
         const isTranspiledSourceFile = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)$/i);
         const isSourceMap = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)\.map$/i);
+
         const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
             compilerOptions: ctx.getCliArgs().options,
             fileName,
             transformers: ctx.getTransformers(),
         });
+
         const fileNames = ts.getOutputFileNames(ctx.getCliArgs(), fileName, !this.system.useCaseSensitiveFileNames);
         return {
             outputFiles: concat(
@@ -386,15 +538,18 @@ export class Compiler {
 
     private transpileJson({ ctx, fileName, content }: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
         const { outDir } = this.options?.tsConfig ?? {};
+
         if (outDir !== undefined) {
             // JSON are only output by TypoScript if an outDir is provided, otherwise they are ignored.
             const fileNames = ts.getOutputFileNames(ctx.getCliArgs(), fileName, !this.system.useCaseSensitiveFileNames);
+
             return {
                 outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }],
                 emitSkipped: false,
                 diagnostics: [],
             };
         }
+
         return {
             outputFiles: [],
             emitSkipped: false,
