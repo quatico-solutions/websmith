@@ -28,8 +28,8 @@ export class Compiler {
     private failedAlready: boolean;
     private tsConfig: ts.CompilerOptions;
 
-    constructor(tsConfig?: ts.CompilerOptions) {
-        this.logger = new Logger(`[tsc]`);
+    constructor(tsConfig?: ts.CompilerOptions, debugEnabled: boolean = false) {
+        this.logger = new Logger(debugEnabled);
         this.stdout = "";
         this.stderr = "";
         this.failedAlready = false;
@@ -40,28 +40,39 @@ export class Compiler {
         return this.tsConfig;
     }
 
+    public setDebugEnabled(enabled: boolean): void {
+        this.logger.setDebugEnabled(enabled);
+    }
+
     public async compile(files?: string[]): Promise<string> {
         files = files ?? [];
         this.failedAlready = false;
 
+        this.logger.debug("Starting compilation", { files, tsConfig: this.tsConfig });
+
         let tscPath: string;
         try {
             tscPath = await findTsc(this.logger);
+            this.logger.debug("Found TypeScript compiler", { tscPath });
         } catch (error) {
+            this.logger.debug("Failed to find TypeScript compiler", { error });
             return Promise.reject(error as Error);
         }
 
         const result = await new Promise<string>((resolve, reject) => {
             try {
                 const tscCliArgs = parseCliArguments(this.tsConfig, files);
-                this.logger.log(`✔ Found a typescript compiler at: "${tildify(tscPath)}"`);
-                this.logger.log(`► Spawning the compilation command: "${[TSC_EXECUTABLE, ...tscCliArgs].join(" ")}"\n`);
+                this.logger.debug("Parsed CLI arguments", { tscCliArgs });
+                this.logger.success(`Found a typescript compiler at: "${tildify(tscPath)}"`);
+                this.logger.step(`Spawning the compilation command: "${[TSC_EXECUTABLE, ...tscCliArgs].join(" ")}"`);
                 this.createProcess(tscPath, tscCliArgs, reject, resolve);
             } catch (error) {
+                this.logger.debug("Unexpected error during compilation", { error });
                 this.handleFailure(reject, `unexpected global catch`, new CompileError(error as Error));
             }
         });
-        this.logger.log(`✔ Executed successfully.`);
+        this.logger.debug("Compilation completed successfully");
+        this.logger.success(`Executed successfully.`);
         return result;
     }
 
@@ -71,6 +82,7 @@ export class Compiler {
         reject: (reason?: unknown) => void,
         resolve: (value: string | PromiseLike<string>) => void
     ) {
+        this.logger.debug("Creating TypeScript compiler process", { tscPath, tscArgs });
         const process = spawn(tscPath, tscArgs, tscProcessOptions);
 
         // listen to events
@@ -86,11 +98,17 @@ export class Compiler {
     }
 
     private connectError(process: ChildProcessWithoutNullStreams, reject: (reason?: unknown) => void) {
-        process.on("error", err => this.handleFailure(reject, 'Spawn: got event "err"', new CompileError(err)));
+        process.on("error", err => {
+            this.logger.debug("Process error event", { error: err });
+            this.handleFailure(reject, 'Spawn: got event "err"', new CompileError(err));
+        });
     }
 
     private connectDisconnect(process: ChildProcessWithoutNullStreams) {
-        process.on("disconnect", () => this.logger.log(`Spawn: got event "disconnect"`));
+        process.on("disconnect", () => {
+            this.logger.debug("Process disconnect event");
+            this.logger.log(`Spawn: got event "disconnect"`);
+        });
     }
 
     private connectExit(
@@ -99,6 +117,7 @@ export class Compiler {
         reject: (reason?: unknown) => void
     ) {
         process.on("exit", (code, signal) => {
+            this.logger.debug("Process exit event", { code, signal });
             if (code === 0) {
                 resolve(this.stdout);
             } else {
@@ -113,6 +132,7 @@ export class Compiler {
         reject: (reason?: unknown) => void
     ) {
         process.on("close", (code, signal) => {
+            this.logger.debug("Process close event", { code, signal });
             if (code === 0) {
                 resolve(this.stdout);
             } else {
@@ -122,13 +142,20 @@ export class Compiler {
     }
 
     private connectStdin(process: ChildProcessWithoutNullStreams, reject: (reason?: unknown) => void) {
-        process.stdin.on("data", data => this.logger.log(`got stdin event "data": "${data}"`));
+        process.stdin.on("data", data => {
+            this.logger.debug("Process stdin data event", { data: data.toString() });
+            this.logger.log(`got stdin event "data": "${data}"`);
+        });
         // mandatory for correct error detection
-        process.stdin.on("error", err => this.handleFailure(reject, 'got stdin event "error"', new CompileError(err)));
+        process.stdin.on("error", err => {
+            this.logger.debug("Process stdin error event", { error: err });
+            this.handleFailure(reject, 'got stdin event "error"', new CompileError(err));
+        });
     }
 
     private connectStdout(process: ChildProcessWithoutNullStreams, reject: (reason?: unknown) => void) {
         process.stdout.on("data", (data: string) => {
+            this.logger.debug("Process stdout data event", { dataLength: data.length });
             split(data, "\n").forEach(line => {
                 if (!line.length) {
                     return;
@@ -147,22 +174,32 @@ export class Compiler {
             this.stdout += data;
         });
         // mandatory for correct error detection
-        process.stdout.on("error", err => this.handleFailure(reject, 'got stdout event "error"', new CompileError(err)));
+        process.stdout.on("error", err => {
+            this.logger.debug("Process stdout error event", { error: err });
+            this.handleFailure(reject, 'got stdout event "error"', new CompileError(err));
+        });
     }
 
     private connectStderr(process: ChildProcessWithoutNullStreams, reject: (reason?: unknown) => void) {
         process.stderr.on("data", (data: string) => {
+            this.logger.debug("Process stderr data event", { dataLength: data.length });
             split(data, "\n").forEach(line => this.logger.log(`${TSC_EXECUTABLE}! ${line}`));
             this.stderr += data;
         });
         // mandatory for correct error detection
-        process.stderr.on("error", err => this.handleFailure(reject, 'got stderr event "error"', new CompileError(err)));
+        process.stderr.on("error", err => {
+            this.logger.debug("Process stderr error event", { error: err });
+            this.handleFailure(reject, 'got stderr event "error"', new CompileError(err));
+        });
     }
 
     private handleFailure(reject: (error: CompileError) => void, reason: string, error?: CompileError) {
         if (this.failedAlready) {
+            this.logger.debug("Failure already handled, skipping", { reason });
             return;
         }
+
+        this.logger.debug("Handling compilation failure", { reason, error, stdout: this.stdout, stderr: this.stderr });
 
         error = error ?? new CompileError(`${parseReasonFromConsole(this.stdout, this.stderr) || reason}`);
         error.setStdout(this.stdout).setStderr(this.stderr).setReason(reason);
