@@ -204,7 +204,7 @@ export class Compiler {
                 start: undefined,
                 length: undefined,
             });
-            (this.reporter as DefaultReporter).indent?.();
+            this.reporter.indent();
             this.reporter.reportDiagnostic({
                 category: ts.DiagnosticCategory.Message,
                 code: 0,
