@@ -14,7 +14,7 @@ import { Compiler, type CompileFragment } from "./Compiler";
 import { type CompilerOptions, type WebpackLoaderOptions } from "./options";
 
 class CompilerTestClass extends Compiler {
-    constructor(options: Partial<CompilerOptions>, loaderOptions: Partial<WebpackLoaderOptions>, system: ts.System) {
+    constructor(options: CompilerOptions, loaderOptions: WebpackLoaderOptions, system: ts.System) {
         super(options, loaderOptions, system);
     }
 

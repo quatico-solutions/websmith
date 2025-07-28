@@ -10,7 +10,7 @@ import { createBrowserSystem, getVersionedFile } from "../environment";
 import { resolvePath } from "../environment/browser-system";
 import { type CompileSystem } from "./CompileSystem";
 import { type CompileSystemOptions } from "./CompileSystemOptions";
-export const compileSystem = (options?: CompileSystemOptions, addonConfig?: Partial<AddonConfig>): CompileSystem => {
+export const compileSystem = (options?: Partial<CompileSystemOptions>, addonConfig?: Partial<AddonConfig>): CompileSystem => {
     const { files, reporter, useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher, buildDir = "./src" } = options ?? {};
 
     const resolvedAddonsDir = resolvePath(path.join(buildDir, "addons"));

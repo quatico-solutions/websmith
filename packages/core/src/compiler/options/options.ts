@@ -18,6 +18,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
     return resolveCompilerOptions(
         system,
         {
+            buildDir: system.getCurrentDirectory(),
             cliArgs,
             reporter,
             configFile,

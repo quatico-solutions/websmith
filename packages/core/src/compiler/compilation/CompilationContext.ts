@@ -14,6 +14,7 @@ import { CompilationHost } from "./CompilationHost";
 import { createSharedHost } from "./shared-host";
 
 export type CompilationContextOptions = {
+    buildDir: string;
     config?: unknown;
     tsConfig: ts.CompilerOptions;
     projectDir: string;
@@ -21,7 +22,7 @@ export type CompilationContextOptions = {
     rootFiles: string[];
     system: ts.System;
     profile?: string;
-    cliArgs: ts.ParsedCommandLine;
+    cliArgs?: ts.ParsedCommandLine;
     watchCallback?: (filePath: string) => void;
     registerDependencyCallback?: (filePath: string) => void;
 };
@@ -51,7 +52,7 @@ export class CompilationContext implements AddonContext {
     constructor(options: CompilationContextOptions) {
         const { config, tsConfig, projectDir, rootFiles, system, profile, cliArgs, watchCallback, registerDependencyCallback } = options;
         this.rootFiles = rootFiles;
-        this.cliArgs = cliArgs;
+        this.cliArgs = cliArgs ?? { options: {}, fileNames: [], errors: [] };
         this.projectDir = projectDir;
         this.transformers = {};
         this.processors = [];

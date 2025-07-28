@@ -41,8 +41,8 @@ export class Compiler {
     private transpileOnly: boolean;
 
     constructor(
-        options: Partial<CompilerOptions>,
-        loaderOptions?: Partial<WebpackLoaderOptions>,
+        options: CompilerOptions,
+        loaderOptions?: WebpackLoaderOptions,
         system?: ts.System,
         addons?: AddonRegistry,
         dependencyCallback?: (filePath: string) => void
@@ -163,7 +163,7 @@ export class Compiler {
         return this.options;
     }
 
-    public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
+    public setOptions(options: CompilerOptions, loaderOptions?: WebpackLoaderOptions): this {
         this.options = resolveCompilerOptions(
             this.system,
             { ...options, tsConfigFile: options.tsConfigFile ?? options.tsConfig?.project ?? "./tsconfig.json" },
@@ -406,6 +406,7 @@ export class Compiler {
         const selectedProfiles = this.options.getSelectedProfiles(profile);
         const profileOptions = this.options.getOptions(profile);
         return new CompilationContext({
+            buildDir: this.options.buildDir,
             tsConfig: profileOptions.tsConfig ?? {},
             projectDir: path.dirname(configFile ?? tsConfigFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,

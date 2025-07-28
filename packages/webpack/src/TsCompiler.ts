@@ -8,7 +8,7 @@
 
 import { type CompileFragment, Compiler, type CompilerOptions, resolvePath, type WebpackLoaderOptions } from "@quatico/websmith-core";
 import ts from "typescript";
-import { WebpackError, type LoaderContext } from "webpack";
+import { type LoaderContext, WebpackError } from "webpack";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export class TsCompiler extends Compiler {
@@ -18,7 +18,7 @@ export class TsCompiler extends Compiler {
     private loaderContext?: LoaderContext<WebsmithLoaderConfig>;
 
     constructor(
-        options: Partial<CompilerOptions>,
+        options: CompilerOptions,
         loaderOptions: WebsmithLoaderConfig = {},
         dependencyCallback?: (filePath: string) => void,
         loaderContext?: LoaderContext<WebsmithLoaderConfig>
