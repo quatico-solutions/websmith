@@ -37,7 +37,7 @@ export class TsCompiler extends Compiler {
         if (debugEnabled) {
             if (this.loaderContext) {
                 // Use webpack's infrastructure logging
-                this.loaderContext.emitWarning(new WebpackError(`[websmith-loader] ${message}`));
+                this.loaderContext.getLogger('websmith-loader').log(message);
             } else {
                 // Fallback to console.log if no loader context
                 console.log(`[DEBUG] ${message}`);
