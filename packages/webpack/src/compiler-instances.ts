@@ -30,7 +30,8 @@ export const getCompilerInstance = (
                 reporter: new DefaultReporter(system),
             },
             options,
-            dependencyCallback
+            dependencyCallback,
+            context // Pass the loader context
         );
         if (compiler) {
             addCompilationHooks(compiler, options, {
