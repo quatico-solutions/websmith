@@ -8,7 +8,10 @@ import { type CompilerOptions as WebsmithOptions, DefaultReporter, Compiler as W
 import ts from "typescript";
 import { Compiler as TscCompiler } from "./Compiler";
 
-export const compile = async (files: string[], config?: { tsConfig?: ts.CompilerOptions; websmith?: Partial<WebsmithOptions> }): Promise<string> => {
+export const compile = async (
+    files: string[],
+    config?: { tsConfig?: ts.CompilerOptions; websmith?: Partial<WebsmithOptions>; debug?: boolean }
+): Promise<string> => {
     const { tsConfig, websmith } = config ?? {};
     if (websmith) {
         if (files?.length) {
@@ -29,7 +32,9 @@ export const compile = async (files: string[], config?: { tsConfig?: ts.Compiler
         output.forEach(diagnostic => reporter2.reportDiagnostic(diagnostic));
         return Promise.resolve(reporter2.message);
     } else {
-        return await new TscCompiler(tsConfig).compile(files);
+        // Pass debug option to the node compiler
+        const debugEnabled = config?.debug ?? false;
+        return await new TscCompiler(tsConfig, debugEnabled).compile(files);
     }
 };
 

@@ -8,21 +8,47 @@
 
 import { type CompileFragment, Compiler, type CompilerOptions, resolvePath, type WebpackLoaderOptions } from "@quatico/websmith-core";
 import ts from "typescript";
-import { WebpackError } from "webpack";
+import { WebpackError, type LoaderContext } from "webpack";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export class TsCompiler extends Compiler {
     private profile?: string;
     public readonly warn: (err: WebpackError) => void;
     public readonly error: (err: WebpackError) => void;
+    private loaderContext?: LoaderContext<WebsmithLoaderConfig>;
 
-    constructor(options: CompilerOptions, loaderOptions: WebsmithLoaderConfig = {}, dependencyCallback: (filePath: string) => void) {
+    constructor(
+        options: CompilerOptions,
+        loaderOptions: WebsmithLoaderConfig = {},
+        dependencyCallback: (filePath: string) => void,
+        loaderContext?: LoaderContext<WebsmithLoaderConfig>
+    ) {
         super(options, loaderOptions, ts.sys, undefined, dependencyCallback);
         this.warn = loaderOptions.warn ?? ((err: WebpackError) => console.warn(err.message));
         this.error = loaderOptions.error ?? ((err: WebpackError) => console.error(err.message));
+        this.loaderContext = loaderContext;
         const profileName = this.getOptions().profile;
         this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
         super.createProfileContextsIfNecessary();
+    }
+
+    private logDebug(message: string): void {
+        const debugEnabled = this.getOptions().debug ?? false;
+        if (debugEnabled) {
+            if (this.loaderContext) {
+                // Use webpack's infrastructure logging properly
+                const logger = this.loaderContext.getLogger("websmith-loader");
+                if (logger) {
+                    logger.info(`[websmith-loader] ${message}`);
+                } else {
+                    // Fallback to console.log if logger is not available
+                    console.log(`[DEBUG] [websmith-loader] ${message}`);
+                }
+            } else {
+                // Fallback to console.log if no loader context
+                console.log(`[DEBUG] [websmith-loader] ${message}`);
+            }
+        }
     }
 
     public getProfile(): string | undefined {
@@ -40,12 +66,18 @@ export class TsCompiler extends Compiler {
 
         const { buildDir } = this.getOptions();
 
+        this.logDebug(`Building file: ${resourcePath}`);
+        this.logDebug(`Build directory: ${buildDir}`);
+        this.logDebug(`Profile: ${this.profile || "default"}`);
+
         const filePath = resolvePath(this.getSystem(), buildDir, resourcePath);
         if (this.profile) {
             const selectedProfiles = this.getOptions().getSelectedProfiles(this.profile);
+            this.logDebug(`Selected profiles: ${selectedProfiles.join(", ")}`);
             selectedProfiles
                 .filter((profile: string) => profile !== this.profile)
                 .forEach((profile: string) => {
+                    this.logDebug(`Processing profile: ${profile}`);
                     // Transpile source file with other profiles (different from webpack target) and write the file
                     this.emitSourceFile(filePath, profile, true);
 
@@ -57,20 +89,32 @@ export class TsCompiler extends Compiler {
         }
 
         // Transpile source file with webpack target but do not write the file, i.e. file is written by webpack
+        this.logDebug(`Emitting source file with profile: ${this.profile || "default"}`);
         const result = this.emitSourceFile(filePath, this.profile, false);
 
         if (result.diagnostics?.length) {
+            this.logDebug(`Found ${result.diagnostics.length} diagnostics`);
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
                 const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
                 this.error(new WebpackError(message));
             });
         }
 
+        this.logDebug(`Build completed for: ${resourcePath}`);
+
         return result;
     }
 
     protected emitSourceFile(fileName: string, profile: string | undefined, writeFile: boolean): CompileFragment {
-        return super.emitSourceFile(fileName, profile, writeFile, true);
+        this.logDebug(`Emitting source file: ${fileName}`);
+        this.logDebug(`Profile: ${profile || "default"}`);
+        this.logDebug(`Write file: ${writeFile}`);
+
+        const result = super.emitSourceFile(fileName, profile, writeFile, true);
+
+        this.logDebug(`Emit result - diagnostics: ${result.diagnostics?.length || 0}, files: ${result.files?.length || 0}`);
+
+        return result;
     }
 
     private getFragmentProfile(profile: string): string {
