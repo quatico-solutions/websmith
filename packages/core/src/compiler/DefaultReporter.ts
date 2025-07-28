@@ -32,8 +32,8 @@ export class DefaultReporter implements Reporter {
                   getNewLine: () => host.newLine,
               }
             : host;
-        // Force enable colors for better visibility, but not in test environments
-        this.colorEnabled = !process.env.NODE_ENV?.includes("test") && (process.stdout.isTTY || true);
+        // Enable colors only if the terminal supports it and not in test environments
+        this.colorEnabled = !process.env.NODE_ENV?.includes("test") && process.stdout.isTTY;
     }
 
     public setColorEnabled(enabled: boolean): void {
