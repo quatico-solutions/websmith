@@ -115,7 +115,7 @@ export class DefaultReporter implements Reporter {
         let quotedMessage = message;
         // Disable quoting in test environments
         if (
-            !process.env.NODE_ENV?.includes("test") &&
+            !isTestEnvironment() &&
             !message.includes("Error:") &&
             !message.includes("Warning:") &&
             (message.includes("tsconfig:") ||
