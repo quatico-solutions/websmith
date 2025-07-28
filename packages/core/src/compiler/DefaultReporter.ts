@@ -152,3 +152,7 @@ const levelOf = (diagnostic: ts.Diagnostic): string => {
 };
 
 const isSystem = (host: ts.System | ts.FormatDiagnosticsHost): host is ts.System => (host as ts.System).write !== undefined;
+
+const isTestEnvironment = (): boolean => {
+    return process.env.NODE_ENV?.includes("test") || process.env.JEST_WORKER_ID !== undefined;
+};
