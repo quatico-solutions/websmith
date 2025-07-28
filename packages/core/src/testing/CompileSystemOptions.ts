@@ -8,6 +8,6 @@ import type { CompilerOptions } from "../compiler";
 import type { BrowserSystemOptions } from "../environment";
 
 export type CompileSystemOptions = BrowserSystemOptions &
-    Partial<CompilerOptions> & {
+    CompilerOptions & {
         files?: Record<string, string>;
     };

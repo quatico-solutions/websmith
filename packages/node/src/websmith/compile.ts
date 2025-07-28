@@ -10,7 +10,7 @@ import { Compiler as TscCompiler } from "./Compiler";
 
 export const compile = async (
     files: string[],
-    config?: { tsConfig?: ts.CompilerOptions; websmith?: Partial<WebsmithOptions>; debug?: boolean }
+    config?: { tsConfig?: ts.CompilerOptions; websmith?: WebsmithOptions; debug?: boolean }
 ): Promise<string> => {
     const { tsConfig, websmith } = config ?? {};
     if (websmith) {

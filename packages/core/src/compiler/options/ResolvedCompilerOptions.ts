@@ -34,7 +34,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly projectDir: string;
     constructor(
         private system: ts.System,
-        options: Partial<CompilerOptions>,
+        options: CompilerOptions,
         addons?: string[],
         loaderOptions?: WebpackLoaderOptions
     ) {
@@ -258,8 +258,8 @@ const arrayMerge = (target: unknown[], source: unknown[], _options?: ArrayMergeO
 };
 
 const loadCompilationConfig = (
-    options: Partial<CompilerOptions>,
-    loaderOptions: Partial<WebpackLoaderOptions>,
+    options: CompilerOptions,
+    loaderOptions: WebpackLoaderOptions,
     reporter: Reporter,
     system: ts.System
 ): CompilationConfig => {

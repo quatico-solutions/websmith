@@ -112,7 +112,7 @@ describe("createOptions", () => {
         const actual = createOptions({ configFile: "./websmith.config.json", project: "./tsconfig.json" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
-            buildDir: "/src",
+            buildDir: "/",
             config: {
                 addons: ["one", "two"],
                 addonsDir: "/expected",

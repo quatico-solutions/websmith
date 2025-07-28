@@ -15,11 +15,11 @@ export type CompilerOptions = BaseOptions & {
      * Command-line arguments passed to the TypeScript compiler.
      * @default false
      */
-    cliArgs: ts.ParsedCommandLine;
+    cliArgs?: ts.ParsedCommandLine;
     /**
      * Reporter to be used for logging.
      */
-    reporter: Reporter;
+    reporter?: Reporter;
     /**
      * Whether to watch the files for changes and recompile on change
      * @default false
