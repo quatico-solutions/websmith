@@ -26,7 +26,7 @@ export class Logger {
     constructor(debugEnabled: boolean = false) {
         this.debugEnabled = debugEnabled;
         // Force enable colors for better visibility, but not in test environments
-        this.colorEnabled = !process.env.NODE_ENV?.includes("test") && (process.stdout.isTTY || true);
+        this.colorEnabled = !process.env.NODE_ENV?.includes("test") && process.stdout.isTTY;
     }
 
     public setDebugEnabled(enabled: boolean): void {
