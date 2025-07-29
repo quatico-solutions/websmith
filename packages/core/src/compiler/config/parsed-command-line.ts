@@ -42,9 +42,15 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
     }
 
     return {
-        options: argsResult.options,
+        options: { ...argsResult.options, configFilePath: system.resolvePath(tsConfigFile) },
         fileNames: [],
         errors: [],
+        compileOnSave: false,
+        raw: {},
+        typeAcquisition: { enable: false, exclude: [], include: [] },
+        watchOptions: undefined,
+        wildcardDirectories: { "": 1 },
+        projectReferences: undefined,
     };
 };
 
@@ -56,6 +62,6 @@ export const createArgs = (args: CompilerArguments): string[] =>
         if (value === undefined) {
             return acc;
         }
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+
         return acc.concat(`--${key}`, value != null ? value.toString() : "");
     }, []);

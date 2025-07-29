@@ -9,8 +9,7 @@ import { type CompilerArguments, WarnMessage } from "@quatico/websmith-api";
 import { AddonRegistry, type CompilationConfig, Compiler, type CompilerOptions, createOptions, DefaultReporter } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
-import type ts from "typescript";
-import { createSystem } from "./compiler-system";
+import ts from "typescript";
 import { getVersion } from "./get-version";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
@@ -78,7 +77,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         })
         .action((args: CompilerArguments, command: Command) => {
             // TODO: Add files from CLI argument
-            const system = compiler?.getSystem() ?? createSystem();
+            const system = compiler?.getSystem() ?? ts.sys;
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
             const configFile = args.configFile;
             const tsConfigFile = args.project;
@@ -86,6 +85,20 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
 
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
             if (unknownArgs?.length > 0) {
+                // Check for common typos and warn about them
+                const commonTypos = [
+                    { wrong: "--tsConfigFile", correct: "--project" },
+                    { wrong: "--tsconfig", correct: "--project" },
+                    { wrong: "--config", correct: "--configFile" },
+                ];
+
+                for (const typo of commonTypos) {
+                    if (unknownArgs.includes(typo.wrong)) {
+                        reporter.reportDiagnostic(
+                            new WarnMessage(`Unknown option "${typo.wrong}". Did you mean "${typo.correct}"? Use --help to see available options.`)
+                        );
+                    }
+                }
                 options.additionalArguments = parseUnknownArguments(unknownArgs);
             }
             if (options.profile && hasInvalidProfile(options.profile, options.config)) {

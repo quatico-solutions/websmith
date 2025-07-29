@@ -8,6 +8,7 @@ import ts from "typescript";
 
 export const tsDefaults: ts.CompilerOptions = {
     ...ts.getDefaultCompilerOptions(),
+    declaration: true,
     esModuleInterop: true,
     module: ts.ModuleKind.ESNext,
     moduleResolution: ts.ModuleResolutionKind.Node10,

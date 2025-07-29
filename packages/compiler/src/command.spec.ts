@@ -65,6 +65,7 @@ describe("addCompileCommand", () => {
         expect(actual.debug).toBe(false);
         const compilerOptions = {
             configFilePath: "/tsconfig.json",
+            declaration: true,
             esModuleInterop: true,
             jsx: ts.JsxEmit.Preserve,
             module: ts.ModuleKind.ESNext,

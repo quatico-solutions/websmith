@@ -30,6 +30,7 @@ describe("ResolvedCompilerOptions", () => {
         expect(testObj.reporter).toBeInstanceOf(ReporterMock);
         expect(testObj.cliArgs).toEqual({
             options: {
+                declaration: true,
                 outDir: "/dist",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
@@ -45,7 +46,7 @@ describe("ResolvedCompilerOptions", () => {
     it("should return defaults w/o any param", () => {
         const { fileSystem } = compileSystem();
 
-        const actual = new ResolvedCompilerOptions(fileSystem, {}).getOptions();
+        const actual = new ResolvedCompilerOptions(fileSystem, { buildDir: "/src" }).getOptions();
 
         expect(actual).toEqual(
             expect.objectContaining({
@@ -54,6 +55,7 @@ describe("ResolvedCompilerOptions", () => {
                     errors: [],
                     fileNames: [],
                     options: {
+                        declaration: true,
                         module: ts.ModuleKind.ESNext,
                         target: ts.ScriptTarget.ESNext,
                         moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -64,6 +66,7 @@ describe("ResolvedCompilerOptions", () => {
                 config: {},
                 reporter: expect.any(DefaultReporter),
                 tsConfig: {
+                    declaration: true,
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
                     moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -386,6 +389,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
         expect(testObj.tsConfig).toEqual({
+            declaration: true,
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -404,6 +408,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         } as any);
 
         expect(testObj.tsConfig).toEqual({
+            declaration: true,
             outDir: "/expected",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
@@ -432,6 +437,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
+            declaration: true,
             outDir: "/expected",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
@@ -449,14 +455,15 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
             fileSystem,
             {
                 profile: "target",
+                buildDir: "./src",
                 tsConfig: {
-                    outDir: "./other",
+                    outDir: "./general-out-dir",
                 },
                 config: {
                     profiles: {
                         target: {
                             tsConfig: {
-                                outDir: "./expected",
+                                outDir: "./profile-out-dir",
                             },
                         },
                     },
@@ -465,13 +472,14 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
             undefined,
             {
                 tsConfig: {
-                    outDir: "./whatever",
+                    outDir: "./loader-out-dir",
                 },
             } as any
         );
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "/expected",
+            declaration: true,
+            outDir: "/profile-out-dir",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -488,14 +496,15 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
             fileSystem,
             {
                 profile: "unknown",
+                buildDir: "./src",
                 tsConfig: {
-                    outDir: "./other",
+                    outDir: "./general-out-dir",
                 },
                 config: {
                     profiles: {
                         target: {
                             tsConfig: {
-                                outDir: "./whatever",
+                                outDir: "./profile-out-dir",
                             },
                         },
                     },
@@ -504,13 +513,14 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
             undefined,
             {
                 tsConfig: {
-                    outDir: "./expected",
+                    outDir: "./loader-out-dir",
                 },
             } as any
         );
 
         expect(testObj.tsConfig).toEqual({
-            outDir: "/expected",
+            declaration: true,
+            outDir: "/loader-out-dir",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -629,6 +639,7 @@ describe("ResolvedCompilerOptions#cliArgs", () => {
             errors: [],
             fileNames: [],
             options: {
+                declaration: true,
                 target: ts.ScriptTarget.ESNext,
                 module: ts.ModuleKind.ESNext,
                 moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -925,6 +936,7 @@ describe("ResolvedCompilerOptions#getOptions", () => {
                 errors: [],
                 fileNames: [],
                 options: {
+                    declaration: true,
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
                     moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -935,6 +947,7 @@ describe("ResolvedCompilerOptions#getOptions", () => {
             config: {},
             reporter: expect.any(DefaultReporter),
             tsConfig: {
+                declaration: true,
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
                 moduleResolution: ts.ModuleResolutionKind.Node10,
