@@ -14,7 +14,6 @@ export const compileSystem = (options?: Partial<CompileSystemOptions>, addonConf
     const { files, reporter, useCaseSensitiveFileNames = false, addLibDefaults = true, fileWatcher, buildDir = "./src" } = options ?? {};
 
     const resolvedAddonsDir = resolvePath(path.join(buildDir, "addons"));
-    const projectDir = resolvePath(path.dirname(buildDir));
 
     let resolvedFiles = files;
     if (resolvedFiles) {
@@ -30,8 +29,8 @@ export const compileSystem = (options?: Partial<CompileSystemOptions>, addonConf
 
     const fileSystem = createBrowserSystem({ ...resolvedFiles }, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher });
     if (addLibDefaults) {
-        if (!fileSystem.fileExists(path.join(projectDir, "tsconfig.json"))) {
-            fileSystem.writeFile(path.join(projectDir, "tsconfig.json"), "{}");
+        if (!fileSystem.fileExists("/project/tsconfig.json")) {
+            fileSystem.writeFile("/project/tsconfig.json", "{}");
         }
         if (!fileSystem.directoryExists(resolvedAddonsDir)) {
             fileSystem.createDirectory(resolvedAddonsDir);

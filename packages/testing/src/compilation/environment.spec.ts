@@ -359,9 +359,19 @@ describe("compilationEnv#compiled", () => {
             })
             .compile();
 
-        expect(testObj.getCompiledFiles().getPaths()).toEqual(["/target/dist/index.js", "/target/dist/target.js"]);
+        expect(testObj.getCompiledFiles().getPaths()).toEqual([
+            "/target/dist/index.js",
+            "/target/dist/index.d.ts",
+            "/target/dist/target.js",
+            "/target/dist/target.d.ts",
+        ]);
         expect(testObj.hasEmitSkipped()).toBe(false);
-        expect(testObj.getEmittedFiles()).toEqual(["/target/dist/index.js", "/target/dist/target.js"]);
+        expect(testObj.getEmittedFiles()).toEqual([
+            "/target/dist/index.js",
+            "/target/dist/index.d.ts",
+            "/target/dist/target.js",
+            "/target/dist/target.d.ts",
+        ]);
         expect(testObj.getDiagnostics()).toEqual([]);
     });
 
@@ -387,7 +397,7 @@ describe("compilationEnv#compiled", () => {
 
         const actual = testObj.getCompiledFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/dist/index.js", "/target/dist/target.js"]);
+        expect(actual.getPaths()).toEqual(["/target/dist/index.js", "/target/dist/index.d.ts", "/target/dist/target.js", "/target/dist/target.d.ts"]);
     });
 
     it("should yield compiled files with project", () => {

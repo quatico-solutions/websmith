@@ -364,24 +364,36 @@ export class CompilationEnv {
             .filter((item, pos, self) => self.indexOf(item) == pos);
 
         addonsToCompile.forEach(curDir => {
-            new Compiler(
-                {
-                    ...resolveCompilerOptions(this.system, {
-                        buildDir: curDir,
-                    }),
-                    tsConfig: {
-                        module: ts.ModuleKind.CommonJS,
-                        target: ts.ScriptTarget.ES5,
-                        esModuleInterop: true,
-                        moduleResolution: ts.ModuleResolutionKind.Node10,
-                        types: ["node"],
-                        skipLibCheck: true,
+            try {
+                new Compiler(
+                    {
+                        ...resolveCompilerOptions(this.system, {
+                            buildDir: curDir,
+                        }),
+                        tsConfig: {
+                            module: ts.ModuleKind.CommonJS,
+                            target: ts.ScriptTarget.ES5,
+                            esModuleInterop: true,
+                            moduleResolution: ts.ModuleResolutionKind.Node10,
+                            types: ["node"],
+                            skipLibCheck: true,
+                        },
+                        cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                     },
-                    cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
-                },
-                {},
-                this.system
-            ).compile();
+                    {},
+                    this.system
+                ).compile();
+            } catch (error) {
+                // Handle file system errors gracefully for invalid addons
+                this.compilerOptions.reporter.reportDiagnostic({
+                    category: ts.DiagnosticCategory.Warning,
+                    code: 0,
+                    messageText: `Failed to compile addon in ${curDir}: ${error instanceof Error ? error.message : String(error)}`,
+                    file: undefined,
+                    start: undefined,
+                    length: undefined,
+                });
+            }
         });
 
         if (this.virtual) {

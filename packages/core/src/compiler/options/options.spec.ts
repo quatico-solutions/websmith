@@ -32,6 +32,7 @@ describe("createOptions", () => {
 
         expect(actual).toEqual({
             configFilePath: "/expected/tsconfig.json",
+            declaration: true,
             sourceMap: false,
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,

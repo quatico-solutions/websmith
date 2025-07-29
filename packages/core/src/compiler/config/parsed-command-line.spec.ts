@@ -24,17 +24,13 @@ describe("parsedCommandLine w/ empty tsconfig.json", () => {
         expect(actual.wildcardDirectories).toEqual({ "": 1 });
     });
 
-    it("yields error with no matching includes", () => {
+    it("yields default tsconfig.json with no includes", () => {
         const { fileSystem: target } = compileSystem();
 
         const actual = parsedCommandLine("tsconfig.json", {}, target);
 
-        expect(actual.errors[0]).toEqual(
-            expect.objectContaining({
-                messageText: `No inputs were found in config file '/tsconfig.json'. Specified 'include' paths were '["**/*"]' and 'exclude' paths were '[]'.`,
-            })
-        );
-        expect(actual.errors).toHaveLength(1);
+        expect(actual.errors).toEqual([]);
+        expect(actual.options).toEqual({ configFilePath: "/tsconfig.json" });
     });
 });
 

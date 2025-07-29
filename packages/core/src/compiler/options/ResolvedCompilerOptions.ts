@@ -94,11 +94,6 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         // resolve tsconfig
         resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
         this.tsConfig = getTsConfig(this.system, this.projectDir, resolvedOptions, profileName);
-        if (profile) {
-            this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, getTsConfig(this.system, this.projectDir, resolvedOptions, profile), {
-                arrayMerge,
-            });
-        }
 
         // resolve cli args
         this.profile = resolveProfile(profile, this.config, this.reporter);
@@ -106,7 +101,12 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             cliArgs.options = resolvePaths(cliArgs.options ?? {}, this.projectDir, this.system);
         }
         const { outDir: profileOutDir, rootDir: profileRootDir } = getTsConfig(this.system, this.projectDir, resolvedOptions, this.profile);
-        const outDir = (profileOutDir ?? tsConfig?.outDir) ? resolvePath(this.system, this.projectDir, profileOutDir ?? tsConfig?.outDir) : undefined;
+        // Prioritize CLI outDir over profile outDir
+        const outDir = cliArgs?.options?.outDir
+            ? resolvePath(this.system, this.projectDir, cliArgs.options.outDir)
+            : (profileOutDir ?? tsConfig?.outDir)
+              ? resolvePath(this.system, this.projectDir, profileOutDir ?? tsConfig?.outDir)
+              : undefined;
         const rootDir =
             (profileRootDir ?? tsConfig?.rootDir) ? resolvePath(this.system, this.projectDir, profileRootDir ?? tsConfig?.rootDir) : undefined;
 
@@ -170,12 +170,31 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             ...(this.watch && { watch: this.watch }),
         };
         if (profile) {
-            const profileTsConfig = getTsConfig(this.system, this.projectDir, options, profile);
+            // Create base options with tsConfig so profile options can merge with it
+            const baseOptions = {
+                buildDir: this.buildDir,
+                config: this.config,
+                tsConfig: this.tsConfig, // Include base tsConfig so profile options can merge with it
+                tsConfigFile: this.tsConfigFile,
+                profile: this.profile,
+            };
+            const profileTsConfig = getTsConfig(this.system, this.projectDir, baseOptions, profile);
+            // Create cliArgs with profile-specific outDir overriding CLI outDir
+            const profileCliArgs = this.cliArgs
+                ? {
+                      ...this.cliArgs,
+                      options: {
+                          ...this.cliArgs.options,
+                          ...profileTsConfig,
+                      },
+                  }
+                : this.cliArgs;
+
             return {
                 ...options,
                 tsConfig: profileTsConfig,
                 config: getProfile(profile, this.config),
-                cliArgs: deepmerge<ts.ParsedCommandLine>(this.cliArgs, { options: profileTsConfig }, { arrayMerge }),
+                cliArgs: profileCliArgs,
                 profile,
             };
         }
@@ -226,13 +245,19 @@ const getTsConfig = (system: ts.System, projectDir: string, options: CompilerOpt
     // Read tsconfig.json if it exists
     const tsConfigOptions = tsConfigFile && system.fileExists(tsConfigFile) ? (parsedCommandLine(tsConfigFile, {}, system).options ?? {}) : {};
 
+    // CLI options
+    const cliOptions = cliArgs?.options ?? {};
+
+    // When a profile is specified, merge base tsConfig with profile options instead of overriding
+    const baseTsConfig = tsConfig ?? {};
+    const mergedTsConfig = profileName ? deepmerge<ts.CompilerOptions>(baseTsConfig, profileTsConfig, { arrayMerge }) : baseTsConfig;
+
     return {
         ...tsDefaults,
         ...(tsConfigFile && { configFilePath: resolvePath(system, projectDir, tsConfigFile) }),
-        ...tsConfigOptions,
-        ...deepmerge<ts.CompilerOptions>(deepmerge<ts.CompilerOptions>(tsConfig ?? {}, cliArgs?.options ?? {}, { arrayMerge }), profileTsConfig, {
-            arrayMerge,
-        }),
+        ...tsConfigOptions, // tsconfig.json options
+        ...mergedTsConfig, // Profile options merged with base tsConfig
+        ...cliOptions, // CLI options override everything
     };
 };
 
