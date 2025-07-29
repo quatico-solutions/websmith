@@ -28,6 +28,24 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.7] - 2025-07-29
+
+### Added
+
+- ✨ **Enhanced Debug Logging**: Added comprehensive debug logging system with `--debug` flag support
+- 🔧 **Webpack Loader Integration**: Enhanced websmith-loader with webpack infrastructure logging
+  - Debug logs now appear in webpack stats output with `[websmith-loader]` prefix
+  - Integration with webpack's `infrastructureLogging` system
+  - Support for different webpack stats configurations
+  - Proper fallback to console.log when webpack logger is unavailable
+  - Comprehensive e2e tests for webpack stats logging functionality
+
+### Fixed
+
+- � Fixed debug logs not appearing in webpack stats output
+- 🐛 Fixed loader context integration for proper webpack logging
+- 🐛 Fixed infrastructure logging configuration for websmith-loader
+
 ## [0.7.6] - 2025-01-23
 
 This release improves the websmith CLI help system and implements dynamic version handling to maintain consistency with package.json.
