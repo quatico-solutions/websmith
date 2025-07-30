@@ -5,11 +5,13 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage, type AddonContext, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
+import deepmerge from "deepmerge";
 import { createRequire } from "node:module";
 import path from "node:path";
 import ts from "typescript";
 import { Compiler } from "../Compiler";
 import { resolvePath } from "../config";
+import { arrayMerge } from "../options";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
 export type AddonConfig = {
@@ -32,7 +34,7 @@ export class AddonRegistry {
     }
 
     setConfig(config: Partial<AddonConfig>): this {
-        this.config = { ...this.config, ...config };
+        this.config = { ...deepmerge(this.config, config, { arrayMerge }), reporter: this.config.reporter };
         return this.refresh();
     }
 
@@ -171,16 +173,23 @@ export class AddonRegistry {
             }
         }
 
-        // For each directory, prefer 'index' over 'addon' files
-        for (const [, files] of entriesByDir) {
-            const indexFiles = files.filter((f: string) => path.basename(f, path.extname(f)).toLowerCase() === "index");
-            const addonFiles = files.filter((f: string) => path.basename(f, path.extname(f)).toLowerCase() === "addon");
+        // For each directory, prefer 'addon' over 'index' files
+        // Skip the root addons directory to avoid picking up main index files
+        const rootDir = path.resolve(dir);
+        for (const [dirPath, files] of entriesByDir) {
+            // Skip files in the root addons directory (like src/index.ts)
+            if (dirPath === rootDir) {
+                continue;
+            }
 
-            // Prefer index files, fall back to addon files if no index files exist
-            if (indexFiles.length > 0) {
-                results.push(...indexFiles);
-            } else if (addonFiles.length > 0) {
+            const addonFiles = files.filter((f: string) => path.basename(f, path.extname(f)).toLowerCase() === "addon");
+            const indexFiles = files.filter((f: string) => path.basename(f, path.extname(f)).toLowerCase() === "index");
+
+            // Prefer addon files for clarity, fall back to index files
+            if (addonFiles.length > 0) {
                 results.push(...addonFiles);
+            } else if (indexFiles.length > 0) {
+                results.push(...indexFiles);
             }
         }
 
@@ -205,7 +214,7 @@ export class AddonRegistry {
     }
 
     private loadAddonsSync(): void {
-        const { addonsDir, reporter, system } = this.config;
+        const { addonsDir, reporter, system, addons } = this.config;
 
         if (!addonsDir || !system.directoryExists(addonsDir)) {
             if (addonsDir) {
@@ -247,6 +256,8 @@ export class AddonRegistry {
                 });
             }
         }
+
+        this.reportMissingAddons(addons);
     }
 
     private compileSourceFiles(addonsDir: string, reporter: Reporter, libDir: string, tsFiles: string[]): string[] {

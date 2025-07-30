@@ -542,6 +542,7 @@ describe("compile w/ websmith", () => {
     it("should transform foobar functions with named profile and addonsDir, chained addons in config-file", async () => {
         writeWebsmithConfig({
             addonsDir: ADDONS_DIR, // FIXME: This is not working as expected
+            addons: [],
             profiles: {
                 transform: {
                     addons: ["foobar-replace-transformer", "export-yaml-generator"],
@@ -566,6 +567,7 @@ describe("compile w/ websmith", () => {
                 tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
                 config: {
                     addonsDir: ADDONS_DIR,
+                    addons: [],
                 },
             },
         });

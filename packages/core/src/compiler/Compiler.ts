@@ -336,7 +336,13 @@ export class Compiler {
         if (!selectedProfiles.length) {
             // Create default context in any case, context for default profile exists
             const defaultCtx = this.getContext()!;
-            this.addons?.getAvailableAddons().forEach(addon => {
+            // Use the same logic as profile-based addon resolution for consistency
+            const defaultAddons = this.options.getAddons();
+            const resolvedAddons = defaultAddons
+                .map(name => this.addons?.getAvailableAddons().find(addon => addon.getName() === name))
+                .filter(addon => addon !== undefined);
+
+            resolvedAddons.forEach(addon => {
                 addon.activate(defaultCtx);
             });
         } else {

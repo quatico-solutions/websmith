@@ -38,8 +38,8 @@ export const compile = async (
         if (config?.websmith?.config?.addonsDir !== undefined || config?.websmith?.config?.addons !== undefined) {
             addons = new AddonRegistry({
                 addonsDir: config?.websmith?.config?.addonsDir ?? "",
-                addons: config?.websmith?.config?.addons ?? [],
-                profiles: config?.websmith?.config?.profiles ?? {},
+                addons: config?.websmith?.config?.addons,
+                profiles: config?.websmith?.config?.profiles,
                 reporter: websmith.reporter,
                 system: ts.sys,
             });
