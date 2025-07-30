@@ -4,4 +4,4 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-export { activate as processorActivate } from "./addon";
+export { activate } from "./addon";

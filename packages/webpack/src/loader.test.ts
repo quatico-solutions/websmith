@@ -18,22 +18,22 @@ const ADDONS_DIR = path.resolve(__dirname, "..", "test-addons");
 
 let originalCwd: string;
 
+beforeEach(() => {
+    originalCwd = process.cwd();
+    // Clean up and recreate directories
+    fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
+    fs.mkdirSync(SOURCE_DIR, { recursive: true });
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+});
+
+afterEach(() => {
+    process.chdir(originalCwd);
+    // Clean up directories
+    fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
+    jest.clearAllMocks(); // Add this to clear TypeScript system state
+});
+
 describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
-    beforeEach(() => {
-        originalCwd = process.cwd();
-        // Clean up and recreate directories
-        fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
-        fs.mkdirSync(SOURCE_DIR, { recursive: true });
-        fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-    });
-
-    afterEach(() => {
-        process.chdir(originalCwd);
-        // Clean up directories
-        fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
-        jest.clearAllMocks(); // Add this to clear TypeScript system state
-    });
-
     it("should yield script file with single file and emit true", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false });
         createSourceFile(
@@ -559,102 +559,102 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         const jsFile = result.files.find(f => f.name.endsWith("error-test.js"));
         expect(jsFile).toBeDefined();
     });
+});
 
-    // Tests for addonsDir provided via different options
-    describe.skip("addonsDir configuration tests", () => {
-        it("should use addonsDir from CompilerOptions.config", () => {
-            createTsConfig({
-                outDir: OUTPUT_DIR,
-                noEmit: false,
-            });
-            createSourceFile(
-                `
+describe("addonsDir configuration tests", () => {
+    it("should use addonsDir from CompilerOptions.config", () => {
+        createTsConfig({
+            outDir: OUTPUT_DIR,
+            noEmit: false,
+        });
+        createSourceFile(
+            `
                 // File with "foo" in name to trigger foo-added-generator addon
                 export const fooFunction = () => "Hello from foo!";
             `,
-                "foo-test.ts"
-            );
+            "foo-test.ts"
+        );
 
-            // Test addonsDir via CompilerOptions.config.addonsDir
-            const tsCompiler = new TsCompiler(
-                {
-                    buildDir: SOURCE_DIR,
-                    tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
-                    config: {
-                        addonsDir: ADDONS_DIR,
-                        addons: ["foo-added-generator"],
-                    },
-                    cliArgs: {
-                        options: {},
-                        fileNames: [path.join(SOURCE_DIR, "foo-test.ts")],
-                        errors: [],
-                    },
+        // Test addonsDir via CompilerOptions.config.addonsDir
+        const tsCompiler = new TsCompiler(
+            {
+                buildDir: SOURCE_DIR,
+                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                config: {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["foo-added-generator"],
                 },
-                {
-                    tsConfigFile: TSCONFIG_FILE,
-                    transpileOnly: false, // Need full compilation for addons
-                }
-            );
+                cliArgs: {
+                    options: {},
+                    fileNames: [path.join(SOURCE_DIR, "foo-test.ts")],
+                    errors: [],
+                },
+            },
+            {
+                tsConfigFile: TSCONFIG_FILE,
+                transpileOnly: false, // Need full compilation for addons
+            }
+        );
 
-            const result = tsCompiler.build(path.join(SOURCE_DIR, "foo-test.ts"));
+        const result = tsCompiler.build(path.join(SOURCE_DIR, "foo-test.ts"));
 
-            // Verify TsCompiler succeeded
-            expect(result.files.length).toBeGreaterThan(0);
-            const jsFile = result.files.find(f => f.name.endsWith("foo-test.js"));
-            expect(jsFile).toBeDefined();
-            expect(jsFile?.text).toContain("fooFunction");
+        // Verify TsCompiler succeeded
+        expect(result.files.length).toBeGreaterThan(0);
+        const jsFile = result.files.find(f => f.name.endsWith("foo-test.js"));
+        expect(jsFile).toBeDefined();
+        expect(jsFile?.text).toContain("fooFunction");
+    });
+
+    it("should use addonsDir from websmith.config.json", () => {
+        createTsConfig({
+            outDir: OUTPUT_DIR,
+            noEmit: false,
         });
-
-        it("should use addonsDir from websmith.config.json", () => {
-            createTsConfig({
-                outDir: OUTPUT_DIR,
-                noEmit: false,
-            });
-            createSourceFile(
-                `
+        createSourceFile(
+            `
                 export const foobarFunction = () => "Hello from foobar!";
             `,
-                "foobar-test.ts"
-            );
+            "foobar-test.ts"
+        );
 
-            // Create websmith.config.json with addonsDir configuration
-            createWebsmithConfig({
-                addonsDir: ADDONS_DIR,
-                addons: ["foo-added-generator"],
-            });
-
-            const tsCompiler = new TsCompiler(
-                {
-                    buildDir: SOURCE_DIR,
-                    tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
-                    configFile: path.join(PROJECT_DIR, "websmith.config.json"),
-                    cliArgs: {
-                        options: {},
-                        fileNames: [path.join(SOURCE_DIR, "foobar-test.ts")],
-                        errors: [],
-                    },
-                },
-                {
-                    tsConfigFile: TSCONFIG_FILE,
-                    transpileOnly: false,
-                }
-            );
-
-            const result = tsCompiler.build(path.join(SOURCE_DIR, "foobar-test.ts"));
-
-            expect(result.files.length).toBeGreaterThan(0);
-            const jsFile = result.files.find(f => f.name.endsWith("foobar-test.js"));
-            expect(jsFile).toBeDefined();
-            expect(jsFile?.text).toContain("foobarFunction");
+        // Create websmith.config.json with addonsDir configuration
+        createWebsmithConfig({
+            addonsDir: ADDONS_DIR,
+            addons: ["foo-added-generator"],
         });
 
-        it("should work with function-json-result-processor addon", () => {
-            createTsConfig({
-                outDir: OUTPUT_DIR,
-                noEmit: false,
-            });
-            createSourceFile(
-                `
+        const tsCompiler = new TsCompiler(
+            {
+                buildDir: SOURCE_DIR,
+                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                cliArgs: {
+                    options: {},
+                    fileNames: [path.join(SOURCE_DIR, "foobar-test.ts")],
+                    errors: [],
+                },
+            },
+            {
+                tsConfigFile: TSCONFIG_FILE,
+                transpileOnly: false,
+            }
+        );
+
+        const result = tsCompiler.build(path.join(SOURCE_DIR, "foobar-test.ts"));
+
+        expect(result.files.length).toBeGreaterThan(0);
+        const jsFile = result.files.find(f => f.name.endsWith("foobar-test.js"));
+        expect(jsFile).toBeDefined();
+        expect(jsFile?.text).toContain("foobarFunction");
+    });
+
+    it("should work with function-json-result-processor addon", () => {
+        createTsConfig({
+            outDir: OUTPUT_DIR,
+            noEmit: false,
+        });
+        createSourceFile(
+            `
                 // @annotated()
                 export function processFunction(input: string): string {
                     return \`Processed: \${input}\`;
@@ -664,45 +664,45 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
                     return data.toString();
                 }
             `,
-                "process-test.ts"
-            );
+            "process-test.ts"
+        );
 
-            const tsCompiler = new TsCompiler(
-                {
-                    buildDir: SOURCE_DIR,
-                    tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
-                    config: {
-                        addonsDir: ADDONS_DIR,
-                        addons: ["function-json-result-processor"],
-                    },
-                    cliArgs: {
-                        options: {},
-                        fileNames: [path.join(SOURCE_DIR, "process-test.ts")],
-                        errors: [],
-                    },
+        const tsCompiler = new TsCompiler(
+            {
+                buildDir: SOURCE_DIR,
+                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                config: {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["function-json-result-processor"],
                 },
-                {
-                    tsConfigFile: TSCONFIG_FILE,
-                    transpileOnly: false,
-                }
-            );
+                cliArgs: {
+                    options: {},
+                    fileNames: [path.join(SOURCE_DIR, "process-test.ts")],
+                    errors: [],
+                },
+            },
+            {
+                tsConfigFile: TSCONFIG_FILE,
+                transpileOnly: false,
+            }
+        );
 
-            const result = tsCompiler.build(path.join(SOURCE_DIR, "process-test.ts"));
+        const result = tsCompiler.build(path.join(SOURCE_DIR, "process-test.ts"));
 
-            expect(result.files.length).toBeGreaterThan(0);
-            const jsFile = result.files.find(f => f.name.endsWith("process-test.js"));
-            expect(jsFile).toBeDefined();
-            expect(jsFile?.text).toContain("processFunction");
-            expect(jsFile?.text).toContain("helperFunction");
+        expect(result.files.length).toBeGreaterThan(0);
+        const jsFile = result.files.find(f => f.name.endsWith("process-test.js"));
+        expect(jsFile).toBeDefined();
+        expect(jsFile?.text).toContain("processFunction");
+        expect(jsFile?.text).toContain("helperFunction");
+    });
+
+    it("should work with multiple addons", () => {
+        createTsConfig({
+            outDir: OUTPUT_DIR,
+            noEmit: false,
         });
-
-        it("should work with multiple addons", () => {
-            createTsConfig({
-                outDir: OUTPUT_DIR,
-                noEmit: false,
-            });
-            createSourceFile(
-                `
+        createSourceFile(
+            `
                 // File with "foo" to trigger foo-added-generator
                 export function fooProcessor(data: any): string {
                     return \`Multi-addon test: \${data}\`;
@@ -710,58 +710,58 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
                 
                 export const fooConfig = { enabled: true };
             `,
-                "foo-multi-test.ts"
-            );
+            "foo-multi-test.ts"
+        );
 
-            const tsCompiler = new TsCompiler(
-                {
-                    buildDir: SOURCE_DIR,
-                    tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
-                    config: {
-                        addonsDir: ADDONS_DIR,
-                        addons: ["foo-added-generator", "function-json-result-processor"],
-                    },
-                    cliArgs: {
-                        options: {},
-                        fileNames: [path.join(SOURCE_DIR, "foo-multi-test.ts")],
-                        errors: [],
-                    },
+        const tsCompiler = new TsCompiler(
+            {
+                buildDir: SOURCE_DIR,
+                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                config: {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["foo-added-generator", "function-json-result-processor"],
                 },
-                {
-                    tsConfigFile: TSCONFIG_FILE,
-                    transpileOnly: false,
-                }
-            );
+                cliArgs: {
+                    options: {},
+                    fileNames: [path.join(SOURCE_DIR, "foo-multi-test.ts")],
+                    errors: [],
+                },
+            },
+            {
+                tsConfigFile: TSCONFIG_FILE,
+                transpileOnly: false,
+            }
+        );
 
-            const result = tsCompiler.build(path.join(SOURCE_DIR, "foo-multi-test.ts"));
+        const result = tsCompiler.build(path.join(SOURCE_DIR, "foo-multi-test.ts"));
 
-            expect(result.files.length).toBeGreaterThan(0);
-            const jsFile = result.files.find(f => f.name.endsWith("foo-multi-test.js"));
-            expect(jsFile).toBeDefined();
-            expect(jsFile?.text).toContain("fooProcessor");
-            expect(jsFile?.text).toContain("fooConfig");
+        expect(result.files.length).toBeGreaterThan(0);
+        const jsFile = result.files.find(f => f.name.endsWith("foo-multi-test.js"));
+        expect(jsFile).toBeDefined();
+        expect(jsFile?.text).toContain("fooProcessor");
+        expect(jsFile?.text).toContain("fooConfig");
+    });
+
+    it("should use default addonsDir when not specified", () => {
+        createTsConfig({
+            outDir: OUTPUT_DIR,
+            noEmit: false,
         });
-
-        it("should use default addonsDir when not specified", () => {
-            createTsConfig({
-                outDir: OUTPUT_DIR,
-                noEmit: false,
-            });
-            createSourceFile(
-                `
+        createSourceFile(
+            `
                 export const defaultTest = "Testing default addon behavior";
             `,
-                "default-addon-test.ts"
-            );
+            "default-addon-test.ts"
+        );
 
-            // Create a local addons directory for default behavior test
-            const localAddonsDir = path.join(PROJECT_DIR, "addons", "test-addon");
-            fs.mkdirSync(localAddonsDir, { recursive: true });
+        // Create a local addons directory for default behavior test
+        const localAddonsDir = path.join(PROJECT_DIR, "addons", "test-addon");
+        fs.mkdirSync(localAddonsDir, { recursive: true });
 
-            // Create a simple test addon
-            fs.writeFileSync(
-                path.join(localAddonsDir, "addon.ts"),
-                `
+        // Create a simple test addon
+        fs.writeFileSync(
+            path.join(localAddonsDir, "addon.ts"),
+            `
                 import { type AddonContext } from "@quatico/websmith-api";
                 export const activate = (ctx: AddonContext) => {
                     ctx.registerProcessor((filePath: string, content: string) => {
@@ -769,44 +769,44 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
                     });
                 };
                 `,
-                { encoding: "utf-8" }
-            );
+            { encoding: "utf-8" }
+        );
 
-            const tsCompiler = new TsCompiler(
-                {
-                    buildDir: SOURCE_DIR,
-                    tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
-                    config: {
-                        // No explicit addonsDir - should default to "./addons"
-                        addons: ["test-addon"],
-                    },
-                    cliArgs: {
-                        options: {},
-                        fileNames: [path.join(SOURCE_DIR, "default-addon-test.ts")],
-                        errors: [],
-                    },
+        const tsCompiler = new TsCompiler(
+            {
+                buildDir: SOURCE_DIR,
+                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                config: {
+                    // No explicit addonsDir - should default to "./addons"
+                    addons: ["test-addon"],
                 },
-                {
-                    tsConfigFile: TSCONFIG_FILE,
-                    transpileOnly: false,
-                }
-            );
+                cliArgs: {
+                    options: {},
+                    fileNames: [path.join(SOURCE_DIR, "default-addon-test.ts")],
+                    errors: [],
+                },
+            },
+            {
+                tsConfigFile: TSCONFIG_FILE,
+                transpileOnly: false,
+            }
+        );
 
-            const result = tsCompiler.build(path.join(SOURCE_DIR, "default-addon-test.ts"));
+        const result = tsCompiler.build(path.join(SOURCE_DIR, "default-addon-test.ts"));
 
-            expect(result.files.length).toBeGreaterThan(0);
-            const jsFile = result.files.find(f => f.name.endsWith("default-addon-test.js"));
-            expect(jsFile).toBeDefined();
-            expect(jsFile?.text).toContain("defaultTest");
+        expect(result.files.length).toBeGreaterThan(0);
+        const jsFile = result.files.find(f => f.name.endsWith("default-addon-test.js"));
+        expect(jsFile).toBeDefined();
+        expect(jsFile?.text).toContain("defaultTest");
+    });
+
+    it("should work with export-yaml-generator addon", () => {
+        createTsConfig({
+            outDir: OUTPUT_DIR,
+            noEmit: false,
         });
-
-        it("should work with export-yaml-generator addon", () => {
-            createTsConfig({
-                outDir: OUTPUT_DIR,
-                noEmit: false,
-            });
-            createSourceFile(
-                `
+        createSourceFile(
+            `
                 // @annotated()
                 export const yamlConfig = {
                     name: "test-config",
@@ -821,37 +821,36 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
                     return yamlConfig;
                 }
             `,
-                "yaml-export-test.ts"
-            );
+            "yaml-export-test.ts"
+        );
 
-            const tsCompiler = new TsCompiler(
-                {
-                    buildDir: SOURCE_DIR,
-                    tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
-                    config: {
-                        addonsDir: ADDONS_DIR,
-                        addons: ["export-yaml-generator"],
-                    },
-                    cliArgs: {
-                        options: {},
-                        fileNames: [path.join(SOURCE_DIR, "yaml-export-test.ts")],
-                        errors: [],
-                    },
+        const tsCompiler = new TsCompiler(
+            {
+                buildDir: SOURCE_DIR,
+                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                config: {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["export-yaml-generator"],
                 },
-                {
-                    tsConfigFile: TSCONFIG_FILE,
-                    transpileOnly: false,
-                }
-            );
+                cliArgs: {
+                    options: {},
+                    fileNames: [path.join(SOURCE_DIR, "yaml-export-test.ts")],
+                    errors: [],
+                },
+            },
+            {
+                tsConfigFile: TSCONFIG_FILE,
+                transpileOnly: false,
+            }
+        );
 
-            const result = tsCompiler.build(path.join(SOURCE_DIR, "yaml-export-test.ts"));
+        const result = tsCompiler.build(path.join(SOURCE_DIR, "yaml-export-test.ts"));
 
-            expect(result.files.length).toBeGreaterThan(0);
-            const jsFile = result.files.find(f => f.name.endsWith("yaml-export-test.js"));
-            expect(jsFile).toBeDefined();
-            expect(jsFile?.text).toContain("yamlConfig");
-            expect(jsFile?.text).toContain("getConfig");
-        });
+        expect(result.files.length).toBeGreaterThan(0);
+        const jsFile = result.files.find(f => f.name.endsWith("yaml-export-test.js"));
+        expect(jsFile).toBeDefined();
+        expect(jsFile?.text).toContain("yamlConfig");
+        expect(jsFile?.text).toContain("getConfig");
     });
 });
 

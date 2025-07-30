@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilerOptions as WebsmithOptions, DefaultReporter, Compiler as WebsmithCompiler } from "@quatico/websmith-core";
+import { type CompilerOptions as WebsmithOptions, AddonRegistry, DefaultReporter, Compiler as WebsmithCompiler } from "@quatico/websmith-core";
 import ts from "typescript";
 import { Compiler as TscCompiler } from "./Compiler";
 
@@ -25,12 +25,31 @@ export const compile = async (
         }
         websmith.config = { ...(websmith.config ?? {}) };
 
-        const results = new WebsmithCompiler(websmith, {}, ts.sys).compile();
+        if (!websmith.reporter) {
+            websmith.reporter = new ReporterMock(ts.sys);
+        }
+
+        // Pass through the debug flag from config
+        if (config?.debug !== undefined) {
+            websmith.debug = config.debug;
+        }
+
+        let addons: AddonRegistry | undefined;
+        if (config?.websmith?.config?.addonsDir !== undefined || config?.websmith?.config?.addons !== undefined) {
+            addons = new AddonRegistry({
+                addonsDir: config?.websmith?.config?.addonsDir ?? "",
+                addons: config?.websmith?.config?.addons ?? [],
+                reporter: websmith.reporter,
+                system: ts.sys,
+            });
+        }
+
+        const results = new WebsmithCompiler(websmith, {}, ts.sys, addons).compile();
 
         const output = results.diagnostics;
-        const reporter2 = new ReporterMock(ts.sys);
-        output.forEach(diagnostic => reporter2.reportDiagnostic(diagnostic));
-        return Promise.resolve(reporter2.message);
+
+        output.forEach(diagnostic => websmith.reporter?.reportDiagnostic(diagnostic));
+        return Promise.resolve((websmith.reporter as ReporterMock)?.message ?? "");
     } else {
         // Pass debug option to the node compiler
         const debugEnabled = config?.debug ?? false;

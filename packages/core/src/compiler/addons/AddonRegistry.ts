@@ -58,7 +58,7 @@ export class AddonRegistry {
         const results =
             expectedNames.length === 0
                 ? Array.from(this.availableAddons.values())
-                : [...this.availableAddons].filter(([name]) => expectedNames.includes(name)).map(([, addon]) => addon);
+                : [...this.availableAddons].filter(([name]) => expectedNames.some(it => it.includes(name))).map(([, addon]) => addon);
         return compilerAddons(results);
     }
 
@@ -85,48 +85,44 @@ export class AddonRegistry {
         const { profiles = {}, addons = [], system, reporter, addonsDir } = this.config;
         const requestedAddons = addons.filter(it => it.length > 0);
         const profileAddons = profile ? (profiles[profile]?.addons ?? []) : [];
-        const targetAddons = [...new Set([...requestedAddons, ...profileAddons])];
+        let targetAddons = [...new Set([...requestedAddons, ...profileAddons])];
 
         const addonsToCompile = system
             .readDirectory(addonsDir)
-            .filter(it => targetAddons.includes(getAddonName(it)))
+            .map(it => resolvePath(system, it))
+            .filter(it => (profile === "*" ? true : targetAddons.includes(getAddonName(it))))
             .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
             .filter(isSourceFile)
             .map(it => path.dirname(it));
 
-        if (addonsToCompile.length > 0) {
-            // Calculate lib directory - if addonsDir ends with 'src', go up one level
-            const buildDir = path.dirname(addonsDir);
-            const libDir = resolvePath(system, buildDir, "./lib");
-            const compiledAddons = system.directoryExists(libDir)
-                ? system
-                      .readDirectory(libDir)
-                      .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
-                      .map(it => getAddonName(it))
-                : [];
+        // Calculate lib directory - create it relative to the addons directory
+        const libDir = resolvePath(system, addonsDir, "../lib");
+        const compiledAddons = system.directoryExists(libDir)
+            ? system
+                  .readDirectory(libDir)
+                  .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
+                  .map(it => getAddonName(it))
+            : [];
 
+        if (!system.directoryExists(libDir)) {
+            system.createDirectory(libDir);
+        }
+
+        if (targetAddons.length === 0 && profile === "*") {
+            targetAddons = [...compiledAddons, ...addonsToCompile];
+        }
+
+        if (addonsToCompile.length > 0) {
             const missingAddons = targetAddons.filter(it => !compiledAddons.includes(it));
             if (missingAddons.length > 0) {
                 // Compile all addons in the addons directory
-                const outDir = libDir;
-                new Compiler({
-                    buildDir: addonsDir, // Set buildDir to source directory to get correct relative paths
-                    reporter,
-                    tsConfig: {
-                        outDir,
-                        module: ts.ModuleKind.CommonJS,
-                        target: ts.ScriptTarget.ES2020,
-                        esModuleInterop: true,
-                        moduleResolution: ts.ModuleResolutionKind.Node10,
-                        skipLibCheck: true,
-                        forceConsistentCasingInFileNames: true,
-                    },
-                    cliArgs: {
-                        options: { outDir },
-                        fileNames: system.readDirectory(addonsDir).filter(isSourceFile),
-                        errors: [],
-                    },
-                }).compile();
+                const allTsFiles = system
+                    .readDirectory(addonsDir, [".ts", ".tsx"], undefined, undefined)
+                    .filter(isSourceFile)
+                    .filter(f => path.basename(f) !== "index.ts" || path.dirname(f) !== addonsDir); // Exclude main index.ts
+                if (allTsFiles.length > 0) {
+                    this.compileSourceFiles(addonsDir, reporter, libDir, allTsFiles);
+                }
             }
         }
         return targetAddons;
@@ -149,6 +145,58 @@ export class AddonRegistry {
         }
     }
 
+    /**
+     * Recursively find all addon entry files in subdirectories.
+     * Prefers 'index' files over 'addon' files in each directory.
+     */
+    private findAddonEntryFiles(dir: string): string[] {
+        let results: string[] = [];
+        const { system } = this.config;
+        const entries = system.readDirectory(dir, [".ts", ".tsx", ".js", ".jsx"], undefined, undefined);
+
+        // Group entries by directory to prefer 'index' over 'addon' files
+        const entriesByDir = new Map<string, string[]>();
+        for (let entry of entries) {
+            if (!path.isAbsolute(dir)) {
+                // If the directory is absolute, make it relative to the addons directory
+                entry = resolvePath(system, entry);
+            }
+            const dirName = path.dirname(entry);
+            const fileName = path.basename(entry, path.extname(entry)).toLowerCase();
+            if (fileName === "addon" || fileName === "index") {
+                if (!entriesByDir.has(dirName)) {
+                    entriesByDir.set(dirName, []);
+                }
+                entriesByDir.get(dirName)!.push(entry);
+            }
+        }
+
+        // For each directory, prefer 'index' over 'addon' files
+        for (const [, files] of entriesByDir) {
+            const indexFiles = files.filter((f: string) => path.basename(f, path.extname(f)).toLowerCase() === "index");
+            const addonFiles = files.filter((f: string) => path.basename(f, path.extname(f)).toLowerCase() === "addon");
+
+            // Prefer index files, fall back to addon files if no index files exist
+            if (indexFiles.length > 0) {
+                results.push(...indexFiles);
+            } else if (addonFiles.length > 0) {
+                results.push(...addonFiles);
+            }
+        }
+
+        // Recursively search subdirectories
+        const subdirs = system.readDirectory(dir, undefined, ["directory"], undefined);
+        for (let subdir of subdirs) {
+            if (subdir !== dir) {
+                if (!path.isAbsolute(dir)) {
+                    subdir = resolvePath(system, subdir);
+                }
+                results = results.concat(this.findAddonEntryFiles(subdir));
+            }
+        }
+        return results;
+    }
+
     private loadAddonsSync(): void {
         const { addonsDir, reporter, system } = this.config;
 
@@ -159,26 +207,7 @@ export class AddonRegistry {
             return;
         }
 
-        // Recursively find all addon entry files in subdirectories
-        const findAddonEntryFiles = (dir: string): string[] => {
-            let results: string[] = [];
-            const entries = system.readDirectory(dir, [".ts", ".tsx", ".js", ".jsx"], undefined, undefined);
-            for (const entry of entries) {
-                if (path.basename(entry, path.extname(entry)).toLowerCase() === "addon") {
-                    results.push(entry);
-                }
-            }
-            // Recursively search subdirectories
-            const subdirs = system.readDirectory(dir, undefined, ["directory"], undefined);
-            for (const subdir of subdirs) {
-                if (subdir !== dir) {
-                    results = results.concat(findAddonEntryFiles(subdir));
-                }
-            }
-            return results;
-        };
-
-        const addonEntryFiles = findAddonEntryFiles(addonsDir);
+        const addonEntryFiles = this.findAddonEntryFiles(addonsDir);
         const loadedAddons: string[] = [];
 
         // Try to load compiled JS files first
@@ -194,50 +223,63 @@ export class AddonRegistry {
         if (loadedAddons.length === 0) {
             const buildDir = path.dirname(addonsDir);
             const libDir = resolvePath(system, buildDir, "./lib");
-            const tsFiles = addonEntryFiles.filter(f => f.endsWith(".ts") || f.endsWith(".tsx"));
+            const tsFiles = addonEntryFiles.filter(isSourceFile);
             if (tsFiles.length > 0) {
-                // Compile all TypeScript addon entry files
-                try {
-                    new Compiler({
-                        buildDir: addonsDir,
-                        reporter,
-                        tsConfig: {
-                            outDir: libDir,
-                            rootDir: addonsDir,
-                            module: ts.ModuleKind.CommonJS,
-                            target: ts.ScriptTarget.ES2020,
-                            esModuleInterop: true,
-                            moduleResolution: ts.ModuleResolutionKind.Node10,
-                            skipLibCheck: true,
-                            forceConsistentCasingInFileNames: true,
-                        },
-                        cliArgs: {
-                            options: { outDir: libDir, rootDir: addonsDir },
-                            fileNames: tsFiles,
-                            errors: [],
-                        },
-                    }).compile();
-                } catch (error) {
-                    reporter?.reportDiagnostic({
-                        category: ts.DiagnosticCategory.Warning,
-                        code: 0,
-                        messageText: `Failed to compile addons in ${addonsDir}: ${error instanceof Error ? error.message : String(error)}`,
-                        file: undefined,
-                        start: undefined,
-                        length: undefined,
-                    });
+                if (!system.directoryExists(libDir)) {
+                    system.createDirectory(libDir);
                 }
-                // Now try to load compiled files from lib directory
-                if (system.directoryExists(libDir)) {
-                    const compiledAddonFiles = findAddonEntryFiles(libDir).filter(f => f.endsWith(".js") || f.endsWith(".jsx"));
-                    compiledAddonFiles.forEach(filePath => {
-                        const addonName = this.loadSingleAddon(filePath, libDir);
-                        if (addonName) {
-                            loadedAddons.push(addonName);
-                        }
-                    });
-                }
+
+                const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, addonEntryFiles);
+
+                // Load the compiled addons
+                compiledAddonFiles.forEach((filePath: string) => {
+                    const addonName = this.loadSingleAddon(filePath, libDir);
+                    if (addonName) {
+                        loadedAddons.push(addonName);
+                    }
+                });
             }
+        }
+    }
+
+    private compileSourceFiles(addonsDir: string, reporter: Reporter, libDir: string, tsFiles: string[]): string[] {
+        try {
+            new Compiler({
+                buildDir: addonsDir,
+                reporter,
+                tsConfig: {
+                    outDir: libDir,
+                    rootDir: addonsDir,
+                    module: ts.ModuleKind.CommonJS,
+                    target: ts.ScriptTarget.ES2020,
+                    esModuleInterop: true,
+                    moduleResolution: ts.ModuleResolutionKind.Node10,
+                    skipLibCheck: true,
+                    forceConsistentCasingInFileNames: true,
+                    noEmit: false,
+                },
+                cliArgs: {
+                    options: { outDir: libDir, rootDir: addonsDir },
+                    fileNames: tsFiles,
+                    errors: [],
+                },
+            }).compile();
+
+            // Return the compiled addon file paths
+            if (this.config.system.directoryExists(libDir)) {
+                return this.findAddonEntryFiles(libDir).filter((f: string) => f.endsWith(".js") || f.endsWith(".jsx"));
+            }
+            return [];
+        } catch (error) {
+            reporter?.reportDiagnostic({
+                category: ts.DiagnosticCategory.Warning,
+                code: 0,
+                messageText: `Failed to compile addons in ${addonsDir}: ${error instanceof Error ? error.message : String(error)}`,
+                file: undefined,
+                start: undefined,
+                length: undefined,
+            });
+            return [];
         }
     }
 
@@ -329,7 +371,7 @@ export class AddonRegistry {
 }
 
 const getImportPath = (system: ts.System, filePath: string) => {
-    const resolvedPath = system.resolvePath(filePath);
+    const resolvedPath = resolvePath(system, filePath);
     // Always return the full path with extension for Node 20 compatibility
     return resolvedPath;
 };

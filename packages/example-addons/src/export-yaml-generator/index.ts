@@ -4,5 +4,5 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-export { activate as yamlGeneratorActivate } from "./addon";
+export { activate } from "./addon";
 export * from "./export-transformer";

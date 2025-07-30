@@ -56,7 +56,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         expect(getOutput("test.js")).toBeDefined();
         expect(getOutput("test.js")).toContain("hello");
         expect(getOutput("test.js")).toContain("greet");
-    }, 10000); // Increased timeout
+    });
 
     it("should yield script and declaration files with single file, declaration and emit true", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false, declaration: true, declarationMap: true });
@@ -72,7 +72,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
 
         // For webpack e2e, declaration files may not be generated the same way as CLI
         // This is acceptable as webpack primarily focuses on bundling
-    }, 10000);
+    });
 
     it("should yield transpiled script with single file, profile client-processor and emit", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false, target: ts.ScriptTarget.ES5, module: ts.ModuleKind.CommonJS });
@@ -103,7 +103,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
 
         // Note: Profile-based addon transformations may behave differently in webpack
         // The important thing is that the file compiles successfully
-    }, 10000);
+    });
 
     it("should yield transpiled script with single file, client-processor addon via webpack loader options", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -117,7 +117,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         // For webpack e2e, test that the loader processes the file and addons can be configured
         expect(getOutput("foobar-function.js")).toBeDefined();
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
-    }, 10000);
+    });
 
     it("should yield transpiled script with single file, websmith config client-processor and emit", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -133,7 +133,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
 
         expect(getOutput("foobar-function.js")).toBeDefined();
         expect(getOutput("foobar-function.js")).toContain("getCLIENT");
-    }, 10000);
+    });
 
     it("should yield transpiled script with single file, client-transformer addon and emit true", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -146,7 +146,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
 
         expect(getOutput("foobar-function.js")).toBeDefined();
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
-    }, 10000);
+    });
 
     it("should yield transpiled script with single file, export-yaml-generator addon and emit true", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -161,7 +161,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
         // Note: In webpack context, YAML files may not be emitted as separate files
         // expect(getOutput("foobar-function.yaml")).toBeDefined();
-    }, 10000);
+    });
 
     it("should yield transpiled script with single file, foo-added-generator addon and emit true", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -176,7 +176,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
         // Note: In webpack context, additional generated files may not appear as separate files
         // expect(getOutput("foobar-function-added.js")).toBeDefined();
-    }, 10000);
+    });
 
     it("should yield transpiled script with single file, function-json-result-processor addon and emit true", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -191,7 +191,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
         // Note: In webpack context, JSON files may not be emitted as separate files
         // expect(getOutput("named-functions.json")).toBeDefined();
-    }, 10000);
+    });
 
     it("should handle multiple addons together", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -205,7 +205,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         expect(getOutput("foobar-function.js")).toBeDefined();
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
         // Note: In webpack context, additional files may not be emitted as separate files
-    }, 10000);
+    });
 
     it("should handle source maps generation", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false, sourceMap: true });
@@ -225,7 +225,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         // Note: In webpack context, separate .map files may not be generated
         // expect(getOutput("math.js.map")).toBeDefined();
         // expect(getOutput("math.js")).toContain("sourceMappingURL");
-    }, 10000);
+    });
 
     it("should handle different TypeScript targets through webpack", async () => {
         createTsConfig({
@@ -249,30 +249,31 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         const output = getOutput("target-test.js");
         expect(output).toBeDefined();
         expect(output).toContain("function"); // ES5 should convert arrow functions
-    }, 10000);
+    });
+});
 
-    // Logging and Error Handling Tests
-    describe("logging and error handling", () => {
-        let consoleSpy: jest.SpyInstance;
-        let consoleWarnSpy: jest.SpyInstance;
-        let consoleErrorSpy: jest.SpyInstance;
+// Logging and Error Handling Tests
+describe("logging and error handling", () => {
+    let consoleSpy: jest.SpyInstance;
+    let consoleWarnSpy: jest.SpyInstance;
+    let consoleErrorSpy: jest.SpyInstance;
 
-        beforeEach(() => {
-            consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-            consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-            consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-        });
+    beforeEach(() => {
+        consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+        consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+        consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    });
 
-        afterEach(() => {
-            consoleSpy.mockRestore();
-            consoleWarnSpy.mockRestore();
-            consoleErrorSpy.mockRestore();
-        });
+    afterEach(() => {
+        consoleSpy.mockRestore();
+        consoleWarnSpy.mockRestore();
+        consoleErrorSpy.mockRestore();
+    });
 
-        it("should handle compilation errors gracefully", async () => {
-            createTsConfig({ outDir: "./dist", noEmit: false, strict: true });
-            createSourceFile(
-                `
+    it("should handle compilation errors gracefully", async () => {
+        createTsConfig({ outDir: "./dist", noEmit: false, strict: true });
+        createSourceFile(
+            `
                 // This file contains TypeScript errors
                 export const invalidSyntax = (param) => { // Missing type annotation
                     return param.nonExistentProperty; // Property doesn't exist
@@ -281,84 +282,84 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
                 export const typeError: string = 123; // Type mismatch
                 export const undefinedVariable = someUndefinedVar; // Undefined variable
             `,
-                "error-test.ts"
-            );
+            "error-test.ts"
+        );
 
-            // In webpack context with transpileOnly mode, errors might be transpiled anyway
-            // This tests that the loader handles problematic code without crashing webpack
-            await executeWebpack({ transpileOnly: true });
+        // In webpack context with transpileOnly mode, errors might be transpiled anyway
+        // This tests that the loader handles problematic code without crashing webpack
+        await executeWebpack({ transpileOnly: true });
 
-            // Output should be generated even with TypeScript errors in transpileOnly mode
-            expect(getOutput("error-test.js")).toBeDefined();
-        }, 10000);
+        // Output should be generated even with TypeScript errors in transpileOnly mode
+        expect(getOutput("error-test.js")).toBeDefined();
+    });
 
-        it("should handle missing addons directory gracefully", async () => {
-            createTsConfig({ outDir: "./dist", noEmit: false });
-            createSourceFile(`export const warningTest = "test";`, "warning-test.ts");
+    it("should handle missing addons directory gracefully", async () => {
+        createTsConfig({ outDir: "./dist", noEmit: false });
+        createSourceFile(`export const warningTest = "test";`, "warning-test.ts");
 
-            // Should not crash when addons directory doesn't exist
-            await executeWebpack({
-                addonsDir: path.join(PROJECT_DIR, "non-existent-addons"),
-                addons: "non-existent-addon",
-            });
+        // Should not crash when addons directory doesn't exist
+        await executeWebpack({
+            addonsDir: path.join(PROJECT_DIR, "non-existent-addons"),
+            addons: "non-existent-addon",
+        });
 
-            // Should still generate output despite missing addons
-            expect(getOutput("warning-test.js")).toBeDefined();
-            expect(getOutput("warning-test.js")).toContain("warningTest");
-        }, 10000);
+        // Should still generate output despite missing addons
+        expect(getOutput("warning-test.js")).toBeDefined();
+        expect(getOutput("warning-test.js")).toContain("warningTest");
+    });
 
-        it("should handle missing specific addons gracefully", async () => {
-            createTsConfig({ outDir: "./dist", noEmit: false });
-            createSourceFile(`export const missingAddonTest = "test";`, "missing-addon-test.ts");
+    it("should handle missing specific addons gracefully", async () => {
+        createTsConfig({ outDir: "./dist", noEmit: false });
+        createSourceFile(`export const missingAddonTest = "test";`, "missing-addon-test.ts");
 
-            // Create empty addons directory
-            const emptyAddonsDir = path.join(PROJECT_DIR, "empty-addons");
-            fs.mkdirSync(emptyAddonsDir, { recursive: true });
+        // Create empty addons directory
+        const emptyAddonsDir = path.join(PROJECT_DIR, "empty-addons");
+        fs.mkdirSync(emptyAddonsDir, { recursive: true });
 
-            // Should not crash when specific addon doesn't exist
-            await executeWebpack({
-                addonsDir: emptyAddonsDir,
-                addons: "non-existent-addon",
-            });
+        // Should not crash when specific addon doesn't exist
+        await executeWebpack({
+            addonsDir: emptyAddonsDir,
+            addons: "non-existent-addon",
+        });
 
-            // Should still generate output despite missing specific addon
-            expect(getOutput("missing-addon-test.js")).toBeDefined();
-            expect(getOutput("missing-addon-test.js")).toContain("missingAddonTest");
-        }, 10000);
+        // Should still generate output despite missing specific addon
+        expect(getOutput("missing-addon-test.js")).toBeDefined();
+        expect(getOutput("missing-addon-test.js")).toContain("missingAddonTest");
+    });
 
-        it("should handle addon integration and reporter functionality", async () => {
-            createTsConfig({ outDir: "./dist", noEmit: false });
-            createSourceFile(
-                `
+    it("should handle addon integration and reporter functionality", async () => {
+        createTsConfig({ outDir: "./dist", noEmit: false });
+        createSourceFile(
+            `
                 // File with "foo" in name to trigger foo-added-generator addon
                 export const fooReporterTest = "This should trigger addon messages";
             `,
-                "foo-reporter-test.ts"
-            );
+            "foo-reporter-test.ts"
+        );
 
-            await executeWebpack({
-                addonsDir: ADDONS_DIR,
-                addons: "foo-added-generator",
-            });
+        await executeWebpack({
+            addonsDir: ADDONS_DIR,
+            addons: "foo-added-generator",
+        });
 
-            // Should generate the main file and the additional file from foo-added-generator
-            expect(getOutput("foo-reporter-test.js")).toBeDefined();
-            expect(getOutput("foo-reporter-test.js")).toContain("fooReporterTest");
+        // Should generate the main file and the additional file from foo-added-generator
+        expect(getOutput("foo-reporter-test.js")).toBeDefined();
+        expect(getOutput("foo-reporter-test.js")).toContain("fooReporterTest");
 
-            // Note: In webpack context, addon-generated files may not appear as separate files
-            // but the addon processing should complete without errors
-        }, 10000);
+        // Note: In webpack context, addon-generated files may not appear as separate files
+        // but the addon processing should complete without errors
+    });
 
-        it("should handle strict mode compilation in webpack context", async () => {
-            createTsConfig({
-                outDir: "./dist",
-                noEmit: false,
-                strict: true,
-                noImplicitAny: true,
-                noImplicitReturns: true,
-            });
-            createSourceFile(
-                `
+    it("should handle strict mode compilation in webpack context", async () => {
+        createTsConfig({
+            outDir: "./dist",
+            noEmit: false,
+            strict: true,
+            noImplicitAny: true,
+            noImplicitReturns: true,
+        });
+        createSourceFile(
+            `
                 // This should generate warnings in strict mode
                 export function implicitAny(param) { // Missing type annotation
                     if (Math.random() > 0.5) {
@@ -369,108 +370,107 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
                 
                 export const anyType: any = "should warn about any type";
             `,
-                "strict-test.ts"
-            );
+            "strict-test.ts"
+        );
 
-            // In webpack context with transpileOnly, strict mode issues might be handled differently
-            await executeWebpack({ transpileOnly: true });
+        // In webpack context with transpileOnly, strict mode issues might be handled differently
+        await executeWebpack({ transpileOnly: true });
 
-            // Should still generate output in transpileOnly mode even with strict mode issues
-            expect(getOutput("strict-test.js")).toBeDefined();
-            expect(getOutput("strict-test.js")).toContain("implicitAny");
-        }, 10000);
+        // Should still generate output in transpileOnly mode even with strict mode issues
+        expect(getOutput("strict-test.js")).toBeDefined();
+        expect(getOutput("strict-test.js")).toContain("implicitAny");
+    });
 
-        it("should handle file system errors gracefully", async () => {
-            createTsConfig({ outDir: "./dist", noEmit: false });
-            createSourceFile(`export const fsTest = "test";`, "fs-test.ts");
+    it("should handle file system errors gracefully", async () => {
+        createTsConfig({ outDir: "./dist", noEmit: false });
+        createSourceFile(`export const fsTest = "test";`, "fs-test.ts");
 
-            // Make output directory read-only to simulate permission errors
-            try {
-                fs.chmodSync(OUTPUT_DIR, 0o444);
+        // Make output directory read-only to simulate permission errors
+        try {
+            fs.chmodSync(OUTPUT_DIR, 0o444);
 
-                await expect(executeWebpack()).rejects.toThrow();
-            } finally {
-                // Restore permissions
-                fs.chmodSync(OUTPUT_DIR, 0o755);
-            }
-        }, 10000);
+            await expect(executeWebpack()).rejects.toThrow();
+        } finally {
+            // Restore permissions
+            fs.chmodSync(OUTPUT_DIR, 0o755);
+        }
+    });
 
-        it("should process addons and generate expected outputs", async () => {
-            createTsConfig({ outDir: "./dist", noEmit: false });
-            createSourceFile(
-                `
+    it("should process addons and generate expected outputs", async () => {
+        createTsConfig({ outDir: "./dist", noEmit: false });
+        createSourceFile(
+            `
                 // Test file for addon processing
                 export function debugTest(input: string): string {
                     return \`Debug: \${input}\`;
                 }
             `,
-                "debug-test.ts"
-            );
+            "debug-test.ts"
+        );
 
-            await executeWebpack({
-                addonsDir: ADDONS_DIR,
-                addons: "function-json-result-processor",
-            });
+        await executeWebpack({
+            addonsDir: ADDONS_DIR,
+            addons: "function-json-result-processor",
+        });
 
-            // Should have processed successfully and generated main output
-            expect(getOutput("debug-test.js")).toBeDefined();
-            expect(getOutput("debug-test.js")).toContain("debugTest");
+        // Should have processed successfully and generated main output
+        expect(getOutput("debug-test.js")).toBeDefined();
+        expect(getOutput("debug-test.js")).toContain("debugTest");
 
-            // Note: In webpack context, addon-generated files like JSON outputs
-            // might be handled differently than in CLI context
-            // The important thing is that compilation succeeds with addon processing
-        }, 10000);
+        // Note: In webpack context, addon-generated files like JSON outputs
+        // might be handled differently than in CLI context
+        // The important thing is that compilation succeeds with addon processing
+    });
 
-        it("should handle configuration file loading errors", async () => {
-            createTsConfig({ outDir: "./dist", noEmit: false });
-            createSourceFile(`export const configTest = "test";`, "config-test.ts");
+    it("should handle configuration file loading errors", async () => {
+        createTsConfig({ outDir: "./dist", noEmit: false });
+        createSourceFile(`export const configTest = "test";`, "config-test.ts");
 
-            // Create invalid JSON config file
-            fs.writeFileSync(path.join(PROJECT_DIR, "invalid-config.json"), "{ invalid json syntax", { encoding: "utf-8" });
+        // Create invalid JSON config file
+        fs.writeFileSync(path.join(PROJECT_DIR, "invalid-config.json"), "{ invalid json syntax", { encoding: "utf-8" });
 
-            // Should handle JSON parsing errors gracefully and throw
-            await expect(
-                executeWebpack({
-                    configFile: path.join(PROJECT_DIR, "invalid-config.json"),
-                })
-            ).rejects.toThrow();
-        }, 10000);
+        // Should handle JSON parsing errors gracefully and throw
+        await expect(
+            executeWebpack({
+                configFile: path.join(PROJECT_DIR, "invalid-config.json"),
+            })
+        ).rejects.toThrow();
+    });
 
-        it("should log information about tsconfig resolution", async () => {
-            // Create tsconfig with specific settings that should be logged
-            createTsConfig({
-                outDir: "./dist",
-                noEmit: false,
-                experimentalDecorators: true,
-                emitDecoratorMetadata: true,
-            });
-            createSourceFile(
-                `
+    it("should log information about tsconfig resolution", async () => {
+        // Create tsconfig with specific settings that should be logged
+        createTsConfig({
+            outDir: "./dist",
+            noEmit: false,
+            experimentalDecorators: true,
+            emitDecoratorMetadata: true,
+        });
+        createSourceFile(
+            `
                 @deprecated
                 export class DecoratorTest {
                     @readonly
                     value: string = "test";
                 }
             `,
-                "tsconfig-test.ts"
-            );
+            "tsconfig-test.ts"
+        );
 
-            await executeWebpack();
+        await executeWebpack();
 
-            expect(getOutput("tsconfig-test.js")).toBeDefined();
-        }, 10000);
+        expect(getOutput("tsconfig-test.js")).toBeDefined();
+    });
 
-        it("should handle webpack plugin integration logging", async () => {
-            createTsConfig({ outDir: "./dist", noEmit: false });
-            createSourceFile(`export const pluginTest = "test";`, "plugin-test.ts");
+    it("should handle webpack plugin integration logging", async () => {
+        createTsConfig({ outDir: "./dist", noEmit: false });
+        createSourceFile(`export const pluginTest = "test";`, "plugin-test.ts");
 
-            // Execute with minimal configuration to test plugin integration
-            const result = await executeWebpack();
+        // Execute with minimal configuration to test plugin integration
+        const result = await executeWebpack();
 
-            // Should complete without throwing
-            expect(result).toBeUndefined(); // executeWebpack returns void on success
-            expect(getOutput("plugin-test.js")).toBeDefined();
-        }, 10000);
+        // Should complete without throwing
+        expect(result).toBeUndefined(); // executeWebpack returns void on success
+        expect(getOutput("plugin-test.js")).toBeDefined();
     });
 });
 

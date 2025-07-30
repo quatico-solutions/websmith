@@ -79,7 +79,7 @@ export class Compiler {
         const parts = [
             `tsconfig: ${this.options.tsConfigFile || "./tsconfig.json"}`,
             `profiles: ${this.options.config?.profiles ? Object.keys(this.options.config.profiles).join(", ") : ""}`,
-            `addonsDir: ${this.options.config?.addonsDir || "./node_modules/@quatico/magellan-addons/lib"}`,
+            `addonsDir: ${this.options.config?.addonsDir || "./addons"}`,
             `outDir: ${resolvedOutDir}`,
             `target: ${profileTsConfig.target ?? resolvedTsConfig?.target ?? cliTsConfig?.target ?? 99}`,
             `module: ${profileTsConfig.module ?? resolvedTsConfig?.module ?? cliTsConfig?.module ?? 99}`,
@@ -144,7 +144,7 @@ export class Compiler {
     }
 
     public compile(): ts.EmitResult {
-        const { profile } = this.options;
+        const { profile, buildDir } = this.options;
         const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
 
         if (this.options.debug) {
@@ -160,7 +160,7 @@ export class Compiler {
             this.reporter.reportDiagnostic({
                 category: ts.DiagnosticCategory.Message,
                 code: 0,
-                messageText: `Project directory: ${this.system.getCurrentDirectory()}`,
+                messageText: `Project directory: ${buildDir}`,
                 file: undefined,
                 start: undefined,
                 length: undefined,
@@ -176,7 +176,7 @@ export class Compiler {
             this.reporter.reportDiagnostic({
                 category: ts.DiagnosticCategory.Message,
                 code: 0,
-                messageText: `Selected profiles: ${selectedProfiles.join(", ")}`,
+                messageText: `Selected profiles: ${selectedProfiles.length ? selectedProfiles.join(", ") : "<NONE>"}`,
                 file: undefined,
                 start: undefined,
                 length: undefined,

@@ -13,11 +13,3 @@ export const findConfigFile = (searchPath = "./", system: ts.System = ts.sys): s
     }
     return configPath;
 };
-
-export const findSassConfig = (filePath = "sass.config.js", system: ts.System = ts.sys): string | never => {
-    const configPath = system.resolvePath(filePath);
-    if (!system.fileExists(configPath)) {
-        throw new Error("Could not find a valid 'sass.config.js'.");
-    }
-    return configPath;
-};
