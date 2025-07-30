@@ -23,7 +23,7 @@ export const writeTsConfig = (config: ts.CompilerOptions, PROJECT_DIR = path.joi
         recursive: true,
     });
 
-    // Convert enum values to strings for proper JSON serialization
+    // Convert enum value s to strings for proper JSON serialization
     const normalizedConfig = {
         ...config,
         ...(config.target !== undefined && {

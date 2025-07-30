@@ -184,10 +184,17 @@ export class AddonRegistry {
             }
         }
 
-        // Recursively search subdirectories
+        // Recursively search subdirectories, excluding build and output directories
         const subdirs = system.readDirectory(dir, undefined, ["directory"], undefined);
+        const excludedDirs = ["lib", "dist", "build", "node_modules", ".git"];
+
         for (let subdir of subdirs) {
             if (subdir !== dir) {
+                const subdirName = path.basename(subdir);
+                if (excludedDirs.includes(subdirName)) {
+                    continue; // Skip build/output directories
+                }
+
                 if (!path.isAbsolute(dir)) {
                     subdir = resolvePath(system, subdir);
                 }

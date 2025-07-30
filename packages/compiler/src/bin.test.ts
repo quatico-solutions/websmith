@@ -285,10 +285,23 @@ const createSourceFile = (fileContent: string, fileName: string) => {
 };
 
 const createTsConfig = (config: ts.CompilerOptions) => {
+    // Convert enum values to strings for proper JSON serialization
+    const normalizedConfig = {
+        ...config,
+        ...(config.target !== undefined && {
+            target: ts.ScriptTarget[config.target] === "Latest" ? "esnext" : ts.ScriptTarget[config.target].toLowerCase(),
+        }),
+        ...(config.module !== undefined && { module: ts.ModuleKind[config.module].toLowerCase() }),
+        ...(config.jsx !== undefined && { jsx: ts.JsxEmit[config.jsx].toLowerCase() }),
+        ...(config.moduleResolution !== undefined && { moduleResolution: ts.ModuleResolutionKind[config.moduleResolution].toLowerCase() }),
+    };
+
+    fs.writeFileSync(path.join(PROJECT_DIR, "tsconfig.json"), JSON.stringify({ compilerOptions: normalizedConfig }), {
+        encoding: "utf-8",
+    });
+
     const tsConfig = {
-        compilerOptions: {
-            ...config,
-        },
+        normalizedConfig,
         include: ["src/**/*"],
         exclude: ["node_modules", "dist"],
     };

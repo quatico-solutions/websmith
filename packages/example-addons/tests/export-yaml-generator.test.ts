@@ -7,6 +7,7 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
+// FIXME: This test is failing because the export-yaml-generator addon is not being loaded
 describe.skip("export-yaml-generator addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {

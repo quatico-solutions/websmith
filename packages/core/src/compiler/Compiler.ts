@@ -332,6 +332,7 @@ export class Compiler {
 
     protected createProfileContextsIfNecessary(): this {
         const selectedProfiles = this.options.getSelectedProfiles();
+
         if (!selectedProfiles.length) {
             // Create default context in any case, context for default profile exists
             const defaultCtx = this.getContext()!;
@@ -344,7 +345,16 @@ export class Compiler {
                     return;
                 }
                 const ctx = this.createCompilationContext(profile);
-                this.addons?.getAvailableAddons(profile).forEach(addon => {
+                // Get all addons for all selected profiles (including dependencies)
+                const profileAddons = this.options.getAddons(profile);
+                // Reverse the addon order so current profile addons run before dependency addons
+                // This ensures transformers chain correctly (e.g., foobar→CLIENT→SERVER)
+                const resolvedAddons = profileAddons
+                    .reverse()
+                    .map(name => this.addons?.getAvailableAddons().find(addon => addon.getName() === name))
+                    .filter(addon => addon !== undefined);
+
+                resolvedAddons.forEach(addon => {
                     addon.activate(ctx);
                 });
                 this.contextMap.set(profile, ctx);
