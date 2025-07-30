@@ -113,7 +113,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             if (compiler) {
                 compiler.setOptions(options);
             } else {
-                compiler = new Compiler(options, {}, system);
+                compiler = new Compiler(options, {}, system, undefined, undefined, reporter);
             }
 
             const addons = compiler.getAddonRegistry();

@@ -19,7 +19,10 @@ const ADDONS_DIR = path.resolve(__dirname, "..", "..", "example-addons", "src");
 let originalCwd: string;
 
 beforeAll(() => {
-    fs.rmSync(path.resolve(path.join(__dirname, "..", "..", "example-addons", "lib")), { recursive: true, force: true });
+    // Verify that source addons exist
+    if (!fs.existsSync(ADDONS_DIR)) {
+        throw new Error(`Addons source directory not found: ${ADDONS_DIR}`);
+    }
 });
 
 beforeEach(() => {

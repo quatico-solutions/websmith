@@ -276,7 +276,7 @@ const getProfile = (name?: string, config?: CompilationConfig): CompilationProfi
  * @param source - The source array.
  * @returns A new array that is the result of merging the target and source arrays and removing duplicates.
  */
-const arrayMerge = (target: unknown[], source: unknown[], _options?: ArrayMergeOptions) => {
+export const arrayMerge = (target: unknown[], source: unknown[], _options?: ArrayMergeOptions) => {
     const targetArray = Array.isArray(target) ? target : [];
     const sourceArray = Array.isArray(source) ? source : [];
     return [...new Set([...sourceArray, ...targetArray])];
