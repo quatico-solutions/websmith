@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext } from "@quatico/websmith-api";
-import { createReplaceIdentifierTransformer } from "../foobar-replace-transformer";
+import { createReplaceIdentifierTransformer } from "../foobar-replace-transformer/replace-identifier-transformer";
 
 /**
  * Example addon with a transformer that modifies the source code inside a

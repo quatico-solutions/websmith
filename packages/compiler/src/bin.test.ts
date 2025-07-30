@@ -30,7 +30,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-    process.chdir(originalCwd);
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+    originalCwd && process.chdir(originalCwd);
     fs.rmSync(path.resolve(PROJECT_DIR), { recursive: true, force: true });
 });
 
@@ -252,13 +253,12 @@ const executeCompiler = (args = ""): string => {
     }
 
     try {
-        const result = execSync(`node ${binPath} ${args.trim()}`, {
+        return execSync(`node ${binPath} ${args.trim()}`, {
             encoding: "utf8",
             stdio: "pipe",
             timeout: 30000, // 30 second timeout
             cwd: PROJECT_DIR,
         });
-        return result;
     } catch (error: any) {
         // For testing, we still want to return some output even on errors
         const stderr = error.stderr?.toString() || "";
