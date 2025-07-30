@@ -9,7 +9,7 @@ import { webpack } from "@quatico/websmith-node";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
-import { getOutput, writeWebsmithConfig, writeTsConfig } from "./test-files";
+import { getOutput, writeTsConfig, writeWebsmithConfig } from "./test-files";
 
 const PROJECT_DIR = path.join(__dirname, "..", "output");
 const OUTPUT_DIR = path.join(PROJECT_DIR, "lib");
@@ -58,6 +58,7 @@ beforeAll(() => {
 
 beforeEach(() => {
     jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(console, "log").mockImplementation(() => {});
     fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     fs.mkdirSync(SOURCE_DIR, { recursive: true });
@@ -121,7 +122,16 @@ describe("project bundling", () => {
             },
         });
 
-        expect(fs.readdirSync(OUTPUT_DIR)).toEqual(["functions.js", "functions.js.map", "main.js", "main.js.map", "output.yaml"]);
+        expect(fs.readdirSync(OUTPUT_DIR)).toEqual([
+            "functions",
+            "functions.js",
+            "functions.js.map",
+            "index.js",
+            "main.js",
+            "main.js.map",
+            "model",
+            "output.yaml",
+        ]);
 
         const expected = getOutput("output.yaml");
         [

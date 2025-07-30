@@ -7,6 +7,7 @@
 import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
+// FIXME: This test is failing because the foobar-replace-transformer addon is not being loaded
 describe.skip("foobar-replace-transformer addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
