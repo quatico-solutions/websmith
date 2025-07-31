@@ -194,51 +194,6 @@ describe("webpack w/ websmith", () => {
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
-    it("should generate YAML file with profile in file-config, addonsDir, generic profile selected", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                "*": {
-                    addons: ["export-yaml-generator"],
-                },
-            },
-        });
-
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
-            websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
-                profile: "*",
-            },
-        });
-
-        expect(getOutput("main.js")).toContain("function foobar");
-        expect(getOutput("main.js")).toContain("function getFoobar");
-        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
-    });
-
-    it("should transform foobar functions with profiles in file-config, addonsDir and generic profile selected", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                "*": {
-                    addons: ["foobar-replace-transformer"],
-                },
-            },
-        });
-
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
-            websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
-                profile: "*",
-            },
-        });
-
-        expect(getOutput("main.js")).toContain("function barfoo");
-        expect(getOutput("main.js")).toContain("function getbarfoo");
-    });
-
     it("should generate YAML file with profile in file-config, addonsDir and named profile selected", async () => {
         writeWebsmithConfig({
             addonsDir: ADDONS_DIR,

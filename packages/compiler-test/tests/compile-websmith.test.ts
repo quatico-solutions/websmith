@@ -350,60 +350,6 @@ describe("compile w/ websmith", () => {
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     });
 
-    it("should generate YAML file with profiles in file-config, addonsDir and generic profile selected", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR, // FIXME: This is not working as expected
-            profiles: {
-                "*": {
-                    addons: ["export-yaml-generator"],
-                },
-            },
-        });
-        await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            tsConfig: { ...tsDefaults },
-            websmith: {
-                buildDir: SOURCE_DIR,
-                profile: "*",
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
-                tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
-                config: {
-                    addonsDir: ADDONS_DIR,
-                },
-            },
-        });
-
-        expect(getOutput("foobar-function.js")).toContain("function foobar");
-        expect(getOutput("foobar-function.js")).toContain("function getFoobar");
-        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
-    });
-
-    it("should transform foobar functions with profiles in file-config, addonsDir and generic profile selected", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR, // FIXME: This is not working as expected
-            profiles: {
-                "*": {
-                    addons: ["foobar-replace-transformer"],
-                },
-            },
-        });
-
-        await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            tsConfig: { ...tsDefaults },
-            websmith: {
-                buildDir: SOURCE_DIR,
-                profile: "*",
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
-                tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
-                config: {
-                    addonsDir: ADDONS_DIR,
-                },
-            },
-        });
-
-        expect(getOutput("foobar-function.js")).toContain("function barfoo");
-        expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
-    });
-
     it("should generate YAML file with named profile and addonsDir, one profile in file-config", async () => {
         writeWebsmithConfig({
             addonsDir: ADDONS_DIR, // FIXME: This is not working as expected

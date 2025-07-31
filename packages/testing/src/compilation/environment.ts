@@ -158,7 +158,7 @@ export class CompilationEnv {
     }
 
     public getActiveAddon(addonName: string): CompilerAddon | undefined {
-        return this.addons?.getAvailableAddons("*").find((it: CompilerAddon) => it.getName() === addonName);
+        return this.addons?.getAvailableAddons().find((it: CompilerAddon) => it.getName() === addonName);
     }
 
     public getActiveAddons(profile?: string): CompilerAddons {
