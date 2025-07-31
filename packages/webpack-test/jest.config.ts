@@ -16,7 +16,6 @@ const config: Config = {
         "websmith-loader": "<rootDir>/../webpack/src",
     },
     testRegex: "tests/.*test\\.(tsx?)$",
-    testTimeout: 60000,
 };
 
 export default config;

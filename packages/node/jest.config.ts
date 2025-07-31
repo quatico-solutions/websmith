@@ -16,7 +16,6 @@ const config: Config = {
     },
     setupFilesAfterEnv: ["./test/jest.setup.ts"],
     testRegex: "(tests|src)/.+\\.spec\\.ts$",
-    testTimeout: 60000,
     transform: {
         "^.+\\.(js|ts)$": ["ts-jest", { tsconfig: "<rootDir>/tsconfig.test.json", diagnostics: false, isolatedModules: true }],
     },
