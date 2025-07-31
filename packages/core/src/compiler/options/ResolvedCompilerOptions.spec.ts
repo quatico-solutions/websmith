@@ -10,7 +10,7 @@ import { compileSystem } from "../../testing";
 import { DefaultReporter } from "../DefaultReporter";
 import { ResolvedCompilerOptions } from "./ResolvedCompilerOptions";
 
-describe("ResolvedCompilerOptions", () => {
+describe("ResolvedCompilerOptions#constructor", () => {
     it("should yield passed values", () => {
         const { fileSystem } = compileSystem({ buildDir: "/build" });
 
@@ -84,7 +84,7 @@ describe("ResolvedCompilerOptions", () => {
             },
         });
 
-        const actual = new ResolvedCompilerOptions(target, { tsConfigFile: "./expected/tsconfig.json" }).getOptions();
+        const actual = new ResolvedCompilerOptions(target, { buildDir: "./expected", tsConfigFile: "./expected/tsconfig.json" }).getOptions();
 
         expect(actual).toMatchObject({
             tsConfigFile: "/expected/tsconfig.json",
@@ -116,7 +116,7 @@ describe("ResolvedCompilerOptions", () => {
     it("should return debug path w/ debug true", () => {
         const { fileSystem: target } = compileSystem();
 
-        const actual = new ResolvedCompilerOptions(target, { debug: true }).getOptions();
+        const actual = new ResolvedCompilerOptions(target, { buildDir: "./", debug: true }).getOptions();
 
         expect(actual).toEqual(expect.objectContaining({ debug: true }));
     });
@@ -124,7 +124,7 @@ describe("ResolvedCompilerOptions", () => {
     it("should return watch path w/ watch true", () => {
         const { fileSystem: target } = compileSystem();
 
-        const actual = new ResolvedCompilerOptions(target, { watch: true }).getOptions();
+        const actual = new ResolvedCompilerOptions(target, { buildDir: "./", watch: true }).getOptions();
 
         expect(actual).toEqual(expect.objectContaining({ watch: true }));
     });
@@ -136,7 +136,7 @@ describe("ResolvedCompilerOptions", () => {
             },
         });
 
-        const actual = new ResolvedCompilerOptions(target, { configFile: "./websmith.config.json" }).getOptions();
+        const actual = new ResolvedCompilerOptions(target, { buildDir: "./", configFile: "./websmith.config.json" }).getOptions();
 
         expect(actual.config).toEqual({
             profiles: { whatever: { addons: ["one", "two", "three"] } },
@@ -146,29 +146,34 @@ describe("ResolvedCompilerOptions", () => {
     it("should return config w/ valid addonsDir, addons in compiler config json", () => {
         const { fileSystem: target } = compileSystem({
             files: {
-                "./tsconfig.json": '{ "include": ["**/*.ts"] }',
-                "/expected/one/addon.ts": "export const activate = () => {};",
-                "websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }',
+                "./expected/tsconfig.json": '{ "include": ["**/*.ts"] }',
+                "./expected/one/addon.ts": "export const activate = () => {};",
+                "./expected/websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }',
             },
+            buildDir: "./expected",
         });
         jest.mock(
-            "/expected/one/addon",
+            "./expected/one/addon",
             () => {
                 return { activate: jest.fn() };
             },
             { virtual: true }
         );
 
-        const actual = new ResolvedCompilerOptions(target, { configFile: "./websmith.config.json", tsConfigFile: "./tsconfig.json" }).getOptions();
+        const actual = new ResolvedCompilerOptions(target, {
+            buildDir: "./expected",
+            configFile: "./expected/websmith.config.json",
+            tsConfigFile: "./expected/tsconfig.json",
+        }).getOptions();
 
         expect(actual).toMatchObject({
-            buildDir: "/src",
+            buildDir: "/expected",
             config: {
                 addons: ["one", "two"],
                 addonsDir: "/expected",
             },
             tsConfig: {
-                configFilePath: "/tsconfig.json",
+                configFilePath: "/expected/tsconfig.json",
                 target: ts.ScriptTarget.ESNext,
                 module: ts.ModuleKind.ESNext,
             },
@@ -177,7 +182,7 @@ describe("ResolvedCompilerOptions", () => {
                 fileNames: ["/expected/one/addon.ts"],
                 errors: [],
                 options: {
-                    configFilePath: "/tsconfig.json",
+                    configFilePath: "/expected/tsconfig.json",
                 },
                 raw: {
                     include: ["**/*.ts"],
@@ -206,30 +211,32 @@ describe("ResolvedCompilerOptions#additionalArguments", () => {
 });
 describe("ResolvedCompilerOptions#configFile", () => {
     it("should yield undefined if not passed", () => {
-        const { fileSystem } = compileSystem();
+        const { fileSystem, reporter } = compileSystem();
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter } as any);
 
         expect(testObj.tsConfigFile).toBeUndefined();
     });
 
     it("should yield passed value", () => {
-        const { fileSystem } = compileSystem();
+        const { fileSystem, reporter } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
             configFile: "tsconfig.json",
+            reporter,
         } as any);
 
         expect(testObj.configFile).toBe("/tsconfig.json");
     });
 
     it("should yield overridden value", () => {
-        const { fileSystem } = compileSystem();
+        const { fileSystem, reporter } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(
             fileSystem,
             {
                 configFile: "whatever",
+                reporter,
             } as any,
             undefined,
             {
@@ -489,12 +496,12 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
     });
 
     it("should yield overridden values w/o matching profile", () => {
-        jest.spyOn(console, "warn").mockImplementation(() => {});
-        const { fileSystem } = compileSystem();
+        const { fileSystem, reporter } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(
             fileSystem,
             {
+                reporter,
                 profile: "unknown",
                 buildDir: "./src",
                 tsConfig: {
@@ -540,17 +547,17 @@ describe("ResolvedCompilerOptions#profile", () => {
     });
 
     it("should yield passed value", () => {
-        const { fileSystem } = compileSystem();
+        const { fileSystem, reporter } = compileSystem();
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target" } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target", reporter } as any);
 
         expect(testObj.profile).toBe("target");
     });
 
     it("should yield overridden value", () => {
-        const { fileSystem } = compileSystem();
+        const { fileSystem, reporter } = compileSystem();
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target" } as any, undefined, { profile: "expected" } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target", reporter } as any, undefined, { profile: "expected" } as any);
 
         expect(testObj.profile).toBe("expected");
     });
@@ -584,22 +591,24 @@ describe("ResolvedCompilerOptions#projectDir", () => {
     });
 
     it("should yield directory of configFile if passed", () => {
-        const { fileSystem } = compileSystem();
+        const { fileSystem, reporter } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
             configFile: "./expected/websmith.config.json",
+            reporter,
         } as any);
 
         expect(testObj.projectDir).toBe("./expected");
     });
 
     it("should yield overridden value", () => {
-        const { fileSystem } = compileSystem();
+        const { fileSystem, reporter } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(
             fileSystem,
             {
                 configFile: "/whatever/websmith.config.json",
+                reporter,
             } as any,
             undefined,
             {

@@ -44,6 +44,10 @@ class CompilerTestClass extends Compiler {
     }
 }
 
+beforeEach(() => {
+    jest.spyOn(console, "log").mockImplementation(() => {});
+});
+
 describe("getSystem", () => {
     it("returns the system passed to options", () => {
         const { fileSystem: expected } = compileSystem();
