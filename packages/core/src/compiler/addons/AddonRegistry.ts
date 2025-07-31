@@ -5,13 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage, type AddonContext, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
-import deepmerge from "deepmerge";
 import { createRequire } from "node:module";
 import path from "node:path";
 import ts from "typescript";
 import { Compiler } from "../Compiler";
 import { resolvePath } from "../config";
-import { arrayMerge } from "../options";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
 export type AddonConfig = {
@@ -27,107 +25,93 @@ export class AddonRegistry {
     private config: AddonConfig;
 
     constructor(config: AddonConfig) {
-        this.config = { ...config };
-        this.availableAddons = new Map<string, CompilerAddon>();
-        // Load addons synchronously during construction for immediate availability
+        this.availableAddons = new Map();
+        this.config = config;
         this.loadAddonsSync();
     }
 
-    setConfig(config: Partial<AddonConfig>): this {
-        this.config = { ...deepmerge(this.config, config, { arrayMerge }), reporter: this.config.reporter };
-        return this.refresh();
-    }
-
-    public getAddonsDir(): string {
-        return this.config.addonsDir;
-    }
-
-    public refresh(): this {
+    setConfig(config: AddonConfig): this {
+        this.config = config;
         this.availableAddons.clear();
         this.loadAddonsSync();
         return this;
     }
 
     /**
-     * Returns all available addons that match the expected names. The expected addon names are defined
-     * by the 'addons' properties in the profile specified by the 'profile' parameter
-     * or by the 'addons' property in the configuration.
+     * Retrieves all available addons based on the provided profile and its dependencies.
+     *
+     * RULES:
+     * 1. Returns all loaded addons when profile is undefined/not passed
+     * 2. Returns addons defined by the specified profile
+     * 3. Returns addons from profile + all depends profiles (recursively)
+     * 4. Returns no addons when profile defines no addons
+     * 5. Returns no addons when profile and all depends define no addons
+     * 6. Returns no addons when profile defines unknown addon names
+     * 7. Reports warnings for expected addons that cannot be returned
      */
-    public getAvailableAddons(profile?: string): CompilerAddons {
-        const expectedNames = this.getExpectedAddons(profile);
+    getAvailableAddons(profile?: string): CompilerAddons {
+        let expectedNames: string[];
+
+        if (!profile) {
+            // RULE 1: Return all loaded addons when no profile specified
+            expectedNames = [];
+        } else {
+            // RULES 2-6: Get expected addons from profile and dependencies
+            expectedNames = this.getExpectedAddonsWithDependencies(profile);
+        }
+
+        // RULE 7: Report warnings for missing addons
         this.reportMissingAddons(expectedNames, profile);
 
         const results =
             expectedNames.length === 0
-                ? Array.from(this.availableAddons.values())
-                : [...this.availableAddons].filter(([name]) => expectedNames.some(it => it.includes(name))).map(([, addon]) => addon);
+                ? Array.from(this.availableAddons.values()) // RULE 1: All addons when no profile
+                : [...this.availableAddons].filter(([name]) => expectedNames.includes(name)).map(([, addon]) => addon);
+
         return compilerAddons(results);
     }
 
     /**
-     * Returns the addon names that match the expected names. The expected addon names are defined
-     * by the 'addons' properties in the profile specified by the 'profile' parameter
-     * or by the 'addons' property in the configuration.
+     * Recursively resolves addons from a profile and all its dependencies.
+     * Handles circular dependencies by tracking visited profiles.
      */
-    public getAddons(profile?: string): CompilerAddons {
-        const expectedNames = this.getExpectedAddons(profile);
-        this.reportMissingAddons(expectedNames, profile);
+    private getExpectedAddonsWithDependencies(profile?: string, visited: Set<string> = new Set()): string[] {
+        const { profiles = {}, addons = [] } = this.config;
 
-        return compilerAddons(expectedNames.map(name => this.availableAddons.get(name)).filter(addon => addon !== undefined));
-    }
-
-    /**
-     * Retrieves the list of expected addons based on the provided 'profile' and the 'addons'
-     * property from the configuration.
-     *
-     * @param profile - An optional string representing the profile for which to retrieve addons.
-     * @returns An array of unique addon names that are expected for the given profile or 'addons' config.
-     */
-    private getExpectedAddons(profile?: string): string[] {
-        const { profiles = {}, addons = [], system, reporter, addonsDir } = this.config;
-        const requestedAddons = addons.filter(it => it.length > 0);
-        const profileAddons = profile ? (profiles[profile]?.addons ?? []) : [];
-        let targetAddons = [...new Set([...requestedAddons, ...profileAddons])];
-
-        const addonsToCompile = system
-            .readDirectory(addonsDir)
-            .map(it => resolvePath(system, it))
-            .filter(it => (profile === "*" ? true : targetAddons.includes(getAddonName(it))))
-            .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
-            .filter(isSourceFile)
-            .map(it => path.dirname(it));
-
-        // Calculate lib directory - create it relative to the addons directory
-        const libDir = resolvePath(system, addonsDir, "../lib");
-        const compiledAddons = system.directoryExists(libDir)
-            ? system
-                  .readDirectory(libDir)
-                  .filter(dirName => path.basename(dirName, path.extname(dirName)).toLocaleLowerCase() === "addon")
-                  .map(it => getAddonName(it))
-            : [];
-
-        if (!system.directoryExists(libDir)) {
-            system.createDirectory(libDir);
+        // If no profile is provided, return base addons
+        if (!profile) {
+            return addons.filter(it => it.length > 0);
         }
 
-        if (targetAddons.length === 0 && profile === "*") {
-            targetAddons = [...compiledAddons, ...addonsToCompile];
+        // Prevent circular dependencies
+        if (visited.has(profile)) {
+            return [];
+        }
+        visited.add(profile);
+
+        const profileConfig = profiles[profile];
+        if (!profileConfig) {
+            // Profile doesn't exist - will be handled by warning system
+            return [];
         }
 
-        if (addonsToCompile.length > 0) {
-            const missingAddons = targetAddons.filter(it => !compiledAddons.includes(it));
-            if (missingAddons.length > 0) {
-                // Compile all addons in the addons directory
-                const allTsFiles = system
-                    .readDirectory(addonsDir, [".ts", ".tsx"], undefined, undefined)
-                    .filter(isSourceFile)
-                    .filter(f => path.basename(f) !== "index.ts" || path.dirname(f) !== addonsDir); // Exclude main index.ts
-                if (allTsFiles.length > 0) {
-                    this.compileSourceFiles(addonsDir, reporter, libDir, allTsFiles);
-                }
+        // Get addons from this profile
+        const profileAddons = profileConfig.addons ?? [];
+
+        // Get addons from dependencies recursively
+        const dependencyAddons: string[] = [];
+        if (profileConfig.depends) {
+            for (const dependentProfile of profileConfig.depends) {
+                dependencyAddons.push(...this.getExpectedAddonsWithDependencies(dependentProfile, new Set(visited)));
             }
         }
-        return targetAddons;
+
+        // Combine base addons, profile addons, and dependency addons
+        const baseAddons = addons.filter(it => it.length > 0);
+        const allAddons = [...baseAddons, ...dependencyAddons, ...profileAddons];
+
+        // Return unique addon names
+        return [...new Set(allAddons)];
     }
 
     private getMissingAddons(expectedNames: string[] = []): string[] {
@@ -140,9 +124,7 @@ export class AddonRegistry {
         const missing = this.getMissingAddons(expectedNames).join(", ");
         if (missing.length > 0) {
             reporter?.reportDiagnostic(
-                new WarnMessage(
-                    profile && profile !== "*" ? `Missing addons for profile "${profile}": "${missing}".` : `Missing addons: "${missing}".`
-                )
+                new WarnMessage(profile ? `Missing addons for profile "${profile}": "${missing}".` : `Missing addons: "${missing}".`)
             );
         }
     }
@@ -204,7 +186,7 @@ export class AddonRegistry {
                     continue; // Skip build/output directories
                 }
 
-                if (!path.isAbsolute(dir)) {
+                if (!path.isAbsolute(subdir)) {
                     subdir = resolvePath(system, subdir);
                 }
                 results = results.concat(this.findAddonEntryFiles(subdir));
@@ -237,15 +219,16 @@ export class AddonRegistry {
 
         // If no JS files found, check for TypeScript files and compile them first
         if (loadedAddons.length === 0) {
-            const buildDir = path.dirname(addonsDir);
-            const libDir = resolvePath(system, buildDir, "./lib");
             const tsFiles = addonEntryFiles.filter(isSourceFile);
             if (tsFiles.length > 0) {
+                // Calculate lib directory relative to addons directory
+                const libDir = path.isAbsolute(addonsDir) ? path.resolve(path.dirname(addonsDir), "lib") : resolvePath(system, ".", "lib");
+
                 if (!system.directoryExists(libDir)) {
                     system.createDirectory(libDir);
                 }
 
-                const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, addonEntryFiles);
+                const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, tsFiles);
 
                 // Load the compiled addons
                 compiledAddonFiles.forEach((filePath: string) => {
