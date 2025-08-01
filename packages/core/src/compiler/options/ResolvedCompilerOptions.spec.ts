@@ -10,9 +10,12 @@ import { compileSystem } from "../../testing";
 import { DefaultReporter } from "../DefaultReporter";
 import { ResolvedCompilerOptions } from "./ResolvedCompilerOptions";
 
-describe("ResolvedCompilerOptions#constructor", () => {
+describe("constructor", () => {
     it("should yield passed values", () => {
-        const { fileSystem } = compileSystem({ buildDir: "/build" });
+        const { fileSystem } = compileSystem({
+            buildDir: "/build",
+            files: { "/build/tsconfig.json": "{}", "/build/test.ts": "export const test = () => {};" },
+        });
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
             buildDir: "/build",
@@ -29,32 +32,44 @@ describe("ResolvedCompilerOptions#constructor", () => {
         expect(testObj.buildDir).toBe("/build");
         expect(testObj.reporter).toBeInstanceOf(ReporterMock);
         expect(testObj.cliArgs).toEqual({
+            compileOnSave: false,
+            fileNames: ["/build/test.ts"],
             options: {
+                configFilePath: "/build/tsconfig.json",
                 declaration: true,
-                outDir: "/dist",
+                outDir: "/build/dist",
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
                 moduleResolution: ts.ModuleResolutionKind.Node10,
                 jsx: ts.JsxEmit.Preserve,
                 esModuleInterop: true,
             },
-            fileNames: [],
             errors: [],
+            raw: {},
+            typeAcquisition: {
+                enable: false,
+                exclude: [],
+                include: [],
+            },
+            wildcardDirectories: {
+                "/build": 1,
+            },
         });
     });
 
     it("should return defaults w/o any param", () => {
         const { fileSystem } = compileSystem();
 
-        const actual = new ResolvedCompilerOptions(fileSystem, { buildDir: "/src" }).getOptions();
+        const actual = new ResolvedCompilerOptions(fileSystem, { buildDir: "/target" }).getOptions();
 
         expect(actual).toEqual(
             expect.objectContaining({
-                buildDir: "/src",
+                buildDir: "/target",
                 cliArgs: {
                     errors: [],
                     fileNames: [],
                     options: {
+                        configFilePath: "/target/tsconfig.json",
                         declaration: true,
                         module: ts.ModuleKind.ESNext,
                         target: ts.ScriptTarget.ESNext,
@@ -64,8 +79,10 @@ describe("ResolvedCompilerOptions#constructor", () => {
                     },
                 },
                 config: {},
+                configFile: "/target/websmith.config.json",
                 reporter: expect.any(DefaultReporter),
                 tsConfig: {
+                    configFilePath: "/target/tsconfig.json",
                     declaration: true,
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
@@ -73,6 +90,7 @@ describe("ResolvedCompilerOptions#constructor", () => {
                     jsx: ts.JsxEmit.Preserve,
                     esModuleInterop: true,
                 },
+                tsConfigFile: "/target/tsconfig.json",
             })
         );
     });
@@ -192,7 +210,7 @@ describe("ResolvedCompilerOptions#constructor", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#additionalArguments", () => {
+describe("additionalArguments", () => {
     it("should yield undefined if not passed", () => {
         const { fileSystem } = compileSystem();
 
@@ -209,13 +227,13 @@ describe("ResolvedCompilerOptions#additionalArguments", () => {
         expect(testObj.additionalArguments).toEqual({ test: "test" });
     });
 });
-describe("ResolvedCompilerOptions#configFile", () => {
+describe("configFile", () => {
     it("should yield undefined if not passed", () => {
         const { fileSystem, reporter } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, { reporter } as any);
 
-        expect(testObj.tsConfigFile).toBeUndefined();
+        expect(testObj.tsConfigFile).toBe("/tsconfig.json");
     });
 
     it("should yield passed value", () => {
@@ -248,7 +266,7 @@ describe("ResolvedCompilerOptions#configFile", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#config", () => {
+describe("config", () => {
     it("should yield undefined if not passed", () => {
         const { fileSystem } = compileSystem();
 
@@ -300,7 +318,7 @@ describe("ResolvedCompilerOptions#config", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#debug", () => {
+describe("debug", () => {
     it("should yield false if not passed", () => {
         const { fileSystem } = compileSystem();
 
@@ -326,7 +344,7 @@ describe("ResolvedCompilerOptions#debug", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#watch", () => {
+describe("watch", () => {
     it("should yield false if not passed", () => {
         const { fileSystem } = compileSystem();
 
@@ -352,13 +370,13 @@ describe("ResolvedCompilerOptions#watch", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#tsConfigFile", () => {
+describe("tsConfigFile", () => {
     it("should yield undefined if not passed", () => {
         const { fileSystem } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
-        expect(testObj.tsConfigFile).toBeUndefined();
+        expect(testObj.tsConfigFile).toBe("/tsconfig.json");
     });
 
     it("should yield passed value", () => {
@@ -389,13 +407,14 @@ describe("ResolvedCompilerOptions#tsConfigFile", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#tsConfig", () => {
+describe("tsConfig", () => {
     it("should yield default config if not passed", () => {
         const { fileSystem } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
         expect(testObj.tsConfig).toEqual({
+            configFilePath: "/tsconfig.json",
             declaration: true,
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
@@ -415,6 +434,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         } as any);
 
         expect(testObj.tsConfig).toEqual({
+            configFilePath: "/tsconfig.json",
             declaration: true,
             outDir: "/expected",
             module: ts.ModuleKind.ESNext,
@@ -444,6 +464,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
+            configFilePath: "/tsconfig.json",
             declaration: true,
             outDir: "/expected",
             module: ts.ModuleKind.ESNext,
@@ -462,7 +483,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
             fileSystem,
             {
                 profile: "target",
-                buildDir: "./src",
+                buildDir: "./target",
                 tsConfig: {
                     outDir: "./general-out-dir",
                 },
@@ -485,8 +506,9 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
+            configFilePath: "/target/tsconfig.json",
             declaration: true,
-            outDir: "/profile-out-dir",
+            outDir: "/target/profile-out-dir",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -503,7 +525,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
             {
                 reporter,
                 profile: "unknown",
-                buildDir: "./src",
+                buildDir: "./target",
                 tsConfig: {
                     outDir: "./general-out-dir",
                 },
@@ -526,8 +548,9 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
+            configFilePath: "/target/tsconfig.json",
             declaration: true,
-            outDir: "/loader-out-dir",
+            outDir: "/target/loader-out-dir",
             module: ts.ModuleKind.ESNext,
             target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -537,7 +560,7 @@ describe("ResolvedCompilerOptions#tsConfig", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#profile", () => {
+describe("profile", () => {
     it("should yield undefined if not passed", () => {
         const { fileSystem } = compileSystem();
 
@@ -563,13 +586,13 @@ describe("ResolvedCompilerOptions#profile", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#buildDir", () => {
+describe("buildDir", () => {
     it("should yield current directory if not passed", () => {
         const { fileSystem } = compileSystem();
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
-        expect(testObj.buildDir).toBe("/src");
+        expect(testObj.buildDir).toBe(".");
     });
 
     it("should yield overridden value", () => {
@@ -581,7 +604,7 @@ describe("ResolvedCompilerOptions#buildDir", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#projectDir", () => {
+describe("projectDir", () => {
     it("should yield current directory if not passed", () => {
         const { fileSystem } = compileSystem();
 
@@ -598,7 +621,7 @@ describe("ResolvedCompilerOptions#projectDir", () => {
             reporter,
         } as any);
 
-        expect(testObj.projectDir).toBe("./expected");
+        expect(testObj.projectDir).toBe("/expected");
     });
 
     it("should yield overridden value", () => {
@@ -620,7 +643,7 @@ describe("ResolvedCompilerOptions#projectDir", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#reporter", () => {
+describe("reporter", () => {
     it("should yield default reporter if not passed", () => {
         const { fileSystem } = compileSystem();
 
@@ -638,22 +661,33 @@ describe("ResolvedCompilerOptions#reporter", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#cliArgs", () => {
+describe("cliArgs", () => {
     it("should yield empty object if not passed", () => {
-        const { fileSystem } = compileSystem();
+        const { fileSystem } = compileSystem({ files: { "/test.ts": "export const test = () => {};" } });
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
         expect(testObj.cliArgs).toEqual({
+            compileOnSave: false,
             errors: [],
-            fileNames: [],
+            fileNames: ["/test.ts"],
             options: {
+                configFilePath: "/tsconfig.json",
                 declaration: true,
                 target: ts.ScriptTarget.ESNext,
                 module: ts.ModuleKind.ESNext,
                 moduleResolution: ts.ModuleResolutionKind.Node10,
                 jsx: ts.JsxEmit.Preserve,
                 esModuleInterop: true,
+            },
+            raw: {},
+            typeAcquisition: {
+                enable: false,
+                exclude: [],
+                include: [],
+            },
+            wildcardDirectories: {
+                "": 1,
             },
         });
     });
@@ -709,7 +743,7 @@ describe("ResolvedCompilerOptions#cliArgs", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#getSelectedProfiles", () => {
+describe("getSelectedProfiles", () => {
     it("should yield empty array with no profiles", () => {
         const { fileSystem } = compileSystem();
 
@@ -836,7 +870,7 @@ describe("ResolvedCompilerOptions#getSelectedProfiles", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#getAddons", () => {
+describe("getAddons", () => {
     it("should yield empty array with no addons", () => {
         const { fileSystem } = compileSystem();
 
@@ -933,18 +967,20 @@ describe("ResolvedCompilerOptions#getAddons", () => {
     });
 });
 
-describe("ResolvedCompilerOptions#getOptions", () => {
+describe("getOptions", () => {
     it("should yield default options if not passed", () => {
-        const { fileSystem } = compileSystem();
+        const { fileSystem } = compileSystem({ files: { "/test.ts": "export const test = () => {};" } });
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
         expect(testObj.getOptions()).toEqual({
-            buildDir: "/src",
+            buildDir: ".",
             cliArgs: {
+                compileOnSave: false,
                 errors: [],
-                fileNames: [],
+                fileNames: ["/test.ts"],
                 options: {
+                    configFilePath: "/tsconfig.json",
                     declaration: true,
                     module: ts.ModuleKind.ESNext,
                     target: ts.ScriptTarget.ESNext,
@@ -952,10 +988,22 @@ describe("ResolvedCompilerOptions#getOptions", () => {
                     jsx: ts.JsxEmit.Preserve,
                     esModuleInterop: true,
                 },
+                raw: {},
+                typeAcquisition: {
+                    enable: false,
+                    exclude: [],
+                    include: [],
+                },
+                wildcardDirectories: {
+                    "": 1,
+                },
             },
+
             config: {},
+            configFile: "/websmith.config.json",
             reporter: expect.any(DefaultReporter),
             tsConfig: {
+                configFilePath: "/tsconfig.json",
                 declaration: true,
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
@@ -963,6 +1011,7 @@ describe("ResolvedCompilerOptions#getOptions", () => {
                 jsx: ts.JsxEmit.Preserve,
                 esModuleInterop: true,
             },
+            tsConfigFile: "/tsconfig.json",
         });
     });
 

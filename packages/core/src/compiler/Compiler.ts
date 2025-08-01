@@ -197,7 +197,7 @@ export class Compiler {
             reporter: this.reporter,
         };
 
-        this.options = resolveCompilerOptions(this.system, { buildDir: "./src", ...optionsWithReporter }, undefined, loaderOptions);
+        this.options = resolveCompilerOptions(this.system, optionsWithReporter, undefined, loaderOptions);
 
         return this;
     }

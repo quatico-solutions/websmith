@@ -25,7 +25,7 @@ describe("parsedCommandLine w/ empty tsconfig.json", () => {
     });
 
     it("yields default tsconfig.json with no includes", () => {
-        const { fileSystem: target } = compileSystem();
+        const { fileSystem: target } = compileSystem({ files: { "/test.ts": "export const test = () => {};" } });
 
         const actual = parsedCommandLine("tsconfig.json", {}, target);
 
