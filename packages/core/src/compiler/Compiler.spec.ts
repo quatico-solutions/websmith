@@ -5,15 +5,17 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import path from "node:path";
 import { type Reporter } from "@quatico/websmith-api";
+import path from "node:path";
 import ts from "typescript";
-import { compileSystem } from "../testing";
 import { ReporterMock } from "../../test";
+import { compileSystem } from "../testing";
 import { Compiler, type CompileFragment } from "./Compiler";
-import { type CompilationContext } from "./compilation";
 import type { AddonRegistry } from "./addons";
-import { type CompilerOptions, type WebpackLoaderOptions } from "./options";
+import { type CompilationContext } from "./compilation";
+import { DefaultReporter } from "./DefaultReporter";
+import { type CompilerOptions, type ResolvedCompilerOptions, type WebpackLoaderOptions } from "./options";
+import { NoReporter } from "./NoReporter";
 
 class CompilerTestClass extends Compiler {
     constructor(
@@ -42,10 +44,258 @@ class CompilerTestClass extends Compiler {
     public createCompilationContext(profile: string): CompilationContext {
         return super.createCompilationContext(profile);
     }
+
+    public getSystem(): ts.System {
+        return super.getSystem();
+    }
+
+    public getOptions(): ResolvedCompilerOptions {
+        return super.getOptions();
+    }
+
+    public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
+        return super.setOptions(options, loaderOptions);
+    }
+
+    public getContext(profile?: string): CompilationContext | undefined {
+        return super.getContext(profile);
+    }
+
+    public getReporter(): Reporter {
+        return super.getReporter();
+    }
 }
 
 beforeEach(() => {
     jest.spyOn(console, "log").mockImplementation(() => {});
+});
+
+describe("constructor", () => {
+    it("uses reporter parameter when provided", () => {
+        const expected = new NoReporter();
+        const notExpected = new ReporterMock(ts.sys);
+        const testObj = new CompilerTestClass({ reporter: notExpected }, undefined, undefined, undefined, undefined, expected);
+
+        const actual = testObj.getReporter();
+
+        expect(actual).toBe(expected);
+        expect(actual).not.toBe(notExpected);
+    });
+
+    it("uses options.reporter when reporter parameter not provided", () => {
+        const expected = new NoReporter();
+        const testObj = new CompilerTestClass({ reporter: expected });
+
+        expect(testObj.getReporter()).toBe(expected);
+    });
+
+    it("creates DefaultReporter when neither reporter parameter nor options.reporter provided", () => {
+        const testObj = new CompilerTestClass({ buildDir: "./src" });
+
+        expect(testObj.getReporter()).toBeDefined();
+        expect(testObj.getReporter()).toBeInstanceOf(DefaultReporter);
+    });
+
+    it("prioritizes reporter parameter over options.reporter when both provided", () => {
+        const expected = new NoReporter();
+        const noExpected = new ReporterMock(ts.sys);
+
+        const testObj = new CompilerTestClass({ reporter: noExpected }, undefined, undefined, undefined, undefined, expected);
+
+        expect(testObj.getReporter()).toBe(expected);
+        expect(testObj.getReporter()).not.toBe(noExpected);
+    });
+
+    it("allows loaderOptions.debug to override options.debug", () => {
+        const options = { debug: false };
+        const loaderOptions = { debug: true };
+
+        const testObj = new CompilerTestClass(options, loaderOptions);
+
+        expect(testObj.getOptions().debug).toBe(true);
+    });
+
+    it("allows loaderOptions.profile to override options.profile", () => {
+        const options = { profile: "options-profile" };
+        const loaderOptions = { profile: "loader-profile" };
+
+        const testObj = new CompilerTestClass(options, loaderOptions);
+
+        expect(testObj.getOptions().profile).toBe("loader-profile");
+    });
+
+    it("allows loaderOptions.configFile to override options.configFile", () => {
+        const options = { configFile: "./options-config.json" };
+        const loaderOptions = { configFile: "./loader-config.json" };
+
+        const testObj = new CompilerTestClass(options, loaderOptions);
+
+        expect(testObj.getOptions().configFile).toMatch(/loader-config\.json$/);
+    });
+
+    it("allows loaderOptions.tsConfigFile to override options.tsConfigFile", () => {
+        const options = { tsConfigFile: "./options-tsconfig.json" };
+        const loaderOptions = { tsConfigFile: "./loader-tsconfig.json" };
+
+        const testObj = new CompilerTestClass(options, loaderOptions);
+
+        expect(testObj.getOptions().tsConfigFile).toMatch(/loader-tsconfig\.json$/);
+    });
+
+    it("allows loaderOptions.config properties to override options.config properties", () => {
+        const options = {
+            buildDir: "./src",
+            config: {
+                addons: ["options-addon"],
+                addonsDir: "./options-addons",
+                transpileOnly: false,
+            },
+        };
+        const loaderOptions = {
+            config: {
+                addons: ["loader-addon"],
+                addonsDir: "./loader-addons",
+            },
+            transpileOnly: true,
+        };
+
+        const testObj = new CompilerTestClass(options, loaderOptions);
+
+        expect(testObj.getOptions().config?.addons).toEqual(["loader-addon"]);
+        expect(testObj.getOptions().config?.addonsDir).toMatch(/loader-addons$/);
+        expect(testObj.getOptions().config?.transpileOnly).toBe(true);
+    });
+
+    it("allows loaderOptions.tsConfig properties to override options.tsConfig properties", () => {
+        const options = {
+            buildDir: "./src",
+            tsConfig: {
+                target: ts.ScriptTarget.ES5,
+                module: ts.ModuleKind.CommonJS,
+                strict: false,
+            },
+        };
+        const loaderOptions = {
+            tsConfig: {
+                target: ts.ScriptTarget.ES2020,
+                strict: true,
+            },
+        };
+
+        const testObj = new CompilerTestClass(options, loaderOptions);
+
+        expect(testObj.getOptions().tsConfig?.target).toBe(ts.ScriptTarget.ES2020);
+        expect(testObj.getOptions().tsConfig?.module).toBe(ts.ModuleKind.CommonJS); // should remain from options
+        expect(testObj.getOptions().tsConfig?.strict).toBe(true);
+    });
+
+    it("uses options properties when corresponding loaderOptions properties are not provided", () => {
+        const options = {
+            buildDir: "./src",
+            debug: true,
+            profile: "test-profile",
+            configFile: "./test-config.json",
+        };
+        const loaderOptions = { transpileOnly: true }; // only transpileOnly provided
+
+        const testObj = new CompilerTestClass(options, loaderOptions);
+
+        expect(testObj.getOptions().debug).toBe(true);
+        expect(testObj.getOptions().profile).toBe("test-profile");
+        expect(testObj.getOptions().configFile).toMatch(/test-config\.json$/);
+        expect(testObj.getOptions().config?.transpileOnly).toBe(true);
+    });
+
+    describe("Configuration Path Resolution", () => {
+        it("uses default values when buildDir, tsConfigFile, and configFile are not specified", () => {
+            const testObj = new CompilerTestClass({});
+
+            expect(path.isAbsolute(testObj.getOptions().buildDir)).toBe(true);
+            expect(testObj.getOptions().tsConfigFile).toBe(`${testObj.getOptions().buildDir}/tsconfig.json`);
+            expect(testObj.getOptions().configFile).toBe(`${testObj.getOptions().buildDir}/websmith.config.json`);
+        });
+
+        it("derives tsConfigFile and configFile from buildDir when only buildDir is specified", () => {
+            const testObj = new CompilerTestClass({ buildDir: "./custom-src" });
+
+            expect(testObj.getOptions().buildDir).toMatch(/custom-src$/);
+            expect(testObj.getOptions().tsConfigFile).toMatch(/custom-src\/tsconfig\.json$/);
+            expect(testObj.getOptions().configFile).toMatch(/custom-src\/websmith\.config\.json$/);
+        });
+
+        it("derives buildDir and configFile from tsConfigFile dirname when only tsConfigFile is specified", () => {
+            const testObj = new CompilerTestClass({ tsConfigFile: "./custom-dir/tsconfig.json" });
+
+            expect(testObj.getOptions().buildDir).toMatch(/custom-dir$/);
+            expect(testObj.getOptions().tsConfigFile).toMatch(/custom-dir\/tsconfig\.json$/);
+            expect(testObj.getOptions().configFile).toMatch(/custom-dir\/websmith\.config\.json$/);
+        });
+
+        it("derives buildDir and tsConfigFile from configFile dirname when only configFile is specified", () => {
+            const testObj = new CompilerTestClass({ configFile: "./config-dir/websmith.config.json" });
+
+            expect(testObj.getOptions().buildDir).toMatch(/config-dir$/);
+            expect(testObj.getOptions().tsConfigFile).toMatch(/config-dir\/tsconfig\.json$/);
+            expect(testObj.getOptions().configFile).toMatch(/config-dir\/websmith\.config\.json$/);
+        });
+
+        it("prioritizes tsConfigFile dirname over buildDir and reports warning when they differ", () => {
+            const system = compileSystem().fileSystem;
+            const target = new ReporterMock(system);
+            target.reportDiagnostic = jest.fn();
+
+            const testObj = new CompilerTestClass({
+                buildDir: "./wrong-dir",
+                tsConfigFile: "./correct-dir/tsconfig.json",
+                configFile: "./another-dir/websmith.config.json",
+                reporter: target,
+            });
+
+            expect(testObj.getOptions().buildDir).toMatch(/correct-dir$/);
+            expect(testObj.getOptions().tsConfigFile).toMatch(/correct-dir\/tsconfig\.json$/);
+            expect(testObj.getOptions().configFile).toMatch(/another-dir\/websmith\.config\.json$/);
+            expect(target.reportDiagnostic).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    messageText: expect.stringContaining('Using "tsConfigFile" directory as "buildDir".'),
+                })
+            );
+        });
+
+        it("allows configFile to be in different location from buildDir and tsConfigFile", () => {
+            const testObj = new CompilerTestClass({
+                buildDir: "./target",
+                tsConfigFile: "./target/tsconfig.json",
+                configFile: "./config/websmith.config.json",
+            });
+
+            expect(testObj.getOptions().buildDir).toMatch(/target$/);
+            expect(testObj.getOptions().tsConfigFile).toMatch(/target\/tsconfig\.json$/);
+            expect(testObj.getOptions().configFile).toMatch(/config\/websmith\.config\.json$/);
+        });
+
+        it("resolves paths correctly when buildDir and tsConfigFile are in same directory", () => {
+            const testObj = new CompilerTestClass({
+                buildDir: "./project",
+                tsConfigFile: "./project/tsconfig.json",
+            });
+
+            expect(testObj.getOptions().buildDir).toMatch(/project$/);
+            expect(testObj.getOptions().tsConfigFile).toMatch(/project\/tsconfig\.json$/);
+            expect(testObj.getOptions().configFile).toMatch(/project\/websmith\.config\.json$/);
+        });
+
+        it("handles absolute paths correctly", () => {
+            const testObj = new CompilerTestClass({
+                buildDir: "/absolute/src",
+                tsConfigFile: "/absolute/src/tsconfig.json",
+                configFile: "/different/websmith.config.json",
+            });
+
+            expect(testObj.getOptions().buildDir).toMatch(/absolute\/src$/);
+            expect(testObj.getOptions().tsConfigFile).toMatch(/absolute\/src\/tsconfig\.json$/);
+            expect(testObj.getOptions().configFile).toMatch(/different\/websmith\.config\.json$/);
+        });
+    });
 });
 
 describe("getSystem", () => {
@@ -1196,7 +1446,7 @@ describe("Virtual File System Debug", () => {
         console.log("tsconfig.json exists:", fileSystem.fileExists("/project/tsconfig.json"));
         console.log("src/target.ts exists:", fileSystem.fileExists("/src/target.ts"));
 
-        expect(fileSystem.fileExists("/project/tsconfig.json")).toBe(true);
+        expect(fileSystem.fileExists("/tsconfig.json")).toBe(true);
         expect(fileSystem.fileExists("/src/target.ts")).toBe(true);
     });
 });

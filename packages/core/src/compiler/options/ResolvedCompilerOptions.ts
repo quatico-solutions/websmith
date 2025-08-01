@@ -7,7 +7,7 @@
 import { type CompilationProfile, type Reporter } from "@quatico/websmith-api";
 import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
-import type ts from "typescript";
+import ts from "typescript";
 import { recursiveFindByFilter } from "../../environment";
 import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, type CompilationConfig } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
@@ -15,7 +15,115 @@ import { tsDefaults } from "../defaults";
 import { type CompilerOptions } from "./CompilerOptions";
 import { type WebpackLoaderOptions } from "./WebpackLoaderOptions";
 
-const DEFAULT_BUILD_DIR = "./src";
+const DEFAULT_BUILD_DIR = "./";
+const DEFAULT_TSCONFIG_FILE = "tsconfig.json";
+const DEFAULT_CONFIG_FILE = "websmith.config.json";
+
+type ResolvedPaths = {
+    buildDir: string;
+    tsConfigFile?: string;
+    configFile?: string;
+};
+
+/**
+ * Resolves buildDir, tsConfigFile, and configFile according to the following rules:
+ * 1. Default values: buildDir = "./", tsConfigFile = "./tsconfig.json", configFile = "./websmith.config.json"
+ * 2. If buildDir specified but not others: derive tsConfigFile and configFile from buildDir
+ * 3. If tsConfigFile specified but not buildDir/configFile: use dirname of tsConfigFile for both
+ * 4. If configFile specified but not buildDir/tsConfigFile: use dirname of configFile for both
+ * 5. If all specified but tsConfigFile uses different location than buildDir: buildDir = dirname(tsConfigFile) + warning
+ * 6. configFile can be in different location from buildDir and tsConfigFile
+ */
+const resolvePathsWithRules = (
+    system: ts.System,
+    options: {
+        buildDir?: string;
+        tsConfigFile?: string;
+        configFile?: string;
+    },
+    reporter?: Reporter
+): ResolvedPaths => {
+    const { buildDir, tsConfigFile, configFile } = options;
+
+    // Rule 1: Default values when nothing is specified
+    if (!buildDir && !tsConfigFile && !configFile) {
+        return {
+            buildDir: resolvePath(system, DEFAULT_BUILD_DIR),
+            tsConfigFile: resolvePath(system, DEFAULT_BUILD_DIR, DEFAULT_TSCONFIG_FILE),
+            configFile: resolvePath(system, DEFAULT_BUILD_DIR, DEFAULT_CONFIG_FILE),
+        };
+    }
+
+    // Rule 2: Only buildDir specified
+    if (buildDir && !tsConfigFile && !configFile) {
+        const resolvedBuildDir = resolvePath(system, buildDir);
+        return {
+            buildDir: resolvedBuildDir,
+            tsConfigFile: resolvePath(system, resolvedBuildDir, DEFAULT_TSCONFIG_FILE),
+            configFile: resolvePath(system, resolvedBuildDir, DEFAULT_CONFIG_FILE),
+        };
+    }
+
+    // Rule 3: Only tsConfigFile specified
+    if (!buildDir && tsConfigFile && !configFile) {
+        const resolvedTsConfigFile = resolvePath(system, tsConfigFile);
+        const tsConfigDir = path.dirname(resolvedTsConfigFile);
+        return {
+            buildDir: tsConfigDir,
+            tsConfigFile: resolvedTsConfigFile,
+            configFile: resolvePath(system, tsConfigDir, DEFAULT_CONFIG_FILE),
+        };
+    }
+
+    // Rule 4: Only configFile specified
+    if (!buildDir && !tsConfigFile && configFile) {
+        const resolvedConfigFile = resolvePath(system, configFile);
+        const configDir = path.dirname(resolvedConfigFile);
+        return {
+            buildDir: configDir,
+            tsConfigFile: resolvePath(system, configDir, DEFAULT_TSCONFIG_FILE),
+            configFile: resolvedConfigFile,
+        };
+    }
+
+    // For other combinations, start with provided values
+    let resolvedBuildDir = buildDir ? resolvePath(system, buildDir) : resolvePath(system, DEFAULT_BUILD_DIR);
+    let resolvedTsConfigFile = tsConfigFile ? resolvePath(system, tsConfigFile) : undefined;
+    let resolvedConfigFile = configFile ? resolvePath(system, configFile) : undefined;
+
+    // Rule 5: If tsConfigFile and buildDir are both specified but in different directories
+    if (resolvedTsConfigFile && resolvedBuildDir) {
+        const tsConfigDir = path.dirname(resolvedTsConfigFile);
+        const normalizedBuildDir = path.resolve(resolvedBuildDir);
+        const normalizedTsConfigDir = path.resolve(tsConfigDir);
+
+        if (normalizedBuildDir !== normalizedTsConfigDir) {
+            reporter?.reportDiagnostic({
+                category: ts.DiagnosticCategory.Warning,
+                code: 0,
+                messageText: `The value for buildDir "${resolvedBuildDir}" differs from tsConfigFile directory "${tsConfigDir}". Using "tsConfigFile" directory as "buildDir".`,
+                file: undefined,
+                start: undefined,
+                length: undefined,
+            });
+            resolvedBuildDir = tsConfigDir;
+        }
+    }
+
+    // Fill in missing values based on resolved buildDir
+    if (!resolvedTsConfigFile) {
+        resolvedTsConfigFile = resolvePath(system, resolvedBuildDir, DEFAULT_TSCONFIG_FILE);
+    }
+    if (!resolvedConfigFile) {
+        resolvedConfigFile = resolvePath(system, resolvedBuildDir, DEFAULT_CONFIG_FILE);
+    }
+
+    return {
+        buildDir: resolvedBuildDir,
+        tsConfigFile: resolvedTsConfigFile,
+        configFile: resolvedConfigFile,
+    };
+};
 
 export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly configFile?: string;
@@ -58,19 +166,21 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         this.debug = debug;
         // TODO: Workaround for the missing 'additionalArguments' after deepmerge
         this.additionalArguments = options.additionalArguments;
-        this.buildDir = resolvePath(this.system, buildDir ?? DEFAULT_BUILD_DIR);
+
+        // Resolve paths according to the defined rules
+        const resolvedPaths = resolvePathsWithRules(this.system, { buildDir, tsConfigFile, configFile }, this.reporter);
+
+        this.buildDir = resolvedPaths.buildDir;
+        this.tsConfigFile = resolvedPaths.tsConfigFile;
+        this.configFile = resolvedPaths.configFile;
 
         this.projectDir =
-            (configFile && path.dirname(configFile)) ??
-            (tsConfigFile && path.dirname(tsConfigFile)) ??
+            (this.configFile && path.dirname(this.configFile)) ??
+            (this.tsConfigFile && path.dirname(this.tsConfigFile)) ??
             (cliArgs.raw?.configFilePath && path.dirname(cliArgs.raw?.configFilePath)) ??
             this.system.getCurrentDirectory();
-        // resolve websmith config
-        if (configFile) {
-            this.configFile = resolvePath(this.system, this.projectDir, configFile);
-        }
+
         this.config = deepmerge<CompilationConfig>(compilationConfig, config ?? {}, { arrayMerge });
-        this.tsConfigFile = tsConfigFile ? resolvePath(this.system, this.projectDir, tsConfigFile) : undefined;
 
         // profiles
         const profileName = loaderOptions?.profile ?? options.profile;
