@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
+import path from "node:path";
 import type ts from "typescript";
 import { ReporterMock } from "../../../test";
 import { compileSystem } from "../../testing";
@@ -586,16 +587,152 @@ describe("Addon loading rules", () => {
     });
 });
 
+describe("Addon Compilation", () => {
+    const PROJECT_DIR = path.resolve(__dirname, "..", "..", "..", "output");
+    const ADDONS_DIR = path.resolve(PROJECT_DIR, "addons"); // TODO: Only compile to lib if addons are in "src" dir
+
+    it("loads addon.js without compilation", () => {
+        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const target = new ReporterMock(system);
+        createAddon(`${ADDONS_DIR}/js-addon/addon`, system);
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system });
+
+        const actual = testObj.getAvailableAddons();
+        expect(actual.getNames()).toContain("js-addon");
+        expect(target.reportDiagnostic).not.toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Failed to compile addons"),
+            })
+        );
+    });
+
+    it("compiles valid addon.ts correctly", () => {
+        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const target = new ReporterMock(system);
+        system.createDirectory(ADDONS_DIR);
+        system.createDirectory(`${ADDONS_DIR}/ts-addon`);
+        system.writeFile(`${ADDONS_DIR}/ts-addon/addon.ts`, "export const activate = () => {};");
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: target, system });
+
+        testObj.getAvailableAddons();
+        expect(target.reportDiagnostic).not.toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Failed to compile addons"),
+            })
+        );
+    });
+
+    it("compiles index.ts that imports addon.ts correctly", () => {
+        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const target = new ReporterMock(system);
+        system.createDirectory(ADDONS_DIR);
+        system.createDirectory(`${ADDONS_DIR}/complex-addon`);
+        system.writeFile(`${ADDONS_DIR}/complex-addon/addon.ts`, "export const addonLogic = () => 'logic';");
+        system.writeFile(`${ADDONS_DIR}/complex-addon/index.ts`, "import { addonLogic } from './addon'; export const activate = () => addonLogic();");
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: target, system });
+
+        testObj.getAvailableAddons();
+        expect(target.reportDiagnostic).not.toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Failed to compile addons"),
+            })
+        );
+    });
+
+    it("reports compilation error with invalid TypeScript syntax", () => {
+        const { fileSystem: system } = compileSystem({ addLibDefaults: true }, { addonsDir: ADDONS_DIR });
+        const target = new ReporterMock(system);
+        system.createDirectory(ADDONS_DIR);
+        system.createDirectory(`${ADDONS_DIR}/broken-addon`);
+        system.writeFile(`${ADDONS_DIR}/broken-addon/addon.ts`, "this is not valid typescript syntax !!!");
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system });
+
+        testObj.getAvailableAddons();
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                category: expect.any(Number),
+                messageText: expect.stringContaining("Failed to compile addons"),
+            })
+        );
+    });
+
+    it("reports compilation error when index.ts imports missing addon.ts", () => {
+        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const target = new ReporterMock(system);
+        system.createDirectory(ADDONS_DIR);
+        system.createDirectory(`${ADDONS_DIR}/missing-import-addon`);
+        system.writeFile(
+            `${ADDONS_DIR}/missing-import-addon/index.ts`,
+            "import { missingFunction } from './addon'; export const activate = () => missingFunction();"
+        );
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system });
+
+        testObj.getAvailableAddons();
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                category: expect.any(Number),
+                messageText: expect.stringContaining("Failed to compile addons"),
+            })
+        );
+    });
+
+    it("prioritizes addon.js over addon.ts when both exist", () => {
+        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const target = new ReporterMock(system);
+        system.createDirectory(ADDONS_DIR);
+        system.createDirectory(`${ADDONS_DIR}/priority-addon`);
+        system.writeFile(`${ADDONS_DIR}/priority-addon/addon.ts`, "export const activate = () => console.log('ts version');");
+        createAddon("addons/priority-addon/addon", system);
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: target, system });
+
+        const actual = testObj.getAvailableAddons();
+        expect(actual.getNames()).toContain("priority-addon");
+    });
+
+    it("compiles multiple TypeScript addons without error", () => {
+        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const target = new ReporterMock(system);
+        system.createDirectory(ADDONS_DIR);
+        system.createDirectory(`${ADDONS_DIR}/first-addon`);
+        system.createDirectory(`${ADDONS_DIR}/second-addon`);
+        system.writeFile(`${ADDONS_DIR}/first-addon/addon.ts`, "export const activate = () => {};");
+        system.writeFile(`${ADDONS_DIR}/second-addon/addon.ts`, "export const activate = () => {};");
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: target, system });
+
+        testObj.getAvailableAddons();
+        expect(target.reportDiagnostic).not.toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Failed to compile addons"),
+            })
+        );
+    });
+});
+
 const createAddon = (
-    path: string,
+    addonPath: string,
     system: ts.System,
     code = "export const activate = () => {};",
     mock: object = { activate: jest.fn() },
     extension = ".js"
 ) => {
-    system.writeFile(`./${path}${extension}`, code);
+    const filePath = addonPath.startsWith("./") ? addonPath : `./${addonPath}`;
+    system.writeFile(`${filePath}${extension}`, code);
     jest.mock(
-        `/${path}`,
+        addonPath.startsWith("/") ? addonPath : `/${addonPath}`,
         () => {
             return mock;
         },

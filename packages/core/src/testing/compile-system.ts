@@ -17,10 +17,12 @@ export const compileSystem = (options?: Partial<CompileSystemOptions>, addonConf
         useCaseSensitiveFileNames = false,
         addLibDefaults = true,
         fileWatcher,
-        buildDir = "./src",
+        buildDir = "./",
     } = options ?? {};
 
-    const resolvedAddonsDir = resolvePath(path.join(buildDir, "addons"));
+    const { addons = [], addonsDir = "./addons", profiles } = addonConfig ?? {};
+
+    const resolvedAddonsDir = resolvePath(addonsDir.startsWith("./") ? path.join(buildDir, addonsDir) : addonsDir);
 
     let resolvedFiles = files;
     if (resolvedFiles) {
@@ -36,15 +38,13 @@ export const compileSystem = (options?: Partial<CompileSystemOptions>, addonConf
 
     const fileSystem = createBrowserSystem({ ...resolvedFiles }, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher });
     if (addLibDefaults) {
-        if (!fileSystem.fileExists("/project/tsconfig.json")) {
-            fileSystem.writeFile("/project/tsconfig.json", "{}");
+        if (!fileSystem.fileExists(`${buildDir}/tsconfig.json`)) {
+            fileSystem.writeFile(`${buildDir}/tsconfig.json`, "{}");
         }
         if (!fileSystem.directoryExists(resolvedAddonsDir)) {
             fileSystem.createDirectory(resolvedAddonsDir);
         }
     }
-
-    const { addons = [], addonsDir = resolvedAddonsDir, profiles } = addonConfig ?? {};
 
     const registry = new AddonRegistry({
         addons,
