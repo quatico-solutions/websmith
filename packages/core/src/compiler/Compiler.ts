@@ -29,7 +29,6 @@ type CompilationFragment = {
 };
 
 export class Compiler {
-    private version: number;
     private system: ts.System;
     private options!: ResolvedCompilerOptions;
     private reporter!: Reporter;
@@ -48,7 +47,6 @@ export class Compiler {
         dependencyCallback?: (filePath: string) => void,
         reporter?: Reporter
     ) {
-        this.version = 0;
         this.contextMap = new Map();
         this.addons = addons;
         this.system = system ?? createSystem();
@@ -61,89 +59,7 @@ export class Compiler {
         this.transpileOnly = this.options.config?.transpileOnly ?? false;
     }
 
-    public getVersion(): number {
-        return this.version;
-    }
-
-    private getConfigSummary(): string {
-        const profile = this.options.profile;
-        const profileTsConfig = this.options.config?.profiles?.[profile ?? ""]?.tsConfig ?? {};
-
-        const cliOutDir = this.options.cliArgs?.options?.outDir;
-        const resolvedOutDir = cliOutDir ?? profileTsConfig.outDir ?? this.options.tsConfig?.outDir ?? "./lib";
-
-        const cliTsConfig = this.options.cliArgs?.options;
-        const resolvedTsConfig = this.options.tsConfig;
-
-        // Prioritize profile values over resolved tsConfig values
-        const parts = [
-            `tsconfig: ${this.options.tsConfigFile || "./tsconfig.json"}`,
-            `profiles: ${this.options.config?.profiles ? Object.keys(this.options.config.profiles).join(", ") : ""}`,
-            `addonsDir: ${this.options.config?.addonsDir || "./addons"}`,
-            `outDir: ${resolvedOutDir}`,
-            `target: ${profileTsConfig.target ?? resolvedTsConfig?.target ?? cliTsConfig?.target ?? 99}`,
-            `module: ${profileTsConfig.module ?? resolvedTsConfig?.module ?? cliTsConfig?.module ?? 99}`,
-            `strict: ${profileTsConfig.strict ?? resolvedTsConfig?.strict ?? cliTsConfig?.strict ?? true}`,
-            `sourceMap: ${profileTsConfig.sourceMap ?? resolvedTsConfig?.sourceMap ?? cliTsConfig?.sourceMap ?? true}`,
-            `declaration: ${profileTsConfig.declaration ?? resolvedTsConfig?.declaration ?? cliTsConfig?.declaration ?? true}`,
-            `noEmit: ${profileTsConfig.noEmit ?? resolvedTsConfig?.noEmit ?? cliTsConfig?.noEmit ?? true}`,
-            `moduleResolution: ${profileTsConfig.moduleResolution ?? resolvedTsConfig?.moduleResolution ?? cliTsConfig?.moduleResolution ?? 2}`,
-            `allowJs: ${profileTsConfig.allowJs ?? resolvedTsConfig?.allowJs ?? cliTsConfig?.allowJs ?? true}`,
-            `incremental: ${profileTsConfig.incremental ?? resolvedTsConfig?.incremental ?? cliTsConfig?.incremental ?? true}`,
-        ];
-
-        return parts.join(", ");
-    }
-
-    public getContext(profile?: string): CompilationContext | undefined {
-        if (profile) {
-            return this.contextMap.get(profile);
-        }
-        const defaultCtx = this.contextMap.get("default");
-        if (!defaultCtx) {
-            this.contextMap.set("default", this.createCompilationContext());
-        }
-        return this.contextMap.get("default");
-    }
-
-    public hasContext(profile?: string): boolean {
-        return profile ? this.contextMap.has(profile) : true;
-    }
-
-    public getSystem(): ts.System {
-        return this.system;
-    }
-
-    public getReporter(): Reporter {
-        return this.reporter;
-    }
-
-    public getAddonRegistry(): AddonRegistry | undefined {
-        return this.addons;
-    }
-
-    public setAddonRegistry(addons: AddonRegistry): this {
-        this.addons = addons;
-        return this;
-    }
-
-    public getOptions(): ResolvedCompilerOptions {
-        return this.options;
-    }
-
-    public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
-        // Include the current reporter in the options to preserve it
-        const optionsWithReporter = {
-            ...options,
-            reporter: this.reporter,
-        };
-
-        this.options = resolveCompilerOptions(this.system, { buildDir: "./src", ...optionsWithReporter }, undefined, loaderOptions);
-
-        return this;
-    }
-
-    public compile(): ts.EmitResult {
+    compile(): ts.EmitResult {
         const { profile, buildDir } = this.options;
         const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
 
@@ -241,27 +157,7 @@ export class Compiler {
               };
     }
 
-    private emitResult(profile: string | undefined, ctx: CompilationContext): ts.EmitResult {
-        const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
-
-        for (const fileName of this.getRootFiles()) {
-            const fragment = this.emitSourceFile(fileName, profile);
-            if (fragment?.files.length > 0) {
-                result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
-            } else {
-                fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
-                result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
-                result.emitSkipped = !!fragment.diagnostics && fragment.diagnostics.length > 0 ? true : false;
-            }
-        }
-
-        const files = this.getRootFiles();
-        ctx.getResultProcessors().forEach(cur => cur(files));
-
-        return result;
-    }
-
-    public watch(): this {
+    watch(): this {
         this.createProfileContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {
@@ -285,49 +181,52 @@ export class Compiler {
         return this;
     }
 
-    public registerWatch(filePath: string, profileNames?: string[]): this {
-        if (typeof this.system.watchFile !== "function") {
-            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
-            return this;
-        }
+    closeAllWatchers(): this {
+        this.fileWatchers.forEach(cur => cur.close());
+        return this;
+    }
 
-        this.fileWatchers.push(
-            this.system.watchFile(
-                filePath,
-                fileName => {
-                    if (!profileNames?.length) {
-                        return fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                            ? this.emitSourceFile(fileName, undefined, true, true)
-                            : this.getContext()!
-                                  .resolveDependency(fileName)
-                                  .map(cur => this.emitSourceFile(cur, undefined, true, true));
-                    } else {
-                        return profileNames.forEach(profile =>
-                            fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                                ? this.emitSourceFile(fileName, profile, true, true)
-                                : this.hasContext(profile) &&
-                                  this.getContext(profile)!
-                                      .resolveDependency(fileName)
-                                      .map(cur => this.emitSourceFile(cur, profile, true, true))
-                        );
-                    }
-                },
-                50,
-                {
-                    // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
-                    // In addition, the ts.System.getModifiedTime will report incorrect timeStamps, making it impossible to prevent the double firing.
-                    watchFile: ts.WatchFileKind.PriorityPollingInterval,
-                    fallbackPolling: ts.PollingWatchKind.FixedInterval,
-                }
-            )
-        );
+    protected getOptions(): ResolvedCompilerOptions {
+        return this.options;
+    }
+
+    protected setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
+        // Include the current reporter in the options to preserve it
+        const optionsWithReporter = {
+            ...options,
+            reporter: this.reporter,
+        };
+
+        this.options = resolveCompilerOptions(this.system, { buildDir: "./src", ...optionsWithReporter }, undefined, loaderOptions);
 
         return this;
     }
 
-    public closeAllWatchers(): this {
-        this.fileWatchers.forEach(cur => cur.close());
-        return this;
+    protected getContext(profile?: string): CompilationContext | undefined {
+        if (profile) {
+            return this.contextMap.get(profile);
+        }
+        const defaultCtx = this.contextMap.get("default");
+        if (!defaultCtx) {
+            this.contextMap.set("default", this.createCompilationContext());
+        }
+        return this.contextMap.get("default");
+    }
+
+    protected hasContext(profile?: string): boolean {
+        return profile ? this.contextMap.has(profile) : true;
+    }
+
+    protected getSystem(): ts.System {
+        return this.system;
+    }
+
+    protected getReporter(): Reporter {
+        return this.reporter;
+    }
+
+    protected getAddonRegistry(): AddonRegistry | undefined {
+        return this.addons;
     }
 
     protected createProfileContextsIfNecessary(): this {
@@ -454,6 +353,96 @@ export class Compiler {
         return profiles.filter(cur => selectedProfiles.includes(cur));
     }
 
+    private emitResult(profile: string | undefined, ctx: CompilationContext): ts.EmitResult {
+        const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
+
+        for (const fileName of this.getRootFiles()) {
+            const fragment = this.emitSourceFile(fileName, profile);
+            if (fragment?.files.length > 0) {
+                result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
+            } else {
+                fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
+                result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
+                result.emitSkipped = !!fragment.diagnostics && fragment.diagnostics.length > 0 ? true : false;
+            }
+        }
+
+        const files = this.getRootFiles();
+        ctx.getResultProcessors().forEach(cur => cur(files));
+
+        return result;
+    }
+
+    private registerWatch(filePath: string, profileNames?: string[]): this {
+        if (typeof this.system.watchFile !== "function") {
+            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
+            return this;
+        }
+
+        this.fileWatchers.push(
+            this.system.watchFile(
+                filePath,
+                fileName => {
+                    if (!profileNames?.length) {
+                        return fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
+                            ? this.emitSourceFile(fileName, undefined, true, true)
+                            : this.getContext()!
+                                  .resolveDependency(fileName)
+                                  .map(cur => this.emitSourceFile(cur, undefined, true, true));
+                    } else {
+                        return profileNames.forEach(profile =>
+                            fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
+                                ? this.emitSourceFile(fileName, profile, true, true)
+                                : this.hasContext(profile) &&
+                                  this.getContext(profile)!
+                                      .resolveDependency(fileName)
+                                      .map(cur => this.emitSourceFile(cur, profile, true, true))
+                        );
+                    }
+                },
+                50,
+                {
+                    // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
+                    // In addition, the ts.System.getModifiedTime will report incorrect timeStamps, making it impossible to prevent the double firing.
+                    watchFile: ts.WatchFileKind.PriorityPollingInterval,
+                    fallbackPolling: ts.PollingWatchKind.FixedInterval,
+                }
+            )
+        );
+
+        return this;
+    }
+
+    private getConfigSummary(): string {
+        const profile = this.options.profile;
+        const profileTsConfig = this.options.config?.profiles?.[profile ?? ""]?.tsConfig ?? {};
+
+        const cliOutDir = this.options.cliArgs?.options?.outDir;
+        const resolvedOutDir = cliOutDir ?? profileTsConfig.outDir ?? this.options.tsConfig?.outDir ?? "./lib";
+
+        const cliTsConfig = this.options.cliArgs?.options;
+        const resolvedTsConfig = this.options.tsConfig;
+
+        // Prioritize profile values over resolved tsConfig values
+        const parts = [
+            `tsconfig: ${this.options.tsConfigFile || "./tsconfig.json"}`,
+            `profiles: ${this.options.config?.profiles ? Object.keys(this.options.config.profiles).join(", ") : ""}`,
+            `addonsDir: ${this.options.config?.addonsDir || "./addons"}`,
+            `outDir: ${resolvedOutDir}`,
+            `target: ${profileTsConfig.target ?? resolvedTsConfig?.target ?? cliTsConfig?.target ?? 99}`,
+            `module: ${profileTsConfig.module ?? resolvedTsConfig?.module ?? cliTsConfig?.module ?? 99}`,
+            `strict: ${profileTsConfig.strict ?? resolvedTsConfig?.strict ?? cliTsConfig?.strict ?? true}`,
+            `sourceMap: ${profileTsConfig.sourceMap ?? resolvedTsConfig?.sourceMap ?? cliTsConfig?.sourceMap ?? true}`,
+            `declaration: ${profileTsConfig.declaration ?? resolvedTsConfig?.declaration ?? cliTsConfig?.declaration ?? true}`,
+            `noEmit: ${profileTsConfig.noEmit ?? resolvedTsConfig?.noEmit ?? cliTsConfig?.noEmit ?? true}`,
+            `moduleResolution: ${profileTsConfig.moduleResolution ?? resolvedTsConfig?.moduleResolution ?? cliTsConfig?.moduleResolution ?? 2}`,
+            `allowJs: ${profileTsConfig.allowJs ?? resolvedTsConfig?.allowJs ?? cliTsConfig?.allowJs ?? true}`,
+            `incremental: ${profileTsConfig.incremental ?? resolvedTsConfig?.incremental ?? cliTsConfig?.incremental ?? true}`,
+        ];
+
+        return parts.join(", ");
+    }
+
     private createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
         return ts.createProgram({
             rootNames: this.getRootFiles(),
@@ -472,7 +461,6 @@ export class Compiler {
         if (output && !output.emitSkipped) {
             cache.updateOutput(fileName, output.outputFiles);
 
-            this.version++;
             if (writeFile && output.outputFiles) {
                 this.writeOutputFiles(output.outputFiles);
             }
