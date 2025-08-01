@@ -98,7 +98,7 @@ describe("constructor", () => {
     });
 
     it("allows loaderOptions.profile to override options.profile", () => {
-        const options = { profile: "options-profile" };
+        const options = { profile: "options-profile", reporter: new NoReporter() };
         const loaderOptions = { profile: "loader-profile" };
 
         const testObj = new CompilerTestClass(options, loaderOptions);
@@ -107,7 +107,7 @@ describe("constructor", () => {
     });
 
     it("allows loaderOptions.configFile to override options.configFile", () => {
-        const options = { configFile: "./options-config.json" };
+        const options = { configFile: "./options-config.json", reporter: new NoReporter() };
         const loaderOptions = { configFile: "./loader-config.json" };
 
         const testObj = new CompilerTestClass(options, loaderOptions);
@@ -177,6 +177,7 @@ describe("constructor", () => {
             debug: true,
             profile: "test-profile",
             configFile: "./test-config.json",
+            reporter: new NoReporter(),
         };
         const loaderOptions = { transpileOnly: true }; // only transpileOnly provided
 
@@ -206,7 +207,10 @@ describe("constructor", () => {
         });
 
         it("derives buildDir and configFile from tsConfigFile dirname when only tsConfigFile is specified", () => {
-            const testObj = new CompilerTestClass({ tsConfigFile: "./custom-dir/tsconfig.json" });
+            const testObj = new CompilerTestClass({
+                tsConfigFile: "./custom-dir/tsconfig.json",
+                reporter: new NoReporter(),
+            });
 
             expect(testObj.getOptions().buildDir).toMatch(/custom-dir$/);
             expect(testObj.getOptions().tsConfigFile).toMatch(/custom-dir\/tsconfig\.json$/);
@@ -214,7 +218,10 @@ describe("constructor", () => {
         });
 
         it("derives buildDir and tsConfigFile from configFile dirname when only configFile is specified", () => {
-            const testObj = new CompilerTestClass({ configFile: "./config-dir/websmith.config.json" });
+            const testObj = new CompilerTestClass({
+                configFile: "./config-dir/websmith.config.json",
+                reporter: new NoReporter(),
+            });
 
             expect(testObj.getOptions().buildDir).toMatch(/config-dir$/);
             expect(testObj.getOptions().tsConfigFile).toMatch(/config-dir\/tsconfig\.json$/);
@@ -248,6 +255,7 @@ describe("constructor", () => {
                 buildDir: "./target",
                 tsConfigFile: "./target/tsconfig.json",
                 configFile: "./config/websmith.config.json",
+                reporter: new NoReporter(),
             });
 
             expect(testObj.getOptions().buildDir).toMatch(/target$/);
@@ -271,6 +279,7 @@ describe("constructor", () => {
                 buildDir: "/absolute/src",
                 tsConfigFile: "/absolute/src/tsconfig.json",
                 configFile: "/different/websmith.config.json",
+                reporter: new NoReporter(),
             });
 
             expect(testObj.getOptions().buildDir).toMatch(/absolute\/src$/);
