@@ -44,15 +44,14 @@ export class Compiler {
         loaderOptions?: Partial<WebpackLoaderOptions>,
         system?: ts.System,
         addons?: AddonRegistry,
-        dependencyCallback?: (filePath: string) => void,
-        reporter?: Reporter
+        dependencyCallback?: (filePath: string) => void
     ) {
         this.contextMap = new Map();
         this.addons = addons;
         this.system = system ?? createSystem();
 
-        // Set the reporter first, before calling setOptions
-        this.reporter = reporter ?? options.reporter ?? new DefaultReporter(this.system);
+        // Set the reporter from options, fallback to default
+        this.reporter = options.reporter ?? new DefaultReporter(this.system);
 
         this.setOptions(options, loaderOptions);
         this.dependencyCallback = dependencyCallback;
