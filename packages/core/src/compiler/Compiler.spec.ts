@@ -23,10 +23,9 @@ class CompilerTestClass extends Compiler {
         loaderOptions?: Partial<WebpackLoaderOptions>,
         system?: ts.System,
         addons?: AddonRegistry,
-        dependencyCallback?: (filePath: string) => void,
-        reporter?: Reporter
+        dependencyCallback?: (filePath: string) => void
     ) {
-        super(options, loaderOptions, system, addons, dependencyCallback, reporter);
+        super(options, loaderOptions, system, addons, dependencyCallback);
     }
 
     public report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
@@ -71,39 +70,22 @@ beforeEach(() => {
 });
 
 describe("constructor", () => {
-    it("uses reporter parameter when provided", () => {
+    it("uses options.reporter when provided", () => {
         const expected = new NoReporter();
         const notExpected = new ReporterMock(ts.sys);
-        const testObj = new CompilerTestClass({ reporter: notExpected }, undefined, undefined, undefined, undefined, expected);
+
+        const testObj = new CompilerTestClass({ reporter: expected });
 
         const actual = testObj.getReporter();
-
         expect(actual).toBe(expected);
         expect(actual).not.toBe(notExpected);
     });
 
-    it("uses options.reporter when reporter parameter not provided", () => {
-        const expected = new NoReporter();
-        const testObj = new CompilerTestClass({ reporter: expected });
-
-        expect(testObj.getReporter()).toBe(expected);
-    });
-
-    it("creates DefaultReporter when neither reporter parameter nor options.reporter provided", () => {
-        const testObj = new CompilerTestClass({ buildDir: "./src" });
+    it("creates DefaultReporter when options.reporter not provided", () => {
+        const testObj = new CompilerTestClass({});
 
         expect(testObj.getReporter()).toBeDefined();
         expect(testObj.getReporter()).toBeInstanceOf(DefaultReporter);
-    });
-
-    it("prioritizes reporter parameter over options.reporter when both provided", () => {
-        const expected = new NoReporter();
-        const noExpected = new ReporterMock(ts.sys);
-
-        const testObj = new CompilerTestClass({ reporter: noExpected }, undefined, undefined, undefined, undefined, expected);
-
-        expect(testObj.getReporter()).toBe(expected);
-        expect(testObj.getReporter()).not.toBe(noExpected);
     });
 
     it("allows loaderOptions.debug to override options.debug", () => {
@@ -302,7 +284,7 @@ describe("getSystem", () => {
     it("returns the system passed to options", () => {
         const { fileSystem: expected } = compileSystem();
 
-        const testObj = new CompilerTestClass({ reporter: new ReporterMock(expected), buildDir: "./src" }, undefined, expected);
+        const testObj = new CompilerTestClass({ reporter: new ReporterMock(expected) }, undefined, expected);
 
         expect(testObj.getSystem()).toBe(expected);
     });
@@ -319,7 +301,7 @@ describe("setOptions", () => {
         const { fileSystem: target } = compileSystem();
         const reporterMock = new ReporterMock(target);
 
-        const testObj = new CompilerTestClass({ reporter: reporterMock, buildDir: "./src" }, undefined, target);
+        const testObj = new CompilerTestClass({ reporter: reporterMock }, undefined, target);
 
         testObj.setOptions(expected);
 
@@ -377,13 +359,10 @@ describe("createCompilationContext", () => {
                         },
                     },
                 },
-                buildDir: "./src",
+                reporter: target.reporter,
             },
             undefined,
-            fileSystem,
-            undefined,
-            undefined,
-            target.reporter
+            fileSystem
         ).createCompilationContext("*");
 
         expect(actual).toMatchObject({
@@ -491,7 +470,7 @@ describe("compile", () => {
     it("calls report", () => {
         const { fileSystem } = compileSystem();
 
-        const testObj = new CompilerTestClass({ reporter: new ReporterMock(fileSystem), buildDir: "./src" }, undefined, fileSystem);
+        const testObj = new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, undefined, fileSystem);
         testObj.report = jest.fn();
 
         testObj.compile();
@@ -532,7 +511,7 @@ describe("compile", () => {
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         });
 
-        new CompilerTestClass({ reporter: new ReporterMock(fileSystem), buildDir: "./src" }, undefined, fileSystem).compile();
+        new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, undefined, fileSystem).compile();
 
         expect(fileSystem.readFile("/src/target.js")).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -1066,7 +1045,7 @@ describe("report", () => {
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         }).fileSystem;
 
-        const actual = new CompilerTestClass({ reporter: new ReporterMock(fileSystem), buildDir: "./src" }, undefined, fileSystem).report(
+        const actual = new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, undefined, fileSystem).report(
             {
                 getCompilerOptions: () => ({}),
                 getConfigFileParsingDiagnostics: () => [],
