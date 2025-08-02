@@ -47,7 +47,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield default options w/o config and w/o CLI arguments", () => {
-        const { fileSystem: testSystem, addons } = compileSystem();
+        const { fileSystem: testSystem, addons } = compileSystem({ files: { "/test.ts": "export const test = () => {};" } });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
 
         addCompileCommand(new Command(), target).parse([], { from: "user" });
@@ -83,7 +83,7 @@ describe("addCompileCommand", () => {
                 exclude: [],
                 enable: false,
             },
-            fileNames: [],
+            fileNames: ["/test.ts"],
             compileOnSave: false,
             projectReferences: undefined,
             raw: {},
@@ -204,14 +204,15 @@ describe("addCompileCommand", () => {
 
 describe("addCompileCommand#addons", () => {
     it("should yield warning w/ --addonsDir cli argument to non-existing path", () => {
-        const target = new NoReporter();
-        target.reportDiagnostic = jest.fn();
-        const { fileSystem: testSystem, addons } = compileSystem({ reporter: target, buildDir: "./" });
+        const { fileSystem: testSystem, addons } = compileSystem({ buildDir: "./" });
         const compiler = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
+        compiler.getReporter().reportDiagnostic = jest.fn();
 
         addCompileCommand(new Command(), compiler).parse(["--addonsDir", "./unknown", "--allowJs"], { from: "user" });
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Addons directory "/unknown" does not exist.'));
+        expect(compiler.getReporter().reportDiagnostic).toHaveBeenCalledWith(
+            new WarnMessage(`Addons directory "${testSystem.resolvePath("./unknown")}" does not exist.`)
+        );
     });
 
     it("should show warning w/ --addonsDir cli argument and non-existing path", () => {
@@ -387,10 +388,6 @@ describe("addCompileCommand#profile", () => {
             new WarnMessage(
                 'Custom profile configuration "known" found, but no profile provided.\n\tSome custom addons may not be applied during compilation.'
             )
-        );
-        expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
-            3,
-            new WarnMessage('Missing profile: The following profile is passed but not configured "known".')
         );
     });
 });

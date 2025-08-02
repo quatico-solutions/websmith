@@ -32,9 +32,7 @@ export class AddonRegistry {
 
     setConfig(config: AddonConfig): this {
         this.config = config;
-        this.availableAddons.clear();
-        this.loadAddonsSync();
-        return this;
+        return this.refresh();
     }
 
     /**
@@ -69,6 +67,12 @@ export class AddonRegistry {
                 : [...this.availableAddons].filter(([name]) => expectedNames.includes(name)).map(([, addon]) => addon);
 
         return compilerAddons(results);
+    }
+
+    refresh(): this {
+        this.availableAddons.clear();
+        this.loadAddonsSync();
+        return this;
     }
 
     /**

@@ -185,11 +185,24 @@ export class Compiler {
         return this;
     }
 
-    protected getOptions(): ResolvedCompilerOptions {
+    getAddonRegistry(): AddonRegistry | undefined {
+        return this.addons;
+    }
+
+    setAddonRegistry(addons: AddonRegistry): this {
+        this.addons = addons;
+        return this;
+    }
+
+    getSystem(): ts.System {
+        return this.system;
+    }
+
+    getOptions(): ResolvedCompilerOptions {
         return this.options;
     }
 
-    protected setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
+    setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
         // Include the current reporter in the options to preserve it
         const optionsWithReporter = {
             ...options,
@@ -199,6 +212,10 @@ export class Compiler {
         this.options = resolveCompilerOptions(this.system, optionsWithReporter, undefined, loaderOptions);
 
         return this;
+    }
+
+    getReporter(): Reporter {
+        return this.reporter;
     }
 
     protected getContext(profile?: string): CompilationContext | undefined {
@@ -214,18 +231,6 @@ export class Compiler {
 
     protected hasContext(profile?: string): boolean {
         return profile ? this.contextMap.has(profile) : true;
-    }
-
-    protected getSystem(): ts.System {
-        return this.system;
-    }
-
-    protected getReporter(): Reporter {
-        return this.reporter;
-    }
-
-    protected getAddonRegistry(): AddonRegistry | undefined {
-        return this.addons;
     }
 
     protected createProfileContextsIfNecessary(): this {
@@ -372,7 +377,7 @@ export class Compiler {
         return result;
     }
 
-    private registerWatch(filePath: string, profileNames?: string[]): this {
+    registerWatch(filePath: string, profileNames?: string[]): this {
         if (typeof this.system.watchFile !== "function") {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
             return this;
