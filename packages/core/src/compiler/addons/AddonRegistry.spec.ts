@@ -650,12 +650,14 @@ describe("Addon Compilation", () => {
         const target = new ReporterMock(system);
         system.createDirectory(ADDONS_DIR);
         system.createDirectory(`${ADDONS_DIR}/broken-addon`);
-        system.writeFile(`${ADDONS_DIR}/broken-addon/addon.ts`, "this is not valid typescript syntax !!!");
+        system.writeFile(
+            `${ADDONS_DIR}/broken-addon/addon.ts`,
+            "export const activate = () => {\n    return unterminated string literal\n    console.log('this will cause parsing error');\n};"
+        );
         target.reportDiagnostic = jest.fn();
 
-        const testObj = new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system });
+        new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system }).getAvailableAddons();
 
-        testObj.getAvailableAddons();
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
                 category: expect.any(Number),

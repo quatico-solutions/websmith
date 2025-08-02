@@ -199,7 +199,10 @@ describe("constructor", () => {
         });
 
         it("derives tsConfigFile and configFile from buildDir when only buildDir is specified", () => {
-            const testObj = new CompilerTestClass({ buildDir: "./custom-src" });
+            const testObj = new CompilerTestClass({
+                buildDir: "./custom-src",
+                reporter: new NoReporter(),
+            });
 
             expect(testObj.getOptions().buildDir).toMatch(/custom-src$/);
             expect(testObj.getOptions().tsConfigFile).toMatch(/custom-src\/tsconfig\.json$/);
@@ -267,6 +270,7 @@ describe("constructor", () => {
             const testObj = new CompilerTestClass({
                 buildDir: "./project",
                 tsConfigFile: "./project/tsconfig.json",
+                reporter: new NoReporter(),
             });
 
             expect(testObj.getOptions().buildDir).toMatch(/project$/);
