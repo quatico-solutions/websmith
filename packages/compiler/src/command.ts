@@ -89,6 +89,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
             const configFile = args.configFile;
             const tsConfigFile = args.project;
+
             const options = { tsConfigFile, ...createOptions({ ...args, configFile, project: tsConfigFile }, reporter, system) };
 
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));

@@ -10,18 +10,34 @@ import { createArgs, parsedCommandLine } from "./parsed-command-line";
 
 describe("parsedCommandLine w/ empty tsconfig.json", () => {
     it("yields empty config with empty config file", () => {
-        const { fileSystem: target } = compileSystem();
+        const { fileSystem: target } = compileSystem({ files: { "test.ts": "export const test = () => {};" } });
 
         const actual = parsedCommandLine("tsconfig.json", {}, target);
 
-        expect(actual.compileOnSave).toBe(false);
-        expect(actual.fileNames).toEqual([]);
-        expect(actual.options).toEqual({ configFilePath: "/tsconfig.json" });
-        expect(actual.projectReferences).toBeUndefined();
-        expect(actual.raw).toEqual({});
-        expect(actual.typeAcquisition).toEqual({ enable: false, exclude: [], include: [] });
-        expect(actual.watchOptions).toBeUndefined();
-        expect(actual.wildcardDirectories).toEqual({ "": 1 });
+        expect(actual).toEqual({
+            compileOnSave: false,
+            errors: [],
+            fileNames: ["/test.ts"],
+            options: {
+                allowJs: false,
+                checkJs: false,
+                configFilePath: "/tsconfig.json",
+                declaration: false,
+                declarationMap: false,
+                emitDecorationOnly: false,
+                esModuleInterop: false,
+                noEmit: false,
+                pretty: true,
+                removeComments: false,
+                sourceMap: false,
+                strict: false,
+            },
+            projectReferences: undefined,
+            raw: {},
+            typeAcquisition: { enable: false, exclude: [], include: [] },
+            watchOptions: undefined,
+            wildcardDirectories: { "": 1 },
+        });
     });
 
     it("yields default tsconfig.json with no includes", () => {
@@ -30,7 +46,20 @@ describe("parsedCommandLine w/ empty tsconfig.json", () => {
         const actual = parsedCommandLine("tsconfig.json", {}, target);
 
         expect(actual.errors).toEqual([]);
-        expect(actual.options).toEqual({ configFilePath: "/tsconfig.json" });
+        expect(actual.options).toEqual({
+            configFilePath: "/tsconfig.json",
+            allowJs: false,
+            checkJs: false,
+            declaration: false,
+            declarationMap: false,
+            emitDecorationOnly: false,
+            esModuleInterop: false,
+            noEmit: false,
+            pretty: true,
+            removeComments: false,
+            sourceMap: false,
+            strict: false,
+        });
     });
 });
 
@@ -49,7 +78,20 @@ describe("parsedCommandLine w/ valid tsconfig.json", () => {
 
         expect(actual.compileOnSave).toBe(false);
         expect(actual.fileNames).toEqual(["/foobar.ts"]);
-        expect(actual.options).toEqual({ configFilePath: "/tsconfig.json" });
+        expect(actual.options).toEqual({
+            configFilePath: "/tsconfig.json",
+            allowJs: false,
+            checkJs: false,
+            declaration: false,
+            declarationMap: false,
+            emitDecorationOnly: false,
+            esModuleInterop: false,
+            noEmit: false,
+            pretty: true,
+            removeComments: false,
+            sourceMap: false,
+            strict: false,
+        });
         expect(actual.projectReferences).toBeUndefined();
         expect(actual.raw).toEqual({ include: ["foobar.ts"] });
         expect(actual.typeAcquisition).toEqual({ enable: false, exclude: [], include: [] });
@@ -97,9 +139,19 @@ describe("parsedCommandLine w/ default tsconfig.json", () => {
         expect(actual.fileNames).toEqual(["/one.tsx", "/two.tsx", "/three.tsx"]);
         expect(actual.options).toEqual({
             configFilePath: "/tsconfig.json",
+            allowJs: false,
+            checkJs: false,
+            declaration: false,
+            declarationMap: false,
+            emitDecorationOnly: false,
+            esModuleInterop: false,
             jsx: ts.JsxEmit.React,
             lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
-            strict: true,
+            noEmit: false,
+            pretty: true,
+            removeComments: false,
+            sourceMap: false,
+            strict: false,
         });
         expect(actual.projectReferences).toBeUndefined();
         expect(actual.raw).toEqual({
@@ -156,10 +208,20 @@ describe("parsedCommandLine w/ extra args", () => {
             errors: [],
             fileNames: ["/one.tsx", "/two.tsx", "/three.tsx"],
             options: {
+                allowJs: false,
+                checkJs: false,
                 configFilePath: "/tsconfig.json",
+                declaration: false,
+                declarationMap: false,
+                emitDecorationOnly: false,
+                esModuleInterop: false,
                 jsx: ts.JsxEmit.React,
                 lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
-                strict: true,
+                noEmit: false,
+                pretty: true,
+                removeComments: false,
+                sourceMap: false,
+                strict: false,
             },
             raw: {
                 compilerOptions: {
@@ -415,10 +477,21 @@ describe("parsedCommandLine w/ extra args", () => {
             errors: [],
             fileNames: ["/one.tsx", "/two.tsx", "/three.tsx"],
             options: {
+                allowJs: false,
+                checkJs: false,
                 configFilePath: "/tsconfig.json",
+                declaration: false,
+                declarationMap: false,
+                emitDecorationOnly: false,
+                esModuleInterop: false,
                 jsx: ts.JsxEmit.React,
                 lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
-                strict: true,
+                listFiles: true,
+                noEmit: false,
+                pretty: true,
+                removeComments: false,
+                sourceMap: false,
+                strict: false,
             },
             raw: {
                 compilerOptions: {
@@ -444,10 +517,21 @@ describe("parsedCommandLine w/ extra args", () => {
             errors: [],
             fileNames: ["/one.tsx", "/two.tsx", "/three.tsx"],
             options: {
+                allowJs: false,
+                checkJs: false,
                 configFilePath: "/tsconfig.json",
+                declaration: false,
+                declarationMap: false,
+                emitDecorationOnly: false,
+                esModuleInterop: false,
                 jsx: ts.JsxEmit.React,
                 lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
-                strict: true,
+                noEmit: false,
+                pretty: true,
+                removeComments: false,
+                sourceMap: false,
+                strict: false,
+                transpileOnly: true,
             },
             raw: {
                 compilerOptions: {

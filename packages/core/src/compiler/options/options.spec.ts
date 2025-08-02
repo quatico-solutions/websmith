@@ -31,15 +31,23 @@ describe("createOptions", () => {
         const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
+            allowJs: false,
+            checkJs: false,
             configFilePath: "/expected/tsconfig.json",
-            declaration: true,
-            sourceMap: false,
-            module: ts.ModuleKind.ESNext,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
-            project: "./expected/tsconfig.json",
+            declaration: false,
+            declarationMap: false,
+            emitDecorationOnly: false,
+            esModuleInterop: false,
             jsx: ts.JsxEmit.Preserve,
-            esModuleInterop: true,
+            module: ts.ModuleKind.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            noEmit: false,
+            pretty: true,
+            project: "./expected/tsconfig.json",
+            removeComments: false,
+            sourceMap: false,
+            strict: false,
+            target: ts.ScriptTarget.ESNext,
         });
     });
 

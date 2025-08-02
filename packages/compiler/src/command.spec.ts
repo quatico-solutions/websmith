@@ -59,40 +59,69 @@ describe("addCompileCommand", () => {
                 availableAddons: new Map(),
             })
         );
-        expect(actual.buildDir).toEqual(expect.stringContaining(path.sep));
-        expect(actual.watch).toBe(false);
-        expect(actual.config).toEqual({});
-        expect(actual.debug).toBe(false);
-        const compilerOptions = {
-            configFilePath: "/tsconfig.json",
-            declaration: true,
-            esModuleInterop: true,
-            jsx: ts.JsxEmit.Preserve,
-            module: ts.ModuleKind.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
-            sourceMap: false,
-            target: ts.ScriptTarget.ESNext,
-        };
-        expect(actual.tsConfig).toEqual(compilerOptions);
-
-        expect({ wildcardDirectories: {}, ...actual.cliArgs }).toEqual({
-            options: compilerOptions,
-            errors: [],
-            typeAcquisition: {
-                include: [],
-                exclude: [],
-                enable: false,
+        expect(actual).toEqual({
+            addons: [],
+            addonsDir: "/addons",
+            buildDir: expect.stringContaining(path.sep),
+            cliArgs: {
+                compileOnSave: false,
+                errors: [],
+                fileNames: ["/test.ts"],
+                options: {
+                    allowJs: false,
+                    checkJs: false,
+                    configFilePath: "/tsconfig.json",
+                    declaration: false,
+                    declarationMap: false,
+                    emitDecorationOnly: false,
+                    esModuleInterop: false,
+                    jsx: ts.JsxEmit.Preserve,
+                    module: ts.ModuleKind.ESNext,
+                    moduleResolution: ts.ModuleResolutionKind.Node10,
+                    noEmit: false,
+                    pretty: true,
+                    removeComments: false,
+                    sourceMap: false,
+                    strict: false,
+                    target: ts.ScriptTarget.ESNext,
+                },
+                raw: {},
+                typeAcquisition: {
+                    include: [],
+                    exclude: [],
+                    enable: false,
+                },
+                wildcardDirectories: { [""]: 1 },
             },
-            fileNames: ["/test.ts"],
-            compileOnSave: false,
-            projectReferences: undefined,
-            raw: {},
-            watchOptions: undefined,
-            wildcardDirectories: { [""]: 1 },
+            config: {
+                addonsDir: undefined,
+            },
+            configFile: "/websmith.config.json",
+            debug: false,
+            projectDir: "/",
+            reporter: expect.any(NoReporter),
+            system: expect.any(Object),
+            tsConfig: {
+                allowJs: false,
+                checkJs: false,
+                configFilePath: "/tsconfig.json",
+                declaration: false,
+                declarationMap: false,
+                emitDecorationOnly: false,
+                esModuleInterop: false,
+                jsx: ts.JsxEmit.Preserve,
+                module: ts.ModuleKind.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Node10,
+                noEmit: false,
+                pretty: true,
+                removeComments: false,
+                sourceMap: false,
+                strict: false,
+                target: ts.ScriptTarget.ESNext,
+            },
+            tsConfigFile: "/tsconfig.json",
+            watch: false,
         });
-        expect(actual.reporter).toBeDefined();
-        expect(actual.profile).toBeUndefined();
-        expect(actual.watch).toBe(false);
     });
 
     it("should yield config option w/ --configFile cli argument", () => {
