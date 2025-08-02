@@ -12,6 +12,7 @@ export const config: Config = {
     coveragePathIgnorePatterns: ["index.ts"],
     moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
     modulePathIgnorePatterns: ["<rootDir>/lib/", "<rootDir>/__TEMP__/"],
+    watchPathIgnorePatterns: ["<rootDir>/lib/", "<rootDir>/coverage/", "<rootDir>/test-output/", "<rootDir>/__TEMP__/", "<rootDir>/node_modules/"],
     prettierPath: null,
     setupFilesAfterEnv: ["../../jest.setup.ts"],
     testRegex: "src/.*(test|spec)\\.ts$",
