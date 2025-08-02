@@ -5,8 +5,16 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilerArguments, WarnMessage } from "@quatico/websmith-api";
-import { AddonRegistry, type CompilationConfig, Compiler, type CompilerOptions, createOptions, DefaultReporter } from "@quatico/websmith-core";
+import { type CompilerArguments, type Reporter, WarnMessage } from "@quatico/websmith-api";
+import {
+    type AddonConfig,
+    AddonRegistry,
+    type CompilationConfig,
+    Compiler,
+    type CompilerOptions,
+    createOptions,
+    DefaultReporter,
+} from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
 import ts from "typescript";
@@ -113,16 +121,16 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             if (compiler) {
                 compiler.setOptions(options);
             } else {
-                compiler = new Compiler(options, {}, system, undefined, undefined, reporter);
+                compiler = new Compiler({ ...options, reporter }, {}, system);
             }
 
             const addons = compiler.getAddonRegistry();
             if (addons) {
-                addons.setConfig(addonConfig(command, compiler.getSystem(), options));
+                addons.setConfig(addonConfig(command, compiler.getSystem(), options, reporter));
             } else {
                 compiler.setAddonRegistry(
                     new AddonRegistry({
-                        ...addonConfig(command, compiler.getSystem(), options),
+                        ...addonConfig(command, compiler.getSystem(), options, reporter),
                         reporter,
                         system,
                     })
@@ -138,10 +146,17 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
     return parent;
 };
 
-const addonConfig = (command: Command, system: ts.System, options?: CompilerOptions) => {
+const addonConfig = (command: Command, system: ts.System, options: CompilerOptions, reporter: Reporter): AddonConfig => {
     const { config } = options ?? {};
     const addons = command.opts().addons ?? config?.addons?.join(",") ?? "";
     const addonsDir = command.opts().addonsDir ?? config?.addonsDir ?? "./addons";
+    const resolvedAddonsDir = system.resolvePath(addonsDir);
+
+    // Check if addons directory exists and warn if it doesn't
+    if (!system.directoryExists(resolvedAddonsDir)) {
+        reporter.reportDiagnostic(new WarnMessage(`Addons directory "${resolvedAddonsDir}" does not exist.`));
+    }
+
     return {
         addons:
             addons
@@ -149,7 +164,9 @@ const addonConfig = (command: Command, system: ts.System, options?: CompilerOpti
                 .map((it: string) => it.trim())
                 .filter((it: string) => it.length > 0) ?? [],
 
-        addonsDir: system.resolvePath(addonsDir),
+        addonsDir: resolvedAddonsDir,
+        system,
+        reporter,
 
         ...(!!options?.config?.profiles && { profiles: options?.config?.profiles }),
     };
