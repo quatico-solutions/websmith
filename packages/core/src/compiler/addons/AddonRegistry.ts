@@ -245,7 +245,8 @@ export class AddonRegistry {
 
     private compileSourceFiles(addonsDir: string, reporter: Reporter, libDir: string, tsFiles: string[]): string[] {
         try {
-            new Compiler({
+            // // Create a wrapper reporter to capture diagnostics
+            const result = new Compiler({
                 buildDir: addonsDir,
                 reporter,
                 tsConfig: {
@@ -255,9 +256,10 @@ export class AddonRegistry {
                     target: ts.ScriptTarget.ES2020,
                     esModuleInterop: true,
                     moduleResolution: ts.ModuleResolutionKind.Node10,
-                    skipLibCheck: true,
+                    skipLibCheck: false, // Enable lib checking to catch more errors
                     forceConsistentCasingInFileNames: true,
                     noEmit: false,
+                    strict: true,
                 },
                 cliArgs: {
                     options: { outDir: libDir, rootDir: addonsDir },
@@ -266,20 +268,26 @@ export class AddonRegistry {
                 },
             }).compile();
 
-            // Return the compiled addon file paths
-            if (this.config.system.directoryExists(libDir)) {
-                return this.findAddonEntryFiles(libDir).filter((f: string) => f.endsWith(".js") || f.endsWith(".jsx"));
+            // Check if compilation succeeded by verifying output files exist
+            const expectedJsFiles = tsFiles.map(ts => ts.replace(/\.ts$/, ".js").replace(addonsDir, libDir));
+            const outputExists = this.config.system.directoryExists(libDir) && expectedJsFiles.some(jsFile => this.config.system.fileExists(jsFile));
+
+            // Check if compilation had errors or failed to produce output
+            if (result.emitSkipped || (result.diagnostics && result.diagnostics.length > 0) || !outputExists) {
+                const errorMessages =
+                    result.diagnostics
+                        ?.map(d => (typeof d.messageText === "string" ? d.messageText : d.messageText?.messageText || "Unknown error"))
+                        .join("; ") || "Compilation failed";
+                reporter?.reportDiagnostic(new WarnMessage(`Failed to compile addons in ${addonsDir}: ${errorMessages}`));
+                return [];
             }
-            return [];
+
+            // Return the compiled addon file paths
+            return this.findAddonEntryFiles(libDir).filter((f: string) => f.endsWith(".js") || f.endsWith(".jsx"));
         } catch (error) {
-            reporter?.reportDiagnostic({
-                category: ts.DiagnosticCategory.Warning,
-                code: 0,
-                messageText: `Failed to compile addons in ${addonsDir}: ${error instanceof Error ? error.message : String(error)}`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
+            reporter?.reportDiagnostic(
+                new WarnMessage(`Failed to compile addons in ${addonsDir}: ${error instanceof Error ? error.message : String(error)}`)
+            );
             return [];
         }
     }
