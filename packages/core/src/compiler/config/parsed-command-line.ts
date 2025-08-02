@@ -23,6 +23,8 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         },
     };
 
+    const { transpileOnly, configFile, addons, addonsDir, debug } = args;
+
     const argsResult = ts.parseCommandLine(createArgs(args));
 
     if (tsConfigFile && system.fileExists(tsConfigFile)) {
@@ -41,6 +43,11 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
                 removeComments: false,
                 strict: false,
                 esModuleInterop: false,
+                ...(transpileOnly ? { transpileOnly: true } : {}),
+                ...(configFile ? { configFile } : {}),
+                ...(addons ? { addons } : {}),
+                ...(addonsDir ? { addonsDir } : {}),
+                ...(debug ? { listFiles: true } : {}),
                 ...argsResult.options,
             },
             parseHost,
