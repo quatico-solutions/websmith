@@ -28,7 +28,21 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
     if (tsConfigFile && system.fileExists(tsConfigFile)) {
         const result = ts.getParsedCommandLineOfConfigFile(
             system.resolvePath(tsConfigFile),
-            argsResult.options,
+            {
+                // Apply tsc defaults
+                pretty: true,
+                declaration: false,
+                declarationMap: false,
+                emitDecorationOnly: false,
+                sourceMap: false,
+                noEmit: false,
+                allowJs: false,
+                checkJs: false,
+                removeComments: false,
+                strict: false,
+                esModuleInterop: false,
+                ...argsResult.options,
+            },
             parseHost,
             undefined /* no extended config cache */,
             undefined /* no extra watch options */,
@@ -56,13 +70,15 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
 
 export const createArgs = (args: CompilerArguments): string[] =>
     Object.entries(args).reduce((acc: string[], [key, value]) => {
-        if (typeof value === "boolean" && value === true) {
-            return acc.concat(`--${key}`);
+        if (typeof value === "boolean") {
+            if (value === true) {
+                return acc.concat(`--${key}`);
+            }
+            return acc;
         }
         if (value === undefined) {
             return acc;
         }
 
-         
         return acc.concat(`--${key}`, value != null ? value.toString() : "");
     }, []);
