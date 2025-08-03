@@ -14,6 +14,7 @@ import {
     type CompilerOptions,
     createOptions,
     DefaultReporter,
+    parsedCommandLine,
 } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
@@ -87,10 +88,14 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             // TODO: Add files from CLI argument
             const system = compiler?.getSystem() ?? ts.sys;
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
-            const configFile = args.configFile;
-            const tsConfigFile = args.project;
+            const tsConfigFile = args.project ?? "./tsconfig.json";
 
-            const options = { tsConfigFile, ...createOptions({ ...args, configFile, project: tsConfigFile }, reporter, system) };
+            const parsedArgs = parsedCommandLine(tsConfigFile, args, system);
+
+            const options: CompilerOptions = {
+                tsConfigFile,
+                ...createOptions({ ...parsedArgs, project: tsConfigFile }, reporter, system),
+            };
 
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
             if (unknownArgs?.length > 0) {

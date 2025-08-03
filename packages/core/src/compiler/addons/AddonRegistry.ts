@@ -199,6 +199,44 @@ export class AddonRegistry {
         return results;
     }
 
+    /**
+     * Recursively finds all TypeScript files in the given directory.
+     * This includes all .ts and .tsx files, not just entry points.
+     */
+    private findAllTypeScriptFiles(dir: string): string[] {
+        const results: string[] = [];
+        const { system } = this.config;
+
+        // Get all TypeScript files in the current directory
+        const tsFiles = system.readDirectory(dir, [".ts", ".tsx"], undefined, undefined);
+        for (let file of tsFiles) {
+            if (!path.isAbsolute(file)) {
+                file = resolvePath(system, file);
+            }
+            results.push(file);
+        }
+
+        // Recursively search subdirectories, excluding build and output directories
+        const subdirs = system.readDirectory(dir, undefined, ["directory"], undefined);
+        const excludedDirs = ["lib", "dist", "build", "node_modules", ".git"];
+
+        for (let subdir of subdirs) {
+            if (subdir !== dir) {
+                const subdirName = path.basename(subdir);
+                if (excludedDirs.includes(subdirName)) {
+                    continue; // Skip build/output directories
+                }
+
+                if (!path.isAbsolute(subdir)) {
+                    subdir = resolvePath(system, subdir);
+                }
+                results.push(...this.findAllTypeScriptFiles(subdir));
+            }
+        }
+
+        return results;
+    }
+
     private loadAddonsSync(): void {
         const { addonsDir, reporter, system, addons } = this.config;
 
@@ -232,9 +270,12 @@ export class AddonRegistry {
                     system.createDirectory(libDir);
                 }
 
-                const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, tsFiles);
+                // Find all TypeScript files in the addons directory to compile dependencies
+                const allTsFiles = this.findAllTypeScriptFiles(addonsDir);
 
-                // Load the compiled addons
+                const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, allTsFiles);
+
+                // Load the compiled addons (only the entry point files)
                 compiledAddonFiles.forEach((filePath: string) => {
                     const addonName = this.loadSingleAddon(filePath, libDir);
                     if (addonName) {
