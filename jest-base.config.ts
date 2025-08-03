@@ -15,7 +15,7 @@ export const config: Config = {
     watchPathIgnorePatterns: ["<rootDir>/lib/", "<rootDir>/coverage/", "<rootDir>/test-output/", "<rootDir>/__TEMP__/", "<rootDir>/node_modules/"],
     prettierPath: null,
     setupFilesAfterEnv: ["../../jest.setup.ts"],
-    testRegex: "src/.*(test|spec)\\.ts$",
+    testRegex: "src/.*\\.(test|spec)\\.ts$",
     transform: {
         "^.+\\.(js|ts)$": ["ts-jest", { diagnostics: false, isolatedModules: true }],
     },
