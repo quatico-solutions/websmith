@@ -322,11 +322,39 @@ describe("setOptions", () => {
         const options = testObj.getOptions();
         expect(options.buildDir).toBe("/src");
         expect(options.tsConfig).toMatchObject({
-            esModuleInterop: true,
-            jsx: 1,
-            module: 99,
-            moduleResolution: 2,
-            target: 99,
+            esModuleInterop: false,
+            jsx: ts.JsxEmit.Preserve,
+            module: ts.ModuleKind.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: ts.ScriptTarget.ES5,
+        });
+        expect(options.reporter).toBeInstanceOf(ReporterMock);
+    });
+
+    it("replaces compiler options with custom tsConfig", () => {
+        const expected = {
+            tsConfig: {
+                target: ts.ScriptTarget.ESNext,
+                jsx: ts.JsxEmit.React,
+            },
+            buildDir: "/src",
+        } as unknown as Partial<CompilerOptions>;
+        const { fileSystem: target } = compileSystem();
+        const reporterMock = new ReporterMock(target);
+
+        const testObj = new CompilerTestClass({ reporter: reporterMock }, undefined, target);
+
+        testObj.setOptions(expected);
+
+        // reporter is not set in the expected object
+        const options = testObj.getOptions();
+        expect(options.buildDir).toBe("/src");
+        expect(options.tsConfig).toMatchObject({
+            esModuleInterop: false,
+            jsx: ts.JsxEmit.React,
+            module: ts.ModuleKind.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: ts.ScriptTarget.ESNext,
         });
         expect(options.reporter).toBeInstanceOf(ReporterMock);
     });
@@ -339,7 +367,7 @@ describe("setOptions", () => {
         new CompilerTestClass(
             {
                 reporter: new ReporterMock(target),
-                tsConfig: { outDir: "/expected" },
+                tsConfig: { outDir: "/expected", target: ts.ScriptTarget.ESNext },
                 cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
                 buildDir: "./src",
             },
@@ -384,7 +412,7 @@ describe("createCompilationContext", () => {
                 fileNames: [],
                 options: {
                     module: ts.ModuleKind.ESNext,
-                    target: ts.ScriptTarget.ESNext,
+                    target: ts.ScriptTarget.ES5,
                 },
             },
             config: {
@@ -449,7 +477,7 @@ describe("createCompilationContext", () => {
                 options: {
                     configFilePath: "/expected/tsconfig.json",
                     module: ts.ModuleKind.ESNext,
-                    target: ts.ScriptTarget.ESNext,
+                    target: ts.ScriptTarget.ES5,
                 },
                 projectReferences: undefined,
                 raw: {
@@ -514,7 +542,7 @@ describe("compile", () => {
             expect.objectContaining({
                 outDir: "/lib/expected",
                 module: ts.ModuleKind.ESNext,
-                target: ts.ScriptTarget.ESNext,
+                target: ts.ScriptTarget.ES5,
             })
         );
     });
@@ -524,7 +552,11 @@ describe("compile", () => {
             files: { "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` },
         });
 
-        new CompilerTestClass({ reporter: new ReporterMock(fileSystem) }, undefined, fileSystem).compile();
+        new CompilerTestClass(
+            { reporter: new ReporterMock(fileSystem), tsConfig: { target: ts.ScriptTarget.ESNext } },
+            undefined,
+            fileSystem
+        ).compile();
 
         expect(fileSystem.readFile("/src/target.js")).toMatchInlineSnapshot(`
             "export const computeDate = async () => new Date();
@@ -572,7 +604,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: true },
+            tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             buildDir: "./src",
         };
@@ -597,7 +629,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: true },
+            tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             buildDir: "./src",
         };
@@ -626,7 +658,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: false, sourceMap: false },
+            tsConfig: { declaration: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
             buildDir: "./src",
@@ -653,7 +685,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: true, declarationMap: false, sourceMap: false },
+            tsConfig: { declaration: true, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
             buildDir: "./src",
@@ -680,7 +712,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: true, declarationMap: true, sourceMap: false },
+            tsConfig: { declaration: true, declarationMap: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
             buildDir: "./src",
@@ -707,7 +739,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: false, declarationMap: false, sourceMap: true },
+            tsConfig: { declaration: false, declarationMap: false, sourceMap: true, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
             buildDir: "./src",
@@ -737,7 +769,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: false, sourceMap: false },
+            tsConfig: { declaration: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             buildDir: "./src",
         };
@@ -763,7 +795,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: true, declarationMap: false, sourceMap: false },
+            tsConfig: { declaration: true, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             buildDir: "./src",
         };
@@ -793,7 +825,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: true, declarationMap: true, sourceMap: false },
+            tsConfig: { declaration: true, declarationMap: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             buildDir: "./src",
         };
@@ -826,7 +858,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: false, declarationMap: false, sourceMap: true },
+            tsConfig: { declaration: false, declarationMap: false, sourceMap: true, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             buildDir: "./src",
         };
@@ -855,7 +887,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: false, declarationMap: false, sourceMap: false },
+            tsConfig: { declaration: false, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             config: { transpileOnly: true },
             buildDir: "./src",
@@ -882,7 +914,7 @@ describe("emitSourceFile", () => {
         }).getSourceFile("src/target.ts");
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: false, declarationMap: false, sourceMap: false },
+            tsConfig: { declaration: false, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: [entry!.fileName], options: {}, errors: [] },
             buildDir: "./src",
         };
@@ -1093,7 +1125,7 @@ describe("watch", () => {
                     },
                 },
             },
-            tsConfig: { declaration: true, outDir: "/build" },
+            tsConfig: { declaration: true, outDir: "/build", target: ts.ScriptTarget.ESNext },
             watch: true,
             profile: "target2",
             buildDir: "./src",
@@ -1145,7 +1177,7 @@ describe("watch", () => {
             config: {
                 profiles: { target: { tsConfig: { outDir: "/build", declaration: true } } },
             },
-            tsConfig: { declaration: true },
+            tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
             cliArgs: {
                 options: { outDir: "/build", configFilePath: "/project/tsconfig.json" },
                 fileNames: [entry!.fileName],
@@ -1197,7 +1229,7 @@ describe("watch", () => {
                     },
                 },
             },
-            tsConfig: { declaration: false },
+            tsConfig: { declaration: false, target: ts.ScriptTarget.ESNext },
             cliArgs: {
                 options: { outDir: "/build", configFilePath: "/project/tsconfig.json" },
                 fileNames: [entry!.fileName],
@@ -1262,7 +1294,7 @@ describe("watch", () => {
                 },
                 transpileOnly: true,
             },
-            tsConfig: { declaration: true },
+            tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
             cliArgs: {
                 options: { outDir: "/build", configFilePath: "/project/tsconfig.json" },
                 fileNames: [entry!.fileName],

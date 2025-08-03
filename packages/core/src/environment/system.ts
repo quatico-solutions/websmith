@@ -31,13 +31,15 @@ export const isNodeJs = (): boolean => {
  * @param files The returned file system should at least contain.
  */
 export const createSystem = (files?: { [name: string]: string }, options?: BrowserSystemOptions): ts.System => {
-    // Always use ts.sys for CLI operations to ensure real file system access
-    // Completely bypass virtual file system when running from CLI
-    if (typeof process !== "undefined" && process.argv && process.argv.length > 0) {
-        return ts.sys;
-    }
-    if (isNodeJs()) {
-        return ts.sys;
+    if (!options?.virtual) {
+        // Always use ts.sys for CLI operations to ensure real file system access
+        // Completely bypass virtual file system when running from CLI
+        if (typeof process !== "undefined" && process.argv && process.argv.length > 0) {
+            return ts.sys;
+        }
+        if (isNodeJs()) {
+            return ts.sys;
+        }
     }
     const knownFiles = { ...(files || tsLibDefaults) }; // clone files
     return createBrowserSystem(knownFiles, options);

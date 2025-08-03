@@ -47,6 +47,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield default options w/o config and w/o CLI arguments", () => {
+        jest.spyOn(process.stdout, "write").mockImplementation(() => true);
         const { fileSystem: testSystem, addons } = compileSystem({ files: { "/test.ts": "export const test = () => {};" } });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
 
@@ -80,10 +81,10 @@ describe("addCompileCommand", () => {
                     moduleResolution: ts.ModuleResolutionKind.Node10,
                     noEmit: false,
                     pretty: true,
+                    project: "./tsconfig.json",
                     removeComments: false,
-                    sourceMap: false,
                     strict: false,
-                    target: ts.ScriptTarget.ESNext,
+                    target: ts.ScriptTarget.ES5,
                 },
                 raw: {},
                 typeAcquisition: {
@@ -93,9 +94,7 @@ describe("addCompileCommand", () => {
                 },
                 wildcardDirectories: { [""]: 1 },
             },
-            config: {
-                addonsDir: undefined,
-            },
+            config: {},
             configFile: "/websmith.config.json",
             debug: false,
             projectDir: "/",
@@ -114,10 +113,10 @@ describe("addCompileCommand", () => {
                 moduleResolution: ts.ModuleResolutionKind.Node10,
                 noEmit: false,
                 pretty: true,
+                project: "./tsconfig.json",
                 removeComments: false,
-                sourceMap: false,
                 strict: false,
-                target: ts.ScriptTarget.ESNext,
+                target: ts.ScriptTarget.ES5,
             },
             tsConfigFile: "/tsconfig.json",
             watch: false,
@@ -125,6 +124,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield config option w/ --configFile cli argument", () => {
+        jest.spyOn(process.stdout, "write").mockImplementation(() => true);
         const testSystem = compileSystem({ buildDir: "./", files: { "./expected/websmith.config.json": "{}" } }).fileSystem;
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
 

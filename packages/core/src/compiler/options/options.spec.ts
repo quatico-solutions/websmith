@@ -45,9 +45,8 @@ describe("createOptions", () => {
             pretty: true,
             project: "./expected/tsconfig.json",
             removeComments: false,
-            sourceMap: false,
             strict: false,
-            target: ts.ScriptTarget.ESNext,
+            target: ts.ScriptTarget.ES5,
         });
     });
 

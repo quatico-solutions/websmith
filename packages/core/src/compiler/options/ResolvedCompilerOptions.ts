@@ -4,10 +4,10 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilationProfile, type Reporter } from "@quatico/websmith-api";
+import { TSC_ARGUMENT_KEYS, type CompilationProfile, type Reporter, type TscArgumentKey } from "@quatico/websmith-api";
 import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
-import ts from "typescript";
+import ts, { type CompilerOptionsValue } from "typescript";
 import { recursiveFindByFilter } from "../../environment";
 import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, type CompilationConfig } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
@@ -18,6 +18,19 @@ import { type WebpackLoaderOptions } from "./WebpackLoaderOptions";
 const DEFAULT_BUILD_DIR = "./";
 const DEFAULT_TSCONFIG_FILE = "tsconfig.json";
 const DEFAULT_CONFIG_FILE = "websmith.config.json";
+const TS_DEFAULTS = {
+    allowJs: false,
+    checkJs: false,
+    declaration: false,
+    declarationMap: false,
+    emitDecorationOnly: false,
+    esModuleInterop: false,
+    noEmit: false,
+    pretty: true,
+    removeComments: false,
+    strict: false,
+    target: ts.ScriptTarget.ES5,
+};
 
 type ResolvedPaths = {
     buildDir: string;
@@ -126,10 +139,14 @@ const resolvePathsWithRules = (
 };
 
 export class ResolvedCompilerOptions implements CompilerOptions {
+    /** Path to the websmith configuration files, e.g., 'websmith.config.json'. */
     public readonly configFile?: string;
+    /** The websmith configuration. */
     public readonly config?: CompilationConfig;
     public readonly debug?: boolean;
+    /** Path to the TSC configuration file, e.g., 'tsconfig.json'. */
     public readonly tsConfigFile?: string;
+    /** The TSC configuration. */
     public readonly tsConfig?: ts.CompilerOptions;
     public readonly profile?: string;
     public readonly buildDir: string;
@@ -140,17 +157,46 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly addons?: string[];
     public readonly addonsDir?: string;
     public readonly projectDir: string;
+
     constructor(
         private system: ts.System,
         options: CompilerOptions,
-        addons?: string[],
         loaderOptions?: WebpackLoaderOptions
     ) {
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
         const compilationConfig = loadCompilationConfig(options, loaderOptions ?? {}, this.reporter, this.system);
-        let resolvedOptions = deepmerge<CompilerOptions>({ ...options, config: { ...options.config, ...compilationConfig } }, loaderOptions ?? {}, {
-            arrayMerge,
-        });
+        let resolvedOptions = deepmerge<CompilerOptions>(
+            {
+                ...options,
+                config: { ...options.config, ...compilationConfig },
+                tsConfig: { ...TS_DEFAULTS, ...options.tsConfig },
+                cliArgs: {
+                    options: {
+                        // Filter existing cliArgs.options to only include TSC arguments
+                        ...(options.cliArgs?.options
+                            ? Object.entries(options.cliArgs.options).reduce(
+                                  (acc: ts.ParsedCommandLine["options"], [key, value]: [string, unknown]) => {
+                                      if (TSC_ARGUMENT_KEYS.includes(key as TscArgumentKey)) {
+                                          acc[key] = value as CompilerOptionsValue;
+                                          if (key === "debug" && value === true) {
+                                              acc["listFiles"] = true;
+                                          }
+                                      }
+                                      return acc;
+                                  },
+                                  {} as ts.ParsedCommandLine["options"]
+                              )
+                            : {}),
+                    },
+                    fileNames: options.cliArgs?.fileNames ?? [],
+                    errors: options.cliArgs?.errors ?? [],
+                } as ts.ParsedCommandLine,
+            },
+            loaderOptions ?? {},
+            {
+                arrayMerge,
+            }
+        );
         const {
             buildDir,
             cliArgs = { options: {}, fileNames: [], errors: [] },
@@ -159,7 +205,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             debug = false,
             profile,
             tsConfig,
-            tsConfigFile,
+            tsConfigFile = cliArgs?.options?.project,
             watch = false,
         } = resolvedOptions;
         this.watch = watch;
@@ -189,17 +235,15 @@ export class ResolvedCompilerOptions implements CompilerOptions {
 
         // addons
         this.addonsDir = resolvePath(this.system, this.projectDir, this.config?.addonsDir ?? "./addons");
-        this.addons = addons?.length
-            ? addons
-            : [
-                  ...(Array.isArray(this.config?.addons) ? this.config.addons : []),
-                  ...selectedProfiles
-                      .map(name => {
-                          const profile = getProfile(name, this.config);
-                          return Array.isArray(profile?.addons) ? profile.addons : [];
-                      })
-                      .flat(),
-              ];
+        this.addons = [
+            ...(Array.isArray(this.config?.addons) ? this.config.addons : []),
+            ...selectedProfiles
+                .map(name => {
+                    const profile = getProfile(name, this.config);
+                    return Array.isArray(profile?.addons) ? profile.addons : [];
+                })
+                .flat(),
+        ];
 
         // resolve tsconfig
         resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
@@ -254,15 +298,24 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     }
 
     public getAddons(profileName?: string): string[] {
+        const targetProfile = profileName ?? this.profile;
+        // If a specific profile is requested, prioritize profile addons over CLI addons
+        if (targetProfile) {
+            const selectedProfiles = this.getSelectedProfiles(targetProfile);
+            const addons = selectedProfiles.flatMap(name => {
+                const profile = getProfile(name, this.config);
+                return Array.isArray(profile?.addons) ? profile.addons : [];
+            });
+            const result = [...(Array.isArray(this.config?.addons) ? this.config.addons : []), ...(Array.isArray(addons) ? addons : [])];
+            return result;
+        }
+
+        // No profile requested - return CLI addons if available, otherwise config addons
         if (this.addons?.length) {
             return this.addons;
         }
-        const targetProfile = profileName ?? this.profile;
-        const addons = this.getSelectedProfiles(targetProfile).flatMap(name => {
-            const profile = getProfile(name, this.config);
-            return Array.isArray(profile?.addons) ? profile.addons : [];
-        });
-        return [...(Array.isArray(this.config?.addons) ? this.config.addons : []), ...(Array.isArray(addons) ? addons : [])];
+        const configAddons = Array.isArray(this.config?.addons) ? this.config.addons : [];
+        return configAddons;
     }
 
     public getOptions(profile?: string): CompilerOptions {
@@ -354,9 +407,18 @@ const getTsConfig = (system: ts.System, projectDir: string, options: CompilerOpt
 
     // Read tsconfig.json if it exists
     const tsConfigOptions = tsConfigFile && system.fileExists(tsConfigFile) ? (parsedCommandLine(tsConfigFile, {}, system).options ?? {}) : {};
-
     // CLI options
-    const cliOptions = cliArgs?.options ?? {};
+    const cliOptions = cliArgs?.options // filter out non-tsconfig options
+        ? Object.entries(cliArgs.options).reduce(
+              (acc: Record<string, unknown>, [key, value]) => {
+                  if (TSC_ARGUMENT_KEYS.includes(key as TscArgumentKey)) {
+                      acc[key] = value;
+                  }
+                  return acc;
+              },
+              {} as Record<string, unknown>
+          )
+        : {};
 
     // When a profile is specified, merge base tsConfig with profile options instead of overriding
     const baseTsConfig = tsConfig ?? {};

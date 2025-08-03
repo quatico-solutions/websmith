@@ -52,9 +52,8 @@ describe("constructor", () => {
                     outDir: "/build/dist",
                     pretty: true,
                     removeComments: false,
-                    sourceMap: false,
                     strict: false,
-                    target: ts.ScriptTarget.ESNext,
+                    target: ts.ScriptTarget.ES5,
                 },
                 raw: {},
                 typeAcquisition: {
@@ -87,9 +86,8 @@ describe("constructor", () => {
                 outDir: "/build/dist",
                 pretty: true,
                 removeComments: false,
-                sourceMap: false,
                 strict: false,
-                target: ts.ScriptTarget.ESNext,
+                target: ts.ScriptTarget.ES5,
             },
             tsConfigFile: "/build/tsconfig.json",
             watch: false,
@@ -108,26 +106,42 @@ describe("constructor", () => {
                     errors: [],
                     fileNames: [],
                     options: {
+                        allowJs: false,
+                        checkJs: false,
                         configFilePath: "/target/tsconfig.json",
-                        declaration: true,
-                        module: ts.ModuleKind.ESNext,
-                        target: ts.ScriptTarget.ESNext,
-                        moduleResolution: ts.ModuleResolutionKind.Node10,
+                        declaration: false,
+                        declarationMap: false,
+                        emitDecorationOnly: false,
+                        esModuleInterop: false,
                         jsx: ts.JsxEmit.Preserve,
-                        esModuleInterop: true,
+                        module: ts.ModuleKind.ESNext,
+                        moduleResolution: ts.ModuleResolutionKind.Node10,
+                        noEmit: false,
+                        pretty: true,
+                        removeComments: false,
+                        strict: false,
+                        target: ts.ScriptTarget.ES5,
                     },
                 },
                 config: {},
                 configFile: "/target/websmith.config.json",
                 reporter: expect.any(DefaultReporter),
                 tsConfig: {
+                    allowJs: false,
+                    checkJs: false,
                     configFilePath: "/target/tsconfig.json",
-                    declaration: true,
-                    module: ts.ModuleKind.ESNext,
-                    target: ts.ScriptTarget.ESNext,
-                    moduleResolution: ts.ModuleResolutionKind.Node10,
+                    declaration: false,
+                    declarationMap: false,
+                    emitDecorationOnly: false,
+                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
-                    esModuleInterop: true,
+                    module: ts.ModuleKind.ESNext,
+                    moduleResolution: ts.ModuleResolutionKind.Node10,
+                    noEmit: false,
+                    pretty: true,
+                    removeComments: false,
+                    strict: false,
+                    target: ts.ScriptTarget.ES5,
                 },
                 tsConfigFile: "/target/tsconfig.json",
             })
@@ -231,7 +245,7 @@ describe("constructor", () => {
             },
             tsConfig: {
                 configFilePath: "/expected/tsconfig.json",
-                target: ts.ScriptTarget.ESNext,
+                target: ts.ScriptTarget.ES5,
                 module: ts.ModuleKind.ESNext,
             },
 
@@ -295,7 +309,6 @@ describe("configFile", () => {
                 configFile: "whatever",
                 reporter,
             } as any,
-            undefined,
             {
                 configFile: "tsconfig.json",
             } as any
@@ -340,7 +353,6 @@ describe("config", () => {
                     transpileOnly: true,
                 },
             } as any,
-            undefined,
             {
                 config: {
                     addons: ["addon3", "addon4"],
@@ -377,7 +389,7 @@ describe("debug", () => {
     it("should yield overridden value", () => {
         const { fileSystem } = compileSystem();
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any, undefined, { debug: false } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any, { debug: false } as any);
 
         expect(testObj.debug).toBe(false);
     });
@@ -403,7 +415,7 @@ describe("watch", () => {
     it("should yield overridden value", () => {
         const { fileSystem } = compileSystem();
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { watch: true } as any, undefined, { watch: false } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { watch: true } as any, { watch: false } as any);
 
         expect(testObj.watch).toBe(false);
     });
@@ -436,7 +448,6 @@ describe("tsConfigFile", () => {
             {
                 tsConfigFile: "whatever",
             } as any,
-            undefined,
             {
                 tsConfigFile: "tsconfig.json",
             } as any
@@ -466,9 +477,8 @@ describe("tsConfig", () => {
             noEmit: false,
             pretty: true,
             removeComments: false,
-            sourceMap: false,
             strict: false,
-            target: ts.ScriptTarget.ESNext,
+            target: ts.ScriptTarget.ES5,
         });
     });
 
@@ -496,9 +506,8 @@ describe("tsConfig", () => {
             outDir: "/expected",
             pretty: true,
             removeComments: false,
-            sourceMap: false,
             strict: false,
-            target: ts.ScriptTarget.ESNext,
+            target: ts.ScriptTarget.ES5,
         });
     });
 
@@ -512,7 +521,6 @@ describe("tsConfig", () => {
                     outDir: "whatever",
                 },
             } as any,
-            undefined,
             {
                 tsConfig: {
                     outDir: "./expected",
@@ -535,9 +543,8 @@ describe("tsConfig", () => {
             outDir: "/expected",
             pretty: true,
             removeComments: false,
-            sourceMap: false,
             strict: false,
-            target: ts.ScriptTarget.ESNext,
+            target: ts.ScriptTarget.ES5,
         });
     });
 
@@ -563,7 +570,6 @@ describe("tsConfig", () => {
                     },
                 },
             } as any,
-            undefined,
             {
                 tsConfig: {
                     outDir: "./loader-out-dir",
@@ -572,14 +578,22 @@ describe("tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
+            allowJs: false,
+            checkJs: false,
+            declaration: false,
+            declarationMap: false,
+            emitDecorationOnly: false,
+            esModuleInterop: false,
             configFilePath: "/target/tsconfig.json",
-            declaration: true,
-            outDir: "/target/profile-out-dir",
             module: ts.ModuleKind.ESNext,
-            target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
+            noEmit: false,
+            outDir: "/target/profile-out-dir",
+            pretty: true,
+            removeComments: false,
+            strict: false,
+            target: ts.ScriptTarget.ES5,
             jsx: ts.JsxEmit.Preserve,
-            esModuleInterop: true,
         });
     });
 
@@ -605,7 +619,6 @@ describe("tsConfig", () => {
                     },
                 },
             } as any,
-            undefined,
             {
                 tsConfig: {
                     outDir: "./loader-out-dir",
@@ -614,14 +627,22 @@ describe("tsConfig", () => {
         );
 
         expect(testObj.tsConfig).toEqual({
+            allowJs: false,
+            checkJs: false,
+            declaration: false,
+            declarationMap: false,
+            emitDecorationOnly: false,
+            esModuleInterop: false,
             configFilePath: "/target/tsconfig.json",
-            declaration: true,
-            outDir: "/target/loader-out-dir",
             module: ts.ModuleKind.ESNext,
-            target: ts.ScriptTarget.ESNext,
             moduleResolution: ts.ModuleResolutionKind.Node10,
+            noEmit: false,
+            outDir: "/target/loader-out-dir",
+            pretty: true,
+            removeComments: false,
+            strict: false,
+            target: ts.ScriptTarget.ES5,
             jsx: ts.JsxEmit.Preserve,
-            esModuleInterop: true,
         });
     });
 });
@@ -646,7 +667,7 @@ describe("profile", () => {
     it("should yield overridden value", () => {
         const { fileSystem, reporter } = compileSystem();
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target", reporter } as any, undefined, { profile: "expected" } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target", reporter } as any, { profile: "expected" } as any);
 
         expect(testObj.profile).toBe("expected");
     });
@@ -699,7 +720,6 @@ describe("projectDir", () => {
                 configFile: "/whatever/websmith.config.json",
                 reporter,
             } as any,
-            undefined,
             {
                 configFile: "/expected/websmith.config.json",
             } as any
@@ -751,9 +771,8 @@ describe("cliArgs", () => {
                 noEmit: false,
                 pretty: true,
                 removeComments: false,
-                sourceMap: false,
                 strict: false,
-                target: ts.ScriptTarget.ESNext,
+                target: ts.ScriptTarget.ES5,
             },
             raw: {},
             typeAcquisition: {
@@ -799,7 +818,6 @@ describe("cliArgs", () => {
                     },
                 },
             } as any,
-            undefined,
             {
                 cliArgs: {
                     options: {
@@ -1068,9 +1086,8 @@ describe("getOptions", () => {
                     noEmit: false,
                     pretty: true,
                     removeComments: false,
-                    sourceMap: false,
                     strict: false,
-                    target: ts.ScriptTarget.ESNext,
+                    target: ts.ScriptTarget.ES5,
                 },
                 raw: {},
                 typeAcquisition: {
@@ -1099,9 +1116,8 @@ describe("getOptions", () => {
                 noEmit: false,
                 pretty: true,
                 removeComments: false,
-                sourceMap: false,
                 strict: false,
-                target: ts.ScriptTarget.ESNext,
+                target: ts.ScriptTarget.ES5,
             },
             tsConfigFile: "/tsconfig.json",
         });
@@ -1141,7 +1157,6 @@ describe("getOptions", () => {
                     },
                 },
             } as any,
-            undefined,
             {
                 cliArgs: {
                     options: {
@@ -1159,5 +1174,43 @@ describe("getOptions", () => {
                 },
             },
         });
+    });
+
+    it("should yield ESNext target with tsConfig target set to ESNext", () => {
+        const { fileSystem } = compileSystem();
+
+        const actual = new ResolvedCompilerOptions(fileSystem, {
+            tsConfig: {
+                target: ts.ScriptTarget.ESNext,
+            },
+        } as any);
+
+        expect(actual.tsConfig?.target).toBe(ts.ScriptTarget.ESNext);
+    });
+
+    it("should yield ES5 target with cliArgs target set to ES5", () => {
+        const { fileSystem } = compileSystem();
+
+        const actual = new ResolvedCompilerOptions(fileSystem, {
+            cliArgs: {
+                options: {
+                    target: ts.ScriptTarget.ES5,
+                },
+            },
+        } as any);
+
+        expect(actual.tsConfig?.target).toBe(ts.ScriptTarget.ES5);
+    });
+
+    it("should yield ESNext target with loaderOptions target set to ESNext", () => {
+        const { fileSystem } = compileSystem();
+
+        const actual = new ResolvedCompilerOptions(fileSystem, {}, {
+            tsConfig: {
+                target: ts.ScriptTarget.ESNext,
+            },
+        } as any);
+
+        expect(actual.tsConfig?.target).toBe(ts.ScriptTarget.ESNext);
     });
 });
