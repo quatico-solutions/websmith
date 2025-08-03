@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { aggregateMessages, type CompilerArguments } from "@quatico/websmith-api";
+import { aggregateMessages, COMPILER_ARGUMENT_KEYS, type CompilerArgumentKey, type CompilerArguments } from "@quatico/websmith-api";
 import ts from "typescript";
 
 /**
@@ -14,6 +14,11 @@ import ts from "typescript";
  * @param system
  */
 export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments, system: ts.System): ts.ParsedCommandLine | never => {
+    const invalidArgs = Object.keys(args).filter(key => !COMPILER_ARGUMENT_KEYS.includes(key as CompilerArgumentKey));
+    if (invalidArgs.length) {
+        throw new Error(`Error using the compiler with invalid arguments: "${invalidArgs.join(", ")}".`);
+    }
+
     let errorMessage: string | ts.DiagnosticMessageChain = "Could not find a valid 'tsconfig.json'.";
 
     const parseHost: ts.ParseConfigFileHost = {
@@ -23,32 +28,27 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         },
     };
 
-    const { transpileOnly, configFile, addons, addonsDir, debug } = args;
+    const { transpileOnly, configFile, addons, addonsDir, debug, profile, watch, ...rest } = args;
 
-    const argsResult = ts.parseCommandLine(createArgs(args));
+    const extraArgs = {
+        // Only pass non-tsconfig options - let tsconfig.json control declaration settings
+        ...(transpileOnly ? { transpileOnly: true } : {}),
+        ...(configFile ? { configFile: system.resolvePath(configFile) } : {}),
+        ...(addons ? { addons } : {}),
+        ...(addonsDir ? { addonsDir } : {}),
+        ...(debug ? { debug: true, listFiles: true } : {}),
+        ...(profile ? { profile } : {}),
+        ...(watch ? { watch: true } : {}),
+    };
+
+    const tscArgs = ts.parseCommandLine(createArgs(rest));
 
     if (tsConfigFile && system.fileExists(tsConfigFile)) {
         const result = ts.getParsedCommandLineOfConfigFile(
             system.resolvePath(tsConfigFile),
             {
-                // Apply tsc defaults
-                pretty: true,
-                declaration: false,
-                declarationMap: false,
-                emitDecorationOnly: false,
-                sourceMap: false,
-                noEmit: false,
-                allowJs: false,
-                checkJs: false,
-                removeComments: false,
-                strict: false,
-                esModuleInterop: false,
-                ...(transpileOnly ? { transpileOnly: true } : {}),
-                ...(configFile ? { configFile } : {}),
-                ...(addons ? { addons } : {}),
-                ...(addonsDir ? { addonsDir } : {}),
-                ...(debug ? { listFiles: true } : {}),
-                ...argsResult.options,
+                ...extraArgs,
+                ...tscArgs.options, // CLI options can override tsconfig.json
             },
             parseHost,
             undefined /* no extended config cache */,
@@ -59,13 +59,16 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         if (!result) {
             throw new Error(errorMessage);
         }
-        return result;
+        return {
+            ...result,
+            options: { ...(configFile ? { configFile: system.resolvePath(configFile) } : {}), ...(watch ? { watch: true } : {}), ...result.options },
+        };
     }
 
     return {
-        options: { ...argsResult.options, configFilePath: system.resolvePath(tsConfigFile) },
-        fileNames: [],
-        errors: [],
+        options: { ...extraArgs, ...tscArgs.options, configFilePath: system.resolvePath(tsConfigFile) },
+        fileNames: tscArgs.fileNames,
+        errors: tscArgs.errors,
         compileOnSave: false,
         raw: {},
         typeAcquisition: { enable: false, exclude: [], include: [] },
@@ -80,8 +83,10 @@ export const createArgs = (args: CompilerArguments): string[] =>
         if (typeof value === "boolean") {
             if (value === true) {
                 return acc.concat(`--${key}`);
+            } else {
+                // Include false values explicitly so they aren't lost
+                return acc.concat(`--${key}`, "false");
             }
-            return acc;
         }
         if (value === undefined) {
             return acc;

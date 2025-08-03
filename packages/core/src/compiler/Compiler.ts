@@ -209,7 +209,7 @@ export class Compiler {
             reporter: this.reporter,
         };
 
-        this.options = resolveCompilerOptions(this.system, optionsWithReporter, undefined, loaderOptions);
+        this.options = resolveCompilerOptions(this.system, optionsWithReporter, loaderOptions);
 
         return this;
     }
@@ -245,9 +245,7 @@ export class Compiler {
                 .map(name => this.addons?.getAvailableAddons().find(addon => addon.getName() === name))
                 .filter(addon => addon !== undefined);
 
-            resolvedAddons.forEach(addon => {
-                addon.activate(defaultCtx);
-            });
+            resolvedAddons.forEach(addon => addon.activate(defaultCtx));
         } else {
             selectedProfiles.forEach((profile: string) => {
                 if (this.contextMap.has(profile)) {

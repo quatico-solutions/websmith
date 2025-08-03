@@ -14,7 +14,6 @@ import {
     type CompilerOptions,
     createOptions,
     DefaultReporter,
-    parsedCommandLine,
 } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
@@ -23,6 +22,7 @@ import { getVersion } from "./get-version";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
     parent
+        .name("websmith")
         .version(getVersion(), "-v, --version", "Print the compiler's version.")
         .showSuggestionAfterError()
         // TODO: Add option to compile single files only?
@@ -90,11 +90,9 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
             const tsConfigFile = args.project ?? "./tsconfig.json";
 
-            const parsedArgs = parsedCommandLine(tsConfigFile, args, system);
-
             const options: CompilerOptions = {
                 tsConfigFile,
-                ...createOptions({ ...parsedArgs, project: tsConfigFile }, reporter, system),
+                ...createOptions({ ...args, project: tsConfigFile }, reporter, system),
             };
 
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));

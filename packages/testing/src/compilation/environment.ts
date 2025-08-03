@@ -48,17 +48,17 @@ export class CompilationEnv {
         this.rootDir = resolvePath(this.system, rootDir ?? DEFAULT_ROOT_DIR);
         this.buildDir = resolvePath(this.system, this.rootDir, buildDir);
         const configFilePath = `${this.rootDir}/tsconfig.json`;
-        this.compilerOptions = resolveCompilerOptions(
-            this.system,
-            {
-                tsConfigFile: configFilePath,
-                reporter,
-                ...options,
-                buildDir: this.rootDir,
-                tsConfig: { ...options?.tsConfig, outDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.outDir ?? DEFAULT_OUT_DIR) },
+        this.compilerOptions = resolveCompilerOptions(this.system, {
+            tsConfigFile: configFilePath,
+            reporter,
+            ...options,
+            buildDir: this.rootDir,
+            tsConfig: { ...options?.tsConfig, outDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.outDir ?? DEFAULT_OUT_DIR) },
+            config: {
+                ...(options?.config ?? {}),
+                addons: addonConfig?.addons,
             },
-            addonConfig?.addons
-        );
+        });
         const resolvedOutDir = this.compilerOptions.tsConfig!.outDir!;
 
         if (this.system.directoryExists(this.rootDir)) {

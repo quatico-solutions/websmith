@@ -5,12 +5,25 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { compileSystem } from "../../testing";
+import { createSystem } from "../../environment";
 import { createArgs, parsedCommandLine } from "./parsed-command-line";
 
 describe("parsedCommandLine w/ empty tsconfig.json", () => {
+    it("yields empty config with empty config file and no args", () => {
+        const target = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
+
+        const actual = parsedCommandLine("./expected/tsconfig.json", { project: "./expected/tsconfig.json" }, target);
+
+        expect(actual).toMatchObject({
+            options: {
+                configFilePath: "/expected/tsconfig.json",
+                project: "./expected/tsconfig.json",
+            },
+        });
+    });
+
     it("yields empty config with empty config file", () => {
-        const { fileSystem: target } = compileSystem({ files: { "test.ts": "export const test = () => {};" } });
+        const target = createSystem({ "tsconfig.json": "{}", "test.ts": "export const test = () => {};" }, { virtual: true });
 
         const actual = parsedCommandLine("tsconfig.json", {}, target);
 
@@ -19,18 +32,7 @@ describe("parsedCommandLine w/ empty tsconfig.json", () => {
             errors: [],
             fileNames: ["/test.ts"],
             options: {
-                allowJs: false,
-                checkJs: false,
                 configFilePath: "/tsconfig.json",
-                declaration: false,
-                declarationMap: false,
-                emitDecorationOnly: false,
-                esModuleInterop: false,
-                noEmit: false,
-                pretty: true,
-                removeComments: false,
-                sourceMap: false,
-                strict: false,
             },
             projectReferences: undefined,
             raw: {},
@@ -41,38 +43,28 @@ describe("parsedCommandLine w/ empty tsconfig.json", () => {
     });
 
     it("yields default tsconfig.json with no includes", () => {
-        const { fileSystem: target } = compileSystem({ files: { "/test.ts": "export const test = () => {};" } });
+        const target = createSystem({ "/test.ts": "export const test = () => {};" }, { virtual: true });
 
         const actual = parsedCommandLine("tsconfig.json", {}, target);
 
         expect(actual.errors).toEqual([]);
         expect(actual.options).toEqual({
             configFilePath: "/tsconfig.json",
-            allowJs: false,
-            checkJs: false,
-            declaration: false,
-            declarationMap: false,
-            emitDecorationOnly: false,
-            esModuleInterop: false,
-            noEmit: false,
-            pretty: true,
-            removeComments: false,
-            sourceMap: false,
-            strict: false,
         });
     });
 });
 
 describe("parsedCommandLine w/ valid tsconfig.json", () => {
     it("yields default value with valid config file", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": JSON.stringify({
                     include: ["foobar.ts"],
                 }),
                 "foobar.ts": `class Foobar {}`,
             },
-        });
+            { virtual: true }
+        );
 
         const actual = parsedCommandLine("tsconfig.json", {}, target);
 
@@ -80,17 +72,6 @@ describe("parsedCommandLine w/ valid tsconfig.json", () => {
         expect(actual.fileNames).toEqual(["/foobar.ts"]);
         expect(actual.options).toEqual({
             configFilePath: "/tsconfig.json",
-            allowJs: false,
-            checkJs: false,
-            declaration: false,
-            declarationMap: false,
-            emitDecorationOnly: false,
-            esModuleInterop: false,
-            noEmit: false,
-            pretty: true,
-            removeComments: false,
-            sourceMap: false,
-            strict: false,
         });
         expect(actual.projectReferences).toBeUndefined();
         expect(actual.raw).toEqual({ include: ["foobar.ts"] });
@@ -100,14 +81,15 @@ describe("parsedCommandLine w/ valid tsconfig.json", () => {
     });
 
     it("yields no error with matching includes", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": JSON.stringify({
                     include: ["foobar.ts"],
                 }),
                 "foobar.ts": `class Foobar {}`,
             },
-        });
+            { virtual: true }
+        );
 
         const actual = parsedCommandLine("tsconfig.json", {}, target);
 
@@ -116,8 +98,8 @@ describe("parsedCommandLine w/ valid tsconfig.json", () => {
 });
 
 describe("parsedCommandLine w/ default tsconfig.json", () => {
-    const { fileSystem: target } = compileSystem({
-        files: {
+    const target = createSystem(
+        {
             "tsconfig.json": JSON.stringify({
                 include: ["**/*.tsx"],
                 compilerOptions: {
@@ -130,7 +112,8 @@ describe("parsedCommandLine w/ default tsconfig.json", () => {
             "/two.tsx": `class Two {}`,
             "/three.tsx": `class Three {}`,
         },
-    });
+        { virtual: true }
+    );
 
     it("yields default value with valid config file", () => {
         const actual = parsedCommandLine("tsconfig.json", {}, target);
@@ -139,19 +122,9 @@ describe("parsedCommandLine w/ default tsconfig.json", () => {
         expect(actual.fileNames).toEqual(["/one.tsx", "/two.tsx", "/three.tsx"]);
         expect(actual.options).toEqual({
             configFilePath: "/tsconfig.json",
-            allowJs: false,
-            checkJs: false,
-            declaration: false,
-            declarationMap: false,
-            emitDecorationOnly: false,
-            esModuleInterop: false,
             jsx: ts.JsxEmit.React,
             lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
-            noEmit: false,
-            pretty: true,
-            removeComments: false,
-            sourceMap: false,
-            strict: false,
+            strict: true,
         });
         expect(actual.projectReferences).toBeUndefined();
         expect(actual.raw).toEqual({
@@ -175,8 +148,8 @@ describe("parsedCommandLine w/ default tsconfig.json", () => {
 });
 
 describe("parsedCommandLine w/ extra args", () => {
-    const { fileSystem: target } = compileSystem({
-        files: {
+    const target = createSystem(
+        {
             "tsconfig.json": JSON.stringify({
                 include: ["**/*.tsx"],
                 compilerOptions: {
@@ -189,7 +162,8 @@ describe("parsedCommandLine w/ extra args", () => {
             "/two.tsx": `class Two {}`,
             "/three.tsx": `class Three {}`,
         },
-    });
+        { virtual: true }
+    );
 
     const DEFAULT_RAW = {
         compilerOptions: {
@@ -200,6 +174,102 @@ describe("parsedCommandLine w/ extra args", () => {
         include: ["**/*.tsx"],
     };
 
+    it("returns empty array with missing tsconfig.json and extra args", () => {
+        const system = createSystem({}, { virtual: true });
+        const actual = parsedCommandLine(
+            "/test-output/tsconfig.json",
+            {
+                transpileOnly: true,
+                configFile: "./websmith.tsconfig.json",
+                addons: "zip, zap, zup",
+                addonsDir: "addons",
+                debug: true,
+                profile: "profile",
+            },
+            system
+        );
+
+        expect(actual).toMatchObject({
+            errors: [],
+            options: {
+                transpileOnly: true,
+                configFile: "/websmith.tsconfig.json",
+                addons: "zip, zap, zup",
+                addonsDir: "addons",
+                debug: true,
+                profile: "profile",
+            },
+        });
+    });
+
+    it("returns empty array with empty tsconfig.json and extra args", () => {
+        const system = createSystem({ "/test-output/tsconfig.json": createTsConfig({}) }, { virtual: true });
+
+        const actual = parsedCommandLine(
+            "/test-output/tsconfig.json",
+            {
+                transpileOnly: true,
+                configFile: "./websmith.tsconfig.json",
+                addons: "zip, zap, zup",
+                addonsDir: "addons",
+                debug: true,
+                profile: "profile",
+            },
+            system
+        );
+
+        expect(actual).toMatchObject({
+            options: {
+                transpileOnly: true,
+                configFile: "/websmith.tsconfig.json",
+                addons: "zip, zap, zup",
+                addonsDir: "addons",
+                debug: true,
+                profile: "profile",
+            },
+        });
+    });
+
+    it("returns empty array with valid tsconfig.json and extra args", () => {
+        const system = createSystem(
+            {
+                "/test-output/tsconfig.json": createTsConfig({
+                    strict: true,
+                    lib: ["dom", "es2015"],
+                    watch: true,
+                }),
+            },
+            { virtual: true }
+        );
+
+        const actual = parsedCommandLine(
+            "/test-output/tsconfig.json",
+            {
+                transpileOnly: true,
+                configFile: "./websmith.tsconfig.json",
+                addons: "zip, zap, zup",
+                addonsDir: "addons",
+                debug: true,
+                profile: "profile",
+            },
+            system
+        );
+
+        expect(actual).toMatchObject({
+            options: {
+                transpileOnly: true,
+                configFile: "/websmith.tsconfig.json",
+                addons: "zip, zap, zup",
+                addonsDir: "addons",
+                debug: true,
+                profile: "profile",
+                lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
+                strict: true,
+                watch: undefined,
+            },
+        });
+    });
+
     it("returns empty array with valid tsconfig.json and empty args", () => {
         const actual = parsedCommandLine("tsconfig.json", {}, target);
 
@@ -208,20 +278,10 @@ describe("parsedCommandLine w/ extra args", () => {
             errors: [],
             fileNames: ["/one.tsx", "/two.tsx", "/three.tsx"],
             options: {
-                allowJs: false,
-                checkJs: false,
                 configFilePath: "/tsconfig.json",
-                declaration: false,
-                declarationMap: false,
-                emitDecorationOnly: false,
-                esModuleInterop: false,
                 jsx: ts.JsxEmit.React,
                 lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
-                noEmit: false,
-                pretty: true,
-                removeComments: false,
-                sourceMap: false,
-                strict: false,
+                strict: true,
             },
             raw: {
                 compilerOptions: {
@@ -477,21 +537,12 @@ describe("parsedCommandLine w/ extra args", () => {
             errors: [],
             fileNames: ["/one.tsx", "/two.tsx", "/three.tsx"],
             options: {
-                allowJs: false,
-                checkJs: false,
                 configFilePath: "/tsconfig.json",
-                declaration: false,
-                declarationMap: false,
-                emitDecorationOnly: false,
-                esModuleInterop: false,
+                debug: true,
                 jsx: ts.JsxEmit.React,
                 lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
                 listFiles: true,
-                noEmit: false,
-                pretty: true,
-                removeComments: false,
-                sourceMap: false,
-                strict: false,
+                strict: true,
             },
             raw: {
                 compilerOptions: {
@@ -517,20 +568,10 @@ describe("parsedCommandLine w/ extra args", () => {
             errors: [],
             fileNames: ["/one.tsx", "/two.tsx", "/three.tsx"],
             options: {
-                allowJs: false,
-                checkJs: false,
                 configFilePath: "/tsconfig.json",
-                declaration: false,
-                declarationMap: false,
-                emitDecorationOnly: false,
-                esModuleInterop: false,
                 jsx: ts.JsxEmit.React,
                 lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
-                noEmit: false,
-                pretty: true,
-                removeComments: false,
-                sourceMap: false,
-                strict: false,
+                strict: true,
                 transpileOnly: true,
             },
             raw: {
@@ -553,6 +594,10 @@ describe("parsedCommandLine w/ extra args", () => {
         expect(actual).toMatchObject({
             errors: [],
             options: {
+                configFilePath: "/tsconfig.json",
+                jsx: ts.JsxEmit.React,
+                lib: ["lib.dom.d.ts", "lib.es2015.d.ts"],
+                strict: true,
                 watch: true,
             },
         });
@@ -654,7 +699,7 @@ describe("createArgs", () => {
     it("returns array with multiple boolean values", () => {
         const actual = createArgs({ allowJs: true, checkJs: true, debug: false });
 
-        expect(actual).toEqual(["--allowJs", "--checkJs"]);
+        expect(actual).toEqual(["--allowJs", "--checkJs", "--debug", "false"]);
     });
 
     it("returns array with mixed value types", () => {
@@ -667,7 +712,7 @@ describe("createArgs", () => {
             transpileOnly: undefined,
         });
 
-        expect(actual).toEqual(["--addons", "foo", "--allowJs", "--lib", "dom,es2015", "--outDir", "dist"]);
+        expect(actual).toEqual(["--addons", "foo", "--allowJs", "--lib", "dom,es2015", "--outDir", "dist", "--debug", "false"]);
     });
 
     it("returns array with null value", () => {
@@ -743,11 +788,17 @@ describe("createArgs", () => {
             "--addonsDir",
             "./addons",
             "--allowJs",
+            "--checkJs",
+            "false",
             "--configFile",
             "custom.json",
             "--debug",
             "--declaration",
+            "--declarationMap",
+            "false",
             "--emitDeclarationOnly",
+            "--esModuleInterop",
+            "false",
             "--files",
             "file1.ts,file2.ts",
             "--jsx",
@@ -761,14 +812,20 @@ describe("createArgs", () => {
             "dist",
             "--outFile",
             "bundle.js",
+            "--pretty",
+            "false",
             "--profile",
             "development",
             "--project",
             "./src",
             "--removeComments",
+            "--sourceMap",
+            "false",
             "--strict",
             "--target",
             "es2020",
+            "--transpileOnly",
+            "false",
             "--types",
             "node,jest",
             "--watch",
@@ -780,8 +837,8 @@ describe("createArgs", () => {
 
 describe("parsedCommandLine comprehensive coverage", () => {
     it("ensures all CompilerArguments properties are processed without errors", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": JSON.stringify({
                     include: ["*.ts"],
                     compilerOptions: {
@@ -790,7 +847,8 @@ describe("parsedCommandLine comprehensive coverage", () => {
                 }),
                 "test.ts": `export const test = "hello";`,
             },
-        });
+            { virtual: true }
+        );
 
         const testObj = parsedCommandLine(
             "tsconfig.json",
@@ -847,6 +905,30 @@ describe("parsedCommandLine comprehensive coverage", () => {
         expect(testObj.options.transpileOnly).toBe(true);
         expect(testObj.options.types).toEqual(["node", "jest"]);
         expect(testObj.options.watch).toBe(true);
+        expect(testObj.options.debug).toBe(true); // debug flag becomes listFiles
         expect(testObj.options.listFiles).toBe(true); // debug flag becomes listFiles
     });
 });
+
+const createTsConfig = (config: ts.CompilerOptions) => {
+    // Convert enum values to strings for proper JSON serialization
+    const normalizedConfig = {
+        ...config,
+        ...(config.target !== undefined && {
+            target: ts.ScriptTarget[config.target] === "Latest" ? "esnext" : ts.ScriptTarget[config.target].toLowerCase(),
+        }),
+        ...(config.module !== undefined && { module: ts.ModuleKind[config.module].toLowerCase() }),
+        ...(config.jsx !== undefined && { jsx: ts.JsxEmit[config.jsx].toLowerCase() }),
+        ...(config.moduleResolution !== undefined && { moduleResolution: ts.ModuleResolutionKind[config.moduleResolution].toLowerCase() }),
+    };
+
+    return JSON.stringify(
+        {
+            compilerOptions: normalizedConfig,
+            include: ["/src/**/*"],
+            exclude: ["node_modules", "dist"],
+        },
+        null,
+        2
+    );
+};
