@@ -7,7 +7,7 @@
 import type ts from "typescript";
 import { NoReporter } from "../../compiler/NoReporter";
 import { ReporterMock } from "../../../test";
-import { compileSystem } from "../../testing";
+import { createSystem } from "../../environment";
 import { createResolver } from "./addon-resolver";
 
 jest.mock("/addons/one/addon", () => ({ activate: () => undefined }), {
@@ -24,7 +24,7 @@ jest.mock(
 
 let testSystem: ts.System;
 beforeAll(() => {
-    testSystem = compileSystem().fileSystem;
+    testSystem = createSystem({}, { virtual: true });
     testSystem.readDirectory = jest.fn().mockReturnValue(["one"]);
     testSystem.resolvePath = path => path.split("..")[1]; // remove the absolute prefix from path
 });
