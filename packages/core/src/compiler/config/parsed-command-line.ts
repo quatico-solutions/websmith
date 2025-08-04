@@ -43,6 +43,7 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         profile,
         watch,
         instanceName,
+        profiles,
         ...rest
     } = flattenedArgs;
 
@@ -60,6 +61,7 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         ...(profile ? { profile } : {}),
         ...(watch ? { watch: true } : {}),
         ...(instanceName ? { instanceName } : {}),
+        ...(profiles ? { profiles } : {}),
     };
 
     const tscArgs = ts.parseCommandLine(createArgs(rest));
