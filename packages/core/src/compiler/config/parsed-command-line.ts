@@ -14,7 +14,12 @@ import ts from "typescript";
  * @param system
  */
 export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments, system: ts.System): ts.ParsedCommandLine | never => {
-    const invalidArgs = Object.keys(args).filter(key => !COMPILER_ARGUMENT_KEYS.includes(key as CompilerArgumentKey));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { config, tsConfig, ...restArgs } = args as any; // TODO: Flatten compiler arguments seems a brittle solution
+
+    const flattenedArgs = { ...restArgs, ...config, ...tsConfig };
+
+    const invalidArgs = Object.keys(flattenedArgs).filter(key => !COMPILER_ARGUMENT_KEYS.includes(key as CompilerArgumentKey));
     if (invalidArgs.length) {
         throw new Error(`Error using the compiler with invalid arguments: "${invalidArgs.join(", ")}".`);
     }
@@ -28,7 +33,18 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         },
     };
 
-    const { transpileOnly, configFile, tsConfigFile: tsConfigFileArg, addons, addonsDir, debug, profile, watch, instanceName, ...rest } = args;
+    const {
+        transpileOnly,
+        configFile,
+        tsConfigFile: tsConfigFileArg,
+        addons,
+        addonsDir,
+        debug,
+        profile,
+        watch,
+        instanceName,
+        ...rest
+    } = flattenedArgs;
 
     if (tsConfigFileArg && tsConfigFileArg !== tsConfigFile) {
         throw new Error(`The --tsConfigFile argument must be the same as the --project argument.`);

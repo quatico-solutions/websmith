@@ -57,7 +57,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't show extensive log messages in tests
     fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     fs.mkdirSync(SOURCE_DIR, { recursive: true });
@@ -375,7 +375,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
             },
         });
 
-        expect(getOutput("client.js")).toContain("function getSERVERClient");
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
         expect(getOutput("server.js")).toBeUndefined();
     });
 
@@ -397,8 +397,8 @@ describe("webpack w/ websmith, multiple profiles", () => {
             },
         });
 
-        expect(getOutput("client.js")).toContain("function getSERVERClient");
-        expect(getOutput("server.js")).toContain("function getSERVERServer");
+        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("server.js")).toContain("function getFoobarServer");
     });
 
     it("should yield transformed functions with existing profile, dependent profile and single entry", async () => {
@@ -427,7 +427,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
             },
         });
 
-        expect(getOutput("client.js")).toContain("function getCLIENTClient");
+        expect(getOutput("client.js")).toContain("function getSERVERClient");
         expect(getOutput("server.js")).toBeUndefined();
     });
 
@@ -477,8 +477,8 @@ describe("webpack w/ websmith, multiple profiles", () => {
             },
         });
 
-        expect(getOutput("client.js")).toContain("function getCLIENTClient");
-        expect(getOutput("server.js")).toContain("function getCLIENTServer");
+        expect(getOutput("client.js")).toContain("function getSERVERClient");
+        expect(getOutput("server.js")).toContain("function getSERVERServer");
     });
 
     it("should yield transformed functions with existing profile, dependent profile and imported server function", async () => {
@@ -509,12 +509,25 @@ describe("webpack w/ websmith, multiple profiles", () => {
             },
         });
 
-        expect(getOutput("client.js")).toContain("function getCLIENTClient");
-        expect(getOutput("client.js")).toContain("getCLIENTServer: ()");
-        expect(getOutput("server.js")).toContain("function getCLIENTServer");
+        expect(getOutput("client.js")).toContain("function getSERVERClient");
+        expect(getOutput("client.js")).toContain("getSERVERClient: ()");
+        expect(getOutput("server.js")).toContain("function getSERVERServer");
     });
 
     it("should yield transformed functions with existing profile and imported server function", async () => {
+        writeWebsmithConfig({
+            addonsDir: ADDONS_DIR,
+            profiles: {
+                client: {
+                    addons: ["client-transformer"],
+                },
+                server: {
+                    depends: ["client"],
+                    addons: ["server-transformer"],
+                },
+            },
+        });
+
         await webpack(undefined, {
             webpack: {
                 ...webpackDefaults,
@@ -528,12 +541,24 @@ describe("webpack w/ websmith, multiple profiles", () => {
             },
         });
 
-        expect(getOutput("client.js")).toContain("function getFoobarClient");
-        expect(getOutput("client.js")).toContain("function getFoobarServer");
+        expect(getOutput("client.js")).toContain("function getCLIENTServer");
         expect(getOutput("server.js")).toBeUndefined();
     });
 
     it("should yield transformed functions with existing profile and separate entries", async () => {
+        writeWebsmithConfig({
+            addonsDir: ADDONS_DIR,
+            profiles: {
+                client: {
+                    addons: ["client-transformer"],
+                },
+                server: {
+                    depends: ["client"],
+                    addons: ["server-transformer"],
+                },
+            },
+        });
+
         await webpack(undefined, {
             webpack: {
                 ...webpackDefaults,
@@ -548,9 +573,9 @@ describe("webpack w/ websmith, multiple profiles", () => {
             },
         });
 
-        expect(getOutput("client.js")).toContain("function getFoobarClient");
+        expect(getOutput("client.js")).toContain("function getCLIENTClient");
         expect(getOutput("client.js")).not.toContain("Server");
-        expect(getOutput("server.js")).toContain("function getFoobarServer");
+        expect(getOutput("server.js")).toContain("function getCLIENTServer");
         expect(getOutput("server.js")).not.toContain("Client");
     });
 });

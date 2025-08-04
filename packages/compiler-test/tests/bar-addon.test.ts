@@ -9,6 +9,7 @@ import path from "node:path";
 
 describe("compile test-project-foo w/ compilationEnv", () => {
     it("should install addon successfully", () => {
+        jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't log missing websmith.config.json
         const testObj = compilationEnv("__TEST__").addAddon("foo-addon", path.join(__dirname, "../test-data/addons"));
 
         const actual = testObj.getActiveAddons().getNames();
@@ -38,6 +39,7 @@ describe("compile test-project-foo w/ compilationEnv", () => {
     });
 
     it("should compile source project from disk", () => {
+        jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't log missing websmith.config.json
         const actual = compilationEnv("__TEST__").addProjectFromDisk("test-project-foo", path.join(__dirname, "../test-data/projects")).compile();
 
         expect(actual.getCompiledFile("foo.js")!.getContent()).toMatchInlineSnapshot(`
@@ -49,6 +51,7 @@ describe("compile test-project-foo w/ compilationEnv", () => {
     });
 
     it("should compile source file content", () => {
+        jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't log missing websmith.config.json
         const testObj = compilationEnv("__TEST__").addSourceFile(
             "foo.ts",
             `

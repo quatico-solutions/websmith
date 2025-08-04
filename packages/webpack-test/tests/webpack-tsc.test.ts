@@ -33,7 +33,7 @@ const webpackDefaults = {
 };
 
 beforeEach(() => {
-    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't show extensive log messages in tests
     fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     fs.mkdirSync(SOURCE_DIR, { recursive: true });

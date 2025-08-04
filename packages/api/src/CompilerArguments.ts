@@ -5,8 +5,6 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import type ts from "typescript";
-
 export const TSC_ARGUMENT_KEYS: (keyof TscArguments)[] = [
     "allowJs",
     "checkJs",
@@ -36,7 +34,7 @@ export const TSC_ARGUMENT_KEYS: (keyof TscArguments)[] = [
 
 export const WEBSMITH_ARGUMENT_KEYS: (keyof WebsmithArguments)[] = ["addons", "addonsDir", "configFile", "profile", "transpileOnly"] as const;
 
-export const LOADER_ARGUMENT_KEYS: (keyof LoaderArguments)[] = ["instanceName", "tsConfigFile", "tsConfig"] as const;
+export const LOADER_ARGUMENT_KEYS: (keyof LoaderArguments)[] = ["instanceName", "tsConfigFile"] as const;
 
 export const COMPILER_ARGUMENT_KEYS: (keyof CompilerArguments)[] = [
     ...WEBSMITH_ARGUMENT_KEYS,
@@ -57,7 +55,9 @@ export type CompilerArguments = WebsmithArguments & TscArguments & LoaderArgumen
 export type LoaderArguments = {
     instanceName?: string;
     tsConfigFile?: string;
-    tsConfig?: ts.CompilerOptions;
+    // We flatten these into arguments. TODO: Find a better way to handle this.
+    // tsConfig?: ts.CompilerOptions;
+    // config?: unknown;
 };
 
 export type WebsmithArguments = {
