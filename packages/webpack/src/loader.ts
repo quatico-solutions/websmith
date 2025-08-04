@@ -13,7 +13,7 @@ import { type TsCompiler } from "./TsCompiler";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export type WebpackLoaderContext = {
-    dependencyCallback: (filePath: string) => void;
+    dependencyCallback?: (filePath: string) => void;
     websmithCompiler: TsCompiler;
     queue: CompilationQueue;
 };
@@ -26,7 +26,8 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     });
 
     const fragment = instance.build(this.resourcePath);
-    this.version = instance.getVersion();
+    // TODO: How do use the loader version? Can we separate contexts with it?
+    // this.version = instance.getVersion();
 
     processResultAndFinish(this, fragment, instance.getProfile());
 }

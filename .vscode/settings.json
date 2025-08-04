@@ -1,5 +1,5 @@
 {
-    "cSpell.words": ["addon", "addons", "barfoo", "json", "websmith"],
+    "cSpell.words": ["addon", "addons", "barfoo", "DOESNOTEXIST", "json", "websmith"],
     "editor.defaultFormatter": "dbaeumer.vscode-eslint",
     "eslint.useFlatConfig": true,
     "eslint.format.enable": true,

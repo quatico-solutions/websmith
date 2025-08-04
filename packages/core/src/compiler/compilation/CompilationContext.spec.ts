@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { compileSystem } from "../../testing";
+import { createSystem } from "../../environment";
 import { ReporterMock } from "../../../test";
 import { CompilationContext, type CompilationContextOptions } from "./CompilationContext";
 
@@ -51,8 +51,9 @@ let testObj: CompilationContextTestClass;
 let testSystem: ts.System;
 
 beforeEach(() => {
-    testSystem = compileSystem().fileSystem;
+    testSystem = createSystem({}, { virtual: true });
     testObj = new CompilationContextTestClass({
+        buildDir: "/expected",
         tsConfig: {},
         projectDir: testSystem.getCurrentDirectory(),
         reporter: new ReporterMock(testSystem),
@@ -178,6 +179,7 @@ describe("registerProcessor", () => {
 describe("resolvePath", () => {
     beforeEach(() => {
         testObj = new CompilationContextTestClass({
+            buildDir: "/expected",
             tsConfig: {},
             projectDir: "/expected",
             reporter: new ReporterMock(testSystem),
@@ -265,6 +267,7 @@ describe("addAssetDependency", () => {
     it("registers dependency with dependency callback function w/ dependency callback function provided", () => {
         const target = jest.fn();
         testObj = new CompilationContextTestClass({
+            buildDir: "/expected",
             tsConfig: {},
             projectDir: testSystem.getCurrentDirectory(),
             reporter: new ReporterMock(testSystem),

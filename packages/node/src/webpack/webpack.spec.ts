@@ -45,9 +45,9 @@ describe("compile", () => {
             },
         });
         expect(stdout).toContain(""); // success
-    });
+    }, 60000);
 
     it("should yield compile error with unknown file path", async () => {
         await expect(() => webpack(["src/does-not-exist.ts"])).rejects.toThrow("Module not found: Error: Can't resolve 'src/does-not-exist.ts'");
-    });
+    }, 60000);
 });

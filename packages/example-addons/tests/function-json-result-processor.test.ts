@@ -7,6 +7,7 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
+// FIXME: This test is failing because the function-json-result-processor addon is not being loaded
 describe.skip("function-json-result-processor addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
@@ -38,7 +39,7 @@ describe.skip("function-json-result-processor addon", () => {
         const actual = testObj.getCompiledFile("named-functions.json")!.getContent()!;
 
         expect(JSON.parse(actual)).toMatchObject({ target: ["expected"] });
-    });
+    }, 60000);
 
     it("should create a JSON file without function names for arrow functions", () => {
         testObj
@@ -52,7 +53,7 @@ describe.skip("function-json-result-processor addon", () => {
         const actual = testObj.getCompiledFile("named-functions.json")!.getContent()!;
 
         expect(JSON.parse(actual)).toMatchObject({ target: [] });
-    });
+    }, 60000);
 
     it("should create a JSON file with multiple function names", () => {
         testObj
@@ -73,5 +74,5 @@ describe.skip("function-json-result-processor addon", () => {
         const actual = testObj.getCompiledFile("named-functions.json")!.getContent()!;
 
         expect(JSON.parse(actual)).toMatchObject({ target: ["foobar", "barfoo"], other: [] });
-    });
+    }, 60000);
 });

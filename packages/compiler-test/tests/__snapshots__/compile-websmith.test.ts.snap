@@ -33,12 +33,12 @@ export const getFoobar = (date) => {
 const foobar = (date) => {
     return \`foobar \${date.toISOString()}\`;
 };
-//# sourceMappingURL=foobar-arrow.js.map"
+"
 `;
 
 exports[`compile w/ websmith should build js and d.ts with outDir and noEmit false 2`] = `
 "export declare const getFoobar: (date: Date) => string;
-//# sourceMappingURL=foobar-arrow.d.ts.map"
+"
 `;
 
 exports[`compile w/ websmith should build js and d.ts with tsconfig.json and overriding tsconfig props 1`] = `

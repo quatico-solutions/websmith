@@ -7,6 +7,7 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
+// FIXME: This test is failing because the foobar-export-processor addon is not being loaded
 describe.skip("foobar-export-processor addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
@@ -43,7 +44,7 @@ describe.skip("foobar-export-processor addon", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should not export functions named differently", () => {
         testObj
@@ -64,7 +65,7 @@ describe.skip("foobar-export-processor addon", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should not export arrow functions with name 'foobar'", () => {
         testObj
@@ -79,5 +80,5 @@ describe.skip("foobar-export-processor addon", () => {
             "const foobar = () => console.log("Hello, Foo!");
             "
         `);
-    });
+    }, 60000);
 });

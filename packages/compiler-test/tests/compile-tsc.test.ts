@@ -22,6 +22,10 @@ beforeAll(() => {
     fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 });
 
+beforeEach(() => {
+    jest.spyOn(process.stdout, "write").mockImplementation(() => true);
+});
+
 describe("compile w/ tsc", () => {
     it("should build foobar-arrow.js with ES2020 target", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
@@ -34,7 +38,7 @@ describe("compile w/ tsc", () => {
         expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-arrow.js"), "utf-8")).toMatchSnapshot();
 
         fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
-    });
+    }, 60000);
 
     it("should build foobar-function.js with ES2020 target", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
@@ -47,7 +51,7 @@ describe("compile w/ tsc", () => {
         expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-function.js"), "utf-8")).toMatchSnapshot();
 
         fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
-    });
+    }, 60000);
 
     it("should build foobar-arrow.js with ES5 target", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
@@ -60,5 +64,5 @@ describe("compile w/ tsc", () => {
         expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-arrow.js"), "utf-8")).toMatchSnapshot();
 
         fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
-    });
+    }, 60000);
 });

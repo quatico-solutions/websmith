@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { aggregateMessages, type CompilerArguments } from "@quatico/websmith-api";
+import { aggregateMessages, COMPILER_ARGUMENT_KEYS, type CompilerArgumentKey, type CompilerArguments } from "@quatico/websmith-api";
 import ts from "typescript";
 
 /**
@@ -14,6 +14,16 @@ import ts from "typescript";
  * @param system
  */
 export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments, system: ts.System): ts.ParsedCommandLine | never => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { config, tsConfig, ...restArgs } = args as any; // TODO: Flatten compiler arguments seems a brittle solution
+
+    const flattenedArgs = { ...restArgs, ...config, ...tsConfig };
+
+    const invalidArgs = Object.keys(flattenedArgs).filter(key => !COMPILER_ARGUMENT_KEYS.includes(key as CompilerArgumentKey));
+    if (invalidArgs.length) {
+        throw new Error(`Error using the compiler with invalid arguments: "${invalidArgs.join(", ")}".`);
+    }
+
     let errorMessage: string | ts.DiagnosticMessageChain = "Could not find a valid 'tsconfig.json'.";
 
     const parseHost: ts.ParseConfigFileHost = {
@@ -23,12 +33,46 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         },
     };
 
-    const argsResult = ts.parseCommandLine(createArgs(args));
+    const {
+        transpileOnly,
+        configFile,
+        tsConfigFile: tsConfigFileArg,
+        addons,
+        addonsDir,
+        debug,
+        profile,
+        watch,
+        instanceName,
+        profiles,
+        ...rest
+    } = flattenedArgs;
+
+    if (tsConfigFileArg && tsConfigFileArg !== tsConfigFile) {
+        throw new Error(`The --tsConfigFile argument must be the same as the --project argument.`);
+    }
+
+    const extraArgs = {
+        // Only pass non-tsconfig options - let tsconfig.json control declaration settings
+        ...(transpileOnly ? { transpileOnly: true } : {}),
+        ...(configFile ? { configFile: system.resolvePath(configFile) } : {}),
+        ...(addons ? { addons } : {}),
+        ...(addonsDir ? { addonsDir } : {}),
+        ...(debug ? { debug: true, listFiles: true } : {}),
+        ...(profile ? { profile } : {}),
+        ...(watch ? { watch: true } : {}),
+        ...(instanceName ? { instanceName } : {}),
+        ...(profiles ? { profiles } : {}),
+    };
+
+    const tscArgs = ts.parseCommandLine(createArgs(rest));
 
     if (tsConfigFile && system.fileExists(tsConfigFile)) {
         const result = ts.getParsedCommandLineOfConfigFile(
             system.resolvePath(tsConfigFile),
-            argsResult.options,
+            {
+                ...extraArgs,
+                ...tscArgs.options, // CLI options can override tsconfig.json
+            },
             parseHost,
             undefined /* no extended config cache */,
             undefined /* no extra watch options */,
@@ -38,20 +82,39 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         if (!result) {
             throw new Error(errorMessage);
         }
-        return result;
+        return {
+            ...result,
+            options: {
+                ...(configFile ? { configFile: system.resolvePath(configFile) } : {}),
+                ...(watch ? { watch: true } : {}),
+                ...(instanceName ? { instanceName } : {}),
+                ...result.options,
+            },
+        };
     }
 
     return {
-        options: argsResult.options,
-        fileNames: [],
-        errors: [],
+        options: { ...extraArgs, ...tscArgs.options, configFilePath: system.resolvePath(tsConfigFile) },
+        fileNames: tscArgs.fileNames,
+        errors: tscArgs.errors,
+        compileOnSave: false,
+        raw: {},
+        typeAcquisition: { enable: false, exclude: [], include: [] },
+        watchOptions: undefined,
+        wildcardDirectories: { "": 1 },
+        projectReferences: undefined,
     };
 };
 
 export const createArgs = (args: CompilerArguments): string[] =>
     Object.entries(args).reduce((acc: string[], [key, value]) => {
-        if (typeof value === "boolean" && value === true) {
-            return acc.concat(`--${key}`);
+        if (typeof value === "boolean") {
+            if (value === true) {
+                return acc.concat(`--${key}`);
+            } else {
+                // Include false values explicitly so they aren't lost
+                return acc.concat(`--${key}`, "false");
+            }
         }
         if (value === undefined) {
             return acc;

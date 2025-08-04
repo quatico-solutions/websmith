@@ -39,6 +39,8 @@ let expected: string;
 let reporter: Reporter;
 
 beforeEach(() => {
+    jest.spyOn(console, "log").mockImplementation(() => {});
+
     expected = path.resolve("./__TEMP__/one.ts");
     reporter = new NoReporter();
 });
@@ -61,7 +63,7 @@ describe("TsCompiler", () => {
     it("should throw error in build w/o system", () => {
         testObj.setSystem(undefined);
 
-        expect(() => testObj.build("./src/one.ts")).toThrow(new Error("TsCompiler.build() not called with ts.sys as the active ts.System"));
+        expect(() => testObj.build("./src/one.ts")).toThrow(new Error("TsCompiler.build() called without a valid ts.System"));
     });
 
     it("should provide transpiled compilation fragment w/ build, default config, no profile and source code", () => {
@@ -73,6 +75,8 @@ describe("TsCompiler", () => {
 
         expect(actual).toEqual(expected);
         expect(target).toHaveBeenCalledWith(path.resolve("./__TEMP__/expected.ts"), undefined, false);
+
+        fs.rmSync(path.join(__dirname, "..", "expected.ts"), { force: true });
     });
 
     it("should fail with invalid source code", () => {

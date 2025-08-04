@@ -10,16 +10,16 @@ import { type BaseOptions } from "./BaseOptions";
 
 export type CompilerOptions = BaseOptions & {
     // TODO: Not used by the compiler, but for the compilationEnv. Should be moved closer to the compilationEnv.
-    buildDir: string;
+    buildDir?: string;
     /**
      * Command-line arguments passed to the TypeScript compiler.
      * @default false
      */
-    cliArgs: ts.ParsedCommandLine;
+    cliArgs?: ts.ParsedCommandLine;
     /**
      * Reporter to be used for logging.
      */
-    reporter: Reporter;
+    reporter?: Reporter;
     /**
      * Whether to watch the files for changes and recompile on change
      * @default false

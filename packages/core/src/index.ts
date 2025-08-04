@@ -6,4 +6,3 @@
  */
 export * from "./compiler";
 export * from "./environment";
-export * from "./testing";

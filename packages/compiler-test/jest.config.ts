@@ -16,7 +16,6 @@ const config: Config = {
         "@quatico/websmith-node": "<rootDir>/../node/src",
     },
     testRegex: "tests/.*(test|spec)\\.(js|ts)$",
-    testTimeout: 60000,
     maxWorkers: 1, // runInBand: true is not supported as config option
 };
 

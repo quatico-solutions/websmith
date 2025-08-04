@@ -4,16 +4,17 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { compileSystem } from "../testing";
+import { createSystem } from "../environment";
 import { ignoreConfigFiles, recursiveFindByFilter } from "./system";
 
 describe("recursiveFindByFilter", () => {
     it("should find files", () => {
-        const { fileSystem } = compileSystem({
-            files: {
+        const fileSystem = createSystem(
+            {
                 "test.ts": "console.log('test');",
             },
-        });
+            { virtual: true }
+        );
 
         const actual = recursiveFindByFilter(".", (name: string) => name.endsWith(".ts"), fileSystem);
 
@@ -21,11 +22,12 @@ describe("recursiveFindByFilter", () => {
     });
 
     it("should find files in subdirectories", () => {
-        const { fileSystem } = compileSystem({
-            files: {
+        const fileSystem = createSystem(
+            {
                 "subdir/test.ts": "console.log('test');",
             },
-        });
+            { virtual: true }
+        );
 
         const actual = recursiveFindByFilter(".", (name: string) => name.endsWith(".ts"), fileSystem);
 
@@ -33,12 +35,13 @@ describe("recursiveFindByFilter", () => {
     });
 
     it("should find files in subdirectories with absolute paths", () => {
-        const { fileSystem } = compileSystem({
-            files: {
+        const fileSystem = createSystem(
+            {
                 "/target/tsconfig.json": "{}",
                 "/target/addons/expected-addon/addon.ts": "console.log('test')",
             },
-        });
+            { virtual: true }
+        );
 
         const actual = recursiveFindByFilter(".", (name: string) => name.endsWith(".ts"), fileSystem);
 

@@ -28,6 +28,39 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.8] - 2025-08-04
+
+### Added
+
+- 🔧 **Configuration Support**: Added support for "profiles" configuration option in ResolvedCompilerOptions
+- 🧪 **Comprehensive Test Suite**: Added extensive test coverage for CLI arguments, compiler configurations, and webpack loader functionality
+- 🧪 **Enhanced Test Infrastructure**: Added sophisticated test coverage for AddonRegistry, Compiler, and configuration handling
+- 🧪 **NoReporter for Tests**: Added NoReporter utility for cleaner test console output when testing invalid configurations
+
+### Removed
+
+- 🧹 **Code Cleanup**: Removed jest.clearAllMocks() statements (now handled through jest configuration)
+- 🧹 **Duplicate Parameters**: Removed duplicated reporter parameter from Compiler
+- 🧹 **Profile Wildcards**: Replaced profile "*" with undefined for better type safety
+
+### Changed
+
+- 🔧 **Test System Architecture**: Moved compile-system from core package into testing package for better separation of concerns
+- 🔧 **Testing Utilities**: Replaced testing/compileSystem with createSystem in core package for improved testing workflow
+- 🔧 **TypeScript Defaults**: Created single abstraction for TS_DEFAULTS and aligned defaults with actual TSC defaults
+- 🔧 **API Requirements**: Loosened API requirements for better flexibility
+- 🔧 **Compiler Structure**: Restructured Compiler class by sorting members by visibility
+- 🔧 **Configuration Handling**: Improved addon handling in configuration and removed Partial from config options
+- 🧪 **Test Coverage**: Provided comprehensive test coverage for tsc CLI arguments and websmith-specific arguments
+- 🧪 **Test Setup**: Improved test configurations, webpack configuration tests, and console output during tests
+
+### Fixed
+
+- 🐛 **Error Reporting**: Improved error reporting when compiling invalid addon code
+- 🐛 **Linting Issues**: Fixed various linting issues across the codebase
+- 🐛 **Test Configuration**: Fixed test timeout and configuration precedence issues (buildDir vs. tsConfigFile vs configFile)
+- 🐛 **Jest Configuration**: Removed illegal jest configuration properties and improved test setup
+
 ## [0.7.7] - 2025-07-29
 
 ### Added

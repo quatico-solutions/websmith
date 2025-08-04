@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 export * from "./compilation";
-export { compileSystem, type CompileSystem, type CompileSystemOptions } from "./compile-system";
+export { compileSystem, type CompileSystemOptions } from "./compile-system";
 export { createFs, resetFs } from "./fusion-fs";
 export { ReporterMock } from "./ReporterMock";
 export { tsLibMocks } from "./tsLibMocks";

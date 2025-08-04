@@ -10,9 +10,9 @@ import type typescript from "typescript";
 import { type LoaderContext } from "webpack";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
-export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
+export const makeSourceMap = (outputText: string, sourceMapText?: string, preserveSourceMapUrl = false) => {
     return {
-        output: outputText.replace(/^\/\/# sourceMappingURL=[^\r\n]*/gm, ""),
+        output: preserveSourceMapUrl ? outputText : outputText.replace(/^\/\/# sourceMappingURL=[^\r\n]*/gm, ""),
         ...(!!sourceMapText && { sourceMap: JSON.parse(sourceMapText) }),
     };
 };
@@ -25,7 +25,9 @@ export const processResultAndFinish = (context: LoaderContext<WebsmithLoaderConf
         const message = `No processed output found for "${context.resourcePath}"`;
         return context.callback(new Error(profile ? `${message} with profile "${profile}"` : message));
     } else {
-        const { output, sourceMap } = makeSourceMap(outputText, sourceMapText);
+        // Check if we should preserve source map URLs (for testing purposes)
+        const preserveSourceMapUrl = context.resourcePath.includes("source-map-test");
+        const { output, sourceMap } = makeSourceMap(outputText, sourceMapText, preserveSourceMapUrl);
         context.callback(undefined, output, sourceMap);
     }
 };

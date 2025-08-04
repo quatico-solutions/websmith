@@ -5,9 +5,10 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { compileSystem } from "../../testing";
+import { createSystem } from "../../environment";
 import { NoReporter } from "../NoReporter";
 import { createOptions } from "./options";
+import { AddonRegistry } from "../addons/AddonRegistry";
 
 describe("createOptions", () => {
     it("should return defaults w/o any param", () => {
@@ -22,35 +23,31 @@ describe("createOptions", () => {
     });
 
     it("should return project config w/ custom but empty tsconfig.json", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
-                "./expected/tsconfig.json": "{}",
-            },
-        });
+        const target = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
 
         const actual = createOptions({ project: "./expected/tsconfig.json" }, new NoReporter(), target).tsConfig;
 
         expect(actual).toEqual({
+            allowJs: false,
+            checkJs: false,
             configFilePath: "/expected/tsconfig.json",
-            sourceMap: false,
-            module: ts.ModuleKind.ESNext,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
-            project: "./expected/tsconfig.json",
+            declaration: false,
+            declarationMap: false,
+            emitDecorationOnly: false,
+            esModuleInterop: false,
             jsx: ts.JsxEmit.Preserve,
-            esModuleInterop: true,
+            noEmit: false,
+            pretty: true,
+            project: "./expected/tsconfig.json",
+            removeComments: false,
+            strict: false,
+            target: ts.ScriptTarget.ES5,
         });
     });
 
-    it("should return expected path w/ custom addons directory and '*' target", () => {
-        const { addons } = compileSystem(
-            {
-                files: {
-                    "./expected/addon-foo/addon.js": "export const activate = () => {};",
-                },
-            },
-            { addonsDir: "./expected" }
-        );
+    it("should return expected path w/ custom addons directory and no profile specified", () => {
+        const fileSystem = createSystem({ "./expected/addon-foo/addon.js": "export const activate = () => {};" }, { virtual: true });
+        const addons = new AddonRegistry({ addonsDir: "./expected", reporter: new NoReporter(), system: fileSystem });
         jest.mock(
             "/expected/addon-foo/addon",
             () => {
@@ -59,13 +56,13 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = addons.getAvailableAddons("*");
+        const actual = addons.getAvailableAddons();
 
         expect(actual.getNames()).toEqual(["addon-foo"]);
     });
 
     it("should return debug path w/ debug true", () => {
-        const { fileSystem: target } = compileSystem();
+        const target = createSystem({}, { virtual: true });
 
         const actual = createOptions({ debug: true }, new NoReporter(), target);
 
@@ -73,18 +70,17 @@ describe("createOptions", () => {
     });
 
     it("should return watch path w/ watch true", () => {
-        const { fileSystem: target } = compileSystem();
+        const target = createSystem({}, { virtual: true });
         const actual = createOptions({ watch: true }, new NoReporter(), target);
 
         expect(actual).toEqual(expect.objectContaining({ watch: true }));
     });
 
     it("should return config w/ valid compiler config json", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
-                "websmith.config.json": '{ "profiles": { "whatever": { "addons": [ "one", "two", "three" ] } } }',
-            },
-        });
+        const target = createSystem(
+            { "websmith.config.json": '{ "profiles": { "whatever": { "addons": [ "one", "two", "three" ] } } }' },
+            { virtual: true }
+        );
 
         const actual = createOptions({ configFile: "./websmith.config.json" }, new NoReporter(), target).config;
 
@@ -94,13 +90,14 @@ describe("createOptions", () => {
     });
 
     it("should return config w/ valid addonsDir, addons in compiler config json", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "./tsconfig.json": '{ "include": ["**/*.ts"] }',
                 "/expected/one/addon.ts": "export const activate = () => {};",
                 "websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }',
             },
-        });
+            { virtual: true }
+        );
         jest.mock(
             "/expected/one/addon",
             () => {
@@ -112,7 +109,7 @@ describe("createOptions", () => {
         const actual = createOptions({ configFile: "./websmith.config.json", project: "./tsconfig.json" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
-            buildDir: "/src",
+            buildDir: "/",
             config: {
                 addons: ["one", "two"],
                 addonsDir: "/expected",

@@ -10,28 +10,31 @@ import { parsedCommandLine } from "../config";
 import { NoReporter } from "../NoReporter";
 import { type CompilerOptions } from "./CompilerOptions";
 import { resolveCompilerOptions } from "./resolveCompilerOptions";
+import { tsDefaults } from "../defaults";
 
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const { configFile, debug = false, profile, project = "./tsconfig.json", sourceMap = false, transpileOnly, watch = false } = args;
 
     const cliArgs = parsedCommandLine(project, args, system);
-    return resolveCompilerOptions(
-        system,
-        {
-            cliArgs,
-            reporter,
-            configFile,
-            debug,
-            profile,
-            watch,
-            tsConfig: {
-                sourceMap,
-            },
-            config: {
-                ...(transpileOnly && { transpileOnly }),
-                addonsDir: args.addonsDir,
-            },
+    return resolveCompilerOptions(system, {
+        buildDir: system.getCurrentDirectory(),
+        cliArgs: {
+            ...tsDefaults,
+            ...cliArgs,
         },
-        args.addons ? args.addons.split(",") : undefined
-    );
+        reporter,
+        configFile,
+        debug,
+        profile,
+        watch,
+        tsConfig: {
+            ...tsDefaults,
+            ...(sourceMap && { sourceMap }),
+        },
+        config: {
+            ...(transpileOnly && { transpileOnly }),
+            ...(args.addonsDir && { addonsDir: args.addonsDir }),
+            ...(args.addons && { addons: args.addons.split(",") }),
+        },
+    });
 };

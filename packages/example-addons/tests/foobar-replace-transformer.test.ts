@@ -7,6 +7,7 @@
 import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
+// FIXME: This test is failing because the foobar-replace-transformer addon is not being loaded
 describe.skip("foobar-replace-transformer addon", () => {
     let testObj: CompilationEnv;
     beforeAll(() => {
@@ -43,7 +44,7 @@ describe.skip("foobar-replace-transformer addon", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should replace 'foo' with 'bar' in the output files", () => {
         testObj
@@ -57,5 +58,5 @@ describe.skip("foobar-replace-transformer addon", () => {
 
         expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js"]);
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo"));
-    });
+    }, 60000);
 });

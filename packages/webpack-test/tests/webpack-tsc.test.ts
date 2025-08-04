@@ -33,7 +33,7 @@ const webpackDefaults = {
 };
 
 beforeEach(() => {
-    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't show extensive log messages in tests
     fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     fs.mkdirSync(SOURCE_DIR, { recursive: true });
@@ -72,7 +72,7 @@ describe("webpack w/ ts-loader", () => {
         });
 
         expect(getOutput("main.js")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build foobar-function.js with ES2020 target", async () => {
         writeTsConfig({
@@ -89,7 +89,7 @@ describe("webpack w/ ts-loader", () => {
         });
 
         expect(getOutput("main.js")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build foobar-arrow.js with ES5 target", async () => {
         writeTsConfig({
@@ -106,7 +106,7 @@ describe("webpack w/ ts-loader", () => {
         });
 
         expect(getOutput("main.js")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build foobar-function.js with ES5 target", async () => {
         writeTsConfig({
@@ -123,7 +123,7 @@ describe("webpack w/ ts-loader", () => {
         });
 
         expect(getOutput("main.js")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build foobar-arrow.js with ESNEXT and ESM target", async () => {
         writeTsConfig({
@@ -148,7 +148,7 @@ describe("webpack w/ ts-loader", () => {
         });
 
         expect(getOutput("main.mjs")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should throw error with transpileOnly false", async () => {
         await expect(() =>
@@ -162,7 +162,7 @@ describe("webpack w/ ts-loader", () => {
                 },
             })
         ).rejects.toThrow(/error while parsing tsconfig\.json|The 'files' list in config file.*is empty/);
-    });
+    }, 60000);
 });
 
 const getOutput = (filePath: string) => fs.readFileSync(path.join(OUTPUT_DIR, filePath), "utf-8");

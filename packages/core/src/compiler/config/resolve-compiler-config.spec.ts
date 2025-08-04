@@ -5,13 +5,13 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { ErrorMessage } from "@quatico/websmith-api";
-import { compileSystem } from "../../testing";
+import { createSystem } from "../../environment";
 import { NoReporter } from "../NoReporter";
 import { resolveCompilationConfig, resolvePath } from "./resolve-compiler-config";
 
 describe("resolveCompilationConfig", () => {
     it("should return undefined w/ empty path", () => {
-        const { fileSystem: target } = compileSystem();
+        const target = createSystem({}, { virtual: true });
 
         const actual = resolveCompilationConfig("", new NoReporter(), target);
 
@@ -19,7 +19,7 @@ describe("resolveCompilationConfig", () => {
     });
 
     it("should return undefined w/ non-existing path", () => {
-        const { fileSystem: target } = compileSystem();
+        const target = createSystem({}, { virtual: true });
 
         const actual = resolveCompilationConfig("/does-not-exists.json", new NoReporter(), target);
 
@@ -27,7 +27,7 @@ describe("resolveCompilationConfig", () => {
     });
 
     it("should return undefined w/ existing path but invalid config file", () => {
-        const { fileSystem: target } = compileSystem({ files: { "./invalid-config.json": "" } });
+        const target = createSystem({ "./invalid-config.json": "" }, { virtual: true });
 
         const actual = resolveCompilationConfig("./invalid-config.json", new NoReporter(), target);
 
@@ -35,7 +35,7 @@ describe("resolveCompilationConfig", () => {
     });
 
     it("should return defaults w/ existing path and empty config file", () => {
-        const { fileSystem: target } = compileSystem({ files: { "./empty-config.json": JSON.stringify({}) } });
+        const target = createSystem({ "./empty-config.json": JSON.stringify({}) }, { virtual: true });
 
         const actual = resolveCompilationConfig("./empty-config.json", new NoReporter(), target);
 
@@ -43,8 +43,8 @@ describe("resolveCompilationConfig", () => {
     });
 
     it("should return config properties w/ existing path and full config", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "./target-config.json": JSON.stringify({
                     addons: ["addon1", "addon2"],
                     addonsDir: "./addons",
@@ -59,7 +59,8 @@ describe("resolveCompilationConfig", () => {
                     transpileOnly: true,
                 }),
             },
-        });
+            { virtual: true }
+        );
 
         const actual = resolveCompilationConfig("./target-config.json", new NoReporter(), target);
 
@@ -81,8 +82,8 @@ describe("resolveCompilationConfig", () => {
     it("should throw error w/ non-existing profile dependencies", () => {
         const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
 
-        const { fileSystem } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "./target-config.json": JSON.stringify({
                     profiles: {
                         profile1: {
@@ -91,9 +92,10 @@ describe("resolveCompilationConfig", () => {
                     },
                 }),
             },
-        });
+            { virtual: true }
+        );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), fileSystem);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
 
         expect(targetFn).toHaveBeenCalledWith(new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'."));
     });
@@ -101,8 +103,8 @@ describe("resolveCompilationConfig", () => {
     it("should throw error w/ existing and non-existing profile dependencies", () => {
         const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
 
-        const { fileSystem } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "./target-config.json": JSON.stringify({
                     profiles: {
                         profile1: {
@@ -119,16 +121,17 @@ describe("resolveCompilationConfig", () => {
                     },
                 }),
             },
-        });
+            { virtual: true }
+        );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), fileSystem);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
 
         expect(targetFn).toHaveBeenCalledWith(new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'."));
     });
 });
 
 describe("resolvePath", () => {
-    const { fileSystem } = compileSystem();
+    const fileSystem = createSystem({}, { virtual: true });
 
     it("returns valid path relative to basePath", () => {
         const actual = resolvePath(fileSystem, "./", "./src");

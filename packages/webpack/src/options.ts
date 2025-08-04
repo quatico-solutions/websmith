@@ -4,8 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type Reporter } from "@quatico/websmith-api";
-import { type CompilerOptions, NoReporter, parsedCommandLine, resolveCompilationConfig, resolvePaths, resolveProfile } from "@quatico/websmith-core";
+import { TSC_ARGUMENT_KEYS, type TscArgumentKey, type Reporter } from "@quatico/websmith-api";
+import { NoReporter, parsedCommandLine, resolveCompilationConfig, resolvePaths, resolveProfile, type CompilerOptions } from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
@@ -15,7 +15,18 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
     const { config, configFile, debug = false, tsConfigFile = "./tsconfig.json", profile, tsConfig, transpileOnly } = args;
 
     const cliArgs = parsedCommandLine(tsConfigFile, args, system);
-    cliArgs.options = { ...cliArgs.options, ...tsConfig };
+    cliArgs.options = {
+        ...(cliArgs.options &&
+            Object.entries(cliArgs.options).reduce((acc: ts.CompilerOptions, [key, value]) => {
+                if (!TSC_ARGUMENT_KEYS.includes(key as TscArgumentKey)) {
+                    return acc;
+                }
+                acc[key] = value;
+                return acc;
+            }, {} as ts.CompilerOptions)),
+        ...tsConfig,
+    };
+
     const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system) : undefined;
 
     const projectDirectory = (configFile && path.dirname(configFile)) ?? (cliArgs.raw?.configFilePath && path.dirname(cliArgs.raw?.configFilePath));

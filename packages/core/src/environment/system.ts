@@ -10,7 +10,13 @@ import { createBrowserSystem } from "./browser-system";
 import { type BrowserSystemOptions } from "./BrowserSystemOptions";
 import type { VersionedFile } from "./VersionedFile";
 
-export const isNodeJs = (): boolean => typeof module !== "undefined" && module.exports;
+export const isNodeJs = (): boolean => {
+    // Always return true for CLI operations to ensure real file system access
+    if (typeof process !== "undefined" && process.argv && process.argv.length > 0) {
+        return true;
+    }
+    return typeof module !== "undefined" && module.exports;
+};
 
 /**
  * A ts.System contains methods for reading files, writing files, checking
@@ -25,8 +31,15 @@ export const isNodeJs = (): boolean => typeof module !== "undefined" && module.e
  * @param files The returned file system should at least contain.
  */
 export const createSystem = (files?: { [name: string]: string }, options?: BrowserSystemOptions): ts.System => {
-    if (isNodeJs()) {
-        return ts.sys;
+    if (!options?.virtual) {
+        // Always use ts.sys for CLI operations to ensure real file system access
+        // Completely bypass virtual file system when running from CLI
+        if (typeof process !== "undefined" && process.argv && process.argv.length > 0) {
+            return ts.sys;
+        }
+        if (isNodeJs()) {
+            return ts.sys;
+        }
     }
     const knownFiles = { ...(files || tsLibDefaults) }; // clone files
     return createBrowserSystem(knownFiles, options);

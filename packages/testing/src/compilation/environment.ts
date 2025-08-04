@@ -7,10 +7,11 @@
 import {
     type AddonConfig,
     AddonRegistry,
-    type CompileSystemOptions,
+    type BrowserSystemOptions,
     Compiler,
     type CompilerAddon,
     type CompilerAddons,
+    type CompilerOptions,
     DefaultReporter,
     type ResolvedCompilerOptions,
     compilerAddons,
@@ -48,17 +49,24 @@ export class CompilationEnv {
         this.rootDir = resolvePath(this.system, rootDir ?? DEFAULT_ROOT_DIR);
         this.buildDir = resolvePath(this.system, this.rootDir, buildDir);
         const configFilePath = `${this.rootDir}/tsconfig.json`;
-        this.compilerOptions = resolveCompilerOptions(
-            this.system,
-            {
-                tsConfigFile: configFilePath,
-                reporter,
-                ...options,
-                buildDir: this.rootDir,
-                tsConfig: { ...options?.tsConfig, outDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.outDir ?? DEFAULT_OUT_DIR) },
+        this.compilerOptions = resolveCompilerOptions(this.system, {
+            tsConfigFile: configFilePath,
+            reporter,
+            ...options,
+            buildDir: this.rootDir,
+            tsConfig: {
+                ...options?.tsConfig,
+                // Add smoother tsconfig defaults for testing purposes
+                target: ts.ScriptTarget.ESNext,
+                declaration: true,
+                outDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.outDir ?? DEFAULT_OUT_DIR),
             },
-            addonConfig?.addons
-        );
+            config: {
+                ...(options?.config ?? {}),
+                ...(addonConfig?.addons && { addons: addonConfig.addons }),
+                ...(addonConfig?.addonsDir && { addonsDir: addonConfig.addonsDir }),
+            },
+        });
         const resolvedOutDir = this.compilerOptions.tsConfig!.outDir!;
 
         if (this.system.directoryExists(this.rootDir)) {
@@ -158,7 +166,7 @@ export class CompilationEnv {
     }
 
     public getActiveAddon(addonName: string): CompilerAddon | undefined {
-        return this.addons?.getAvailableAddons("*").find((it: CompilerAddon) => it.getName() === addonName);
+        return this.addons?.getAvailableAddons().find((it: CompilerAddon) => it.getName() === addonName);
     }
 
     public getActiveAddons(profile?: string): CompilerAddons {
@@ -303,7 +311,7 @@ export class CompilationEnv {
             getDiagnostics: () => result.diagnostics ?? [],
             hasEmitSkipped: () => result.emitSkipped ?? false,
             getEmittedFiles: () => result.emittedFiles ?? [],
-            hasFailures: () => result.diagnostics.some(it => it.category === ts.DiagnosticCategory.Error),
+            hasFailures: () => result.diagnostics.some((it: ts.Diagnostic) => it.category === ts.DiagnosticCategory.Error),
             getFailureReport: (filter?: string) => {
                 const report = ts.formatDiagnostics(result?.diagnostics ?? [], {
                     getCanonicalFileName: (path: string) => path,
@@ -364,24 +372,36 @@ export class CompilationEnv {
             .filter((item, pos, self) => self.indexOf(item) == pos);
 
         addonsToCompile.forEach(curDir => {
-            new Compiler(
-                {
-                    ...resolveCompilerOptions(this.system, {
-                        buildDir: curDir,
-                    }),
-                    tsConfig: {
-                        module: ts.ModuleKind.CommonJS,
-                        target: ts.ScriptTarget.ES5,
-                        esModuleInterop: true,
-                        moduleResolution: ts.ModuleResolutionKind.Node10,
-                        types: ["node"],
-                        skipLibCheck: true,
+            try {
+                new Compiler(
+                    {
+                        ...resolveCompilerOptions(this.system, {
+                            buildDir: curDir,
+                        }),
+                        tsConfig: {
+                            module: ts.ModuleKind.CommonJS,
+                            target: ts.ScriptTarget.ES5,
+                            esModuleInterop: true,
+                            moduleResolution: ts.ModuleResolutionKind.Node10,
+                            types: ["node"],
+                            skipLibCheck: true,
+                        },
+                        cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
                     },
-                    cliArgs: { fileNames: this.system.readDirectory(curDir).filter(isSourceFile), options: {}, errors: [] },
-                },
-                {},
-                this.system
-            ).compile();
+                    {},
+                    this.system
+                ).compile();
+            } catch (error) {
+                // Handle file system errors gracefully for invalid addons
+                this.compilerOptions.reporter.reportDiagnostic({
+                    category: ts.DiagnosticCategory.Warning,
+                    code: 0,
+                    messageText: `Failed to compile addon in ${curDir}: ${error instanceof Error ? error.message : String(error)}`,
+                    file: undefined,
+                    start: undefined,
+                    length: undefined,
+                });
+            }
         });
 
         if (this.virtual) {
@@ -444,9 +464,11 @@ export type CompilationResult = {
     getDiagnostics: () => readonly ts.Diagnostic[];
 };
 
-export type CompilationOptions = CompileSystemOptions & {
-    virtual?: boolean;
-};
+export type CompilationOptions = BrowserSystemOptions &
+    CompilerOptions & {
+        files?: Record<string, string>;
+        virtual?: boolean;
+    };
 
 export type ProjectFiles = ProjectFile[] & { getPaths: (substringPrefix?: string) => string[]; getContents: () => string[] };
 

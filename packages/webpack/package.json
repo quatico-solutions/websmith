@@ -24,8 +24,9 @@
         "lint:fix": "pnpm lint --fix",
         "build": "tsc",
         "watch": "tsc --watch",
-        "watch:test": "jest --watch",
-        "test": "jest --coverage",
+        "watch:test": "jest --testRegex=\".*\\.spec\\.ts$\" --watch",
+        "test": "jest --testRegex=\".*\\.spec\\.ts$\" --coverage",
+        "test:e2e": "jest --testRegex=\".*\\.test\\.ts$\"",
         "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
     "dependencies": {

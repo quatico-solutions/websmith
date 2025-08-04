@@ -1,0 +1,220 @@
+# Unit Testing Rules
+
+## Structure and Naming Conventions
+
+### Test Structure
+
+- All unit tests MUST follow the three-part structure: "assemble", "act", "assert"
+- Each part is separated by exactly one blank line
+- NO comments are needed to mark the parts (no "// Assemble", "// Act", "// Assert")
+
+### Variable Naming
+
+- The object under test is ALWAYS called `testObj`
+- The outcome/result of the testObj is ALWAYS called `actual` (regardless of whether it's returned, yielded, or observed as side effect)
+- If the outcome is observed through another object, that object is called `target` (whether passed as parameter or returned by testObj functions)
+- Values required by API but meaningless to the test are called `whatever`
+
+### Test Isolation
+
+- Each unit test MUST create its own `testObj` instance
+- NO shared `testObj` variables between tests
+- Each test should be completely independent
+
+### Assertions
+
+- Every unit test should assert only ONE `actual` value
+- If multiple assertions are absolutely necessary, use multiple `actual` variables (actual1, actual2, etc.)
+
+## Example Template
+
+```typescript
+it("should [behavior description]", () => {
+    const whatever = "meaningless-value";
+    const testObj = new ClassUnderTest(whatever);
+    
+    const actual = testObj.methodUnderTest();
+    
+    expect(actual).toBe(expectedValue);
+});
+```
+
+## Examples
+
+### Basic Test
+
+```typescript
+it("should return transformed value", () => {
+    const input = "test input";
+    const testObj = new StringTransformer();
+    
+    const actual = testObj.transform(input);
+    
+    expect(actual).toBe("TRANSFORMED: test input");
+});
+```
+
+### Test with Target Object
+
+```typescript
+it("should update target object", () => {
+    const target = { value: 0 };
+    const testObj = new ValueUpdater();
+    
+    testObj.updateValue(target, 42);
+    const actual = target.value;
+    
+    expect(actual).toBe(42);
+});
+```
+
+### Test with Whatever Values
+
+```typescript
+it("should process data correctly", () => {
+    const whatever = { irrelevant: "config" };
+    const importantData = [1, 2, 3];
+    const testObj = new DataProcessor(whatever);
+    
+    const actual = testObj.process(importantData);
+    
+    expect(actual).toEqual([2, 4, 6]);
+});
+```
+
+### Test with Multiple Actuals (when unavoidable)
+
+```typescript
+it("should return both count and sum", () => {
+    const numbers = [1, 2, 3, 4];
+    const testObj = new NumberAnalyzer();
+    
+    const result = testObj.analyze(numbers);
+    const actual1 = result.count;
+    const actual2 = result.sum;
+    
+    expect(actual1).toBe(4);
+    expect(actual2).toBe(10);
+});
+```
+
+### Test with Target as Parameter
+
+```typescript
+it("should append item to target collection", () => {
+    const target = [];
+    const newItem = "test-item";
+    const testObj = new CollectionManager();
+    
+    testObj.addItem(target, newItem);
+    const actual = target.length;
+    
+    expect(actual).toBe(1);
+});
+```
+
+### Test with Target as Return Value
+
+```typescript
+it("should create configured target", () => {
+    const config = { size: 10 };
+    const testObj = new TargetFactory();
+    
+    const target = testObj.create(config);
+    const actual = target.getSize();
+    
+    expect(actual).toBe(10);
+});
+```
+
+## Anti-Patterns to Avoid
+
+### ❌ Wrong: Shared testObj
+
+```typescript
+describe("MyClass", () => {
+    let testObj: MyClass; // DON'T DO THIS
+    
+    beforeEach(() => {
+        testObj = new MyClass();
+    });
+});
+```
+
+### ❌ Wrong: Comments for structure
+
+```typescript
+it("should work", () => {
+    // Assemble - DON'T ADD THESE COMMENTS
+    const testObj = new MyClass();
+    
+    // Act
+    const actual = testObj.method();
+    
+    // Assert
+    expect(actual).toBe(true);
+});
+```
+
+### ❌ Wrong: Unclear variable names
+
+```typescript
+it("should work", () => {
+    const obj = new MyClass(); // Should be testObj
+    const result = obj.method(); // Should be actual
+    expect(result).toBe(true);
+});
+```
+
+### ✅ Correct: Following all rules
+
+```typescript
+it("should work", () => {
+    const testObj = new MyClass();
+    
+    const actual = testObj.method();
+    
+    expect(actual).toBe(true);
+});
+```
+
+## Special Cases
+
+### Mock/Spy Setup
+
+```typescript
+it("should call dependency method", () => {
+    const mockDependency = { method: jest.fn() };
+    const testObj = new MyClass(mockDependency);
+    
+    testObj.performAction();
+    const actual = mockDependency.method.mock.calls.length;
+    
+    expect(actual).toBe(1);
+});
+```
+
+### Async Tests
+
+```typescript
+it("should handle async operation", async () => {
+    const testObj = new AsyncProcessor();
+    
+    const actual = await testObj.processAsync();
+    
+    expect(actual).toBe("processed");
+});
+```
+
+### Error Testing
+
+```typescript
+it("should throw error for invalid input", () => {
+    const invalidInput = null;
+    const testObj = new Validator();
+    
+    const actual = () => testObj.validate(invalidInput);
+    
+    expect(actual).toThrow("Invalid input");
+});
+```

@@ -50,7 +50,6 @@ describe("compilationEnv", () => {
             buildDir: "/target",
             tsConfig: {
                 configFilePath: "/target/tsconfig.json",
-                module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
             },
             cliArgs: {
@@ -69,7 +68,6 @@ describe("compilationEnv", () => {
             buildDir: "/target",
             tsConfig: {
                 configFilePath: "/target/tsconfig.json",
-                module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
                 outDir: "/target/expected-out",
             },
@@ -82,13 +80,13 @@ describe("compilationEnv#addons", () => {
         const testObj = compilationEnv("/target");
 
         expect(testObj.getAddonsDir()).toBe("/target/addons");
-        expect(testObj.getActiveAddons("*")).toHaveLength(0);
+        expect(testObj.getActiveAddons()).toHaveLength(0);
     });
 
     it("should yield addon with valid addon source", () => {
         const testObj = compilationEnv("/target").addAddon("expected-addon", { "addon.ts": `export const activate = () => {};` });
 
-        const actual = testObj.getActiveAddons("*").getNames();
+        const actual = testObj.getActiveAddons().getNames();
 
         expect(actual).toEqual(["expected-addon"]);
     });
@@ -101,7 +99,7 @@ describe("compilationEnv#addons", () => {
         expect(() => testObj.addAddon("invalid-addon", { "addon.ts": `export const NO_ACTIVATE_FUNCTION = true;` })).not.toThrow();
 
         // Should have no available addons since the invalid addon is ignored
-        expect(testObj.getActiveAddons("*")).toHaveLength(0);
+        expect(testObj.getActiveAddons()).toHaveLength(0);
     });
 
     it("should yield addon with single addon in default addons path", () => {
@@ -110,7 +108,7 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddon("expected-addon");
 
-        const actual = testObj.getActiveAddons("*").getNames();
+        const actual = testObj.getActiveAddons().getNames();
 
         expect(actual).toEqual(["expected-addon"]);
     });
@@ -122,7 +120,7 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddons(["expected-addon1", "expected-addon2"]);
 
-        const actual = testObj.getActiveAddons("*").getNames();
+        const actual = testObj.getActiveAddons().getNames();
 
         expect(actual).toEqual(["expected-addon1", "expected-addon2"]);
     });
@@ -134,7 +132,7 @@ describe("compilationEnv#addons", () => {
 
         testObj.addAddons(["expected-addon1", "expected-addon2"], "./custom-addons-folder/");
 
-        const actual = testObj.getActiveAddons("*").getNames();
+        const actual = testObj.getActiveAddons().getNames();
 
         expect(actual).toEqual(["expected-addon1", "expected-addon2"]);
     });
@@ -359,9 +357,19 @@ describe("compilationEnv#compiled", () => {
             })
             .compile();
 
-        expect(testObj.getCompiledFiles().getPaths()).toEqual(["/target/dist/index.js", "/target/dist/target.js"]);
+        expect(testObj.getCompiledFiles().getPaths()).toEqual([
+            "/target/dist/index.js",
+            "/target/dist/index.d.ts",
+            "/target/dist/target.js",
+            "/target/dist/target.d.ts",
+        ]);
         expect(testObj.hasEmitSkipped()).toBe(false);
-        expect(testObj.getEmittedFiles()).toEqual(["/target/dist/index.js", "/target/dist/target.js"]);
+        expect(testObj.getEmittedFiles()).toEqual([
+            "/target/dist/index.js",
+            "/target/dist/index.d.ts",
+            "/target/dist/target.js",
+            "/target/dist/target.d.ts",
+        ]);
         expect(testObj.getDiagnostics()).toEqual([]);
     });
 
@@ -387,7 +395,7 @@ describe("compilationEnv#compiled", () => {
 
         const actual = testObj.getCompiledFiles();
 
-        expect(actual.getPaths()).toEqual(["/target/dist/index.js", "/target/dist/target.js"]);
+        expect(actual.getPaths()).toEqual(["/target/dist/index.js", "/target/dist/index.d.ts", "/target/dist/target.js", "/target/dist/target.d.ts"]);
     });
 
     it("should yield compiled files with project", () => {

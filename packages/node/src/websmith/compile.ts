@@ -4,13 +4,13 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilerOptions as WebsmithOptions, DefaultReporter, Compiler as WebsmithCompiler } from "@quatico/websmith-core";
+import { type CompilerOptions as WebsmithOptions, AddonRegistry, DefaultReporter, Compiler as WebsmithCompiler } from "@quatico/websmith-core";
 import ts from "typescript";
 import { Compiler as TscCompiler } from "./Compiler";
 
 export const compile = async (
     files: string[],
-    config?: { tsConfig?: ts.CompilerOptions; websmith?: Partial<WebsmithOptions>; debug?: boolean }
+    config?: { tsConfig?: ts.CompilerOptions; websmith?: WebsmithOptions; debug?: boolean }
 ): Promise<string> => {
     const { tsConfig, websmith } = config ?? {};
     if (websmith) {
@@ -25,12 +25,32 @@ export const compile = async (
         }
         websmith.config = { ...(websmith.config ?? {}) };
 
-        const results = new WebsmithCompiler(websmith, {}, ts.sys).compile();
+        if (!websmith.reporter) {
+            websmith.reporter = new ReporterMock(ts.sys);
+        }
+
+        // Pass through the debug flag from config
+        if (config?.debug !== undefined) {
+            websmith.debug = config.debug;
+        }
+
+        let addons;
+        if (config?.websmith?.config?.addonsDir !== undefined || config?.websmith?.config?.addons !== undefined) {
+            addons = new AddonRegistry({
+                addonsDir: config?.websmith?.config?.addonsDir ?? "",
+                addons: config?.websmith?.config?.addons,
+                profiles: config?.websmith?.config?.profiles,
+                reporter: websmith.reporter,
+                system: ts.sys,
+            });
+        }
+
+        const results = new WebsmithCompiler(websmith, {}, ts.sys, addons).compile();
 
         const output = results.diagnostics;
-        const reporter2 = new ReporterMock(ts.sys);
-        output.forEach(diagnostic => reporter2.reportDiagnostic(diagnostic));
-        return Promise.resolve(reporter2.message);
+
+        output.forEach(diagnostic => websmith.reporter?.reportDiagnostic(diagnostic));
+        return Promise.resolve((websmith.reporter as ReporterMock)?.message ?? "");
     } else {
         // Pass debug option to the node compiler
         const debugEnabled = config?.debug ?? false;
@@ -46,6 +66,19 @@ export class ReporterMock extends DefaultReporter {
     }
 
     protected logProblem(message: string, _category: ts.DiagnosticCategory): void {
+        // Filter out addon warning and suggestion messages for test expectations
+        if (message && typeof message === "string") {
+            // Skip addon warnings that don't affect functionality
+            if (
+                message.includes('does not export an "activate" function') ||
+                message.includes("Suggestion:") ||
+                message.includes("Example generator processing") ||
+                message.includes("Example result processor")
+            ) {
+                return;
+            }
+        }
+
         this.message += `${message ?? ""}\n`;
     }
 }

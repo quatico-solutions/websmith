@@ -9,7 +9,7 @@ import { webpack } from "@quatico/websmith-node";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
-import { getOutput, writeWebsmithConfig, writeTsConfig } from "./test-files";
+import { getOutput, writeTsConfig, writeWebsmithConfig } from "./test-files";
 
 const PROJECT_DIR = path.join(__dirname, "..", "output");
 const OUTPUT_DIR = path.join(PROJECT_DIR, "lib");
@@ -57,7 +57,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't show extensive log messages in tests
     fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     fs.mkdirSync(SOURCE_DIR, { recursive: true });
@@ -121,7 +121,7 @@ describe("project bundling", () => {
             },
         });
 
-        expect(fs.readdirSync(OUTPUT_DIR)).toEqual(["functions.js", "functions.js.map", "main.js", "main.js.map", "output.yaml"]);
+        expect(fs.readdirSync(OUTPUT_DIR)).toEqual(["functions.js", "functions.js.map", "main.js", "main.js.map", "output", "output.yaml"]);
 
         const expected = getOutput("output.yaml");
         [
@@ -130,5 +130,5 @@ describe("project bundling", () => {
             `-file: "${path.resolve(SOURCE_DIR, "model/index.ts")}"\nexports: []`,
             `-file: "${path.resolve(SOURCE_DIR, "model/create-message.ts")}"\nexports: [createMessage]`,
         ].forEach(it => expect(expected).toContain(it));
-    });
+    }, 60000);
 });

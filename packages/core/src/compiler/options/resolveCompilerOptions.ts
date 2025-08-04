@@ -11,9 +11,8 @@ import { type WebpackLoaderOptions } from "./WebpackLoaderOptions";
 
 export const resolveCompilerOptions = (
     system: ts.System,
-    options: Partial<CompilerOptions>,
-    addons?: string[],
+    options: CompilerOptions,
     loaderOptions?: WebpackLoaderOptions
 ): ResolvedCompilerOptions => {
-    return new ResolvedCompilerOptions(system, options, addons, loaderOptions);
+    return new ResolvedCompilerOptions(system, options, loaderOptions);
 };
