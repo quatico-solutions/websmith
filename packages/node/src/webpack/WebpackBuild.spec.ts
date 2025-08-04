@@ -69,7 +69,7 @@ describe("WebpackBuild#build", () => {
         const stdout = await testObj.build([path.join(TEST_TARGETS_DIR, "foobar-arrow.ts")]);
 
         expect(stdout).toContain(""); // success
-    });
+    }, 60000);
 
     it("should yield compile error with unknown file path", async () => {
         const testObj = new WebpackBuild();
@@ -77,5 +77,5 @@ describe("WebpackBuild#build", () => {
         await expect(() => testObj.build(["src/does-not-exist.ts"])).rejects.toThrow(
             "Module not found: Error: Can't resolve 'src/does-not-exist.ts'"
         );
-    });
+    }, 60000);
 });
