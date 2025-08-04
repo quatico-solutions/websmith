@@ -101,6 +101,6 @@ export const createArgs = (args: CompilerArguments): string[] =>
         if (value === undefined) {
             return acc;
         }
-
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         return acc.concat(`--${key}`, value != null ? value.toString() : "");
     }, []);

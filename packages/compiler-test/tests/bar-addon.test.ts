@@ -11,7 +11,7 @@ describe("compile test-project-foo w/ compilationEnv", () => {
     it("should install addon successfully", () => {
         const testObj = compilationEnv("__TEST__").addAddon("foo-addon", path.join(__dirname, "../test-data/addons"));
 
-        const actual = testObj.getActiveAddons("*").getNames();
+        const actual = testObj.getActiveAddons().getNames();
 
         expect(actual).toContain("foo-addon");
     });
