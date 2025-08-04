@@ -86,8 +86,6 @@ describe("bin.ts", () => {
             emitDecorationOnly: false,
             esModuleInterop: false,
             jsx: 1,
-            module: 99,
-            moduleResolution: 2,
             noEmit: false,
             pretty: true,
             project: "./tsconfig.json",
@@ -119,8 +117,6 @@ describe("bin.ts", () => {
                     emitDecorationOnly: false,
                     esModuleInterop: false,
                     jsx: 1,
-                    module: 99,
-                    moduleResolution: 2,
                     noEmit: false,
                     pretty: true,
                     project: "./tsconfig.json",
@@ -145,8 +141,6 @@ describe("bin.ts", () => {
                 emitDecorationOnly: false,
                 esModuleInterop: false,
                 jsx: ts.JsxEmit.Preserve,
-                module: ts.ModuleKind.ESNext,
-                moduleResolution: ts.ModuleResolutionKind.Node10,
                 noEmit: false,
                 pretty: true,
                 project: "./tsconfig.json",
@@ -172,7 +166,7 @@ describe("bin.ts", () => {
     });
 
     it("should yield script file with single file and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
         createSourceFile(
             `
             export const hello = "world";            
@@ -196,7 +190,14 @@ describe("bin.ts", () => {
     });
 
     it("should yield script and declaration files with single file, declaration and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, declaration: true, declarationMap: true, target: ts.ScriptTarget.ESNext });
+        createTsConfigFile({
+            outDir: OUTPUT_DIR,
+            noEmit: false,
+            declaration: true,
+            declarationMap: true,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
         copySourceFile("foobar-arrow.ts");
 
         executeCompiler("--project ./tsconfig.json", new Compiler({ reporter: new NoReporter() }, {}, createSystem()));
@@ -230,6 +231,7 @@ describe("bin.ts", () => {
                         outDir: `${OUTPUT_DIR}/target`,
                         target: ts.ScriptTarget.ESNext,
                         module: ts.ModuleKind.ESNext,
+                        moduleResolution: ts.ModuleResolutionKind.Node10,
                     },
                 },
             },
@@ -253,7 +255,7 @@ describe("bin.ts", () => {
     });
 
     it("should yield transpiled script with single file, addons-cli client-processor and emit", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons client-processor --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
@@ -271,7 +273,7 @@ describe("bin.ts", () => {
     });
 
     it("should yield transpiled script with single file, addons-config client-processor and emit", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
         createWebsmithConfig({
             addons: ["client-processor"],
         });
@@ -294,7 +296,7 @@ describe("bin.ts", () => {
     });
 
     it("should yield transpiled script with single file, addons-cli client-transformer and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons client-transformer --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
@@ -312,7 +314,7 @@ describe("bin.ts", () => {
     });
 
     it("should yield transpiled script with single file, addons-cli export-yaml-generator and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons export-yaml-generator --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
@@ -331,7 +333,7 @@ describe("bin.ts", () => {
     });
 
     it("should yield transpiled script with single file, addons-cli foo-added-generator and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons foo-added-generator --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
@@ -359,7 +361,7 @@ describe("bin.ts", () => {
     });
 
     it("should yield transpiled script with single file, addons-cli function-json-result-processor and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons function-json-result-processor --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);

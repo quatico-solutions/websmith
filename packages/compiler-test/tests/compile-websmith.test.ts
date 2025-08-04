@@ -63,7 +63,13 @@ describe("compile w/ websmith", () => {
 
     it("should build js and d.ts with outDir and noEmit false", async () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
-            tsConfig: { outDir: OUTPUT_DIR, noEmit: false, declaration: true, target: ts.ScriptTarget.ESNext },
+            tsConfig: {
+                outDir: OUTPUT_DIR,
+                noEmit: false,
+                declaration: true,
+                target: ts.ScriptTarget.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Node10,
+            },
             websmith: { buildDir: PROJECT_DIR, tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
         });
 
@@ -111,6 +117,7 @@ describe("compile w/ websmith", () => {
                 noEmit: false,
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Node10,
                 project: path.join(PROJECT_DIR, "tsconfig.json"),
             },
             websmith: { buildDir: PROJECT_DIR, tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
@@ -136,7 +143,7 @@ describe("compile w/ websmith", () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { noEmit: true, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5, project: path.join(PROJECT_DIR, "tsconfig.json") },
             websmith: {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 config: {
                     profiles: {
                         "target-profile": {
@@ -144,6 +151,7 @@ describe("compile w/ websmith", () => {
                                 noEmit: false,
                                 target: ts.ScriptTarget.ESNext,
                                 module: ts.ModuleKind.ESNext,
+                                moduleResolution: ts.ModuleResolutionKind.Node10,
                             },
                         },
                     },
@@ -172,7 +180,12 @@ describe("compile w/ websmith", () => {
         writeWebsmithConfig({
             profiles: {
                 "target-profile": {
-                    tsConfig: { noEmit: false, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                    tsConfig: {
+                        noEmit: false,
+                        target: ts.ScriptTarget.ESNext,
+                        module: ts.ModuleKind.ESNext,
+                        moduleResolution: ts.ModuleResolutionKind.Node10,
+                    },
                 },
             },
         });
@@ -180,7 +193,7 @@ describe("compile w/ websmith", () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { noEmit: true, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5, project: path.join(PROJECT_DIR, "tsconfig.json") },
             websmith: {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 profile: "target-profile",
                 configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
@@ -198,7 +211,7 @@ describe("compile w/ websmith", () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { ...tsDefaults, target: ts.ScriptTarget.ES2020 },
             websmith: {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 config: {
                     addonsDir: undefined,
                     addons: [],
@@ -215,7 +228,7 @@ describe("compile w/ websmith", () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { ...tsDefaults, target: ts.ScriptTarget.ES2020, declaration: true, declarationMap: true },
             websmith: {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 config: {
                     addonsDir: undefined,
                 },
