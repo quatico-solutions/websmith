@@ -4,14 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import {
-    AddonRegistry,
-    NoReporter,
-    createBrowserSystem,
-    getVersionedFile,
-    type AddonConfig,
-    type CompileSystemOptions,
-} from "@quatico/websmith-core";
+import { AddonRegistry, NoReporter, createBrowserSystem, getVersionedFile, type AddonConfig } from "@quatico/websmith-core";
+import type { CompileSystemOptions } from "./CompileSystemOptions";
 import type ts from "typescript";
 
 export type CompileSystem = {

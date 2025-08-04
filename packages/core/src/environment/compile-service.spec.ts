@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { compileSystem } from "../testing";
+import { createSystem } from "../environment";
 import { parsedCommandLine } from "../compiler";
 import { NoReporter } from "../compiler/NoReporter";
 import { createWatchHost } from "./compile-service";
@@ -13,7 +13,7 @@ import { createWatchHost } from "./compile-service";
 describe("createWatchHost", () => {
     describe("createHash", () => {
         it("returns same hash code", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -23,7 +23,7 @@ describe("createWatchHost", () => {
 
     describe("directoryExists", () => {
         it("returns false for non-existing path", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -33,7 +33,7 @@ describe("createWatchHost", () => {
         });
 
         it("returns true for existing path", () => {
-            const { fileSystem: target } = compileSystem({ files: { "folder/one.js": `class One {}` } });
+            const target = createSystem({ "folder/one.js": `class One {}` }, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -45,7 +45,7 @@ describe("createWatchHost", () => {
 
     describe("fileExists", () => {
         it("returns false for non-existing path", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -55,7 +55,7 @@ describe("createWatchHost", () => {
         });
 
         it("returns true for existing path", () => {
-            const { fileSystem: target } = compileSystem({ files: { "folder/one.js": `class One {}` } });
+            const target = createSystem({ "folder/one.js": `class One {}` }, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -67,7 +67,7 @@ describe("createWatchHost", () => {
 
     describe("getCurrentDirectory", () => {
         it("returns root directory", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -77,7 +77,7 @@ describe("createWatchHost", () => {
 
     describe("getDefaultLibFileName", () => {
         it("returns lib.es2015.d.ts", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -89,7 +89,7 @@ describe("createWatchHost", () => {
 
     describe("getDirectories", () => {
         it("returns empty array for non-existing path", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -99,13 +99,14 @@ describe("createWatchHost", () => {
         });
 
         it("returns file path array for existing path with content", () => {
-            const { fileSystem: target } = compileSystem({
-                files: {
+            const target = createSystem(
+                {
                     "folder/one.js": `class One {}`,
                     "folder/two.js": `class Two {}`,
                     "folder/foo/three.js": `class Three {}`,
                 },
-            });
+                { virtual: true }
+            );
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -115,13 +116,14 @@ describe("createWatchHost", () => {
         });
 
         it("returns empty array for existing path with no directories", () => {
-            const { fileSystem: target } = compileSystem({
-                files: {
+            const target = createSystem(
+                {
                     "folder/one.js": `class One {}`,
                     "folder/two.js": `class Two {}`,
                     "folder/foo/three.js": `class Three {}`,
                 },
-            });
+                { virtual: true }
+            );
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -133,7 +135,7 @@ describe("createWatchHost", () => {
 
     describe("getNewLine", () => {
         it("return same new line character", () => {
-            const { fileSystem: target } = compileSystem({ files: { "tsconfig.json": "{}" } });
+            const target = createSystem({ "tsconfig.json": "{}" }, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -143,7 +145,7 @@ describe("createWatchHost", () => {
 
     describe("useCaseSensitiveFileNames", () => {
         it("return same value", () => {
-            const { fileSystem: target } = compileSystem({ useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames });
+            const target = createSystem({}, { virtual: true, useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -153,7 +155,7 @@ describe("createWatchHost", () => {
 
     describe("readDirectory", () => {
         it("returns empty array for non-existing directory path", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -163,13 +165,14 @@ describe("createWatchHost", () => {
         });
 
         it("returns empty array for existing directory with non-matching file names", () => {
-            const { fileSystem: target } = compileSystem({
-                files: {
+            const target = createSystem(
+                {
                     "folder/one.js": `class One {}`,
                     "folder/two.js": `class Two {}`,
                     "folder/foo/three.js": `class Three {}`,
                 },
-            });
+                { virtual: true }
+            );
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -179,13 +182,14 @@ describe("createWatchHost", () => {
         });
 
         it("returns file paths for existing directory and matching file names", () => {
-            const { fileSystem: target } = compileSystem({
-                files: {
+            const target = createSystem(
+                {
                     "folder/one.js": `class One {}`,
                     "folder/two.js": `class Two {}`,
                     "folder/foo/three.js": `class Three {}`,
                 },
-            });
+                { virtual: true }
+            );
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -197,7 +201,7 @@ describe("createWatchHost", () => {
 
     describe("readFile", () => {
         it("returns undefined for non-existing file", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -207,9 +211,7 @@ describe("createWatchHost", () => {
         });
 
         it("returns file content for existing file", () => {
-            const { fileSystem: target } = compileSystem({
-                files: { "folder/one.js": `class One {}` },
-            });
+            const target = createSystem({ "folder/one.js": `class One {}` }, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -221,7 +223,7 @@ describe("createWatchHost", () => {
 
     describe("realpath", () => {
         it("returns input path with relative path", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -231,7 +233,7 @@ describe("createWatchHost", () => {
         });
 
         it("returns input path with absolute path", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -241,7 +243,7 @@ describe("createWatchHost", () => {
         });
 
         it("returns absolute path with directory path", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -251,7 +253,7 @@ describe("createWatchHost", () => {
         });
 
         it("returns input path with file path", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
@@ -261,7 +263,7 @@ describe("createWatchHost", () => {
         });
 
         it("returns current directory with empty path", () => {
-            const { fileSystem: target } = compileSystem();
+            const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
