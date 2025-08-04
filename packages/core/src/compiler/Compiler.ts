@@ -6,6 +6,7 @@
  */
 
 import { ErrorMessage, type Reporter } from "@quatico/websmith-api";
+import deepmerge from "deepmerge";
 import path from "node:path";
 import ts from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
@@ -14,7 +15,7 @@ import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
 import { DefaultReporter } from "./DefaultReporter";
-import { resolveCompilerOptions, type CompilerOptions, type ResolvedCompilerOptions, type WebpackLoaderOptions } from "./options";
+import { resolveCompilerOptions, type CompilerOptions, type ResolvedCompilerOptions, type WebpackLoaderOptions, arrayMerge } from "./options";
 
 export type CompileFragment = {
     version: number;
@@ -203,6 +204,18 @@ export class Compiler {
     }
 
     setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
+        if (this.addons) {
+            const registryConfig = this.addons.getConfig();
+            const { addons, addonsDir } = registryConfig;
+
+            if (addons || addonsDir) {
+                const optionsConfig = options.config ?? {};
+                const mergedConfig = deepmerge(optionsConfig, registryConfig, { arrayMerge });
+
+                options = { ...options, config: mergedConfig };
+            }
+        }
+
         // Include the current reporter in the options to preserve it
         const optionsWithReporter = {
             ...options,
