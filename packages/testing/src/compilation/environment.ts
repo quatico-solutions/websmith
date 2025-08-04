@@ -7,10 +7,11 @@
 import {
     type AddonConfig,
     AddonRegistry,
-    type CompileSystemOptions,
+    type BrowserSystemOptions,
     Compiler,
     type CompilerAddon,
     type CompilerAddons,
+    type CompilerOptions,
     DefaultReporter,
     type ResolvedCompilerOptions,
     compilerAddons,
@@ -310,7 +311,7 @@ export class CompilationEnv {
             getDiagnostics: () => result.diagnostics ?? [],
             hasEmitSkipped: () => result.emitSkipped ?? false,
             getEmittedFiles: () => result.emittedFiles ?? [],
-            hasFailures: () => result.diagnostics.some(it => it.category === ts.DiagnosticCategory.Error),
+            hasFailures: () => result.diagnostics.some((it: ts.Diagnostic) => it.category === ts.DiagnosticCategory.Error),
             getFailureReport: (filter?: string) => {
                 const report = ts.formatDiagnostics(result?.diagnostics ?? [], {
                     getCanonicalFileName: (path: string) => path,
@@ -463,9 +464,11 @@ export type CompilationResult = {
     getDiagnostics: () => readonly ts.Diagnostic[];
 };
 
-export type CompilationOptions = CompileSystemOptions & {
-    virtual?: boolean;
-};
+export type CompilationOptions = BrowserSystemOptions &
+    CompilerOptions & {
+        files?: Record<string, string>;
+        virtual?: boolean;
+    };
 
 export type ProjectFiles = ProjectFile[] & { getPaths: (substringPrefix?: string) => string[]; getContents: () => string[] };
 
