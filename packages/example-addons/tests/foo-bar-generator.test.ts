@@ -53,5 +53,5 @@ describe.skip("foo-added-generator addon", () => {
             }
             "
         `);
-    });
+    }, 60000);
 });

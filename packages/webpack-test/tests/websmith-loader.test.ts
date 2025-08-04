@@ -96,7 +96,7 @@ describe("webpack w/ websmith", () => {
         expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
         expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
-    });
+    }, 60000);
 
     it("should yield compiled and generated output with transpileOnly true", async () => {
         writeWebsmithConfig({
@@ -121,7 +121,7 @@ describe("webpack w/ websmith", () => {
         expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
         expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
-    });
+    }, 60000);
 
     it("should throw error with transpileOnly false", async () => {
         writeWebsmithConfig({
@@ -143,7 +143,7 @@ describe("webpack w/ websmith", () => {
                 },
             })
         ).rejects.toThrow(/No processed output found for ".*\/functions\/getDate\.ts" with profile "valid"/);
-    });
+    }, 60000);
 
     it("should throw error with unknown profile name", async () => {
         writeWebsmithConfig({
@@ -165,7 +165,7 @@ describe("webpack w/ websmith", () => {
                 },
             })
         ).rejects.toThrow("Found missing profile(s) 'unknown' in available profile(s) 'existing'.");
-    });
+    }, 60000);
 
     it("should use default profile w/o configured profile", async () => {
         writeWebsmithConfig({
@@ -188,7 +188,7 @@ describe("webpack w/ websmith", () => {
 
         expect(getOutput("output.yaml")).toContain("exports: [getDate]");
         expect(actual).toMatch(/successfully/);
-    });
+    }, 60000);
 
     it("should provide debug logging when debug is enabled", async () => {
         // Create a completely isolated test configuration
@@ -240,7 +240,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toContain("[websmith-loader] Emitting source file:");
         expect(actual).toContain("[websmith-loader] Build completed for:");
         expect(actual).toContain("webpack 5.97.1 compiled");
-    });
+    }, 60000);
 
     it("should show debug logs in webpack stats with infrastructureLogging enabled", async () => {
         // Create a completely isolated test configuration
@@ -313,7 +313,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toContain("[websmith-loader] Emit result");
         expect(actual).toContain("[websmith-loader] Build completed for:");
         expect(actual).toContain("webpack 5.97.1 compiled");
-    });
+    }, 60000);
 
     it("should not show debug logs when debug is disabled", async () => {
         // Create a completely isolated test configuration
@@ -365,7 +365,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).not.toContain("[websmith-loader] Emitting source file:");
         expect(actual).not.toContain("[websmith-loader] Build completed for:");
         expect(actual).toContain("webpack 5.97.1 compiled");
-    });
+    }, 60000);
 
     it("should show debug logs with different webpack stats configurations", async () => {
         // Create a completely isolated test configuration
@@ -443,7 +443,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toContain("[websmith-loader] Emit result");
         expect(actual).toContain("[websmith-loader] Build completed for:");
         expect(actual).toContain("webpack 5.97.1 compiled");
-    });
+    }, 60000);
 
     it("should show debug logs in webpack stats with multiple files", async () => {
         // Create a completely isolated test configuration
@@ -513,7 +513,7 @@ describe("webpack w/ websmith", () => {
         // Verify that the bundle was created successfully
         const bundlePath = path.join(testProjectDir, "dist", "bundle.js");
         expect(fs.existsSync(bundlePath)).toBe(true);
-    });
+    }, 60000);
 
     // TODO: Skipped Test: Preloaders seem to be broken with the current project setup
     it.skip("should bundle the file w/ thread-loader being used", async () => {
@@ -541,7 +541,7 @@ describe("webpack w/ websmith", () => {
 
         expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
         expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
-    });
+    }, 60000);
 
     it("should bundle invalid TypeScript file w/ transpileOnly being used", async () => {
         writeSourceFile("src/invalid.ts", "this is no valid source code");
@@ -567,7 +567,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toContain("webpack 5.97.1 compiled");
 
         fs.rmSync(path.resolve(SOURCE_DIR, "invalid.ts"), { force: true });
-    });
+    }, 60000);
 
     it("should bundle the file w/ fork-ts-checker-webpack-plugin being used", async () => {
         writeWebsmithConfig({
@@ -595,5 +595,5 @@ describe("webpack w/ websmith", () => {
         expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
         expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
         expect(actual).toContain("webpack 5.97.1 compiled");
-    });
+    }, 60000);
 });

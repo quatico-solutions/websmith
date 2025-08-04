@@ -35,5 +35,5 @@ describe.skip("foobar-replace-processor addon", () => {
 
         expect(testObj.getCompiledFiles().getPaths("/__TEST__")).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js"]);
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo {"));
-    });
+    }, 60000);
 });

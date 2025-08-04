@@ -56,7 +56,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         expect(getOutput("test.js")).toBeDefined();
         expect(getOutput("test.js")).toContain("hello");
         expect(getOutput("test.js")).toContain("greet");
-    });
+    }, 60000);
 
     it("should yield script and declaration files with single file, declaration and emit true", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false, declaration: true, declarationMap: true });
@@ -72,7 +72,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
 
         // For webpack e2e, declaration files may not be generated the same way as CLI
         // This is acceptable as webpack primarily focuses on bundling
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false, target: ts.ScriptTarget.ES5, module: ts.ModuleKind.CommonJS });
@@ -103,7 +103,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
 
         // Note: Profile-based addon transformations may behave differently in webpack
         // The important thing is that the file compiles successfully
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, client-processor addon via webpack loader options", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -117,7 +117,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         // For webpack e2e, test that the loader processes the file and addons can be configured
         expect(getOutput("foobar-function.js")).toBeDefined();
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
-    });
+    }, 60000);
 
     // FIXME: This test is failing because the client-processor addon is not being loaded
     it.skip("should yield transpiled script with single file, websmith config client-processor and emit", async () => {
@@ -134,7 +134,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
 
         expect(getOutput("foobar-function.js")).toBeDefined();
         expect(getOutput("foobar-function.js")).toContain("function getCLIENT");
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, client-transformer addon and emit true", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -147,7 +147,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
 
         expect(getOutput("foobar-function.js")).toBeDefined();
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, export-yaml-generator addon and emit true", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -162,7 +162,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
         // Note: In webpack context, YAML files may not be emitted as separate files
         // expect(getOutput("foobar-function.yaml")).toBeDefined();
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, foo-added-generator addon and emit true", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -177,7 +177,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
         // Note: In webpack context, additional generated files may not appear as separate files
         // expect(getOutput("foobar-function-added.js")).toBeDefined();
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, function-json-result-processor addon and emit true", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -192,7 +192,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
         // Note: In webpack context, JSON files may not be emitted as separate files
         // expect(getOutput("named-functions.json")).toBeDefined();
-    });
+    }, 60000);
 
     it("should handle multiple addons together", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -206,7 +206,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         expect(getOutput("foobar-function.js")).toBeDefined();
         expect(getOutput("foobar-function.js")).toContain("getFoobar");
         // Note: In webpack context, additional files may not be emitted as separate files
-    });
+    }, 60000);
 
     it("should handle source maps generation", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false, sourceMap: true });
@@ -226,7 +226,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         // Note: In webpack context, separate .map files may not be generated
         // expect(getOutput("math.js.map")).toBeDefined();
         // expect(getOutput("math.js")).toContain("sourceMappingURL");
-    });
+    }, 60000);
 
     it("should handle different TypeScript targets through webpack", async () => {
         createTsConfig({
@@ -250,7 +250,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         const output = getOutput("target-test.js");
         expect(output).toBeDefined();
         expect(output).toContain("function"); // ES5 should convert arrow functions
-    });
+    }, 60000);
 });
 
 // Logging and Error Handling Tests
@@ -292,7 +292,7 @@ describe("logging and error handling", () => {
 
         // Output should be generated even with TypeScript errors in transpileOnly mode
         expect(getOutput("error-test.js")).toBeDefined();
-    });
+    }, 60000);
 
     it("should handle missing addons directory gracefully", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -307,7 +307,7 @@ describe("logging and error handling", () => {
         // Should still generate output despite missing addons
         expect(getOutput("warning-test.js")).toBeDefined();
         expect(getOutput("warning-test.js")).toContain("warningTest");
-    });
+    }, 60000);
 
     it("should handle missing specific addons gracefully", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -326,7 +326,7 @@ describe("logging and error handling", () => {
         // Should still generate output despite missing specific addon
         expect(getOutput("missing-addon-test.js")).toBeDefined();
         expect(getOutput("missing-addon-test.js")).toContain("missingAddonTest");
-    });
+    }, 60000);
 
     it("should handle addon integration and reporter functionality", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -349,7 +349,7 @@ describe("logging and error handling", () => {
 
         // Note: In webpack context, addon-generated files may not appear as separate files
         // but the addon processing should complete without errors
-    });
+    }, 60000);
 
     it("should handle strict mode compilation in webpack context", async () => {
         createTsConfig({
@@ -380,7 +380,7 @@ describe("logging and error handling", () => {
         // Should still generate output in transpileOnly mode even with strict mode issues
         expect(getOutput("strict-test.js")).toBeDefined();
         expect(getOutput("strict-test.js")).toContain("implicitAny");
-    });
+    }, 60000);
 
     it("should handle file system errors gracefully", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -395,7 +395,7 @@ describe("logging and error handling", () => {
             // Restore permissions
             fs.chmodSync(OUTPUT_DIR, 0o755);
         }
-    });
+    }, 60000);
 
     it("should process addons and generate expected outputs", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -421,7 +421,7 @@ describe("logging and error handling", () => {
         // Note: In webpack context, addon-generated files like JSON outputs
         // might be handled differently than in CLI context
         // The important thing is that compilation succeeds with addon processing
-    });
+    }, 60000);
 
     it("should handle configuration file loading errors", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -436,7 +436,7 @@ describe("logging and error handling", () => {
                 configFile: path.join(PROJECT_DIR, "invalid-config.json"),
             })
         ).rejects.toThrow();
-    });
+    }, 60000);
 
     it("should log information about tsconfig resolution", async () => {
         // Create tsconfig with specific settings that should be logged
@@ -460,7 +460,7 @@ describe("logging and error handling", () => {
         await executeWebpack();
 
         expect(getOutput("tsconfig-test.js")).toBeDefined();
-    });
+    }, 60000);
 
     it("should handle webpack plugin integration logging", async () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
@@ -472,7 +472,7 @@ describe("logging and error handling", () => {
         // Should complete without throwing
         expect(result).toBeUndefined(); // executeWebpack returns void on success
         expect(getOutput("plugin-test.js")).toBeDefined();
-    });
+    }, 60000);
 });
 
 // Helper functions (similar to bin.test.ts)

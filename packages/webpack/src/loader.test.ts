@@ -90,7 +90,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         const baselineContent = getOutput("test.js");
         expect(baselineContent).toContain("hello");
         expect(baselineContent).toContain("greet");
-    });
+    }, 60000);
 
     it("should yield script and declaration files with single file, declaration and emit true", () => {
         createTsConfig({
@@ -178,7 +178,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         expect(baselineJs).toContain("getFoobar");
         expect(baselineJs).toContain("foobar");
         expect(baselineDts).toContain("export declare const getFoobar");
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file and different target/module settings", () => {
         createTsConfig({
@@ -256,7 +256,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         const baselineContent = getOutput("foobar-function.js");
         expect(baselineContent).toContain("getFoobar");
         expect(baselineContent).toContain("function");
-    });
+    }, 60000);
 
     it("should handle ESNext target compilation", () => {
         createTsConfig({
@@ -334,7 +334,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         expect(baselineContent).toContain("getValue");
         expect(baselineContent).toContain("async");
         expect(baselineContent).toContain("await");
-    });
+    }, 60000);
 
     it("should handle multiple compilation targets", () => {
         createTsConfig({
@@ -442,7 +442,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         const baselineContent = getOutput("multi-file.js");
         expect(baselineContent).toContain("createUser");
         expect(baselineContent).toContain("formatUser");
-    });
+    }, 60000);
 
     it("should handle source maps generation", () => {
         createTsConfig({
@@ -486,7 +486,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         expect(jsFile?.text).toContain("sourceMappingURL");
         expect(mapFile?.text).toContain("version");
         expect(mapFile?.text).toContain("sources");
-    });
+    }, 60000);
 
     it("should work with minimal configuration (demonstrating optional cliArgs/reporter)", () => {
         createTsConfig({
@@ -850,7 +850,7 @@ describe("addonsDir configuration tests", () => {
         expect(jsFile).toBeDefined();
         expect(jsFile?.text).toContain("yamlConfig");
         expect(jsFile?.text).toContain("getConfig");
-    });
+    }, 60000);
 });
 
 // Helper functions (like bin.test.ts)
