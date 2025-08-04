@@ -30,7 +30,6 @@ afterEach(() => {
     process.chdir(originalCwd);
     // Clean up directories
     fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
-    jest.clearAllMocks(); // Add this to clear TypeScript system state
 });
 
 describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {

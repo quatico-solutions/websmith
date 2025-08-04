@@ -30,9 +30,6 @@ describe("TsCompiler compatibility with Compiler", () => {
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
         }
-
-        // Reset any TypeScript system state to prevent test interference
-        jest.clearAllMocks();
     });
 
     it("should yield compiled js files like Compiler", () => {
