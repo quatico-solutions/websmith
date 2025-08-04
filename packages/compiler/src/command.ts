@@ -157,10 +157,10 @@ const addonConfig = (command: Command, system: ts.System, options: CompilerOptio
     const { config } = options ?? {};
     const addons = command.opts().addons ?? config?.addons?.join(",") ?? "";
     const addonsDir = command.opts().addonsDir ?? config?.addonsDir;
-    const resolvedAddonsDir = system.resolvePath(addonsDir);
+    const resolvedAddonsDir = addonsDir ? system.resolvePath(addonsDir) : undefined;
 
     // Check if addons directory exists and warn if it doesn't
-    if (!system.directoryExists(resolvedAddonsDir)) {
+    if (resolvedAddonsDir && !system.directoryExists(resolvedAddonsDir)) {
         reporter.reportDiagnostic(new WarnMessage(`Addons directory "${resolvedAddonsDir}" does not exist.`));
     }
 
@@ -171,7 +171,7 @@ const addonConfig = (command: Command, system: ts.System, options: CompilerOptio
                 .map((it: string) => it.trim())
                 .filter((it: string) => it.length > 0) ?? [],
 
-        addonsDir: resolvedAddonsDir,
+        ...(resolvedAddonsDir && { addonsDir: resolvedAddonsDir }),
         system,
         reporter,
 

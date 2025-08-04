@@ -4,6 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { ErrorMessage } from "@quatico/websmith-api";
 import {
     type AddonConfig,
     AddonRegistry,
@@ -108,7 +109,7 @@ export class CompilationEnv {
             system: this.system,
             ...(addonConfig ?? {}),
         };
-        if (!this.system.directoryExists(this.addonsConfig.addonsDir)) {
+        if (this.addonsConfig.addonsDir && !this.system.directoryExists(this.addonsConfig.addonsDir)) {
             this.system.createDirectory(this.addonsConfig.addonsDir);
         }
     }
@@ -183,6 +184,11 @@ export class CompilationEnv {
      * @returns this instance
      */
     public addAddon(addonName: string, addonSource?: string | Record<string, string>): this {
+        if (!this.addonsConfig.addonsDir) {
+            this.compilerOptions.reporter.reportDiagnostic(new ErrorMessage(`Cannot add addon without a specified "addonsDir".`));
+
+            return this;
+        }
         const addonTargetPath = path.join(this.addonsConfig.addonsDir, addonName);
         let addonImportDir = path.join(this.rootDir, addonName);
 
@@ -211,6 +217,10 @@ export class CompilationEnv {
 
     public addAddons(addonNames: string[], addonsSourceDir?: string): this {
         const addonsDir = this.addonsConfig.addonsDir;
+        if (!addonsDir) {
+            this.compilerOptions.reporter.reportDiagnostic(new ErrorMessage(`Cannot add addons to the environment without a specified "addonsDir".`));
+            return this;
+        }
         const addonsSourceDirPath = resolvePath(this.system, this.rootDir, addonsSourceDir ?? DEFAULT_ADDONS_SOURCE_DIR);
         const sourceFs = this.system.directoryExists(addonsSourceDirPath) ? this.system : ts.sys;
         addonNames.forEach(addon => {
@@ -350,12 +360,19 @@ export class CompilationEnv {
     }
 
     private resolveAddonSourcePaths(addonName: string, addonFiles: Record<string, string>, addonTargetPath: string): Record<string, string> {
+        const { addonsDir } = this.addonsConfig;
+
+        if (!addonsDir) {
+            this.compilerOptions.reporter.reportDiagnostic(new ErrorMessage(`Cannot resolve addon source path with no "addonsDir" specified.`));
+            return {};
+        }
+
         return Object.entries(addonFiles).reduce((acc: Record<string, string>, [filePath, content]) => {
             if (path.isAbsolute(filePath)) {
                 acc[filePath] = content;
             } else {
                 if (filePath.includes(addonName)) {
-                    acc[path.join(this.addonsConfig.addonsDir, filePath)] = content;
+                    acc[path.join(addonsDir, filePath)] = content;
                 } else {
                     acc[path.join(addonTargetPath, filePath)] = content;
                 }
@@ -444,7 +461,10 @@ export class CompilationEnv {
         }
     }
 
-    private deleteDirectory(dirPath: string): void {
+    private deleteDirectory(dirPath?: string): void {
+        if (!dirPath) {
+            return;
+        }
         if (this.virtual) {
             this.system.readDirectory(dirPath).forEach((it: string) => this.system.deleteFile!(it));
         } else {

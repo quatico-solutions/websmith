@@ -14,7 +14,7 @@ import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./Compi
 
 export type AddonConfig = {
     addons?: string[];
-    addonsDir: string;
+    addonsDir?: string;
     profiles?: Record<string, CompilationProfile>;
     reporter: Reporter;
     system: ts.System;
@@ -31,8 +31,13 @@ export class AddonRegistry {
     }
 
     setConfig(config: AddonConfig): this {
-        this.config = config;
+        // Don't remove addonsDir from the config
+        this.config = { ...config, addonsDir: config.addonsDir ?? this.config.addonsDir };
         return this.refresh();
+    }
+
+    getConfig(): AddonConfig {
+        return this.config;
     }
 
     /**
