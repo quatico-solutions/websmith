@@ -30,7 +30,6 @@ describe("constructor", () => {
 
         expect(testObj).toEqual({
             addons: [],
-            addonsDir: "/build/addons",
             buildDir: "/build",
             cliArgs: {
                 compileOnSave: false,
@@ -63,7 +62,6 @@ describe("constructor", () => {
                 },
             },
             config: {},
-            configFile: "/build/websmith.config.json",
             debug: false,
             projectDir: "/build",
             reporter: expect.any(ReporterMock),
@@ -117,7 +115,6 @@ describe("constructor", () => {
                     },
                 },
                 config: {},
-                configFile: "/target/websmith.config.json",
                 reporter: expect.any(DefaultReporter),
                 tsConfig: {
                     allowJs: false,
@@ -1067,7 +1064,6 @@ describe("getOptions", () => {
                 },
             },
             config: {},
-            configFile: "/websmith.config.json",
             reporter: expect.any(DefaultReporter),
             tsConfig: {
                 allowJs: false,

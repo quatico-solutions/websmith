@@ -6,4 +6,3 @@
  */
 export { AddonRegistry, type AddonConfig } from "./AddonRegistry";
 export { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
-export { createResolver } from "./addon-resolver";

@@ -429,7 +429,7 @@ export class Compiler {
         const parts = [
             `tsconfig: ${this.options.tsConfigFile || "./tsconfig.json"}`,
             `profiles: ${this.options.config?.profiles ? Object.keys(this.options.config.profiles).join(", ") : ""}`,
-            `addonsDir: ${this.options.config?.addonsDir || "./addons"}`,
+            `addonsDir: ${this.options.config?.addonsDir}`,
             `outDir: ${resolvedOutDir}`,
             `target: ${profileTsConfig.target ?? resolvedTsConfig?.target ?? cliTsConfig?.target ?? 99}`,
             `module: ${profileTsConfig.module ?? resolvedTsConfig?.module ?? cliTsConfig?.module ?? 99}`,

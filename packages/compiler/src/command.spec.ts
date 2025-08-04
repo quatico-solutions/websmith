@@ -62,7 +62,6 @@ describe("addCompileCommand", () => {
         );
         expect(actual).toEqual({
             addons: [],
-            addonsDir: "/addons",
             buildDir: expect.stringContaining(path.sep),
             cliArgs: {
                 compileOnSave: false,
@@ -93,7 +92,6 @@ describe("addCompileCommand", () => {
                 wildcardDirectories: { [""]: 1 },
             },
             config: {},
-            configFile: "/websmith.config.json",
             debug: false,
             projectDir: "/",
             reporter: expect.any(NoReporter),
@@ -139,7 +137,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().config).toEqual({});
         expect(target.getReporter().reportDiagnostic).toHaveBeenNthCalledWith(
             1,
-            new WarnMessage(`No configuration file found at ${"/does-not-exist/websmith.config.json"}.`)
+            new WarnMessage(`No configuration file found at "${"/does-not-exist/websmith.config.json"}".`)
         );
     });
 

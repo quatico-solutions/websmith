@@ -78,7 +78,7 @@ export const resolveCompilationConfig = (configFilePath: string | undefined, rep
 
     const resolvedPath = system.resolvePath(configFilePath);
     if (!system.fileExists(resolvedPath)) {
-        reporter.reportDiagnostic(new WarnMessage(`No configuration file found at ${resolvedPath}.`));
+        reporter.reportDiagnostic(new WarnMessage(`No configuration file found at "${resolvedPath}".`));
     } else {
         const content = system.readFile(resolvedPath);
         if (content) {

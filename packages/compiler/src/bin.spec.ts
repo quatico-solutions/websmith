@@ -103,7 +103,6 @@ describe("bin.ts", () => {
         expect(target.getOptions()).toEqual({
             additionalArguments: expect.any(Map),
             addons: [],
-            addonsDir: "/addons",
             buildDir: "/",
             cliArgs: {
                 errors: [],
@@ -126,7 +125,6 @@ describe("bin.ts", () => {
                 },
             },
             config: {},
-            configFile: "/websmith.config.json",
             debug: false,
             profile: undefined,
             projectDir: "/",
@@ -163,6 +161,47 @@ describe("bin.ts", () => {
                 ["another-unknown", "expected"],
             ]),
         });
+    });
+
+    it("should not emit a warning without configFile specified", () => {
+        const target = new NoReporter();
+        jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {});
+
+        executeCompiler("", new Compiler({ reporter: target }, {}, createSystem({}, { virtual: true })));
+
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
+    });
+
+    it("should emit a warning with configFile but non-existing file path", () => {
+        const target = new NoReporter();
+        jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {});
+
+        executeCompiler(
+            `--configFile ${path.join(PROJECT_DIR, "websmith.config.json")}`,
+            new Compiler({ reporter: target }, {}, createSystem({}, { virtual: true }))
+        );
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: `No configuration file found at "${PROJECT_DIR}/websmith.config.json".`,
+            })
+        );
+    });
+
+    it("should emit a warning with addonsDir but non-existing dir path", () => {
+        const target = new NoReporter();
+        jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {});
+
+        executeCompiler(
+            `--addonsDir ${path.join(PROJECT_DIR, "does-not-exist")}`,
+            new Compiler({ reporter: target }, {}, createSystem({}, { virtual: true }))
+        );
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: `Addons directory "${PROJECT_DIR}/does-not-exist" does not exist.`,
+            })
+        );
     });
 
     it("should yield script file with single file and emit true", () => {

@@ -17,7 +17,6 @@ import { type WebpackLoaderOptions } from "./WebpackLoaderOptions";
 
 const DEFAULT_BUILD_DIR = "./";
 const DEFAULT_TSCONFIG_FILE = "tsconfig.json";
-const DEFAULT_CONFIG_FILE = "websmith.config.json";
 
 type ResolvedPaths = {
     buildDir: string;
@@ -50,7 +49,6 @@ const resolvePathsWithRules = (
         return {
             buildDir: resolvePath(system, DEFAULT_BUILD_DIR),
             tsConfigFile: resolvePath(system, DEFAULT_BUILD_DIR, DEFAULT_TSCONFIG_FILE),
-            configFile: resolvePath(system, DEFAULT_BUILD_DIR, DEFAULT_CONFIG_FILE),
         };
     }
 
@@ -60,7 +58,6 @@ const resolvePathsWithRules = (
         return {
             buildDir: resolvedBuildDir,
             tsConfigFile: resolvePath(system, resolvedBuildDir, DEFAULT_TSCONFIG_FILE),
-            configFile: resolvePath(system, resolvedBuildDir, DEFAULT_CONFIG_FILE),
         };
     }
 
@@ -71,7 +68,6 @@ const resolvePathsWithRules = (
         return {
             buildDir: tsConfigDir,
             tsConfigFile: resolvedTsConfigFile,
-            configFile: resolvePath(system, tsConfigDir, DEFAULT_CONFIG_FILE),
         };
     }
 
@@ -89,7 +85,7 @@ const resolvePathsWithRules = (
     // For other combinations, start with provided values
     let resolvedBuildDir = buildDir ? resolvePath(system, buildDir) : resolvePath(system, DEFAULT_BUILD_DIR);
     let resolvedTsConfigFile = tsConfigFile ? resolvePath(system, tsConfigFile) : undefined;
-    let resolvedConfigFile = configFile ? resolvePath(system, configFile) : undefined;
+    const resolvedConfigFile = configFile ? resolvePath(system, configFile) : undefined;
 
     // Rule 5: If tsConfigFile and buildDir are both specified but in different directories
     if (resolvedTsConfigFile && resolvedBuildDir) {
@@ -113,9 +109,6 @@ const resolvePathsWithRules = (
     // Fill in missing values based on resolved buildDir
     if (!resolvedTsConfigFile) {
         resolvedTsConfigFile = resolvePath(system, resolvedBuildDir, DEFAULT_TSCONFIG_FILE);
-    }
-    if (!resolvedConfigFile) {
-        resolvedConfigFile = resolvePath(system, resolvedBuildDir, DEFAULT_CONFIG_FILE);
     }
 
     return {
@@ -220,7 +213,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         const selectedProfiles = getDependentProfiles(existingProfiles, profileName, this.config).filter(cur => existingProfiles.includes(cur));
 
         // addons
-        this.addonsDir = resolvePath(this.system, this.projectDir, this.config?.addonsDir ?? "./addons");
+        this.addonsDir = this.config?.addonsDir ? resolvePath(this.system, this.projectDir, this.config?.addonsDir) : undefined;
         this.addons = [
             ...(Array.isArray(this.config?.addons) ? this.config.addons : []),
             ...selectedProfiles
