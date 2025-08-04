@@ -57,8 +57,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-    jest.spyOn(console, "warn").mockImplementation(() => {});
-    jest.spyOn(console, "log").mockImplementation(() => {});
+    jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't show extensive log messages in tests
     fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     fs.mkdirSync(SOURCE_DIR, { recursive: true });
@@ -122,16 +121,7 @@ describe("project bundling", () => {
             },
         });
 
-        expect(fs.readdirSync(OUTPUT_DIR)).toEqual([
-            "functions",
-            "functions.js",
-            "functions.js.map",
-            "index.js",
-            "main.js",
-            "main.js.map",
-            "model",
-            "output.yaml",
-        ]);
+        expect(fs.readdirSync(OUTPUT_DIR)).toEqual(["functions.js", "functions.js.map", "main.js", "main.js.map", "output", "output.yaml"]);
 
         const expected = getOutput("output.yaml");
         [

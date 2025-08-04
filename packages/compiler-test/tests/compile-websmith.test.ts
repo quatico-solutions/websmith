@@ -63,7 +63,7 @@ describe("compile w/ websmith", () => {
 
     it("should build js and d.ts with outDir and noEmit false", async () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
-            tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+            tsConfig: { outDir: OUTPUT_DIR, noEmit: false, declaration: true, target: ts.ScriptTarget.ESNext },
             websmith: { buildDir: PROJECT_DIR, tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
         });
 
@@ -86,7 +86,7 @@ describe("compile w/ websmith", () => {
 
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { project: path.join(PROJECT_DIR, "tsconfig.json") },
-            websmith: { buildDir: SOURCE_DIR, tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
+            websmith: { buildDir: PROJECT_DIR, tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
         });
 
         expect(result).toBe(""); // errors are expected

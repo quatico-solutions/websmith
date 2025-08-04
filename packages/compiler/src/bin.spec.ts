@@ -27,6 +27,7 @@ describe("bin.ts", () => {
     });
 
     beforeEach(() => {
+        jest.spyOn(console, "time").mockImplementation(() => {}); // Don't log timing information to console
         originalCwd = process.cwd();
         fs.rmSync(path.resolve(PROJECT_DIR), { recursive: true, force: true });
         fs.mkdirSync(SOURCE_DIR, { recursive: true });

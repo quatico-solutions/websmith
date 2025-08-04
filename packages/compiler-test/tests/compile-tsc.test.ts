@@ -22,6 +22,10 @@ beforeAll(() => {
     fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
 });
 
+beforeEach(() => {
+    jest.spyOn(process.stdout, "write").mockImplementation(() => true);
+});
+
 describe("compile w/ tsc", () => {
     it("should build foobar-arrow.js with ES2020 target", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {

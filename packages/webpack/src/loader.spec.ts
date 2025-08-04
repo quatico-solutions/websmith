@@ -285,6 +285,7 @@ describe("TsCompiler compatibility with Compiler", () => {
 
     // Test TsCompiler basic functionality - adapted for webpack loader usage
     it("should compile TypeScript files successfully", () => {
+        jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't log missing configuration files
         const { fileSystem: target } = compileSystem({
             buildDir: "/src",
             files: {

@@ -543,11 +543,13 @@ export class Compiler {
         const { outDir } = this.options?.tsConfig ?? {};
 
         if (outDir !== undefined) {
-            // JSON are only output by TypoScript if an outDir is provided, otherwise they are ignored.
-            const fileNames = ts.getOutputFileNames(ctx.getCliArgs(), fileName, !this.system.useCaseSensitiveFileNames);
+            // JSON are only output by TypeScript if an outDir is provided, otherwise they are ignored.
+            // For JSON files, manually construct the output path since ts.getOutputFileNames doesn't handle JSON files consistently
+            const relativePath = path.relative(ctx.getCliArgs().options.rootDir || this.options.buildDir, fileName);
+            const outputFileName = path.join(outDir, relativePath);
 
             return {
-                outputFiles: [{ name: fileNames[0], text: content, writeByteOrderMark: false }],
+                outputFiles: [{ name: outputFileName, text: content, writeByteOrderMark: false }],
                 emitSkipped: false,
                 diagnostics: [],
             };
