@@ -53,10 +53,17 @@ export class CompilationEnv {
             reporter,
             ...options,
             buildDir: this.rootDir,
-            tsConfig: { ...options?.tsConfig, outDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.outDir ?? DEFAULT_OUT_DIR) },
+            tsConfig: {
+                ...options?.tsConfig,
+                // Add smoother tsconfig defaults for testing purposes
+                target: ts.ScriptTarget.ESNext,
+                declaration: true,
+                outDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.outDir ?? DEFAULT_OUT_DIR),
+            },
             config: {
                 ...(options?.config ?? {}),
-                addons: addonConfig?.addons,
+                ...(addonConfig?.addons && { addons: addonConfig.addons }),
+                ...(addonConfig?.addonsDir && { addonsDir: addonConfig.addonsDir }),
             },
         });
         const resolvedOutDir = this.compilerOptions.tsConfig!.outDir!;
