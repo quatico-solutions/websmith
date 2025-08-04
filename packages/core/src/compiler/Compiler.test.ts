@@ -5,18 +5,19 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { ReporterMock } from "../../test";
-import { compileSystem } from "../testing";
+import { createSystem } from "../environment";
 import { Compiler } from "./Compiler";
 import ts from "typescript";
 
 describe("end-2-end compile w/ websmith", () => {
     it("should test reporter mock", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": "{}",
                 "src/test.ts": `export const test = 'hello';`,
             },
-        });
+            { virtual: true }
+        );
 
         const reporter = new ReporterMock(target);
 
@@ -34,13 +35,14 @@ describe("end-2-end compile w/ websmith", () => {
     });
 
     it("should yield compiled js files", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": "{}",
                 "src/one.ts": `whatever`,
                 "src/two.ts": `whatever`,
             },
-        });
+            { virtual: true }
+        );
 
         const actual = new Compiler(
             {
@@ -59,13 +61,14 @@ describe("end-2-end compile w/ websmith", () => {
     });
 
     it("should yield compiled d.ts files", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": "{}",
                 "src/one.ts": `whatever`,
                 "src/two.ts": `whatever`,
             },
-        });
+            { virtual: true }
+        );
 
         const actual = new Compiler(
             {
@@ -84,12 +87,13 @@ describe("end-2-end compile w/ websmith", () => {
     });
 
     it("should show profile-specific outDir in debug output", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": "{}",
                 "src/test.ts": `export const test = 'hello';`,
             },
-        });
+            { virtual: true }
+        );
 
         const reporter = new ReporterMock(target);
         const compiler = new Compiler(
@@ -120,12 +124,13 @@ describe("end-2-end compile w/ websmith", () => {
     });
 
     it("should show CLI outDir when provided, even with profile", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": "{}",
                 "src/test.ts": `export const test = 'hello';`,
             },
-        });
+            { virtual: true }
+        );
 
         const reporter = new ReporterMock(target);
         const compiler = new Compiler(
@@ -163,12 +168,13 @@ describe("end-2-end compile w/ websmith", () => {
     });
 
     it("should demonstrate debug output format", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": "{}",
                 "src/test.ts": `export const test = 'hello';`,
             },
-        });
+            { virtual: true }
+        );
 
         const reporter = new ReporterMock(target);
 
@@ -181,8 +187,6 @@ describe("end-2-end compile w/ websmith", () => {
             start: undefined,
             length: undefined,
         });
-
-        console.log("Reporter message after test:", JSON.stringify(reporter.message));
 
         const compiler = new Compiler(
             {
@@ -206,9 +210,6 @@ describe("end-2-end compile w/ websmith", () => {
         );
 
         compiler.compile();
-
-        // Debug: Check reporter message after compilation
-        console.log("Reporter message after compile:", JSON.stringify(reporter.message));
 
         // Verify the debug output shows the correct configuration
         expect(reporter.message).toContain("Starting compilation with debug mode enabled");

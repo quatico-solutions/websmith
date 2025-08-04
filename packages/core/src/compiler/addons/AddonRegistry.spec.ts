@@ -8,7 +8,7 @@ import { WarnMessage } from "@quatico/websmith-api";
 import path from "node:path";
 import type ts from "typescript";
 import { ReporterMock } from "../../../test";
-import { compileSystem } from "../../testing";
+import { createSystem } from "../../environment";
 import { AddonRegistry } from "./AddonRegistry";
 
 beforeEach(() => {
@@ -17,7 +17,7 @@ beforeEach(() => {
 
 describe("Ctor", () => {
     it("reports warning w/ non-existing addons directory", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         target.reportDiagnostic = jest.fn();
         expect(system.directoryExists("./addons")).toBe(false);
@@ -28,7 +28,7 @@ describe("Ctor", () => {
     });
 
     it("does not report warning w/ empty addons directory", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory("./addons");
         target.reportDiagnostic = jest.fn();
@@ -39,7 +39,7 @@ describe("Ctor", () => {
     });
 
     it("logs warning with valid and invalid addons in addons directory", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         createAddon("addons/expected/addon", system);
         createAddon("addons/invalid/addon", system, "export const whatever = () => {};", { whatever: jest.fn() });
@@ -57,7 +57,7 @@ describe("Ctor", () => {
 
 describe("getAvailableAddons", () => {
     it("returns empty addons w/ empty addons directory", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: new ReporterMock(system), system });
 
         const actual = testObj.getAvailableAddons();
@@ -66,7 +66,7 @@ describe("getAvailableAddons", () => {
     });
 
     it("returns addons w/ single addon in addon directory", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         createAddon("addons/expected/addon", system);
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: new ReporterMock(system), system });
 
@@ -76,7 +76,7 @@ describe("getAvailableAddons", () => {
     });
 
     it("returns addons w/ multiple addons in addon directory", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         createAddon("addons/one/addon", system);
         createAddon("addons/two/addon", system);
         createAddon("addons/three/addon", system);
@@ -88,7 +88,7 @@ describe("getAvailableAddons", () => {
     });
 
     it("returns no addons w/ empty files in addon directory", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: new ReporterMock(system), system });
 
         const actual = testObj.getAvailableAddons();
@@ -97,7 +97,7 @@ describe("getAvailableAddons", () => {
     });
 
     it("reports warning w/ non-existing addons name", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory("./addons");
         target.reportDiagnostic = jest.fn();
@@ -113,7 +113,7 @@ describe("getAvailableAddons", () => {
     });
 
     it("reports warning w/ profile config and non-existing addons name", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory("./addons");
         target.reportDiagnostic = jest.fn();
@@ -131,7 +131,7 @@ describe("getAvailableAddons", () => {
 
 describe("getExpectedAddonsWithDependencies", () => {
     it("returns empty w/o addons", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const testObj = new AddonRegistry({ addonsDir: "./empty", reporter: new ReporterMock(system), system });
 
         // @ts-expect-error private property access
@@ -141,7 +141,7 @@ describe("getExpectedAddonsWithDependencies", () => {
     });
 
     it("returns addons w/ addons", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const testObj = new AddonRegistry({ addons: ["one", "two", "three"], addonsDir: "./empty", reporter: new ReporterMock(system), system });
 
         // @ts-expect-error private property access
@@ -151,7 +151,7 @@ describe("getExpectedAddonsWithDependencies", () => {
     });
 
     it("returns profile addons w/ profile name", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const testObj = new AddonRegistry({
             profiles: { target: { addons: ["one", "two", "three"] } },
             addonsDir: "./empty",
@@ -166,7 +166,7 @@ describe("getExpectedAddonsWithDependencies", () => {
     });
 
     it("returns empty w/ profile name and no addons", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const testObj = new AddonRegistry({
             profiles: { target: { addons: [] } },
             addonsDir: "./empty",
@@ -181,7 +181,7 @@ describe("getExpectedAddonsWithDependencies", () => {
     });
 
     it("returns empty w/ profile and no profile name", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const testObj = new AddonRegistry({
             profiles: { target: { addons: ["one", "two", "three"] } },
             addonsDir: "./empty",
@@ -198,7 +198,7 @@ describe("getExpectedAddonsWithDependencies", () => {
 
 describe("reportMissingAddons", () => {
     it("reports missing addons directory", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         target.reportDiagnostic = jest.fn();
         const testObj = new AddonRegistry({ addonsDir: "./expected", reporter: target, system });
@@ -210,7 +210,7 @@ describe("reportMissingAddons", () => {
     });
 
     it("reports missing addons w/ missing addons", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory("./target");
         target.reportDiagnostic = jest.fn();
@@ -221,7 +221,7 @@ describe("reportMissingAddons", () => {
     });
 
     it("does not report missing addons w/o missing addons", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory("./target");
         createAddon("target/expected/addon", system);
@@ -233,7 +233,7 @@ describe("reportMissingAddons", () => {
     });
 
     it("reports missing addons w/ missing profile addons", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory("./target");
         target.reportDiagnostic = jest.fn();
@@ -249,7 +249,7 @@ describe("reportMissingAddons", () => {
     });
 
     it("does not report missing addons w/o missing profile addons", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory("./target");
         createAddon("target/expected/addon", system);
@@ -269,7 +269,7 @@ describe("reportMissingAddons", () => {
 describe("Addon loading rules", () => {
     describe("loadAddonsSync() - With profile 'target', no profile addons, no global addons - load all found addons", () => {
         it("loads all found addons when profile has no specific configuration", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/addon-one/addon", system);
             createAddon("addons/addon-two/addon", system);
             createAddon("addons/addon-three/addon", system);
@@ -286,7 +286,7 @@ describe("Addon loading rules", () => {
         });
 
         it("loads all found addons when profile exists but has no addons property", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/first/addon", system);
             createAddon("addons/second/addon", system);
             const testObj = new AddonRegistry({
@@ -304,7 +304,7 @@ describe("Addon loading rules", () => {
 
     describe("loadAddonsSync() - With profile 'target', no profile addons, but global addons defined - load global addons", () => {
         it("loads only global addons when profile has no addons but global addons are defined", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/global-one/addon", system);
             createAddon("addons/global-two/addon", system);
             createAddon("addons/unused-addon/addon", system);
@@ -322,7 +322,7 @@ describe("Addon loading rules", () => {
         });
 
         it("loads global addons when profile exists without addons property", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/specified/addon", system);
             createAddon("addons/ignored/addon", system);
             const testObj = new AddonRegistry({
@@ -341,7 +341,7 @@ describe("Addon loading rules", () => {
 
     describe("loadAddonsSync() - With profile 'target', profile addons, global addons - load both", () => {
         it("loads both global and profile addons when both are defined", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/global-addon/addon", system);
             createAddon("addons/profile-addon/addon", system);
             createAddon("addons/unused-addon/addon", system);
@@ -359,7 +359,7 @@ describe("Addon loading rules", () => {
         });
 
         it("combines multiple global and profile addons", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/global-one/addon", system);
             createAddon("addons/global-two/addon", system);
             createAddon("addons/profile-one/addon", system);
@@ -379,7 +379,7 @@ describe("Addon loading rules", () => {
         });
 
         it("avoids duplicates when global and profile addons overlap", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/shared-addon/addon", system);
             createAddon("addons/global-only/addon", system);
             createAddon("addons/profile-only/addon", system);
@@ -399,7 +399,7 @@ describe("Addon loading rules", () => {
 
     describe("loadAddonsSync() - With multiple profiles, all named addons are loaded", () => {
         it("loads addons from the specified profile only", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/dev-addon/addon", system);
             createAddon("addons/prod-addon/addon", system);
             createAddon("addons/test-addon/addon", system);
@@ -420,7 +420,7 @@ describe("Addon loading rules", () => {
         });
 
         it("combines global addons with each profile's specific addons", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/global-addon/addon", system);
             createAddon("addons/dev-addon/addon", system);
             createAddon("addons/prod-addon/addon", system);
@@ -441,7 +441,7 @@ describe("Addon loading rules", () => {
         });
 
         it("handles profiles with empty addon arrays", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/global-addon/addon", system);
             createAddon("addons/dev-addon/addon", system);
             const testObj = new AddonRegistry({
@@ -463,7 +463,7 @@ describe("Addon loading rules", () => {
 
     describe("loadAddonsSync() - Same source and binary addon rules apply with profiles", () => {
         it("loads binary addons with profile configuration", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/binary-addon/addon", system, "export const activate = () => {};", { activate: jest.fn() }, ".js");
             createAddon("addons/jsx-addon/addon", system, "export const activate = () => {};", { activate: jest.fn() }, ".jsx");
             const testObj = new AddonRegistry({
@@ -479,7 +479,7 @@ describe("Addon loading rules", () => {
         });
 
         it("reports invalid binary addons with profile configuration", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/invalid-addon/addon", system, "export const notActivate = () => {};", { notActivate: jest.fn() });
             const target = new ReporterMock(system);
             target.reportDiagnostic = jest.fn();
@@ -501,7 +501,7 @@ describe("Addon loading rules", () => {
 
     describe("loadAddonsSync() - Same missing addon reporting rules apply with profiles", () => {
         it("reports missing profile addons", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             const target = new ReporterMock(system);
             target.reportDiagnostic = jest.fn();
 
@@ -516,7 +516,7 @@ describe("Addon loading rules", () => {
         });
 
         it("reports missing addons from both global and profile configurations", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/existing-global/addon", system);
             const target = new ReporterMock(system);
             target.reportDiagnostic = jest.fn();
@@ -533,7 +533,7 @@ describe("Addon loading rules", () => {
         });
 
         it("does not report missing addons when all profile addons are found", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             createAddon("addons/found-global/addon", system);
             createAddon("addons/found-profile/addon", system);
             const target = new ReporterMock(system);
@@ -551,7 +551,7 @@ describe("Addon loading rules", () => {
         });
 
         it("reports missing addons for specific profile context", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             const target = new ReporterMock(system);
             target.reportDiagnostic = jest.fn();
 
@@ -569,7 +569,7 @@ describe("Addon loading rules", () => {
         });
 
         it("handles multiple missing addons in profile", () => {
-            const system = compileSystem({ addLibDefaults: false }).fileSystem;
+            const system = createSystem({}, { virtual: true });
             const target = new ReporterMock(system);
             target.reportDiagnostic = jest.fn();
 
@@ -592,7 +592,7 @@ describe("Addon Compilation", () => {
     const ADDONS_DIR = path.resolve(PROJECT_DIR, "addons"); // TODO: Only compile to lib if addons are in "src" dir
 
     it("loads addon.js without compilation", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         createAddon(`${ADDONS_DIR}/js-addon/addon`, system);
         target.reportDiagnostic = jest.fn();
@@ -609,7 +609,7 @@ describe("Addon Compilation", () => {
     });
 
     it("compiles valid addon.ts correctly", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory(ADDONS_DIR);
         system.createDirectory(`${ADDONS_DIR}/ts-addon`);
@@ -627,7 +627,7 @@ describe("Addon Compilation", () => {
     });
 
     it("compiles index.ts that imports addon.ts correctly", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory(ADDONS_DIR);
         system.createDirectory(`${ADDONS_DIR}/complex-addon`);
@@ -646,7 +646,7 @@ describe("Addon Compilation", () => {
     });
 
     it("reports compilation error with invalid TypeScript syntax", () => {
-        const { fileSystem: system } = compileSystem({ addLibDefaults: true }, { addonsDir: ADDONS_DIR });
+        const system = createSystem({ addonsDir: ADDONS_DIR }, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory(ADDONS_DIR);
         system.createDirectory(`${ADDONS_DIR}/broken-addon`);
@@ -667,7 +667,7 @@ describe("Addon Compilation", () => {
     });
 
     it("reports compilation error when index.ts imports missing addon.ts", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory(ADDONS_DIR);
         system.createDirectory(`${ADDONS_DIR}/missing-import-addon`);
@@ -689,7 +689,7 @@ describe("Addon Compilation", () => {
     });
 
     it("prioritizes addon.js over addon.ts when both exist", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory(ADDONS_DIR);
         system.createDirectory(`${ADDONS_DIR}/priority-addon`);
@@ -704,7 +704,7 @@ describe("Addon Compilation", () => {
     });
 
     it("compiles multiple TypeScript addons without error", () => {
-        const system = compileSystem({ addLibDefaults: false }).fileSystem;
+        const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         system.createDirectory(ADDONS_DIR);
         system.createDirectory(`${ADDONS_DIR}/first-addon`);
