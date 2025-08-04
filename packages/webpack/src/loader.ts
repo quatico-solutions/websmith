@@ -13,7 +13,7 @@ import { type TsCompiler } from "./TsCompiler";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export type WebpackLoaderContext = {
-    dependencyCallback: (filePath: string) => void;
+    dependencyCallback?: (filePath: string) => void;
     websmithCompiler: TsCompiler;
     queue: CompilationQueue;
 };
