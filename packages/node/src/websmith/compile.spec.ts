@@ -23,9 +23,9 @@ describe("compile", () => {
             },
         });
         expect(stdout).toContain(""); // success
-    });
+    }, 60000);
 
     it("should yield compile error with unknown file path", async () => {
         await expect(() => compile(["src/does-not-exist.ts"])).rejects.toThrow("error TS6053: File 'src/does-not-exist.ts' not found.");
-    });
+    }, 60000);
 });

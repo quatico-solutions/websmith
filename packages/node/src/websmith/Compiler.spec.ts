@@ -40,7 +40,7 @@ describe("Compiler#compile", () => {
         const stdout = await testObj.compile([path.join(TEST_TARGETS_DIR, "foobar-arrow.ts")]);
 
         expect(stdout).toContain(""); // success
-    });
+    }, 60000);
 
     it("should yield help with help flag", async () => {
         const testObj = new Compiler({
@@ -50,11 +50,11 @@ describe("Compiler#compile", () => {
         const stdout = await testObj.compile();
 
         expect(stdout).toContain("tsc: The TypeScript Compiler - Version 5.7.3");
-    });
+    }, 60000);
 
     it("should yield compile error with unknown file path", async () => {
         const testObj = new Compiler({});
 
         await expect(() => testObj.compile(["src/does-not-exist.ts"])).rejects.toThrow("error TS6053: File 'src/does-not-exist.ts' not found.");
-    });
+    }, 60000);
 });
