@@ -28,7 +28,11 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         },
     };
 
-    const { transpileOnly, configFile, addons, addonsDir, debug, profile, watch, ...rest } = args;
+    const { transpileOnly, configFile, tsConfigFile: tsConfigFileArg, addons, addonsDir, debug, profile, watch, instanceName, ...rest } = args;
+
+    if (tsConfigFileArg && tsConfigFileArg !== tsConfigFile) {
+        throw new Error(`The --tsConfigFile argument must be the same as the --project argument.`);
+    }
 
     const extraArgs = {
         // Only pass non-tsconfig options - let tsconfig.json control declaration settings
@@ -39,6 +43,7 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         ...(debug ? { debug: true, listFiles: true } : {}),
         ...(profile ? { profile } : {}),
         ...(watch ? { watch: true } : {}),
+        ...(instanceName ? { instanceName } : {}),
     };
 
     const tscArgs = ts.parseCommandLine(createArgs(rest));
@@ -61,7 +66,12 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         }
         return {
             ...result,
-            options: { ...(configFile ? { configFile: system.resolvePath(configFile) } : {}), ...(watch ? { watch: true } : {}), ...result.options },
+            options: {
+                ...(configFile ? { configFile: system.resolvePath(configFile) } : {}),
+                ...(watch ? { watch: true } : {}),
+                ...(instanceName ? { instanceName } : {}),
+                ...result.options,
+            },
         };
     }
 
