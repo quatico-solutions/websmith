@@ -10,20 +10,7 @@ import { parsedCommandLine } from "../config";
 import { NoReporter } from "../NoReporter";
 import { type CompilerOptions } from "./CompilerOptions";
 import { resolveCompilerOptions } from "./resolveCompilerOptions";
-
-const TS_DEFAULTS = {
-    allowJs: false,
-    checkJs: false,
-    declaration: false,
-    declarationMap: false,
-    emitDecorationOnly: false,
-    esModuleInterop: false,
-    noEmit: false,
-    pretty: true,
-    removeComments: false,
-    strict: false,
-    target: ts.ScriptTarget.ES5,
-};
+import { tsDefaults } from "../defaults";
 
 export const createOptions = (args: CompilerArguments, reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const { configFile, debug = false, profile, project = "./tsconfig.json", sourceMap = false, transpileOnly, watch = false } = args;
@@ -32,7 +19,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
     return resolveCompilerOptions(system, {
         buildDir: system.getCurrentDirectory(),
         cliArgs: {
-            ...TS_DEFAULTS,
+            ...tsDefaults,
             ...cliArgs,
         },
         reporter,
@@ -41,7 +28,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         profile,
         watch,
         tsConfig: {
-            ...TS_DEFAULTS,
+            ...tsDefaults,
             ...(sourceMap && { sourceMap }),
         },
         config: {

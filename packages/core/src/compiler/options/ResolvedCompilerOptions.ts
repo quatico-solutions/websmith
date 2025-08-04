@@ -18,19 +18,6 @@ import { type WebpackLoaderOptions } from "./WebpackLoaderOptions";
 const DEFAULT_BUILD_DIR = "./";
 const DEFAULT_TSCONFIG_FILE = "tsconfig.json";
 const DEFAULT_CONFIG_FILE = "websmith.config.json";
-const TS_DEFAULTS = {
-    allowJs: false,
-    checkJs: false,
-    declaration: false,
-    declarationMap: false,
-    emitDecorationOnly: false,
-    esModuleInterop: false,
-    noEmit: false,
-    pretty: true,
-    removeComments: false,
-    strict: false,
-    target: ts.ScriptTarget.ES5,
-};
 
 type ResolvedPaths = {
     buildDir: string;
@@ -169,7 +156,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             {
                 ...options,
                 config: { ...options.config, ...compilationConfig },
-                tsConfig: { ...TS_DEFAULTS, ...options.tsConfig },
+                tsConfig: options.tsConfig,
                 cliArgs: {
                     options: {
                         // Filter existing cliArgs.options to only include TSC arguments
@@ -203,7 +190,6 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             config,
             configFile,
             debug = false,
-            profile,
             tsConfig,
             tsConfigFile = cliArgs?.options?.project,
             watch = false,
@@ -246,15 +232,15 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         ];
 
         // resolve tsconfig
+        this.profile = resolveProfile(profileName, this.config, this.reporter);
         resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
-        this.tsConfig = getTsConfig(this.system, this.projectDir, resolvedOptions, profileName);
+        this.tsConfig = getTsConfig(this.system, this.projectDir, resolvedOptions, this.profile);
 
         // resolve cli args
-        this.profile = resolveProfile(profile, this.config, this.reporter);
         if (this.projectDir) {
             cliArgs.options = resolvePaths(cliArgs.options ?? {}, this.projectDir, this.system);
         }
-        const { outDir: profileOutDir, rootDir: profileRootDir } = getTsConfig(this.system, this.projectDir, resolvedOptions, this.profile);
+        const { outDir: profileOutDir, rootDir: profileRootDir } = this.tsConfig;
         // Prioritize CLI outDir over profile outDir
         const outDir = cliArgs?.options?.outDir
             ? resolvePath(this.system, this.projectDir, cliArgs.options.outDir)
