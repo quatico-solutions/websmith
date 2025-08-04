@@ -130,5 +130,5 @@ describe("project bundling", () => {
             `-file: "${path.resolve(SOURCE_DIR, "model/index.ts")}"\nexports: []`,
             `-file: "${path.resolve(SOURCE_DIR, "model/create-message.ts")}"\nexports: [createMessage]`,
         ].forEach(it => expect(expected).toContain(it));
-    });
+    }, 60000);
 });

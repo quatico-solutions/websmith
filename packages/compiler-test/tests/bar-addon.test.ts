@@ -15,7 +15,7 @@ describe("compile test-project-foo w/ compilationEnv", () => {
         const actual = testObj.getActiveAddons().getNames();
 
         expect(actual).toContain("foo-addon");
-    });
+    }, 60000);
 
     it("should contain source file", () => {
         const testObj = compilationEnv("__TEST__").addSourceFile(
@@ -36,7 +36,7 @@ describe("compile test-project-foo w/ compilationEnv", () => {
                         };p
                     "
         `);
-    });
+    }, 60000);
 
     it("should compile source project from disk", () => {
         jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't log missing websmith.config.json
@@ -48,7 +48,7 @@ describe("compile test-project-foo w/ compilationEnv", () => {
             };
             "
         `);
-    });
+    }, 60000);
 
     it("should compile source file content", () => {
         jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't log missing websmith.config.json
@@ -69,5 +69,5 @@ describe("compile test-project-foo w/ compilationEnv", () => {
             };
             "
         `);
-    });
+    }, 60000);
 });

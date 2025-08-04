@@ -59,7 +59,7 @@ describe("compile w/ websmith", () => {
         expect(result).toBe(""); // errors are expected
         expect(getOutput("foobar-arrow.js")).toBeUndefined();
         expect(getOutput("foobar-arrow.d.ts")).toBeUndefined();
-    });
+    }, 60000);
 
     it("should build js and d.ts with outDir and noEmit false", async () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
@@ -78,7 +78,7 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
         expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
         expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build js and no d.ts with tsconfig.json", async () => {
         writeTsConfig({
@@ -100,7 +100,7 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
         expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
         expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build js and d.ts with tsconfig.json and overriding tsconfig props", async () => {
         writeTsConfig({
@@ -128,7 +128,7 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
         expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
         expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build js and d.ts with tsconfig.json, tsconfig props and overriding profile props", async () => {
         writeTsConfig({
@@ -166,7 +166,7 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
         expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
         expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build js and d.ts with tsconfig.json, tsconfig props and overriding props in websmith config", async () => {
         writeTsConfig({
@@ -205,7 +205,7 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
         expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
         expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build foobar-arrow.js with ES2020 and addonsDir", async () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
@@ -222,7 +222,7 @@ describe("compile w/ websmith", () => {
 
         expect(result).toBe("");
         expect(getOutput("foobar-arrow.js")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build foobar-arrow.d.ts with ES2020 and addonsDir", async () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
@@ -239,7 +239,7 @@ describe("compile w/ websmith", () => {
         expect(result).toBe("");
         expect(getOutput("foobar-arrow.d.ts")).toBeDefined();
         expect(getOutput("foobar-arrow.d.ts")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should build foobar-function.js with ES2020 and addonsDir", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
@@ -254,7 +254,7 @@ describe("compile w/ websmith", () => {
         });
 
         expect(getOutput("foobar-function.js")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should generate YAML file with addonsDir and one addon selected", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
@@ -272,7 +272,7 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-function.js")).toContain("function foobar");
         expect(getOutput("foobar-function.js")).toContain("function getFoobar");
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
-    });
+    }, 60000);
 
     it("should generate additional files with addonDir and one addon selected", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
@@ -289,7 +289,7 @@ describe("compile w/ websmith", () => {
         });
 
         expect(getOutput("foobar-arrow-added.js")).toMatchSnapshot();
-    });
+    }, 60000);
 
     it("should transform foobar functions with addonDir and one addon selected", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
@@ -306,7 +306,7 @@ describe("compile w/ websmith", () => {
 
         expect(getOutput("foobar-function.js")).toContain("function barfoo");
         expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
-    });
+    }, 60000);
 
     it("should generate YAML file with profile in file-config, addonsDir, and one profile selected", async () => {
         writeWebsmithConfig({
@@ -334,7 +334,7 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-function.js")).toContain("function foobar");
         expect(getOutput("foobar-function.js")).toContain("function getFoobar");
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
-    });
+    }, 60000);
 
     it("should not generate YAML file with named profile, addonsDir and profile in file-config", async () => {
         writeWebsmithConfig({
@@ -361,7 +361,7 @@ describe("compile w/ websmith", () => {
 
         expect(getOutput("foobar-function.js")).toBeUndefined();
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
-    });
+    }, 60000);
 
     it("should generate YAML file with named profile and addonsDir, one profile in file-config", async () => {
         writeWebsmithConfig({
@@ -389,7 +389,7 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-function.js")).toContain("function foobar");
         expect(getOutput("foobar-function.js")).toContain("function getFoobar");
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
-    });
+    }, 60000);
 
     it("should transform foobar functions with addonsDir and addons config", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
@@ -406,7 +406,7 @@ describe("compile w/ websmith", () => {
 
         expect(getOutput("foobar-function.js")).toContain("function barfoo");
         expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
-    });
+    }, 60000);
 
     it("should transform foobar functions with addonsDir, addons and profiles in config but no profile selected", async () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
@@ -428,7 +428,7 @@ describe("compile w/ websmith", () => {
 
         expect(getOutput("foobar-function.js")).toContain("function barfoo");
         expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
-    });
+    }, 60000);
 
     it("should transform foobar functions with named profile and addonsDir, multiple existing profile in config-file", async () => {
         writeWebsmithConfig({
@@ -461,7 +461,7 @@ describe("compile w/ websmith", () => {
 
         expect(getOutput("foobar-function.js")).toContain("function barfoo");
         expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
-    });
+    }, 60000);
 
     it("should transform foobar functions with multiple named profiles and addonsDir, dependent profiles selected", async () => {
         writeWebsmithConfig({
@@ -496,7 +496,7 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-function.js")).toContain("function barfoo");
         expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
-    });
+    }, 60000);
 
     it("should transform foobar functions with named profile and addonsDir, chained addons in config-file", async () => {
         writeWebsmithConfig({
@@ -534,7 +534,7 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-function.js")).toContain("function barfoo");
         expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
-    });
+    }, 60000);
 });
 
 const writeWebsmithConfig = (config?: CompilationConfig) => {

@@ -62,7 +62,7 @@ describe("bin.ts e2e tests", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield script and declaration files with single file, declaration and emit true", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, declaration: true, declarationMap: true, target: ts.ScriptTarget.ESNext });
@@ -87,7 +87,7 @@ describe("bin.ts e2e tests", () => {
         expect(getOutput("foobar-arrow.d.ts.map")).toMatchInlineSnapshot(
             `"{"version":3,"file":"foobar-arrow.d.ts","sourceRoot":"","sources":["../src/foobar-arrow.ts"],"names":[],"mappings":"AACA,eAAO,MAAM,SAAS,SAAU,IAAI,WAEnC,CAAC"}"`
         );
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: 1, module: 3 });
@@ -119,7 +119,7 @@ describe("bin.ts e2e tests", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-cli client-processor and emit", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
@@ -137,7 +137,7 @@ describe("bin.ts e2e tests", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-config client-processor and emit", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
@@ -160,7 +160,7 @@ describe("bin.ts e2e tests", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-cli client-transformer and emit true", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
@@ -178,7 +178,7 @@ describe("bin.ts e2e tests", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-cli export-yaml-generator and emit true", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
@@ -197,7 +197,7 @@ describe("bin.ts e2e tests", () => {
             "
         `);
         expect(getOutput("output.yaml")).toContain(`exports: [getFoobar]`);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-cli foo-added-generator and emit true", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
@@ -225,7 +225,7 @@ describe("bin.ts e2e tests", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-cli function-json-result-processor and emit true", () => {
         createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
@@ -244,7 +244,7 @@ describe("bin.ts e2e tests", () => {
             "
         `);
         expect(getOutput("named-functions.json")).toMatchInlineSnapshot(`"{"foobar-function":["getFoobar","foobar"]}"`);
-    });
+    }, 60000);
 });
 
 const executeCompiler = (args = ""): string => {

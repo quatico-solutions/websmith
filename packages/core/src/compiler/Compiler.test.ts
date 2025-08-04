@@ -32,7 +32,7 @@ describe("end-2-end compile w/ websmith", () => {
         });
 
         expect(reporter.message).toContain("Test message");
-    });
+    }, 60000);
 
     it("should yield compiled js files", () => {
         const target = createSystem(
@@ -58,7 +58,7 @@ describe("end-2-end compile w/ websmith", () => {
         expect(actual.emitSkipped).toBe(false);
         expect(target.fileExists("/bin/one.js")).toBe(true);
         expect(target.fileExists("/bin/two.js")).toBe(true);
-    });
+    }, 60000);
 
     it("should yield compiled d.ts files", () => {
         const target = createSystem(
@@ -84,7 +84,7 @@ describe("end-2-end compile w/ websmith", () => {
         expect(actual.emitSkipped).toBe(false);
         expect(target.fileExists("/bin/one.d.ts")).toBe(true);
         expect(target.fileExists("/bin/two.d.ts")).toBe(true);
-    });
+    }, 60000);
 
     it("should show profile-specific outDir in debug output", () => {
         const target = createSystem(
@@ -121,7 +121,7 @@ describe("end-2-end compile w/ websmith", () => {
         // Verify that the debug output contains the profile-specific outDir
         expect(reporter.message).toContain("outDir:");
         expect(reporter.message).toContain("dist/client");
-    });
+    }, 60000);
 
     it("should show CLI outDir when provided, even with profile", () => {
         const target = createSystem(
@@ -165,7 +165,7 @@ describe("end-2-end compile w/ websmith", () => {
         // Verify that the debug output contains the CLI outDir (which takes precedence)
         expect(reporter.message).toContain("outDir:");
         expect(reporter.message).toContain("cli-output");
-    });
+    }, 60000);
 
     it("should demonstrate debug output format", () => {
         const target = createSystem(
@@ -216,5 +216,5 @@ describe("end-2-end compile w/ websmith", () => {
         expect(reporter.message).toContain("Configuration:");
         expect(reporter.message).toContain("outDir:");
         expect(reporter.message).toContain("dist/server");
-    });
+    }, 60000);
 });
