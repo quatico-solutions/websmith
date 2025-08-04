@@ -16,7 +16,7 @@ import ts from "typescript";
 export const getCompilerInstance = (
     options: WebsmithLoaderConfig,
     context: LoaderContext<WebsmithLoaderConfig>,
-    dependencyCallback: (filePath: string) => void
+    dependencyCallback?: (filePath: string) => void
 ): TsCompiler => {
     // Logic to manage and cache compiler instances
     const compiler = context._compiler;
