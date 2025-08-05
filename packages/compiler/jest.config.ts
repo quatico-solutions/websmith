@@ -14,7 +14,6 @@ const config: Config = {
         "@quatico/websmith-core": "<rootDir>/../core/src",
         "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
-    maxWorkers: 1, // runInBand: true is not supported as config option
 };
 
 export default config;

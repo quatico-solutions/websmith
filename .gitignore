@@ -10,7 +10,7 @@ bin
 lib
 packages/test/addons
 packages/test/test-source
-test-output
+test-output*
 
 # misc
 *.log

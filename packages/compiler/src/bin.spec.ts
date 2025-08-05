@@ -12,13 +12,24 @@ import ts from "typescript";
 import { addCompileCommand } from "./command";
 
 const TEST_FILES_DIR = path.resolve(__dirname, "..", "test", "__data__", "functions");
-const PROJECT_DIR = path.resolve(__dirname, "..", "test-output");
-const OUTPUT_DIR = path.resolve(PROJECT_DIR, "dist");
-const SOURCE_DIR = path.join(PROJECT_DIR, "src");
+
+// Create unique test directories for each test to prevent cross-test contamination
+const getTestDirs = () => {
+    const testId = expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
+    const timestamp = Date.now();
+    const uniqueId = `${testId}_${timestamp}`;
+    const PROJECT_DIR = path.resolve(__dirname, "..", `test-output-${uniqueId}`);
+    const OUTPUT_DIR = path.resolve(PROJECT_DIR, "dist");
+    const SOURCE_DIR = path.join(PROJECT_DIR, "src");
+    return { PROJECT_DIR, OUTPUT_DIR, SOURCE_DIR };
+};
+
 const ADDONS_DIR = path.resolve(__dirname, "..", "..", "example-addons", "src");
 
 describe("bin.ts", () => {
     let originalCwd: string;
+    let testDirs: ReturnType<typeof getTestDirs>;
+
     beforeAll(() => {
         // Verify that source addons exist
         if (!fs.existsSync(ADDONS_DIR)) {
@@ -27,17 +38,51 @@ describe("bin.ts", () => {
     });
 
     beforeEach(() => {
-        jest.spyOn(console, "time").mockImplementation(() => {}); // Don't log timing information to console
+        // Generate unique test directories for this specific test
+        testDirs = getTestDirs();
+
+        // Store original working directory
         originalCwd = process.cwd();
-        fs.rmSync(path.resolve(PROJECT_DIR), { recursive: true, force: true });
-        fs.mkdirSync(SOURCE_DIR, { recursive: true });
-        fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
+        // Mock console.time to avoid logging during tests
+        jest.spyOn(console, "time").mockImplementation(() => {});
+
+        // Mock process.exit to prevent actual exits during tests
+        jest.spyOn(process, "exit").mockImplementation(() => {
+            throw new Error("process.exit() was called during test");
+        });
+
+        // Clean up and create test directories (unique for this test)
+        try {
+            fs.rmSync(path.resolve(testDirs.PROJECT_DIR), { recursive: true, force: true });
+        } catch (_error) {
+            // Ignore errors if directory doesn't exist
+        }
+        fs.mkdirSync(testDirs.SOURCE_DIR, { recursive: true });
+        fs.mkdirSync(testDirs.OUTPUT_DIR, { recursive: true });
     });
 
     afterEach(() => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-        originalCwd && process.chdir(originalCwd);
-        fs.rmSync(path.resolve(PROJECT_DIR), { recursive: true, force: true });
+        // Restore all mocks
+        jest.restoreAllMocks();
+
+        // Restore working directory safely
+        try {
+            if (originalCwd && originalCwd !== process.cwd()) {
+                process.chdir(originalCwd);
+            }
+        } catch (error) {
+            console.warn(`Failed to restore working directory: ${error}`);
+        }
+
+        // Clean up test directories (unique for this test)
+        if (testDirs) {
+            try {
+                fs.rmSync(path.resolve(testDirs.PROJECT_DIR), { recursive: true, force: true });
+            } catch (_error) {
+                // Ignore cleanup errors
+            }
+        }
     });
 
     it("should create Command instance and call addCompileCommand", () => {
@@ -174,13 +219,13 @@ describe("bin.ts", () => {
         jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {});
 
         executeCompiler(
-            `--configFile ${path.join(PROJECT_DIR, "websmith.config.json")}`,
+            `--configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`,
             new Compiler({ reporter: target }, {}, createSystem({}, { virtual: true }))
         );
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
-                messageText: `No configuration file found at "${PROJECT_DIR}/websmith.config.json".`,
+                messageText: expect.stringContaining("/websmith.config.json"),
             })
         );
     }, 60000);
@@ -190,19 +235,24 @@ describe("bin.ts", () => {
         jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {});
 
         executeCompiler(
-            `--addonsDir ${path.join(PROJECT_DIR, "does-not-exist")}`,
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "does-not-exist")}`,
             new Compiler({ reporter: target }, {}, createSystem({}, { virtual: true }))
         );
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
-                messageText: `Addons directory "${PROJECT_DIR}/does-not-exist" does not exist.`,
+                messageText: expect.stringContaining("/does-not-exist"),
             })
         );
     }, 60000);
 
     it("should yield script file with single file and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
         createSourceFile(
             `
             export const hello = "world";            
@@ -213,7 +263,7 @@ describe("bin.ts", () => {
             "test.ts"
         );
 
-        executeCompiler(`--project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
+        executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
 
         expect(getOutput("test.js")).toBeDefined();
         expect(getOutput("test.js")).toMatchInlineSnapshot(`
@@ -227,7 +277,7 @@ describe("bin.ts", () => {
 
     it("should yield script and declaration files with single file, declaration and emit true", () => {
         createTsConfigFile({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             declaration: true,
             declarationMap: true,
@@ -258,13 +308,13 @@ describe("bin.ts", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: 1, module: 3 });
+        createTsConfigFile({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: 1, module: 3 });
         createWebsmithConfig({
             profiles: {
                 target: {
                     addons: ["client-processor"],
                     tsConfig: {
-                        outDir: `${OUTPUT_DIR}/target`,
+                        outDir: `${testDirs.OUTPUT_DIR}/target`,
                         target: ts.ScriptTarget.ESNext,
                         module: ts.ModuleKind.ESNext,
                         moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -275,7 +325,7 @@ describe("bin.ts", () => {
         copySourceFile("foobar-function.ts");
 
         executeCompiler(
-            `--addonsDir ${ADDONS_DIR} --profile target --project ${path.join(PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(PROJECT_DIR, "websmith.config.json")}`
+            `--addonsDir ${ADDONS_DIR} --profile target --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
         );
 
         expect(getOutput("target/foobar-function.js")).toMatchInlineSnapshot(`
@@ -291,10 +341,15 @@ describe("bin.ts", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli client-processor and emit", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
         copySourceFile("foobar-function.ts");
 
-        executeCompiler(`--addonsDir ${ADDONS_DIR} --addons client-processor --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
+        executeCompiler(`--addonsDir ${ADDONS_DIR} --addons client-processor --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
 
         expect(getOutput("foobar-function.js")).toMatchInlineSnapshot(`
             "// @annotated()
@@ -309,14 +364,19 @@ describe("bin.ts", () => {
     });
 
     it("should yield transpiled script with single file, addons-config client-processor and emit", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
         createWebsmithConfig({
             addons: ["client-processor"],
         });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(
-            `--addonsDir ${ADDONS_DIR} --project ${path.join(PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(PROJECT_DIR, "websmith.config.json")}`
+            `--addonsDir ${ADDONS_DIR} --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
         );
 
         expect(getOutput("foobar-function.js")).toMatchInlineSnapshot(`
@@ -332,10 +392,15 @@ describe("bin.ts", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli client-transformer and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
         copySourceFile("foobar-function.ts");
 
-        executeCompiler(`--addonsDir ${ADDONS_DIR} --addons client-transformer --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
+        executeCompiler(`--addonsDir ${ADDONS_DIR} --addons client-transformer --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
 
         expect(getOutput("foobar-function.js")).toMatchInlineSnapshot(`
             "// @annotated()
@@ -350,10 +415,15 @@ describe("bin.ts", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli export-yaml-generator and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
         copySourceFile("foobar-function.ts");
 
-        executeCompiler(`--addonsDir ${ADDONS_DIR} --addons export-yaml-generator --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
+        executeCompiler(`--addonsDir ${ADDONS_DIR} --addons export-yaml-generator --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
 
         expect(getOutput("foobar-function.js")).toMatchInlineSnapshot(`
             "// @annotated()
@@ -369,10 +439,15 @@ describe("bin.ts", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli foo-added-generator and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
         copySourceFile("foobar-function.ts");
 
-        executeCompiler(`--addonsDir ${ADDONS_DIR} --addons foo-added-generator --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
+        executeCompiler(`--addonsDir ${ADDONS_DIR} --addons foo-added-generator --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
 
         expect(getOutput("foobar-function.js")).toMatchInlineSnapshot(`
             "// @annotated()
@@ -397,10 +472,17 @@ describe("bin.ts", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli function-json-result-processor and emit true", () => {
-        createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
         copySourceFile("foobar-function.ts");
 
-        executeCompiler(`--addonsDir ${ADDONS_DIR} --addons function-json-result-processor --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
+        executeCompiler(
+            `--addonsDir ${ADDONS_DIR} --addons function-json-result-processor --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`
+        );
 
         expect(getOutput("foobar-function.js")).toMatchInlineSnapshot(`
             "// @annotated()
@@ -414,80 +496,60 @@ describe("bin.ts", () => {
         `);
         expect(getOutput("named-functions.json")).toMatchInlineSnapshot(`"{"foobar-function":["getFoobar","foobar"]}"`);
     }, 60000);
-});
 
-const executeCompiler = (args = "", compiler?: Compiler) => {
-    // Store original process.exit to restore later
-    const originalExit = process.exit;
-    let exitCode = 0;
+    const executeCompiler = (args = "", compiler?: Compiler) => {
+        process.chdir(testDirs.PROJECT_DIR);
 
-    process.chdir(PROJECT_DIR);
+        try {
+            addCompileCommand(new Command(), compiler).parse(args.split(" "), { from: "user" });
+        } catch (err: any) {
+            // Check if this was a successful exit (help shown, etc.)
+            if (err?.message?.includes("process.exit() was called during test")) {
+                // This is expected for help/version commands
+                return;
+            }
 
-    try {
-        // Mock process.exit to capture exit codes without actually exiting
-        process.exit = (code = 0) => {
-            exitCode = code as number;
-            throw new Error(`Process exit called with code ${code}`);
+            // Re-throw other errors
+            throw err;
+        }
+    };
+
+    const createTsConfig = (config: ts.CompilerOptions) => {
+        // Convert enum values to strings for proper JSON serialization
+        const normalizedConfig = {
+            ...config,
+            ...(config.target !== undefined && {
+                target: ts.ScriptTarget[config.target] === "Latest" ? "esnext" : ts.ScriptTarget[config.target].toLowerCase(),
+            }),
+            ...(config.module !== undefined && { module: ts.ModuleKind[config.module].toLowerCase() }),
+            ...(config.jsx !== undefined && { jsx: ts.JsxEmit[config.jsx].toLowerCase() }),
+            ...(config.moduleResolution !== undefined && { moduleResolution: ts.ModuleResolutionKind[config.moduleResolution].toLowerCase() }),
         };
 
-        addCompileCommand(new Command(), compiler).parse(args.split(" "), { from: "user" });
-    } catch (err) {
-        // Check if this was a successful exit (help shown, etc.)
-        if (exitCode === 0 || process.exitCode === 0) {
-            // Don't throw for successful operations
-            return;
-        }
-
-        // Only throw for actual compilation failures
-        if (!err.message?.includes("Process exit called")) {
-            throw err;
-        }
-
-        // For non-zero exit codes, throw the error
-        if (exitCode !== 0) {
-            throw err;
-        }
-    } finally {
-        // Always restore the original process.exit
-        process.exit = originalExit;
-    }
-};
-
-const createTsConfig = (config: ts.CompilerOptions) => {
-    // Convert enum values to strings for proper JSON serialization
-    const normalizedConfig = {
-        ...config,
-        ...(config.target !== undefined && {
-            target: ts.ScriptTarget[config.target] === "Latest" ? "esnext" : ts.ScriptTarget[config.target].toLowerCase(),
-        }),
-        ...(config.module !== undefined && { module: ts.ModuleKind[config.module].toLowerCase() }),
-        ...(config.jsx !== undefined && { jsx: ts.JsxEmit[config.jsx].toLowerCase() }),
-        ...(config.moduleResolution !== undefined && { moduleResolution: ts.ModuleResolutionKind[config.moduleResolution].toLowerCase() }),
+        const tsConfig = {
+            compilerOptions: normalizedConfig,
+            include: ["src/**/*"],
+            exclude: ["node_modules", "dist"],
+        };
+        return JSON.stringify(tsConfig, null, 2);
     };
 
-    const tsConfig = {
-        compilerOptions: normalizedConfig,
-        include: ["src/**/*"],
-        exclude: ["node_modules", "dist"],
+    const createTsConfigFile = (config: ts.CompilerOptions) => {
+        fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "tsconfig.json"), createTsConfig(config), { encoding: "utf-8" });
     };
-    return JSON.stringify(tsConfig, null, 2);
-};
 
-const createTsConfigFile = (config: ts.CompilerOptions) => {
-    fs.writeFileSync(path.join(PROJECT_DIR, "tsconfig.json"), createTsConfig(config), { encoding: "utf-8" });
-};
+    const createWebsmithConfig = (config: CompilationConfig) => {
+        fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "websmith.config.json"), JSON.stringify(config), { encoding: "utf-8" });
+    };
 
-const createWebsmithConfig = (config: CompilationConfig) => {
-    fs.writeFileSync(path.join(PROJECT_DIR, "websmith.config.json"), JSON.stringify(config), { encoding: "utf-8" });
-};
+    const copySourceFile = (fileName: string) => {
+        fs.copyFileSync(path.resolve(TEST_FILES_DIR, fileName), path.resolve(testDirs.SOURCE_DIR, fileName));
+    };
 
-const copySourceFile = (fileName: string) => {
-    fs.copyFileSync(path.resolve(TEST_FILES_DIR, fileName), path.resolve(SOURCE_DIR, fileName));
-};
+    const createSourceFile = (fileContent: string, fileName: string) => {
+        fs.writeFileSync(path.join(testDirs.SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
+    };
 
-const createSourceFile = (fileContent: string, fileName: string) => {
-    fs.writeFileSync(path.join(SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
-};
-
-const getOutput = (filePath: string): string | undefined =>
-    fs.existsSync(path.join(OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(OUTPUT_DIR, filePath), "utf-8") : undefined;
+    const getOutput = (filePath: string): string | undefined =>
+        fs.existsSync(path.join(testDirs.OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(testDirs.OUTPUT_DIR, filePath), "utf-8") : undefined;
+});

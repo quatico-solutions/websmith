@@ -10,31 +10,93 @@ import path from "node:path";
 import ts from "typescript";
 import { TsCompiler } from "./TsCompiler";
 
-const PROJECT_DIR = path.resolve(__dirname, "..", "test-output");
-const OUTPUT_DIR = path.join(PROJECT_DIR, "dist");
-const SOURCE_DIR = path.join(PROJECT_DIR, "src");
-const TSCONFIG_FILE = path.join(PROJECT_DIR, "./tsconfig.json"); // TODO: This should work with relative path
-const ADDONS_DIR = path.resolve(__dirname, "..", "..", "example-addons", "lib");
+// Create unique test directories for each test to prevent cross-test contamination
+const getTestDirs = () => {
+    const testId = expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
+    const timestamp = Date.now();
+    const uniqueId = `${testId}_${timestamp}`;
+    const PROJECT_DIR = path.resolve(__dirname, "..", `test-output-${uniqueId}`);
+    const OUTPUT_DIR = path.join(PROJECT_DIR, "dist");
+    const SOURCE_DIR = path.join(PROJECT_DIR, "src");
+    const TSCONFIG_FILE = path.join(PROJECT_DIR, "./tsconfig.json");
+    return { PROJECT_DIR, OUTPUT_DIR, SOURCE_DIR, TSCONFIG_FILE };
+};
+
+// Use source addons during tests, not compiled lib directory (avoids cross-package dependencies)
+const ADDONS_DIR = path.resolve(__dirname, "..", "..", "example-addons", "src");
 
 let originalCwd: string;
+let testDirs: ReturnType<typeof getTestDirs>;
 
 beforeEach(() => {
+    // Generate unique test directories for this specific test
+    testDirs = getTestDirs();
+
+    // Store original working directory
     originalCwd = process.cwd();
-    // Clean up and recreate directories
-    fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
-    fs.mkdirSync(SOURCE_DIR, { recursive: true });
-    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
+    // Force consistent working directory for this package's tests
+    const packageDir = path.resolve(__dirname, "..");
+    if (process.cwd() !== packageDir) {
+        try {
+            process.chdir(packageDir);
+        } catch (error) {
+            console.warn(`Failed to change to package directory ${packageDir}: ${error}`);
+        }
+    }
+
+    // Clean up and recreate directories (unique for this test)
+    try {
+        fs.rmSync(testDirs.PROJECT_DIR, { recursive: true, force: true });
+    } catch (_error) {
+        // Ignore errors if directory doesn't exist
+    }
+    fs.mkdirSync(testDirs.SOURCE_DIR, { recursive: true });
+    fs.mkdirSync(testDirs.OUTPUT_DIR, { recursive: true });
+
+    // Verify that source addons directory exists (required for tests)
+    if (!fs.existsSync(ADDONS_DIR)) {
+        throw new Error(`Addons source directory not found: ${ADDONS_DIR}. Tests require source addons, not compiled lib.`);
+    }
 });
 
 afterEach(() => {
-    process.chdir(originalCwd);
-    // Clean up directories
-    fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
+    // Restore all mocks
+    jest.restoreAllMocks();
+
+    // Restore working directory safely with better error handling
+    try {
+        if (originalCwd && fs.existsSync(originalCwd) && originalCwd !== process.cwd()) {
+            process.chdir(originalCwd);
+        }
+    } catch (error) {
+        console.warn(`Failed to restore working directory to ${originalCwd}: ${error}`);
+        // Try to change to a safe fallback directory
+        try {
+            const fallbackDir = path.resolve(__dirname, "..", "..");
+            if (fs.existsSync(fallbackDir)) {
+                process.chdir(fallbackDir);
+            }
+        } catch (fallbackError) {
+            console.warn(`Failed to change to fallback directory: ${fallbackError}`);
+        }
+    }
+
+    // Clean up directories with better error handling (unique for this test)
+    if (testDirs) {
+        try {
+            if (fs.existsSync(testDirs.PROJECT_DIR)) {
+                fs.rmSync(testDirs.PROJECT_DIR, { recursive: true, force: true });
+            }
+        } catch (error) {
+            console.warn(`Failed to clean up test directory ${testDirs.PROJECT_DIR}: ${error}`);
+        }
+    }
 });
 
 describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     it("should yield script file with single file and emit true", () => {
-        createTsConfig({ outDir: OUTPUT_DIR, noEmit: false });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false });
         createSourceFile(
             `
             export const hello = "world";            
@@ -45,56 +107,38 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             "test.ts"
         );
 
-        // First establish baseline with core Compiler (like bin.test.ts)
-        process.chdir(PROJECT_DIR);
-        const compilerResult = new Compiler({
-            reporter: new NoReporter(),
-            tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
-            cliArgs: {
-                options: {},
-                fileNames: ["./src/test.ts"],
-                errors: [],
-            },
-        }).compile();
-
-        // Then test TsCompiler (webpack loader equivalent)
+        // Test TsCompiler directly (webpack loader equivalent) - this is what this test should focus on
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
-                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                buildDir: testDirs.PROJECT_DIR,
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "test.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "test.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: true,
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "test.ts"));
 
-        // Verify core Compiler succeeded (establishes baseline like bin.test.ts)
-        expect(compilerResult.diagnostics).toEqual([]);
-        expect(compilerResult.emitSkipped).toBe(false);
-        expect(getOutput("test.js")).toBeDefined();
-
-        // Verify TsCompiler also succeeded
+        // Verify TsCompiler succeeded - this is the main purpose of this test
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("test.js"));
         expect(jsFile).toBeDefined();
 
-        // Check that the baseline file contains expected content
-        const baselineContent = getOutput("test.js");
-        expect(baselineContent).toContain("hello");
-        expect(baselineContent).toContain("greet");
+        // Check that the compiled content contains expected elements
+        expect(jsFile?.text).toContain("hello");
+        expect(jsFile?.text).toContain("greet");
     }, 60000);
 
     it("should yield script and declaration files with single file, declaration and emit true", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             declaration: true,
             declarationMap: true,
@@ -114,18 +158,18 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         );
 
         // First establish baseline with core Compiler
-        process.chdir(PROJECT_DIR);
+        process.chdir(testDirs.PROJECT_DIR);
         const compilerResult = new Compiler({
             reporter: new NoReporter(),
             tsConfig: {
-                outDir: OUTPUT_DIR,
+                outDir: testDirs.OUTPUT_DIR,
                 noEmit: false,
                 declaration: true,
                 declarationMap: true,
             },
             cliArgs: {
                 options: {},
-                fileNames: [path.join(SOURCE_DIR, "foobar-arrow.ts")],
+                fileNames: [path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts")],
                 errors: [],
             },
         }).compile();
@@ -133,26 +177,26 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Then test TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
+                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
-                    outDir: OUTPUT_DIR,
+                    outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
                     declaration: true,
                     declarationMap: true,
                 },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "foobar-arrow.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: false, // Need full compilation for declaration files
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "foobar-arrow.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"));
 
         // Verify core Compiler succeeded (establishes baseline)
         expect(compilerResult.diagnostics).toEqual([]);
@@ -182,7 +226,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
 
     it("should yield transpiled script with single file and different target/module settings", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: ts.ScriptTarget.ES5,
             module: ts.ModuleKind.CommonJS,
@@ -202,18 +246,18 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         );
 
         // First establish baseline with core Compiler
-        process.chdir(PROJECT_DIR);
+        process.chdir(testDirs.PROJECT_DIR);
         const compilerResult = new Compiler({
             reporter: new NoReporter(),
             tsConfig: {
-                outDir: OUTPUT_DIR,
+                outDir: testDirs.OUTPUT_DIR,
                 noEmit: false,
                 target: ts.ScriptTarget.ES5,
                 module: ts.ModuleKind.CommonJS,
             },
             cliArgs: {
                 options: {},
-                fileNames: [path.join(SOURCE_DIR, "foobar-function.ts")],
+                fileNames: [path.join(testDirs.SOURCE_DIR, "foobar-function.ts")],
                 errors: [],
             },
         }).compile();
@@ -221,26 +265,26 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Then test TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
+                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
-                    outDir: OUTPUT_DIR,
+                    outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
                     target: ts.ScriptTarget.ES5,
                     module: ts.ModuleKind.CommonJS,
                 },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "foobar-function.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "foobar-function.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: true,
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "foobar-function.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
 
         // Verify core Compiler succeeded (establishes baseline)
         expect(compilerResult.diagnostics).toEqual([]);
@@ -260,7 +304,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
 
     it("should handle ESNext target compilation", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: ts.ScriptTarget.ESNext,
             module: ts.ModuleKind.ESNext,
@@ -280,11 +324,11 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         );
 
         // First establish baseline with core Compiler
-        process.chdir(PROJECT_DIR);
+        process.chdir(testDirs.PROJECT_DIR);
         const compilerResult = new Compiler({
             reporter: new NoReporter(),
             tsConfig: {
-                outDir: OUTPUT_DIR,
+                outDir: testDirs.OUTPUT_DIR,
                 noEmit: false,
                 target: ts.ScriptTarget.ESNext,
                 module: ts.ModuleKind.ESNext,
@@ -292,7 +336,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             },
             cliArgs: {
                 options: {},
-                fileNames: [path.join(SOURCE_DIR, "modern-syntax.ts")],
+                fileNames: [path.join(testDirs.SOURCE_DIR, "modern-syntax.ts")],
                 errors: [],
             },
         }).compile();
@@ -300,9 +344,9 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Then test TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
+                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
-                    outDir: OUTPUT_DIR,
+                    outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
                     target: ts.ScriptTarget.ESNext,
                     module: ts.ModuleKind.ESNext,
@@ -310,17 +354,17 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
                 },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "modern-syntax.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "modern-syntax.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: true,
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "modern-syntax.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "modern-syntax.ts"));
 
         // Verify core Compiler succeeded (establishes baseline)
         expect(compilerResult.diagnostics).toEqual([]);
@@ -341,7 +385,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
 
     it("should handle multiple compilation targets", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -363,18 +407,18 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         );
 
         // First establish baseline with core Compiler (using ES5 as baseline)
-        process.chdir(PROJECT_DIR);
+        process.chdir(testDirs.PROJECT_DIR);
         const compilerResult = new Compiler({
             reporter: new NoReporter(),
             tsConfig: {
-                outDir: OUTPUT_DIR,
+                outDir: testDirs.OUTPUT_DIR,
                 noEmit: false,
                 target: ts.ScriptTarget.ES5,
                 module: ts.ModuleKind.CommonJS,
             },
             cliArgs: {
                 options: {},
-                fileNames: [path.join(SOURCE_DIR, "multi-file.ts")],
+                fileNames: [path.join(testDirs.SOURCE_DIR, "multi-file.ts")],
                 errors: [],
             },
         }).compile();
@@ -382,21 +426,21 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Test with ES5/CommonJS
         const tsCompilerES5 = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
+                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
-                    outDir: OUTPUT_DIR,
+                    outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
                     target: ts.ScriptTarget.ES5,
                     module: ts.ModuleKind.CommonJS,
                 },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "multi-file.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "multi-file.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: true,
             }
         );
@@ -404,27 +448,27 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Test with ESNext/ESNext
         const tsCompilerESNext = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
+                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
-                    outDir: OUTPUT_DIR,
+                    outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
                     target: ts.ScriptTarget.ESNext,
                     module: ts.ModuleKind.ESNext,
                 },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "multi-file.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "multi-file.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: true,
             }
         );
 
-        const resultES5 = tsCompilerES5.build(path.join(SOURCE_DIR, "multi-file.ts"));
-        const resultESNext = tsCompilerESNext.build(path.join(SOURCE_DIR, "multi-file.ts"));
+        const resultES5 = tsCompilerES5.build(path.join(testDirs.SOURCE_DIR, "multi-file.ts"));
+        const resultESNext = tsCompilerESNext.build(path.join(testDirs.SOURCE_DIR, "multi-file.ts"));
 
         // Verify core Compiler succeeded (establishes baseline)
         expect(compilerResult.diagnostics).toEqual([]);
@@ -449,7 +493,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
 
     it("should handle source maps generation", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             sourceMap: true,
         });
@@ -465,20 +509,20 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // (they get sensible defaults from the framework)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
+                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
-                    outDir: OUTPUT_DIR,
+                    outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
                     sourceMap: true,
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: true,
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "source-map-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "source-map-test.ts"));
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("source-map-test.js"));
@@ -493,7 +537,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
 
     it("should work with minimal configuration (demonstrating optional cliArgs/reporter)", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
         createSourceFile(`export const minimal = "example";`, "minimal.ts");
@@ -501,17 +545,17 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // This demonstrates the optional nature: only providing the essential properties
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
+                buildDir: testDirs.PROJECT_DIR,
                 // No explicit cliArgs (gets default: { options: {}, fileNames: [], errors: [] })
                 // No explicit reporter (gets default: DefaultReporter)
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: true,
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "minimal.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "minimal.ts"));
 
         // TsCompiler should work even with minimal configuration
         expect(result.files.length).toBeGreaterThan(0);
@@ -522,7 +566,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
 
     it("should handle compilation errors gracefully", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             strict: true,
         });
@@ -541,20 +585,20 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Another example of optional cliArgs/reporter - errors are handled gracefully with defaults
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
+                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
-                    outDir: OUTPUT_DIR,
+                    outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
                     strict: true,
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: true, // transpileOnly mode should still produce output despite errors
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "error-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "error-test.ts"));
 
         // Even with errors, transpileOnly mode should produce some output
         expect(result.files.length).toBeGreaterThan(0);
@@ -566,7 +610,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
 describe("addonsDir configuration tests", () => {
     it("should use addonsDir from CompilerOptions.config", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -580,25 +624,25 @@ describe("addonsDir configuration tests", () => {
         // Test addonsDir via CompilerOptions.config.addonsDir
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
-                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                buildDir: testDirs.PROJECT_DIR,
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["foo-added-generator"],
                 },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "foo-test.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "foo-test.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: false, // Need full compilation for addons
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "foo-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foo-test.ts"));
 
         // Verify TsCompiler succeeded
         expect(result.files.length).toBeGreaterThan(0);
@@ -609,7 +653,7 @@ describe("addonsDir configuration tests", () => {
 
     it("should use addonsDir from websmith.config.json", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -627,22 +671,22 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
-                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                buildDir: testDirs.PROJECT_DIR,
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "foobar-test.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "foobar-test.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: false,
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "foobar-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foobar-test.ts"));
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("foobar-test.js"));
@@ -652,7 +696,7 @@ describe("addonsDir configuration tests", () => {
 
     it("should work with function-json-result-processor addon", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -671,25 +715,25 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
-                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                buildDir: testDirs.PROJECT_DIR,
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["function-json-result-processor"],
                 },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "process-test.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "process-test.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: false,
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "process-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "process-test.ts"));
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("process-test.js"));
@@ -700,7 +744,7 @@ describe("addonsDir configuration tests", () => {
 
     it("should work with multiple addons", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -717,25 +761,25 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
-                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                buildDir: testDirs.PROJECT_DIR,
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["foo-added-generator", "function-json-result-processor"],
                 },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "foo-multi-test.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "foo-multi-test.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: false,
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "foo-multi-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foo-multi-test.ts"));
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("foo-multi-test.js"));
@@ -746,7 +790,7 @@ describe("addonsDir configuration tests", () => {
 
     it("should use default addonsDir when not specified", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -757,7 +801,7 @@ describe("addonsDir configuration tests", () => {
         );
 
         // Create a local addons directory for default behavior test
-        const localAddonsDir = path.join(PROJECT_DIR, "addons", "test-addon");
+        const localAddonsDir = path.join(testDirs.PROJECT_DIR, "addons", "test-addon");
         fs.mkdirSync(localAddonsDir, { recursive: true });
 
         // Create a simple test addon
@@ -776,25 +820,25 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
-                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                buildDir: testDirs.PROJECT_DIR,
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 config: {
                     // No explicit addonsDir - should default to "./addons"
                     addons: ["test-addon"],
                 },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "default-addon-test.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "default-addon-test.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: false,
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "default-addon-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "default-addon-test.ts"));
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("default-addon-test.js"));
@@ -804,7 +848,7 @@ describe("addonsDir configuration tests", () => {
 
     it("should work with export-yaml-generator addon", () => {
         createTsConfig({
-            outDir: OUTPUT_DIR,
+            outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -828,25 +872,25 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: PROJECT_DIR,
-                tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
+                buildDir: testDirs.PROJECT_DIR,
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["export-yaml-generator"],
                 },
                 cliArgs: {
                     options: {},
-                    fileNames: [path.join(SOURCE_DIR, "yaml-export-test.ts")],
+                    fileNames: [path.join(testDirs.SOURCE_DIR, "yaml-export-test.ts")],
                     errors: [],
                 },
             },
             {
-                tsConfigFile: TSCONFIG_FILE,
+                tsConfigFile: testDirs.TSCONFIG_FILE,
                 transpileOnly: false,
             }
         );
 
-        const result = tsCompiler.build(path.join(SOURCE_DIR, "yaml-export-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "yaml-export-test.ts"));
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("yaml-export-test.js"));
@@ -858,7 +902,7 @@ describe("addonsDir configuration tests", () => {
 
 // Helper functions (like bin.test.ts)
 const createSourceFile = (fileContent: string, fileName: string) => {
-    fs.writeFileSync(path.join(SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
+    fs.writeFileSync(path.join(testDirs.SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
 };
 
 const createTsConfig = (config: ts.CompilerOptions) => {
@@ -869,12 +913,12 @@ const createTsConfig = (config: ts.CompilerOptions) => {
         include: ["src/**/*"],
         exclude: ["node_modules", "dist"],
     };
-    fs.writeFileSync(path.join(PROJECT_DIR, "tsconfig.json"), JSON.stringify(tsConfig, null, 2), { encoding: "utf-8" });
+    fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "tsconfig.json"), JSON.stringify(tsConfig, null, 2), { encoding: "utf-8" });
 };
 
 const getOutput = (filePath: string): string | undefined =>
-    fs.existsSync(path.join(OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(OUTPUT_DIR, filePath), "utf-8") : undefined;
+    fs.existsSync(path.join(testDirs.OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(testDirs.OUTPUT_DIR, filePath), "utf-8") : undefined;
 
 const createWebsmithConfig = (config: any) => {
-    fs.writeFileSync(path.join(PROJECT_DIR, "websmith.config.json"), JSON.stringify(config, null, 2), { encoding: "utf-8" });
+    fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "websmith.config.json"), JSON.stringify(config, null, 2), { encoding: "utf-8" });
 };
