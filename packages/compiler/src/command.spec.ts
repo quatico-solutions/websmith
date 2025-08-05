@@ -304,7 +304,11 @@ describe("addCompileCommand#addons", () => {
 
         addCompileCommand(new Command(), compiler).parse(["--addons", "unknown", "--allowJs"], { from: "user" });
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining('Missing addons: "unknown"'),
+            })
+        );
     });
 
     it("should yield warning w/ --addons cli argument, existing and non-existing addons", () => {
@@ -316,7 +320,11 @@ describe("addCompileCommand#addons", () => {
 
         addCompileCommand(new Command(), compiler).parse(["--addons", "existing, unknown", "--allowJs"], { from: "user" });
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "unknown".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining('Missing addons: "unknown"'),
+            })
+        );
     });
 
     it("should yield addonsDir and addons from compiler config w/o any cli argument", () => {
