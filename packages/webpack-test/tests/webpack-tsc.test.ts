@@ -10,7 +10,7 @@ import path from "node:path";
 import ts from "typescript";
 import { writeTsConfig } from "./test-files";
 
-const PROJECT_DIR = path.join(__dirname, "..", "output");
+const PROJECT_DIR = path.join(__dirname, "..", "test-output");
 const OUTPUT_DIR = path.join(PROJECT_DIR, "lib");
 const SOURCE_DIR = path.join(PROJECT_DIR, "src");
 

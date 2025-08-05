@@ -22,7 +22,7 @@ beforeEach(() => {
             buildDir: "./src",
             tsConfig: {},
             reporter,
-            cliArgs: { options: { outDir: ".build" }, fileNames: [], errors: [] },
+            cliArgs: { options: { outDir: "test-output" }, fileNames: [], errors: [] },
         },
         { configFile: "./websmith.config.json", instanceName: "target-instance" },
         () => undefined
@@ -31,7 +31,7 @@ beforeEach(() => {
 
 afterEach(() => {
     compiler.close(() => undefined);
-    fs.rmSync("./.build", { recursive: true, force: true });
+    fs.rmSync("./test-output", { recursive: true, force: true });
 });
 
 describe("getInstanceFromCache", () => {

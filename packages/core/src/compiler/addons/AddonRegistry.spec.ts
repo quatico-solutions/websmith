@@ -588,7 +588,7 @@ describe("Addon loading rules", () => {
 });
 
 describe("Addon Compilation", () => {
-    const PROJECT_DIR = path.resolve(__dirname, "..", "..", "..", "output");
+    const PROJECT_DIR = path.resolve(__dirname, "..", "..", "..", "test-output");
     const ADDONS_DIR = path.resolve(PROJECT_DIR, "addons"); // TODO: Only compile to lib if addons are in "src" dir
 
     it("loads addon.js without compilation", () => {

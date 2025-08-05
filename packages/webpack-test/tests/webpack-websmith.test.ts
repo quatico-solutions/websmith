@@ -20,7 +20,7 @@ const getOutput = (filePath: string) => getOutputBase(filePath, OUTPUT_DIR);
 //     getInstanceFromCache: jest.fn(),
 // }));
 
-const PROJECT_DIR = path.join(__dirname, "..", "output");
+const PROJECT_DIR = path.join(__dirname, "..", "test-output");
 const OUTPUT_DIR = path.join(PROJECT_DIR, "lib");
 const SOURCE_DIR = path.join(PROJECT_DIR, "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");

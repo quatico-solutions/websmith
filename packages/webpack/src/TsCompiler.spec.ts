@@ -122,7 +122,7 @@ describe("Transpilation", () => {
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
-                buildDir: "./__TEMP__/src",
+                buildDir: "./__TEMP__",
                 config: {
                     profiles: {
                         fragment: {
@@ -133,12 +133,12 @@ describe("Transpilation", () => {
                     },
                     addonsDir: "./addons",
                 },
-                tsConfig: { target: ts.ScriptTarget.ESNext, outDir: "./__TEMP__/.build", noEmitOnError: true },
+                tsConfig: { target: ts.ScriptTarget.ESNext, outDir: "./test-output", noEmitOnError: true },
                 reporter,
                 cliArgs: { options: { target: ts.ScriptTarget.ESNext }, fileNames: [expected], errors: [] },
             },
             {
-                configFile: "./__TEMP__/websmith.config.json",
+                configFile: "./websmith.config.json",
                 profile: "fragment",
             }
         );
@@ -146,10 +146,10 @@ describe("Transpilation", () => {
         const actual = testObj.build(expected);
 
         expect(actual.files.map(f => f.name)).toEqual([
-            path.resolve("./__TEMP__/.build/one.js.map"),
-            path.resolve("./__TEMP__/.build/one.js"),
-            path.resolve("./__TEMP__/.build/one.d.ts.map"),
-            path.resolve("./__TEMP__/.build/one.d.ts"),
+            path.resolve("./__TEMP__/test-output/one.js.map"),
+            path.resolve("./__TEMP__/test-output/one.js"),
+            path.resolve("./__TEMP__/test-output/one.d.ts.map"),
+            path.resolve("./__TEMP__/test-output/one.d.ts"),
         ]);
         expect(actual.files.find(f => f.name.endsWith("one.js.map"))?.text).toMatchInlineSnapshot(
             `"{"version":3,"file":"one.js","sourceRoot":"","sources":["../src/one.ts"],"names":[],"mappings":";;;AAAO,IAAM,GAAG,GAAG,cAAM,OAAA,CAAC,EAAD,CAAC,CAAC;AAAd,QAAA,GAAG,OAAW"}"`
@@ -169,8 +169,8 @@ describe("Transpilation", () => {
             "export declare const one: () => number;
             //# sourceMappingURL=one.d.ts.map"
         `);
-        expect(fs.existsSync(path.resolve("./__TEMP__/.build/one.js"))).toMatchInlineSnapshot(`true`);
-        expect(fs.existsSync(path.resolve("./__TEMP__/.build/one.d.ts"))).toMatchInlineSnapshot(`true`);
+        expect(fs.existsSync(path.resolve("./__TEMP__/test-output/one.js"))).toMatchInlineSnapshot(`true`);
+        expect(fs.existsSync(path.resolve("./__TEMP__/test-output/one.d.ts"))).toMatchInlineSnapshot(`true`);
 
         fs.rmSync(path.resolve("./__TEMP__"), { recursive: true, force: true });
     });

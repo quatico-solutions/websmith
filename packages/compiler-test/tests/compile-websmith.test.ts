@@ -10,7 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 
-const PROJECT_DIR = path.join(__dirname, "..", "output");
+const PROJECT_DIR = path.join(__dirname, "..", "test-output");
 const OUTPUT_DIR = path.join(PROJECT_DIR, "lib");
 const SOURCE_DIR = path.join(PROJECT_DIR, "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");

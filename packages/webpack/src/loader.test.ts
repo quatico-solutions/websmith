@@ -10,11 +10,11 @@ import path from "node:path";
 import ts from "typescript";
 import { TsCompiler } from "./TsCompiler";
 
-const PROJECT_DIR = path.resolve(__dirname, "..", "test-output-loader");
-const OUTPUT_DIR = path.resolve(PROJECT_DIR, "dist");
+const PROJECT_DIR = path.resolve(__dirname, "..", "test-output");
+const OUTPUT_DIR = path.join(PROJECT_DIR, "dist");
 const SOURCE_DIR = path.join(PROJECT_DIR, "src");
-const TSCONFIG_FILE = path.join(PROJECT_DIR, "tsconfig.json");
-const ADDONS_DIR = path.resolve(__dirname, "..", "test-addons");
+const TSCONFIG_FILE = path.join(PROJECT_DIR, "./tsconfig.json"); // TODO: This should work with relative path
+const ADDONS_DIR = path.resolve(__dirname, "..", "..", "example-addons", "lib");
 
 let originalCwd: string;
 
@@ -49,7 +49,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         process.chdir(PROJECT_DIR);
         const compilerResult = new Compiler({
             reporter: new NoReporter(),
-            tsConfig: { outDir: "./dist", noEmit: false },
+            tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
             cliArgs: {
                 options: {},
                 fileNames: ["./src/test.ts"],
@@ -60,7 +60,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Then test TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
                 cliArgs: {
                     options: {},
@@ -133,7 +133,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Then test TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: {
                     outDir: OUTPUT_DIR,
                     noEmit: false,
@@ -221,7 +221,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Then test TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: {
                     outDir: OUTPUT_DIR,
                     noEmit: false,
@@ -264,6 +264,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             noEmit: false,
             target: ts.ScriptTarget.ESNext,
             module: ts.ModuleKind.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
         });
         createSourceFile(
             `
@@ -287,6 +288,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
                 noEmit: false,
                 target: ts.ScriptTarget.ESNext,
                 module: ts.ModuleKind.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Node10,
             },
             cliArgs: {
                 options: {},
@@ -298,12 +300,13 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Then test TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: {
                     outDir: OUTPUT_DIR,
                     noEmit: false,
                     target: ts.ScriptTarget.ESNext,
                     module: ts.ModuleKind.ESNext,
+                    moduleResolution: ts.ModuleResolutionKind.Node10,
                 },
                 cliArgs: {
                     options: {},
@@ -379,7 +382,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Test with ES5/CommonJS
         const tsCompilerES5 = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: {
                     outDir: OUTPUT_DIR,
                     noEmit: false,
@@ -401,7 +404,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Test with ESNext/ESNext
         const tsCompilerESNext = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: {
                     outDir: OUTPUT_DIR,
                     noEmit: false,
@@ -462,7 +465,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // (they get sensible defaults from the framework)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: {
                     outDir: OUTPUT_DIR,
                     noEmit: false,
@@ -498,7 +501,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // This demonstrates the optional nature: only providing the essential properties
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 // No explicit cliArgs (gets default: { options: {}, fileNames: [], errors: [] })
                 // No explicit reporter (gets default: DefaultReporter)
             },
@@ -538,7 +541,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Another example of optional cliArgs/reporter - errors are handled gracefully with defaults
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: {
                     outDir: OUTPUT_DIR,
                     noEmit: false,
@@ -577,7 +580,7 @@ describe("addonsDir configuration tests", () => {
         // Test addonsDir via CompilerOptions.config.addonsDir
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -624,7 +627,7 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
                 configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 cliArgs: {
@@ -668,7 +671,7 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -714,7 +717,7 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -773,7 +776,7 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
                 config: {
                     // No explicit addonsDir - should default to "./addons"
@@ -825,7 +828,7 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: SOURCE_DIR,
+                buildDir: PROJECT_DIR,
                 tsConfig: { outDir: OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -855,7 +858,7 @@ describe("addonsDir configuration tests", () => {
 
 // Helper functions (like bin.test.ts)
 const createSourceFile = (fileContent: string, fileName: string) => {
-    fs.writeFileSync(path.resolve(SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
+    fs.writeFileSync(path.join(SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
 };
 
 const createTsConfig = (config: ts.CompilerOptions) => {
@@ -866,7 +869,7 @@ const createTsConfig = (config: ts.CompilerOptions) => {
         include: ["src/**/*"],
         exclude: ["node_modules", "dist"],
     };
-    fs.writeFileSync(TSCONFIG_FILE, JSON.stringify(tsConfig, null, 2), { encoding: "utf-8" });
+    fs.writeFileSync(path.join(PROJECT_DIR, "tsconfig.json"), JSON.stringify(tsConfig, null, 2), { encoding: "utf-8" });
 };
 
 const getOutput = (filePath: string): string | undefined =>

@@ -11,8 +11,8 @@ import ts from "typescript";
 import type { CompilationConfig } from "@quatico/websmith-core";
 
 const TEST_FILES_DIR = path.resolve(__dirname, "..", "..", "compiler", "test", "__data__", "functions");
-const PROJECT_DIR = path.resolve(__dirname, "..", "test-output-webpack-e2e");
-const OUTPUT_DIR = path.resolve(PROJECT_DIR, "dist");
+const PROJECT_DIR = path.resolve(__dirname, "..", "test-output");
+const OUTPUT_DIR = path.join(PROJECT_DIR, "dist");
 const SOURCE_DIR = path.join(PROJECT_DIR, "src");
 const ADDONS_DIR = path.resolve(__dirname, "..", "..", "example-addons", "src");
 
@@ -585,11 +585,11 @@ const createWebpackConfig = (options: WebpackOptions, entryFile: string): webpac
 };
 
 const copySourceFile = (fileName: string) => {
-    fs.copyFileSync(path.resolve(TEST_FILES_DIR, fileName), path.resolve(SOURCE_DIR, fileName));
+    fs.copyFileSync(path.join(TEST_FILES_DIR, fileName), path.resolve(SOURCE_DIR, fileName));
 };
 
 const createSourceFile = (fileContent: string, fileName: string) => {
-    fs.writeFileSync(path.resolve(SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
+    fs.writeFileSync(path.join(SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
 };
 
 const createTsConfig = (config: ts.CompilerOptions) => {
@@ -600,12 +600,12 @@ const createTsConfig = (config: ts.CompilerOptions) => {
         include: ["src/**/*"],
         exclude: ["node_modules", "dist"],
     };
-    fs.writeFileSync(path.resolve(PROJECT_DIR, "tsconfig.json"), JSON.stringify(tsConfig, null, 2), { encoding: "utf-8" });
+    fs.writeFileSync(path.join(PROJECT_DIR, "tsconfig.json"), JSON.stringify(tsConfig, null, 2), { encoding: "utf-8" });
 };
 
 const getOutput = (filePath: string): string | undefined =>
     fs.existsSync(path.join(OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(OUTPUT_DIR, filePath), "utf-8") : undefined;
 
 const createWebsmithConfig = (config: CompilationConfig) => {
-    fs.writeFileSync(path.resolve(PROJECT_DIR, "websmith.config.json"), JSON.stringify(config), { encoding: "utf-8" });
+    fs.writeFileSync(path.join(PROJECT_DIR, "websmith.config.json"), JSON.stringify(config), { encoding: "utf-8" });
 };
