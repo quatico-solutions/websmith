@@ -29,7 +29,6 @@ describe("constructor", () => {
         });
 
         expect(testObj).toEqual({
-            addons: [],
             buildDir: "/build",
             cliArgs: {
                 compileOnSave: false,
@@ -63,7 +62,6 @@ describe("constructor", () => {
             },
             config: {},
             debug: false,
-            projectDir: "/build",
             reporter: expect.any(ReporterMock),
             system: expect.any(Object),
             tsConfig: {
@@ -357,7 +355,7 @@ describe("config", () => {
 
         expect(testObj.config).toEqual({
             addons: ["addon3", "addon4"],
-            addonsDir: "./expected",
+            addonsDir: "/expected",
             transpileOnly: true,
         });
     });
@@ -676,44 +674,6 @@ describe("buildDir", () => {
         const testObj = new ResolvedCompilerOptions(fileSystem, { buildDir: "./expected" } as any);
 
         expect(testObj.buildDir).toBe("/expected");
-    });
-});
-
-describe("projectDir", () => {
-    it("should yield current directory if not passed", () => {
-        const fileSystem = createSystem({}, { virtual: true });
-
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
-
-        expect(testObj.projectDir).toBe("/");
-    });
-
-    it("should yield directory of configFile if passed", () => {
-        const fileSystem = createSystem({}, { virtual: true });
-
-        const testObj = new ResolvedCompilerOptions(fileSystem, {
-            configFile: "./expected/websmith.config.json",
-            reporter: new NoReporter(),
-        } as any);
-
-        expect(testObj.projectDir).toBe("/expected");
-    });
-
-    it("should yield overridden value", () => {
-        const fileSystem = createSystem({}, { virtual: true });
-
-        const testObj = new ResolvedCompilerOptions(
-            fileSystem,
-            {
-                configFile: "/whatever/websmith.config.json",
-                reporter: new NoReporter(),
-            } as any,
-            {
-                configFile: "/expected/websmith.config.json",
-            } as any
-        );
-
-        expect(testObj.projectDir).toBe("/expected");
     });
 });
 

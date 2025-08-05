@@ -61,8 +61,6 @@ describe("addCompileCommand", () => {
             })
         );
         expect(actual).toEqual({
-            addons: [],
-            addonsDir: "/addons",
             buildDir: expect.stringContaining(path.sep),
             cliArgs: {
                 compileOnSave: false,
@@ -94,12 +92,11 @@ describe("addCompileCommand", () => {
             },
             config: {
                 addons: [],
-                addonsDir: "./addons",
+                addonsDir: "/addons",
                 reporter: {},
                 system: expect.any(Object),
             },
             debug: false,
-            projectDir: "/",
             reporter: expect.any(NoReporter),
             system: expect.any(Object),
             tsConfig: {
