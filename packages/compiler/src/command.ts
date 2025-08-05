@@ -128,17 +128,20 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 compiler = new Compiler({ ...options, reporter }, {}, system);
             }
 
-            const addons = compiler.getAddonRegistry();
-            if (addons) {
-                addons.setConfig(addonConfig(command, compiler.getSystem(), options, reporter));
-            } else {
-                compiler.setAddonRegistry(
-                    new AddonRegistry({
-                        ...addonConfig(command, compiler.getSystem(), options, reporter),
-                        reporter,
-                        system,
-                    })
-                );
+            const { addons, addonsDir, profiles } = options?.config ?? {};
+            if (addons?.length || addonsDir || Object.keys(profiles ?? {}).length || options.profile) {
+                const addonsReg = compiler.getAddonRegistry();
+                if (addonsReg) {
+                    addonsReg.setConfig(addonConfig(command, compiler.getSystem(), options, reporter));
+                } else {
+                    compiler.setAddonRegistry(
+                        new AddonRegistry({
+                            ...addonConfig(command, compiler.getSystem(), options, reporter),
+                            reporter,
+                            system,
+                        })
+                    );
+                }
             }
 
             if (args.watch) {
@@ -153,11 +156,11 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
 const addonConfig = (command: Command, system: ts.System, options: CompilerOptions, reporter: Reporter): AddonConfig => {
     const { config } = options ?? {};
     const addons = command.opts().addons ?? config?.addons?.join(",") ?? "";
-    const addonsDir = command.opts().addonsDir ?? config?.addonsDir ?? "./addons";
-    const resolvedAddonsDir = system.resolvePath(addonsDir);
+    const addonsDir = command.opts().addonsDir ?? config?.addonsDir;
+    const resolvedAddonsDir = addonsDir ? system.resolvePath(addonsDir) : undefined;
 
     // Check if addons directory exists and warn if it doesn't
-    if (!system.directoryExists(resolvedAddonsDir)) {
+    if (resolvedAddonsDir && !system.directoryExists(resolvedAddonsDir)) {
         reporter.reportDiagnostic(new WarnMessage(`Addons directory "${resolvedAddonsDir}" does not exist.`));
     }
 
@@ -168,7 +171,7 @@ const addonConfig = (command: Command, system: ts.System, options: CompilerOptio
                 .map((it: string) => it.trim())
                 .filter((it: string) => it.length > 0) ?? [],
 
-        addonsDir: resolvedAddonsDir,
+        ...(resolvedAddonsDir && { addonsDir: resolvedAddonsDir }),
         system,
         reporter,
 

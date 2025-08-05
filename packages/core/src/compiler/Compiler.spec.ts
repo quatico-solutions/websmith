@@ -195,7 +195,7 @@ describe("constructor", () => {
 
             expect(path.isAbsolute(testObj.getOptions().buildDir)).toBe(true);
             expect(testObj.getOptions().tsConfigFile).toBe(`${testObj.getOptions().buildDir}/tsconfig.json`);
-            expect(testObj.getOptions().configFile).toBe(`${testObj.getOptions().buildDir}/websmith.config.json`);
+            expect(testObj.getOptions().configFile).toBeUndefined();
         });
 
         it("derives tsConfigFile and configFile from buildDir when only buildDir is specified", () => {
@@ -206,7 +206,7 @@ describe("constructor", () => {
 
             expect(testObj.getOptions().buildDir).toMatch(/custom-src$/);
             expect(testObj.getOptions().tsConfigFile).toMatch(/custom-src\/tsconfig\.json$/);
-            expect(testObj.getOptions().configFile).toMatch(/custom-src\/websmith\.config\.json$/);
+            expect(testObj.getOptions().configFile).toBeUndefined();
         });
 
         it("derives buildDir and configFile from tsConfigFile dirname when only tsConfigFile is specified", () => {
@@ -217,7 +217,7 @@ describe("constructor", () => {
 
             expect(testObj.getOptions().buildDir).toMatch(/custom-dir$/);
             expect(testObj.getOptions().tsConfigFile).toMatch(/custom-dir\/tsconfig\.json$/);
-            expect(testObj.getOptions().configFile).toMatch(/custom-dir\/websmith\.config\.json$/);
+            expect(testObj.getOptions().configFile).toBeUndefined();
         });
 
         it("derives buildDir and tsConfigFile from configFile dirname when only configFile is specified", () => {
@@ -275,7 +275,7 @@ describe("constructor", () => {
 
             expect(testObj.getOptions().buildDir).toMatch(/project$/);
             expect(testObj.getOptions().tsConfigFile).toMatch(/project\/tsconfig\.json$/);
-            expect(testObj.getOptions().configFile).toMatch(/project\/websmith\.config\.json$/);
+            expect(testObj.getOptions().configFile).toBeUndefined();
         });
 
         it("handles absolute paths correctly", () => {
