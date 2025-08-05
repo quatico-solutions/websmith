@@ -128,13 +128,36 @@ export class AddonRegistry {
     }
 
     private reportMissingAddons(expectedNames: string[] = [], profile?: string): void {
-        const { reporter } = this.config;
+        const { reporter, addonsDir } = this.config;
 
-        const missing = this.getMissingAddons(expectedNames).join(", ");
-        if (missing.length > 0) {
-            reporter?.reportDiagnostic(
-                new WarnMessage(profile ? `Missing addons for profile "${profile}": "${missing}".` : `Missing addons: "${missing}".`)
-            );
+        const missingAddons = this.getMissingAddons(expectedNames);
+        if (missingAddons.length > 0) {
+            const availableAddons = Array.from(this.availableAddons.keys());
+
+            // Enhanced error reporting for missing addons
+            const detailedReport = [
+                profile
+                    ? `Missing addons for profile "${profile}": ${missingAddons.map(name => `"${name}"`).join(", ")}`
+                    : `Missing addons: ${missingAddons.map(name => `"${name}"`).join(", ")}`,
+                ``,
+                `🔍 Addon Resolution Details:`,
+                `   • Addons directory: ${addonsDir || "(not configured)"}`,
+                `   • Directory exists: ${addonsDir ? this.config.system.directoryExists(addonsDir) : false}`,
+                `   • Available addons (${availableAddons.length}): ${availableAddons.length > 0 ? availableAddons.join(", ") : "(none found)"}`,
+                ``,
+                `🛠️  Troubleshooting suggestions:`,
+                `   • Check if addon directories exist in: ${addonsDir}`,
+                `   • Verify addon naming matches expected names exactly`,
+                `   • Ensure addons have proper structure with 'addon.ts' or 'index.ts' files`,
+                `   • Check if addons compiled successfully (look for compilation errors above)`,
+                `   • Verify addon files export an 'activate' function`,
+                ``,
+                `📂 Expected addon structure:`,
+                ...missingAddons.map(name => `   • ${addonsDir}/${name}/addon.ts (or .js) - OR -`),
+                ...missingAddons.map(name => `   • ${addonsDir}/${name}/index.ts (or .js)`),
+            ].join("\n");
+
+            reporter?.reportDiagnostic(new WarnMessage(detailedReport));
         }
     }
 
@@ -295,7 +318,24 @@ export class AddonRegistry {
 
     private compileSourceFiles(addonsDir: string, reporter: Reporter, libDir: string, tsFiles: string[]): string[] {
         try {
-            // // Create a wrapper reporter to capture diagnostics
+            // Enhanced error reporting: Check filesystem permissions and paths
+            const fsInfo = this.validateFilesystemAccess(addonsDir, libDir);
+            if (!fsInfo.canCompile) {
+                const errorDetails = [
+                    `Filesystem validation failed for addon compilation:`,
+                    `  - Addons directory: ${addonsDir} (exists: ${fsInfo.addonsExists}, readable: ${fsInfo.addonsReadable})`,
+                    `  - Output directory: ${libDir} (exists: ${fsInfo.libExists}, writable: ${fsInfo.libWritable})`,
+                    `  - Working directory: ${fsInfo.workingDir}`,
+                    `  - Error: ${fsInfo.error}`,
+                ].join("\n");
+
+                reporter?.reportDiagnostic(new WarnMessage(`Failed to compile addons - ${errorDetails}`));
+                return [];
+            }
+
+            // Enhanced error reporting: List files being compiled
+            const fileList = tsFiles.map(f => `    - ${path.relative(addonsDir, f)}`).join("\n");
+
             const result = new Compiler({
                 buildDir: addonsDir,
                 reporter,
@@ -322,13 +362,33 @@ export class AddonRegistry {
             const expectedJsFiles = tsFiles.map(ts => ts.replace(/\.ts$/, ".js").replace(addonsDir, libDir));
             const outputExists = this.config.system.directoryExists(libDir) && expectedJsFiles.some(jsFile => this.config.system.fileExists(jsFile));
 
-            // Check if compilation had errors or failed to produce output
+            // Enhanced error reporting for compilation failures
             if (result.emitSkipped || (result.diagnostics && result.diagnostics.length > 0) || !outputExists) {
-                const errorMessages =
-                    result.diagnostics
-                        ?.map(d => (typeof d.messageText === "string" ? d.messageText : d.messageText?.messageText || "Unknown error"))
-                        .join("; ") || "Compilation failed";
-                reporter?.reportDiagnostic(new WarnMessage(`Failed to compile addons in ${addonsDir}: ${errorMessages}`));
+                const diagnosticDetails = this.formatCompilationDiagnostics([...(result.diagnostics || [])], tsFiles, addonsDir);
+                const missingOutputs = expectedJsFiles.filter(js => !this.config.system.fileExists(js));
+
+                const errorReport = [
+                    `Failed to compile addons in ${addonsDir}:`,
+                    ``,
+                    `📁 Input files (${tsFiles.length}):`,
+                    fileList,
+                    ``,
+                    `📁 Expected outputs (${expectedJsFiles.length}):`,
+                    expectedJsFiles.map(f => `    - ${path.relative(libDir, f)}`).join("\n"),
+                    ``,
+                    `❌ Missing outputs (${missingOutputs.length}):`,
+                    missingOutputs.length > 0 ? missingOutputs.map(f => `    - ${path.relative(libDir, f)}`).join("\n") : "    (none)",
+                    ``,
+                    `🔍 Diagnostics:`,
+                    diagnosticDetails || "    (no diagnostics available)",
+                    ``,
+                    `ℹ️  Compilation details:`,
+                    `    - Emit skipped: ${result.emitSkipped}`,
+                    `    - Diagnostic count: ${result.diagnostics?.length || 0}`,
+                    `    - Output directory exists: ${this.config.system.directoryExists(libDir)}`,
+                ].join("\n");
+
+                reporter?.reportDiagnostic(new WarnMessage(errorReport));
                 return [];
             }
 
@@ -419,13 +479,286 @@ export class AddonRegistry {
             this.availableAddons.set(addonName, addon);
             return addonName;
         } catch (error) {
-            // Log warning and return undefined instead of throwing error (restore original behavior)
+            // Enhanced error reporting for addon loading failures
             const errorMessage = error instanceof Error ? error.message : String(error);
-            this.config.reporter?.reportDiagnostic(
-                new WarnMessage(`Failed to load addon "${addonName}" from "${getImportPath(system, filePath)}": ${errorMessage}`)
-            );
+            const importPath = getImportPath(system, filePath);
+
+            // Categorize the error type for better diagnostics
+            const errorCategory = this.categorizeLoadingError(errorMessage);
+
+            const detailedReport = [
+                `Failed to load addon "${addonName}" from "${importPath}"`,
+                ``,
+                `🔍 Error Category: ${errorCategory.type}`,
+                `📝 Error Message: ${errorMessage}`,
+                ``,
+                `🛠️  Troubleshooting suggestions:`,
+                ...errorCategory.suggestions.map(s => `   • ${s}`),
+                ``,
+                `ℹ️  File Information:`,
+                `   • Path: ${importPath}`,
+                `   • Exists: ${system.fileExists(importPath)}`,
+                `   • Directory: ${path.dirname(importPath)}`,
+                `   • Working directory: ${system.getCurrentDirectory()}`,
+            ].join("\n");
+
+            this.config.reporter?.reportDiagnostic(new WarnMessage(detailedReport));
             return;
         }
+    }
+
+    /**
+     * Validates filesystem access for addon compilation
+     */
+    private validateFilesystemAccess(
+        addonsDir: string,
+        libDir: string
+    ): {
+        canCompile: boolean;
+        addonsExists: boolean;
+        addonsReadable: boolean;
+        libExists: boolean;
+        libWritable: boolean;
+        workingDir: string;
+        error?: string;
+    } {
+        const { system } = this.config;
+        let workingDir = "unknown";
+
+        try {
+            workingDir = system.getCurrentDirectory();
+        } catch (e) {
+            return {
+                canCompile: false,
+                addonsExists: false,
+                addonsReadable: false,
+                libExists: false,
+                libWritable: false,
+                workingDir: "ERROR: Cannot get current working directory",
+                error: e instanceof Error ? e.message : String(e),
+            };
+        }
+
+        const addonsExists = system.directoryExists(addonsDir);
+        const addonsReadable = addonsExists && this.canReadDirectory(addonsDir);
+        const libExists = system.directoryExists(libDir);
+
+        // Test if we can write to the lib directory
+        let libWritable = false;
+        if (libExists) {
+            libWritable = this.canWriteToDirectory(libDir);
+        } else {
+            // Try to create the directory to test writability
+            try {
+                system.createDirectory(libDir);
+                libWritable = true;
+            } catch (e) {
+                return {
+                    canCompile: false,
+                    addonsExists,
+                    addonsReadable,
+                    libExists: false,
+                    libWritable: false,
+                    workingDir,
+                    error: `Cannot create output directory: ${e instanceof Error ? e.message : String(e)}`,
+                };
+            }
+        }
+
+        return {
+            canCompile: addonsExists && addonsReadable && libWritable,
+            addonsExists,
+            addonsReadable,
+            libExists,
+            libWritable,
+            workingDir,
+        };
+    }
+
+    /**
+     * Tests if a directory can be read
+     */
+    private canReadDirectory(dir: string): boolean {
+        try {
+            this.config.system.readDirectory(dir);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Tests if we can write to a directory
+     */
+    private canWriteToDirectory(dir: string): boolean {
+        const testFile = path.join(dir, ".write-test-" + Date.now());
+        try {
+            this.config.system.writeFile(testFile, "test");
+            // Clean up the test file if deleteFile method exists
+            if (typeof this.config.system.deleteFile === "function") {
+                this.config.system.deleteFile(testFile);
+            }
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Formats TypeScript diagnostics with enhanced dependency information
+     */
+    private formatCompilationDiagnostics(diagnostics: ts.Diagnostic[], tsFiles: string[], addonsDir: string): string {
+        if (!diagnostics.length) {
+            return "    (no compilation errors)";
+        }
+
+        const formatted = diagnostics
+            .map(diagnostic => {
+                const messageText =
+                    typeof diagnostic.messageText === "string" ? diagnostic.messageText : diagnostic.messageText?.messageText || "Unknown error";
+
+                let location = "";
+                if (diagnostic.file && diagnostic.start !== undefined) {
+                    const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
+                    const relativePath = path.relative(addonsDir, diagnostic.file.fileName);
+                    location = ` at ${relativePath}:${line + 1}:${character + 1}`;
+                }
+
+                // Detect dependency-related errors
+                const isDependencyError = this.isDependencyRelatedError(messageText);
+                const errorType = isDependencyError ? "🔗 DEPENDENCY" : "🔧 SYNTAX";
+
+                let result = `    ${errorType}: ${messageText}${location}`;
+
+                // Add specific guidance for dependency errors
+                if (isDependencyError) {
+                    result += "\n      💡 This might be caused by:";
+                    result += "\n         - Missing import file in the addons directory";
+                    result += "\n         - Incorrect relative path in import statement";
+                    result += "\n         - Circular dependency between addon files";
+                    result += "\n         - Missing external package (not available in addon context)";
+                }
+
+                return result;
+            })
+            .join("\n");
+
+        return formatted;
+    }
+
+    /**
+     * Detects if a TypeScript error is dependency-related
+     */
+    private isDependencyRelatedError(message: string): boolean {
+        const dependencyErrorPatterns = [
+            /cannot find module/i,
+            /module .* was resolved to .* but .* does not exist/i,
+            /could not find a declaration file for module/i,
+            /cannot resolve dependency/i,
+            /failed to resolve import/i,
+            /cannot import.*from/i,
+            /module.*has no exported member/i,
+            /cannot find name.*in module/i,
+        ];
+
+        return dependencyErrorPatterns.some(pattern => pattern.test(message));
+    }
+
+    /**
+     * Categorizes addon loading errors for better diagnostics
+     */
+    private categorizeLoadingError(errorMessage: string): { type: string; suggestions: string[] } {
+        const message = errorMessage.toLowerCase();
+
+        // Module/Import related errors
+        if (message.includes("cannot find module") || message.includes("module not found")) {
+            return {
+                type: "DEPENDENCY_ERROR",
+                suggestions: [
+                    "Check if all required dependencies are installed in the addon directory",
+                    "Verify import paths are correct and files exist",
+                    "Ensure external packages are available in the addon context",
+                    "Check if the module has been compiled properly",
+                ],
+            };
+        }
+
+        // Syntax errors in the addon file
+        if (message.includes("unexpected token") || message.includes("syntaxerror") || message.includes("syntax error")) {
+            return {
+                type: "SYNTAX_ERROR",
+                suggestions: [
+                    "Check the addon file for JavaScript/TypeScript syntax errors",
+                    "Ensure the file was compiled correctly if it's a TypeScript addon",
+                    "Verify the file encoding is correct (UTF-8)",
+                    "Check for missing semicolons, brackets, or other syntax issues",
+                ],
+            };
+        }
+
+        // Permission/File system errors
+        if (message.includes("enoent") || message.includes("eacces") || message.includes("permission denied")) {
+            return {
+                type: "FILE_SYSTEM_ERROR",
+                suggestions: [
+                    "Check if the addon file exists at the specified path",
+                    "Verify file permissions allow reading the addon file",
+                    "Ensure the directory structure is correct",
+                    "Check if the file path is correct and accessible",
+                ],
+            };
+        }
+
+        // Read-only file system errors (common in test environments)
+        if (message.includes("erofs") || message.includes("read-only file system")) {
+            return {
+                type: "READ_ONLY_FILESYSTEM",
+                suggestions: [
+                    "This typically occurs in test or containerized environments",
+                    "Ensure compilation output directory has write permissions",
+                    "Check if the addon directory is mounted as read-only",
+                    "Try compiling addons to a writable temporary directory",
+                ],
+            };
+        }
+
+        // Working directory issues
+        if (message.includes("uv_cwd") || message.includes("current working directory")) {
+            return {
+                type: "WORKING_DIRECTORY_ERROR",
+                suggestions: [
+                    "The current working directory may have been deleted or corrupted",
+                    "This often happens in test environments with cleanup issues",
+                    "Restore the working directory before loading addons",
+                    "Check test cleanup procedures to avoid directory deletion",
+                ],
+            };
+        }
+
+        // Export/Structure errors
+        if (message.includes("activate") || message.includes("export") || message.includes("function")) {
+            return {
+                type: "ADDON_STRUCTURE_ERROR",
+                suggestions: [
+                    'Ensure the addon exports an "activate" function',
+                    "Check if the export structure matches expected format",
+                    "Verify the activate function is properly defined",
+                    "Review addon API documentation for correct structure",
+                ],
+            };
+        }
+
+        // Generic/Unknown errors
+        return {
+            type: "UNKNOWN_ERROR",
+            suggestions: [
+                "Review the full error message for specific details",
+                "Check if the addon file is valid JavaScript/TypeScript",
+                "Ensure all required dependencies are available",
+                "Try loading the addon manually to reproduce the error",
+                "Check system logs for additional error information",
+            ],
+        };
     }
 }
 

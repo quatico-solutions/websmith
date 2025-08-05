@@ -109,7 +109,11 @@ describe("getAvailableAddons", () => {
             system,
         }).getAvailableAddons();
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "does-not-exist".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining('Missing addons: "does-not-exist"'),
+            })
+        );
     });
 
     it("reports warning w/ profile config and non-existing addons name", () => {
@@ -125,7 +129,11 @@ describe("getAvailableAddons", () => {
             system,
         }).getAvailableAddons("target");
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "target": "does-not-exist".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining('Missing addons for profile "target": "does-not-exist"'),
+            })
+        );
     });
 });
 
@@ -217,7 +225,11 @@ describe("reportMissingAddons", () => {
 
         new AddonRegistry({ addonsDir: "./target", addons: ["missing"], reporter: target, system }).getAvailableAddons();
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "missing".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining('Missing addons: "missing"'),
+            })
+        );
     });
 
     it("does not report missing addons w/o missing addons", () => {
@@ -245,7 +257,11 @@ describe("reportMissingAddons", () => {
             system,
         }).getAvailableAddons("target");
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "target": "missing".'));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining('Missing addons for profile "target": "missing"'),
+            })
+        );
     });
 
     it("does not report missing addons w/o missing profile addons", () => {
@@ -512,7 +528,11 @@ describe("Addon loading rules", () => {
                 system,
             }).getAvailableAddons("target");
 
-            expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "target": "missing-addon".'));
+            expect(target.reportDiagnostic).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    messageText: expect.stringContaining('Missing addons for profile "target": "missing-addon"'),
+                })
+            );
         });
 
         it("reports missing addons from both global and profile configurations", () => {
@@ -529,7 +549,11 @@ describe("Addon loading rules", () => {
                 system,
             }).getAvailableAddons("target");
 
-            expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons: "missing-global".'));
+            expect(target.reportDiagnostic).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    messageText: expect.stringContaining('Missing addons: "missing-global"'),
+                })
+            );
         });
 
         it("does not report missing addons when all profile addons are found", () => {
@@ -565,7 +589,11 @@ describe("Addon loading rules", () => {
                 system,
             }).getAvailableAddons("dev");
 
-            expect(target.reportDiagnostic).toHaveBeenCalledWith(new WarnMessage('Missing addons for profile "dev": "missing-dev".'));
+            expect(target.reportDiagnostic).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    messageText: expect.stringContaining('Missing addons for profile "dev": "missing-dev"'),
+                })
+            );
         });
 
         it("handles multiple missing addons in profile", () => {
@@ -581,7 +609,9 @@ describe("Addon loading rules", () => {
             }).getAvailableAddons("target");
 
             expect(target.reportDiagnostic).toHaveBeenCalledWith(
-                new WarnMessage('Missing addons for profile "target": "missing-one, missing-two, missing-three".')
+                expect.objectContaining({
+                    messageText: expect.stringContaining('Missing addons for profile "target": "missing-one", "missing-two", "missing-three"'),
+                })
             );
         });
     });
