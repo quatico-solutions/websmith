@@ -26,8 +26,10 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     });
 
     const fragment = instance.build(this.resourcePath);
-    // TODO: How do use the loader version? Can we separate contexts with it?
-    // this.version = instance.getVersion();
+
+    // Set loader version based on the file's cache version to enable proper cache invalidation
+    // This ensures webpack knows when to recompile based on source file changes
+    this.version = fragment.version;
 
     processResultAndFinish(this, fragment, instance.getProfile());
 }
