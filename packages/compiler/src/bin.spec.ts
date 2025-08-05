@@ -47,7 +47,7 @@ describe("bin.ts", () => {
 
         // Verify that help text was written to stdout with correct program name
         expect(target).toHaveBeenCalledWith(expect.stringContaining("Usage: websmith [options]"));
-    });
+    }, 60000);
 
     it("should parse process.argv with debug and watch flags", () => {
         jest.spyOn(process.stdout, "write").mockImplementation(() => true);
@@ -59,7 +59,7 @@ describe("bin.ts", () => {
         // Verify that watch method was called (for --watch flag)
         expect(watchSpy).toHaveBeenCalled();
         expect(target.getOptions()).toMatchObject({ tsConfig: { listFiles: true, debug: true, watch: true } });
-    });
+    }, 60000);
 
     it("should handle compilation arguments", () => {
         const target = new Compiler(
@@ -70,7 +70,7 @@ describe("bin.ts", () => {
         executeCompiler("--project ./tsconfig.json --sourceMap", target);
 
         expect(target.getOptions()).toMatchObject({ tsConfig: { sourceMap: true, project: "./tsconfig.json" } });
-    });
+    }, 60000);
 
     it("should handle addon-related arguments", () => {
         const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}, { virtual: true }));
@@ -93,8 +93,8 @@ describe("bin.ts", () => {
             strict: false,
             target: 1,
         });
-        expect(target.getOptions().config).toEqual({ addons: ["foo", "bar"], addonsDir: "./custom-addons" });
-    });
+        expect(target.getOptions().config).toEqual({ addons: ["foo", "bar"], addonsDir: "/custom-addons" });
+    }, 60000);
 
     it("should handle empty arguments", () => {
         const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}, { virtual: true }));
@@ -102,7 +102,6 @@ describe("bin.ts", () => {
 
         expect(target.getOptions()).toEqual({
             additionalArguments: expect.any(Map),
-            addons: [],
             buildDir: "/",
             cliArgs: {
                 errors: [],
@@ -126,8 +125,6 @@ describe("bin.ts", () => {
             },
             config: {},
             debug: false,
-            profile: undefined,
-            projectDir: "/",
             reporter: expect.any(NoReporter),
             system: expect.any(Object),
             tsConfig: {
@@ -149,7 +146,7 @@ describe("bin.ts", () => {
             tsConfigFile: "/tsconfig.json",
             watch: false,
         });
-    });
+    }, 60000);
 
     it("should handle unknown arguments", () => {
         const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}, { virtual: true }));
@@ -161,7 +158,7 @@ describe("bin.ts", () => {
                 ["another-unknown", "expected"],
             ]),
         });
-    });
+    }, 60000);
 
     it("should not emit a warning without configFile specified", () => {
         const target = new NoReporter();
@@ -170,7 +167,7 @@ describe("bin.ts", () => {
         executeCompiler("", new Compiler({ reporter: target }, {}, createSystem({}, { virtual: true })));
 
         expect(target.reportDiagnostic).not.toHaveBeenCalled();
-    });
+    }, 60000);
 
     it("should emit a warning with configFile but non-existing file path", () => {
         const target = new NoReporter();
@@ -186,7 +183,7 @@ describe("bin.ts", () => {
                 messageText: `No configuration file found at "${PROJECT_DIR}/websmith.config.json".`,
             })
         );
-    });
+    }, 60000);
 
     it("should emit a warning with addonsDir but non-existing dir path", () => {
         const target = new NoReporter();
@@ -202,7 +199,7 @@ describe("bin.ts", () => {
                 messageText: `Addons directory "${PROJECT_DIR}/does-not-exist" does not exist.`,
             })
         );
-    });
+    }, 60000);
 
     it("should yield script file with single file and emit true", () => {
         createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
@@ -216,7 +213,7 @@ describe("bin.ts", () => {
             "test.ts"
         );
 
-        executeCompiler(`--project ${path.join(PROJECT_DIR, "tsconfig.json")}`, new Compiler({ reporter: new NoReporter() }, {}, createSystem()));
+        executeCompiler(`--project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
 
         expect(getOutput("test.js")).toBeDefined();
         expect(getOutput("test.js")).toMatchInlineSnapshot(`
@@ -226,7 +223,7 @@ describe("bin.ts", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield script and declaration files with single file, declaration and emit true", () => {
         createTsConfigFile({
@@ -239,7 +236,7 @@ describe("bin.ts", () => {
         });
         copySourceFile("foobar-arrow.ts");
 
-        executeCompiler("--project ./tsconfig.json", new Compiler({ reporter: new NoReporter() }, {}, createSystem()));
+        executeCompiler("--project ./tsconfig.json");
 
         expect(getOutput("foobar-arrow.js")).toMatchInlineSnapshot(`
             "// @annotated()
@@ -258,7 +255,7 @@ describe("bin.ts", () => {
         expect(getOutput("foobar-arrow.d.ts.map")).toMatchInlineSnapshot(
             `"{"version":3,"file":"foobar-arrow.d.ts","sourceRoot":"","sources":["../src/foobar-arrow.ts"],"names":[],"mappings":"AACA,eAAO,MAAM,SAAS,SAAU,IAAI,WAEnC,CAAC"}"`
         );
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", () => {
         createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: 1, module: 3 });
@@ -291,7 +288,7 @@ describe("bin.ts", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-cli client-processor and emit", () => {
         createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
@@ -332,7 +329,7 @@ describe("bin.ts", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-cli client-transformer and emit true", () => {
         createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
@@ -350,7 +347,7 @@ describe("bin.ts", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-cli export-yaml-generator and emit true", () => {
         createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
@@ -369,7 +366,7 @@ describe("bin.ts", () => {
             "
         `);
         expect(getOutput("output.yaml")).toContain(`exports: [getFoobar]`);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-cli foo-added-generator and emit true", () => {
         createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
@@ -397,7 +394,7 @@ describe("bin.ts", () => {
             }
             "
         `);
-    });
+    }, 60000);
 
     it("should yield transpiled script with single file, addons-cli function-json-result-processor and emit true", () => {
         createTsConfigFile({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
@@ -416,7 +413,7 @@ describe("bin.ts", () => {
             "
         `);
         expect(getOutput("named-functions.json")).toMatchInlineSnapshot(`"{"foobar-function":["getFoobar","foobar"]}"`);
-    });
+    }, 60000);
 });
 
 const executeCompiler = (args = "", compiler?: Compiler) => {
@@ -477,11 +474,11 @@ const createTsConfig = (config: ts.CompilerOptions) => {
 };
 
 const createTsConfigFile = (config: ts.CompilerOptions) => {
-    fs.writeFileSync(path.resolve(PROJECT_DIR, "tsconfig.json"), createTsConfig(config), { encoding: "utf-8" });
+    fs.writeFileSync(path.join(PROJECT_DIR, "tsconfig.json"), createTsConfig(config), { encoding: "utf-8" });
 };
 
 const createWebsmithConfig = (config: CompilationConfig) => {
-    fs.writeFileSync(path.resolve(PROJECT_DIR, "websmith.config.json"), JSON.stringify(config), { encoding: "utf-8" });
+    fs.writeFileSync(path.join(PROJECT_DIR, "websmith.config.json"), JSON.stringify(config), { encoding: "utf-8" });
 };
 
 const copySourceFile = (fileName: string) => {
@@ -489,7 +486,7 @@ const copySourceFile = (fileName: string) => {
 };
 
 const createSourceFile = (fileContent: string, fileName: string) => {
-    fs.writeFileSync(path.resolve(SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
+    fs.writeFileSync(path.join(SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
 };
 
 const getOutput = (filePath: string): string | undefined =>

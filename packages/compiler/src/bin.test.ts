@@ -65,7 +65,14 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield script and declaration files with single file, declaration and emit true", () => {
-        createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, declaration: true, declarationMap: true, target: ts.ScriptTarget.ESNext });
+        createTsConfig({
+            outDir: OUTPUT_DIR,
+            noEmit: false,
+            declaration: true,
+            declarationMap: true,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
         copySourceFile("foobar-arrow.ts");
 
         executeCompiler();
@@ -99,6 +106,7 @@ describe("bin.ts e2e tests", () => {
                         outDir: `${OUTPUT_DIR}/target`,
                         target: ts.ScriptTarget.ESNext,
                         module: ts.ModuleKind.ESNext,
+                        moduleResolution: ts.ModuleResolutionKind.Node10,
                     },
                 },
             },
@@ -163,7 +171,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli client-transformer and emit true", () => {
-        createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons client-transformer --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
@@ -200,7 +208,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli foo-added-generator and emit true", () => {
-        createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfig({ outDir: OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10 });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons foo-added-generator --project ${path.join(PROJECT_DIR, "tsconfig.json")}`);
@@ -280,11 +288,11 @@ const executeCompiler = (args = ""): string => {
 };
 
 const copySourceFile = (fileName: string) => {
-    fs.copyFileSync(path.resolve(TEST_FILES_DIR, fileName), path.resolve(SOURCE_DIR, fileName));
+    fs.copyFileSync(path.join(TEST_FILES_DIR, fileName), path.join(SOURCE_DIR, fileName));
 };
 
 const createSourceFile = (fileContent: string, fileName: string) => {
-    fs.writeFileSync(path.resolve(SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
+    fs.writeFileSync(path.join(SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
 };
 
 const createTsConfig = (config: ts.CompilerOptions) => {
@@ -304,12 +312,12 @@ const createTsConfig = (config: ts.CompilerOptions) => {
         include: ["src/**/*"],
         exclude: ["node_modules", "dist"],
     };
-    fs.writeFileSync(path.resolve(PROJECT_DIR, "tsconfig.json"), JSON.stringify(tsConfig, null, 2), { encoding: "utf-8" });
+    fs.writeFileSync(path.join(PROJECT_DIR, "tsconfig.json"), JSON.stringify(tsConfig, null, 2), { encoding: "utf-8" });
 };
 
 const getOutput = (filePath: string): string | undefined =>
     fs.existsSync(path.join(OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(OUTPUT_DIR, filePath), "utf-8") : undefined;
 
 const createWebsmithConfig = (config: CompilationConfig) => {
-    fs.writeFileSync(path.resolve(PROJECT_DIR, "websmith.config.json"), JSON.stringify(config), { encoding: "utf-8" });
+    fs.writeFileSync(path.join(PROJECT_DIR, "websmith.config.json"), JSON.stringify(config), { encoding: "utf-8" });
 };
