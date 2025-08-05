@@ -130,13 +130,10 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly tsConfig?: ts.CompilerOptions;
     public readonly profile?: string;
     public readonly buildDir: string;
+    public readonly cliArgs: ts.ParsedCommandLine;
     public readonly reporter: Reporter;
     public readonly watch?: boolean;
     public readonly additionalArguments?: Map<string, unknown>;
-    public readonly cliArgs: ts.ParsedCommandLine;
-    public readonly addons?: string[];
-    public readonly addonsDir?: string;
-    public readonly projectDir: string;
 
     constructor(
         private system: ts.System,
@@ -184,7 +181,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             configFile,
             debug = false,
             tsConfig,
-            tsConfigFile = cliArgs?.options?.project,
+            tsConfigFile = cliArgs?.options?.project ?? tsConfig?.project,
             watch = false,
         } = resolvedOptions;
         this.watch = watch;
@@ -195,53 +192,41 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         // Resolve paths according to the defined rules
         const resolvedPaths = resolvePathsWithRules(this.system, { buildDir, tsConfigFile, configFile }, this.reporter);
 
-        this.buildDir = resolvedPaths.buildDir;
         this.tsConfigFile = resolvedPaths.tsConfigFile;
         this.configFile = resolvedPaths.configFile;
 
-        this.projectDir =
-            (this.configFile && path.dirname(this.configFile)) ??
+        this.buildDir =
+            resolvedPaths.buildDir ??
             (this.tsConfigFile && path.dirname(this.tsConfigFile)) ??
-            (cliArgs.raw?.configFilePath && path.dirname(cliArgs.raw?.configFilePath)) ??
+            (this.configFile && path.dirname(this.configFile)) ??
             this.system.getCurrentDirectory();
 
         this.config = deepmerge<CompilationConfig>(compilationConfig, config ?? {}, { arrayMerge });
 
         // profiles
         const profileName = loaderOptions?.profile ?? options.profile;
-        const existingProfiles = Object.keys(resolvedOptions.config?.profiles ?? {});
-        const selectedProfiles = getDependentProfiles(existingProfiles, profileName, this.config).filter(cur => existingProfiles.includes(cur));
 
-        // addons
-        this.addonsDir = this.config?.addonsDir ? resolvePath(this.system, this.projectDir, this.config?.addonsDir) : undefined;
-        this.addons = [
-            ...(Array.isArray(this.config?.addons) ? this.config.addons : []),
-            ...selectedProfiles
-                .map(name => {
-                    const profile = getProfile(name, this.config);
-                    return Array.isArray(profile?.addons) ? profile.addons : [];
-                })
-                .flat(),
-        ];
-
+        if (this.config?.addonsDir) {
+            this.config.addonsDir = resolvePath(this.system, this.buildDir, this.config.addonsDir);
+        }
         // resolve tsconfig
         this.profile = resolveProfile(profileName, this.config, this.reporter);
         resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
-        this.tsConfig = getTsConfig(this.system, this.projectDir, resolvedOptions, this.profile);
+        this.tsConfig = getTsConfig(this.system, this.buildDir, resolvedOptions, this.profile);
 
         // resolve cli args
-        if (this.projectDir) {
-            cliArgs.options = resolvePaths(cliArgs.options ?? {}, this.projectDir, this.system);
+        if (this.buildDir) {
+            cliArgs.options = resolvePaths(cliArgs.options ?? {}, this.buildDir, this.system);
         }
         const { outDir: profileOutDir, rootDir: profileRootDir } = this.tsConfig;
         // Prioritize CLI outDir over profile outDir
         const outDir = cliArgs?.options?.outDir
-            ? resolvePath(this.system, this.projectDir, cliArgs.options.outDir)
+            ? resolvePath(this.system, this.buildDir, cliArgs.options.outDir)
             : (profileOutDir ?? tsConfig?.outDir)
-              ? resolvePath(this.system, this.projectDir, profileOutDir ?? tsConfig?.outDir)
+              ? resolvePath(this.system, this.buildDir, profileOutDir ?? tsConfig?.outDir)
               : undefined;
         const rootDir =
-            (profileRootDir ?? tsConfig?.rootDir) ? resolvePath(this.system, this.projectDir, profileRootDir ?? tsConfig?.rootDir) : undefined;
+            (profileRootDir ?? tsConfig?.rootDir) ? resolvePath(this.system, this.buildDir, profileRootDir ?? tsConfig?.rootDir) : undefined;
 
         const premergedCliArgs = {
             ...(cliArgs ?? {}),
@@ -285,16 +270,14 @@ export class ResolvedCompilerOptions implements CompilerOptions {
                 const profile = getProfile(name, this.config);
                 return Array.isArray(profile?.addons) ? profile.addons : [];
             });
-            const result = [...(Array.isArray(this.config?.addons) ? this.config.addons : []), ...(Array.isArray(addons) ? addons : [])];
-            return result;
+            return [...(Array.isArray(this.config?.addons) ? this.config.addons : []), ...(Array.isArray(addons) ? addons : [])];
         }
 
         // No profile requested - return CLI addons if available, otherwise config addons
-        if (this.addons?.length) {
-            return this.addons;
+        if (this.config?.addons?.length) {
+            return this.config.addons;
         }
-        const configAddons = Array.isArray(this.config?.addons) ? this.config.addons : [];
-        return configAddons;
+        return [];
     }
 
     public getOptions(profile?: string): CompilerOptions {
@@ -320,7 +303,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
                 tsConfigFile: this.tsConfigFile,
                 profile: this.profile,
             };
-            const profileTsConfig = getTsConfig(this.system, this.projectDir, baseOptions, profile);
+            const profileTsConfig = getTsConfig(this.system, this.buildDir, baseOptions, profile);
             // Create cliArgs with profile-specific outDir overriding CLI outDir
             const profileCliArgs = this.cliArgs
                 ? {
