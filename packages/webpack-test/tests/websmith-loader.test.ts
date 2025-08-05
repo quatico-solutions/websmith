@@ -10,7 +10,7 @@ import path from "node:path";
 import { getOutput, writeTsConfig, writeWebsmithConfig, writeSourceFile } from "./test-files";
 import ts from "typescript";
 
-const PROJECT_DIR = path.join(__dirname, "..", "output");
+const PROJECT_DIR = path.join(__dirname, "..", "test-output");
 const OUTPUT_DIR = path.join(PROJECT_DIR, "lib");
 const SOURCE_DIR = path.join(PROJECT_DIR, "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
@@ -93,8 +93,8 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
-        expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./test-output/src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./test-output/src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
     }, 60000);
 
@@ -118,8 +118,8 @@ describe("webpack w/ websmith", () => {
         });
 
         expect(getOutput("output.yaml")).toContain("exports: [getDate]");
-        expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
-        expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./test-output/src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./test-output/src/model/index.ts":');
         expect(actual).toMatch(/successfully/);
     }, 60000);
 
@@ -192,7 +192,7 @@ describe("webpack w/ websmith", () => {
 
     it("should provide debug logging when debug is enabled", async () => {
         // Create a completely isolated test configuration
-        const testProjectDir = path.join(__dirname, "..", "output", "debug-test");
+        const testProjectDir = path.join(__dirname, "..", "test-output", "debug-test");
         const testSourceDir = path.join(testProjectDir, "src");
 
         // Clean up any existing test directory
@@ -244,7 +244,7 @@ describe("webpack w/ websmith", () => {
 
     it("should show debug logs in webpack stats with infrastructureLogging enabled", async () => {
         // Create a completely isolated test configuration
-        const testProjectDir = path.join(__dirname, "..", "output", "infrastructure-logging-test");
+        const testProjectDir = path.join(__dirname, "..", "test-output", "infrastructure-logging-test");
         const testSourceDir = path.join(testProjectDir, "src");
 
         // Clean up any existing test directory
@@ -317,7 +317,7 @@ describe("webpack w/ websmith", () => {
 
     it("should not show debug logs when debug is disabled", async () => {
         // Create a completely isolated test configuration
-        const testProjectDir = path.join(__dirname, "..", "output", "no-debug-test");
+        const testProjectDir = path.join(__dirname, "..", "test-output", "no-debug-test");
         const testSourceDir = path.join(testProjectDir, "src");
 
         // Clean up any existing test directory
@@ -369,7 +369,7 @@ describe("webpack w/ websmith", () => {
 
     it("should show debug logs with different webpack stats configurations", async () => {
         // Create a completely isolated test configuration
-        const testProjectDir = path.join(__dirname, "..", "output", "stats-config-test");
+        const testProjectDir = path.join(__dirname, "..", "test-output", "stats-config-test");
         const testSourceDir = path.join(testProjectDir, "src");
 
         // Clean up any existing test directory
@@ -447,7 +447,7 @@ describe("webpack w/ websmith", () => {
 
     it("should show debug logs in webpack stats with multiple files", async () => {
         // Create a completely isolated test configuration
-        const testProjectDir = path.join(__dirname, "..", "output", "multi-file-test");
+        const testProjectDir = path.join(__dirname, "..", "test-output", "multi-file-test");
         const testSourceDir = path.join(testProjectDir, "src");
 
         // Clean up any existing test directory
@@ -539,8 +539,8 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
-        expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./test-output/src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./test-output/src/model/index.ts":');
     }, 60000);
 
     it("should bundle invalid TypeScript file w/ transpileOnly being used", async () => {
@@ -563,7 +563,7 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(getOutput("main.js")).toContain('/***/ "./output/src/invalid.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./test-output/src/invalid.ts":');
         expect(actual).toContain("webpack 5.97.1 compiled");
 
         fs.rmSync(path.resolve(SOURCE_DIR, "invalid.ts"), { force: true });
@@ -592,8 +592,8 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(getOutput("main.js")).toContain('/***/ "./output/src/functions/getDate.ts":');
-        expect(getOutput("main.js")).toContain('/***/ "./output/src/model/index.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./test-output/src/functions/getDate.ts":');
+        expect(getOutput("main.js")).toContain('/***/ "./test-output/src/model/index.ts":');
         expect(actual).toContain("webpack 5.97.1 compiled");
     }, 60000);
 });

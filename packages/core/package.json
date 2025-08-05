@@ -20,7 +20,7 @@
         "lib"
     ],
     "scripts": {
-        "clean": "rimraf lib bin coverage",
+        "clean": "rimraf lib bin coverage test-output",
         "lint": "eslint \"{src,test}/**/*.ts\" --color",
         "lint:fix": "pnpm lint --fix",
         "build": "tsc",

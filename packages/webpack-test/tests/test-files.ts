@@ -9,7 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 
-export const writeWebsmithConfig = (config: Partial<CompilationConfig>, PROJECT_DIR = path.join(__dirname, "..", "output")) => {
+export const writeWebsmithConfig = (config: Partial<CompilationConfig>, PROJECT_DIR = path.join(__dirname, "..", "test-output")) => {
     fs.mkdirSync(PROJECT_DIR, {
         recursive: true,
     });
@@ -18,7 +18,7 @@ export const writeWebsmithConfig = (config: Partial<CompilationConfig>, PROJECT_
     });
 };
 
-export const writeTsConfig = (config: ts.CompilerOptions, PROJECT_DIR = path.join(__dirname, "..", "output")) => {
+export const writeTsConfig = (config: ts.CompilerOptions, PROJECT_DIR = path.join(__dirname, "..", "test-output")) => {
     fs.mkdirSync(PROJECT_DIR, {
         recursive: true,
     });
@@ -39,10 +39,10 @@ export const writeTsConfig = (config: ts.CompilerOptions, PROJECT_DIR = path.joi
     });
 };
 
-export const getOutput = (filePath: string, OUTPUT_DIR = path.join(__dirname, "..", "output", "lib")): string | undefined =>
+export const getOutput = (filePath: string, OUTPUT_DIR = path.join(__dirname, "..", "test-output", "lib")): string | undefined =>
     fs.existsSync(path.join(OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(OUTPUT_DIR, filePath), "utf-8") : undefined;
 
-export const writeSourceFile = (filePath: string, content: string, PROJECT_DIR = path.join(__dirname, "..", "output")) => {
+export const writeSourceFile = (filePath: string, content: string, PROJECT_DIR = path.join(__dirname, "..", "test-output")) => {
     const fullPath = path.join(PROJECT_DIR, filePath);
     const dir = path.dirname(fullPath);
 

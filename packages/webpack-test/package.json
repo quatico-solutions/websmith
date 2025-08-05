@@ -5,7 +5,7 @@
     "author": "Quatico Solutions AG",
     "private": true,
     "scripts": {
-        "clean": "rimraf lib coverage __data__/**/.build/",
+        "clean": "rimraf lib coverage test-output",
         "lint": "eslint \"{src,test}/**/*.{js,ts,tsx}\" --color",
         "lint:fix": "pnpm lint --fix",
         "build": "tsc",

@@ -25,7 +25,7 @@ beforeEach(() => {
             buildDir: "./src",
             tsConfig: {},
             reporter,
-            cliArgs: { options: { outDir: ".build" }, fileNames: [], errors: [] },
+            cliArgs: { options: { outDir: "test-output" }, fileNames: [], errors: [] },
             debug: false,
             watch: false,
         },
@@ -36,7 +36,7 @@ beforeEach(() => {
 
 afterEach(() => {
     compiler.close(() => undefined);
-    fs.rmSync("./.build", { recursive: true, force: true });
+    fs.rmSync("./test-output", { recursive: true, force: true });
 });
 
 describe("getCompilerInstance", () => {

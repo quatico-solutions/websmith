@@ -11,7 +11,7 @@ import path from "node:path";
 import ts from "typescript";
 import { getOutput, writeTsConfig, writeWebsmithConfig } from "./test-files";
 
-const PROJECT_DIR = path.join(__dirname, "..", "output");
+const PROJECT_DIR = path.join(__dirname, "..", "test-output");
 const OUTPUT_DIR = path.join(PROJECT_DIR, "lib");
 const SOURCE_DIR = path.join(PROJECT_DIR, "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
@@ -121,7 +121,7 @@ describe("project bundling", () => {
             },
         });
 
-        expect(fs.readdirSync(OUTPUT_DIR)).toEqual(["functions.js", "functions.js.map", "main.js", "main.js.map", "output", "output.yaml"]);
+        expect(fs.readdirSync(OUTPUT_DIR)).toEqual(["functions.js", "functions.js.map", "main.js", "main.js.map", "output.yaml", "test-output"]);
 
         const expected = getOutput("output.yaml");
         [
