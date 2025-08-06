@@ -342,9 +342,7 @@ export class Compiler {
 
             cache.updateSource(filePath, content);
 
-            const result = this.processOutput(cache, this.transpile({ fileName, ctx, content }), writeFile, fileName, ctx);
-
-            return result;
+            return this.processOutput(cache, this.transpile({ fileName, ctx, content }), writeFile, fileName, ctx);
         }
 
         throw new Error(`No profile with name "${profile}" configured.`);
@@ -498,11 +496,9 @@ export class Compiler {
             } else {
                 const isSourceFile = (name: string) => name.match(/\.([cm]?ts|tsx)$/i);
                 if (!isSourceFile(fileName)) {
-                    const result = this.transpileJson(compilationFragment);
-                    return result;
+                    return this.transpileJson(compilationFragment);
                 }
-                const result = this.transpileSourceCode(compilationFragment);
-                return result;
+                return this.transpileSourceCode(compilationFragment);
             }
         }
 

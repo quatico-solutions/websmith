@@ -4,6 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { aggregateMessages, COMPILER_ARGUMENT_KEYS, type CompilerArgumentKey, type CompilerArguments } from "@quatico/websmith-api";
 import ts from "typescript";
 
@@ -14,7 +15,7 @@ import ts from "typescript";
  * @param system
  */
 export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments, system: ts.System): ts.ParsedCommandLine | never => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { config, tsConfig, ...restArgs } = args as any; // TODO: Flatten compiler arguments seems a brittle solution
 
     const flattenedArgs = { ...restArgs, ...config, ...tsConfig };
