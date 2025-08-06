@@ -48,7 +48,6 @@ describe("end-2-end compile w/ websmith", () => {
             {
                 reporter: new ReporterMock(target),
                 tsConfig: { outDir: "/bin" },
-                buildDir: "./src",
             },
             undefined,
             target
@@ -74,7 +73,6 @@ describe("end-2-end compile w/ websmith", () => {
             {
                 reporter: new ReporterMock(target),
                 tsConfig: { outDir: "/bin", declaration: true, declarationMap: true },
-                buildDir: "./src",
             },
             undefined,
             target
@@ -101,7 +99,6 @@ describe("end-2-end compile w/ websmith", () => {
                 reporter,
                 debug: true,
                 profile: "client",
-                buildDir: "./src",
                 config: {
                     profiles: {
                         client: {
@@ -138,7 +135,6 @@ describe("end-2-end compile w/ websmith", () => {
                 reporter,
                 debug: true,
                 profile: "client",
-                buildDir: "./src",
                 cliArgs: {
                     options: {
                         outDir: "/cli-output",
@@ -193,7 +189,6 @@ describe("end-2-end compile w/ websmith", () => {
                 reporter,
                 debug: true,
                 profile: "server",
-                buildDir: "./src",
                 config: {
                     profiles: {
                         server: {

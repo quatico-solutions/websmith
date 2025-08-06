@@ -28,33 +28,32 @@ import ts from "typescript";
 import { copyDirectory } from "./copy-directory";
 
 const DEFAULT_ROOT_DIR = "./";
-const DEFAULT_BUILD_DIR = "./src";
-const DEFAULT_OUT_DIR = "./dist";
+const DEFAULT_SRC_DIR = path.join(DEFAULT_ROOT_DIR, "src");
+const DEFAULT_OUT_DIR = path.join(DEFAULT_ROOT_DIR, "dist");
 const DEFAULT_PROJECTS_SOURCE_DIR = "../test-projects";
 const DEFAULT_ADDONS_SOURCE_DIR = "../addons";
 
 export class CompilationEnv {
     private compilerOptions: ResolvedCompilerOptions;
     private rootDir: string;
-    private buildDir: string;
+    private srcDir: string;
     private system: ts.System;
     private virtual: boolean;
     private addons?: AddonRegistry;
     private addonsConfig: AddonConfig;
 
     constructor(rootDir?: string, options?: Partial<CompilationOptions>, addonConfig?: Partial<AddonConfig>) {
-        const { virtual = true, useCaseSensitiveFileNames, addLibDefaults, fileWatcher, reporter } = options ?? {};
-        const buildDir = options?.buildDir ?? DEFAULT_BUILD_DIR;
+        const { tsConfigFile, tsConfig, virtual = true, useCaseSensitiveFileNames, addLibDefaults, fileWatcher, reporter } = options ?? {};
+        const sourceDir = tsConfigFile ? path.dirname(tsConfigFile) : (tsConfig?.project ?? DEFAULT_SRC_DIR);
         this.virtual = virtual;
         this.system = this.virtual ? createBrowserSystem(undefined, { useCaseSensitiveFileNames, addLibDefaults, fileWatcher }) : ts.sys;
         this.rootDir = resolvePath(this.system, rootDir ?? DEFAULT_ROOT_DIR);
-        this.buildDir = resolvePath(this.system, this.rootDir, buildDir);
+        this.srcDir = resolvePath(this.system, this.rootDir, sourceDir);
         const configFilePath = `${this.rootDir}/tsconfig.json`;
         this.compilerOptions = resolveCompilerOptions(this.system, {
             tsConfigFile: configFilePath,
             reporter,
             ...options,
-            buildDir: this.rootDir,
             tsConfig: {
                 ...options?.tsConfig,
                 // Add smoother tsconfig defaults for testing purposes
@@ -79,8 +78,8 @@ export class CompilationEnv {
 
         this.system.getCurrentDirectory = () => this.rootDir;
 
-        if (!this.system.directoryExists(this.buildDir)) {
-            this.system.createDirectory(this.buildDir);
+        if (!this.system.directoryExists(this.srcDir)) {
+            this.system.createDirectory(this.srcDir);
         }
 
         if (!this.system.directoryExists(resolvedOutDir)) {
@@ -97,7 +96,7 @@ export class CompilationEnv {
                         module: "ESNext",
                         esModuleInterop: true,
                     },
-                    include: [`${this.buildDir}/**/*.ts`, `${this.buildDir}/**/*.tsx`],
+                    include: [`${this.srcDir}/**/*.ts`, `${this.srcDir}/**/*.tsx`],
                     exclude: ["node_modules", resolvedOutDir],
                 })
             );
@@ -123,8 +122,8 @@ export class CompilationEnv {
         return this.rootDir;
     }
 
-    public getOutDir(): string {
-        return resolvePath(this.system, this.rootDir, this.compilerOptions.tsConfig?.outDir ?? DEFAULT_OUT_DIR);
+    public getSourceDir(): string {
+        return this.srcDir;
     }
 
     public getCompilerOptions(): ResolvedCompilerOptions {
@@ -146,7 +145,7 @@ export class CompilationEnv {
                 directories = [this.rootDir];
                 break;
             case "project":
-                directories = [this.buildDir, this.getOutDir()];
+                directories = [this.srcDir, this.getOutputDir()];
                 break;
             case "addons":
                 directories = [this.addonsConfig.addonsDir];
@@ -240,10 +239,6 @@ export class CompilationEnv {
         return this;
     }
 
-    public getProjectDir(): string {
-        return this.buildDir;
-    }
-
     /**
      * Installs project source code from provided `source` parameter into the
      * build directory, i.e. `this.buildDir`.
@@ -254,7 +249,7 @@ export class CompilationEnv {
     public addProjectFromSource(source: Record<string, string>): this {
         this.addFiles(
             Object.entries(source).reduce((acc: Record<string, string>, [filePath, content]) => {
-                acc[resolvePath(this.system, this.buildDir, filePath)] = content;
+                acc[resolvePath(this.system, this.srcDir, filePath)] = content;
                 return acc;
             }, {})
         );
@@ -277,7 +272,7 @@ export class CompilationEnv {
             // use rootDir as target path because we copy src and other files from project directory
             { system: this.system, path: this.rootDir }
         );
-        this.compilerOptions.cliArgs.fileNames = this.system.readDirectory(this.buildDir).filter(isSourceFile);
+        this.compilerOptions.cliArgs.fileNames = this.system.readDirectory(this.srcDir).filter(isSourceFile);
 
         return this;
     }
@@ -298,24 +293,25 @@ export class CompilationEnv {
     }
 
     public addSourceFile(relativePath: string, content: string): this {
-        this.addFile(resolvePath(this.system, this.buildDir, relativePath), content);
+        this.addFile(resolvePath(this.system, this.srcDir, relativePath), content);
         return this;
     }
 
     public getSourceFiles(relativePath?: string): ProjectFiles {
-        const targetDir = relativePath ? resolvePath(this.system, this.buildDir, relativePath) : this.buildDir;
-        return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.system, this.buildDir, it)));
+        const targetDir = relativePath ? resolvePath(this.system, this.srcDir, relativePath) : this.srcDir;
+        return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.system, this.srcDir, it)));
     }
 
     public getSourceFile(filePath: string): ProjectFile | undefined {
-        const file = this.system.readDirectory(this.buildDir).find(it => it.endsWith(filePath));
-        return file ? projectFile(this.system, this.buildDir, file) : undefined;
+        const file = this.system.readDirectory(this.srcDir).find(it => it.endsWith(filePath));
+        return file ? projectFile(this.system, this.srcDir, file) : undefined;
     }
 
     public compile(): CompilationResult {
         const result = new Compiler(this.compilerOptions, undefined, this.system, this.getOrCreateAddonRegistry()).compile();
         return {
-            getCompiledDir: () => this.getCompiledDir(),
+            getSourceDir: () => this.srcDir,
+            getOutputDir: () => this.getOutputDir(),
             getCompiledFiles: () => this.getCompiledFiles(),
             getCompiledFile: (filePath: string) => this.getCompiledFile(filePath),
             getDiagnostics: () => result.diagnostics ?? [],
@@ -338,18 +334,18 @@ export class CompilationEnv {
         };
     }
 
-    public getCompiledDir(): string {
+    public getOutputDir(): string {
         return this.compilerOptions.tsConfig!.outDir!;
     }
 
     public getCompiledFiles(relativePath?: string): ProjectFiles {
-        const targetDir = relativePath ? resolvePath(this.system, this.rootDir, relativePath) : this.getCompiledDir();
-        return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.getSystem(), this.buildDir, it)));
+        const targetDir = relativePath ? resolvePath(this.system, this.rootDir, relativePath) : this.getOutputDir();
+        return projectFiles(this.system.readDirectory(targetDir).map(it => projectFile(this.getSystem(), this.srcDir, it)));
     }
 
     public getCompiledFile(filePath: string): ProjectFile | undefined {
-        const file = this.system.readDirectory(this.getCompiledDir()).find(it => it.endsWith(filePath));
-        return file ? projectFile(this.system, this.buildDir, file) : undefined;
+        const file = this.system.readDirectory(this.getOutputDir()).find(it => it.endsWith(filePath));
+        return file ? projectFile(this.system, this.srcDir, file) : undefined;
     }
 
     private getOrCreateAddonRegistry(): AddonRegistry {
@@ -392,9 +388,7 @@ export class CompilationEnv {
             try {
                 new Compiler(
                     {
-                        ...resolveCompilerOptions(this.system, {
-                            buildDir: curDir,
-                        }),
+                        ...resolveCompilerOptions(this.system, {}),
                         tsConfig: {
                             module: ts.ModuleKind.CommonJS,
                             target: ts.ScriptTarget.ES5,
@@ -453,7 +447,7 @@ export class CompilationEnv {
 
     private addFile(filePath: string, content: string): void {
         if (!path.isAbsolute(filePath)) {
-            filePath = resolvePath(this.system, this.buildDir, filePath);
+            filePath = resolvePath(this.system, this.srcDir, filePath);
         }
         this.system.writeFile(filePath, content);
         if (isSourceFile(filePath)) {
@@ -474,7 +468,8 @@ export class CompilationEnv {
 }
 
 export type CompilationResult = {
-    getCompiledDir: () => string;
+    getSourceDir: () => string;
+    getOutputDir: () => string;
     getCompiledFiles: () => ProjectFiles;
     getCompiledFile: (filePath: string) => ProjectFile | undefined;
     hasEmitSkipped: () => boolean;
@@ -486,6 +481,7 @@ export type CompilationResult = {
 
 export type CompilationOptions = BrowserSystemOptions &
     CompilerOptions & {
+        buildDir?: string;
         files?: Record<string, string>;
         virtual?: boolean;
     };

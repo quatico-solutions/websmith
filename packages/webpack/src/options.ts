@@ -49,7 +49,6 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
     }
 
     return {
-        buildDir: system.getCurrentDirectory(),
         cliArgs,
         ...(mergedConfig && { config: mergedConfig }),
         ...(configFile && { configFile }),

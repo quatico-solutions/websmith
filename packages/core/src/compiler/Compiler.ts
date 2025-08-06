@@ -310,7 +310,6 @@ export class Compiler {
               };
 
         return new CompilationContext({
-            buildDir: this.options.buildDir,
             tsConfig: profileOptions.tsConfig ?? {},
             projectDir: path.dirname(configFile ?? tsConfigFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
@@ -456,7 +455,7 @@ export class Compiler {
         return parts.join(", ");
     }
 
-    private createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
+    protected createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
         return ts.createProgram({
             rootNames: this.getRootFiles(),
             options: tsConfig ?? {},

@@ -17,7 +17,6 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
 
     const cliArgs = parsedCommandLine(project, args, system);
     return resolveCompilerOptions(system, {
-        buildDir: system.getCurrentDirectory(),
         cliArgs: {
             ...tsDefaults,
             ...cliArgs,

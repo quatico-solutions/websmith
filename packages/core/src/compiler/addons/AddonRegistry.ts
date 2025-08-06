@@ -337,7 +337,6 @@ export class AddonRegistry {
             const fileList = tsFiles.map(f => `    - ${path.relative(addonsDir, f)}`).join("\n");
 
             const result = new Compiler({
-                buildDir: addonsDir,
                 reporter,
                 tsConfig: {
                     outDir: libDir,

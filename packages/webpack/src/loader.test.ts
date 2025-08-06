@@ -110,7 +110,6 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Test TsCompiler directly (webpack loader equivalent) - this is what this test should focus on
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 cliArgs: {
                     options: {},
@@ -177,7 +176,6 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Then test TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
@@ -265,7 +263,6 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Then test TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
@@ -344,7 +341,6 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Then test TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
@@ -426,7 +422,6 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Test with ES5/CommonJS
         const tsCompilerES5 = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
@@ -448,7 +443,6 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Test with ESNext/ESNext
         const tsCompilerESNext = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
@@ -509,7 +503,6 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // (they get sensible defaults from the framework)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
@@ -545,7 +538,6 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // This demonstrates the optional nature: only providing the essential properties
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 // No explicit cliArgs (gets default: { options: {}, fileNames: [], errors: [] })
                 // No explicit reporter (gets default: DefaultReporter)
             },
@@ -585,7 +577,6 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Another example of optional cliArgs/reporter - errors are handled gracefully with defaults
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
                     noEmit: false,
@@ -624,7 +615,6 @@ describe("addonsDir configuration tests", () => {
         // Test addonsDir via CompilerOptions.config.addonsDir
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -671,7 +661,6 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 cliArgs: {
@@ -715,7 +704,6 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -761,7 +749,6 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -820,7 +807,6 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 config: {
                     // No explicit addonsDir - should default to "./addons"
@@ -872,7 +858,6 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                buildDir: testDirs.PROJECT_DIR,
                 tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
