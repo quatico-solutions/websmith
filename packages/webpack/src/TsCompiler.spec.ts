@@ -49,7 +49,6 @@ describe("TsCompiler", () => {
     beforeEach(() => {
         testObj = new TestCompiler(
             {
-                buildDir: path.resolve("./__TEMP__"),
                 tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext, noEmitOnError: true },
                 reporter,
                 cliArgs: { options: {}, fileNames: [expected], errors: [] },
@@ -74,7 +73,7 @@ describe("TsCompiler", () => {
         const actual = testObj.build("expected.ts");
 
         expect(actual).toEqual(expected);
-        expect(target).toHaveBeenCalledWith(path.resolve("./__TEMP__/expected.ts"), undefined, false);
+        expect(target).toHaveBeenCalledWith(path.resolve("./expected.ts"), undefined, false);
 
         fs.rmSync(path.join(__dirname, "..", "expected.ts"), { force: true });
     });
@@ -99,7 +98,6 @@ describe("Transpilation", () => {
 
         const actual = new TestCompiler(
             {
-                buildDir: "./__TEMP__/src",
                 tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext, noEmitOnError: true },
                 reporter: new NoReporter(),
                 cliArgs: { options: { declaration: true, target: ts.ScriptTarget.ESNext }, fileNames: [expected], errors: [] },
@@ -122,7 +120,6 @@ describe("Transpilation", () => {
         const reporter = new NoReporter();
         testObj = new TestCompiler(
             {
-                buildDir: "./__TEMP__",
                 config: {
                     profiles: {
                         fragment: {
@@ -146,13 +143,13 @@ describe("Transpilation", () => {
         const actual = testObj.build(expected);
 
         expect(actual.files.map(f => f.name)).toEqual([
-            path.resolve("./__TEMP__/test-output/one.js.map"),
-            path.resolve("./__TEMP__/test-output/one.js"),
-            path.resolve("./__TEMP__/test-output/one.d.ts.map"),
-            path.resolve("./__TEMP__/test-output/one.d.ts"),
+            path.resolve("./test-output/__TEMP__/src/one.js.map"),
+            path.resolve("./test-output/__TEMP__/src/one.js"),
+            path.resolve("./test-output/__TEMP__/src/one.d.ts.map"),
+            path.resolve("./test-output/__TEMP__/src/one.d.ts"),
         ]);
         expect(actual.files.find(f => f.name.endsWith("one.js.map"))?.text).toMatchInlineSnapshot(
-            `"{"version":3,"file":"one.js","sourceRoot":"","sources":["../src/one.ts"],"names":[],"mappings":";;;AAAO,IAAM,GAAG,GAAG,cAAM,OAAA,CAAC,EAAD,CAAC,CAAC;AAAd,QAAA,GAAG,OAAW"}"`
+            `"{"version":3,"file":"one.js","sourceRoot":"","sources":["../../../__TEMP__/src/one.ts"],"names":[],"mappings":";;;AAAO,IAAM,GAAG,GAAG,cAAM,OAAA,CAAC,EAAD,CAAC,CAAC;AAAd,QAAA,GAAG,OAAW","sourcesContent":["export const one = () => 1;"]}"`
         );
         expect(actual.files.find(f => f.name.endsWith("one.js"))?.text).toMatchInlineSnapshot(`
             ""use strict";
@@ -163,14 +160,14 @@ describe("Transpilation", () => {
             //# sourceMappingURL=one.js.map"
         `);
         expect(actual.files.find(f => f.name.endsWith("one.d.ts.map"))?.text).toMatchInlineSnapshot(
-            `"{"version":3,"file":"one.d.ts","sourceRoot":"","sources":["../src/one.ts"],"names":[],"mappings":"AAAA,eAAO,MAAM,GAAG,cAAU,CAAC"}"`
+            `"{"version":3,"file":"one.d.ts","sourceRoot":"","sources":["../../../__TEMP__/src/one.ts"],"names":[],"mappings":"AAAA,eAAO,MAAM,GAAG,cAAU,CAAC"}"`
         );
         expect(actual.files.find(f => f.name.endsWith("one.d.ts"))?.text).toMatchInlineSnapshot(`
             "export declare const one: () => number;
             //# sourceMappingURL=one.d.ts.map"
         `);
-        expect(fs.existsSync(path.resolve("./__TEMP__/test-output/one.js"))).toMatchInlineSnapshot(`true`);
-        expect(fs.existsSync(path.resolve("./__TEMP__/test-output/one.d.ts"))).toMatchInlineSnapshot(`true`);
+        expect(fs.existsSync(path.resolve("./test-output/__TEMP__/src/one.js"))).toMatchInlineSnapshot(`true`);
+        expect(fs.existsSync(path.resolve("./test-output/__TEMP__/src/one.d.ts"))).toMatchInlineSnapshot(`true`);
 
         fs.rmSync(path.resolve("./__TEMP__"), { recursive: true, force: true });
     });

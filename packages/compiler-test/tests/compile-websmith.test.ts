@@ -53,7 +53,7 @@ describe("compile w/ websmith", () => {
     it("should not build js and d.ts with defaults", async () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: {},
-            websmith: { buildDir: PROJECT_DIR },
+            websmith: {},
         });
 
         expect(result).toBe(""); // errors are expected
@@ -70,7 +70,7 @@ describe("compile w/ websmith", () => {
                 target: ts.ScriptTarget.ESNext,
                 moduleResolution: ts.ModuleResolutionKind.Node10,
             },
-            websmith: { buildDir: PROJECT_DIR, tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
+            websmith: { tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
         });
 
         expect(result).toBe(""); // errors are expected
@@ -92,7 +92,7 @@ describe("compile w/ websmith", () => {
 
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { project: path.join(PROJECT_DIR, "tsconfig.json") },
-            websmith: { buildDir: PROJECT_DIR, tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
+            websmith: { tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
         });
 
         expect(result).toBe(""); // errors are expected
@@ -120,7 +120,7 @@ describe("compile w/ websmith", () => {
                 moduleResolution: ts.ModuleResolutionKind.Node10,
                 project: path.join(PROJECT_DIR, "tsconfig.json"),
             },
-            websmith: { buildDir: PROJECT_DIR, tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
+            websmith: { tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json") },
         });
 
         expect(result).toBe(""); // errors are expected
@@ -143,7 +143,6 @@ describe("compile w/ websmith", () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { noEmit: true, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5, project: path.join(PROJECT_DIR, "tsconfig.json") },
             websmith: {
-                buildDir: PROJECT_DIR,
                 config: {
                     profiles: {
                         "target-profile": {
@@ -193,7 +192,6 @@ describe("compile w/ websmith", () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { noEmit: true, module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES5, project: path.join(PROJECT_DIR, "tsconfig.json") },
             websmith: {
-                buildDir: PROJECT_DIR,
                 profile: "target-profile",
                 configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
@@ -211,7 +209,6 @@ describe("compile w/ websmith", () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { ...tsDefaults, target: ts.ScriptTarget.ES2020 },
             websmith: {
-                buildDir: PROJECT_DIR,
                 config: {
                     addonsDir: undefined,
                     addons: [],
@@ -228,7 +225,6 @@ describe("compile w/ websmith", () => {
         const result = await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { ...tsDefaults, target: ts.ScriptTarget.ES2020, declaration: true, declarationMap: true },
             websmith: {
-                buildDir: PROJECT_DIR,
                 config: {
                     addonsDir: undefined,
                 },
@@ -245,7 +241,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults, target: ts.ScriptTarget.ES2020 },
             websmith: {
-                buildDir: SOURCE_DIR,
                 config: {
                     addonsDir: undefined,
                 },
@@ -260,7 +255,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                buildDir: SOURCE_DIR,
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["export-yaml-generator"],
@@ -278,7 +272,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                buildDir: SOURCE_DIR,
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["foo-added-generator"],
@@ -295,7 +288,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                buildDir: SOURCE_DIR,
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["foobar-replace-transformer"],
@@ -321,7 +313,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                buildDir: SOURCE_DIR,
                 profile: "target-profile",
                 configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
@@ -349,7 +340,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults, noEmit: true },
             websmith: {
-                buildDir: SOURCE_DIR,
                 profile: "target-profile",
                 configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
@@ -376,7 +366,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                buildDir: SOURCE_DIR,
                 profile: "target-profile",
                 configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
@@ -395,7 +384,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                buildDir: SOURCE_DIR,
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["foobar-replace-transformer"],
@@ -412,7 +400,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                buildDir: SOURCE_DIR,
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["foobar-replace-transformer"],
@@ -449,7 +436,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                buildDir: SOURCE_DIR,
                 profile: "profile-transform",
                 configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
@@ -483,7 +469,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                buildDir: SOURCE_DIR,
                 profile: "profile-process",
                 configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
@@ -520,7 +505,6 @@ describe("compile w/ websmith", () => {
         await compile([path.join(SOURCE_DIR, "foobar-function.ts")], {
             tsConfig: { ...tsDefaults },
             websmith: {
-                buildDir: SOURCE_DIR,
                 profile: "transform",
                 configFile: path.join(PROJECT_DIR, "websmith.config.json"),
                 tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),

@@ -19,7 +19,6 @@ describe("constructor", () => {
         const fileSystem = createSystem({ "/build/tsconfig.json": "{}", "/build/test.ts": "export const test = () => {};" }, { virtual: true });
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
-            buildDir: "/build",
             reporter: new ReporterMock(fileSystem),
             cliArgs: {
                 options: {
@@ -30,96 +29,68 @@ describe("constructor", () => {
             },
         });
 
-        expect(testObj).toEqual({
-            buildDir: "/build",
-            cliArgs: {
-                compileOnSave: false,
-                errors: [],
-                fileNames: ["/build/test.ts"],
-                options: {
-                    allowJs: false,
-                    checkJs: false,
-                    configFilePath: "/build/tsconfig.json",
-                    declaration: false,
-                    declarationMap: false,
-                    emitDecorationOnly: false,
-                    esModuleInterop: false,
-                    jsx: ts.JsxEmit.Preserve,
-                    noEmit: false,
-                    outDir: "/build/dist",
-                    pretty: true,
-                    removeComments: false,
-                    strict: false,
-                    target: ts.ScriptTarget.ES5,
-                },
-                raw: {},
-                typeAcquisition: {
-                    enable: false,
-                    exclude: [],
-                    include: [],
-                },
-                wildcardDirectories: {
-                    "/build": 1,
-                },
-            },
-            config: {},
-            debug: false,
-            reporter: expect.any(ReporterMock),
-            system: expect.any(Object),
-            tsConfig: {
-                allowJs: false,
-                checkJs: false,
-                configFilePath: "/build/tsconfig.json",
-                declaration: false,
-                declarationMap: false,
-                emitDecorationOnly: false,
-                esModuleInterop: false,
-                jsx: ts.JsxEmit.Preserve,
-                noEmit: false,
-                outDir: "/build/dist",
-                pretty: true,
-                removeComments: false,
-                strict: false,
-                target: ts.ScriptTarget.ES5,
-            },
-            tsConfigFile: "/build/tsconfig.json",
-            watch: false,
-        });
-    });
-
-    it("should return defaults w/o any param", () => {
-        const fileSystem = createSystem({}, { virtual: true });
-
-        const actual = new ResolvedCompilerOptions(fileSystem, { buildDir: "/target" }).getOptions();
-
-        expect(actual).toEqual(
+        expect(testObj).toEqual(
             expect.objectContaining({
-                buildDir: "/target",
-                cliArgs: {
+                buildDir: "/",
+                cliArgs: expect.objectContaining({
                     errors: [],
-                    fileNames: [],
-                    options: {
+                    fileNames: ["/build/test.ts"],
+                    options: expect.objectContaining({
                         allowJs: false,
                         checkJs: false,
-                        configFilePath: "/target/tsconfig.json",
+                        configFilePath: "/tsconfig.json",
                         declaration: false,
                         declarationMap: false,
                         emitDecorationOnly: false,
                         esModuleInterop: false,
                         jsx: ts.JsxEmit.Preserve,
                         noEmit: false,
+                        outDir: "/dist",
                         pretty: true,
                         removeComments: false,
                         strict: false,
                         target: ts.ScriptTarget.ES5,
-                    },
-                },
+                    }),
+                }),
                 config: {},
-                reporter: expect.any(DefaultReporter),
-                tsConfig: {
+                debug: false,
+                reporter: expect.any(ReporterMock),
+                tsConfig: expect.objectContaining({
                     allowJs: false,
                     checkJs: false,
-                    configFilePath: "/target/tsconfig.json",
+                    configFilePath: "/tsconfig.json",
+                    declaration: false,
+                    declarationMap: false,
+                    emitDecorationOnly: false,
+                    esModuleInterop: false,
+                    jsx: ts.JsxEmit.Preserve,
+                    noEmit: false,
+                    outDir: "/dist",
+                    pretty: true,
+                    removeComments: false,
+                    strict: false,
+                    target: ts.ScriptTarget.ES5,
+                }),
+                tsConfigFile: "/tsconfig.json",
+                watch: false,
+            })
+        );
+    });
+
+    it("should return defaults w/o any param", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+
+        const actual = new ResolvedCompilerOptions(fileSystem, {}).getOptions();
+
+        expect(actual).toMatchObject({
+            buildDir: "/",
+            cliArgs: {
+                errors: [],
+                fileNames: [],
+                options: {
+                    allowJs: false,
+                    checkJs: false,
+                    configFilePath: "/tsconfig.json",
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
@@ -131,15 +102,32 @@ describe("constructor", () => {
                     strict: false,
                     target: ts.ScriptTarget.ES5,
                 },
-                tsConfigFile: "/target/tsconfig.json",
-            })
-        );
+            },
+            config: {},
+            reporter: expect.any(DefaultReporter),
+            tsConfig: {
+                allowJs: false,
+                checkJs: false,
+                configFilePath: "/tsconfig.json",
+                declaration: false,
+                declarationMap: false,
+                emitDecorationOnly: false,
+                esModuleInterop: false,
+                jsx: ts.JsxEmit.Preserve,
+                noEmit: false,
+                pretty: true,
+                removeComments: false,
+                strict: false,
+                target: ts.ScriptTarget.ES5,
+            },
+            tsConfigFile: "/tsconfig.json",
+        });
     });
 
     it("should return project config w/ custom but empty tsconfig.json", () => {
         const target = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
 
-        const actual = new ResolvedCompilerOptions(target, { buildDir: "./expected", tsConfigFile: "./expected/tsconfig.json" }).getOptions();
+        const actual = new ResolvedCompilerOptions(target, { tsConfigFile: "./expected/tsconfig.json" }).getOptions();
 
         expect(actual).toMatchObject({
             tsConfigFile: "/expected/tsconfig.json",
@@ -165,7 +153,7 @@ describe("constructor", () => {
     it("should return debug path w/ debug true", () => {
         const target = createSystem({}, { virtual: true });
 
-        const actual = new ResolvedCompilerOptions(target, { buildDir: "./", debug: true }).getOptions();
+        const actual = new ResolvedCompilerOptions(target, { debug: true }).getOptions();
 
         expect(actual).toEqual(expect.objectContaining({ debug: true }));
     });
@@ -173,7 +161,7 @@ describe("constructor", () => {
     it("should return watch path w/ watch true", () => {
         const target = createSystem({}, { virtual: true });
 
-        const actual = new ResolvedCompilerOptions(target, { buildDir: "./", watch: true }).getOptions();
+        const actual = new ResolvedCompilerOptions(target, { watch: true }).getOptions();
 
         expect(actual).toEqual(expect.objectContaining({ watch: true }));
     });
@@ -184,7 +172,7 @@ describe("constructor", () => {
             { virtual: true }
         );
 
-        const actual = new ResolvedCompilerOptions(target, { buildDir: "./", configFile: "./websmith.config.json" }).getOptions();
+        const actual = new ResolvedCompilerOptions(target, { configFile: "./websmith.config.json" }).getOptions();
 
         expect(actual.config).toEqual({
             profiles: { whatever: { addons: ["one", "two", "three"] } },
@@ -209,7 +197,6 @@ describe("constructor", () => {
         );
 
         const actual = new ResolvedCompilerOptions(target, {
-            buildDir: "./expected",
             configFile: "./expected/websmith.config.json",
             tsConfigFile: "./expected/tsconfig.json",
         }).getOptions();
@@ -246,7 +233,6 @@ describe("constructor", () => {
         );
 
         const actual = new ResolvedCompilerOptions(target, {
-            buildDir: "./project",
             configFile: "./project/websmith.config.json",
             tsConfigFile: "./project/tsconfig.json",
         }).getOptions();
@@ -544,7 +530,6 @@ describe("tsConfig", () => {
             fileSystem,
             {
                 profile: "target",
-                buildDir: "./target",
                 tsConfig: {
                     outDir: "./general-out-dir",
                 },
@@ -572,9 +557,9 @@ describe("tsConfig", () => {
             declarationMap: false,
             emitDecorationOnly: false,
             esModuleInterop: false,
-            configFilePath: "/target/tsconfig.json",
+            configFilePath: "/tsconfig.json",
             noEmit: false,
-            outDir: "/target/profile-out-dir",
+            outDir: "/profile-out-dir",
             pretty: true,
             removeComments: false,
             strict: false,
@@ -591,7 +576,6 @@ describe("tsConfig", () => {
             {
                 reporter: new NoReporter(),
                 profile: "unknown",
-                buildDir: "./target",
                 tsConfig: {
                     outDir: "./general-out-dir",
                 },
@@ -619,9 +603,9 @@ describe("tsConfig", () => {
             declarationMap: false,
             emitDecorationOnly: false,
             esModuleInterop: false,
-            configFilePath: "/target/tsconfig.json",
+            configFilePath: "/tsconfig.json",
             noEmit: false,
-            outDir: "/target/loader-out-dir",
+            outDir: "/loader-out-dir",
             pretty: true,
             removeComments: false,
             strict: false,
@@ -667,15 +651,15 @@ describe("buildDir", () => {
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
-        expect(testObj.buildDir).toBe(".");
+        expect(testObj.buildDir).toBe("/");
     });
 
     it("should yield overridden value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { buildDir: "./expected" } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
-        expect(testObj.buildDir).toBe("/expected");
+        expect(testObj.buildDir).toBe("/");
     });
 });
 
@@ -1005,7 +989,7 @@ describe("getOptions", () => {
         const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
 
         expect(testObj.getOptions()).toEqual({
-            buildDir: ".",
+            buildDir: "/",
             cliArgs: {
                 errors: [],
                 fileNames: ["/test.ts"],

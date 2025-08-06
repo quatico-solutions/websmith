@@ -9,7 +9,8 @@ import ts from "typescript";
 import { compilationEnv } from "./environment";
 
 beforeEach(() => {
-    jest.spyOn(console, "warn").mockImplementation(() => {});
+    jest.spyOn(process.stderr, "write").mockImplementation(() => true); // Suppress console.warn
+    jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Suppress console.log
 });
 
 describe("compilationEnv", () => {
@@ -19,8 +20,8 @@ describe("compilationEnv", () => {
         expect(testObj.isVirtual()).toBe(true);
         expect(testObj.getRootDir()).toBe("/expected");
         expect(testObj.getAddonsDir()).toBe("/expected/addons");
-        expect(testObj.getProjectDir()).toBe("/expected/src");
-        expect(testObj.getCompiledDir()).toBe("/expected/dist");
+        expect(testObj.getSourceDir()).toBe("/expected/src");
+        expect(testObj.getOutputDir()).toBe("/expected/dist");
         expect(testObj.getSystem()).toBeDefined();
         expect(testObj.getSystem().useCaseSensitiveFileNames).toBe(false);
     });
@@ -31,8 +32,8 @@ describe("compilationEnv", () => {
         expect(testObj.isVirtual()).toBe(false);
         expect(testObj.getRootDir()).toBe(path.resolve("./expected"));
         expect(testObj.getAddonsDir()).toBe(path.resolve("./expected/addons"));
-        expect(testObj.getProjectDir()).toBe(path.resolve("./expected/src"));
-        expect(testObj.getCompiledDir()).toBe(path.resolve("./expected/dist"));
+        expect(testObj.getOutputDir()).toBe(path.resolve("./expected/dist"));
+        expect(testObj.getSourceDir()).toBe(path.resolve("./expected/src"));
         expect(testObj.getSystem()).toEqual(ts.sys);
         expect(testObj.getSystem().useCaseSensitiveFileNames).toBe(ts.sys.useCaseSensitiveFileNames);
 
@@ -60,7 +61,7 @@ describe("compilationEnv", () => {
     });
 
     it("should yield custom compiler options with custom overrides", () => {
-        const testObj = compilationEnv("/target", { buildDir: "./expected-src", tsConfig: { outDir: "./expected-out" } });
+        const testObj = compilationEnv("/target", { tsConfig: { outDir: "./expected-out" } });
 
         const actual = testObj.getCompilerOptions();
 
@@ -199,7 +200,6 @@ describe("compilationEnv#projects", () => {
 
     it("should yield empty project with invalid absolute paths", () => {
         const testObj = compilationEnv("/target").addProjectFromSource({
-            // buildDir is missing in absolute paths
             "/whatever-path/index.ts": `export * from "./target";`,
             "/whatever-path/target.ts": `export class Target {}`,
         });
