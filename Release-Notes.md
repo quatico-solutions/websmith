@@ -28,6 +28,36 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.9] - 2025-08-06
+
+This release focuses on improving test data management, configuration handling, and error reporting. The main improvements include standardized test output directories, better configuration validation, and enhanced error messages for addon compilation.
+
+### Added
+
+- 🧪 **Standardized Test Data Management**: Added consistent `test-output` directory usage across all packages for test artifacts
+- 🧪 **Enhanced Test Reliability**: Added increased Jest test timeouts (60 seconds) to prevent flaky tests in CI environments
+- 🧪 **Test Configuration Consistency**: Added consistent TypeScript `moduleResolution: Node10` configuration across all test setups
+
+### Removed
+
+- 🧹 **Code Cleanup**: Removed unused addon-resolver functionality (`addon-resolver.ts` and related exports)
+- 🧹 **Default Path Removal**: Removed default paths for `configFile` and `addonsDir` to eliminate unnecessary warnings
+- 🧹 **Compiler Options Cleanup**: Removed `addons`, `addonsDir`, and `projectDir` from ResolvedCompilerOptions for better encapsulation
+
+### Changed
+
+- 🔧 **Test Infrastructure**: Separated test-output directories for individual tests and re-enabled parallel test execution
+- 🔧 **Configuration Handling**: Refactored AddonConfig to support optional `addonsDir` values
+- 🔧 **Test Setup Alignment**: Aligned test setups for compiler unit and e2e tests for consistency
+- 🔧 **Webpack Loader Context**: Ensured proper loader context updates for websmith-loader
+- 🔧 **Test Execution**: Configured compiler tests to run sequentially when needed to avoid resource conflicts
+
+### Fixed
+
+- 🐛 **Configuration Warnings**: Fixed issue where warnings were shown for non-existing `configFile` or `addonsDir` even when not specified
+- 🐛 **Error Reporting**: Improved error reporting for in-place addon compilation with better diagnostic messages
+- 🐛 **Path Resolution**: Enhanced diagnostic messages by wrapping file paths in quotes for better clarity
+
 ## [0.7.8] - 2025-08-04
 
 ### Added
