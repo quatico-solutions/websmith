@@ -33,9 +33,6 @@ export class TsCompiler extends Compiler {
         this.error = loaderOptions.error ?? (() => {});
         this.loaderContext = loaderContext;
 
-        // Note: WebpackAddonService will be initialized lazily when needed
-        // This allows the full configuration to be available first
-
         const profileName = this.getOptions().profile || loaderOptions.profile;
         this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
         super.createProfileContextsIfNecessary();
@@ -67,6 +64,9 @@ export class TsCompiler extends Compiler {
         this.logDebug(`Build directory: ${this.getOptions().buildDir}`);
         this.logDebug(`Profile: ${this.profile || "default"}`);
 
+        // Note: WebpackAddonService will be initialized lazily when needed
+        // This allows the full configuration to be available first
+
         const { buildDir } = this.getOptions();
         const filePath = resolvePath(this.getSystem(), buildDir, resourcePath);
 
@@ -87,6 +87,9 @@ export class TsCompiler extends Compiler {
                 });
         }
 
+        // Apply addon transformations BEFORE compilation to register transformers
+        this.applyAddonFunctionality(filePath, { version: 0, files: [], diagnostics: [] });
+
         // Transpile source file with webpack target but do not write the file, i.e. file is written by webpack
         this.logDebug(`Emitting source file: ${filePath} with profile: ${this.profile || "default"}`);
         const result = this.emitSourceFile(filePath, this.profile, false);
@@ -102,9 +105,6 @@ export class TsCompiler extends Compiler {
         if (result.files.length > 0) {
             this.logDebug(`Write file: ${result.files[0].name}`);
         }
-
-        // Apply addon transformations and generate output files
-        this.applyAddonFunctionality(filePath, result);
 
         this.logDebug(`Build completed for: ${resourcePath}`);
         return result;
@@ -128,7 +128,7 @@ export class TsCompiler extends Compiler {
                 profiles: config?.profiles,
                 system: this.getSystem(),
                 reporter: this.getReporter(),
-                cacheDir: path.join(options.buildDir, ".websmith-cache", "addons"),
+                cacheDir: path.join(process.cwd(), ".websmith-cache", "addons"),
             };
 
             this.webpackAddonService = new WebpackAddonService(addonConfig);
@@ -173,8 +173,8 @@ export class TsCompiler extends Compiler {
                 }
                 webpackContext = this.cachedWebpackContext;
 
-                // Apply any file-level processing (generators and processors)
-                if (webpackContext.hasGenerators() || webpackContext.hasProcessors()) {
+                // Only apply file-level processing if we have actual compilation results
+                if (result.files.length > 0 && (webpackContext.hasGenerators() || webpackContext.hasProcessors())) {
                     const fileContent = this.getSystem().readFile(filePath) || "";
 
                     // Execute generators
@@ -188,12 +188,12 @@ export class TsCompiler extends Compiler {
                         // Note: In webpack context, we can't directly modify the result here
                         // Processors would need to work through TypeScript transformers instead
                     }
+
+                    // Generate addon output files after compilation
+                    const compiledFiles = result.files.map(f => f.name);
+                    this.webpackAddonService.generateAddonOutputs(compiledFiles, this.profile);
                 }
             }
-
-            // Generate addon output files after compilation
-            const compiledFiles = result.files.map(f => f.name);
-            this.webpackAddonService.generateAddonOutputs(compiledFiles, this.profile);
 
             this.logDebug(`Applied addon functionality for profile: ${this.profile || "default"}`);
         } catch (error) {

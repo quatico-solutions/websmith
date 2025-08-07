@@ -74,6 +74,7 @@ export class WebpackAddonService {
      */
     public applyAddonsToContext(context: CompilationContext, profile?: string): WebpackAddonContext {
         const activeAddons = this.getActiveAddons(profile);
+
         const profileConfig = profile ? this.config.profiles?.[profile] : undefined;
 
         const webpackContext = new WebpackAddonContext(this.config.system, this.config.reporter, profile, profileConfig, context);
@@ -149,6 +150,11 @@ export class WebpackAddonService {
             return preBuiltIndexPath;
         }
 
+        const preBuiltAddonPath = path.join(addonDir, "addon.js");
+        if (fs.existsSync(preBuiltAddonPath)) {
+            return preBuiltAddonPath;
+        }
+
         // Otherwise, try to compile from source
         const sourceFiles = this.findAddonSourceFiles(addonDir);
         if (sourceFiles.length === 0) {
@@ -175,51 +181,82 @@ export class WebpackAddonService {
         const compilerOptions: ts.CompilerOptions = {
             target: ts.ScriptTarget.ES2020,
             module: ts.ModuleKind.CommonJS,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            moduleResolution: ts.ModuleResolutionKind.Classic, // Use classic resolution to avoid deep dependency resolution
             esModuleInterop: true,
             allowSyntheticDefaultImports: true,
             skipLibCheck: true,
             outDir: outputDir,
-            rootDir: addonDir,
+            rootDir: addonDir, // Set root to the specific addon directory to avoid nested structure
             declaration: false,
             sourceMap: false,
             noEmit: false,
             strict: false, // Be lenient with addon compilation
+            allowJs: true, // Allow JS files in case of mixed projects
+            resolveJsonModule: true, // Support JSON imports
+            typeRoots: [], // Don't include @types packages to avoid conflicts
+            noResolve: true, // Disable module resolution to prevent including dependencies
         };
 
+        // Only include the current addon's source files (no cross-dependencies during compilation)
+        const allSourceFiles = sourceFiles;
+
         // Create separate program instance for addon compilation
-        const program = ts.createProgram(sourceFiles, compilerOptions);
+        const program = ts.createProgram(allSourceFiles, compilerOptions);
         const emitResult = program.emit();
 
         if (emitResult.emitSkipped || emitResult.diagnostics.length > 0) {
             const diagnostics = ts.getPreEmitDiagnostics(program).concat(emitResult.diagnostics);
-            const errors = diagnostics.map(diagnostic => {
-                if (diagnostic.file) {
-                    const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
-                    const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-                    return `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`;
-                } else {
-                    return ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-                }
-            });
+            const errors = diagnostics
+                .filter(diagnostic => {
+                    // Filter out diagnostics from other addons unless they're import errors
+                    if (diagnostic.file) {
+                        const fileName = diagnostic.file.fileName;
+                        const isCurrentAddon = fileName.includes(addonName);
+                        const isImportError = diagnostic.code === 2307 || diagnostic.code === 2339; // Module not found or property not found
+                        return isCurrentAddon || isImportError;
+                    }
+                    return true;
+                })
+                .map(diagnostic => {
+                    if (diagnostic.file) {
+                        const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
+                        const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
+                        return `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`;
+                    } else {
+                        return ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
+                    }
+                });
 
-            throw new Error(`Addon compilation failed:\n${errors.join("\n")}`);
+            if (errors.length > 0) {
+                throw new Error(`Addon compilation failed:\n${errors.join("\n")}`);
+            }
         }
 
-        // Find the compiled entry point
-        const entryFile = sourceFiles.find(f => f.endsWith("addon.ts") || f.endsWith("index.ts"));
+        // Find the compiled entry point (prefer index.ts over addon.ts)
+        const indexFile = sourceFiles.find(f => path.basename(f, path.extname(f)).toLowerCase() === "index");
+        const addonFile = sourceFiles.find(f => path.basename(f, path.extname(f)).toLowerCase() === "addon");
+
+        const entryFile = indexFile || addonFile;
         if (!entryFile) {
-            throw new Error(`No addon entry point found in ${addonDir}`);
+            throw new Error(`No addon entry point (index.ts or addon.ts) found in ${addonDir}`);
         }
 
-        const compiledPath = path.join(outputDir, path.relative(addonDir, entryFile).replace(/\.ts$/, ".js"));
+        // Calculate the compiled path relative to the specific addon directory
+        const relativePath = path.relative(addonDir, entryFile);
+        const compiledPath = path.join(outputDir, relativePath.replace(/\.ts$/, ".js"));
+
+        // Ensure the output directory exists for the compiled file
+        const compiledDir = path.dirname(compiledPath);
+        if (!fs.existsSync(compiledDir)) {
+            fs.mkdirSync(compiledDir, { recursive: true });
+        }
 
         // Update cache
         this.cache.set(addonName, {
             compiledPath,
             sourceHash,
             timestamp: Date.now(),
-            dependencies: sourceFiles,
+            dependencies: sourceFiles, // Track only the current addon's source files
         });
 
         this.saveCacheIndex();
@@ -260,38 +297,102 @@ export class WebpackAddonService {
         }
 
         try {
-            return this.config.system
-                .readDirectory(this.config.addonsDir, undefined, undefined, undefined, 1)
+            // Check if addons directory exists
+            if (!this.config.system.directoryExists(this.config.addonsDir)) {
+                this.config.reporter.reportDiagnostic(new WarnMessage(`Addons directory "${this.config.addonsDir}" does not exist.`));
+                return [];
+            }
+
+            // Read directories at depth 1, excluding build/output directories
+            const excludedDirs = ["lib", "dist", "build", "node_modules", ".git", ".vscode", ".idea"];
+
+            const addonDirs = this.config.system
+                .readDirectory(this.config.addonsDir, undefined, ["directory"], undefined)
                 .filter(entry => {
-                    const fullPath = path.join(this.config.addonsDir!, entry);
-                    return this.config.system.directoryExists(fullPath);
+                    // Convert to absolute path if needed
+                    const fullPath = path.isAbsolute(entry) ? entry : path.join(this.config.addonsDir!, entry);
+                    const dirName = path.dirname(fullPath);
+
+                    // Skip excluded directories
+                    if (dirName === this.config.addonsDir || excludedDirs.includes(dirName)) {
+                        return false;
+                    }
+
+                    // Verify it's actually a directory
+                    if (!this.config.system.directoryExists(dirName)) {
+                        return false;
+                    }
+
+                    // Check if directory contains addon files (addon.ts/js or index.ts/js)
+                    return this.hasAddonFiles(dirName);
                 })
-                .map(entry => path.join(this.config.addonsDir!, entry));
-        } catch {
+                .map(entry => path.dirname(entry));
+
+            // Filter duplicates using Set to ensure unique paths
+            return [...new Set(addonDirs)];
+        } catch (error) {
+            this.config.reporter.reportDiagnostic(
+                new WarnMessage(
+                    `Error reading addons directory "${this.config.addonsDir}": ${error instanceof Error ? error.message : String(error)}`
+                )
+            );
             return [];
         }
     }
 
-    private findAddonSourceFiles(addonDir: string): string[] {
-        const files: string[] = [];
+    private hasAddonFiles(addonDir: string): boolean {
+        try {
+            const files = this.config.system.readDirectory(addonDir, [".ts", ".tsx", ".js", ".jsx"], undefined, undefined, 1);
 
+            // Check for index files first (preferred), then addon files
+            const hasIndex = files.some(file => path.basename(file, path.extname(file)).toLowerCase() === "index");
+            const hasAddon = files.some(file => path.basename(file, path.extname(file)).toLowerCase() === "addon");
+
+            return hasIndex || hasAddon;
+        } catch {
+            return false;
+        }
+    }
+
+    private findAddonSourceFiles(addonDir: string): string[] {
         if (!this.config.system) {
-            return files;
+            return [];
         }
 
         try {
-            const entries = this.config.system.readDirectory(addonDir, [".ts", ".tsx"], undefined, undefined, 2);
-            for (const entry of entries) {
-                const fullPath = path.join(addonDir, entry);
+            const entries = this.config.system.readDirectory(addonDir, [".ts", ".tsx"], undefined, undefined, 1);
+            const validFiles: string[] = [];
+            const entryFiles: string[] = [];
+
+            // Separate entry files from other files
+            for (const fullPath of entries) {
                 if (this.config.system.fileExists(fullPath)) {
-                    files.push(fullPath);
+                    const baseName = path.basename(fullPath, path.extname(fullPath)).toLowerCase();
+
+                    if (baseName === "index" || baseName === "addon") {
+                        entryFiles.push(fullPath);
+                    } else {
+                        validFiles.push(fullPath);
+                    }
                 }
             }
+
+            // Include all entry files (both index.ts and addon.ts if they exist)
+            const indexFiles = entryFiles.filter(f => path.basename(f, path.extname(f)).toLowerCase() === "index");
+            const addonFiles = entryFiles.filter(f => path.basename(f, path.extname(f)).toLowerCase() === "addon");
+
+            // Include all entry files, not just one
+            const allEntryFiles = [...indexFiles, ...addonFiles];
+
+            // Return all entry files plus all other TypeScript files
+            const result = [...allEntryFiles, ...validFiles];
+
+            // Filter duplicates and ensure we have at least one file
+            return [...new Set(result)];
         } catch {
             // Ignore errors, return empty array
+            return [];
         }
-
-        return files;
     }
 
     private calculateSourceHash(sourceFiles: string[]): string {
@@ -313,14 +414,57 @@ export class WebpackAddonService {
     }
 
     private getActiveAddons(profile?: string): CompilerAddon[] {
-        const requestedAddons = this.config.addons || [];
+        const requestedAddons = [...(this.config.addons || [])];
 
-        // Add profile-specific addons
-        if (profile && this.config.profiles?.[profile]?.addons) {
-            requestedAddons.push(...this.config.profiles[profile].addons);
+        // Add addons from profile and its dependencies recursively
+        if (profile) {
+            const profileAddons = this.getAddonsWithDependencies(profile, new Set());
+            requestedAddons.push(...profileAddons);
         }
 
-        return requestedAddons.map(name => this.loadedAddons.get(name)).filter((addon): addon is CompilerAddon => addon !== undefined);
+        // Remove duplicates and resolve to actual addon instances
+        const uniqueAddonNames = [...new Set(requestedAddons)];
+        const resolvedAddons = uniqueAddonNames
+            .map(name => this.loadedAddons.get(name))
+            .filter((addon): addon is CompilerAddon => addon !== undefined);
+
+        // Keep the natural order: dependencies first, then current profile
+        // This ensures transformers chain correctly (e.g., foobar→CLIENT→SERVER)
+        return resolvedAddons;
+    }
+
+    /**
+     * Recursively resolves addons from a profile and all its dependencies.
+     * Handles circular dependencies by tracking visited profiles.
+     */
+    private getAddonsWithDependencies(profile: string, visited: Set<string>): string[] {
+        const { profiles = {} } = this.config;
+
+        // Prevent circular dependencies
+        if (visited.has(profile)) {
+            return [];
+        }
+        visited.add(profile);
+
+        const profileConfig = profiles[profile];
+        if (!profileConfig) {
+            // Profile doesn't exist
+            return [];
+        }
+
+        // Get addons from this profile
+        const profileAddons = profileConfig.addons || [];
+
+        // Get addons from dependencies recursively
+        const dependencyAddons: string[] = [];
+        if (profileConfig.depends) {
+            for (const dependentProfile of profileConfig.depends) {
+                dependencyAddons.push(...this.getAddonsWithDependencies(dependentProfile, visited));
+            }
+        }
+
+        // Combine current profile addons first, then dependency addons (matching core system logic)
+        return [...profileAddons, ...dependencyAddons];
     }
 
     private createCompilerAddons(): CompilerAddons {
