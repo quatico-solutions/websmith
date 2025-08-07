@@ -3,7 +3,8 @@
     "compilerOptions": {
         "outDir": "./lib",
         "incremental": false,
-        "noEmit": false
+        "noEmit": false,
+        "module": "CommonJS"
     },
     "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.test.ts", "test/**/*.ts"],
     "include": ["src/**/*.ts"]
