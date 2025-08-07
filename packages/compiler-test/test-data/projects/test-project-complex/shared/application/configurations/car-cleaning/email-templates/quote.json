@@ -1,0 +1,9 @@
+{
+    "subject": "Angebot zu Autoreinigung: {{car-type}} {{brand}}",
+    "attachments": [
+        {
+            "id": "quote",
+            "fileName": "Angebot Autoreinigung von Car Cleaning Service.pdf"
+        }
+    ]
+}

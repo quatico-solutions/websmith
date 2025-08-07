@@ -1,0 +1,9 @@
+{
+    "subject": "{{customerName}} {{orderNumber}} - Offertenanfrage",
+    "attachments": [
+        {
+            "id": "quote",
+            "fileName": "Angebot PV-Anlagenreinigung von ImmoSörf.pdf"
+        }
+    ]
+}

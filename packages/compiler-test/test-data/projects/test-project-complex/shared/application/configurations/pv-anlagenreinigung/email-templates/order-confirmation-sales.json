@@ -1,0 +1,9 @@
+{
+    "subject": "{{customerName}} {{orderNumber}} - Bestellung eingegangen",
+    "attachments": [
+        {
+            "id": "quote",
+            "fileName": "Auftragsbestätigung PV-Anlagenreinigung von ImmoSörf.pdf"
+        }
+    ]
+}

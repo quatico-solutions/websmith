@@ -1,0 +1,9 @@
+{
+    "subject": "Angebot zu Fensterreinigung: {{fenster-flaeche}} m2, {{zugang}}",
+    "attachments": [
+        {
+            "id": "quote",
+            "fileName": "Angebot Fensterreinigung von ImmoSörf.pdf"
+        }
+    ]
+}

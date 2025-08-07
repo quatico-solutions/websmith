@@ -1,0 +1,225 @@
+<html>
+    <head>
+        <style>
+            @page {
+                size: A4;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                margin-top: 24px;
+                margin-left: 24px;
+                margin-right: 24px;
+                margin-bottom: 24px;
+                padding: 0;
+                line-height: 1.5;
+
+                font-family: "Arial", sans-serif;
+                font-size: 10pt;
+            }
+
+            table {
+                font-size: 10pt;
+            }
+
+            .header-container {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                margin-bottom: 24px;
+            }
+
+            .logo {
+                margin-bottom: 10px;
+                text-align: right;
+            }
+
+            .logo img {
+                width: 150px;
+                height: auto;
+            }
+
+            .sender {
+                margin-top: 0;
+            }
+
+            .recipient {
+                margin-top: 0;
+                margin-bottom: 24px;
+            }
+
+            h1 {
+                font-size: 14pt;
+                line-height: 1.8;
+            }
+
+            .overview-table {
+                width: 100%;
+                margin-bottom: 3lh;
+                padding-top: 24px;
+                padding-bottom: 24px;
+
+                border-top: 1px solid #000;
+                border-bottom: 1px solid #ababab;
+            }
+
+            .overview-table td {
+                width: 50%;
+                padding: 4px 0;
+            }
+
+            .line-item-table {
+                width: 100%;
+                margin-top: 24px;
+                margin-bottom: 5lh;
+                border-spacing: 0;
+            }
+
+            .line-item-table__head {
+                text-align: left;
+            }
+
+            .line-item-table__head th {
+                padding-bottom: 8px;
+                border-bottom: 1px solid #000;
+            }
+
+            .line-item-table td {
+                padding-top: 8px;
+                padding-bottom: 8px;
+            }
+
+            .line-item-table__param {
+                padding-bottom: 6px;
+            }
+
+            .line-item-table__total-without-vat-row td {
+                border-top: 1px solid #ababab;
+                padding-bottom: 12px;
+                font-weight: bold;
+                border-bottom: 1px solid #ababab;
+            }
+
+            .line-item-table__total-row td {
+                font-weight: bold;
+
+                padding: 8px 0;
+                border-top: 1px solid #000;
+                border-bottom: 1px solid #ababab;
+            }
+
+            .line-item-table__price-column {
+                text-align: right;
+                vertical-align: top;
+            }
+
+            .footer {
+                position: absolute;
+                font-size: 8pt;
+                line-height: 1.4;
+                text-align: center;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 80%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            a {
+                color: #429b6b;
+                text-decoration: none;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="header-container">
+            <p class="sender">
+                <strong>{{provider.name}}</strong><br />
+                {{provider.street}} {{provider.houseNumber}}<br />
+                {{provider.zip}} {{provider.city}}
+            </p>
+            <div class="logo">
+                <img src="{{provider.logoDataUrl}}" alt="{{provider.logoAltText}}" />
+            </div>
+        </div>
+
+        <p class="recipient">
+            <strong>{{customer.name}}</strong><br />
+            {{contact.firstName}} {{contact.lastName}}<br />
+            {{customer.street}} {{customer.houseNumber}}<br />
+            {{customer.zip}} {{customer.city}}
+        </p>
+
+        <h1>Offerte: {{serviceName}}</h1>
+
+        <table class="overview-table">
+            <tr>
+                <td><strong>Auftragsnummer:</strong> {{orderNumber}}</td>
+                <td><strong>Firmenname:</strong> {{customer.name}}</td>
+            </tr>
+            <tr>
+                <td><strong>Datum:</strong> {{date}}</td>
+                <td><strong>Name:</strong> {{contact.firstName}} {{contact.lastName}}</td>
+            </tr>
+            <tr>
+                <td><strong>Gültig bis:</strong> {{validUntil}}</td>
+                <td><strong>E-Mail:</strong> {{contact.email}}</td>
+            </tr>
+        </table>
+
+        <p>
+            Vielen Dank für Ihre Anfrage.<br />
+            Gerne unterbreiten wir Ihnen folgendes Angebot:
+        </p>
+
+        <table class="line-item-table">
+            <thead>
+                <tr class="line-item-table__head">
+                    <th>Leistung</th>
+                    <th class="line-item-table__price-column">Preis in CHF</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="line-item-table__param"><strong>{{serviceName}}:</strong></div>
+                        {{#each parameters}}
+                        <div class="line-item-table__param"><strong>{{@key}}:</strong> {{this}}</div>
+                        {{/each}}
+                    </td>
+                    <td class="line-item-table__price-column"><strong>{{totalWithoutVat}}</strong></td>
+                </tr>
+                <tr class="line-item-table__total-without-vat-row">
+                    <td>Zwischensumme</td>
+                    <td class="line-item-table__price-column">{{totalWithoutVat}}</td>
+                </tr>
+                <tr>
+                    <td>MWST (8.1 %)</td>
+                    <td class="line-item-table__price-column">{{totalVat}}</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr class="line-item-table__total-row">
+                    <td>Total inkl. MWST</td>
+                    <td class="line-item-table__price-column">{{total}}</td>
+                </tr>
+            </tfoot>
+        </table>
+        <p>
+            Wir hoffen, unser Angebot entspricht Ihren Vorstellungen und stehen Ihnen bei Fragen gerne zur
+            Verfügung.
+        </p>
+        <div class="footer">
+            {{provider.name}}, {{provider.street}} {{provider.houseNumber}}, {{provider.zip}}
+            {{provider.city}} ·
+            <a href="tel:{{provider.phone}}">{{provider.phone}}</a> ·
+            <a href="mailto:{{provider.email}}">{{provider.email}}</a> ·
+            <a href="{{provider.website}}">{{provider.website}}</a>
+            <br />
+            <strong>Bankverbindung:</strong> {{provider.bankingInfo}} · MWST-Nr.: {{provider.vatNumber}}
+        </div>
+    </body>
+</html>

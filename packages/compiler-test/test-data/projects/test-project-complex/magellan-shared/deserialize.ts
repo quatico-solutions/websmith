@@ -1,0 +1,68 @@
+/*
+ * ---------------------------------------------------------------------------------------------
+ *   Copyright (c) Quatico Solutions AG. All rights reserved.
+ *   Licensed under the MIT License. See LICENSE in the project root for license information.
+ * ---------------------------------------------------------------------------------------------
+ */
+
+import { type ResponsePayload } from "./transport";
+import { isSerializedComplexType, SerializedTypes } from "./types";
+
+export const deserialize = <O>(jsonData: string): ResponsePayload<O> => {
+    return unpackObject(JSON.parse(jsonData)) as ResponsePayload<O>;
+};
+
+export const unpackPayload = <O>(payload: unknown): ResponsePayload<O> => {
+    return unpackObject(payload) as ResponsePayload<O>;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const unpackObject = (value: any): unknown => {
+    if (isSerializedComplexType(value)) {
+        const complexType = value;
+        if (complexType.__type__ === SerializedTypes.BigInt) {
+            return BigInt(complexType.value);
+        }
+        if (complexType.__type__ === SerializedTypes.Date) {
+            return new Date(complexType.value);
+        }
+        if (complexType.__type__ === SerializedTypes.Map) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return complexType.value ? new Map(Object.entries(complexType.value).map((it: any) => [it.at(0), unpackObject(it.at(1))])) : new Map();
+        }
+        if (complexType.__type__ === SerializedTypes.Set) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return complexType.value ? new Set(complexType.value.map((it: any) => unpackObject(it))) : new Set();
+        }
+        throw new Error(`Attempt to deserialize unknown type: ${complexType.__type__}, value: ${complexType.value}`);
+    }
+
+    if (value instanceof Array) {
+        return value.map(it => unpackObject(it));
+    }
+
+    if (value instanceof Object) {
+        return deserializeObject(value);
+    }
+    return value;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const deserializeObject = (value: any) => {
+    const map = new Map<PropertyKey, unknown>();
+    Object.entries(value).forEach(it => {
+        const key = it.at(0) as PropertyKey;
+        const val = it.at(1);
+        if (isSerializedComplexType(val) || val instanceof Object) {
+            map.set(key, unpackObject(val));
+        } else if (val instanceof Array) {
+            map.set(
+                key,
+                val.map(elem => unpackObject(elem))
+            );
+        } else {
+            map.set(key, val);
+        }
+    });
+    return Object.fromEntries(map);
+};

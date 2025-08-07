@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ImmoSörf - Professionelle Reinigung von Solaranlagen</title>
+
+        <link rel="shortcut icon" href="/cds/cpq/ui/theme/favicon.ico" type="image/x-icon" />
+
+        <link
+            id="theme-css"
+            rel="stylesheet"
+            type="text/css"
+            href="/cds/cpq/ui/theme/pv-anlagenreinigung/theme.css?<%= CACHE_BUST_QUERY_PARAMETER %>"
+            media="all"
+        />
+
+        <link
+            rel="preload"
+            href="/cds/cpq/ui/theme/spritemap.svg?<%= CACHE_BUST_QUERY_PARAMETER %>"
+            as="image"
+        />
+
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/grid-container.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/layout.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/stack.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/title.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/box.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/bezel.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/link.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/button.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/richtext.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/image.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/icon.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/text.css" as="style" />
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap"
+            rel="stylesheet"
+        />
+
+        <script>
+            function init() {
+                // if fragment is #configurator, show configurator
+                if (window.location.hash === "#configurator") {
+                    showConfigurator();
+                }
+            }
+
+            init();
+
+            function showConfigurator() {
+                // hide all class="hide-when-configurator-is-shown"
+                document.querySelectorAll(".hide-when-configurator-is-shown").forEach(element => {
+                    element.style.display = "none";
+                });
+
+                // scroll to top
+                window.scrollTo(0, 0);
+
+                // show configurator overlay
+                document.getElementById("configurator-overlay").style.display = "block";
+            }
+
+            function hideConfigurator() {
+                // hide configurator overlay
+                document.getElementById("configurator-overlay").style.display = "none";
+
+                // show all class="hide-when-configurator-is-shown"
+                document.querySelectorAll(".hide-when-configurator-is-shown").forEach(element => {
+                    element.style.display = "block";
+                });
+            }
+        </script>
+
+        <style>
+            /* Grundlegende Styles */
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: "Urbanist", sans-serif;
+                line-height: 1.62;
+                letter-spacing: 0.5px;
+                font-weight: 500;
+            }
+
+            h1,
+            h2,
+            h3,
+            h4,
+            h5,
+            h6 {
+                color: #429b6b;
+            }
+
+            body {
+                background-color: #f5f7fa;
+                color: #333;
+                line-height: 1.6;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 0 20px;
+            }
+
+            /* Header Styles */
+            header {
+                background-color: #ffffff;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                position: fixed;
+                width: 100%;
+                top: 0;
+                z-index: 100;
+            }
+
+            .header-container {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 15px 0;
+            }
+
+            .logo {
+                display: flex;
+                align-items: center;
+            }
+
+            nav ul {
+                display: flex;
+                list-style: none;
+            }
+
+            nav ul li {
+                margin-left: 30px;
+            }
+
+            nav ul li a {
+                text-decoration: none;
+                color: #333;
+                font-weight: 500;
+                transition: color 0.3s;
+            }
+
+            nav ul li a:hover {
+                color: #429b6b;
+            }
+
+            /* Hero Section */
+            .hero {
+                margin-top: 80px;
+                padding: 100px 0;
+                background:
+                    linear-gradient(rgba(200, 200, 200, 0.5), rgba(0, 0, 0, 0.5)),
+                    url("/api/placeholder/1200/600") center/cover no-repeat;
+                color: white;
+                text-align: center;
+            }
+
+            .hero h2 {
+                font-size: 48px;
+                margin-bottom: 20px;
+                text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+                color: #429b6b;
+            }
+
+            .hero p {
+                font-size: 20px;
+                max-width: 800px;
+                margin: 0 auto;
+                text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+            }
+
+            /* Section Styles */
+            section {
+                padding: 80px 0;
+            }
+
+            section h2 {
+                text-align: center;
+                margin-bottom: 40px;
+                color: #0077b6;
+                font-size: 36px;
+            }
+
+            .facts-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 30px;
+            }
+
+            .fact-card {
+                background-color: white;
+                border-radius: 10px;
+                padding: 30px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                transition: transform 0.3s;
+            }
+
+            .fact-card:hover {
+                transform: translateY(-5px);
+            }
+
+            .fact-card h3 {
+                font-size: 22px;
+                margin-bottom: 15px;
+                color: #0077b6;
+            }
+
+            .fact-card p {
+                color: #555;
+            }
+
+            .fact-card i {
+                font-size: 40px;
+                color: #429b6b;
+                margin-bottom: 20px;
+                display: block;
+            }
+
+            /* Auftragskonfigurator Section */
+            .order-configurator {
+                background-color: #e8f4ee;
+                text-align: center;
+            }
+
+            .order-configurator-container {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 40px;
+                background-color: white;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+
+            .order-configurator h3 {
+                font-size: 24px;
+                margin-bottom: 20px;
+                color: #0077b6;
+            }
+
+            .order-configurator p {
+                margin-bottom: 30px;
+                color: #555;
+            }
+
+            .btn {
+                display: inline-block;
+                background-color: #429b6b;
+                color: white;
+                padding: 12px 30px;
+                border-radius: 5px;
+                text-decoration: none;
+                font-weight: 500;
+                transition: background-color 0.3s;
+            }
+
+            .btn:hover {
+                background-color: #429b6b;
+            }
+
+            /* Footer Styles */
+            footer {
+                background-color: #003b46;
+                color: white;
+                padding: 60px 0 30px;
+            }
+
+            .footer-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 30px;
+                margin-bottom: 40px;
+            }
+
+            .footer-section h3 {
+                font-size: 20px;
+                margin-bottom: 20px;
+                color: #0077b6;
+            }
+
+            .footer-section p {
+                margin-bottom: 10px;
+            }
+
+            .footer-section ul {
+                list-style: none;
+            }
+
+            .footer-section ul li {
+                margin-bottom: 10px;
+            }
+
+            .footer-section ul li a {
+                color: #ccc;
+                text-decoration: none;
+                transition: color 0.3s;
+            }
+
+            .footer-section ul li a:hover {
+                color: white;
+            }
+
+            .copyright {
+                text-align: center;
+                padding-top: 20px;
+                border-top: 1px solid #00535e;
+                color: #aaa;
+                font-size: 14px;
+            }
+
+            /* Media Queries für Responsivität */
+            @media screen and (max-width: 768px) {
+                .header-container {
+                    flex-direction: column;
+                }
+
+                nav ul {
+                    margin-top: 20px;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                }
+
+                nav ul li {
+                    margin: 5px 15px;
+                }
+
+                .hero {
+                    padding: 60px 0;
+                    margin-top: 120px;
+                }
+
+                .hero h2 {
+                    font-size: 36px;
+                }
+
+                .hero p {
+                    font-size: 18px;
+                }
+
+                section {
+                    padding: 60px 0;
+                }
+
+                section h2 {
+                    font-size: 30px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Header mit Logo und Navigation -->
+        <header>
+            <div class="container header-container">
+                <div class="logo">
+                    <img
+                        src="/cds/cpq/ui/theme/pv-anlagenreinigung/logo.svg"
+                        alt="ImmoSörf Logo"
+                        onclick="hideConfigurator()"
+                    />
+                </div>
+                <nav>
+                    <ul>
+                        <li>
+                            <a href="/cds/cpq/ui/pv-anlagenreinigung/index.html" onclick="hideConfigurator()"
+                                >Startseite</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/cds/cpq/ui/pv-anlagenreinigung/index.html" onclick="hideConfigurator()"
+                                >Verunreinigungen</a
+                            >
+                        </li>
+                        <li>
+                            <a href="/cds/cpq/ui/pv-anlagenreinigung/index.html" onclick="hideConfigurator()"
+                                >Vorteile</a
+                            >
+                        </li>
+                        <li>
+                            <a href="#" onclick="showConfigurator()">Offerte anfragen</a>
+                        </li>
+                        <li>
+                            <a href="/cds/cpq/ui/pv-anlagenreinigung/index.html" onclick="hideConfigurator()"
+                                >Kontakt</a
+                            >
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Hero Section mit Bild und Kurzbeschreibung -->
+        <section class="hero hide-when-configurator-is-shown" id="home">
+            <div class="container">
+                <h2>Professionelle Reinigung von Solaranlagen</h2>
+                <p>
+                    Steigern Sie die Effizienz Ihrer Solaranlage um bis zu 30% durch professionelle Reinigung.
+                    Unsere Experten sorgen für maximale Leistung und lange Lebensdauer Ihrer wertvollen
+                    Investition.
+                </p>
+            </div>
+        </section>
+
+        <!-- Section: Verunreinigungen -->
+        <section id="contamination" class="hide-when-configurator-is-shown">
+            <div class="container">
+                <h2 style="color: #429b6b">Ursachen für Verunreinigungen</h2>
+                <div class="facts-container">
+                    <div class="fact-card">
+                        <i>🍂</i>
+                        <h3 style="color: #429b6b">Umwelteinflüsse</h3>
+                        <p>
+                            Staub, Pollen, Blätter und andere organische Materialien lagern sich im Laufe der
+                            Zeit auf den Modulen ab und bilden einen lichtundurchlässigen Film.
+                        </p>
+                    </div>
+                    <div class="fact-card">
+                        <i>🚗</i>
+                        <h3 style="color: #429b6b">Verkehr & Industrie</h3>
+                        <p>
+                            Feinstaub und Abgase von Strassen und Industriegebieten setzen sich hartnäckig auf
+                            der Oberfläche fest und sind schwer durch Regen abzuwaschen.
+                        </p>
+                    </div>
+                    <div class="fact-card">
+                        <i>💩</i>
+                        <h3 style="color: #429b6b">Vogelkot</h3>
+                        <p>
+                            Besonders aggressiv wirkt Vogelkot auf die Module ein. Er verätzt die Oberfläche
+                            und kann zu dauerhaften Schäden und Hotspots führen.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Warum reinigen? -->
+        <section id="benefits" style="background-color: #e8f4f8" class="hide-when-configurator-is-shown">
+            <div class="container">
+                <h2 style="color: #429b6b">Vorteile regelmässiger Reinigung</h2>
+                <div class="facts-container">
+                    <div class="fact-card">
+                        <i>📈</i>
+                        <h3 style="color: #429b6b">Höherer Ertrag</h3>
+                        <p>
+                            Saubere Module erzeugen bis zu 30% mehr Strom. Die Reinigungskosten amortisieren
+                            sich schnell durch den höheren Energieertrag.
+                        </p>
+                    </div>
+                    <div class="fact-card">
+                        <i>⏱️</i>
+                        <h3 style="color: #429b6b">Längere Lebensdauer</h3>
+                        <p>
+                            Regelmässige Reinigung verhindert dauerhafte Schäden an den Modulen und verlängert
+                            die Lebensdauer Ihrer Anlage erheblich.
+                        </p>
+                    </div>
+                    <div class="fact-card">
+                        <i>🛡️</i>
+                        <h3 style="color: #429b6b">Garantieerhalt</h3>
+                        <p>
+                            Viele Hersteller knüpfen ihre Garantiebedingungen an eine regelmässige,
+                            fachgerechte Reinigung und Wartung der Anlagen.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Auftragskonfigurator -->
+        <section
+            class="order-configurator hide-when-configurator-is-shown"
+            id="configurator"
+            style="background-color: #e8f4ee"
+        >
+            <div class="container">
+                <h2 id="configurator" style="color: #429b6b">Offerte anfragen</h2>
+                <div class="order-configurator-container">
+                    <h3 style="color: #429b6b">Erhalten Sie Ihr persönliches Angebot</h3>
+                    <p>
+                        Beantworten Sie einige kurze Fragen zu Ihrer Solaranlage und erhalten Sie innerhalb
+                        weniger Minuten ein Angebot für die professionelle Reinigung.
+                    </p>
+                    <a class="btn" onclick="showConfigurator()">Offerte anfragen</a>
+                </div>
+            </div>
+        </section>
+
+        <div id="configurator-overlay" style="display: none">
+            <!-- Auftragskonfigurator -->
+            <wb-bezel id="configurator">
+                <div id="root"></div>
+            </wb-bezel>
+        </div>
+
+        <!-- Footer mit Kontaktinformationen -->
+        <footer id="contact">
+            <div class="container">
+                <div class="footer-container">
+                    <div class="footer-section">
+                        <h3 style="color: #429b6b">Kontakt</h3>
+                        <p>ImmoSörf AG</p>
+                        <p>Immobilienstrasse 123</p>
+                        <p>5678 Immowil</p>
+                        <p>Telefon: +41 23 456 77 77</p>
+                        <p>E-Mail: info@immosoerf.ch</p>
+                    </div>
+                    <div class="footer-section">
+                        <h3 style="color: #429b6b">Öffnungszeiten</h3>
+                        <p>Montag - Freitag: 8:00 - 18:00 Uhr</p>
+                        <p>Samstag: Nach Vereinbarung</p>
+                        <p>Sonntag: Geschlossen</p>
+                    </div>
+                    <div class="footer-section">
+                        <h3 style="color: #429b6b">Service-Gebiete</h3>
+                        <p>Zürich & Umgebung</p>
+                        <p>Bern & Umgebung</p>
+                        <p>Basel-Stadt & Basel-Land</p>
+                        <p>St. Gallen & Ostschweiz</p>
+                    </div>
+                    <div class="footer-section">
+                        <h3 style="color: #429b6b">Rechtliches</h3>
+                        <ul>
+                            <li><a href="#">Impressum</a></li>
+                            <li><a href="#">Datenschutz</a></li>
+                            <li><a href="#">AGB</a></li>
+                            <li><a href="#">Sitemap</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="copyright">
+                    <p>
+                        ImmoSörf AG, Immobilienstrasse 123, 5678 Immowil · +41 23 456 77 77 ·
+                        info@immosoerf.ch · www.immosoerf.ch
+                    </p>
+                    <p>
+                        Bankverbindung: Raiffeisenbank Zürich, IBAN CH02 0900 0000 1000 1399 7 · MWST-Nr.: CHE
+                        123 456 789 MWST
+                    </p>
+                </div>
+            </div>
+        </footer>
+
+        <script>
+            init();
+        </script>
+    </body>
+</html>

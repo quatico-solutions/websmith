@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Bestellung ImmoSörf Dienstleistung</title>
+        <style>
+            @media only screen and (max-width: 600px) {
+                .container {
+                    width: 100% !important;
+                    padding: 10px !important;
+                }
+                .button {
+                    width: 100% !important;
+                }
+            }
+        </style>
+    </head>
+    <body
+        style="
+            margin: 0;
+            padding: 0;
+            font-family:
+                Noto Sans,
+                system-ui,
+                sans-serif;
+            background-color: #ffffff;
+        "
+    >
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+                <td align="center">
+                    <table
+                        class="container"
+                        width="600"
+                        cellpadding="20"
+                        cellspacing="0"
+                        style="background-color: #ffffff; border-collapse: collapse"
+                    >
+                        <tr>
+                            <td>
+                                <h2 style="color: #000000">
+                                    Hallo {{customerContact.firstName}} {{customerContact.lastName}}
+                                </h2>
+
+                                <p style="font-size: 16px; color: #000000">
+                                    Besten Dank für Ihre Bestellung. Gerne bestätigen wir den Auftrag
+                                    "{{serviceName}} {{orderNumber}}" und danken Ihnen für Ihr Vertrauen. Im
+                                    Anhang finden Sie Ihre Auftragsbestätigung als PDF - mit allen Details zu
+                                    Ihrem Auftrag.
+                                </p>
+
+                                <h2>Komponente: Auftrags-Details</h2>
+                                <h3>Auftrag: {{serviceName}}</h3>
+                                <p>Ihre Auswahl im Überblick</p>
+                                <p><strong>Dienstleistung:</strong> {{serviceName}}</p>
+                                {{#each parameters}}
+                                <p><strong>{{@key}}:</strong> {{this}}</p>
+                                {{/each}}
+                                <p><strong>Ausführungstermin:</strong> Noch kein Termin ausgewählt</p>
+                                <h3>Preis: {{price}}</h3>
+                                <h3>Preis inkl. MwSt: {{priceIncludingVat}}</h3>
+
+                                <h2>Komponente: Auftrags-Status</h2>
+                                <p>Auftragsstatus: {{orderStage}}</p>
+                                <p>Aktion: Auftrag stornieren, button nicht primary</p>
+                                <p>Link: TBD</p>
+
+                                <h2>Komponente: Auftrags-Link</h2>
+                                <p>Link für Kunde</p>
+                                <p>
+                                    Link:
+                                    {{serverUrl}}/{{serviceId}}/order-details-demo.html?orderId={{orderId}}
+                                </p>
+                                <p>Unterscheidung Links für Kunde / Sales Mitarbeiter TBD</p>
+
+                                <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0" />
+
+                                <h2>Komponente: Footer</h2>
+                                <p>{{provider.greeting}}</p>
+                                <p>Ihr {{provider.name}} Team</p>
+                                <img
+                                    src="{{provider.logoDataUrl}}"
+                                    alt="{{provider.logoAltText}}"
+                                    width="200"
+                                    style="margin-bottom: 10px"
+                                />
+
+                                <table cellpadding="0" cellspacing="0" width="100%">
+                                    <tr>
+                                        <td valign="top" style="font-size: 14px; color: #000000">
+                                            <strong>{{provider.name}}</strong><br />
+                                            {{provider.street}} {{provider.houseNumber}}<br />
+                                            {{provider.zip}} {{provider.city}}<br /><br />
+                                            Tel: {{provider.phone}}<br />
+                                            <a href="mailto:{{provider.email}}" style="color: #3366cc"
+                                                >{{provider.email}}</a
+                                            ><br />
+                                            <a href="{{provider.website}}" style="color: #3366cc"
+                                                >{{provider.website}}</a
+                                            >
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

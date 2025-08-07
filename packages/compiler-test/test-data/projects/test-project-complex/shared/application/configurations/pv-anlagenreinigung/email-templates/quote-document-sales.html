@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="de">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>ImmoSörf Angebot</title>
+        <style>
+            @media only screen and (max-width: 600px) {
+                .container {
+                    width: 100% !important;
+                    padding: 10px !important;
+                }
+                .button {
+                    width: 100% !important;
+                }
+            }
+        </style>
+    </head>
+    <body
+        style="
+            margin: 0;
+            padding: 0;
+            font-family:
+                Noto Sans,
+                system-ui,
+                sans-serif;
+            background-color: #ffffff;
+        "
+    >
+        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+                <td align="center">
+                    <table
+                        class="container"
+                        width="600"
+                        cellpadding="20"
+                        cellspacing="0"
+                        style="background-color: #ffffff; border-collapse: collapse"
+                    >
+                        <tr>
+                            <td>
+                                <p style="font-size: 16px; color: #000000">
+                                    Es wurde eine neue Bestellung für "{{serviceName}} {{orderNumber}}"
+                                    aufgegeben.
+                                </p>
+
+                                <h2>Komponente: Kunden-Details</h2>
+                                <p><strong>Firmenname:</strong> {{customer.name}}</p>
+                                <p><strong>Name:</strong> {{customerContact.firstName}}</p>
+                                <p><strong>Vorname:</strong> {{customerContact.lastName}}</p>
+                                <p><strong>E-Mail:</strong> {{customerContact.email}}</p>
+                                <p>
+                                    <strong>Strasse und Hausnummer:</strong> {{customer.street}}
+                                    {{customer.houseNumber}}
+                                </p>
+                                <p><strong>PLZ:</strong> {{customer.zip}}</p>
+                                <p><strong>Ort:</strong> {{customer.city}}</p>
+                                <p><strong>Telefon:</strong> {{customerContact.phone}}</p>
+
+                                <h2>Komponente: Auftrags-Details</h2>
+                                <h3>Auftrag: {{serviceName}}</h3>
+                                <p>Ihre Auswahl im Überblick</p>
+                                <p><strong>Dienstleistung:</strong> {{serviceName}}</p>
+                                {{#each parameters}}
+                                <p><strong>{{@key}}:</strong> {{this}}</p>
+                                {{/each}}
+                                <p><strong>Ausführungstermin:</strong> Noch kein Termin ausgewählt</p>
+                                <h3>Preis: {{price}}</h3>
+                                <h3>Preis inkl. MwSt: {{priceIncludingVat}}</h3>
+
+                                <h2>Komponente: Auftrags-Link</h2>
+                                <p>Link für Sales Mitarbeiter</p>
+                                <p>
+                                    Link:
+                                    {{serverUrl}}/{{serviceId}}/order-details-demo.html?orderId={{orderId}}
+                                </p>
+                                <p>Unterscheidung Links für Kunde / Sales Mitarbeiter TBD</p>
+
+                                <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0" />
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

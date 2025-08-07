@@ -1,0 +1,125 @@
+{
+    "id": "fensterreinigung",
+    "name": "Offerte für die Reinigung von Fenstern anfragen",
+    "description": "Berechnen Sie jetzt die Reinigungskosten für Ihre Fenster. Auf Wunsch erhalten Sie direkt eine Offerte.",
+    "parameterGroups": [
+        {
+            "id": "fenster-typ",
+            "name": "Kosten für die Reinigung der Fenster berechnen",
+            "required": true,
+            "description": "Wählen Sie die gewünschten Leistungsparameter aus:",
+            "parameters": [
+                {
+                    "id": "fenster-flaeche",
+                    "name": "Fensterfläche in m²",
+                    "required": true,
+                    "description": "Je grösser die Anlage, desto tiefer der Quadratmeter-Preis.",
+                    "value": {
+                        "kind": "range",
+                        "min": 10,
+                        "max": 3000,
+                        "step": 1,
+                        "unit": "m²",
+                        "price": {
+                            "type": "tiered",
+                            "tiers": [
+                                {
+                                    "price": 15,
+                                    "gte": 10,
+                                    "lte": 100
+                                },
+                                {
+                                    "price": 12,
+                                    "gt": 100,
+                                    "lte": 500
+                                },
+                                {
+                                    "price": 9,
+                                    "gt": 500,
+                                    "lte": 3000
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "id": "option-lamellenstoren",
+                    "name": "Lamellenstoren",
+                    "required": false,
+                    "description": "Sind Lamellenstoren vorhanden und sollen diese ebenfalls gereinigt werden?",
+                    "value": {
+                        "kind": "boolean",
+                        "trueLabel": "Ja",
+                        "falseLabel": "Nein",
+                        "price": 99
+                    }
+                },
+                {
+                    "id": "zugang",
+                    "name": "Zugang zu Fenstern",
+                    "required": true,
+                    "description": "Wählen Sie den Zugang zu Fenstern aus, der am besten zu Ihrer Situation passt.",
+                    "value": {
+                        "kind": "discrete",
+                        "options": [
+                            {
+                                "label": "In Reichweite",
+                                "value": "in-reichweite",
+                                "price": 0
+                            },
+                            {
+                                "label": "Trittleiter",
+                                "value": "trittleiter",
+                                "price": 20
+                            },
+                            {
+                                "label": "Leiter",
+                                "value": "leiter",
+                                "price": 40
+                            },
+                            {
+                                "label": "Gerüst",
+                                "value": "geruest",
+                                "price": 80
+                            },
+                            {
+                                "label": "Hebebühne",
+                                "value": "hebebuehne",
+                                "price": 300
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    ],
+    "provider": {
+        "id": "provider-id",
+        "name": "providerName",
+        "greeting": "providerGreeting",
+        "logoDataUrl": "logoDataUrl",
+        "logoAltText": "logoAltText",
+        "address": {
+            "street": "street",
+            "houseNumber": "houseNumber",
+            "city": "city",
+            "zip": "zip",
+            "country": "country"
+        },
+        "email": "email@provider.com",
+        "phone": "+41 44 000 00 00",
+        "website": "https://www.example.com",
+        "salesContact": {
+            "firstName": "firstName",
+            "lastName": "lastName",
+            "email": "sales@provider.com"
+        },
+        "mailSettings": {
+            "sender": {
+                "email": "sender@provider.com"
+            }
+        },
+        "termsOfServiceUrl": "#",
+        "privacyPolicyUrl": "#"
+    }
+}

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="de-CH">
+    <head>
+        <meta charset="UTF-8" />
+        <meta content="text/html; charset=UTF-8" http-equiv="content-type" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+
+        <link rel="shortcut icon" href="/cds/cpq/ui/theme/favicon.ico" type="image/x-icon" />
+
+        <link
+            id="theme-css"
+            rel="stylesheet"
+            type="text/css"
+            href="/cds/cpq/ui/theme/car-cleaning/theme.css?<%= CACHE_BUST_QUERY_PARAMETER %>"
+            media="all"
+        />
+
+        <link
+            rel="preload"
+            href="/cds/cpq/ui/theme/spritemap.svg?<%= CACHE_BUST_QUERY_PARAMETER %>"
+            as="image"
+        />
+
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/grid-container.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/layout.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/stack.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/title.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/box.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/bezel.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/link.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/button.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/richtext.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/image.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/icon.css" as="style" />
+        <link rel="preload" href="/cds/cpq/ui/theme/<%= webbloqsVersion %>/text.css" as="style" />
+
+        <style>
+            .header {
+                background-color: #f8f9fa;
+                padding: 1rem;
+                border-bottom: 1px solid #dee2e6;
+            }
+            .footer {
+                background-color: #f8f9fa;
+                padding: 1rem;
+                border-top: 1px solid #dee2e6;
+                margin-top: 2rem;
+            }
+            .main-content {
+                min-height: calc(100vh - 120px);
+                padding: 2rem 0;
+            }
+        </style>
+    </head>
+
+    <body>
+        <header class="header">
+            <h1>Car Cleaning Service</h1>
+        </header>
+        <main class="main-content">
+            <noscript>You need to enable JavaScript to run this app.</noscript>
+            <div id="root"></div>
+        </main>
+        <footer class="footer">
+            <p>&copy; <%= new Date().getFullYear() %> Car Cleaning Service. All rights reserved.</p>
+        </footer>
+    </body>
+</html>

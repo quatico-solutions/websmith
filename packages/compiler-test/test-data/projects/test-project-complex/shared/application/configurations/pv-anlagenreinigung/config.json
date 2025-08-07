@@ -1,0 +1,183 @@
+{
+    "id": "pv-anlagenreinigung",
+    "name": "PV-Anlagenreinigung",
+    "parameterGroups": [
+        {
+            "id": "anlage-typ",
+            "name": "Solaranlage",
+            "description": "Berechnen Sie die Reinigungskosten Ihrer Photovoltaikanlage und erhalten Sie in wenigen Augenblicken eine persönliche Offerte.",
+            "required": true,
+            "parameters": [
+                {
+                    "id": "standort",
+                    "name": "Standort",
+                    "description": "Je weiter weg, desto grösser sind die Anfahrtskosten",
+                    "value": {
+                        "kind": "text",
+                        "inputType": "text",
+                        "placeholder": "Ausführungsort",
+                        "help": "Geben Sie den Ausführungsort ein"
+                    }
+                },
+                {
+                    "id": "anlagen-groesse",
+                    "name": "Anlagengrösse in m²",
+                    "description": "Geben Sie die Grösse Ihrer Photovoltaikanlage in m² ein.",
+                    "required": true,
+                    "value": {
+                        "kind": "range",
+                        "min": 0,
+                        "max": 1000,
+                        "unit": "m²",
+                        "price": {
+                            "type": "factor-lookup",
+                            "reference": "dachtyp",
+                            "factors": {
+                                "steildach": 15,
+                                "flachdach-sued": 8,
+                                "flachdach-ost-west": 10
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "dachtyp",
+                    "name": "Dachtyp",
+                    "required": true,
+                    "description": "Der Preis variiert je nach Dachtyp.",
+                    "value": {
+                        "kind": "discrete",
+                        "options": [
+                            {
+                                "label": "Steildach",
+                                "value": "steildach",
+                                "price": 240,
+                                "tooltip": {
+                                    "text": "Module sind parallel zur geneigten Dachfläche montiert. Die Installation liegt direkt auf der bestehenden Dachstruktur.",
+                                    "image": {
+                                        "imageName": "steildach.png",
+                                        "imageAltText": "steildach.png alt text"
+                                    }
+                                }
+                            },
+                            {
+                                "label": "Flachdach Süd",
+                                "value": "flachdach-sued",
+                                "price": 200,
+                                "tooltip": {
+                                    "text": "Module sind mit Unterkonstruktion in nach Süden ausgerichtet. Grössere Abstände zwischen den Reihen sind vorhanden.",
+                                    "image": {
+                                        "imageName": "flachdach-sued.png",
+                                        "imageAltText": "flachdach-sued.png alt text"
+                                    }
+                                }
+                            },
+                            {
+                                "label": "Flachdach Ost-West",
+                                "value": "flachdach-ost-west",
+                                "price": 220,
+                                "tooltip": {
+                                    "text": "Module sind paarweise in Reihen nach Osten und Westen ausgerichtet. Die Abstände zwischen diesen Reihenpaaren sind kompakter gestaltet.",
+                                    "image": {
+                                        "imageName": "flachdach-ost-west.png",
+                                        "imageAltText": "flachdach-ost-west.png alt text"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "id": "absturzsicherung",
+                    "name": "Absturzsicherung",
+                    "required": true,
+                    "description": "Je sicherer, desto günstiger.",
+                    "value": {
+                        "kind": "discrete",
+                        "options": [
+                            {
+                                "label": "Keine",
+                                "value": "keine",
+                                "price": 200,
+                                "tooltip": {
+                                    "text": "Keine Absturzsicherung",
+                                    "image": {
+                                        "imageName": "keine-absicherung.png",
+                                        "imageAltText": "Keine Absturzsicherung"
+                                    }
+                                }
+                            },
+                            {
+                                "label": "Fixer Zaun",
+                                "value": "fixer-zaun",
+                                "price": 0,
+                                "tooltip": {
+                                    "text": "Absturzsicherung mit einem fixen Zaun",
+                                    "image": {
+                                        "imageName": "fixer-zaun.png",
+                                        "imageAltText": "Fixer Zaun Absturzsicherung"
+                                    }
+                                }
+                            },
+                            {
+                                "label": "Seil",
+                                "value": "seil",
+                                "price": 25,
+                                "tooltip": {
+                                    "text": "Absturzsicherung mit einem Seil",
+                                    "image": {
+                                        "imageName": "seil.png",
+                                        "imageAltText": "Seil Absturzsicherung"
+                                    }
+                                }
+                            },
+                            {
+                                "label": "Einzelanschlagpunkte",
+                                "value": "einzel-anschlagpunkte",
+                                "price": 15,
+                                "tooltip": {
+                                    "text": "Absturzsicherung mit Einzelanschlagpunkten",
+                                    "image": {
+                                        "imageName": "einzelanschlagpunkte.png",
+                                        "imageAltText": "Einzelanschlagpunkte Absturzsicherung"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    ],
+    "provider": {
+        "id": "immo-soerf",
+        "name": "ImmoSörf",
+        "greeting": "Anbieter Grussformel",
+        "logoDataUrl": "data:@file/png;base64,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",
+        "logoAltText": "ImmoSörf Logo",
+        "bankingInfo": "Raiffeisenbank Zürich, IBAN CH02 0900 0000 1000 1399 7",
+        "vatNumber": "CHE 123 456 789 MWST",
+        "address": {
+            "street": "Musterstrasse",
+            "houseNumber": "10",
+            "city": "Zürich",
+            "zip": "8000",
+            "country": "Schweiz"
+        },
+        "email": "support@immosoerf.com",
+        "phone": "+41 44 000 00 00",
+        "website": "https://www.immosoerf.com",
+        "salesContact": {
+            "firstName": "Verena",
+            "lastName": "Vertrieb",
+            "email": "verkauf@immosoerf.ch"
+        },
+        "mailSettings": {
+            "sender": {
+                "email": "no-reply@immosoerf.ch"
+            }
+        },
+        "termsOfServiceUrl": "https://www.immosoerf.com/agb",
+        "privacyPolicyUrl": "https://www.immosoerf.com/privacy"
+    }
+}

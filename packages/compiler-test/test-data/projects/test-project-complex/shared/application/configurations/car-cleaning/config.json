@@ -1,0 +1,94 @@
+{
+    "id": "car-cleaning",
+    "name": "Auto-Reinigung",
+    "description": "Berechnen Sie jetzt die Reinigungskosten für Ihr Auto.",
+    "parameterGroups": [
+        {
+            "id": "car-type-and-brand-selection",
+            "name": "Auto Reinigung",
+            "required": true,
+            "description": "Wählen Sie den Autotyp und die Automarke aus:",
+            "parameters": [
+                {
+                    "id": "car-type",
+                    "name": "Autotyp",
+                    "required": true,
+                    "value": {
+                        "kind": "discrete",
+                        "options": [
+                            {
+                                "label": "Sedan",
+                                "value": "sedan",
+                                "price": 240
+                            },
+                            {
+                                "label": "SUV",
+                                "value": "suv",
+                                "price": 200
+                            },
+                            {
+                                "label": "Kombi",
+                                "value": "kombi",
+                                "price": 220
+                            }
+                        ]
+                    }
+                },
+                {
+                    "id": "brand",
+                    "name": "Automarke",
+                    "required": true,
+                    "value": {
+                        "kind": "discrete",
+                        "options": [
+                            {
+                                "label": "BMW",
+                                "value": "bmw",
+                                "price": 240
+                            },
+                            {
+                                "label": "Mercedes",
+                                "value": "mercedes",
+                                "price": 200
+                            },
+                            {
+                                "label": "Audi",
+                                "value": "audi",
+                                "price": 220
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    ],
+    "provider": {
+        "id": "provider-id",
+        "name": "providerName",
+        "greeting": "providerGreeting",
+        "logoDataUrl": "logoDataUrl",
+        "logoAltText": "logoAltText",
+        "address": {
+            "street": "street",
+            "houseNumber": "houseNumber",
+            "city": "city",
+            "zip": "zip",
+            "country": "country"
+        },
+        "email": "email@provider.com",
+        "phone": "+41 44 000 00 00",
+        "website": "https://www.example.com",
+        "salesContact": {
+            "firstName": "firstName",
+            "lastName": "lastName",
+            "email": "sales@provider.com"
+        },
+        "mailSettings": {
+            "sender": {
+                "email": "sender@provider.com"
+            }
+        },
+        "termsOfServiceUrl": "#",
+        "privacyPolicyUrl": "#"
+    }
+}

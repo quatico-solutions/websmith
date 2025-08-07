@@ -1,0 +1,632 @@
+/* stylelint-disable no-descending-specificity */
+@use "~@webbloqs/design/lib/global/global";
+@use "@webbloqs/react/lib/size/size";
+@use "@webbloqs/react/lib/space/space";
+@use "@webbloqs/react/lib/color/color";
+@use "@webbloqs/react/lib/link/link";
+@use "@webbloqs/react/lib/button/button";
+@use "@webbloqs/react/lib/media/media";
+
+@font-face {
+    font-family: "Bona Nova";
+    src:
+        local("Bona Nova"),
+        url("BonaNova-Regular.ttf") format("truetype");
+}
+
+:root {
+    /*** COLORS ***/
+
+    --wb-ds-color-info--10: #f0f5ff;
+    --wb-ds-color-info--20: #d6e4ff;
+    --wb-ds-color-info--30: #adc6ff;
+    --wb-ds-color-info--40: #85a5ff;
+    --wb-ds-color-info--50: #597ef7;
+    --wb-ds-color-info--60: #2f54eb;
+    --wb-ds-color-info--70: #1d39c4;
+    --wb-ds-color-info--80: #10239e;
+    --wb-ds-color-info--90: #061178;
+    --wb-ds-color-info--100: #030852;
+
+    --wb-ds-color-info--default: var(--wb-ds-color-info--60);
+
+    --wb-ds-color-primary--10: #e6f4ff;
+    --wb-ds-color-primary--20: #bae0ff;
+    --wb-ds-color-primary--30: #91caff;
+    --wb-ds-color-primary--40: #69b1ff;
+    --wb-ds-color-primary--50: #4096ff;
+    --wb-ds-color-primary--60: #1677ff;
+    --wb-ds-color-primary--70: #0958d9;
+    --wb-ds-color-primary--80: #003eb3;
+    --wb-ds-color-primary--90: #002c8c;
+    --wb-ds-color-primary--100: #001d66;
+
+    --wb-ds-color-primary--light: var(--wb-ds-color-primary--50);
+    --wb-ds-color-primary--default: var(--wb-ds-color-primary--60);
+
+    --wb-ds-color-success--10: #f6ffed;
+    --wb-ds-color-success--20: #d9f7be;
+    --wb-ds-color-success--30: #b7eb8f;
+    --wb-ds-color-success--40: #95de64;
+    --wb-ds-color-success--50: #73d13d;
+    --wb-ds-color-success--60: #52c41a;
+    --wb-ds-color-success--70: #389e0d;
+    --wb-ds-color-success--80: #237804;
+    --wb-ds-color-success--90: #135200;
+    --wb-ds-color-success--100: #092b00;
+
+    --wb-ds-color-success--default: var(--wb-ds-color-success--60);
+
+    /* gray colors */
+    --wb-ds-color-gray--white: #ffffff;
+    --wb-ds-color-gray--5: #fafafa;
+    --wb-ds-color-gray--10: #f5f5f5;
+    --wb-ds-color-gray--20: #f0f0f0;
+    --wb-ds-color-gray--30: #d9d9d9;
+    --wb-ds-color-gray--40: #bfbfbf;
+    --wb-ds-color-gray--50: #8c8c8c;
+    --wb-ds-color-gray--60: #595959;
+    --wb-ds-color-gray--70: #434343;
+    --wb-ds-color-gray--80: #262626;
+    --wb-ds-color-gray--90: #1f1f1f;
+    --wb-ds-color-gray--100: #141414;
+    --wb-ds-color-gray--black: #000000;
+
+    --wb-ds-color-gray--x-light: var(--wb-ds-color-gray--30);
+    --wb-ds-color-gray--light: var(--wb-ds-color-gray--40);
+    --wb-ds-color-gray--default: var(--wb-ds-color-gray--50);
+    --wb-ds-color-gray--dark: var(--wb-ds-color-gray--60);
+    --wb-ds-color-gray--x-dark: var(--wb-ds-color-gray--70);
+
+    --wb-ds-color-gray--lightest: var(--wb-ds-color-gray--10);
+
+    --wb-ds-color-error--10: #fff1f0;
+    --wb-ds-color-error--20: #ffccc7;
+    --wb-ds-color-error--30: #ffa39e;
+    --wb-ds-color-error--40: #ff7875;
+    --wb-ds-color-error--50: #ff4d4f;
+    --wb-ds-color-error--60: #f5222d;
+    --wb-ds-color-error--70: #cf1322;
+    --wb-ds-color-error--80: #a8071a;
+    --wb-ds-color-error--90: #820014;
+    --wb-ds-color-error--100: #5c0011;
+
+    --wb-ds-color-error--default: var(--wb-ds-color-error--50);
+
+    --wb-ds-color-link: var(--wb-ds-color-gray--black);
+    --wb-ds-color-link--hover: var(--wb-ds-color-primary--default);
+
+    /* functional colors:: text */
+    --wb-text__font-color: var(--wb-ds-color-gray--black);
+    --wb-ds-color-text--hover: var(--wb-ds-color-gray--dark);
+    --wb-ds-color-text--focus: var(--wb-ds-color-gray--dark);
+    --wb-ds-color-text--active: var(--wb-ds-color-gray--dark);
+    --wb-ds-color-text--disabled: var(--wb-ds-color-gray--default);
+
+    /* functional colors:: background */
+    --wb-ds-color-background--hover: var(--wb-ds-color-gray--default);
+    --wb-ds-color-background--focus: var(--wb-ds-color-gray--default);
+    --wb-ds-color-background--active: var(--wb-ds-color-gray--default);
+
+    /*** SIZES ***/
+    /* dynamic sizes 6, 13, 25 */
+    @include size.scale($count: 3, $increment: 0.5, $start: 25, $incrementFn: exponential-increment);
+    /* dynamic sizes 50-525 in steps of 25 */
+    @include size.scale($count: 23, $increment: 25, $start: 50);
+    /* static sizes */
+    @include size.scale-static($count: 8, $increment: 10);
+
+    --wb-ds-size--1: 1px;
+    --wb-ds-size--75: calc(0.75 * var(--wb-ds-size-unit));
+    --wb-ds-size--88: calc(0.88 * var(--wb-ds-size-unit));
+    --wb-ds-size--100: calc(1 * var(--wb-ds-size-unit));
+    --wb-ds-size--113: calc(1.13 * var(--wb-ds-size-unit));
+
+    /*** FONTS ***/
+
+    /** text:: font-family */
+
+    --wb-ds-font-family--default:
+        "Bona Nova", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+        "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --wb-ds-font-family--serif:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans",
+        sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+    /** text:: font-weight */
+    --wb-ds-font-weight--default: 400;
+    --wb-ds-font-weight--medium: 400;
+    --wb-ds-font-weight--bold: 600;
+
+    /** text:: font-size and line-height */
+
+    --wb-ds-font-size--8xl: var(--wb-ds-size--375); // 60px
+    --wb-ds-line-height--8xl: var(--wb-ds-size--575);
+
+    --wb-ds-font-size--7xl: var(--wb-ds-size--281); // 45px
+    --wb-ds-line-height--7xl: var(--wb-ds-size--475);
+
+    --wb-ds-font-size--6xl: var(--wb-ds-size--250); // 40px
+    --wb-ds-line-height--6xl: var(--wb-ds-size--375);
+
+    --wb-ds-font-size--5xl: var(--wb-ds-size--200); // 32px
+    --wb-ds-line-height--5xl: var(--wb-ds-size--325);
+
+    --wb-ds-font-size--4xl: var(--wb-ds-size--175); // 28px
+    --wb-ds-line-height--4xl: var(--wb-ds-size--275);
+
+    --wb-ds-font-size--3xl: var(--wb-ds-size--150); // 24px
+    --wb-ds-line-height--3xl: var(--wb-ds-size--200);
+
+    --wb-ds-font-size--2xl: var(--wb-ds-size--138); // 22px
+    --wb-ds-line-height--2xl: var(--wb-ds-size--200);
+
+    --wb-ds-font-size--xl: var(--wb-ds-size--125); // 20px
+    --wb-ds-line-height--xl: var(--wb-ds-size--175);
+
+    --wb-ds-font-size--l: var(--wb-ds-size--113); // 18px
+    --wb-ds-line-height--l: var(--wb-ds-size--150);
+
+    --wb-ds-font-size--default: var(--wb-ds-size--100); // 16px
+    --wb-ds-line-height--default: var(--wb-ds-size--150); // 24px
+
+    --wb-ds-font-size--m: var(--wb-ds-font-size--default); // 16px
+    --wb-ds-line-height--m: var(--wb-ds-line-height--default); // 24px
+
+    --wb-ds-font-size--s: var(--wb-ds-size--88); // 14px
+    --wb-ds-line-height--s: var(--wb-ds-size--125);
+
+    --wb-ds-font-size--xs: var(--wb-ds-size--81); // 13px
+    --wb-ds-line-height--xs: var(--wb-ds-size--75);
+
+    // TODO: is there no global font-size definition?
+    --wb-text__font-size: var(--wb-ds-font-size--default);
+    --wb-text__line-height: var(--wb-ds-line-height--default);
+
+    /* static font sizes */
+    --wb-ds-font-size-static--xs: var(--wb-ds-size--75);
+    --wb-ds-font-size-static--s: var(--wb-ds-size--88);
+    --wb-ds-font-size-static--m: var(--wb-ds-size--100);
+    --wb-ds-font-size-static--l: var(--wb-ds-size--113);
+
+    --wb-ds-line-height-static--xs: 1.25;
+    --wb-ds-line-height-static--s: 1.5;
+    --wb-ds-line-height-static--m: 1.5;
+    --wb-ds-line-height-static--l: 1.5;
+
+    // Title
+    --wb-ds-title__font-family: var(--wb-ds-font-family--serif);
+    --wb-ds-title__color: var(--wb-ds-color-primary--dark);
+    --wb-ds-title__font-weight: var(--wb-ds-font-weight--bold);
+    --wb-ds-title__bezel-top: 0;
+
+    --wb-ds-title__line-height: 1.6;
+
+    --wb-ds-title-level-1__font-size: var(--wb-ds-font-size--4xl);
+    --wb-ds-title-level-2__font-size: var(--wb-ds-font-size--xl);
+    --wb-ds-title-level-3__font-size: var(--wb-ds-font-size--l);
+    --wb-ds-title-level-4__font-size: var(--wb-ds-font-size--default);
+
+    @include media.at-least(sm) {
+        --wb-ds-title-level-1__font-size: var(--wb-ds-font-size--4xl);
+        --wb-ds-title-level-2__font-size: var(--wb-ds-font-size--2xl);
+        --wb-ds-title-level-3__font-size: var(--wb-ds-font-size--xl);
+    }
+
+    @include media.at-least(md) {
+        --wb-ds-title-level-1__font-size: var(--wb-ds-font-size--6xl);
+        --wb-ds-title-level-2__font-size: var(--wb-ds-font-size--4xl);
+        --wb-ds-title-level-3__font-size: var(--wb-ds-font-size--3xl);
+        --wb-ds-title-level-4__font-size: var(--wb-ds-font-size--l);
+    }
+
+    /*** BORDERS & BOXES ***/
+
+    /* border:: width */
+    --wb-ds-border-width--thick: var(--wb-ds-size-static--20);
+    --wb-ds-border-width--x-thick: var(--wb-ds-size-static--40);
+    --wb-ds-border-width--2x-thick: var(--wb-ds-size-static--60);
+
+    /* border:: radius */
+    --wb-ds-border-radius--none: 0;
+    --wb-ds-border-radius--small: var(--wb-ds-size--1);
+    --wb-ds-border-radius--medium: var(--wb-ds-size-static--40);
+    --wb-ds-border-radius--large: var(--wb-ds-size-static--80);
+    --wb-ds-border-radius--full: 50%;
+
+    /* border:: color */
+    --wb-ds-color-border--default: var(--wb-ds-border-radius--medium);
+
+    // Button
+    --wb-ds-button__font-size: var(--wb-ds-font-size--default);
+    --wb-ds-button__border-radius: var(--wb-ds-border-radius--medium);
+
+    // Box
+    --wb-box__border: var(--wb-ds-size-static--10) solid var(--wb-ds-color-gray--10);
+    --wb-box__border-radius: var(--wb-ds-border-radius--large);
+
+    /*** LAYOUT ***/
+
+    /* layout:: spacing */
+    @include space.scale(
+        7,
+        $overrides: (
+            2xs: size--50,
+            xs: size--75,
+            s: size--100,
+            m: size--150,
+            l: size--200,
+            xl: size--250,
+            2xl: size--350
+        )
+    );
+
+    /*** ANIMATIONS ***/
+
+    --wb-ds-animation-timing-function: ease-in;
+    --wb-ds-animation-duration--slow: 0.35s;
+    --wb-ds-animation-duration--default: var(--wb-ds-animation-duration--medium);
+    --wb-ds-animation-duration--medium: 0.2s;
+    --wb-ds-animation-duration--fast: 0.15s;
+
+    --wb-ds-animation--default: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+
+    /*** ICONS ***/
+
+    --wb-ds-icon-size--xs: var(--wb-ds-size--100);
+    --wb-ds-icon-size--s: var(--wb-ds-size--150);
+    --wb-ds-icon-size--m: var(--wb-ds-size--225);
+    --wb-ds-icon-size--l: var(--wb-ds-size--325);
+    --wb-ds-icon-size--xl: var(--wb-ds-size--425);
+
+    /*** FORMS ***/
+
+    --wb-ds-field-label-is-fluid__mask-color: rgba(216, 216, 216);
+    --wb-ds-field-message-icon__display: none;
+    --wb-alert-is-error__background: #ffd3d3;
+    --wb-alert-is-info__background: #e8eaf6;
+    --wb-alert-is-success__background: #e8f6e8;
+
+    @at-root wb-checkbox-field {
+        --wb-ds-field__border-color: var(--wb-ds-color-gray--white);
+        --wb-ds-field__border-radius: var(--wb-ds-border-radius--none);
+        --wb-ds-field__box-shadow: inset 0 0 0 var(--wb-ds-size--6) var(--wb-ds-color-gray--default);
+        --wb-ds-field__box-shadow--hover: inset 0 0 0 var(--wb-ds-size--6) var(--wb-ds-color-gray--default);
+        --wb-checkbox-field-icon__width: 5px;
+        --wb-checkbox-field-icon__height: 9px;
+        --wb-checkbox-field-icon__left: 7px;
+        --wb-checkbox-field-icon__top: 5px;
+
+        --wb-ds-field__box-shadow--focus: var(--wb-ds-field__box-shadow--hover);
+        --wb-checkbox-field__box-shadow--valid: var(--wb-ds-field__box-shadow--hover);
+
+        --wb-option__size: var(--wb-ds-size--125);
+
+        --wb-checkbox-field__background--active: var(--wb-checkbox-field-icon__color);
+        --wb-ds-field__color: var(--wb-ds-color-primary--default);
+
+        .wb-checkbox-field__option:hover {
+            --wb-checkbox-field__background--active: var(--wb-checkbox-field-icon__color);
+            --wb-checkbox-border--valid: var(--wb-ds-color-gray--default-5);
+        }
+    }
+
+    @at-root wb-dropdown-field,
+        wb-text-field,
+        wb-upload-field,
+        wb-checkbox-field,
+        wb-radio-field {
+        --wb-layout__gutter-height: var(--wb-ds-size--50);
+        --wb-ds-field__bezel-top: var(--wb-ds-size--88);
+        --wb-ds-field__bezel-bottom: var(--wb-ds-size--88);
+        --wb-text-field-label-is-fluid__bezel: var(--wb-ds-size--88);
+        --wb-ds-field__border-radius: var(--wb-ds-border-radius--small);
+        --wb-ds-field__border-color: var(--wb-ds-color-gray--40);
+        --wb-text-field-label-is-fluid__mask-color: var(--wb-ds-color-gray--white);
+        --wb-ds-field-message__font-size: 12px;
+        --wb-radio-field__border-radius: var(--wb-ds-border-radius--small);
+    }
+    @at-root wb-radio-field {
+        wb-option {
+            // 🎨 figma: the icon (circle inside the radio, when checked) is primary blue
+            --wb-option-icon__color: var(--wb-ds-color-gray--black);
+
+            // 🎨 figma: a checked options value has a border of 2px
+            --wb-option__border-width--checked: var(--wb-ds-size--13);
+
+            &:hover {
+                // 🎨 figma: on hover, the value border is dark blue
+                --wb-option__border-color--hover: var(--wb-ds-color-gray--black);
+
+                // 🎨 figma: on hover, the icon (circle inside the value, visible when checked) is dark blue
+                --wb-option-icon__color--hover: var(--wb-ds-color-gray--black);
+            }
+
+            &:disabled {
+                // 🎨 figma: when disabled, the value border is gray60. Important: still gray60 when hovered!
+                --wb-option__border-color--disabled: var(--wb-ds-color-gray--60);
+
+                // 🎨 figma: when disabled, the icon (circle inside the value, when checked) is gray60. Important: still gray60 when hovered!
+                --wb-option-icon__color--hover: var(--wb-ds-color-gray--60);
+            }
+
+            &:focus {
+                // NOTE: implements the focus rings!
+                //       How? all the borders above are actually using box-shadow (that's the default),
+                //       while the focus ring is an actual border *in addition* to the box-shadow-based border.
+                //       For this reason the whole border needs to be specified here (not just single props).
+                // 🎨 figma: when focused, the option value has a focus ring of 2px in primary blue
+                --wb-option__border: var(--wb-ds-size--13) solid var(--wb-ds-color-gray--black);
+            }
+        }
+    }
+
+    @at-root wb-alert {
+        --wb-alert__border-radius: var(--wb-ds-border-radius--none);
+    }
+
+    /*** GRID CONTAINER ***/
+
+    @include media.at-least(lg) {
+        --wb-grid-container__max-width: 1200px;
+    }
+
+    /*** APP HEADER TITLE ***/
+    --app-header--title-display-style: none;
+    @include media.at-least(sm) {
+        --app-header--title-display-style: block;
+    }
+}
+
+@include media.viewports(
+    (
+        "xxs": 0,
+        "xs": 0,
+        "sm": 768,
+        "md": 992,
+        "lg": 1500,
+        "xl": 2000,
+        "xxl": 9999,
+        "xxxl": 99999,
+    )
+);
+
+wb-bezel.content {
+    background-color: var(--conent--background-color, var(--wb-ds-color-gray--10));
+}
+
+wb-button,
+wb-link[button] {
+    --wb-ds-button__bezel-left: var(--wb-ds-space--s);
+    --wb-ds-button__bezel-right: var(--wb-ds-space--s);
+    --wb-ds-button__bezel-top: var(--wb-ds-space--2xs);
+    --wb-ds-button__bezel-bottom: var(--wb-ds-space--2xs);
+
+    --wb-ds-button__border-color: var(--wb-ds-color-gray--x-light);
+    --wb-ds-button__box-shadow: rgba(0, 0, 0, 0.02) 0px var(--wb-ds-size-static--20) 0px 0px;
+
+    .wb-button,
+    .wb-link {
+        &:hover,
+        &:focus,
+        &:active {
+            --wb-ds-button__border-color: var(--wb-ds-color-primary--default);
+            --wb-ds-button__color: var(--wb-ds-color-primary--default);
+            transition: var(--wb-ds-animation--default);
+        }
+    }
+
+    .wb-link--button {
+        display: inline-flex;
+        justify-content: center;
+        column-gap: var(--wb-ds-size--75);
+        align-items: center;
+    }
+
+    .wb-button--disabled {
+        opacity: 0.4;
+    }
+}
+
+wb-button[kind="primary"],
+wb-link[button][kind="primary"] {
+    --wb-ds-button__background: var(--wb-ds-color-primary--default);
+    --wb-ds-button__color: var(--wb-ds-color-gray--white);
+    --wb-ds-button__border-width: 0;
+
+    .wb-button,
+    .wb-link {
+        &:hover,
+        &:focus,
+        &:active {
+            --wb-ds-button__background: var(--wb-ds-color-primary--light);
+            --wb-ds-button__color: var(--wb-ds-color-gray--white);
+        }
+    }
+}
+
+wb-button[kind="link"],
+wb-link[button][kind="link"] {
+    --wb-ds-button__color: var(--wb-ds-color-primary--default);
+    --wb-ds-button__border-width: 0;
+
+    .wb-button,
+    .wb-link {
+        &:hover,
+        &:focus,
+        &:active {
+            --wb-ds-button__color: var(--wb-ds-color-primary--light);
+        }
+    }
+}
+wb-link[kind="container"] {
+    --wb-ds-link__text-decoration: none;
+
+    &:hover {
+        --wb-ds-link__text-decoration: none;
+    }
+
+    &:focus {
+        --wb-ds-link__text-decoration: underline;
+    }
+}
+
+wb-link[kind="default"],
+wb-link {
+    --wb-ds-link__text-decoration: underline;
+
+    a:hover {
+        --wb-ds-link__color: var(--wb-ds-color-gray--light);
+    }
+}
+
+wb-text-field {
+    input:focus {
+        --wb-ds-field__border-color: var(--wb-ds-color-gray--dark);
+    }
+}
+
+wb-checkbox-field {
+    label:has(input:is(:focus)) {
+        color: var(--wb-ds-color-primary--default);
+    }
+
+    input:is(:focus) {
+        background: var(--wb-ds-color-primary--10);
+    }
+
+    a {
+        color: var(--wb-ds-color-text--default);
+    }
+
+    a:hover {
+        color: var(--wb-ds-color-primary--default);
+    }
+}
+
+wb-radio-field {
+    --wb-ds-field__border: 1px solid;
+    --wb-ds-field__border--hover: 1px solid;
+    --wb-ds-field__border--focus: 1px solid;
+}
+
+// Styles required for the Outline component
+
+.outline--after-content {
+    @include media.at-least(md) {
+        display: none;
+    }
+}
+
+.outline__items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.outline-item {
+    // this is needed to keep the bullet round on all viewports
+    // with the "actual" responsive font-sizes
+    // fragile: this could break with theme changes
+    line-height: var(--wb-ds-line-height--l);
+    margin-bottom: 20px;
+    @include media.at-least(md) {
+    }
+
+    &__title {
+        flex: 1;
+    }
+
+    &--hidden {
+        display: none;
+
+        @include media.at-least(md) {
+            display: initial;
+        }
+    }
+
+    &__icon-pen {
+        font-size: var(--wb-ds-size--100);
+
+        @include media.at-least(md) {
+            font-size: var(--wb-ds-size--125);
+        }
+
+        @include media.at-least(xl) {
+            font-size: var(--wb-ds-size--150);
+        }
+    }
+}
+
+// Source: https://tailwindcss.com/docs/screen-readers
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+.form-builder {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+
+    wb-radio-field[hidden] {
+        display: none;
+    }
+
+    &__form-wrapper {
+        flex: 1;
+        background: var(--wb-ds-color-primary--x-light);
+
+        @include media.at-least(md) {
+            --wb-bezel__bezel-top: 0;
+        }
+    }
+
+    &__result,
+    &__loading,
+    &__error {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        flex-direction: column;
+        gap: var(--wb-ds-space--s);
+        height: 75vh;
+    }
+
+    &--submitted .outline {
+        display: none;
+    }
+
+    @include media.at-least(md) {
+        display: grid;
+        // FIXME(#WEBBLQS-844): should use `var(--wb-ds-viewport--xs)` instead of `320px`
+        grid-template-columns: minmax(calc(320px + var(--wb-ds-space--l)), 1fr) 5fr;
+        grid-template-rows: min-content min-content min-content auto;
+
+        &__form-wrapper {
+            grid-column: 2;
+            grid-row: 1 / span 4;
+        }
+
+        .outline {
+            display: block;
+        }
+
+        &--submitted .outline {
+            display: none;
+        }
+    }
+
+    @include media.at-least(xl) {
+        // FIXME(#WEBBLQS-844): should use `var(--wb-ds-viewport--xs)` instead of `320px`
+        grid-template-columns: minmax(calc(320px + var(--wb-ds-space--2xl)), 1fr) 5fr;
+    }
+}
