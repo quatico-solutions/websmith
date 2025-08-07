@@ -115,10 +115,7 @@ export class WebpackBuild {
             if (this.tsLoaderOptions && rule?.loader?.includes("ts-loader")) {
                 this.injectTsLoaderOptions(rule, this.tsLoaderOptions);
             }
-            if (
-                this.websmithLoaderOptions &&
-                (rule?.loader?.includes("websmith-loader") || rule?.loader?.includes("packages/webpack/src/index.ts"))
-            ) {
+            if (this.websmithLoaderOptions && (rule?.loader?.includes("websmith-loader") || rule?.loader?.includes("packages/webpack"))) {
                 this.injectWebsmithLoaderOptions(rule, this.websmithLoaderOptions);
             }
         }
