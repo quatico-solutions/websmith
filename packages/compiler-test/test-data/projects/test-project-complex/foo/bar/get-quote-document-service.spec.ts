@@ -16,7 +16,7 @@ import {
     ProviderConfiguration,
     type QuoteDocumentValue,
     ServiceConfiguration,
-} from "./shared";
+} from "../../shared";
 
 // --- Mock Factories ---
 const aContactEntity = (overrides: Partial<any> = {}) =>
@@ -141,17 +141,13 @@ describe("getQuoteDocument", () => {
         it("should throw an error when order is not found", async () => {
             jest.spyOn(OrderEntity, "load").mockResolvedValue(undefined);
 
-            await expect(getQuoteDocument({ orderId: Order.Id("nonexistent") })).rejects.toThrow(
-                'Order with id "nonexistent" not found.'
-            );
+            await expect(getQuoteDocument({ orderId: Order.Id("nonexistent") })).rejects.toThrow('Order with id "nonexistent" not found.');
         });
 
         it("should throw an error when order is null", async () => {
             jest.spyOn(OrderEntity, "load").mockResolvedValue(null as any);
 
-            await expect(getQuoteDocument({ orderId: Order.Id("null-order") })).rejects.toThrow(
-                'Order with id "null-order" not found.'
-            );
+            await expect(getQuoteDocument({ orderId: Order.Id("null-order") })).rejects.toThrow('Order with id "null-order" not found.');
         });
 
         it("should throw an error when order is in draft stage", async () => {
@@ -168,25 +164,19 @@ describe("getQuoteDocument", () => {
         it("should throw an error when no service configurations exist", async () => {
             jest.spyOn(mockOrder, "getConfigurations").mockResolvedValue([]);
 
-            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No service configuration found for order with id "123".'
-            );
+            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow('No service configuration found for order with id "123".');
         });
 
         it("should throw an error when configurations array contains only null/undefined", async () => {
             jest.spyOn(mockOrder, "getConfigurations").mockResolvedValue([null, undefined] as any);
 
-            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No service configuration found for order with id "123".'
-            );
+            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow('No service configuration found for order with id "123".');
         });
 
         it("should throw an error when first configuration is undefined but array is not empty", async () => {
             jest.spyOn(mockOrder, "getConfigurations").mockResolvedValue([undefined] as any);
 
-            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No service configuration found for order with id "123".'
-            );
+            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow('No service configuration found for order with id "123".');
         });
     });
 
@@ -194,17 +184,13 @@ describe("getQuoteDocument", () => {
         it("should throw an error when customer is not found", async () => {
             jest.spyOn(mockOrder, "getCustomer").mockResolvedValue(null);
 
-            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No customer found for order with id "123".'
-            );
+            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow('No customer found for order with id "123".');
         });
 
         it("should throw an error when customer is undefined", async () => {
             jest.spyOn(mockOrder, "getCustomer").mockResolvedValue(undefined);
 
-            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No customer found for order with id "123".'
-            );
+            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow('No customer found for order with id "123".');
         });
     });
 
@@ -212,17 +198,13 @@ describe("getQuoteDocument", () => {
         it("should throw an error when primary contact is not found", async () => {
             jest.spyOn(mockCustomer, "getPrimaryContact").mockResolvedValue(null);
 
-            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No primary contact found for customer with id "CUST-1".'
-            );
+            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow('No primary contact found for customer with id "CUST-1".');
         });
 
         it("should throw an error when primary contact is undefined", async () => {
             jest.spyOn(mockCustomer, "getPrimaryContact").mockResolvedValue(undefined);
 
-            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No primary contact found for customer with id "CUST-1".'
-            );
+            await expect(getQuoteDocument({ orderId: Order.Id("123") })).rejects.toThrow('No primary contact found for customer with id "CUST-1".');
         });
     });
 
@@ -293,9 +275,7 @@ describe("getQuoteDocument", () => {
 
             expect(result).toBeDefined();
 
-            expect(ConfigurableServiceEntity.loadOrFind).toHaveBeenCalledWith(
-                ConfigurableService.Id("different-service")
-            );
+            expect(ConfigurableServiceEntity.loadOrFind).toHaveBeenCalledWith(ConfigurableService.Id("different-service"));
         });
 
         it("should handle customer with different ID format", async () => {
@@ -313,9 +293,7 @@ describe("getQuoteDocument", () => {
         it("should preserve the exact error message format for each validation step", async () => {
             // Test exact error message for order not found
             jest.spyOn(OrderEntity, "load").mockResolvedValue(undefined);
-            await expect(getQuoteDocument({ orderId: Order.Id("test-123") })).rejects.toThrow(
-                'Order with id "test-123" not found.'
-            );
+            await expect(getQuoteDocument({ orderId: Order.Id("test-123") })).rejects.toThrow('Order with id "test-123" not found.');
 
             // Reset mocks for next test
             jest.spyOn(OrderEntity, "load").mockResolvedValue(mockOrder);
@@ -334,22 +312,14 @@ describe("getQuoteDocument", () => {
             const mockContext = { userId: "user-123" } as any;
             const mockSerialization = { format: "json" } as any;
 
-            const result = (await getQuoteDocument(
-                { orderId: Order.Id("123") },
-                mockContext,
-                mockSerialization
-            )) as QuoteDocumentValue;
+            const result = (await getQuoteDocument({ orderId: Order.Id("123") }, mockContext, mockSerialization)) as QuoteDocumentValue;
 
             expect(result).toBeDefined();
             expect(result.getStringContent()).toBe(Buffer.from("mock-pdf-content").toString("base64"));
         });
 
         it("should work correctly when context and serialization parameters are undefined", async () => {
-            const result = (await getQuoteDocument(
-                { orderId: Order.Id("123") },
-                undefined,
-                undefined
-            )) as QuoteDocumentValue;
+            const result = (await getQuoteDocument({ orderId: Order.Id("123") }, undefined, undefined)) as QuoteDocumentValue;
 
             expect(result).toBeDefined();
             expect(result.getStringContent()).toBe(Buffer.from("mock-pdf-content").toString("base64"));

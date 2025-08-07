@@ -19,7 +19,7 @@ import {
     ServiceConfiguration,
     ServiceParameter,
     ServiceParameterGroup,
-} from "./shared";
+} from "../../shared";
 import { submitQuoteRequest } from "./submit-quote-request-service";
 
 const MockedMailer = {} as any;
@@ -197,17 +197,13 @@ describe("submitQuoteRequest", () => {
         it("should throw an error when order is not found", async () => {
             jest.spyOn(OrderEntity, "load").mockResolvedValue(undefined);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("nonexistent") })).rejects.toThrow(
-                'No Order found with id "nonexistent".'
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("nonexistent") })).rejects.toThrow('No Order found with id "nonexistent".');
         });
 
         it("should throw an error when order is undefined", async () => {
             jest.spyOn(OrderEntity, "load").mockResolvedValue(undefined as any);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("undefined-order") })).rejects.toThrow(
-                'No Order found with id "undefined-order".'
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("undefined-order") })).rejects.toThrow('No Order found with id "undefined-order".');
         });
     });
 
@@ -215,17 +211,13 @@ describe("submitQuoteRequest", () => {
         it("should throw an error when no service configurations exist", async () => {
             jest.spyOn(mockOrder, "getConfigurations").mockResolvedValue([]);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No service configuration found for order with id "123".'
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow('No service configuration found for order with id "123".');
         });
 
         it("should throw an error when configurations array contains only null/undefined", async () => {
             jest.spyOn(mockOrder, "getConfigurations").mockResolvedValue([null, undefined] as any);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No service configuration found for order with id "123".'
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow('No service configuration found for order with id "123".');
         });
     });
 
@@ -233,17 +225,13 @@ describe("submitQuoteRequest", () => {
         it("should throw an error when customer is not found", async () => {
             jest.spyOn(mockOrder, "getCustomer").mockResolvedValue(null);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No customer found for order with id "123".'
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow('No customer found for order with id "123".');
         });
 
         it("should throw an error when customer is undefined", async () => {
             jest.spyOn(mockOrder, "getCustomer").mockResolvedValue(undefined);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No customer found for order with id "123".'
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow('No customer found for order with id "123".');
         });
     });
 
@@ -251,35 +239,27 @@ describe("submitQuoteRequest", () => {
         it("should throw an error when primary contact is not found", async () => {
             jest.spyOn(mockCustomer, "getPrimaryContact").mockResolvedValue(null);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No primary contact found for customer with id "CUST-1".'
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow('No primary contact found for customer with id "CUST-1".');
         });
 
         it("should throw an error when primary contact is undefined", async () => {
             jest.spyOn(mockCustomer, "getPrimaryContact").mockResolvedValue(undefined);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No primary contact found for customer with id "CUST-1".'
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow('No primary contact found for customer with id "CUST-1".');
         });
 
         it("should throw an error when contact has no email", async () => {
             const contactWithoutEmail = aContactEntity({ email: null });
             jest.spyOn(mockCustomer, "getPrimaryContact").mockResolvedValue(contactWithoutEmail);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "No email address found for customer with id CUST-1"
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow("No email address found for customer with id CUST-1");
         });
 
         it("should throw an error when contact email is undefined", async () => {
             const contactWithoutEmail = aContactEntity({ email: undefined });
             jest.spyOn(mockCustomer, "getPrimaryContact").mockResolvedValue(contactWithoutEmail);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "No email address found for customer with id CUST-1"
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow("No email address found for customer with id CUST-1");
         });
     });
 
@@ -327,9 +307,7 @@ describe("submitQuoteRequest", () => {
         it("should throw an error when createQuoteDocument fails", async () => {
             mockedCreateQuoteDocument.mockRejectedValue(new Error("PDF generation failed"));
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "PDF generation failed"
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow("PDF generation failed");
         });
     });
 
@@ -337,9 +315,7 @@ describe("submitQuoteRequest", () => {
         it("should throw an error when customer email sending fails", async () => {
             mockMailer.sendMessage.mockRejectedValueOnce(new Error("Customer email failed"));
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "Customer email failed"
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow("Customer email failed");
         });
 
         it("should throw an error when sales email sending fails", async () => {
@@ -347,9 +323,7 @@ describe("submitQuoteRequest", () => {
                 .mockResolvedValueOnce(undefined) // Customer email succeeds
                 .mockRejectedValueOnce(new Error("Sales email failed")); // Sales email fails
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "Sales email failed"
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow("Sales email failed");
         });
 
         it("should throw an error when createEmailMessage fails for customer", async () => {
@@ -357,9 +331,7 @@ describe("submitQuoteRequest", () => {
                 throw new Error("Email template error");
             });
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "Email template error"
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow("Email template error");
         });
     });
 
@@ -473,9 +445,7 @@ describe("submitQuoteRequest", () => {
             const validConfig = aServiceConfiguration();
             jest.spyOn(mockOrder, "getConfigurations").mockResolvedValue([null, validConfig] as any);
 
-            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No service configuration found for order with id "123".'
-            );
+            await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow('No service configuration found for order with id "123".');
         });
 
         it("should handle different customer ID formats", async () => {
@@ -508,9 +478,7 @@ describe("submitQuoteRequest", () => {
     it("should throw an error with no service configurations", async () => {
         jest.spyOn(mockOrder, "getConfigurations").mockResolvedValue([]);
 
-        await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-            'No service configuration found for order with id "123".'
-        );
+        await expect(submitQuoteRequest({ orderId: Order.Id("123") })).rejects.toThrow('No service configuration found for order with id "123".');
     });
 
     it("should throw an error with service configuration, value but no template for service", async () => {

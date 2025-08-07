@@ -1,4 +1,4 @@
-import { Customer, Order, OrderEntity, OrderStage, ServiceConfiguration } from "./shared";
+import { Customer, Order, OrderEntity, OrderStage, ServiceConfiguration } from "../../shared";
 import { getOrderDetailsById } from "./get-order-details-by-id";
 
 describe("getOrderDetailsById", () => {

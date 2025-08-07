@@ -1,5 +1,5 @@
-import { type Context, type Serialization } from "./magellan-shared";
-import { type ConfigurableService, ConfigurableServiceEntity } from "./shared";
+import { type Context, type Serialization } from "../../magellan-shared";
+import { type ConfigurableService, ConfigurableServiceEntity } from "../../shared";
 
 // @service({"namespace":"cds-cpq-no-auth"})
 export const getConfigurableServiceFn = async (

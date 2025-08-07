@@ -1,12 +1,5 @@
-import { type Context, type Serialization } from "./magellan-shared";
-import {
-    ConfigurableService,
-    ConfigurableServiceEntity,
-    Logger,
-    type Order,
-    OrderEntity,
-    type QuoteDocument,
-} from "./shared";
+import { type Context, type Serialization } from "../../magellan-shared";
+import { ConfigurableService, ConfigurableServiceEntity, Logger, type Order, OrderEntity, type QuoteDocument } from "../../shared";
 
 export type SubmitQuoteRequestInput = {
     orderId: Order.Id;
@@ -56,9 +49,7 @@ export const submitQuoteRequest = async (
         throw new Error(`No primary contact found for customer with id "${existingCustomer.id}".`);
     }
 
-    const configurableService = await ConfigurableServiceEntity.loadOrFind(
-        ConfigurableService.Id(existingConfig.serviceId)
-    );
+    const configurableService = await ConfigurableServiceEntity.loadOrFind(ConfigurableService.Id(existingConfig.serviceId));
 
     if (!configurableService) {
         logger.error(`No configurable service found for service id "${existingConfig.serviceId}".`);
@@ -71,9 +62,7 @@ export const submitQuoteRequest = async (
     const provider = configurableService.getProvider();
     if (!provider) {
         logger.error(`No provider found for service id "${existingConfig.serviceId}".`);
-        throw new Error(
-            `Quote Request Submission: No provider found for service id "${existingConfig.serviceId}".`
-        );
+        throw new Error(`Quote Request Submission: No provider found for service id "${existingConfig.serviceId}".`);
     }
 
     // Generate quote document

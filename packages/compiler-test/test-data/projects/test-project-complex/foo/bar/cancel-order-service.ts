@@ -1,5 +1,5 @@
-import { type Context, type Serialization } from "./magellan-shared";
-import { Logger, type Order, OrderEntity, OrderStage } from "./shared";
+import { type Context, type Serialization } from "../../magellan-shared";
+import { Logger, type Order, OrderEntity, OrderStage } from "../../shared";
 
 const logger = Logger.create("cancel-order-service");
 
@@ -9,11 +9,7 @@ type CancelOrderInput = {
 };
 
 // @service({"namespace":"cds-cpq-no-auth"})
-export const cancelOrder = async (
-    input: CancelOrderInput,
-    _context?: Context,
-    _serialization?: Serialization
-): Promise<Order> => {
+export const cancelOrder = async (input: CancelOrderInput, _context?: Context, _serialization?: Serialization): Promise<Order> => {
     const { orderId, reason } = input;
 
     const order = await OrderEntity.load(orderId);

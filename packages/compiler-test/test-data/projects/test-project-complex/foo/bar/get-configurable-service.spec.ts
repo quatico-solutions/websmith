@@ -1,4 +1,4 @@
-import { ConfigurableService } from "./shared";
+import { ConfigurableService } from "../../shared";
 import { getConfigurableServiceFn } from "./get-configurable-service";
 
 describe("getConfigurableServiceFn", () => {
@@ -92,8 +92,6 @@ describe("getConfigurableServiceFn", () => {
                     target: { name: "test" },
                 },
             })
-        ).rejects.toThrow(
-            'ConfigurableService: Cannot load entity. No configuration found for id "non-existing".'
-        );
+        ).rejects.toThrow('ConfigurableService: Cannot load entity. No configuration found for id "non-existing".');
     });
 });

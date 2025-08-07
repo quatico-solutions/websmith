@@ -1,4 +1,4 @@
-import { type Context, type Serialization } from "./magellan-shared";
+import { type Context, type Serialization } from "../../magellan-shared";
 import {
     ConfigurableService,
     ConfigurableServiceEntity,
@@ -9,7 +9,7 @@ import {
     OrderStage,
     type ServiceConfiguration,
     type ServiceConfigurationPrice,
-} from "./shared";
+} from "../../shared";
 
 type UpdateExistingConfigurationInput = {
     orderId: Order.Id;
@@ -73,12 +73,7 @@ export const updateExistingConfiguration = async (
     const newConfigurations = configurations.filter(it => it.serviceId !== serviceId);
     newConfigurations.push(configuration);
 
-    const newStage =
-        order.stage === OrderStage.Cancelled
-            ? order.customer !== undefined
-                ? OrderStage.Created
-                : OrderStage.Offered
-            : order.stage;
+    const newStage = order.stage === OrderStage.Cancelled ? (order.customer !== undefined ? OrderStage.Created : OrderStage.Offered) : order.stage;
 
     // Get customer and contact for email sending (optional)
     const customer = await order.getCustomer();
@@ -97,9 +92,7 @@ export const updateExistingConfiguration = async (
 
     // Get configurable service and provider for email sending
     if (customer && contact) {
-        configurableService = await ConfigurableServiceEntity.loadOrFind(
-            ConfigurableService.Id(configuration.serviceId)
-        );
+        configurableService = await ConfigurableServiceEntity.loadOrFind(ConfigurableService.Id(configuration.serviceId));
         if (!configurableService) {
             logger.error(`No configurable service found for service id "${configuration.serviceId}".`);
         } else {

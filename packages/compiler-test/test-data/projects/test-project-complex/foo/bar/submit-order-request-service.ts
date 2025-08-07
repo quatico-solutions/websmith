@@ -1,12 +1,5 @@
-import { type Context, type Serialization } from "./magellan-shared";
-import {
-    ConfigurableService,
-    ConfigurableServiceEntity,
-    Logger,
-    type Order,
-    OrderEntity,
-    OrderStage,
-} from "./shared";
+import { type Context, type Serialization } from "../../magellan-shared";
+import { ConfigurableService, ConfigurableServiceEntity, Logger, type Order, OrderEntity, OrderStage } from "../../shared";
 
 export type SubmitOrderRequestInput = {
     orderId: Order.Id;
@@ -16,11 +9,7 @@ const logger = Logger.create("submit-order-request");
 
 // TODO: add unit tests for this function
 // @service({"namespace":"cds-cpq-no-auth"})
-export const submitOrderRequest = async (
-    input: SubmitOrderRequestInput,
-    _context?: Context,
-    _serialization?: Serialization
-): Promise<Order> => {
+export const submitOrderRequest = async (input: SubmitOrderRequestInput, _context?: Context, _serialization?: Serialization): Promise<Order> => {
     logger.debug("Quote Request Submission start");
     logger.debug(`Input: ${JSON.stringify(input)}`);
 
@@ -62,9 +51,7 @@ export const submitOrderRequest = async (
         throw new Error(`No service configuration found for order with id "${orderId}".`);
     }
 
-    const configurableService = await ConfigurableServiceEntity.loadOrFind(
-        ConfigurableService.Id(config.serviceId)
-    );
+    const configurableService = await ConfigurableServiceEntity.loadOrFind(ConfigurableService.Id(config.serviceId));
     if (!configurableService) {
         logger.error(`No configurable service found for service id "${config.serviceId}".`);
         throw new Error(`No configurable service found for service id "${config.serviceId}".`);

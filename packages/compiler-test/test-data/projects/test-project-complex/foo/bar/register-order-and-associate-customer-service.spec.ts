@@ -1,17 +1,8 @@
-import {
-    ContactEntity,
-    CustomerEntity,
-    OrderEntity,
-    OrderStage,
-    PhoneNumber,
-    Name,
-    EmailAddress,
-    Address,
-} from "./shared";
-import { updateCustomer, type UpdateCustomerInput } from "./update-customer-service";
+import { registerOrderAndAssociateCustomer } from "./register-order-and-associate-customer-service";
+import { ContactEntity, CustomerEntity, OrderEntity, OrderStage, PhoneNumber, Name, EmailAddress, Address } from "../../shared";
 
 // Mock the entities
-jest.mock("./shared", () => ({
+jest.mock("../../shared", () => ({
     ContactEntity: {
         findOrCreateByEmail: jest.fn(),
     },
@@ -45,7 +36,7 @@ jest.mock("./shared", () => ({
     },
 }));
 
-describe("updateCustomer", () => {
+describe("registerOrderAndAssociateCustomer", () => {
     let mockContact: jest.Mocked<ContactEntity>;
     let mockCustomer: jest.Mocked<CustomerEntity>;
     let mockOrder: jest.Mocked<OrderEntity>;
@@ -117,7 +108,7 @@ describe("updateCustomer", () => {
 
     describe("phone number persistence", () => {
         it("should update contact with new phone number when provided", async () => {
-            const testObj: UpdateCustomerInput = {
+            const testObj = {
                 orderId: mockOrderId as any,
                 primaryContactData: {
                     firstName: Name.create("John"),
@@ -138,44 +129,29 @@ describe("updateCustomer", () => {
                 },
             };
 
-            const actual = await updateCustomer(testObj);
+            const actual = await registerOrderAndAssociateCustomer(testObj);
 
             const expected = mockUpdatedOrder;
             expect(actual).toEqual(expected);
 
             // Verify contact was updated with the new phone number
-
             expect(mockContact.update).toHaveBeenCalledWith({
                 firstName: Name.create("John"),
                 lastName: Name.create("Doe"),
                 email: EmailAddress.create("john.doe@example.com"),
-                phone: PhoneNumber.create("123456789"), // New phone number
+                phone: PhoneNumber.create("123456789"),
                 customer: mockCustomerId,
-            });
-
-            // Verify customer was updated with the provided data
-            expect(mockCustomer.update).toHaveBeenCalledWith({
-                name: Name.create("Test Company"),
-                address: Address.create({
-                    street: "Test Street",
-                    houseNumber: "123",
-                    zip: "12345",
-                    city: "Test City",
-                    state: "ZH",
-                    country: "Schweiz",
-                }),
-                primaryContact: mockContactId,
             });
         });
 
         it("should update contact even when customer relationship doesn't change", async () => {
-            // Setup contact with same customer relationship
-            Object.defineProperty(mockContact, "customer", {
-                value: mockCustomerId,
-                writable: true,
-            });
+            // Setup contact with same customer relationship by recreating the mock
+            mockContact = {
+                ...mockContact,
+                customer: mockCustomerId,
+            } as unknown as jest.Mocked<ContactEntity>;
 
-            const testObj: UpdateCustomerInput = {
+            const testObj = {
                 orderId: mockOrderId as any,
                 primaryContactData: {
                     firstName: Name.create("John"),
@@ -196,13 +172,12 @@ describe("updateCustomer", () => {
                 },
             };
 
-            const actual = await updateCustomer(testObj);
+            const actual = await registerOrderAndAssociateCustomer(testObj);
 
             const expected = mockUpdatedOrder;
             expect(actual).toEqual(expected);
 
             // Verify contact was still updated with the new phone number
-
             expect(mockContact.update).toHaveBeenCalledWith({
                 firstName: Name.create("John"),
                 lastName: Name.create("Doe"),
@@ -213,7 +188,7 @@ describe("updateCustomer", () => {
         });
 
         it("should update contact when phone number is added for the first time", async () => {
-            const testObj: UpdateCustomerInput = {
+            const testObj = {
                 orderId: mockOrderId as any,
                 primaryContactData: {
                     firstName: Name.create("John"),
@@ -234,13 +209,12 @@ describe("updateCustomer", () => {
                 },
             };
 
-            const actual = await updateCustomer(testObj);
+            const actual = await registerOrderAndAssociateCustomer(testObj);
 
             const expected = mockUpdatedOrder;
             expect(actual).toEqual(expected);
 
             // Verify contact was updated with the new phone number
-
             expect(mockContact.update).toHaveBeenCalledWith({
                 firstName: Name.create("John"),
                 lastName: Name.create("Doe"),
@@ -255,7 +229,7 @@ describe("updateCustomer", () => {
         it("should throw error when order is not found", async () => {
             (OrderEntity.load as jest.Mock).mockResolvedValue(undefined);
 
-            const testObj: UpdateCustomerInput = {
+            const testObj = {
                 orderId: "non-existent-order" as any,
                 primaryContactData: {
                     firstName: Name.create("John"),
@@ -276,9 +250,39 @@ describe("updateCustomer", () => {
                 },
             };
 
-            await expect(updateCustomer(testObj)).rejects.toThrow(
-                'Order with id "non-existent-order" not found.'
-            );
+            await expect(registerOrderAndAssociateCustomer(testObj)).rejects.toThrow('Order with id "non-existent-order" not found.');
+        });
+
+        it("should throw error when order is not in draft stage", async () => {
+            // Create new mock order with Created stage
+            mockOrder = {
+                ...mockOrder,
+                stage: OrderStage.Created,
+            } as unknown as jest.Mocked<OrderEntity>;
+            (OrderEntity.load as jest.Mock).mockResolvedValue(mockOrder);
+
+            const testObj = {
+                orderId: mockOrderId as any,
+                primaryContactData: {
+                    firstName: Name.create("John"),
+                    lastName: Name.create("Doe"),
+                    email: EmailAddress.create("john.doe@example.com"),
+                    phone: PhoneNumber.create("123456789"),
+                },
+                customerData: {
+                    name: Name.create("Test Company"),
+                    address: Address.create({
+                        street: "Test Street",
+                        houseNumber: "123",
+                        zip: "12345",
+                        city: "Test City",
+                        state: "ZH",
+                        country: "Schweiz",
+                    }),
+                },
+            };
+
+            await expect(registerOrderAndAssociateCustomer(testObj)).rejects.toThrow(`Order with id "${mockOrderId}" is not draft stage.`);
         });
     });
 });

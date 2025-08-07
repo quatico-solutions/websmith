@@ -1,4 +1,4 @@
-import { type Context, type Serialization } from "./magellan-shared";
+import { type Context, type Serialization } from "../../magellan-shared";
 import {
     ConfigurableService,
     ConfigurableServiceEntity,
@@ -10,7 +10,7 @@ import {
     type Order,
     OrderEntity,
     OrderStage,
-} from "./shared";
+} from "../../shared";
 
 export type UpdateCustomerInput = {
     orderId: Order.Id;
@@ -21,11 +21,7 @@ export type UpdateCustomerInput = {
 const logger = Logger.create("update-customer");
 
 // @service({"namespace":"cds-cpq-no-auth"})
-export const updateCustomer = async (
-    input: UpdateCustomerInput,
-    _context?: Context,
-    _serialization?: Serialization
-): Promise<OrderEntity> => {
+export const updateCustomer = async (input: UpdateCustomerInput, _context?: Context, _serialization?: Serialization): Promise<OrderEntity> => {
     logger.info("updateCustomer");
     // TODO: move complex logic to domain entities
     const order = await OrderEntity.load(input.orderId);
@@ -56,11 +52,7 @@ export const updateCustomer = async (
     return updatedOrder;
 };
 
-const sendQuoteEmails = async (
-    order: OrderEntity,
-    customer: CustomerEntity,
-    contact: ContactEntity
-): Promise<void> => {
+const sendQuoteEmails = async (order: OrderEntity, customer: CustomerEntity, contact: ContactEntity): Promise<void> => {
     logger.info("Sending quote emails for offered order");
 
     if (!process.env.CDS_CPQ_FRONTEND_URL) {
@@ -75,23 +67,17 @@ const sendQuoteEmails = async (
         throw new Error(`No service configuration found for order with id "${order.id}".`);
     }
 
-    const configurableService = await ConfigurableServiceEntity.loadOrFind(
-        ConfigurableService.Id(existingConfig.serviceId)
-    );
+    const configurableService = await ConfigurableServiceEntity.loadOrFind(ConfigurableService.Id(existingConfig.serviceId));
 
     if (!configurableService) {
         logger.error(`No configurable service found for service id "${existingConfig.serviceId}".`);
-        throw new Error(
-            `Quote Email Sending: No configurable service found for service id "${existingConfig.serviceId}".`
-        );
+        throw new Error(`Quote Email Sending: No configurable service found for service id "${existingConfig.serviceId}".`);
     }
 
     const provider = configurableService.getProvider();
     if (!provider) {
         logger.error(`No provider found for service id "${existingConfig.serviceId}".`);
-        throw new Error(
-            `Quote Email Sending: No provider found for service id "${existingConfig.serviceId}".`
-        );
+        throw new Error(`Quote Email Sending: No provider found for service id "${existingConfig.serviceId}".`);
     }
 
     // Send email with quote document

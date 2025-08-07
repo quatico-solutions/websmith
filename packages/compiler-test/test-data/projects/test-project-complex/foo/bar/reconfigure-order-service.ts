@@ -1,5 +1,5 @@
-import { type Context, type Serialization } from "./magellan-shared";
-import { Logger, type Order, OrderEntity, OrderStage } from "./shared";
+import { type Context, type Serialization } from "../../magellan-shared";
+import { Logger, type Order, OrderEntity, OrderStage } from "../../shared";
 
 const logger = Logger.create("reconfigure-order-service");
 
@@ -19,11 +19,7 @@ export type ReconfigureOrderInput = {
  * @throws Error if the order is not found or cannot be reconfigured.
  */
 // @service({"namespace":"cds-cpq-no-auth"})
-export const reconfigureOrder = async (
-    input: ReconfigureOrderInput,
-    _context?: Context,
-    _serialization?: Serialization
-): Promise<Order> => {
+export const reconfigureOrder = async (input: ReconfigureOrderInput, _context?: Context, _serialization?: Serialization): Promise<Order> => {
     const { orderId } = input;
 
     const order = await OrderEntity.load(orderId);
@@ -41,14 +37,10 @@ export const reconfigureOrder = async (
 
     if (order.stage === OrderStage.Executed) {
         logger.error(`Cannot reconfigure Order with id "${orderId}". The order has already been executed.`);
-        throw new Error(
-            `Cannot reconfigure Order with id "${orderId}". The order has already been executed.`
-        );
+        throw new Error(`Cannot reconfigure Order with id "${orderId}". The order has already been executed.`);
     }
 
-    logger.info(
-        `Reconfiguring order with id "${orderId}" from stage "${order.stage}" to "${OrderStage.Draft}".`
-    );
+    logger.info(`Reconfiguring order with id "${orderId}" from stage "${order.stage}" to "${OrderStage.Draft}".`);
 
     // Reset the order stage to Draft and clear any cancellation reason and date
     const updatedOrder = await order.update({

@@ -1,4 +1,4 @@
-import { ConfigurableService, Order, OrderEntity, OrderStage, ServiceParameter } from "./shared";
+import { ConfigurableService, Order, OrderEntity, OrderStage, ServiceParameter } from "../../shared";
 import { generateNewOrder } from "./generate-new-order-service";
 
 describe("generateNewOrder", () => {

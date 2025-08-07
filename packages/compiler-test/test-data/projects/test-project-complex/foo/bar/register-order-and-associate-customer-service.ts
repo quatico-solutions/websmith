@@ -1,14 +1,5 @@
-import { type Context, type Serialization } from "./magellan-shared";
-import {
-    type ContactData,
-    ContactEntity,
-    type CustomerData,
-    CustomerEntity,
-    Logger,
-    type Order,
-    OrderEntity,
-    OrderStage,
-} from "./shared";
+import { type Context, type Serialization } from "../../magellan-shared";
+import { type ContactData, ContactEntity, type CustomerData, CustomerEntity, Logger, type Order, OrderEntity, OrderStage } from "../../shared";
 
 export type PatchOrderAndAssociateCustomerInput = {
     orderId: Order.Id;

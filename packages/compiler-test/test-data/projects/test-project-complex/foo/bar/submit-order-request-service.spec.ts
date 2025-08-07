@@ -16,7 +16,7 @@ import {
     ProviderConfiguration,
     QuoteDocumentValue,
     ServiceConfiguration,
-} from "./shared";
+} from "../../shared";
 import { submitOrderRequest } from "./submit-order-request-service";
 
 const MockedMailer = {} as any;
@@ -239,9 +239,7 @@ describe("submitOrderRequest", () => {
             jest.spyOn(draftOrder, "getCustomer").mockResolvedValue(mockCustomer);
             jest.spyOn(OrderEntity, "load").mockResolvedValue(draftOrder);
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'Order with id "123" is in stage draft.'
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow('Order with id "123" is in stage draft.');
         });
     });
 
@@ -249,17 +247,13 @@ describe("submitOrderRequest", () => {
         it("should throw an error when customer is not found", async () => {
             jest.spyOn(mockOrder, "getCustomer").mockResolvedValue(null);
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No customer found for order with id "123".'
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow('No customer found for order with id "123".');
         });
 
         it("should throw an error when customer is undefined", async () => {
             jest.spyOn(mockOrder, "getCustomer").mockResolvedValue(undefined);
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No customer found for order with id "123".'
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow('No customer found for order with id "123".');
         });
     });
 
@@ -267,17 +261,13 @@ describe("submitOrderRequest", () => {
         it("should throw an error when primary contact is not found", async () => {
             jest.spyOn(mockCustomer, "getPrimaryContact").mockResolvedValue(null);
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No primary contact found for customer with id "CUST-1".'
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow('No primary contact found for customer with id "CUST-1".');
         });
 
         it("should throw an error when primary contact is undefined", async () => {
             jest.spyOn(mockCustomer, "getPrimaryContact").mockResolvedValue(undefined);
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No primary contact found for customer with id "CUST-1".'
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow('No primary contact found for customer with id "CUST-1".');
         });
 
         it("should throw an error when contact has no email", async () => {
@@ -303,25 +293,19 @@ describe("submitOrderRequest", () => {
         it("should throw an error when no service configurations exist", async () => {
             jest.spyOn(mockOrder, "getConfigurations").mockResolvedValue([]);
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No service configuration found for order with id "123".'
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow('No service configuration found for order with id "123".');
         });
 
         it("should throw an error when first configuration is null", async () => {
             jest.spyOn(mockOrder, "getConfigurations").mockResolvedValue([null] as any);
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No service configuration found for order with id "123".'
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow('No service configuration found for order with id "123".');
         });
 
         it("should throw an error when first configuration is undefined", async () => {
             jest.spyOn(mockOrder, "getConfigurations").mockResolvedValue([undefined] as any);
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                'No service configuration found for order with id "123".'
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow('No service configuration found for order with id "123".');
         });
     });
 
@@ -369,9 +353,7 @@ describe("submitOrderRequest", () => {
         it("should throw an error when OrderEntity.requestOrder fails", async () => {
             jest.spyOn(OrderEntity, "requestOrder").mockRejectedValue(new Error("Order request failed"));
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "Order request failed"
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow("Order request failed");
         });
     });
 
@@ -379,9 +361,7 @@ describe("submitOrderRequest", () => {
         it("should throw an error when createOrderConfirmationDocument fails", async () => {
             mockedCreateOrderConfirmationDocument.mockRejectedValue(new Error("PDF generation failed"));
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "PDF generation failed"
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow("PDF generation failed");
         });
     });
 
@@ -389,9 +369,7 @@ describe("submitOrderRequest", () => {
         it("should throw an error when customer email sending fails", async () => {
             mockMailer.sendMessage.mockRejectedValueOnce(new Error("Customer email failed"));
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "Customer email failed"
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow("Customer email failed");
         });
 
         it("should throw an error when sales email sending fails", async () => {
@@ -399,9 +377,7 @@ describe("submitOrderRequest", () => {
                 .mockResolvedValueOnce(undefined) // Customer email succeeds
                 .mockRejectedValueOnce(new Error("Sales email failed")); // Sales email fails
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "Sales email failed"
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow("Sales email failed");
         });
 
         it("should throw an error when createEmailMessage fails for customer", async () => {
@@ -409,9 +385,7 @@ describe("submitOrderRequest", () => {
                 throw new Error("Email template error");
             });
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "Email template error"
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow("Email template error");
         });
 
         it("should throw an error when createEmailMessage fails for sales", async () => {
@@ -421,9 +395,7 @@ describe("submitOrderRequest", () => {
                     throw new Error("Sales email template error");
                 });
 
-            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow(
-                "Sales email template error"
-            );
+            await expect(submitOrderRequest({ orderId: Order.Id("123") })).rejects.toThrow("Sales email template error");
         });
     });
 
@@ -560,9 +532,7 @@ describe("submitOrderRequest", () => {
 
             // Should use the first configuration
 
-            expect(ConfigurableServiceEntity.loadOrFind).toHaveBeenCalledWith(
-                ConfigurableService.Id("valid-service")
-            );
+            expect(ConfigurableServiceEntity.loadOrFind).toHaveBeenCalledWith(ConfigurableService.Id("valid-service"));
         });
 
         it("should handle order with different stage values", async () => {

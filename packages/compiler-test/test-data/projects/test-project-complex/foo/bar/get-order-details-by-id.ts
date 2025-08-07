@@ -1,4 +1,4 @@
-import { type Context, type Serialization } from "./magellan-shared";
+import { type Context, type Serialization } from "../../magellan-shared";
 import {
     type Customer,
     type Contact,
@@ -7,7 +7,7 @@ import {
     type ServiceConfiguration,
     ConfigurableServiceEntity,
     type ConfigurableService,
-} from "./shared";
+} from "../../shared";
 
 export type OrderWithConfigurations = {
     order: Order;
@@ -32,9 +32,7 @@ export const getOrderDetailsById = async (
         const configurations = await order.getConfigurations();
         const customer = await order.getCustomer();
         const contact = await customer?.getPrimaryContact();
-        const service = await ConfigurableServiceEntity.loadOrFind(
-            configurations[0]?.serviceId as ConfigurableService.Id
-        );
+        const service = await ConfigurableServiceEntity.loadOrFind(configurations[0]?.serviceId as ConfigurableService.Id);
         return {
             order,
             configurations,
