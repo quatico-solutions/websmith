@@ -58,7 +58,7 @@ describe("s", () => {
     });
 
     describe("getSubTotal", () => {
-        it("shoud return sum of all service configuration prices", () => {
+        it("should return sum of all service configuration prices", () => {
             const testObj = ResolvedOrderPrice.create(
                 {
                     subTotal: 10,
