@@ -181,7 +181,7 @@ export class WebpackAddonService {
         const compilerOptions: ts.CompilerOptions = {
             target: ts.ScriptTarget.ES2020,
             module: ts.ModuleKind.CommonJS,
-            moduleResolution: ts.ModuleResolutionKind.Classic, // Use classic resolution to avoid deep dependency resolution
+            moduleResolution: ts.ModuleResolutionKind.NodeNext,
             esModuleInterop: true,
             allowSyntheticDefaultImports: true,
             skipLibCheck: true,
@@ -194,7 +194,6 @@ export class WebpackAddonService {
             allowJs: true, // Allow JS files in case of mixed projects
             resolveJsonModule: true, // Support JSON imports
             typeRoots: [], // Don't include @types packages to avoid conflicts
-            noResolve: true, // Disable module resolution to prevent including dependencies
         };
 
         // Only include the current addon's source files (no cross-dependencies during compilation)
