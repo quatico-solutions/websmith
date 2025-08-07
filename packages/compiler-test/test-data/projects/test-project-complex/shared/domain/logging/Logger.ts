@@ -15,7 +15,7 @@ type ClassConstructor<T> = new (...args: unknown[]) => T;
 /**
  * Logger class for logging messages with different severity levels.
  * This class provides methods to log messages at different levels (debug, info, warn, error).
- * 1It also formats the log messages with timestamps and colors.
+ * It also formats the log messages with timestamps and colors.
  */
 export class Logger {
     private scope: string = "default";
