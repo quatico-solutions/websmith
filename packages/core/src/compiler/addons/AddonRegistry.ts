@@ -340,7 +340,7 @@ export class AddonRegistry {
                 reporter,
                 tsConfig: {
                     outDir: libDir,
-                    rootDir: addonsDir,
+                    rootDir: addonsDir, // Set rootDir to preserve relative structure from addons directory
                     module: ts.ModuleKind.CommonJS,
                     target: ts.ScriptTarget.ES2020,
                     esModuleInterop: true,
@@ -351,7 +351,10 @@ export class AddonRegistry {
                     strict: true,
                 },
                 cliArgs: {
-                    options: { outDir: libDir, rootDir: addonsDir },
+                    options: {
+                        outDir: libDir,
+                        rootDir: addonsDir, // Also set in cliArgs for consistency
+                    },
                     fileNames: tsFiles,
                     errors: [],
                 },
