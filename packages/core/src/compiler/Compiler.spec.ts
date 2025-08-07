@@ -11,7 +11,7 @@ import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createSystem } from "../environment";
 import { Compiler, type CompileFragment } from "./Compiler";
-import type { AddonRegistry } from "./addons";
+import { AddonRegistry } from "./addons";
 import { type CompilationContext } from "./compilation";
 import { DefaultReporter } from "./DefaultReporter";
 import { type CompilerOptions, type ResolvedCompilerOptions, type WebpackLoaderOptions } from "./options";
@@ -291,6 +291,216 @@ describe("constructor", () => {
             expect(testObj.getOptions().configFile).toMatch(/different\/websmith\.config\.json$/);
         });
     });
+
+    it("yields addons with addons property in configFile", () => {
+        const target = createSystem(
+            {
+                "./websmith.config.json": JSON.stringify({ profiles: { "target-profile": { addons: ["addon1", "addon2"] } } }, null, 2),
+            },
+            { virtual: true }
+        );
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+                configFile: "./websmith.config.json",
+            },
+            undefined,
+            target
+        );
+
+        const actual = testObj.getOptions().getAddons("target-profile");
+
+        expect(actual).toEqual(["addon1", "addon2"]);
+    });
+
+    it("yields addons with profile and addons property in configFile", () => {
+        const target = createSystem(
+            {
+                "./websmith.config.json": JSON.stringify({ profiles: { "target-profile": { addons: ["addon1", "addon2"] } } }, null, 2),
+            },
+            { virtual: true }
+        );
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+                configFile: "./websmith.config.json",
+                profile: "target-profile",
+            },
+            undefined,
+            target
+        );
+
+        const actual = testObj.getOptions().getAddons();
+
+        expect(actual).toEqual(["addon1", "addon2"]);
+    });
+
+    it("yields addons with profile and addons property in config property", () => {
+        const target = createSystem({}, { virtual: true });
+        createAddon(target, "addons/expected1/addon");
+        createAddon(target, "addons/expected2/addon");
+        createAddon(target, "addons/expected3/addon");
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+                config: {
+                    profiles: {
+                        "target-profile": {
+                            addons: ["expected1", "expected2"],
+                        },
+                        other: {
+                            addons: ["expected3"],
+                        },
+                    },
+                },
+                profile: "target-profile",
+            },
+            undefined,
+            target,
+            new AddonRegistry({
+                addonsDir: "addons",
+                system: target,
+                reporter: new ReporterMock(target),
+                profiles: {
+                    "target-profile": {
+                        addons: ["expected1", "expected2"],
+                    },
+                    other: {
+                        addons: ["expected3"],
+                    },
+                },
+            })
+        );
+
+        expect(testObj.getOptions().getAddons()).toEqual(["expected1", "expected2"]);
+        expect(testObj.getOptions().getAddons("target-profile")).toEqual(["expected1", "expected2"]);
+        expect(testObj.getOptions().getAddons("other")).toEqual(["expected3"]);
+        expect(testObj.getAddonRegistry()!.getAvailableAddons("target-profile").getNames()).toEqual(["expected1", "expected2"]);
+        expect(testObj.getAddonRegistry()!.getAvailableAddons("other").getNames()).toEqual(["expected3"]);
+    });
+
+    it("yields addons without profile and addons property in config property", () => {
+        const target = createSystem({}, { virtual: true });
+        createAddon(target, "addons/expected1/addon");
+        createAddon(target, "addons/expected2/addon");
+        createAddon(target, "addons/expected3/addon");
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+                config: {
+                    profiles: {
+                        "target-profile": {
+                            addons: ["expected1", "expected2"],
+                        },
+                        other: {
+                            addons: ["expected3"],
+                        },
+                    },
+                },
+            },
+            undefined,
+            target,
+            new AddonRegistry({
+                addonsDir: "addons",
+                system: target,
+                reporter: new ReporterMock(target),
+                profiles: {
+                    "target-profile": {
+                        addons: ["expected1", "expected2"],
+                    },
+                    other: {
+                        addons: ["expected3"],
+                    },
+                },
+            })
+        ).createProfileContextsIfNecessary();
+
+        expect(testObj.getOptions().getAddons()).toEqual([]);
+        expect(testObj.getAddonRegistry()!.getAvailableAddons("target-profile").getNames()).toEqual(["expected1", "expected2"]);
+        expect(testObj.getAddonRegistry()!.getAvailableAddons("other").getNames()).toEqual(["expected3"]);
+    });
+
+    it("yields tsConfig from profile and tsConfig property in configFile", () => {
+        const target = createSystem(
+            {
+                "./websmith.config.json": JSON.stringify(
+                    {
+                        profiles: {
+                            "target-profile": {
+                                tsConfig: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+                            },
+                        },
+                    },
+                    null,
+                    2
+                ),
+            },
+            { virtual: true }
+        );
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+                configFile: "./websmith.config.json",
+                profile: "target-profile",
+            },
+            undefined,
+            target
+        ).createProfileContextsIfNecessary();
+
+        expect(testObj.getOptions().getOptions("target-profile").tsConfig).toMatchObject({
+            target: ts.ScriptTarget.ES2022,
+            module: ts.ModuleKind.ES2022,
+        });
+
+        expect(testObj.getContext("target-profile")!.getCliArgs().options).toMatchObject({
+            target: ts.ScriptTarget.ES2022,
+            module: ts.ModuleKind.ES2022,
+        });
+    });
+
+    it("yields tsConfig from profile and tsConfig property in config", () => {
+        const target = createSystem(
+            {
+                "./websmith.config.json": JSON.stringify(
+                    {
+                        profiles: {
+                            "target-profile": {
+                                tsConfig: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
+                            },
+                        },
+                    },
+                    null,
+                    2
+                ),
+            },
+            { virtual: true }
+        );
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+                configFile: "./websmith.config.json",
+                profile: "target-profile",
+            },
+            undefined,
+            target
+        ).createProfileContextsIfNecessary();
+
+        expect(testObj.getOptions().getOptions("target-profile").tsConfig).toMatchObject({
+            target: ts.ScriptTarget.ES2022,
+            module: ts.ModuleKind.ES2022,
+        });
+
+        expect(testObj.getContext("target-profile")!.getCliArgs().options).toMatchObject({
+            target: ts.ScriptTarget.ES2022,
+            module: ts.ModuleKind.ES2022,
+        });
+    });
 });
 
 describe("getSystem", () => {
@@ -374,6 +584,110 @@ describe("setOptions", () => {
             }
             "
         `);
+    });
+
+    it("yields addons with addons property in configFile", () => {
+        const target = createSystem(
+            {
+                "./websmith.config.json": JSON.stringify({ profiles: { "target-profile": { addons: ["addon1", "addon2"] } } }, null, 2),
+            },
+            { virtual: true }
+        );
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+            },
+            undefined,
+            target
+        );
+
+        testObj.setOptions({
+            configFile: "./websmith.config.json",
+        });
+
+        const actual = testObj.getOptions().getAddons("target-profile");
+
+        expect(actual).toEqual(["addon1", "addon2"]);
+    });
+
+    it("yields addons with profile and addons property in configFile", () => {
+        const target = createSystem(
+            {
+                "./websmith.config.json": JSON.stringify({ profiles: { "target-profile": { addons: ["addon1", "addon2"] } } }, null, 2),
+            },
+            { virtual: true }
+        );
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+            },
+            undefined,
+            target
+        );
+
+        testObj.setOptions({
+            configFile: "./websmith.config.json",
+            profile: "target-profile",
+        });
+
+        const actual = testObj.getOptions().getAddons();
+
+        expect(actual).toEqual(["addon1", "addon2"]);
+    });
+
+    it("yields addons with profile and addons property in config property", () => {
+        const target = createSystem({}, { virtual: true });
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+            },
+            undefined,
+            target
+        );
+
+        testObj.setOptions({
+            config: {
+                profiles: {
+                    "target-profile": {
+                        addons: ["addon1", "addon2"],
+                    },
+                },
+            },
+        });
+
+        const actual = testObj.getOptions().getAddons("target-profile");
+
+        expect(actual).toEqual(["addon1", "addon2"]);
+    });
+
+    it("yields addons with profile and addons property and addons in profile property", () => {
+        const target = createSystem({}, { virtual: true });
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+            },
+            undefined,
+            target
+        );
+
+        testObj.setOptions({
+            config: {
+                addons: [],
+                profiles: {
+                    "target-profile": {
+                        addons: ["addon1", "addon2"],
+                    },
+                },
+            },
+        });
+
+        const actual = testObj.getOptions().getAddons("target-profile");
+
+        expect(actual).toEqual(["addon1", "addon2"]);
     });
 });
 
@@ -1387,3 +1701,14 @@ const getText = (name: string, output: CompileFragment): string => {
 
 const getFilesByExtension = (output: CompileFragment, ...extensions: string[]): ts.OutputFile[] =>
     output.files.filter(it => extensions.includes(complexFileExtension(it.name)));
+
+const createAddon = (testSystem: ts.System, path: string, code = "export const activate = () => {};", mock: object = { activate: jest.fn() }) => {
+    testSystem.writeFile(`./${path}.js`, code);
+    jest.mock(
+        `/${path}`,
+        () => {
+            return mock;
+        },
+        { virtual: true }
+    );
+};
