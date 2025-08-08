@@ -1,6 +1,6 @@
 {
     "name": "@quatico/websmith-node",
-    "version": "0.7.10",
+    "version": "0.7.11",
     "description": "Node library for running websmith with CLI and webpack in Node.js",
     "author": "Quatico Solutions AG",
     "license": "MIT",

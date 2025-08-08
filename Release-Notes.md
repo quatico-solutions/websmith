@@ -28,6 +28,54 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.11] - 2025-08-08
+
+This release significantly enhances the CLI's file handling capabilities and ensures complete tsconfig compliance. The websmith CLI now properly respects TypeScript configuration patterns and provides comprehensive support for explicit file arguments.
+
+### Added
+
+- 🚀 **Complete CLI File Argument Support**: Added full support for explicit file arguments that override tsconfig file discovery
+  - CLI commands like `websmith file1.ts file2.ts --project tsconfig.json` now work as expected
+  - Explicit files completely override tsconfig include/exclude patterns while preserving all compiler options
+- 🧪 **Comprehensive File Discovery Tests**: Added 6 new test cases covering all file discovery scenarios
+  - Tests for tsconfig include patterns (`include: ["src/**/*"]`)
+  - Tests for custom include patterns (`include: ["src/custom/**/*.ts"]`)
+  - Tests for explicit file arguments overriding tsconfig discovery
+  - Tests for exclude patterns (`exclude: ["src/excluded/**"]`)
+  - Tests for CLI file arguments with exclude patterns
+  - Tests for tsconfig options preservation in all scenarios
+- 🔧 **Enhanced Test Infrastructure**: Added automatic subdirectory creation for nested file structures in tests
+- 🔧 **Improved Path Handling**: Enhanced argument parsing to support file paths with various extensions (.ts, .tsx, .js, .jsx)
+
+### Fixed
+
+- 🐛 **tsconfig Include/Exclude Pattern Compliance**: Fixed file discovery to properly respect tsconfig include and exclude patterns
+  - Replaced manual file discovery (`recursiveFindByFilter`) with TypeScript's built-in `parsedCommandLine` for proper pattern matching
+  - Files are now correctly discovered based on tsconfig configuration rules
+- 🐛 **CLI File Argument Processing**: Fixed explicit file arguments being ignored by the compiler
+  - Added proper extraction and processing of file arguments from command line
+  - Enhanced `command.ts` to detect and handle file arguments separately from option arguments
+  - Modified `parsedCommandLine` to accept and process explicit file arguments correctly
+- 🐛 **tsconfig Options Preservation**: Fixed missing tsconfig properties in `cliArgs.options`
+  - Ensured all configured tsconfig properties are included in `compiler.getContext().getCliArgs().options`
+  - Fixed option merging logic in `ResolvedCompilerOptions` to preserve all tsconfig settings
+  - Maintained proper option precedence: CLI options > tsconfig options > defaults
+- 🐛 **Array Merging Logic**: Fixed array merging issue where CLI files were being merged with tsconfig files instead of replacing them
+  - Implemented proper replacement logic when explicit files are provided
+  - Prevented unwanted file contamination from tsconfig discovery when using explicit arguments
+
+### Changed
+
+- 🔧 **File Discovery Architecture**: Replaced manual file discovery with TypeScript's native configuration parsing
+  - Enhanced `parsedCommandLine` function to handle both tsconfig-based and explicit file discovery
+  - Improved integration between CLI argument parsing and TypeScript configuration resolution
+- 🔧 **Test Isolation**: Enhanced test reliability with unique test directories for each test run
+  - Added `getTestDirs()` helper function for consistent test directory management
+  - Improved cross-platform compatibility with better path handling
+- 🔧 **Configuration Flow**: Streamlined the flow from CLI arguments through configuration resolution to final compiler options
+  - Better separation of concerns between file discovery and option processing
+  - Enhanced error handling and validation for file arguments
+
 ## [0.7.10] - 2025-08-08
 
 This release significantly improves the reliability and functionality of addon loading and configuration handling, particularly for profile-based configurations and file-based config scenarios.
