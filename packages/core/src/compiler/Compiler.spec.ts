@@ -839,7 +839,11 @@ describe("compile", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
 
         new CompilerTestClass(
-            { reporter: new ReporterMock(fileSystem), tsConfig: { target: ts.ScriptTarget.ESNext } },
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["src/target.ts"], options: {}, errors: [] },
+            },
             undefined,
             fileSystem
         ).compile();
