@@ -25,7 +25,6 @@ export const getCompilerInstance = (
         const system = ts.sys;
         instance = new TsCompiler(
             {
-                buildDir: system.getCurrentDirectory(),
                 cliArgs: { options: {}, fileNames: [], errors: [] },
                 reporter: new DefaultReporter(system),
             },

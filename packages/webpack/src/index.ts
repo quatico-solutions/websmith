@@ -5,8 +5,12 @@
  * ---------------------------------------------------------------------------------------------
  */
 
+// Re-export core components
 export { Compiler, createBrowserSystem, DefaultReporter, getVersionedFile, NoReporter } from "@quatico/websmith-core";
 export type { CompilerOptions } from "@quatico/websmith-core";
-export { loader as default } from "./loader";
 export { getLoaderOptions } from "./loader-options";
 export { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
+
+// Import and re-export the loader function as the default export (required for webpack loaders)
+import { loader } from "./loader";
+export default loader;

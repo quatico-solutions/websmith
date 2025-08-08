@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -7,16 +6,20 @@
  */
 
 import { type CompileFragment, Compiler, type CompilerOptions, resolvePath, type WebpackLoaderOptions } from "@quatico/websmith-core";
-import { AddonRegistry } from "@quatico/websmith-core";
+import path from "node:path";
 import ts from "typescript";
 import { type LoaderContext, WebpackError } from "webpack";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
+import { WebpackAddonService, type WebpackAddonConfig } from "./WebpackAddonService";
+import { type WebpackAddonContext } from "./WebpackAddonContext";
 
 export class TsCompiler extends Compiler {
     private profile?: string;
     public readonly warn: (err: WebpackError) => void;
     public readonly error: (err: WebpackError) => void;
     private loaderContext?: LoaderContext<WebsmithLoaderConfig>;
+    private webpackAddonService?: WebpackAddonService;
+    private cachedWebpackContext?: WebpackAddonContext;
 
     constructor(
         options: CompilerOptions,
@@ -26,61 +29,13 @@ export class TsCompiler extends Compiler {
         system?: ts.System
     ) {
         super(options, loaderOptions, system || ts.sys, undefined, dependencyCallback);
-        this.warn = loaderOptions.warn ?? ((err: WebpackError) => console.warn(err.message));
-        this.error = loaderOptions.error ?? ((err: WebpackError) => console.error(err.message));
+        this.warn = loaderOptions.warn ?? (() => {});
+        this.error = loaderOptions.error ?? (() => {});
         this.loaderContext = loaderContext;
 
-        // Ensure loaderOptions are properly set in the parent class
-        super.setOptions(super.getOptions(), loaderOptions);
-
-        const profileName = this.getOptions().profile;
+        const profileName = this.getOptions().profile || loaderOptions.profile;
         this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
-
-        // Set up addon registry if addons are configured
-        this.setupAddonRegistry();
-
-        this.logDebug(`Creating profile contexts for profile: ${this.profile || "default"}`);
         super.createProfileContextsIfNecessary();
-        this.logDebug(`Profile contexts created. Available profiles: ${this.getDefinedProfiles().join(", ")}`);
-    }
-
-    private setupAddonRegistry(): void {
-        const { config } = this.getOptions();
-        if (config?.addonsDir) {
-            const system = this.getSystem();
-            if (!system) {
-                this.logDebug("System not available, skipping addon registry setup");
-                return;
-            }
-
-            const addonRegistry = new AddonRegistry({
-                addonsDir: config.addonsDir,
-                addons: config.addons ?? [],
-                profiles: config.profiles ?? {},
-                reporter: this.getReporter(),
-                system: system,
-            });
-            this.setAddonRegistry(addonRegistry);
-        }
-    }
-
-    private logDebug(message: string): void {
-        const debugEnabled = this.getOptions().debug ?? false;
-        if (debugEnabled) {
-            if (this.loaderContext) {
-                // Use webpack's infrastructure logging properly
-                const logger = this.loaderContext.getLogger("websmith-loader");
-                if (logger) {
-                    logger.info(`[websmith-loader] ${message}`);
-                } else {
-                    // Fallback to console.log if logger is not available
-                    console.log(`[DEBUG] [websmith-loader] ${message}`);
-                }
-            } else {
-                // Fallback to console.log if no loader context
-                console.log(`[DEBUG] [websmith-loader] ${message}`);
-            }
-        }
     }
 
     public getProfile(): string | undefined {
@@ -89,6 +44,13 @@ export class TsCompiler extends Compiler {
 
     public updateLoaderConfig(loaderOptions: WebpackLoaderOptions): void {
         super.setOptions(super.getOptions(), loaderOptions);
+
+        // Initialize or re-initialize the webpack addon service now that we have the full configuration
+        this.setupWebpackAddonService();
+
+        // Update profile after configuration is updated
+        const profileName = this.getOptions().profile || loaderOptions.profile;
+        this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
     }
 
     public build(resourcePath: string): CompileFragment {
@@ -98,24 +60,24 @@ export class TsCompiler extends Compiler {
             throw new Error("TsCompiler.build() called without a valid ts.System");
         }
 
-        const { buildDir } = this.getOptions();
-
         this.logDebug(`Building file: ${resourcePath}`);
-        this.logDebug(`Build directory: ${buildDir}`);
+        this.logDebug(`Build directory: ${this.getOptions().buildDir}`);
         this.logDebug(`Profile: ${this.profile || "default"}`);
 
-        // Ensure profile contexts are created before emitting files
-        this.createProfileContextsIfNecessary();
+        // Note: WebpackAddonService will be initialized lazily when needed
+        // This allows the full configuration to be available first
 
+        const { buildDir } = this.getOptions();
         const filePath = resolvePath(this.getSystem(), buildDir, resourcePath);
+
         if (this.profile) {
             const selectedProfiles = this.getOptions().getSelectedProfiles(this.profile);
             this.logDebug(`Selected profiles: ${selectedProfiles.join(", ")}`);
             selectedProfiles
                 .filter((profile: string) => profile !== this.profile)
                 .forEach((profile: string) => {
-                    this.logDebug(`Processing profile: ${profile}`);
                     // Transpile source file with other profiles (different from webpack target) and write the file
+                    this.logDebug(`Emitting source file: ${filePath} with profile: ${profile}`);
                     this.emitSourceFile(filePath, profile, true);
 
                     // TODO: We cannot apply the resultProcessors to the resulting fragment, because webpack has not written the file yet.
@@ -125,116 +87,128 @@ export class TsCompiler extends Compiler {
                 });
         }
 
+        // Apply addon transformations BEFORE compilation to register transformers
+        this.applyAddonFunctionality(filePath, { version: 0, files: [], diagnostics: [] });
+
         // Transpile source file with webpack target but do not write the file, i.e. file is written by webpack
-        // In test mode, we need to write files to the virtual filesystem
-        // However, if emitSourceFile has been stubbed (like in tests), we should not write files
-        const isTestMode = this.getSystem() !== ts.sys;
-        const isStubbed = this.emitSourceFile !== super.emitSourceFile;
-        const shouldWriteFiles = isTestMode && !isStubbed;
-
-        this.logDebug(`Emitting source file with profile: ${this.profile || "default"}`);
-        this.logDebug(`Is test mode: ${isTestMode}, is stubbed: ${isStubbed}, should write files: ${shouldWriteFiles}`);
-
-        // For TsCompiler, we need to ensure the file is in the root files list
-        // This is needed because the parent Compiler class expects root files to be set up
-        const currentCliArgs = this.getOptions().cliArgs;
-        if (currentCliArgs && !currentCliArgs.fileNames.includes(filePath)) {
-            this.logDebug(`Adding ${filePath} to root files`);
-            currentCliArgs.fileNames = [...currentCliArgs.fileNames, filePath];
-        }
-
-        const result = this.emitSourceFile(filePath, this.profile, shouldWriteFiles);
-
-        // Write all output files to the file system, including addon-generated files
-        if (result.files && result.files.length > 0) {
-            this.logDebug(`Writing ${result.files.length} output files to file system`);
-            result.files.forEach(file => {
-                this.logDebug(`Writing file: ${file.name}`);
-                this.getSystem().writeFile(file.name, file.text);
-            });
-        }
+        this.logDebug(`Emitting source file: ${filePath} with profile: ${this.profile || "default"}`);
+        const result = this.emitSourceFile(filePath, this.profile, false);
 
         if (result.diagnostics?.length) {
-            this.logDebug(`Found ${result.diagnostics.length} diagnostics`);
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
                 const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
                 this.error(new WebpackError(message));
             });
         }
 
-        this.logDebug(`Build completed for: ${resourcePath}`);
+        this.logDebug(`Emit result: ${result.files.length} files generated`);
+        if (result.files.length > 0) {
+            this.logDebug(`Write file: ${result.files[0].name}`);
+        }
 
+        this.logDebug(`Build completed for: ${resourcePath}`);
         return result;
     }
 
     protected emitSourceFile(fileName: string, profile: string | undefined, writeFile: boolean): CompileFragment {
-        this.logDebug(`Emitting source file: ${fileName}`);
-        this.logDebug(`Profile: ${profile || "default"}`);
-        this.logDebug(`Write file: ${writeFile}`);
+        return super.emitSourceFile(fileName, profile, writeFile, true);
+    }
 
-        // For tests with virtual filesystem, we need to write files
-        const isTestMode = this.getSystem() !== ts.sys;
-        const shouldWriteFiles = writeFile || isTestMode;
+    private setupWebpackAddonService(): void {
+        const options = this.getOptions();
+        const config = options.config;
 
-        this.logDebug(`Is test mode: ${isTestMode}`);
-        this.logDebug(`Should write files: ${shouldWriteFiles}`);
+        this.logDebug(`Setting up WebpackAddonService - addonsDir: ${config?.addonsDir}, addons: ${config?.addons?.join(", ") || "none"}`);
 
-        // Ensure default context is created if no profile is specified
-        if (!profile) {
-            this.getContext(); // This will create the default context if it doesn't exist
-        }
+        // Only setup addon service if addons are configured
+        if (config?.addonsDir || config?.addons?.length) {
+            const addonConfig: WebpackAddonConfig = {
+                addonsDir: config?.addonsDir,
+                addons: config?.addons,
+                profiles: config?.profiles,
+                system: this.getSystem(),
+                reporter: this.getReporter(),
+                cacheDir: path.join(process.cwd(), ".websmith-cache", "addons"),
+            };
 
-        // Check if context exists
-        const context = this.getContext(profile);
-        this.logDebug(`Context exists: ${!!context}`);
-        if (context) {
-            this.logDebug(`Context outDir: ${context.getCliArgs().options.outDir}`);
-            this.logDebug(`Context declaration: ${context.getCliArgs().options.declaration}`);
+            this.webpackAddonService = new WebpackAddonService(addonConfig);
+            this.logDebug(`WebpackAddonService initialized with addonsDir: ${config?.addonsDir}`);
 
-            // Check cache
-            const cache = context.getCache();
-            this.logDebug(`Cache exists: ${!!cache}`);
-            if (cache) {
-                const filePath = this.getSystem().resolvePath(fileName);
-                const hasChanged = cache.hasChanged(filePath);
-                this.logDebug(`Cache hasChanged: ${hasChanged}`);
-                const cachedFile = cache.getCachedFile(filePath);
-                this.logDebug(`Cached file exists: ${!!cachedFile}`);
-            }
-        }
-
-        // Check if file exists
-        const fileExists = this.getSystem().fileExists(fileName);
-        this.logDebug(`File exists: ${fileExists}`);
-        if (fileExists) {
-            const fileContent = this.getSystem().readFile(fileName);
-            this.logDebug(`File content length: ${fileContent?.length || 0}`);
-        }
-
-        const result = super.emitSourceFile(fileName, profile, shouldWriteFiles, true);
-
-        this.logDebug(`Emit result - diagnostics: ${result.diagnostics?.length || 0}, files: ${result.files?.length || 0}`);
-        if (result.files && result.files.length > 0) {
-            result.files.forEach((file, index) => {
-                this.logDebug(`File ${index}: ${file.name} (${file.text.length} chars)`);
-            });
+            // Load available addons immediately
+            this.webpackAddonService.getAvailableAddons();
+            this.logDebug(`Addons loaded and ready`);
         } else {
-            this.logDebug(`No files generated - output was undefined or emitSkipped was true`);
+            this.logDebug(`No WebpackAddonService created - no addons configured`);
         }
-
-        return result;
     }
 
     private getFragmentProfile(profile: string): string {
-        const available = super.getDefinedProfiles();
-        const selected = [...(this.getOptions().config?.profiles?.[profile]?.depends ?? []), profile];
-        const missing = selected.filter(cur => !available.includes(cur));
-        if (missing.length) {
-            const noProfileError = `Found missing profile(s) '${missing.join(", ")}' in available profile(s) '${available.join(", ")}'.`;
-            this.error(new WebpackError(noProfileError));
-            throw new Error(noProfileError);
+        // Validate profile against available profiles in config
+        const profiles = this.getOptions().config?.profiles;
+        if (profiles && !profiles[profile]) {
+            this.warn(new WebpackError(`Profile "${profile}" not found in configuration. Available profiles: ${Object.keys(profiles).join(", ")}`));
+        }
+        return profile;
+    }
+
+    private applyAddonFunctionality(filePath: string, result: CompileFragment): void {
+        // Ensure addon service is initialized (lazy initialization)
+        if (!this.webpackAddonService) {
+            this.setupWebpackAddonService();
         }
 
-        return profile;
+        if (!this.webpackAddonService) {
+            return;
+        }
+
+        try {
+            // Apply addon transformations to the compilation context
+            const context = this.getContext(this.profile);
+
+            let webpackContext;
+            if (context) {
+                // Cache the WebpackAddonContext to avoid re-creating it for each file
+                if (!this.cachedWebpackContext) {
+                    this.cachedWebpackContext = this.webpackAddonService.applyAddonsToContext(context, this.profile);
+                }
+                webpackContext = this.cachedWebpackContext;
+
+                // Only apply file-level processing if we have actual compilation results
+                if (result.files.length > 0 && (webpackContext.hasGenerators() || webpackContext.hasProcessors())) {
+                    const fileContent = this.getSystem().readFile(filePath) || "";
+
+                    // Execute generators
+                    if (webpackContext.hasGenerators()) {
+                        webpackContext.executeGenerators(filePath, fileContent);
+                    }
+
+                    // Execute processors and update the compilation result if needed
+                    if (webpackContext.hasProcessors()) {
+                        webpackContext.executeProcessors(filePath, fileContent);
+                        // Note: In webpack context, we can't directly modify the result here
+                        // Processors would need to work through TypeScript transformers instead
+                    }
+
+                    // Generate addon output files after compilation
+                    const compiledFiles = result.files.map(f => f.name);
+                    this.webpackAddonService.generateAddonOutputs(compiledFiles, this.profile);
+                }
+            }
+
+            this.logDebug(`Applied addon functionality for profile: ${this.profile || "default"}`);
+        } catch (error) {
+            // Don't break webpack builds due to addon errors
+            this.logDebug(`Addon functionality failed: ${error instanceof Error ? error.message : String(error)}`);
+            this.warn(new WebpackError(`Addon processing failed: ${error instanceof Error ? error.message : String(error)}`));
+        }
+    }
+
+    private logDebug(message: string): void {
+        const debugEnabled = this.getOptions().debug ?? false;
+        if (debugEnabled) {
+            if (this.loaderContext) {
+                this.loaderContext.emitWarning(new WebpackError(`[websmith-loader] ${message}`));
+            }
+        }
     }
 }

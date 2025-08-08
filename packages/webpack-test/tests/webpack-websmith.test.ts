@@ -11,41 +11,45 @@ import path from "node:path";
 import ts from "typescript";
 import { writeWebsmithConfig, getOutput as getOutputBase, writeTsConfig } from "./test-files";
 
-const getOutput = (filePath: string) => getOutputBase(filePath, OUTPUT_DIR);
+// Create unique test directories for each test to prevent cross-test contamination
+const getTestDirs = () => {
+    const testId = expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
+    const timestamp = Date.now();
+    const uniqueId = `${testId}_${timestamp}`;
+    const PROJECT_DIR = path.resolve(__dirname, "..", `test-output-${uniqueId}`);
+    const OUTPUT_DIR = path.resolve(PROJECT_DIR, "lib");
+    const SOURCE_DIR = path.join(PROJECT_DIR, "src");
+    return { PROJECT_DIR, OUTPUT_DIR, SOURCE_DIR };
+};
 
-// TODO: ts-loader options caching seems broken, we need to understand where to fix it
-// This workaround is not working, we need to find a better solution
-// jest.mock("websmith-loader", () => ({
-//     ...jest.requireActual("websmith-loader"),
-//     getInstanceFromCache: jest.fn(),
-// }));
-
-const PROJECT_DIR = path.join(__dirname, "..", "test-output");
-const OUTPUT_DIR = path.join(PROJECT_DIR, "lib");
-const SOURCE_DIR = path.join(PROJECT_DIR, "src");
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
 
-const webpackDefaults = {
+let testDirs: { PROJECT_DIR: string; OUTPUT_DIR: string; SOURCE_DIR: string };
+
+const getOutput = (filePath: string) => getOutputBase(filePath, testDirs.OUTPUT_DIR);
+
+const getWebpackDefaults = () => ({
     output: {
-        path: OUTPUT_DIR,
+        path: testDirs.OUTPUT_DIR,
     },
     module: {
         rules: [
             {
-                test: /\.[jt]s?$/,
+                test: /\.[jt]sx?$/,
+                exclude: [/node_modules/],
                 use: [
                     {
                         loader: require.resolve("websmith-loader"),
                         options: {
                             transpileOnly: true,
-                            tsConfigFile: path.join(PROJECT_DIR, "tsconfig.json"),
+                            tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
                         },
                     },
                 ],
             },
         ],
     },
-};
+});
 
 beforeAll(() => {
     fs.rmSync(path.resolve(path.join(__dirname, "..", "..", "example-addons", "lib")), { recursive: true, force: true });
@@ -58,16 +62,18 @@ beforeAll(() => {
 
 beforeEach(() => {
     jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't show extensive log messages in tests
-    fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
-    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-    fs.mkdirSync(SOURCE_DIR, { recursive: true });
+
+    testDirs = getTestDirs();
+
+    fs.mkdirSync(testDirs.OUTPUT_DIR, { recursive: true });
+    fs.mkdirSync(testDirs.SOURCE_DIR, { recursive: true });
 
     // Copy all source files for each test
     const originalSourceDir = path.join(__dirname, "..", "src");
     const sourceFiles = fs.readdirSync(originalSourceDir);
     for (const file of sourceFiles) {
         const srcPath = path.join(originalSourceDir, file);
-        const destPath = path.join(SOURCE_DIR, file);
+        const destPath = path.join(testDirs.SOURCE_DIR, file);
         if (fs.statSync(srcPath).isDirectory()) {
             fs.cpSync(srcPath, destPath, { recursive: true });
         } else {
@@ -75,26 +81,32 @@ beforeEach(() => {
         }
     }
 
-    writeTsConfig({
-        target: ts.ScriptTarget.ES2020,
-        outDir: OUTPUT_DIR,
-    });
+    writeTsConfig(
+        {
+            target: ts.ScriptTarget.ES2020,
+            outDir: testDirs.OUTPUT_DIR,
+        },
+        testDirs.PROJECT_DIR
+    );
 });
 
 afterEach(() => {
-    fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
+    fs.rmSync(testDirs.PROJECT_DIR, { recursive: true, force: true });
 });
 
 describe("webpack w/ websmith", () => {
     it("should build foobar-arrow.js with ES2020 and addonsDir", async () => {
-        writeWebsmithConfig({
-            // Don't specify addonsDir to prevent any addon loading
-        });
+        writeWebsmithConfig(
+            {
+                // Don't specify addonsDir to prevent any addon loading
+            },
+            testDirs.PROJECT_DIR
+        );
 
-        await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 tsConfig: {
                     target: ts.ScriptTarget.ES2020,
                 },
@@ -105,14 +117,17 @@ describe("webpack w/ websmith", () => {
     }, 60000);
 
     it("should build foobar-function.js with ES2020 and addonsDir", async () => {
-        writeWebsmithConfig({
-            // Don't specify addonsDir to prevent any addon loading
-        });
+        writeWebsmithConfig(
+            {
+                // Don't specify addonsDir to prevent any addon loading
+            },
+            testDirs.PROJECT_DIR
+        );
 
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 tsConfig: {
                     target: ts.ScriptTarget.ES2020,
                 },
@@ -123,8 +138,8 @@ describe("webpack w/ websmith", () => {
     }, 60000);
 
     it("should generate YAML file with addonsDir and addon selected", async () => {
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -140,8 +155,8 @@ describe("webpack w/ websmith", () => {
 
     // TODO: Skipped Test: This test does not work for this webpack setup. Can we observe a change within the output chunk?
     it.skip("should generate additional files with addonDir and addon selected", async () => {
-        await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -154,8 +169,8 @@ describe("webpack w/ websmith", () => {
     }, 60000);
 
     it("should transform foobar functions with addonDir and addon selected", async () => {
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -169,19 +184,22 @@ describe("webpack w/ websmith", () => {
     }, 60000);
 
     it("should generate YAML file with profiles in file-config, addonsDir and profile selected", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                "target-profile": {
-                    addons: ["export-yaml-generator"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    "target-profile": {
+                        addons: ["export-yaml-generator"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 config: {
                     addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 },
@@ -195,20 +213,23 @@ describe("webpack w/ websmith", () => {
     }, 60000);
 
     it("should generate YAML file with profile in file-config, addonsDir and named profile selected", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                "profile-zip": {
-                    addons: ["export-yaml-generator"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    "profile-zip": {
+                        addons: ["export-yaml-generator"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
                 profile: "profile-zip",
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
             },
         });
 
@@ -218,8 +239,8 @@ describe("webpack w/ websmith", () => {
     }, 60000);
 
     it("should transform foobar functions with addonsDir and addons config", async () => {
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -234,8 +255,8 @@ describe("webpack w/ websmith", () => {
     }, 60000);
 
     it("should transform foobar functions with addonsDir, addons and profiles in config but no profile selected", async () => {
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
                 config: {
                     addonsDir: ADDONS_DIR,
@@ -254,25 +275,28 @@ describe("webpack w/ websmith", () => {
     }, 60000);
 
     it("should transform foobar functions with addonsDir and existing profile in config-file", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                "profile-transform": {
-                    addons: ["foobar-replace-transformer"],
-                },
-                "profile-generate": {
-                    addons: ["foo-added-generator"],
-                },
-                "profile-process": {
-                    addons: ["foobar-export-processor"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    "profile-transform": {
+                        addons: ["foobar-replace-transformer"],
+                    },
+                    "profile-generate": {
+                        addons: ["foo-added-generator"],
+                    },
+                    "profile-process": {
+                        addons: ["foobar-export-processor"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 config: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 profile: "profile-transform",
             },
@@ -283,26 +307,29 @@ describe("webpack w/ websmith", () => {
     }, 60000);
 
     it("should transform foobar functions with addonsDir and dependent profiles in config-file", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                "profile-transform": {
-                    addons: ["foobar-replace-transformer"],
-                },
-                "profile-generate": {
-                    addons: ["foo-added-generator"],
-                },
-                "profile-process": {
-                    depends: ["profile-transform"],
-                    addons: ["export-yaml-generator"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    "profile-transform": {
+                        addons: ["foobar-replace-transformer"],
+                    },
+                    "profile-generate": {
+                        addons: ["foo-added-generator"],
+                    },
+                    "profile-process": {
+                        depends: ["profile-transform"],
+                        addons: ["export-yaml-generator"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 config: {
                     addons: undefined, // TODO: This is a workaround for the loaderContext.options not being set correctly
                 },
@@ -316,19 +343,22 @@ describe("webpack w/ websmith", () => {
     }, 60000);
 
     it("should transform foobar functions with named profile and addonsDir, chained addons in config-file", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                "profile-transform": {
-                    addons: ["foobar-replace-transformer", "export-yaml-generator"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    "profile-transform": {
+                        addons: ["foobar-replace-transformer", "export-yaml-generator"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
-        await webpack([path.join(SOURCE_DIR, "foobar-function.ts")], {
-            webpack: { ...webpackDefaults },
+        await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            webpack: { ...getWebpackDefaults() },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 profile: "profile-transform",
             },
         });
@@ -342,35 +372,41 @@ describe("webpack w/ websmith", () => {
 
 describe("webpack w/ websmith, multiple profiles", () => {
     beforeEach(() => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                client: {
-                    depends: ["server"],
-                    addons: ["client-transformer"],
-                },
-                server: {
-                    addons: ["server-transformer"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    client: {
+                        depends: ["server"],
+                        addons: ["client-transformer"],
+                    },
+                    server: {
+                        addons: ["server-transformer"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
-        writeTsConfig({
-            target: ts.ScriptTarget.ES2020,
-            outDir: OUTPUT_DIR,
-        });
+        writeTsConfig(
+            {
+                target: ts.ScriptTarget.ES2020,
+                outDir: testDirs.OUTPUT_DIR,
+            },
+            testDirs.PROJECT_DIR
+        );
     });
 
     it("should yield non-transformed functions with no profile and single entry", async () => {
         await webpack(undefined, {
             webpack: {
-                ...webpackDefaults,
+                ...getWebpackDefaults(),
                 entry: {
-                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                    client: path.join(testDirs.SOURCE_DIR, "client-function.ts"),
                 },
             },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 profile: undefined,
             },
         });
@@ -382,14 +418,14 @@ describe("webpack w/ websmith, multiple profiles", () => {
     it("should yield non-transformed functions with no profile and separate entries", async () => {
         await webpack(undefined, {
             webpack: {
-                ...webpackDefaults,
+                ...getWebpackDefaults(),
                 entry: {
-                    client: path.join(SOURCE_DIR, "client-function.ts"),
-                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                    client: path.join(testDirs.SOURCE_DIR, "client-function.ts"),
+                    server: path.join(testDirs.SOURCE_DIR, "functions/server-function.ts"),
                 },
             },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 profile: undefined,
                 config: {
                     addons: [],
@@ -402,27 +438,30 @@ describe("webpack w/ websmith, multiple profiles", () => {
     }, 60000);
 
     it("should yield transformed functions with existing profile, dependent profile and single entry", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                client: {
-                    depends: ["server"],
-                    addons: ["client-transformer"],
-                },
-                server: {
-                    addons: ["server-transformer"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    client: {
+                        depends: ["server"],
+                        addons: ["client-transformer"],
+                    },
+                    server: {
+                        addons: ["server-transformer"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
         await webpack(undefined, {
             webpack: {
-                ...webpackDefaults,
+                ...getWebpackDefaults(),
                 entry: {
-                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                    client: path.join(testDirs.SOURCE_DIR, "client-function.ts"),
                 },
             },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 profile: "client",
             },
         });
@@ -432,28 +471,31 @@ describe("webpack w/ websmith, multiple profiles", () => {
     }, 60000);
 
     it("should yield non-transformed functions with existing profile and single entry", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                client: {
-                    depends: ["server"],
-                    addons: ["client-transformer"],
-                },
-                server: {
-                    addons: ["server-transformer"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    client: {
+                        depends: ["server"],
+                        addons: ["client-transformer"],
+                    },
+                    server: {
+                        addons: ["server-transformer"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
         await webpack(undefined, {
             webpack: {
-                ...webpackDefaults,
+                ...getWebpackDefaults(),
                 entry: {
-                    client: path.join(SOURCE_DIR, "client-function.ts"),
+                    client: path.join(testDirs.SOURCE_DIR, "client-function.ts"),
                 },
             },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 profile: "server",
             },
         });
@@ -465,14 +507,14 @@ describe("webpack w/ websmith, multiple profiles", () => {
     it("should yield transformed functions with existing profile, dependent profile and separate entries", async () => {
         await webpack(undefined, {
             webpack: {
-                ...webpackDefaults,
+                ...getWebpackDefaults(),
                 entry: {
-                    client: path.join(SOURCE_DIR, "client-function.ts"),
-                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                    client: path.join(testDirs.SOURCE_DIR, "client-function.ts"),
+                    server: path.join(testDirs.SOURCE_DIR, "functions/server-function.ts"),
                 },
             },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 profile: "client",
             },
         });
@@ -482,29 +524,32 @@ describe("webpack w/ websmith, multiple profiles", () => {
     }, 60000);
 
     it("should yield transformed functions with existing profile, dependent profile and imported server function", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                client: {
-                    depends: ["server"],
-                    addons: ["client-transformer"],
-                },
-                server: {
-                    addons: ["server-transformer"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    client: {
+                        depends: ["server"],
+                        addons: ["client-transformer"],
+                    },
+                    server: {
+                        addons: ["server-transformer"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
         await webpack(undefined, {
             webpack: {
-                ...webpackDefaults,
+                ...getWebpackDefaults(),
                 entry: {
-                    client: path.join(SOURCE_DIR, "client-function-with-import.ts"),
-                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                    client: path.join(testDirs.SOURCE_DIR, "client-function-with-import.ts"),
+                    server: path.join(testDirs.SOURCE_DIR, "functions/server-function.ts"),
                 },
             },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 profile: "client",
             },
         });
@@ -515,28 +560,31 @@ describe("webpack w/ websmith, multiple profiles", () => {
     }, 60000);
 
     it("should yield transformed functions with existing profile and imported server function", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                client: {
-                    addons: ["client-transformer"],
-                },
-                server: {
-                    depends: ["client"],
-                    addons: ["server-transformer"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    client: {
+                        addons: ["client-transformer"],
+                    },
+                    server: {
+                        depends: ["client"],
+                        addons: ["server-transformer"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
         await webpack(undefined, {
             webpack: {
-                ...webpackDefaults,
+                ...getWebpackDefaults(),
                 entry: {
-                    client: path.join(SOURCE_DIR, "client-function-with-import.ts"),
+                    client: path.join(testDirs.SOURCE_DIR, "client-function-with-import.ts"),
                 },
             },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 profile: "server",
             },
         });
@@ -546,36 +594,39 @@ describe("webpack w/ websmith, multiple profiles", () => {
     }, 60000);
 
     it("should yield transformed functions with existing profile and separate entries", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                client: {
-                    addons: ["client-transformer"],
-                },
-                server: {
-                    depends: ["client"],
-                    addons: ["server-transformer"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    client: {
+                        addons: ["client-transformer"],
+                    },
+                    server: {
+                        depends: ["client"],
+                        addons: ["server-transformer"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
         await webpack(undefined, {
             webpack: {
-                ...webpackDefaults,
+                ...getWebpackDefaults(),
                 entry: {
-                    client: path.join(SOURCE_DIR, "client-function.ts"),
-                    server: path.join(SOURCE_DIR, "functions/server-function.ts"),
+                    client: path.join(testDirs.SOURCE_DIR, "client-function.ts"),
+                    server: path.join(testDirs.SOURCE_DIR, "functions/server-function.ts"),
                 },
             },
             websmith: {
-                configFile: path.join(PROJECT_DIR, "websmith.config.json"),
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 profile: "server",
             },
         });
 
         expect(getOutput("client.js")).toContain("function getCLIENTClient");
-        expect(getOutput("client.js")).not.toContain("Server");
+        expect(getOutput("client.js")).toContain("foobar ${date.toISOString()}");
         expect(getOutput("server.js")).toContain("function getCLIENTServer");
-        expect(getOutput("server.js")).not.toContain("Client");
+        expect(getOutput("server.js")).toContain("foobar ${date.toISOString()}");
     }, 60000);
 });

@@ -12,7 +12,6 @@ describe("createOptions", () => {
         const actual = createOptions({ instanceName: "target-instance" });
 
         expect(actual).toEqual({
-            buildDir: expect.any(String),
             tsConfig: expect.any(Object),
             reporter: expect.any(NoReporter),
             cliArgs: expect.any(Object),
@@ -114,7 +113,6 @@ describe("createOptions", () => {
         const actual = createOptions({ configFile: "./websmith.config.json", instanceName: "target-instance" }, new NoReporter(), target);
 
         expect(actual).toMatchObject({
-            buildDir: "/",
             config: {
                 addons: ["one", "two"],
                 addonsDir: "/expected",

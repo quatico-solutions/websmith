@@ -200,7 +200,6 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         createTsConfig({ outDir: "./dist", noEmit: false });
         createWebsmithConfig({
             addons: ["client-processor"],
-            addonsDir: ADDONS_DIR, // FIXME: This is not working as expected
         });
         copySourceFile("foobar-function.ts");
 

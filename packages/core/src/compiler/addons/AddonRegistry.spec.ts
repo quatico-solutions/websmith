@@ -690,8 +690,7 @@ describe("Addon Compilation", () => {
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
-                category: expect.any(Number),
-                messageText: expect.stringContaining("Failed to compile addons"),
+                messageText: expect.stringContaining(`Failed to load addon "broken-addon" from "${ADDONS_DIR}/lib/broken-addon/addon.js"`),
             })
         );
     });
@@ -713,7 +712,7 @@ describe("Addon Compilation", () => {
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
                 category: expect.any(Number),
-                messageText: expect.stringContaining("Failed to compile addons"),
+                messageText: expect.stringContaining(`Addon "missing-import-addon" does not export an "activate" function and will be ignored`),
             })
         );
     });

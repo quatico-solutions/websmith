@@ -126,7 +126,6 @@ describe("constructor", () => {
 
     it("allows loaderOptions.config properties to override options.config properties", () => {
         const options = {
-            buildDir: "./src",
             config: {
                 addons: ["options-addon"],
                 addonsDir: "./options-addons",
@@ -150,7 +149,6 @@ describe("constructor", () => {
 
     it("allows loaderOptions.tsConfig properties to override options.tsConfig properties", () => {
         const options = {
-            buildDir: "./src",
             tsConfig: {
                 target: ts.ScriptTarget.ES5,
                 module: ts.ModuleKind.CommonJS,
@@ -173,7 +171,6 @@ describe("constructor", () => {
 
     it("uses options properties when corresponding loaderOptions properties are not provided", () => {
         const options = {
-            buildDir: "./src",
             debug: true,
             profile: "test-profile",
             configFile: "./test-config.json",
@@ -190,7 +187,7 @@ describe("constructor", () => {
     });
 
     describe("Configuration Path Resolution", () => {
-        it("uses default values when buildDir, tsConfigFile, and configFile are not specified", () => {
+        it("uses default values when tsConfigFile and configFile are not specified", () => {
             const testObj = new CompilerTestClass({});
 
             expect(path.isAbsolute(testObj.getOptions().buildDir)).toBe(true);
@@ -198,15 +195,16 @@ describe("constructor", () => {
             expect(testObj.getOptions().configFile).toBeUndefined();
         });
 
-        it("derives tsConfigFile and configFile from buildDir when only buildDir is specified", () => {
+        it("derives tsConfigFile and configFile from buildDir with defaults", () => {
             const testObj = new CompilerTestClass({
-                buildDir: "./custom-src",
                 reporter: new NoReporter(),
             });
 
-            expect(testObj.getOptions().buildDir).toMatch(/custom-src$/);
-            expect(testObj.getOptions().tsConfigFile).toMatch(/custom-src\/tsconfig\.json$/);
-            expect(testObj.getOptions().configFile).toBeUndefined();
+            const actual = testObj.getOptions();
+
+            expect(actual.buildDir).toBeDefined();
+            expect(actual.tsConfigFile).toEqual(`${actual.buildDir}/tsconfig.json`);
+            expect(actual.configFile).toBeUndefined();
         });
 
         it("derives buildDir and configFile from tsConfigFile dirname when only tsConfigFile is specified", () => {
@@ -231,31 +229,8 @@ describe("constructor", () => {
             expect(testObj.getOptions().configFile).toMatch(/config-dir\/websmith\.config\.json$/);
         });
 
-        it("prioritizes tsConfigFile dirname over buildDir and reports warning when they differ", () => {
-            const system = createSystem({}, { virtual: true });
-            const target = new ReporterMock(system);
-            target.reportDiagnostic = jest.fn();
-
+        it("allows configFile to be in different location from tsConfigFile", () => {
             const testObj = new CompilerTestClass({
-                buildDir: "./wrong-dir",
-                tsConfigFile: "./correct-dir/tsconfig.json",
-                configFile: "./another-dir/websmith.config.json",
-                reporter: target,
-            });
-
-            expect(testObj.getOptions().buildDir).toMatch(/correct-dir$/);
-            expect(testObj.getOptions().tsConfigFile).toMatch(/correct-dir\/tsconfig\.json$/);
-            expect(testObj.getOptions().configFile).toMatch(/another-dir\/websmith\.config\.json$/);
-            expect(target.reportDiagnostic).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    messageText: expect.stringContaining('Using "tsConfigFile" directory as "buildDir".'),
-                })
-            );
-        });
-
-        it("allows configFile to be in different location from buildDir and tsConfigFile", () => {
-            const testObj = new CompilerTestClass({
-                buildDir: "./target",
                 tsConfigFile: "./target/tsconfig.json",
                 configFile: "./config/websmith.config.json",
                 reporter: new NoReporter(),
@@ -266,9 +241,8 @@ describe("constructor", () => {
             expect(testObj.getOptions().configFile).toMatch(/config\/websmith\.config\.json$/);
         });
 
-        it("resolves paths correctly when buildDir and tsConfigFile are in same directory", () => {
+        it("resolves buildDir from tsConfigFile directory", () => {
             const testObj = new CompilerTestClass({
-                buildDir: "./project",
                 tsConfigFile: "./project/tsconfig.json",
                 reporter: new NoReporter(),
             });
@@ -280,7 +254,6 @@ describe("constructor", () => {
 
         it("handles absolute paths correctly", () => {
             const testObj = new CompilerTestClass({
-                buildDir: "/absolute/src",
                 tsConfigFile: "/absolute/src/tsconfig.json",
                 configFile: "/different/websmith.config.json",
                 reporter: new NoReporter(),
@@ -519,7 +492,6 @@ describe("setOptions", () => {
             tsConfig: {
                 react: 1,
             },
-            buildDir: "/src",
         } as unknown as Partial<CompilerOptions>;
         const target = createSystem({}, { virtual: true });
         const reporterMock = new ReporterMock(target);
@@ -530,7 +502,7 @@ describe("setOptions", () => {
 
         // reporter is not set in the expected object
         const options = testObj.getOptions();
-        expect(options.buildDir).toBe("/src");
+        expect(options.buildDir).toBe("/");
         expect(options.tsConfig).toMatchObject({
             esModuleInterop: false,
             jsx: ts.JsxEmit.Preserve,
@@ -545,7 +517,6 @@ describe("setOptions", () => {
                 target: ts.ScriptTarget.ESNext,
                 jsx: ts.JsxEmit.React,
             },
-            buildDir: "/src",
         } as unknown as Partial<CompilerOptions>;
         const target = createSystem({}, { virtual: true });
         const reporterMock = new ReporterMock(target);
@@ -556,7 +527,7 @@ describe("setOptions", () => {
 
         // reporter is not set in the expected object
         const options = testObj.getOptions();
-        expect(options.buildDir).toBe("/src");
+        expect(options.buildDir).toBe("/");
         expect(options.tsConfig).toMatchObject({
             esModuleInterop: false,
             jsx: ts.JsxEmit.React,
@@ -573,7 +544,6 @@ describe("setOptions", () => {
                 reporter: new ReporterMock(target),
                 tsConfig: { outDir: "/expected", target: ts.ScriptTarget.ESNext },
                 cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
-                buildDir: "./src",
             },
             undefined,
             target
@@ -695,7 +665,7 @@ describe("createCompilationContext", () => {
     it("initializes the CompilationContext meeting to AddonContext API requirements", () => {
         const expected = { field: "expected-value", output: "expected-output.json" };
         const fileSystem = createSystem({}, { virtual: true });
-        const target = { reporter: new ReporterMock(fileSystem), buildDir: "./src" };
+        const target = { reporter: new ReporterMock(fileSystem) };
 
         const actual = new CompilerTestClass(
             {
@@ -752,7 +722,7 @@ describe("createCompilationContext", () => {
             },
             { virtual: true }
         );
-        const target = { reporter: new ReporterMock(fileSystem), buildDir: "./src" };
+        const target = { reporter: new ReporterMock(fileSystem) };
 
         const actual = new CompilerTestClass(
             {
@@ -766,7 +736,6 @@ describe("createCompilationContext", () => {
                         },
                     },
                 },
-                buildDir: "./src",
             },
             undefined,
             fileSystem
@@ -829,7 +798,7 @@ describe("compile", () => {
 
     it("updates the CompilerOptions with the target specific overrides", () => {
         const fileSystem = createSystem({}, { virtual: true });
-        const target = { reporter: new ReporterMock(fileSystem), config: { profiles: { "target-profile": {} } }, buildDir: "./src" };
+        const target = { reporter: new ReporterMock(fileSystem), config: { profiles: { "target-profile": {} } } };
 
         const testObj = new CompilerTestClass(target, undefined, fileSystem).setOptions({
             ...target,
@@ -850,7 +819,7 @@ describe("compile", () => {
             expect.objectContaining({
                 allowJs: false,
                 checkJs: false,
-                configFilePath: "/src/tsconfig.json",
+                configFilePath: "/tsconfig.json",
                 declaration: false,
                 declarationMap: false,
                 emitDecorationOnly: false,
@@ -886,7 +855,6 @@ describe("compile", () => {
 
         new CompilerTestClass(
             {
-                buildDir: "./src",
                 reporter: new ReporterMock(fileSystem),
                 debug: false,
                 watch: false,
@@ -919,7 +887,6 @@ describe("emitSourceFile", () => {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -942,7 +909,6 @@ describe("emitSourceFile", () => {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -966,7 +932,6 @@ describe("emitSourceFile", () => {
             tsConfig: { declaration: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
             config: { transpileOnly: true },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -987,7 +952,6 @@ describe("emitSourceFile", () => {
             tsConfig: { declaration: true, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
             config: { transpileOnly: true },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1008,7 +972,6 @@ describe("emitSourceFile", () => {
             tsConfig: { declaration: true, declarationMap: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
             config: { transpileOnly: true },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1029,7 +992,6 @@ describe("emitSourceFile", () => {
             tsConfig: { declaration: false, declarationMap: false, sourceMap: true, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
             config: { transpileOnly: true },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1052,7 +1014,6 @@ describe("emitSourceFile", () => {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1072,7 +1033,6 @@ describe("emitSourceFile", () => {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: true, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1096,7 +1056,6 @@ describe("emitSourceFile", () => {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: true, declarationMap: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1123,7 +1082,6 @@ describe("emitSourceFile", () => {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: false, declarationMap: false, sourceMap: true, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1147,7 +1105,6 @@ describe("emitSourceFile", () => {
             tsConfig: { declaration: false, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
             config: { transpileOnly: true },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1167,7 +1124,6 @@ describe("emitSourceFile", () => {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { declaration: false, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1195,7 +1151,6 @@ describe("emitSourceFile", () => {
             },
             cliArgs: { fileNames: ["/src/config.json"], options: {}, errors: [] },
             config: { transpileOnly: true },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1217,7 +1172,6 @@ describe("emitSourceFile", () => {
                 outDir: "/build",
             },
             cliArgs: { fileNames: ["src/config.json"], options: {}, errors: [] },
-            buildDir: "./src",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1248,7 +1202,6 @@ describe("emitSourceFile", () => {
             },
             cliArgs: { fileNames: ["types/style.d.ts"], options: {}, errors: [] },
             config: { transpileOnly: true },
-            buildDir: "./types",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1275,7 +1228,6 @@ describe("emitSourceFile", () => {
                 strict: true,
             },
             cliArgs: { fileNames: ["types/style.d.ts"], options: {}, errors: [] },
-            buildDir: "./types",
         };
 
         const actual = new CompilerTestClass(target, undefined, fileSystem)
@@ -1289,7 +1241,7 @@ describe("emitSourceFile", () => {
 describe("report", () => {
     it("yields result's messageText", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
-        const options = { reporter: new ReporterMock(fileSystem), buildDir: "./src" };
+        const options = { reporter: new ReporterMock(fileSystem) };
         const target = options.reporter;
 
         new CompilerTestClass(options, undefined, fileSystem).report(
@@ -1371,7 +1323,6 @@ describe("watch", () => {
             tsConfig: { declaration: true, outDir: "/build", target: ts.ScriptTarget.ESNext },
             watch: true,
             profile: "target2",
-            buildDir: "./src",
             cliArgs: {
                 fileNames: ["/src/target.ts"],
                 options: { configFilePath: "/project/tsconfig.json" },
@@ -1436,7 +1387,6 @@ describe("watch", () => {
             },
             watch: true,
             profile: "target",
-            buildDir: "./src",
         };
 
         const testObj = new Compiler(options, undefined, fileSystem);
@@ -1486,7 +1436,6 @@ describe("watch", () => {
             },
             watch: true,
             profile: "target2",
-            buildDir: "./src",
         };
 
         const testObj = new Compiler(options, undefined, fileSystem);
@@ -1545,7 +1494,6 @@ describe("watch", () => {
             },
             watch: true,
             profile: "target2",
-            buildDir: "./src",
         };
 
         const testObj = new Compiler(options, undefined, fileSystem);
@@ -1615,7 +1563,6 @@ describe("watch", () => {
                 },
                 watch: true,
                 profile: "target1",
-                buildDir: "./src",
             },
             undefined,
             fileSystem
@@ -1674,7 +1621,6 @@ describe("watch", () => {
             },
             watch: true,
             profile: "target1",
-            buildDir: "./src",
         };
 
         const testObj = new CompilerTestClass(options, undefined, fileSystem);

@@ -48,13 +48,13 @@ export class WebpackBuild {
         return this;
     }
 
-    public getTsLoaderOptions() {
-        return this.tsLoaderOptions;
-    }
-
     public setWebsmithLoaderOptions(options?: WebpackLoaderOptions): this {
         this.websmithLoaderOptions = options;
         return this;
+    }
+
+    public getTsLoaderOptions() {
+        return this.tsLoaderOptions;
     }
 
     public getWebsmithLoaderOptions() {
@@ -112,14 +112,29 @@ export class WebpackBuild {
 
     private customizeRule(rule: string | number | boolean | webpack.RuleSetRule | null | undefined) {
         if (isRuleSetRule(rule)) {
+            // Handle direct loader property
             if (this.tsLoaderOptions && rule?.loader?.includes("ts-loader")) {
                 this.injectTsLoaderOptions(rule, this.tsLoaderOptions);
             }
-            if (
-                this.websmithLoaderOptions &&
-                (rule?.loader?.includes("websmith-loader") || rule?.loader?.includes("packages/webpack/src/index.ts"))
-            ) {
+            if (this.websmithLoaderOptions && (rule?.loader?.includes("websmith-loader") || rule?.loader?.includes("packages/webpack"))) {
                 this.injectWebsmithLoaderOptions(rule, this.websmithLoaderOptions);
+            }
+
+            // Handle use array property
+            if (rule?.use && Array.isArray(rule.use)) {
+                rule.use.forEach(useItem => {
+                    if (typeof useItem === "object" && useItem !== null && "loader" in useItem) {
+                        if (this.tsLoaderOptions && useItem.loader?.includes("ts-loader")) {
+                            this.injectTsLoaderOptions(useItem as webpack.RuleSetRule, this.tsLoaderOptions);
+                        }
+                        if (
+                            this.websmithLoaderOptions &&
+                            (useItem.loader?.includes("websmith-loader") || useItem.loader?.includes("packages/webpack"))
+                        ) {
+                            this.injectWebsmithLoaderOptions(useItem as webpack.RuleSetRule, this.websmithLoaderOptions);
+                        }
+                    }
+                });
             }
         }
     }

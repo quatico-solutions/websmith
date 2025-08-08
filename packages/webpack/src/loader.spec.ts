@@ -34,7 +34,6 @@ describe("TsCompiler compatibility with Compiler", () => {
 
     it("should yield compiled js files like Compiler", () => {
         const { fileSystem: target } = compileSystem({
-            buildDir: "/src",
             files: {
                 "tsconfig.json": JSON.stringify({
                     compilerOptions: {
@@ -61,7 +60,6 @@ describe("TsCompiler compatibility with Compiler", () => {
         // Test with TsCompiler (used by webpack loader)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: "/src",
                 tsConfig: { outDir: "./bin", target: ts.ScriptTarget.ES2015, module: ts.ModuleKind.CommonJS },
                 reporter: new NoReporter(),
                 cliArgs: {
@@ -97,7 +95,6 @@ describe("TsCompiler compatibility with Compiler", () => {
 
     it("should produce similar transpiled output like Compiler", () => {
         const { fileSystem: target } = compileSystem({
-            buildDir: "/src",
             files: {
                 "tsconfig.json": JSON.stringify({
                     compilerOptions: {
@@ -123,7 +120,6 @@ describe("TsCompiler compatibility with Compiler", () => {
         // Test with TsCompiler in transpileOnly mode (common webpack usage)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: "/src",
                 tsConfig: { outDir: "./bin", target: ts.ScriptTarget.ES2015, module: ts.ModuleKind.CommonJS },
                 reporter: new NoReporter(),
                 cliArgs: {
@@ -161,7 +157,6 @@ describe("TsCompiler compatibility with Compiler", () => {
 
     it("should produce consistent compilation behavior", () => {
         const { fileSystem: target } = compileSystem({
-            buildDir: "/src",
             files: {
                 "tsconfig.json": JSON.stringify({
                     compilerOptions: {
@@ -187,7 +182,6 @@ describe("TsCompiler compatibility with Compiler", () => {
         // Test with TsCompiler
         const tsCompiler = new TsCompiler(
             {
-                buildDir: "/src",
                 tsConfig: { outDir: "./bin", target: ts.ScriptTarget.ES2015, module: ts.ModuleKind.CommonJS },
                 reporter: new NoReporter(),
                 cliArgs: {
@@ -225,7 +219,6 @@ describe("TsCompiler compatibility with Compiler", () => {
     // Added from Compiler.test.ts - adapted for TsCompiler compatibility
     it("should yield compiled js files (from Compiler.test.ts)", () => {
         const { fileSystem: target } = compileSystem({
-            buildDir: "/src",
             files: {
                 "tsconfig.json": "{}",
                 "src/one.ts": `whatever`,
@@ -246,7 +239,6 @@ describe("TsCompiler compatibility with Compiler", () => {
         // Test with TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: "/src",
                 tsConfig: { outDir: "./bin" },
                 reporter: new NoReporter(),
                 cliArgs: {
@@ -284,7 +276,6 @@ describe("TsCompiler compatibility with Compiler", () => {
     it("should compile TypeScript files successfully", () => {
         jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't log missing configuration files
         const { fileSystem: target } = compileSystem({
-            buildDir: "/src",
             files: {
                 "tsconfig.json": "{}",
                 "src/one.ts": `export const test = "hello";`,
@@ -295,7 +286,6 @@ describe("TsCompiler compatibility with Compiler", () => {
         // Test with TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                buildDir: "/src",
                 tsConfig: { noEmit: false, outDir: "./bin", declaration: true },
                 debug: true,
                 cliArgs: {

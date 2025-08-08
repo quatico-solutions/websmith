@@ -22,7 +22,6 @@ beforeEach(() => {
     const reporter = new NoReporter();
     tsCompiler = new TsCompiler(
         {
-            buildDir: "./src",
             tsConfig: {},
             reporter,
             cliArgs: { options: { outDir: "test-output" }, fileNames: [], errors: [] },

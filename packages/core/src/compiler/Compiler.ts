@@ -224,6 +224,19 @@ export class Compiler {
 
         this.options = resolveCompilerOptions(this.system, optionsWithReporter, loaderOptions);
 
+        // Update AddonRegistry with resolved configuration
+        if (this.addons && this.options.config) {
+            this.addons
+                .setConfig({
+                    addonsDir: this.options.config.addonsDir,
+                    addons: this.options.config.addons,
+                    profiles: this.options.config.profiles,
+                    reporter: this.reporter,
+                    system: this.system,
+                })
+                .refresh();
+        }
+
         return this;
     }
 
@@ -310,7 +323,6 @@ export class Compiler {
               };
 
         return new CompilationContext({
-            buildDir: this.options.buildDir,
             tsConfig: profileOptions.tsConfig ?? {},
             projectDir: path.dirname(configFile ?? tsConfigFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
@@ -456,7 +468,7 @@ export class Compiler {
         return parts.join(", ");
     }
 
-    private createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
+    protected createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
         return ts.createProgram({
             rootNames: this.getRootFiles(),
             options: tsConfig ?? {},

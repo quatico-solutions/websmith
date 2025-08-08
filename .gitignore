@@ -11,6 +11,7 @@ lib
 packages/test/addons
 packages/test/test-source
 test-output*
+.websmith-cache
 
 # misc
 *.log

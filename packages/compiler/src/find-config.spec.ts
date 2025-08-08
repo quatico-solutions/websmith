@@ -10,7 +10,6 @@ import { findConfigFile } from "./find-config";
 describe("findConfigFile", () => {
     it("returns file name with path to existing file", () => {
         const { fileSystem: target } = compileSystem({
-            buildDir: "./",
             files: {
                 "tsconfig.json": "{}",
             },
@@ -23,7 +22,7 @@ describe("findConfigFile", () => {
     });
 
     it("throws error with no existing config file", () => {
-        const { fileSystem: target } = compileSystem({ buildDir: "./", addLibDefaults: false });
+        const { fileSystem: target } = compileSystem({ addLibDefaults: false });
 
         expect(() => findConfigFile("./", target)).toThrow("Could not find a valid 'tsconfig.json'.");
     });
