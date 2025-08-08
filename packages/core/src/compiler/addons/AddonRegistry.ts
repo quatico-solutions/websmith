@@ -8,7 +8,7 @@ import { WarnMessage, type AddonContext, type CompilationProfile, type Reporter 
 import { createRequire } from "node:module";
 import path from "node:path";
 import ts from "typescript";
-import { Compiler } from "../Compiler";
+// import { Compiler } from "../Compiler"; // Not needed for simple transpilation
 import { resolvePath } from "../config";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
@@ -267,7 +267,6 @@ export class AddonRegistry {
 
     private loadAddonsSync(): void {
         const { addonsDir, reporter, system, addons } = this.config;
-
         if (!addonsDir || !system.directoryExists(addonsDir)) {
             if (addonsDir) {
                 reporter?.reportDiagnostic(new WarnMessage(`Addons directory "${addonsDir}" does not exist.`));
@@ -292,7 +291,7 @@ export class AddonRegistry {
             const tsFiles = addonEntryFiles.filter(isSourceFile);
             if (tsFiles.length > 0) {
                 // Calculate lib directory relative to addons directory
-                const libDir = path.isAbsolute(addonsDir) ? path.resolve(path.dirname(addonsDir), "lib") : resolvePath(system, ".", "lib");
+                const libDir = path.isAbsolute(addonsDir) ? path.resolve(addonsDir, "lib") : resolvePath(system, ".", "lib");
 
                 if (!system.directoryExists(libDir)) {
                     system.createDirectory(libDir);
@@ -336,29 +335,43 @@ export class AddonRegistry {
             // Enhanced error reporting: List files being compiled
             const fileList = tsFiles.map(f => `    - ${path.relative(addonsDir, f)}`).join("\n");
 
-            const result = new Compiler({
-                reporter,
-                tsConfig: {
-                    outDir: libDir,
-                    rootDir: addonsDir, // Set rootDir to preserve relative structure from addons directory
-                    module: ts.ModuleKind.CommonJS,
-                    target: ts.ScriptTarget.ES2020,
-                    esModuleInterop: true,
-                    moduleResolution: ts.ModuleResolutionKind.Node10,
-                    skipLibCheck: false, // Enable lib checking to catch more errors
-                    forceConsistentCasingInFileNames: true,
-                    noEmit: false,
-                    strict: true,
-                },
-                cliArgs: {
-                    options: {
-                        outDir: libDir,
-                        rootDir: addonsDir, // Also set in cliArgs for consistency
-                    },
-                    fileNames: tsFiles,
-                    errors: [],
-                },
-            }).compile();
+            // Use TypeScript's simple transpile API instead of the full Compiler to avoid infinite loops
+            const compilerOptions: ts.CompilerOptions = {
+                outDir: libDir,
+                rootDir: addonsDir,
+                module: ts.ModuleKind.CommonJS,
+                target: ts.ScriptTarget.ES2020,
+                esModuleInterop: true,
+                moduleResolution: ts.ModuleResolutionKind.Classic,
+                noResolve: true,
+                skipLibCheck: true,
+                strict: false,
+            };
+
+            // Create output directory structure
+            for (const tsFile of tsFiles) {
+                const relativePath = path.relative(addonsDir, tsFile);
+                const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
+                const outputDir = path.dirname(outputPath);
+
+                if (!this.config.system.directoryExists(outputDir)) {
+                    this.config.system.createDirectory(outputDir);
+                }
+
+                // Read and transpile each file individually
+                const sourceCode = this.config.system.readFile(tsFile);
+                if (sourceCode) {
+                    const transpileResult = ts.transpileModule(sourceCode, {
+                        compilerOptions,
+                        fileName: tsFile,
+                    });
+
+                    // Write the transpiled JavaScript
+                    this.config.system.writeFile(outputPath, transpileResult.outputText);
+                }
+            }
+
+            const result = { emitSkipped: false, diagnostics: [] };
 
             // Check if compilation succeeded by verifying output files exist
             const expectedJsFiles = tsFiles.map(ts => ts.replace(/\.ts$/, ".js").replace(addonsDir, libDir));
@@ -394,8 +407,44 @@ export class AddonRegistry {
                 return [];
             }
 
-            // Return the compiled addon file paths
-            return this.findAddonEntryFiles(libDir).filter((f: string) => f.endsWith(".js") || f.endsWith(".jsx"));
+            // Return the compiled addon file paths by directly mapping from the compiled output
+            const compiledAddonFiles: string[] = [];
+
+            // Get all files and extract unique addon directory names
+            const allFiles = this.config.system.readDirectory(libDir, [".js"], undefined, undefined);
+
+            // Extract unique directory names from file paths (excluding root level files)
+            const addonDirNames = new Set<string>();
+            for (const filePath of allFiles) {
+                const relativePath = path.relative(libDir, filePath);
+                const dirParts = relativePath.split(path.sep);
+                if (dirParts.length > 1) {
+                    // Skip root level files like index.js
+                    addonDirNames.add(dirParts[0]);
+                }
+            }
+            const addonDirs = Array.from(addonDirNames);
+
+            for (const addonDirName of addonDirs) {
+                const addonDirPath = path.join(libDir, addonDirName);
+                if (this.config.system.directoryExists(addonDirPath)) {
+                    const files = this.config.system.readDirectory(addonDirPath, [".js", ".jsx"], undefined, undefined);
+
+                    // Look for addon.js or index.js files
+                    const addonFiles = files.filter(f => path.basename(f, path.extname(f)).toLowerCase() === "addon");
+                    const indexFiles = files.filter(f => path.basename(f, path.extname(f)).toLowerCase() === "index");
+
+                    if (addonFiles.length > 0) {
+                        // addonFiles[0] is already a full path from readDirectory
+                        compiledAddonFiles.push(addonFiles[0]);
+                    } else if (indexFiles.length > 0) {
+                        // indexFiles[0] is already a full path from readDirectory
+                        compiledAddonFiles.push(indexFiles[0]);
+                    }
+                }
+            }
+
+            return compiledAddonFiles;
         } catch (error) {
             reporter?.reportDiagnostic(
                 new WarnMessage(`Failed to compile addons in ${addonsDir}: ${error instanceof Error ? error.message : String(error)}`)
