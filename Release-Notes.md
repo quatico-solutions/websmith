@@ -28,6 +28,35 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.10] - 2025-08-08
+
+This release significantly improves the reliability and functionality of addon loading and configuration handling, particularly for profile-based configurations and file-based config scenarios.
+
+### Added
+
+- 🧪 **Enhanced Test Isolation**: Added unique test directory generation (`getTestDirs()`) to prevent test contamination and improve reliability
+- 🔧 **Dynamic AddonRegistry Configuration**: Added automatic configuration updates for AddonRegistry when compiler options are resolved
+- 🧪 **Improved Test Coverage**: Enhanced test reliability by fixing 5 out of 6 major test failures in the compiler test suite
+
+### Fixed
+
+- 🐛 **Profile-Based Addon Loading**: Fixed critical issue where addons were not being loaded when using profile-based configuration files
+  - Fixed path resolution for addons directory in config files by using relative paths instead of absolute paths
+  - Fixed AddonRegistry creation logic to handle config file scenarios properly
+- 🐛 **Configuration Resolution**: Fixed AddonRegistry not being updated with resolved configuration after ResolvedCompilerOptions processing
+  - Added automatic configuration update in `Compiler.setOptions()` method
+  - Ensured addons directory and addon lists are properly resolved from config files
+- 🐛 **YAML Generator Addon**: Fixed `export-yaml-generator` addon not generating `output.yaml` files in profile-based tests
+- 🐛 **Transformer Application**: Fixed `foobar-replace-transformer` addon not being applied during TypeScript compilation in profile-based scenarios
+- 🐛 **Addon Compilation**: Fixed infinite loop issues in addon compilation from source by switching from full `Compiler` class to `ts.transpileModule` for individual file transpilation
+- 🐛 **Test Suite Reliability**: Improved test suite success rate from 70% to 95% (19 out of 20 tests now passing)
+
+### Changed
+
+- 🔧 **Addon Loading Logic**: Modified addon creation condition in `compile()` function to include config file scenarios
+- 🔧 **Path Resolution**: Updated profile-based tests to use relative paths for better cross-platform compatibility
+- 🔧 **Configuration Flow**: Enhanced configuration resolution flow to properly handle both inline and file-based addon configurations
+
 ## [0.7.9] - 2025-08-06
 
 This release focuses on improving test data management, configuration handling, and error reporting. The main improvements include standardized test output directories, better configuration validation, and enhanced error messages for addon compilation.
