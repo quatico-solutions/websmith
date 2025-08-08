@@ -15,8 +15,7 @@ import ts from "typescript";
  * @param system
  */
 export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments, system: ts.System): ts.ParsedCommandLine | never => {
-     
-    const { config, tsConfig, ...restArgs } = args as any; // TODO: Flatten compiler arguments seems a brittle solution
+    const { config, tsConfig, fileNames, ...restArgs } = args as any; // TODO: Flatten compiler arguments seems a brittle solution
 
     const flattenedArgs = { ...restArgs, ...config, ...tsConfig };
 
@@ -65,9 +64,45 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         ...(profiles ? { profiles } : {}),
     };
 
-    const tscArgs = ts.parseCommandLine(createArgs(rest));
+    // Create command line args and add file arguments if provided
+    const commandLineArgs = createArgs(rest);
+    if (fileNames && Array.isArray(fileNames)) {
+        commandLineArgs.push(...fileNames);
+    }
+    const tscArgs = ts.parseCommandLine(commandLineArgs);
 
     if (tsConfigFile && system.fileExists(tsConfigFile)) {
+        // If explicit files were provided as CLI arguments, still use tsconfig options but not file discovery
+        if (tscArgs.fileNames.length > 0) {
+            // Parse tsconfig to get the compiler options but ignore file discovery
+            const tsConfigResult = ts.getParsedCommandLineOfConfigFile(
+                system.resolvePath(tsConfigFile),
+                {
+                    ...extraArgs,
+                    ...tscArgs.options, // CLI options can override tsconfig.json
+                },
+                parseHost,
+                undefined /* no extended config cache */,
+                undefined /* no extra watch options */,
+                undefined /* no extra file extensions */
+            );
+
+            if (!tsConfigResult) {
+                throw new Error(errorMessage);
+            }
+
+            return {
+                ...tsConfigResult,
+                options: {
+                    ...(configFile ? { configFile: system.resolvePath(configFile) } : {}),
+                    ...(watch ? { watch: true } : {}),
+                    ...(instanceName ? { instanceName } : {}),
+                    ...tsConfigResult.options, // Include all tsconfig options
+                },
+                fileNames: tscArgs.fileNames, // Use explicit files instead of tsconfig file discovery
+            };
+        }
+
         const result = ts.getParsedCommandLineOfConfigFile(
             system.resolvePath(tsConfigFile),
             {
