@@ -85,18 +85,31 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             }
         })
         .action((args: CompilerArguments, command: Command) => {
-            // TODO: Add files from CLI argument
             const system = compiler?.getSystem() ?? ts.sys;
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
             const tsConfigFile = args.project ?? "./tsconfig.json";
 
+            // Extract file arguments from command line
+            const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
+            const fileArguments = unknownArgs.filter(
+                arg => !arg.startsWith("-") && (arg.endsWith(".ts") || arg.endsWith(".tsx") || arg.endsWith(".js") || arg.endsWith(".jsx"))
+            );
+            const otherUnknownArgs = unknownArgs.filter(arg => !fileArguments.includes(arg));
+
             const options: CompilerOptions = {
                 tsConfigFile,
-                ...createOptions({ ...args, project: tsConfigFile }, reporter, system),
+                ...createOptions(
+                    {
+                        ...args,
+                        project: tsConfigFile,
+                        // Pass file arguments through args so they get picked up by parsedCommandLine
+                        ...(fileArguments.length > 0 && { fileNames: fileArguments }),
+                    },
+                    reporter,
+                    system
+                ),
             };
-
-            const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));
-            if (unknownArgs?.length > 0) {
+            if (otherUnknownArgs?.length > 0) {
                 // Check for common typos and warn about them
                 const commonTypos = [
                     { wrong: "--tsConfigFile", correct: "--project" },
@@ -105,13 +118,13 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 ];
 
                 for (const typo of commonTypos) {
-                    if (unknownArgs.includes(typo.wrong)) {
+                    if (otherUnknownArgs.includes(typo.wrong)) {
                         reporter.reportDiagnostic(
                             new WarnMessage(`Unknown option "${typo.wrong}". Did you mean "${typo.correct}"? Use --help to see available options.`)
                         );
                     }
                 }
-                options.additionalArguments = parseUnknownArguments(unknownArgs);
+                options.additionalArguments = parseUnknownArguments(otherUnknownArgs);
             }
             if (options.profile && hasInvalidProfile(options.profile, options.config)) {
                 reporter.reportDiagnostic(

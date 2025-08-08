@@ -34,7 +34,7 @@ describe("constructor", () => {
                 buildDir: "/",
                 cliArgs: expect.objectContaining({
                     errors: [],
-                    fileNames: ["/build/test.ts"],
+                    fileNames: [],
                     options: expect.objectContaining({
                         allowJs: false,
                         checkJs: false,
@@ -689,7 +689,7 @@ describe("cliArgs", () => {
 
         expect(testObj.cliArgs).toEqual({
             errors: [],
-            fileNames: ["/test.ts"],
+            fileNames: [],
             options: {
                 allowJs: false,
                 checkJs: false,
@@ -992,7 +992,7 @@ describe("getOptions", () => {
             buildDir: "/",
             cliArgs: {
                 errors: [],
-                fileNames: ["/test.ts"],
+                fileNames: [],
                 options: {
                     allowJs: false,
                     checkJs: false,

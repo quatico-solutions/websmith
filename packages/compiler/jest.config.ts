@@ -14,6 +14,7 @@ const config: Config = {
         "@quatico/websmith-core": "<rootDir>/../core/src",
         "@quatico/websmith-testing": "<rootDir>/../testing/src",
     },
+    watchPathIgnorePatterns: ["test-output*"],
 };
 
 export default config;
