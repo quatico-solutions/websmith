@@ -224,6 +224,19 @@ export class Compiler {
 
         this.options = resolveCompilerOptions(this.system, optionsWithReporter, loaderOptions);
 
+        // Update AddonRegistry with resolved configuration
+        if (this.addons && this.options.config) {
+            this.addons
+                .setConfig({
+                    addonsDir: this.options.config.addonsDir,
+                    addons: this.options.config.addons,
+                    profiles: this.options.config.profiles,
+                    reporter: this.reporter,
+                    system: this.system,
+                })
+                .refresh();
+        }
+
         return this;
     }
 

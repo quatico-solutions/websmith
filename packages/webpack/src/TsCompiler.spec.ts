@@ -91,7 +91,7 @@ describe("TsCompiler", () => {
         fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
     });
 
-    // FIXME: This test is failing because the reporter is not being called
+    // FIXME: We don't call the reporter we call the webpack error() callback
     it.skip("should fail with invalid source code", () => {
         const { PROJECT_DIR } = getTestDirs();
         createSource(expected, "const () => 1;");

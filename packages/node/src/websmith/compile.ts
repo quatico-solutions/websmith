@@ -35,7 +35,12 @@ export const compile = async (
         }
 
         let addons;
-        if (config?.websmith?.config?.addonsDir !== undefined || config?.websmith?.config?.addons !== undefined) {
+        // Only create AddonRegistry if there's configuration or a config file
+        if (
+            config?.websmith?.config?.addonsDir !== undefined ||
+            config?.websmith?.config?.addons !== undefined ||
+            config?.websmith?.configFile !== undefined
+        ) {
             addons = new AddonRegistry({
                 addonsDir: config?.websmith?.config?.addonsDir ?? "",
                 addons: config?.websmith?.config?.addons,
