@@ -497,11 +497,255 @@ describe("bin.ts", () => {
         expect(getOutput("named-functions.json")).toMatchInlineSnapshot(`"{"foobar-function":["getFoobar","foobar"]}"`);
     }, 60000);
 
+    it("should pass only included files to compiler context with tsconfig include pattern", () => {
+        const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem());
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
+        createSourceFile("export const included1 = 'test';", "included1.ts");
+        createSourceFile("export const included2 = 'test';", "included2.ts");
+        createSourceFile("export const excluded = 'test';", "excluded.js");
+        createSourceFile("export const subIncluded = 'test';", "subdir/subIncluded.ts");
+        createSourceFile("export const outsideSrc = 'test';", "../outsideSrc.ts");
+        createSourceFile("File is not a TypeScript file", "excluded.txt");
+
+        executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
+
+        // @ts-expect-error - getContext is protected
+        const actual = target.getContext()!.getCliArgs().fileNames || [];
+
+        // Should include TypeScript files from src directory and subdirectories
+        expect(actual).toEqual(
+            expect.arrayContaining([
+                expect.stringMatching(/src[/\\]included1\.ts$/),
+                expect.stringMatching(/src[/\\]included2\.ts$/),
+                expect.stringMatching(/src[/\\]subdir[/\\]subIncluded\.ts$/),
+            ])
+        );
+
+        // Should not include .js files or files outside src
+        expect(actual).not.toEqual(expect.arrayContaining([expect.stringMatching(/excluded\.js$/), expect.stringMatching(/outsideSrc\.ts$/)]));
+    }, 60000);
+
+    it("should pass only included files with custom include pattern", () => {
+        const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}));
+        createTsConfigFile(
+            {
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                target: ts.ScriptTarget.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Node10,
+            },
+            ["src/custom/**/*.ts"],
+            ["node_modules", "dist"]
+        );
+
+        createSourceFile("export const included1 = 'test';", "custom/included1.ts");
+        createSourceFile("export const included2 = 'test';", "custom/included2.ts");
+        createSourceFile("export const excluded = 'test';", "excluded.ts");
+        createSourceFile("export const excluded2 = 'test';", "other/excluded.ts");
+        createSourceFile("File is not a TypeScript file", "excluded.txt");
+        createSourceFile("File is not a TypeScript file", ".gitignore");
+
+        executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
+
+        // @ts-expect-error - getContext is protected
+        const actual = target.getContext()?.getCliArgs().fileNames || [];
+
+        // Should only include files from src/custom directory
+        expect(actual).toEqual(
+            expect.arrayContaining([expect.stringMatching(/src\/custom\/included1\.ts$/), expect.stringMatching(/src\/custom\/included2\.ts$/)])
+        );
+
+        // Should not include files from other directories
+        expect(actual).not.toEqual(
+            expect.arrayContaining([
+                expect.stringMatching(/[^/\\]excluded\.ts$/), // excluded.ts in src/
+                expect.stringMatching(/other[/\\]excluded\.ts$/), // excluded.ts in src/other/
+            ])
+        );
+
+        // Verify exact count to ensure no unexpected files are included
+        expect(actual).toHaveLength(2);
+    }, 60000);
+
+    it("should pass explicitly specified files when provided as CLI arguments", () => {
+        const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}));
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ESNext,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+        });
+        createSourceFile("export const file1 = 'test';", "file1.ts");
+        createSourceFile("export const file2 = 'test';", "file2.ts");
+        createSourceFile("export const file3 = 'test';", "file3.ts");
+
+        // Execute compiler with specific files using relative paths
+        const file1Rel = "src/file1.ts";
+        const file3Rel = "src/file3.ts";
+        executeCompiler(`${file1Rel} ${file3Rel} --project tsconfig.json`, target);
+
+        // @ts-expect-error - getContext is protected
+        const actual = target.getContext()?.getCliArgs().fileNames || [];
+
+        // Should only include the explicitly specified files
+        expect(actual).toHaveLength(2);
+        expect(actual).toEqual(expect.arrayContaining([expect.stringMatching(/file1\.ts$/), expect.stringMatching(/file3\.ts$/)]));
+
+        // Should not include file2.ts since it wasn't specified
+        expect(actual).not.toEqual(expect.arrayContaining([expect.stringMatching(/file2\.ts$/)]));
+    }, 60000);
+
+    it("should pass files according to exclude pattern", () => {
+        const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}));
+        createTsConfigFile(
+            {
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                target: ts.ScriptTarget.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Node10,
+            },
+            ["src/**/*.ts"],
+            ["node_modules", "dist", "src/excluded/**/*"]
+        );
+
+        createSourceFile("export const included = 'test';", "included.ts");
+        createSourceFile("export const excluded = 'test';", "excluded/excluded.ts");
+        createSourceFile("export const included2 = 'test';", "normal/included.ts");
+
+        executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
+
+        // @ts-expect-error - getContext is protected
+        const actual = target.getContext()?.getCliArgs().fileNames || [];
+
+        // Should include files not in excluded directory
+        expect(actual).toEqual(
+            expect.arrayContaining([
+                expect.stringMatching(/src[/\\]included\.ts$/), // included.ts in src/
+                expect.stringMatching(/src[/\\]normal[/\\]included\.ts$/), // included.ts in src/normal/
+            ])
+        );
+
+        // Should not include files from excluded directory
+        expect(actual).not.toEqual(expect.arrayContaining([expect.stringMatching(/excluded[/\\]excluded\.ts$/)]));
+    }, 60000);
+
+    it("should pass files from cli args according to exclude pattern", () => {
+        const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}));
+        createTsConfigFile(
+            {
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                target: ts.ScriptTarget.ESNext,
+                moduleResolution: ts.ModuleResolutionKind.Node10,
+            },
+            ["src/**/*.ts"],
+            ["node_modules", "dist", "src/excluded/**/*"]
+        );
+
+        const filePath = createSourceFile("export const included = 'test';", "included.ts");
+        createSourceFile("export const excluded = 'test';", "excluded/excluded.ts");
+        createSourceFile("export const included2 = 'test';", "other.ts");
+
+        executeCompiler(`${filePath} --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
+
+        // @ts-expect-error - getContext is protected
+        const actual = target.getContext()?.getCliArgs().fileNames || [];
+
+        // Should include files not in excluded directory
+        expect(actual).toEqual(
+            expect.arrayContaining([
+                expect.stringMatching(/src[/\\]included\.ts$/), // included.ts in src/
+            ])
+        );
+
+        // Should not include files from excluded directory
+        expect(actual).not.toEqual(expect.arrayContaining([expect.stringMatching(/excluded[/\\]excluded\.ts$/)]));
+    }, 60000);
+
+    it("should include all tsconfig properties in cliArgs.options", () => {
+        const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}));
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ES2020,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            strict: true,
+            esModuleInterop: true,
+            skipLibCheck: true,
+            forceConsistentCasingInFileNames: true,
+            allowSyntheticDefaultImports: true,
+            declaration: true,
+            sourceMap: true,
+        });
+        createSourceFile("export const test = 'hello';", "test.ts");
+
+        executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
+
+        // @ts-expect-error - getContext is protected
+        const cliArgs = target.getContext()?.getCliArgs();
+        const options = cliArgs?.options;
+
+        // Verify that tsconfig options are properly included in cliArgs.options
+        expect(options?.target).toBe(ts.ScriptTarget.ES2020);
+        expect(options?.moduleResolution).toBe(ts.ModuleResolutionKind.Node10);
+        expect(options?.strict).toBe(true);
+        expect(options?.esModuleInterop).toBe(true);
+        expect(options?.skipLibCheck).toBe(true);
+        expect(options?.forceConsistentCasingInFileNames).toBe(true);
+        expect(options?.allowSyntheticDefaultImports).toBe(true);
+        expect(options?.declaration).toBe(true);
+        expect(options?.sourceMap).toBe(true);
+        expect(options?.outDir).toBe(testDirs.OUTPUT_DIR);
+    }, 60000);
+
+    it("should include all tsconfig properties in cliArgs.options even with explicit files", () => {
+        const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}));
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: ts.ScriptTarget.ES2020,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            strict: true,
+            esModuleInterop: true,
+            skipLibCheck: true,
+            forceConsistentCasingInFileNames: true,
+        });
+        createSourceFile("export const test1 = 'hello';", "test1.ts");
+        createSourceFile("export const test2 = 'hello';", "test2.ts");
+
+        // Execute with explicit files
+        executeCompiler(`src/test1.ts --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
+
+        // @ts-expect-error - getContext is protected
+        const cliArgs = target.getContext()?.getCliArgs();
+        const options = cliArgs?.options;
+
+        // Verify that tsconfig options are still included even with explicit files
+        expect(options?.target).toBe(ts.ScriptTarget.ES2020);
+        expect(options?.moduleResolution).toBe(ts.ModuleResolutionKind.Node10);
+        expect(options?.strict).toBe(true);
+        expect(options?.esModuleInterop).toBe(true);
+        expect(options?.skipLibCheck).toBe(true);
+        expect(options?.forceConsistentCasingInFileNames).toBe(true);
+        expect(options?.outDir).toBe(testDirs.OUTPUT_DIR);
+
+        // Verify that only the explicit file is included
+        expect(cliArgs?.fileNames).toHaveLength(1);
+        expect(cliArgs?.fileNames?.[0]).toMatch(/test1\.ts$/);
+    }, 60000);
+
     const executeCompiler = (args = "", compiler?: Compiler) => {
         process.chdir(testDirs.PROJECT_DIR);
 
         try {
-            addCompileCommand(new Command(), compiler).parse(args.split(" "), { from: "user" });
+            // Handle argument parsing more carefully to support file paths with spaces
+            const argArray = typeof args === "string" ? args.split(/\s+/) : args;
+            addCompileCommand(new Command(), compiler).parse(argArray, { from: "user" });
         } catch (err: any) {
             // Check if this was a successful exit (help shown, etc.)
             if (err?.message?.includes("process.exit() was called during test")) {
@@ -514,7 +758,7 @@ describe("bin.ts", () => {
         }
     };
 
-    const createTsConfig = (config: ts.CompilerOptions) => {
+    const createTsConfig = (config: ts.CompilerOptions, include: string[] = ["src/**/*"], exclude: string[] = ["node_modules", "dist"]) => {
         // Convert enum values to strings for proper JSON serialization
         const normalizedConfig = {
             ...config,
@@ -528,14 +772,14 @@ describe("bin.ts", () => {
 
         const tsConfig = {
             compilerOptions: normalizedConfig,
-            include: ["src/**/*"],
-            exclude: ["node_modules", "dist"],
+            include,
+            exclude,
         };
         return JSON.stringify(tsConfig, null, 2);
     };
 
-    const createTsConfigFile = (config: ts.CompilerOptions) => {
-        fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "tsconfig.json"), createTsConfig(config), { encoding: "utf-8" });
+    const createTsConfigFile = (config: ts.CompilerOptions, include?: string[], exclude?: string[]) => {
+        fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "tsconfig.json"), createTsConfig(config, include, exclude), { encoding: "utf-8" });
     };
 
     const createWebsmithConfig = (config: CompilationConfig) => {
@@ -546,8 +790,17 @@ describe("bin.ts", () => {
         fs.copyFileSync(path.resolve(TEST_FILES_DIR, fileName), path.resolve(testDirs.SOURCE_DIR, fileName));
     };
 
-    const createSourceFile = (fileContent: string, fileName: string) => {
-        fs.writeFileSync(path.join(testDirs.SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
+    const createSourceFile = (fileContent: string, fileName: string): string => {
+        const filePath = path.join(testDirs.SOURCE_DIR, fileName);
+        const dirPath = path.dirname(filePath);
+
+        // Create subdirectories if they don't exist
+        if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+        }
+
+        fs.writeFileSync(filePath, fileContent, { encoding: "utf-8" });
+        return filePath;
     };
 
     const getOutput = (filePath: string): string | undefined =>

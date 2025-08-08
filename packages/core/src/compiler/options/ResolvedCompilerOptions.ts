@@ -9,7 +9,7 @@ import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
 import type ts from "typescript";
 import type { CompilerOptionsValue } from "typescript";
-import { recursiveFindByFilter } from "../../environment";
+
 import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, type CompilationConfig } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
 import { tsDefaults } from "../defaults";
@@ -184,26 +184,39 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             options: { ...(cliArgs?.options ?? {}), ...(outDir && { outDir }), ...(rootDir && { rootDir }) },
         };
 
-        this.cliArgs = deepmerge<ts.ParsedCommandLine>(
-            deepmerge<ts.ParsedCommandLine>(
-                this.tsConfigFile && this.system.fileExists(this.tsConfigFile) ? parsedCommandLine(this.tsConfigFile, {}, this.system) : {},
-                {
-                    options: {
-                        ...(outDir && { outDir }),
-                        ...(this.tsConfig && { ...this.tsConfig }),
-                    },
-                },
-                { arrayMerge }
-            ),
+        // Get the parsed command line from tsconfig.json which includes proper file discovery
+        const parsedTsConfig =
+            this.tsConfigFile && this.system.fileExists(this.tsConfigFile) ? parsedCommandLine(this.tsConfigFile, {}, this.system) : {};
+
+        // Determine if we should use CLI files or tsconfig file discovery
+        const useCliFiles = cliArgs?.fileNames?.length > 0;
+        const finalFileNames = useCliFiles
+            ? cliArgs.fileNames.map(fileName => this.system.resolvePath(fileName))
+            : (parsedTsConfig as ts.ParsedCommandLine)?.fileNames || [];
+
+        const baseCliArgs = deepmerge<ts.ParsedCommandLine>(
+            parsedTsConfig,
             {
-                ...premergedCliArgs,
-                fileNames: cliArgs?.fileNames?.length
-                    ? cliArgs.fileNames.map(fileName => this.system.resolvePath(fileName))
-                    : recursiveFindByFilter(this.system.resolvePath(this.buildDir), undefined, this.system),
-                errors: [],
+                options: {
+                    ...(outDir && { outDir }),
+                    ...(this.tsConfig && { ...this.tsConfig }),
+                },
             },
             { arrayMerge }
         );
+
+        // When CLI files are provided, replace fileNames instead of merging
+        this.cliArgs = {
+            ...baseCliArgs,
+            ...premergedCliArgs,
+            // Ensure all tsconfig options are included in cliArgs.options
+            options: {
+                ...baseCliArgs.options, // This includes all tsconfig options from parsedTsConfig
+                ...premergedCliArgs.options, // This includes CLI-specific options like outDir, rootDir
+            },
+            fileNames: finalFileNames,
+            errors: [],
+        };
         this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, this.cliArgs?.options ?? {}, { arrayMerge });
 
         if (this.tsConfig?.sourceMap === false) {
