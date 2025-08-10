@@ -245,7 +245,7 @@ export class CompilationContext implements AddonContext {
     }
 
     public getAddonName(func: Function): string {
-        return this.addonFunctions.get(func) || "unknown";
+        return this.addonFunctions.get(func) || "unknown addon function";
     }
 
     private createLanguageServiceHost({
