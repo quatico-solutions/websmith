@@ -147,13 +147,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 if (addonsReg) {
                     addonsReg.setConfig(addonConfig(command, compiler.getSystem(), options, reporter));
                 } else {
-                    compiler.setAddonRegistry(
-                        new AddonRegistry({
-                            ...addonConfig(command, compiler.getSystem(), options, reporter),
-                            reporter,
-                            system,
-                        })
-                    );
+                    compiler.setAddonRegistry(new AddonRegistry(addonConfig(command, compiler.getSystem(), options, reporter)));
                 }
             }
 
@@ -166,7 +160,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
     return parent;
 };
 
-const addonConfig = (command: Command, system: ts.System, options: CompilerOptions, reporter: Reporter): AddonConfig => {
+export const addonConfig = (command: Command, system: ts.System, options: CompilerOptions, reporter: Reporter): AddonConfig => {
     const { config } = options ?? {};
     const addons = command.opts().addons ?? config?.addons?.join(",") ?? "";
     const addonsDir = command.opts().addonsDir ?? config?.addonsDir;

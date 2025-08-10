@@ -176,7 +176,7 @@ export class Compiler {
                 });
             }
         } else {
-            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
+            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by "${this.system.constructor.name}".`));
         }
         return this;
     }
@@ -271,7 +271,13 @@ export class Compiler {
                 .map(name => this.addons?.getAvailableAddons().find(addon => addon.getName() === name))
                 .filter(addon => addon !== undefined);
 
-            resolvedAddons.forEach(addon => addon.activate(defaultCtx));
+            resolvedAddons.forEach(addon => {
+                try {
+                    defaultCtx.activateAddon(addon);
+                } catch (err) {
+                    this.reporter.reportDiagnostic(new ErrorMessage(`Error activating addon "${addon.getName()}": ${err}`));
+                }
+            });
         } else {
             selectedProfiles.forEach((profile: string) => {
                 if (this.contextMap.has(profile)) {
@@ -288,7 +294,11 @@ export class Compiler {
                     .filter(addon => addon !== undefined);
 
                 resolvedAddons.forEach(addon => {
-                    addon.activate(ctx);
+                    try {
+                        ctx.activateAddon(addon);
+                    } catch (err) {
+                        this.reporter.reportDiagnostic(new ErrorMessage(`Error activating addon "${addon.getName()}": ${err}`));
+                    }
                 });
                 this.contextMap.set(profile, ctx);
             });
@@ -348,13 +358,45 @@ export class Compiler {
 
             let content = this.system.readFile(fileName) ?? cache.getCachedFile(fileName)?.content ?? "";
 
-            ctx.getGenerators().forEach(cur => cur(fileName, content));
+            ctx.getGenerators().forEach(cur => {
+                try {
+                    cur(fileName, content);
+                } catch (err) {
+                    this.reporter.reportDiagnostic(new ErrorMessage(`Error in generator "${ctx.getAddonName(cur)}": ${err}`));
+                }
+            });
 
-            ctx.getProcessors().forEach(cur => (content = cur(fileName, content)));
+            for (const cur of ctx.getProcessors()) {
+                try {
+                    content = cur(fileName, content);
+                } catch (err) {
+                    this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
+                    break; // Stop processing further processors on error
+                }
+            }
 
             cache.updateSource(filePath, content);
 
-            return this.processOutput(cache, this.transpile({ fileName, ctx, content }), writeFile, fileName, ctx);
+            try {
+                return this.processOutput(cache, this.transpile({ fileName, ctx, content }), writeFile, fileName, ctx);
+            } catch (err) {
+                this.reporter.reportDiagnostic(new ErrorMessage(`Error during transpilation of "${fileName}": ${err}`));
+                // Return a minimal result to allow compilation to continue
+                return {
+                    version: cache.getVersion(fileName),
+                    files: [],
+                    diagnostics: [
+                        {
+                            category: ts.DiagnosticCategory.Error,
+                            code: 0,
+                            messageText: `Transpilation failed: ${err}`,
+                            file: undefined,
+                            start: undefined,
+                            length: undefined,
+                        },
+                    ],
+                };
+            }
         }
 
         throw new Error(`No profile with name "${profile}" configured.`);
@@ -393,14 +435,20 @@ export class Compiler {
         }
 
         const files = this.getRootFiles();
-        ctx.getResultProcessors().forEach(cur => cur(files));
+        ctx.getResultProcessors().forEach(cur => {
+            try {
+                cur(files);
+            } catch (err) {
+                this.reporter.reportDiagnostic(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
+            }
+        });
 
         return result;
     }
 
     registerWatch(filePath: string, profileNames?: string[]): this {
         if (typeof this.system.watchFile !== "function") {
-            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
+            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by "${this.system.constructor.name}".`));
             return this;
         }
 
@@ -539,7 +587,9 @@ export class Compiler {
         // For declaration files, use the language service approach (but not in transpileOnly mode)
         if (ctx.getCliArgs().options.declaration && !this.transpileOnly) {
             const langService = ctx.getLanguageService();
-            return { ...langService.getEmitOutput(fileName), diagnostics: langService.getSyntacticDiagnostics(fileName) };
+            const output = langService.getEmitOutput(fileName);
+            // The type 'readonly Diagnostic[]' is 'readonly' cannot be assigned to the mutable type 'Diagnostic[]'
+            return { ...output, diagnostics: output.diagnostics as ts.Diagnostic[] };
         }
 
         const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {

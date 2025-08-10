@@ -6,12 +6,12 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
-import { Compiler, NoReporter } from "@quatico/websmith-core";
+import { Compiler, NoReporter, createSystem } from "@quatico/websmith-core";
 import { compileSystem } from "@quatico/websmith-testing";
 import { Command } from "commander";
 import path from "node:path";
 import ts from "typescript";
-import { addCompileCommand, hasInvalidProfile } from "./command";
+import { addCompileCommand, addonConfig, hasInvalidProfile } from "./command";
 
 beforeAll(() => {
     jest.spyOn(console, "time").mockImplementation(() => {});
@@ -436,6 +436,34 @@ describe("hasInvalidProfile", () => {
                 },
             } as any)
         ).toBe(false);
+    });
+});
+
+describe("addonConfig", () => {
+    it("should yield same options with and without addons properties except addons", () => {
+        const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}, { virtual: true }));
+        const command = new Command();
+        const actual = addonConfig(
+            command,
+            target.getSystem(),
+            { ...target.getOptions(), config: { addons: ["foo", "bar"], addonsDir: "./custom-addons" } },
+            target.getReporter()
+        );
+        const expected = addonConfig(
+            command,
+            target.getSystem(),
+            { ...target.getOptions(), config: { addonsDir: "./custom-addons" } },
+            target.getReporter()
+        );
+
+        // @ts-expect-error - we want to test the equality of the options
+        delete actual.reporter;
+        // @ts-expect-error - we want to test the equality of the options
+        delete expected.reporter;
+        delete actual.addons;
+        delete expected.addons;
+
+        expect(actual).toEqual(expected);
     });
 });
 
