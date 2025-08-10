@@ -346,7 +346,7 @@ export class Compiler {
         });
     }
 
-    protected emitSourceFile(fileName: string, profile?: string, writeFile = true, skipCache = false): CompileFragment | never {
+    protected emitSourceFile(fileName: string, profile?: string, writeFile = true, skipCache = false): CompileFragment {
         const filePath = this.system.resolvePath(fileName);
         const ctx = this.getContext(profile);
         const cache = ctx?.getCache();
@@ -360,7 +360,7 @@ export class Compiler {
 
             ctx.getGenerators().forEach(cur => {
                 try {
-                    return cur(fileName, content);
+                    cur(fileName, content);
                 } catch (err) {
                     this.reporter.reportDiagnostic(new ErrorMessage(`Error in generator "${ctx.getAddonName(cur)}": ${err}`));
                 }
@@ -436,7 +436,7 @@ export class Compiler {
         const files = this.getRootFiles();
         ctx.getResultProcessors().forEach(cur => {
             try {
-                return cur(files);
+                cur(files);
             } catch (err) {
                 this.reporter.reportDiagnostic(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
             }
