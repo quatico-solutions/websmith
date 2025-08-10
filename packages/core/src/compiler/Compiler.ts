@@ -372,7 +372,6 @@ export class Compiler {
                 } catch (err) {
                     this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
                 }
-                return content;
             });
 
             cache.updateSource(filePath, content);
@@ -448,7 +447,6 @@ export class Compiler {
 
     registerWatch(filePath: string, profileNames?: string[]): this {
         if (typeof this.system.watchFile !== "function") {
-            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by "${this.system.constructor.name}".`));
             return this;
         }
