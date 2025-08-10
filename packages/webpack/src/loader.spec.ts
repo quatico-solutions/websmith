@@ -4,8 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { Compiler, NoReporter } from "@quatico/websmith-core";
-import { compileSystem } from "@quatico/websmith-testing";
+import { Compiler, NoReporter, createSystem } from "@quatico/websmith-core";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -33,8 +32,8 @@ describe("TsCompiler compatibility with Compiler", () => {
     });
 
     it("should yield compiled js files like Compiler", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": JSON.stringify({
                     compilerOptions: {
                         outDir: "./bin",
@@ -45,7 +44,8 @@ describe("TsCompiler compatibility with Compiler", () => {
                 "src/one.ts": `export const one = "whatever";`,
                 "src/two.ts": `export const two = "whatever";`,
             },
-        });
+            { virtual: true }
+        );
 
         // Test with core Compiler
         const compilerResult = new Compiler(
@@ -94,8 +94,8 @@ describe("TsCompiler compatibility with Compiler", () => {
     });
 
     it("should produce similar transpiled output like Compiler", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": JSON.stringify({
                     compilerOptions: {
                         outDir: "./bin",
@@ -105,7 +105,8 @@ describe("TsCompiler compatibility with Compiler", () => {
                 }),
                 "src/simple.ts": `export const value = 42; export function getName() { return "test"; }`,
             },
-        });
+            { virtual: true }
+        );
 
         // Test with core Compiler
         const compilerResult = new Compiler(
@@ -156,8 +157,8 @@ describe("TsCompiler compatibility with Compiler", () => {
     });
 
     it("should produce consistent compilation behavior", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": JSON.stringify({
                     compilerOptions: {
                         outDir: "./bin",
@@ -167,7 +168,8 @@ describe("TsCompiler compatibility with Compiler", () => {
                 }),
                 "src/test.ts": `export const test = "hello world";`,
             },
-        });
+            { virtual: true }
+        );
 
         // Test with core Compiler
         const compilerResult = new Compiler(
@@ -218,13 +220,14 @@ describe("TsCompiler compatibility with Compiler", () => {
 
     // Added from Compiler.test.ts - adapted for TsCompiler compatibility
     it("should yield compiled js files (from Compiler.test.ts)", () => {
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": "{}",
                 "src/one.ts": `whatever`,
                 "src/two.ts": `whatever`,
             },
-        });
+            { virtual: true }
+        );
 
         // Test with core Compiler (original test)
         const compilerResult = new Compiler(
@@ -275,13 +278,14 @@ describe("TsCompiler compatibility with Compiler", () => {
     // Test TsCompiler basic functionality - adapted for webpack loader usage
     it("should compile TypeScript files successfully", () => {
         jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't log missing configuration files
-        const { fileSystem: target } = compileSystem({
-            files: {
+        const target = createSystem(
+            {
                 "tsconfig.json": "{}",
                 "src/one.ts": `export const test = "hello";`,
                 "src/two.ts": `export const test2 = "world";`,
             },
-        });
+            { virtual: true }
+        );
 
         // Test with TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
