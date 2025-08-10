@@ -30,7 +30,7 @@ export class CompilationContext implements AddonContext {
     protected generators: Generator[];
     protected processors: Processor[];
     protected transformers: ts.CustomTransformers;
-    protected ResultProcessors: ResultProcessor[] = [];
+    protected resultProcessors: ResultProcessor[] = [];
     protected rootFiles: string[];
 
     private cache: FileCache;
@@ -201,7 +201,7 @@ export class CompilationContext implements AddonContext {
     }
 
     public registerResultProcessor(emitter: ResultProcessor): this {
-        this.ResultProcessors.push(emitter);
+        this.resultProcessors.push(emitter);
         return this;
     }
 
@@ -218,7 +218,7 @@ export class CompilationContext implements AddonContext {
     }
 
     public getResultProcessors(): ResultProcessor[] {
-        return this.ResultProcessors;
+        return this.resultProcessors;
     }
 
     private createLanguageServiceHost({

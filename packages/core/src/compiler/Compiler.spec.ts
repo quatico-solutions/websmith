@@ -742,7 +742,7 @@ describe("createCompilationContext", () => {
         ).createCompilationContext("target-profile");
 
         expect(actual).toMatchObject({
-            ResultProcessors: [],
+            resultProcessors: [],
             generators: [],
             processors: [],
             transformers: {},
