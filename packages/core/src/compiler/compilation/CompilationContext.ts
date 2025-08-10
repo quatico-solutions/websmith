@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
@@ -8,6 +9,7 @@
 import { type AddonContext, type Generator, type Processor, type Reporter, type ResultProcessor } from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
+import { type CompilerAddon } from "../addons";
 import { FileCache } from "../cache";
 import { concat } from "../collections";
 import { CompilationHost } from "./CompilationHost";
@@ -32,6 +34,10 @@ export class CompilationContext implements AddonContext {
     protected transformers: ts.CustomTransformers;
     protected resultProcessors: ResultProcessor[] = [];
     protected rootFiles: string[];
+
+    // Track which addon registered each function
+    protected addonFunctions: WeakMap<Function, string> = new WeakMap();
+    private currentAddonName?: string;
 
     private cache: FileCache;
     private languageHost: ts.LanguageServiceHost;
@@ -192,16 +198,25 @@ export class CompilationContext implements AddonContext {
 
     public registerProcessor(processor: Processor): this {
         this.processors.push(processor);
+        if (this.currentAddonName) {
+            this.addonFunctions.set(processor, this.currentAddonName);
+        }
         return this;
     }
 
     public registerGenerator(gen: Generator): this {
         this.generators.push(gen);
+        if (this.currentAddonName) {
+            this.addonFunctions.set(gen, this.currentAddonName);
+        }
         return this;
     }
 
     public registerResultProcessor(emitter: ResultProcessor): this {
         this.resultProcessors.push(emitter);
+        if (this.currentAddonName) {
+            this.addonFunctions.set(emitter, this.currentAddonName);
+        }
         return this;
     }
 
@@ -219,6 +234,20 @@ export class CompilationContext implements AddonContext {
 
     public getResultProcessors(): ResultProcessor[] {
         return this.resultProcessors;
+        return this.resultProcessors;
+    }
+
+    public activateAddon(addon: CompilerAddon): void {
+        try {
+            this.currentAddonName = addon.getName();
+            addon.activate(this);
+        } finally {
+            this.currentAddonName = undefined;
+        }
+    }
+
+    public getAddonName(func: Function): string {
+        return this.addonFunctions.get(func) || "unknown";
     }
 
     private createLanguageServiceHost({
