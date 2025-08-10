@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-function-type */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type -- The Function type is required here to use as a key in WeakMap, as TypeScript does not allow more specific function types for WeakMap keys. */
 /* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
