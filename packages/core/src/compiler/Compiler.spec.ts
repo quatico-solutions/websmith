@@ -1641,6 +1641,526 @@ describe("watch", () => {
     });
 });
 
+describe("addon error reporting", () => {
+    it("should report generator errors and continue processing", () => {
+        const mockAddon = {
+            getName: () => "test-generator-addon",
+            activate: (ctx: CompilationContext) => {
+                ctx.registerGenerator((_fileName: string, _content: string) => {
+                    throw new Error("Generator failed with test error");
+                });
+            },
+        };
+        const system = createSystem({ "test-file.ts": "export const test = 'hello';" }, { virtual: true });
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                cliArgs: { fileNames: ["test-file.ts"], options: { transpileOnly: true }, errors: [] },
+                config: { addons: ["test-generator-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("test-file.ts");
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Error in generator"),
+            })
+        );
+    });
+
+    it("should report processor errors and continue processing", () => {
+        const mockAddon = {
+            getName: () => "test-processor-addon",
+            activate: (ctx: CompilationContext) => {
+                ctx.registerProcessor((_fileName: string, _content: string) => {
+                    throw new Error("Processor failed with test error");
+                });
+            },
+        };
+        const system = createSystem({ "test-file.ts": "export const test = 'hello';" }, { virtual: true });
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                cliArgs: { fileNames: ["test-file.ts"], options: { transpileOnly: true }, errors: [] },
+                config: { addons: ["test-processor-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("test-file.ts");
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Error in processor"),
+            })
+        );
+    });
+
+    it("should report result processor errors and continue compilation", () => {
+        const mockAddon = {
+            getName: () => "test-result-processor-addon",
+            activate: (ctx: CompilationContext) => {
+                ctx.registerResultProcessor(() => {
+                    throw new Error("Result processor failed with test error");
+                });
+            },
+        };
+        const system = createSystem({ "test-file.ts": "export const test = 'hello';" }, { virtual: true });
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                cliArgs: { fileNames: ["test-file.ts"], options: { transpileOnly: true }, errors: [] },
+                config: { addons: ["test-result-processor-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .compile();
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Error in result processor"),
+            })
+        );
+    });
+
+    it("should handle addon activation errors gracefully", () => {
+        const mockAddon = {
+            getName: () => "test-failing-addon",
+            activate: () => {
+                throw new Error("Addon activation failed");
+            },
+        };
+        const system = createSystem({ "test-file.ts": "export const test = 'hello';" }, { virtual: true });
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                config: { addons: ["test-failing-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary();
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Error activating addon"),
+            })
+        );
+    });
+
+    it("should handle transformer errors during transpilation", () => {
+        const mockAddon = {
+            getName: () => "test-transformer-addon",
+            activate: (ctx: CompilationContext) => {
+                ctx.registerTransformer({
+                    before: [
+                        (_context: ts.TransformationContext) => {
+                            return (_sourceFile: ts.SourceFile) => {
+                                // This transformer will cause an error during transpilation
+                                throw new Error("Transformer failed during execution");
+                            };
+                        },
+                    ],
+                });
+            },
+        };
+        const system = createSystem({ "test-file.ts": "export const test = 'hello';" }, { virtual: true });
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        const actual = new CompilerTestClass(
+            {
+                reporter: target,
+                cliArgs: { fileNames: ["test-file.ts"], options: { transpileOnly: true }, errors: [] },
+                config: { addons: ["test-transformer-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("test-file.ts");
+
+        // Transformer errors should be caught and reported
+        expect(actual).toBeDefined();
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Error during transpilation"),
+            })
+        );
+    });
+
+    it("should handle complex transformer scenarios with error recovery", () => {
+        const mockAddon = {
+            getName: () => "test-complex-transformer-addon",
+            activate: (ctx: CompilationContext) => {
+                ctx.registerTransformer({
+                    before: [
+                        (context: ts.TransformationContext) => {
+                            return (sourceFile: ts.SourceFile): ts.SourceFile => {
+                                // Transform that modifies the AST but may cause issues
+                                const visitor = (node: ts.Node): ts.Node => {
+                                    if (ts.isIdentifier(node) && node.text === "test") {
+                                        // Create a potentially problematic transformation
+                                        return context.factory.createIdentifier("transformedTest");
+                                    }
+                                    return ts.visitEachChild(node, visitor, context);
+                                };
+                                return ts.visitNode(sourceFile, visitor, ts.isSourceFile);
+                            };
+                        },
+                    ],
+                });
+            },
+        };
+        const system = createSystem(
+            {
+                "test-file.ts": "export const test = 'hello'; const anotherTest = test;",
+            },
+            { virtual: true }
+        );
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        const actual = new CompilerTestClass(
+            {
+                reporter: target,
+                cliArgs: { fileNames: ["test-file.ts"], options: { transpileOnly: true }, errors: [] },
+                config: { addons: ["test-complex-transformer-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("test-file.ts");
+
+        expect(actual.files[0].text).toContain("transformedTest");
+    });
+
+    it("should report generator runtime errors and continue processing", () => {
+        const mockAddon = {
+            getName: () => "test-runtime-generator-addon",
+            activate: (ctx: CompilationContext) => {
+                ctx.registerGenerator((fileName: string, content: string) => {
+                    if (fileName.includes("test")) {
+                        throw new ReferenceError("Generator runtime error: undefined variable");
+                    }
+                    return content;
+                });
+            },
+        };
+        const system = createSystem({ "test-file.ts": "export const test = 'hello';" }, { virtual: true });
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                cliArgs: { fileNames: ["test-file.ts"], options: { transpileOnly: true }, errors: [] },
+                config: { addons: ["test-runtime-generator-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("test-file.ts");
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining(
+                    `Error in generator "test-runtime-generator-addon": ReferenceError: Generator runtime error: undefined variable`
+                ),
+            })
+        );
+    });
+
+    it("should report processor runtime errors and continue processing", () => {
+        const mockAddon = {
+            getName: () => "test-runtime-processor-addon",
+            activate: (ctx: CompilationContext) => {
+                ctx.registerProcessor((fileName: string, content: string) => {
+                    if (content.includes("hello")) {
+                        throw new TypeError("Processor runtime error: invalid content type");
+                    }
+                    return content.toUpperCase();
+                });
+            },
+        };
+        const system = createSystem({ "test-file.ts": "export const test = 'hello';" }, { virtual: true });
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                cliArgs: { fileNames: ["test-file.ts"], options: { transpileOnly: true }, errors: [] },
+                config: { addons: ["test-runtime-processor-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("test-file.ts");
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining(
+                    `Error in processor "test-runtime-processor-addon": TypeError: Processor runtime error: invalid content type`
+                ),
+            })
+        );
+    });
+
+    it("should report result processor runtime errors and continue compilation", () => {
+        const mockAddon = {
+            getName: () => "test-runtime-result-processor-addon",
+            activate: (ctx: CompilationContext) => {
+                ctx.registerResultProcessor((files: string[]) => {
+                    if (files.length > 0) {
+                        throw new SyntaxError("Result processor runtime error: invalid file format");
+                    }
+                    return files;
+                });
+            },
+        };
+        const system = createSystem({ "test-file.ts": "export const test = 'hello';" }, { virtual: true });
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                cliArgs: { fileNames: ["test-file.ts"], options: { transpileOnly: true }, errors: [] },
+                config: { addons: ["test-runtime-result-processor-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .compile();
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining(
+                    `Error in result processor "test-runtime-result-processor-addon": SyntaxError: Result processor runtime error: invalid file format`
+                ),
+            })
+        );
+    });
+
+    it("should handle multiple processor errors in sequence", () => {
+        const mockAddon = {
+            getName: () => "test-multiple-processor-addon",
+            activate: (ctx: CompilationContext) => {
+                ctx.registerProcessor((_fileName: string, _content: string) => {
+                    throw new Error("First processor error");
+                });
+                ctx.registerProcessor((_fileName: string, _content: string) => {
+                    throw new Error("Second processor error");
+                });
+                ctx.registerProcessor((_fileName: string, content: string) => {
+                    return content + "// Successfully processed";
+                });
+            },
+        };
+        const system = createSystem({ "test-file.ts": "export const test = 'hello';" }, { virtual: true });
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                cliArgs: { fileNames: ["test-file.ts"], options: { transpileOnly: true }, errors: [] },
+                config: { addons: ["test-multiple-processor-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("test-file.ts");
+
+        expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({
+                messageText: expect.stringContaining(`Error in processor "test-multiple-processor-addon": Error: First processor error`),
+            })
+        );
+        expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+                messageText: expect.stringContaining(`Error in processor "test-multiple-processor-addon": Error: Second processor error`),
+            })
+        );
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(2);
+    });
+
+    it("should handle generator errors with different error types", () => {
+        const mockAddon = {
+            getName: () => "test-generator-error-types-addon",
+            activate: (ctx: CompilationContext) => {
+                ctx.registerGenerator((fileName: string, content: string) => {
+                    if (fileName.includes("syntax")) {
+                        throw new SyntaxError("Generator syntax error");
+                    }
+                    if (fileName.includes("reference")) {
+                        throw new ReferenceError("Generator reference error");
+                    }
+                    if (fileName.includes("type")) {
+                        throw new TypeError("Generator type error");
+                    }
+                    return content;
+                });
+            },
+        };
+        const system = createSystem(
+            {
+                "syntax-file.ts": "export const syntax = 'test';",
+                "reference-file.ts": "export const reference = 'test';",
+                "type-file.ts": "export const type = 'test';",
+            },
+            { virtual: true }
+        );
+        system.createDirectory("./addons");
+        const target = new ReporterMock(system);
+        target.reportDiagnostic = jest.fn();
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system: system,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([mockAddon]);
+
+        const compiler = new CompilerTestClass(
+            {
+                reporter: target,
+                cliArgs: { fileNames: ["syntax-file.ts", "reference-file.ts", "type-file.ts"], options: { transpileOnly: true }, errors: [] },
+                config: { addons: ["test-generator-error-types-addon"] },
+            },
+            undefined,
+            system
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary();
+
+        compiler.emitSourceFile("syntax-file.ts");
+        compiler.emitSourceFile("reference-file.ts");
+        compiler.emitSourceFile("type-file.ts");
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Generator syntax error"),
+            })
+        );
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Generator reference error"),
+            })
+        );
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Generator type error"),
+            })
+        );
+    });
+});
+
 const complexFileExtension = (name: string): string => {
     return path.basename(name).replace(path.basename(name).split(".")[0], "");
 };
