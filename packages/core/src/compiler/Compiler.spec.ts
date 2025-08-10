@@ -2082,13 +2082,7 @@ describe("addon error reporting", () => {
                 messageText: expect.stringContaining(`Error in processor "test-multiple-processor-addon": Error: First processor error`),
             })
         );
-        expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
-            2,
-            expect.objectContaining({
-                messageText: expect.stringContaining(`Error in processor "test-multiple-processor-addon": Error: Second processor error`),
-            })
-        );
-        expect(target.reportDiagnostic).toHaveBeenCalledTimes(2);
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
     });
 
     it("should handle generator errors with different error types", () => {

@@ -241,13 +241,16 @@ describe("isCodeFileExtension", () => {
 describe("addInputFile", () => {
     it("write an error when adding an scss file", () => {
         const target = jest.fn();
-        console.error = target;
+        testObj.getReporter().reportDiagnostic = target;
 
         testObj.addInputFile("expected.scss");
 
-        expect(target).toHaveBeenNthCalledWith(
-            1,
-            "Only code files are supported for addInputFile. .scss of expected.scss is no valid code file extension."
+        expect(target).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining(
+                    "Only code files are supported for addInputFile. .scss of expected.scss is no valid code file extension."
+                ),
+            })
         );
     });
 });
