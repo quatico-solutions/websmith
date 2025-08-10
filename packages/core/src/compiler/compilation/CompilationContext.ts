@@ -234,7 +234,6 @@ export class CompilationContext implements AddonContext {
 
     public getResultProcessors(): ResultProcessor[] {
         return this.resultProcessors;
-        return this.resultProcessors;
     }
 
     public activateAddon(addon: CompilerAddon): void {
