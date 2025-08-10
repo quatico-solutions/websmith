@@ -28,6 +28,48 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.12] - 2025-08-10
+
+This release focuses on improving error handling reliability. The main improvements include removing unnecessary testing dependencies from production packages and implementing comprehensive error reporting for addon failures.
+
+### Added
+
+- 🧪 **Enhanced Error Reporting for Addons**: Added comprehensive error handling and reporting for all addon lifecycle stages
+  - Generator errors are now caught and reported with detailed error messages while allowing compilation to continue
+  - Processor errors are caught and reported, with processing chain stopping on the first error
+  - Result processor errors are caught and reported without stopping the overall compilation
+  - Transformer errors during transpilation are caught and reported with graceful fallback
+  - Addon activation errors are caught and reported with proper error context
+  - All error messages include the addon name and specific error details for better debugging
+- 🧪 **Improved Test Infrastructure**: Enhanced test reliability with better mock implementations and system setup
+  - Added proper stdout mocking in bin.spec.ts to prevent unwanted console output during tests
+  - Replaced `compileSystem` with `createSystem` for more consistent virtual file system testing
+  - Enhanced AddonRegistry test setup with proper system and reporter configuration
+
+### Removed
+
+- 🧹 **Testing Dependencies Cleanup**: Removed unnecessary `@quatico/websmith-testing` dependency from production packages
+  - Removed testing dependency from `@quatico/websmith-compiler` package
+  - Removed testing dependency from `websmith-loader` package
+  - Cleaned up Jest configuration to remove unused module name mappings
+  - Reduced package size and eliminated circular dependencies between testing and production code
+
+### Changed
+
+- 🔧 **Error Handling Architecture**: Improved addon error handling throughout the compilation pipeline
+  - Enhanced CompilationContext to track addon function ownership for better error reporting
+  - Added comprehensive try-catch blocks around all addon execution points
+  - Improved error recovery mechanisms to allow compilation to continue after addon failures
+
+### Fixed
+
+- 🐛 **Addon Error Recovery**: Fixed compilation failures when addons throw errors during execution
+  - Addon activation errors no longer crash the compiler
+  - Generator errors are isolated and don't prevent other generators from running
+  - Processor errors stop the processing chain for that file but don't crash the compilation
+  - Result processor errors are isolated and don't prevent compilation completion
+  - Transformer errors during transpilation are caught with proper fallback handling
+
 ## [0.7.11] - 2025-08-08
 
 This release significantly enhances the CLI's file handling capabilities and ensures complete tsconfig compliance. The websmith CLI now properly respects TypeScript configuration patterns and provides comprehensive support for explicit file arguments.
