@@ -588,7 +588,8 @@ export class Compiler {
         if (ctx.getCliArgs().options.declaration && !this.transpileOnly) {
             const langService = ctx.getLanguageService();
             const output = langService.getEmitOutput(fileName);
-            return { ...output, diagnostics: [...(output.diagnostics ?? []), ...langService.getSyntacticDiagnostics(fileName)] };
+            // The type 'readonly Diagnostic[]' is 'readonly' cannot be assigned to the mutable type 'Diagnostic[]'
+            return { ...output, diagnostics: output.diagnostics as ts.Diagnostic[] };
         }
 
         const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
