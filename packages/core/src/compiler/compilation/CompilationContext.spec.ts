@@ -27,7 +27,7 @@ class CompilationContextTestClass extends CompilationContext {
     }
 
     public getResultProcessors() {
-        return this.ResultProcessors;
+        return this.resultProcessors;
     }
 
     public getRootFiles() {
