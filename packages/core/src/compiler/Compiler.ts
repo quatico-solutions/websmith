@@ -372,7 +372,14 @@ export class Compiler {
                 } catch (err) {
                     this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
                 }
-            });
+            for (const cur of ctx.getProcessors()) {
+                try {
+                    content = cur(fileName, content);
+                } catch (err) {
+                    this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
+                    break; // Stop processing further processors on error
+                }
+            }
 
             cache.updateSource(filePath, content);
 
