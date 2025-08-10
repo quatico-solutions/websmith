@@ -1,11 +1,19 @@
-/* eslint-disable no-console */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type AddonContext, type Generator, type Processor, type Reporter, type ResultProcessor } from "@quatico/websmith-api";
+import {
+    type AddonContext,
+    type Generator,
+    type Processor,
+    type Reporter,
+    type ResultProcessor,
+    ErrorMessage,
+    InfoMessage,
+} from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
 import { type CompilerAddon } from "../addons";
@@ -103,8 +111,10 @@ export class CompilationContext implements AddonContext {
 
     public addInputFile(filePath: string): void {
         if (!this.isCodeFileExtension(filePath)) {
-            console.error(
-                `Only code files are supported for addInputFile. ${path.extname(filePath)} of ${filePath} is no valid code file extension.`
+            this.reporter.reportDiagnostic(
+                new ErrorMessage(
+                    `Only code files are supported for addInputFile. ${path.extname(filePath)} of ${filePath} is no valid code file extension.`
+                )
             );
             return;
         }
@@ -114,7 +124,7 @@ export class CompilationContext implements AddonContext {
             this.rootFiles.push(filePath);
         }
         if (this.watchCallback) {
-            console.error(`add ${filePath} to watch`);
+            this.reporter.reportDiagnostic(new InfoMessage(`Adding ${filePath} to watch`));
             this.watchCallback(filePath);
         }
     }
@@ -138,8 +148,10 @@ export class CompilationContext implements AddonContext {
     public addAssetDependency(childPath: string, parentPath: string): void {
         // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
         if (this.isCodeFileExtension(childPath)) {
-            console.error(
-                `Only non-code files are supported for addAssetDependency. ${path.extname(childPath)} of ${childPath} is a code file extension.`
+            this.reporter.reportDiagnostic(
+                new ErrorMessage(
+                    `Only non-code files are supported for addAssetDependency. ${path.extname(childPath)} of ${childPath} is a code file extension.`
+                )
             );
             return;
         }
@@ -153,8 +165,10 @@ export class CompilationContext implements AddonContext {
 
     public addVirtualFile(filePath: string, fileContent: string): void {
         if (!this.isCodeFileExtension(filePath)) {
-            console.error(
-                `Only code files are supported for addInputFile. ${path.extname(filePath)} of ${filePath} is no valid code file extension.`
+            this.reporter.reportDiagnostic(
+                new ErrorMessage(
+                    `Only code files are supported for addInputFile. ${path.extname(filePath)} of ${filePath} is no valid code file extension.`
+                )
             );
             return;
         }
