@@ -103,7 +103,12 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                         ...args,
                         project: tsConfigFile,
                         // Pass file arguments through args so they get picked up by parsedCommandLine
-                        ...(fileArguments.length > 0 && { fileNames: fileArguments }),
+                        // If no file arguments provided and no project specified, preserve existing fileNames
+                        ...(fileArguments.length > 0
+                            ? { fileNames: fileArguments }
+                            : !args.project && compiler?.getOptions()?.cliArgs?.fileNames?.length
+                              ? { fileNames: compiler.getOptions().cliArgs.fileNames }
+                              : {}),
                     },
                     reporter,
                     system
