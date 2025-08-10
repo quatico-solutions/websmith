@@ -51,6 +51,7 @@ describe("bin.ts", () => {
         jest.spyOn(process, "exit").mockImplementation(() => {
             throw new Error("process.exit() was called during test");
         });
+        jest.spyOn(process.stdout, "write").mockImplementation(() => true);
 
         // Clean up and create test directories (unique for this test)
         try {

@@ -6,8 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { WarnMessage } from "@quatico/websmith-api";
-import { Compiler, NoReporter, createSystem } from "@quatico/websmith-core";
-import { compileSystem } from "@quatico/websmith-testing";
+import { AddonRegistry, Compiler, NoReporter, createSystem } from "@quatico/websmith-core";
 import { Command } from "commander";
 import path from "node:path";
 import ts from "typescript";
@@ -19,7 +18,7 @@ beforeAll(() => {
 
 describe("addCompileCommand", () => {
     it("should yield additionalArguments w/ unknown argument", () => {
-        const testSystem = compileSystem().fileSystem;
+        const testSystem = createSystem({}, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
         const testObj = addCompileCommand(new Command(), target);
 
@@ -48,8 +47,19 @@ describe("addCompileCommand", () => {
 
     it("should yield default options w/o config and w/o CLI arguments", () => {
         jest.spyOn(process.stdout, "write").mockImplementation(() => true);
-        const { fileSystem: testSystem, addons } = compileSystem({ files: { "/test.ts": "export const test = () => {};" } });
-        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
+        const testSystem = createSystem({ "/test.ts": "export const test = () => {};" }, { virtual: true });
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
+        });
+        const target = new Compiler(
+            { reporter: new NoReporter(), cliArgs: { fileNames: ["/test.ts"], options: {}, errors: [] } },
+            {},
+            testSystem,
+            addons
+        );
 
         addCompileCommand(new Command(), target).parse([], { from: "user" });
 
@@ -63,7 +73,6 @@ describe("addCompileCommand", () => {
         expect(actual).toEqual({
             buildDir: expect.stringContaining(path.sep),
             cliArgs: {
-                compileOnSave: false,
                 errors: [],
                 fileNames: ["/test.ts"],
                 options: {
@@ -82,13 +91,6 @@ describe("addCompileCommand", () => {
                     strict: false,
                     target: ts.ScriptTarget.ES5,
                 },
-                raw: {},
-                typeAcquisition: {
-                    include: [],
-                    exclude: [],
-                    enable: false,
-                },
-                wildcardDirectories: { [""]: 1 },
             },
             config: {
                 addons: [],
@@ -122,7 +124,7 @@ describe("addCompileCommand", () => {
 
     it("should yield config option w/ --configFile cli argument", () => {
         jest.spyOn(process.stdout, "write").mockImplementation(() => true);
-        const testSystem = compileSystem({ files: { "./expected/websmith.config.json": "{}" } }).fileSystem;
+        const testSystem = createSystem({ "./expected/websmith.config.json": "{}" }, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
 
         addCompileCommand(new Command(), target).parse(["--configFile", "./expected/websmith.config.json"], { from: "user" });
@@ -131,7 +133,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should report missing config file w/o existing cli argument", () => {
-        const testSystem = compileSystem().fileSystem;
+        const testSystem = createSystem({}, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
         target.getReporter().reportDiagnostic = jest.fn();
 
@@ -145,7 +147,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield project option w/ --project cli argument", () => {
-        const testSystem = compileSystem({ files: { "./expected/tsconfig.json": "{}" } }).fileSystem;
+        const testSystem = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
 
         addCompileCommand(new Command(), target).parse(["--project", "expected/tsconfig.json"], { from: "user" });
@@ -154,7 +156,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield sourceMap option w/ --sourceMap cli argument", () => {
-        const testSystem = compileSystem().fileSystem;
+        const testSystem = createSystem({}, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
 
         addCompileCommand(new Command(), target).parse(["--sourceMap"], { from: "user" });
@@ -163,7 +165,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield debug compiler option w/ --debug cli argument", () => {
-        const testSystem = compileSystem().fileSystem;
+        const testSystem = createSystem({}, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
 
         addCompileCommand(new Command(), target).parse(["--debug"], { from: "user" });
@@ -172,7 +174,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield watch compiler option w/ --watch cli argument", () => {
-        const testSystem = compileSystem().fileSystem;
+        const testSystem = createSystem({}, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
         target.registerWatch = jest.fn(); // prevent register of watch task
 
@@ -182,7 +184,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should yield transpileOnly option w/ --transpileOnly cli argument", () => {
-        const testSystem = compileSystem({ files: { "./expected/tsconfig.json": "{}" } }).fileSystem;
+        const testSystem = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
 
         addCompileCommand(new Command(), target).parse(["--transpileOnly"], { from: "user" });
@@ -194,7 +196,7 @@ describe("addCompileCommand", () => {
         console.error = line => {
             throw new Error(line.toString());
         };
-        const testSystem = compileSystem().fileSystem;
+        const testSystem = createSystem({}, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
 
         addCompileCommand(new Command(), target).parse(["--debug", "--fooBar", "--zipZap"], { from: "user" });
@@ -208,7 +210,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should call compile w/o --watch cli argument", () => {
-        const testSystem = compileSystem().fileSystem;
+        const testSystem = createSystem({}, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
         target.compile = jest.fn();
 
@@ -218,7 +220,7 @@ describe("addCompileCommand", () => {
     });
 
     it("should call watch w/ --watch cli argument", () => {
-        const testSystem = compileSystem().fileSystem;
+        const testSystem = createSystem({}, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
         target.watch = jest.fn();
 
@@ -230,7 +232,13 @@ describe("addCompileCommand", () => {
 
 describe("addCompileCommand#addons", () => {
     it("should yield warning w/ --addonsDir cli argument to non-existing path", () => {
-        const { fileSystem: testSystem, addons } = compileSystem();
+        const testSystem = createSystem({}, { virtual: true });
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
+        });
         const compiler = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
         compiler.getReporter().reportDiagnostic = jest.fn();
 
@@ -242,8 +250,7 @@ describe("addCompileCommand#addons", () => {
     });
 
     it("should show warning w/ --addonsDir cli argument and non-existing path", () => {
-        const { fileSystem: testSystem } = compileSystem({ files: { "./websmith.config.json": "{}" } });
-        testSystem.writeFile("./websmith.config.json", "{}");
+        const testSystem = createSystem({ "./websmith.config.json": "{}" }, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
         target.getReporter().reportDiagnostic = jest.fn();
 
@@ -255,7 +262,13 @@ describe("addCompileCommand#addons", () => {
     });
 
     it("should yield options addons w/ --addons cli argument and existing addon", () => {
-        const { fileSystem: testSystem, addons } = compileSystem();
+        const testSystem = createSystem({}, { virtual: true });
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
+        });
         createAddon(testSystem, "addons/expected/addon");
 
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
@@ -266,7 +279,13 @@ describe("addCompileCommand#addons", () => {
     });
 
     it("should yield options addons w/ --addons cli argument and multiple existing addons", () => {
-        const { fileSystem: testSystem, addons } = compileSystem();
+        const testSystem = createSystem({}, { virtual: true });
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
+        });
         createAddon(testSystem, "addons/zip/addon");
         createAddon(testSystem, "addons/zap/addon");
         createAddon(testSystem, "addons/zup/addon");
@@ -278,7 +297,13 @@ describe("addCompileCommand#addons", () => {
     });
 
     it("should yield empty options addons w/ --addons cli argument and non-existing addon", () => {
-        const { fileSystem: testSystem, addons } = compileSystem();
+        const testSystem = createSystem({}, { virtual: true });
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
+        });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
 
         addCompileCommand(new Command(), target).parse(["--addons", "unknown", "--allowJs"], { from: "user" });
@@ -287,7 +312,13 @@ describe("addCompileCommand#addons", () => {
     });
 
     it("should not yield non-existing options addons w/ --addons cli argument, existing and non-existing addons", () => {
-        const { fileSystem: testSystem, addons } = compileSystem();
+        const testSystem = createSystem({}, { virtual: true });
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
+        });
         createAddon(testSystem, "addons/expected/addon");
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
 
@@ -299,7 +330,14 @@ describe("addCompileCommand#addons", () => {
     it("should yield warning w/ --addons cli argument and non-existing addon name", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
-        const { fileSystem: testSystem, addons } = compileSystem({ reporter: target });
+        const testSystem = createSystem({}, { virtual: true });
+        testSystem.createDirectory("./addons");
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
+        });
         const compiler = new Compiler({ reporter: target }, {}, testSystem, addons);
 
         addCompileCommand(new Command(), compiler).parse(["--addons", "unknown", "--allowJs"], { from: "user" });
@@ -314,7 +352,13 @@ describe("addCompileCommand#addons", () => {
     it("should yield warning w/ --addons cli argument, existing and non-existing addons", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
-        const { fileSystem: testSystem, addons } = compileSystem({ files: { "./websmith.config.json": "{}" }, reporter: target });
+        const testSystem = createSystem({ "./websmith.config.json": "{}" }, { virtual: true });
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
+        });
         createAddon(testSystem, "addons/existing/addon");
         const compiler = new Compiler({ reporter: target }, {}, testSystem, addons);
 
@@ -328,8 +372,12 @@ describe("addCompileCommand#addons", () => {
     });
 
     it("should yield addonsDir and addons from compiler config w/o any cli argument", () => {
-        const { fileSystem: testSystem, addons } = compileSystem({
-            files: { "websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }' },
+        const testSystem = createSystem({ "websmith.config.json": '{ "addons":["one", "two"], "addonsDir":"./expected" }' }, { virtual: true });
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
         });
         createAddon(testSystem, "expected/one/addon");
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem, addons);
@@ -355,7 +403,7 @@ describe("addCompileCommand#addons", () => {
 
 describe("addCompileCommand#profile", () => {
     it("should yield options profile w/ --profile cli argument and single value", () => {
-        const testSystem = compileSystem().fileSystem;
+        const testSystem = createSystem({}, { virtual: true });
         const target = new Compiler({ tsConfigFile: "./tsconfig.json", reporter: new NoReporter() }, {}, testSystem);
 
         addCompileCommand(new Command(), target).parse(["--profile", "expected", "--allowJs"], { from: "user" });
@@ -366,7 +414,13 @@ describe("addCompileCommand#profile", () => {
     it("should yield warning w/ --profile cli argument and unknown name", () => {
         const target = new NoReporter();
         jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {});
-        const { fileSystem: testSystem, addons } = compileSystem({ reporter: target });
+        const testSystem = createSystem({}, { virtual: true });
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
+        });
 
         addCompileCommand(new Command(), new Compiler({ reporter: target }, {}, testSystem, addons)).parse(["--profile", "unknown"], {
             from: "user",
@@ -382,9 +436,13 @@ describe("addCompileCommand#profile", () => {
     it("should not yield any warning w/ --profile cli argument and known name", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
-        const { fileSystem: testSystem, addons } = compileSystem({
-            files: { "./websmith.config.json": '{ "profiles": {"expected": {}} }' },
-            reporter: target,
+        const testSystem = createSystem({ "./websmith.config.json": '{ "profiles": {"expected": {}} }' }, { virtual: true });
+        testSystem.createDirectory("./addons");
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
         });
 
         addCompileCommand(new Command(), new Compiler({ reporter: target }, {}, testSystem, addons)).parse(
@@ -400,9 +458,16 @@ describe("addCompileCommand#profile", () => {
     it("should yield warning w/ --profile cli argument, known name but missing addons for profile", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
-        const { fileSystem: testSystem, addons } = compileSystem({
-            files: { "./websmith.config.json": '{ "profiles": {"known": { "addons": ["missing"]}} }' },
-            reporter: target,
+        const testSystem = createSystem(
+            { "./websmith.config.json": '{ "profiles": {"known": { "addons": ["missing"]}} }', "tsconfig.json": "{}" },
+            { virtual: true }
+        );
+        testSystem.createDirectory("./addons");
+        const addons = new AddonRegistry({
+            system: testSystem,
+            addons: [],
+            addonsDir: "./addons",
+            reporter: new NoReporter(),
         });
         expect(testSystem.fileExists("./tsconfig.json")).toBe(true);
 
