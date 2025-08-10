@@ -176,7 +176,7 @@ export class Compiler {
                 });
             }
         } else {
-            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by ${this.system.constructor.name}.`));
+            this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by "${this.system.constructor.name}".`));
         }
         return this;
     }
