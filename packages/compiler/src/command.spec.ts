@@ -12,7 +12,7 @@ import path from "node:path";
 import ts from "typescript";
 import { addCompileCommand, addonConfig, hasInvalidProfile } from "./command";
 
-beforeAll(() => {
+beforeEach(() => {
     jest.spyOn(console, "time").mockImplementation(() => {});
 });
 

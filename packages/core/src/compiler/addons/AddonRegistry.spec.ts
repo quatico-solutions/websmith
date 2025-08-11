@@ -700,9 +700,10 @@ describe("Addon Compilation", () => {
         const target = new ReporterMock(system);
         system.createDirectory(ADDONS_DIR);
         system.createDirectory(`${ADDONS_DIR}/missing-import-addon`);
+        system.writeFile(`${ADDONS_DIR}/missing-import-addon/foobar.ts`, "export const whatever = () => 'whatever';");
         system.writeFile(
-            `${ADDONS_DIR}/missing-import-addon/index.ts`,
-            "import { missingFunction } from './addon'; export const activate = () => missingFunction();"
+            `${ADDONS_DIR}/missing-import-addon/addon.ts`,
+            "import { missingFunction } from './foobar'; export const activate = () => missingFunction();"
         );
         target.reportDiagnostic = jest.fn();
 
@@ -712,9 +713,29 @@ describe("Addon Compilation", () => {
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
                 category: expect.any(Number),
-                messageText: expect.stringContaining(`Addon "missing-import-addon" does not export an "activate" function and will be ignored`),
+                messageText: expect.stringContaining(
+                    `Cannot find module '${ADDONS_DIR}/lib/missing-import-addon/addon.js' from 'src/compiler/addons/AddonRegistry.ts'`
+                ),
             })
         );
+    });
+
+    it("reports no warning with missing addon module in shared directory", () => {
+        const system = createSystem({}, { virtual: true });
+        const target = new ReporterMock(system);
+        jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {
+            console.log("reportDiagnostic");
+        });
+        system.createDirectory(ADDONS_DIR);
+        system.createDirectory(`${ADDONS_DIR}/shared-directory`);
+        system.createDirectory(`${ADDONS_DIR}/addon-directory`);
+        system.writeFile(`${ADDONS_DIR}/shared-directory/index.ts`, "export const foo = () => 'foo';");
+        system.writeFile(`${ADDONS_DIR}/addon-directory/index.ts`, "import { foo } from '../shared-directory'; export const activate = () => foo();");
+
+        const testObj = new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system });
+
+        testObj.getAvailableAddons();
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
 
     it("prioritizes addon.js over addon.ts when both exist", () => {

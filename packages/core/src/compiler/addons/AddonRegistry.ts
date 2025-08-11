@@ -515,7 +515,7 @@ export class AddonRegistry {
             // Handle both ES modules (default export) and CommonJS modules
             const addonModule = module?.default || module;
 
-            if (!addonModule || typeof addonModule.activate !== "function") {
+            if (!addonModule || (path.basename(importPath, path.extname(importPath)) === "addon" && typeof addonModule.activate !== "function")) {
                 // Return undefined and log warning instead of throwing error (restore original behavior)
                 this.config.reporter?.reportDiagnostic(
                     new WarnMessage(`Addon "${addonName}" does not export an "activate" function and will be ignored`)
