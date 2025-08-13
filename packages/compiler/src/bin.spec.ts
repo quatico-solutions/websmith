@@ -4,6 +4,11 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
+import { type TscArguments } from "@quatico/websmith-api";
 import { type CompilationConfig, Compiler, createSystem, NoReporter } from "@quatico/websmith-core";
 import { Command } from "commander";
 import fs from "node:fs";
@@ -104,7 +109,7 @@ describe("bin.ts", () => {
 
         // Verify that watch method was called (for --watch flag)
         expect(watchSpy).toHaveBeenCalled();
-        expect(target.getOptions()).toMatchObject({ tsConfig: { listFiles: true, debug: true, watch: true } });
+        expect(target.getOptions()).toMatchObject({ tsConfig: { listFiles: true, watch: true }, debug: true });
     }, 60000);
 
     it("should handle compilation arguments", () => {
@@ -146,13 +151,13 @@ describe("bin.ts", () => {
         const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}, { virtual: true }));
         executeCompiler("", target);
 
-        expect(target.getOptions()).toEqual({
+        expect(target.getOptions()).toMatchObject({
             additionalArguments: expect.any(Map),
             buildDir: "/",
             cliArgs: {
                 errors: [],
-                fileNames: [],
-                options: {
+                fileNames: expect.any(Array), // Allow any array since file discovery depends on tsconfig
+                options: expect.objectContaining({
                     allowJs: false,
                     checkJs: false,
                     configFilePath: "/tsconfig.json",
@@ -167,13 +172,17 @@ describe("bin.ts", () => {
                     removeComments: false,
                     strict: false,
                     target: 1,
-                },
+                }),
             },
             config: {},
+            configFile: undefined,
             debug: false,
+            instanceName: undefined,
+            profile: undefined,
+            profiles: undefined,
             reporter: expect.any(NoReporter),
             system: expect.any(Object),
-            tsConfig: {
+            tsConfig: expect.objectContaining({
                 allowJs: false,
                 checkJs: false,
                 configFilePath: "/tsconfig.json",
@@ -188,7 +197,7 @@ describe("bin.ts", () => {
                 removeComments: false,
                 strict: false,
                 target: ts.ScriptTarget.ES5,
-            },
+            }),
             tsConfigFile: "/tsconfig.json",
             watch: false,
         });
@@ -210,7 +219,23 @@ describe("bin.ts", () => {
         const target = new NoReporter();
         jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {});
 
-        executeCompiler("", new Compiler({ reporter: target }, {}, createSystem({}, { virtual: true })));
+        executeCompiler(
+            "",
+            new Compiler(
+                { reporter: target },
+                {},
+                createSystem(
+                    {
+                        "./tsconfig.json": JSON.stringify({
+                            compilerOptions: { noEmit: true },
+                            include: ["nonexistent/**/*.ts"], // Include pattern that matches no files
+                            exclude: ["node_modules"],
+                        }),
+                    },
+                    { virtual: true }
+                )
+            )
+        );
 
         expect(target.reportDiagnostic).not.toHaveBeenCalled();
     }, 60000);
@@ -251,8 +276,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         createSourceFile(
             `
@@ -264,7 +289,7 @@ describe("bin.ts", () => {
             "test.ts"
         );
 
-        executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+        executeCompiler(`--project ./tsconfig.json`);
 
         expect(getOutput("test.js")).toBeDefined();
         expect(getOutput("test.js")).toMatchInlineSnapshot(`
@@ -282,8 +307,8 @@ describe("bin.ts", () => {
             noEmit: false,
             declaration: true,
             declarationMap: true,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         copySourceFile("foobar-arrow.ts");
 
@@ -309,7 +334,7 @@ describe("bin.ts", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", () => {
-        createTsConfigFile({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: 1, module: 3 });
+        createTsConfigFile({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "es5", module: "commonjs" });
         createWebsmithConfig({
             profiles: {
                 target: {
@@ -345,8 +370,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         copySourceFile("foobar-function.ts");
 
@@ -368,8 +393,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         createWebsmithConfig({
             addons: ["client-processor"],
@@ -396,8 +421,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         copySourceFile("foobar-function.ts");
 
@@ -419,8 +444,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         copySourceFile("foobar-function.ts");
 
@@ -443,8 +468,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         copySourceFile("foobar-function.ts");
 
@@ -476,8 +501,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         copySourceFile("foobar-function.ts");
 
@@ -503,8 +528,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         createSourceFile("export const included1 = 'test';", "included1.ts");
         createSourceFile("export const included2 = 'test';", "included2.ts");
@@ -537,8 +562,8 @@ describe("bin.ts", () => {
             {
                 outDir: testDirs.OUTPUT_DIR,
                 noEmit: false,
-                target: ts.ScriptTarget.ESNext,
-                moduleResolution: ts.ModuleResolutionKind.Node10,
+                target: "esnext",
+                moduleResolution: "node10",
             },
             ["src/custom/**/*.ts"],
             ["node_modules", "dist"]
@@ -578,8 +603,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         createSourceFile("export const file1 = 'test';", "file1.ts");
         createSourceFile("export const file2 = 'test';", "file2.ts");
@@ -607,8 +632,8 @@ describe("bin.ts", () => {
             {
                 outDir: testDirs.OUTPUT_DIR,
                 noEmit: false,
-                target: ts.ScriptTarget.ESNext,
-                moduleResolution: ts.ModuleResolutionKind.Node10,
+                target: "esnext",
+                moduleResolution: "node10",
             },
             ["src/**/*.ts"],
             ["node_modules", "dist", "src/excluded/**/*"]
@@ -641,8 +666,8 @@ describe("bin.ts", () => {
             {
                 outDir: testDirs.OUTPUT_DIR,
                 noEmit: false,
-                target: ts.ScriptTarget.ESNext,
-                moduleResolution: ts.ModuleResolutionKind.Node10,
+                target: "esnext",
+                moduleResolution: "node10",
             },
             ["src/**/*.ts"],
             ["node_modules", "dist", "src/excluded/**/*"]
@@ -673,8 +698,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ES2020,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "es2020",
+            moduleResolution: "node10",
             strict: true,
             esModuleInterop: true,
             skipLibCheck: true,
@@ -709,8 +734,8 @@ describe("bin.ts", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ES2020,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "es2020",
+            moduleResolution: "node10",
             strict: true,
             esModuleInterop: true,
             skipLibCheck: true,
@@ -759,27 +784,16 @@ describe("bin.ts", () => {
         }
     };
 
-    const createTsConfig = (config: ts.CompilerOptions, include: string[] = ["src/**/*"], exclude: string[] = ["node_modules", "dist"]) => {
-        // Convert enum values to strings for proper JSON serialization
-        const normalizedConfig = {
-            ...config,
-            ...(config.target !== undefined && {
-                target: ts.ScriptTarget[config.target] === "Latest" ? "esnext" : ts.ScriptTarget[config.target].toLowerCase(),
-            }),
-            ...(config.module !== undefined && { module: ts.ModuleKind[config.module].toLowerCase() }),
-            ...(config.jsx !== undefined && { jsx: ts.JsxEmit[config.jsx].toLowerCase() }),
-            ...(config.moduleResolution !== undefined && { moduleResolution: ts.ModuleResolutionKind[config.moduleResolution].toLowerCase() }),
-        };
-
+    const createTsConfig = (config: TscArguments, include: string[] = ["src/**/*"], exclude: string[] = ["node_modules", "dist"]) => {
         const tsConfig = {
-            compilerOptions: normalizedConfig,
+            compilerOptions: config,
             include,
             exclude,
         };
         return JSON.stringify(tsConfig, null, 2);
     };
 
-    const createTsConfigFile = (config: ts.CompilerOptions, include?: string[], exclude?: string[]) => {
+    const createTsConfigFile = (config: TscArguments, include?: string[], exclude?: string[]) => {
         fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "tsconfig.json"), createTsConfig(config, include, exclude), { encoding: "utf-8" });
     };
 

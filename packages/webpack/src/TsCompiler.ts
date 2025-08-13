@@ -5,13 +5,14 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type CompileFragment, Compiler, type CompilerOptions, resolvePath, type WebpackLoaderOptions } from "@quatico/websmith-core";
+import { type CompilerOptions, type WebpackLoaderOptions } from "@quatico/websmith-api";
+import { type CompileFragment, Compiler, resolvePath } from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
 import { type LoaderContext, WebpackError } from "webpack";
-import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
-import { WebpackAddonService, type WebpackAddonConfig } from "./WebpackAddonService";
 import { type WebpackAddonContext } from "./WebpackAddonContext";
+import { type WebpackAddonConfig, WebpackAddonService } from "./WebpackAddonService";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export class TsCompiler extends Compiler {
     private profile?: string;
@@ -92,7 +93,7 @@ export class TsCompiler extends Compiler {
 
         // Transpile source file with webpack target but do not write the file, i.e. file is written by webpack
         this.logDebug(`Emitting source file: ${filePath} with profile: ${this.profile || "default"}`);
-        const result = this.emitSourceFile(filePath, this.profile, false);
+        const result = this.emitSourceFile(filePath, this.profile, true);
 
         if (result.diagnostics?.length) {
             result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
@@ -128,7 +129,8 @@ export class TsCompiler extends Compiler {
                 profiles: config?.profiles,
                 system: this.getSystem(),
                 reporter: this.getReporter(),
-                cacheDir: path.join(process.cwd(), ".websmith-cache", "addons"),
+                cacheDir: path.join(this.getSystem().getCurrentDirectory() || process.cwd(), ".websmith-cache", "addons"),
+                ...(options.debug ? { debug: true } : {}),
             };
 
             this.webpackAddonService = new WebpackAddonService(addonConfig);

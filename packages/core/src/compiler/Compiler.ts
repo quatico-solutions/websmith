@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { ErrorMessage, type Reporter } from "@quatico/websmith-api";
+import { ErrorMessage, InfoMessage, type CompilerOptions, type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
 import deepmerge from "deepmerge";
 import path from "node:path";
 import ts from "typescript";
@@ -15,7 +15,7 @@ import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
 import { DefaultReporter } from "./DefaultReporter";
-import { resolveCompilerOptions, type CompilerOptions, type ResolvedCompilerOptions, type WebpackLoaderOptions, arrayMerge } from "./options";
+import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
     version: number;
@@ -64,39 +64,13 @@ export class Compiler {
         const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
 
         if (this.options.debug) {
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Starting compilation with debug mode enabled`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
+            this.reporter.reportDiagnostic(new InfoMessage(`Starting compilation with debug mode enabled.`));
             this.reporter.indent();
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Project directory: ${buildDir}`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Configuration: ${this.getConfigSummary()}`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Selected profiles: ${selectedProfiles.length ? selectedProfiles.join(", ") : "<NONE>"}`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
+            this.reporter.reportDiagnostic(new InfoMessage(`Project directory: ${buildDir}.`));
+            this.reporter.reportDiagnostic(new InfoMessage(`Configuration: ${this.getConfigSummary()}.`));
+            this.reporter.reportDiagnostic(
+                new InfoMessage(`Selected profiles: ${selectedProfiles.length ? selectedProfiles.join(", ") : "<NONE>"}.`)
+            );
         }
 
         this.createProfileContextsIfNecessary();
@@ -104,27 +78,13 @@ export class Compiler {
         const program = this.createProgram(profileOptions.tsConfig);
 
         if (this.options.debug) {
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Created TypeScript program with ${program.getSourceFiles().length} source files`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
+            this.reporter.reportDiagnostic(new InfoMessage(`Created TypeScript program with ${program.getSourceFiles().length} source files.`));
         }
 
         const results: ts.EmitResult[] = [];
         selectedProfiles.forEach(curProfile => {
             if (this.options.debug) {
-                this.reporter.reportDiagnostic({
-                    category: ts.DiagnosticCategory.Message,
-                    code: 0,
-                    messageText: `Processing profile: ${curProfile ?? "default"}`,
-                    file: undefined,
-                    start: undefined,
-                    length: undefined,
-                });
+                this.reporter.reportDiagnostic(new InfoMessage(`Processing profile: ${curProfile ?? "default"}.`));
                 this.reporter.indent();
             }
             const ctx = this.getContext(curProfile);
@@ -137,14 +97,7 @@ export class Compiler {
         });
 
         if (this.options.debug) {
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Compilation completed with ${results.length} results`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
+            this.reporter.reportDiagnostic(new InfoMessage(`Compilation completed with ${results.length} results.`));
             this.reporter.unindent?.();
         }
 
@@ -584,12 +537,46 @@ export class Compiler {
         const isTranspiledSourceFile = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)$/i);
         const isSourceMap = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)\.map$/i);
 
-        // For declaration files, use the language service approach (but not in transpileOnly mode)
-        if (ctx.getCliArgs().options.declaration && !this.transpileOnly) {
-            const langService = ctx.getLanguageService();
-            const output = langService.getEmitOutput(fileName);
-            // The type 'readonly Diagnostic[]' is 'readonly' cannot be assigned to the mutable type 'Diagnostic[]'
-            return { ...output, diagnostics: output.diagnostics as ts.Diagnostic[] };
+        // For declaration files, we need to use the full compiler API instead of transpileModule
+        // because transpileModule doesn't generate declaration files
+        if (ctx.getCliArgs().options.declaration) {
+            // Create a temporary source file with the processed content
+            const sourceFile = ts.createSourceFile(fileName, content, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest, true);
+
+            // Create a simple program with just this file
+            const program = ts.createProgram({
+                rootNames: [fileName],
+                options: ctx.getCliArgs().options,
+                host: {
+                    ...ts.createCompilerHost(ctx.getCliArgs().options),
+                    getSourceFile: (name: string) => {
+                        if (name === fileName) {
+                            return sourceFile;
+                        }
+                        return ts
+                            .createCompilerHost(ctx.getCliArgs().options)
+                            .getSourceFile(name, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest);
+                    },
+                    writeFile: () => {}, // We'll collect the output ourselves
+                },
+            });
+
+            const outputFiles: ts.OutputFile[] = [];
+            const emitResult = program.emit(
+                sourceFile,
+                (fileName: string, text: string) => {
+                    outputFiles.push({ name: fileName, text, writeByteOrderMark: false });
+                },
+                undefined,
+                false,
+                ctx.getTransformers()
+            );
+
+            return {
+                outputFiles,
+                diagnostics: emitResult.diagnostics as ts.Diagnostic[],
+                emitSkipped: emitResult.emitSkipped,
+            };
         }
 
         const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {

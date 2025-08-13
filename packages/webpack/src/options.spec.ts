@@ -17,6 +17,7 @@ describe("createOptions", () => {
             cliArgs: expect.any(Object),
             debug: false,
             watch: false,
+            tsConfigFile: "./tsconfig.json",
         });
     });
 
@@ -30,7 +31,6 @@ describe("createOptions", () => {
         ).tsConfig;
 
         expect(actual).toEqual({
-            configFilePath: "/expected/tsconfig.json",
             outDir: "/lib",
         });
     });
@@ -45,7 +45,6 @@ describe("createOptions", () => {
         ).tsConfig;
 
         expect(actual).toEqual({
-            configFilePath: "/expected/tsconfig.json",
             outDir: "/lib",
             strict: true,
         });
@@ -61,7 +60,6 @@ describe("createOptions", () => {
         ).tsConfig;
 
         expect(actual).toEqual({
-            configFilePath: "/expected/tsconfig.json",
             outDir: "/lib",
             strict: true,
         });
@@ -110,29 +108,44 @@ describe("createOptions", () => {
             { virtual: true }
         );
 
-        const actual = createOptions({ configFile: "./websmith.config.json", instanceName: "target-instance" }, new NoReporter(), target);
+        const actual = createOptions(
+            { configFile: "./websmith.config.json", tsConfigFile: "./tsconfig.json", instanceName: "target-instance" },
+            new NoReporter(),
+            target
+        );
 
-        expect(actual).toMatchObject({
+        expect(actual).toEqual({
             config: {
                 addons: ["one", "two"],
                 addonsDir: "/expected",
             },
+            configFile: "./websmith.config.json",
+            debug: false,
+            reporter: expect.any(NoReporter),
             tsConfig: {
-                configFilePath: "/tsconfig.json",
                 outDir: "/lib",
             },
-
+            tsConfigFile: "./tsconfig.json",
             cliArgs: {
+                compileOnSave: false,
                 fileNames: ["/expected/one/addon.ts"],
                 errors: [],
                 options: {
-                    configFilePath: "/tsconfig.json",
                     outDir: "/lib",
                 },
                 raw: {
                     include: ["**/*.ts"],
                 },
+                typeAcquisition: {
+                    enable: false,
+                    include: [],
+                    exclude: [],
+                },
+                wildcardDirectories: {
+                    "": 1,
+                },
             },
+            watch: false,
         });
     });
 });

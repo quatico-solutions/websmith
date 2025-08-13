@@ -6,8 +6,8 @@
  */
 
 // Re-export core components
+export type { CompilerOptions } from "@quatico/websmith-api";
 export { Compiler, createBrowserSystem, DefaultReporter, getVersionedFile, NoReporter } from "@quatico/websmith-core";
-export type { CompilerOptions } from "@quatico/websmith-core";
 export { getLoaderOptions } from "./loader-options";
 export { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 

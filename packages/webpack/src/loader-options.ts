@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type WebpackLoaderOptions } from "@quatico/websmith-core";
+import { type WebpackLoaderOptions } from "@quatico/websmith-api";
 import { createHash } from "node:crypto";
 import { type LoaderContext } from "webpack";
 import { createOptions } from "./options";

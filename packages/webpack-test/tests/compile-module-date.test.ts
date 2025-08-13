@@ -143,7 +143,14 @@ describe("project bundling", () => {
             },
         });
 
-        expect(fs.readdirSync(OUTPUT_DIR)).toEqual(["functions.js", "functions.js.map", "main.js", "main.js.map", "output.yaml"]);
+        expect(fs.readdirSync(OUTPUT_DIR).filter(it => fs.statSync(path.join(OUTPUT_DIR, it)).isFile())).toEqual([
+            "functions.js",
+            "functions.js.map",
+            "index.js",
+            "main.js",
+            "main.js.map",
+            "output.yaml",
+        ]);
 
         const expected = getOutput("output.yaml", OUTPUT_DIR);
         [

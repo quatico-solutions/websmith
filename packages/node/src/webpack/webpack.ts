@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type WebpackLoaderOptions } from "@quatico/websmith-core";
+import { type WebpackLoaderOptions } from "@quatico/websmith-api";
 import { type LoaderOptions as TsLoaderOptions } from "ts-loader/dist/interfaces";
 import { type Configuration } from "webpack";
 import { WebpackBuild } from "./WebpackBuild";

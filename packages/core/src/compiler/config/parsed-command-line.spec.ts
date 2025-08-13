@@ -4,6 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { type TscArguments } from "@quatico/websmith-api";
 import ts from "typescript";
 import { createSystem } from "../../environment";
 import { createArgs, parsedCommandLine } from "./parsed-command-line";
@@ -650,7 +651,7 @@ describe("parsedCommandLine w/ extra args", () => {
     });
 
     it("handles files array args correctly", () => {
-        const actual = parsedCommandLine("tsconfig.json", { files: ["file1.ts", "file2.ts"] }, target);
+        const actual = parsedCommandLine("tsconfig.json", { fileNames: "file1.ts, file2.ts" }, target);
 
         expect(actual).toMatchObject({
             errors: [],
@@ -863,7 +864,7 @@ describe("parsedCommandLine comprehensive coverage", () => {
                 declarationMap: true,
                 emitDeclarationOnly: true,
                 esModuleInterop: true,
-                files: ["file1.ts", "file2.ts"],
+                fileNames: "file1.ts,file2.ts",
                 jsx: "preserve",
                 lib: ["dom", "es2015"],
                 module: "commonjs",
@@ -910,21 +911,10 @@ describe("parsedCommandLine comprehensive coverage", () => {
     });
 });
 
-const createTsConfig = (config: ts.CompilerOptions) => {
-    // Convert enum values to strings for proper JSON serialization
-    const normalizedConfig = {
-        ...config,
-        ...(config.target !== undefined && {
-            target: ts.ScriptTarget[config.target] === "Latest" ? "esnext" : ts.ScriptTarget[config.target].toLowerCase(),
-        }),
-        ...(config.module !== undefined && { module: ts.ModuleKind[config.module].toLowerCase() }),
-        ...(config.jsx !== undefined && { jsx: ts.JsxEmit[config.jsx].toLowerCase() }),
-        ...(config.moduleResolution !== undefined && { moduleResolution: ts.ModuleResolutionKind[config.moduleResolution].toLowerCase() }),
-    };
-
+const createTsConfig = (config: TscArguments) => {
     return JSON.stringify(
         {
-            compilerOptions: normalizedConfig,
+            compilerOptions: config,
             include: ["/src/**/*"],
             exclude: ["node_modules", "dist"],
         },

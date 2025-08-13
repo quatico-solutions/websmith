@@ -5,6 +5,13 @@
  * ---------------------------------------------------------------------------------------------
  */
 export * from "./addons";
-export * from "./CompilationProfile";
-export * from "./CompilerArguments";
+export * from "./config";
 export * from "./diagnostic";
+export * from "./options";
+export * from "./TsConfigOptions";
+
+// CompilerArguments exports (including TscArguments type alias)
+export * from "./CompilerArguments";
+
+// TscArguments exports (CLI flags and interface)
+export * from "./TscArguments";

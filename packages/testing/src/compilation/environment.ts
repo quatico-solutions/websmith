@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { ErrorMessage } from "@quatico/websmith-api";
+import { type CompilerOptions, ErrorMessage } from "@quatico/websmith-api";
 import {
     type AddonConfig,
     AddonRegistry,
@@ -12,7 +12,6 @@ import {
     Compiler,
     type CompilerAddon,
     type CompilerAddons,
-    type CompilerOptions,
     DefaultReporter,
     type ResolvedCompilerOptions,
     compilerAddons,
@@ -404,14 +403,9 @@ export class CompilationEnv {
                 ).compile();
             } catch (error) {
                 // Handle file system errors gracefully for invalid addons
-                this.compilerOptions.reporter.reportDiagnostic({
-                    category: ts.DiagnosticCategory.Warning,
-                    code: 0,
-                    messageText: `Failed to compile addon in ${curDir}: ${error instanceof Error ? error.message : String(error)}`,
-                    file: undefined,
-                    start: undefined,
-                    length: undefined,
-                });
+                this.compilerOptions.reporter.reportDiagnostic(
+                    new ErrorMessage(`Failed to compile addon in ${curDir}: ${error instanceof Error ? error.message : String(error)}`)
+                );
             }
         });
 

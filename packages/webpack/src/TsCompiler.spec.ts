@@ -5,8 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type Reporter } from "@quatico/websmith-api";
-import { type CompileFragment, type CompilerOptions, NoReporter } from "@quatico/websmith-core";
+import { type Reporter, type CompilerOptions } from "@quatico/websmith-api";
+import { type CompileFragment, NoReporter } from "@quatico/websmith-core";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -86,22 +86,7 @@ describe("TsCompiler", () => {
         const actual = testObj.build("expected.ts");
 
         expect(actual).toEqual(expected);
-        expect(target).toHaveBeenCalledWith(path.resolve("./expected.ts"), undefined, false);
-
-        fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
-    });
-
-    // FIXME: We don't call the reporter we call the webpack error() callback
-    it.skip("should fail with invalid source code", () => {
-        const { PROJECT_DIR } = getTestDirs();
-        createSource(expected, "const () => 1;");
-        jest.spyOn(testObj.getReporter(), "reportDiagnostic").mockImplementation(() => {});
-
-        testObj.build(expected);
-
-        expect(testObj.getReporter().reportDiagnostic).toHaveBeenCalledWith({
-            messageText: "Variable declaration expected.",
-        });
+        expect(target).toHaveBeenCalledWith(path.resolve("./expected.ts"), undefined, true);
 
         fs.rmSync(PROJECT_DIR, { recursive: true, force: true });
     });

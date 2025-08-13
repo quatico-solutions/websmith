@@ -4,17 +4,21 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { TSC_ARGUMENT_KEYS, type CompilationProfile, type Reporter, type TscArgumentKey } from "@quatico/websmith-api";
+import {
+    TSC_ARGUMENT_KEYS,
+    type CompilationProfile,
+    type CompilerOptions,
+    type Reporter,
+    type TscArgumentKey,
+    type WebpackLoaderOptions,
+} from "@quatico/websmith-api";
 import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
 import type ts from "typescript";
 import type { CompilerOptionsValue } from "typescript";
-
 import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, type CompilationConfig } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
 import { tsDefaults } from "../defaults";
-import { type CompilerOptions } from "./CompilerOptions";
-import { type WebpackLoaderOptions } from "./WebpackLoaderOptions";
 
 const DEFAULT_BUILD_DIR = "./";
 const DEFAULT_TSCONFIG_FILE = "tsconfig.json";
@@ -87,6 +91,10 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly reporter: Reporter;
     public readonly watch?: boolean;
     public readonly additionalArguments?: Map<string, unknown>;
+    /** Instance name for webpack loader. */
+    public readonly instanceName?: string;
+    /** Profiles configuration from loader options. */
+    public readonly profiles?: Record<string, CompilationProfile>;
 
     constructor(
         private system: ts.System,
@@ -140,6 +148,9 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         this.debug = debug;
         // TODO: Workaround for the missing 'additionalArguments' after deepmerge
         this.additionalArguments = options.additionalArguments;
+        // Set loader-specific properties from resolvedOptions (which contains merged options)
+        this.instanceName = (resolvedOptions as { instanceName?: string }).instanceName;
+        this.profiles = (resolvedOptions as { profiles?: Record<string, CompilationProfile> }).profiles;
 
         // Resolve paths according to the defined rules
         const resolvedPaths = resolvePathsWithRules(this.system, { tsConfigFile, configFile });

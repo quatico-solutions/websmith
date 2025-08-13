@@ -4,6 +4,10 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import { Compiler, createSystem, NoReporter } from "@quatico/websmith-core";
 import { Command } from "commander";
 import { addCompileCommand } from "./command";
@@ -192,7 +196,8 @@ describe("addCompileCommand", () => {
             it("should handle --debug flag", () => {
                 executeCompiler("--debug", compiler);
 
-                expect(compiler.getOptions().tsConfig!.debug).toBe(true);
+                expect(compiler.getOptions().debug).toBe(true);
+                expect(compiler.getOptions().tsConfig!.listFiles).toBe(true);
             });
 
             it("should handle --strict flag", () => {
@@ -222,7 +227,8 @@ describe("addCompileCommand", () => {
             it("should handle multiple boolean flags together", () => {
                 executeCompiler("--debug --strict --declaration", compiler);
 
-                expect(compiler.getOptions().tsConfig!.debug).toBe(true);
+                expect(compiler.getOptions().debug).toBe(true);
+                expect(compiler.getOptions().tsConfig!.listFiles).toBe(true);
                 expect(compiler.getOptions().tsConfig!.strict).toBe(true);
                 expect(compiler.getOptions().tsConfig!.declaration).toBe(true);
             });
@@ -382,9 +388,7 @@ describe("addCompileCommand", () => {
 
 const executeCompiler = (args = "", compiler?: Compiler) => {
     try {
-        const command = addCompileCommand(new Command(), compiler);
-        // Parse arguments like the existing tests do
-        command.parse(
+        addCompileCommand(new Command(), compiler).parse(
             args
                 .split(" ")
                 .map(it => it.trim())

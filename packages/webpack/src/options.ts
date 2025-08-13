@@ -4,8 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { TSC_ARGUMENT_KEYS, type TscArgumentKey, type Reporter } from "@quatico/websmith-api";
-import { NoReporter, parsedCommandLine, resolveCompilationConfig, resolvePaths, resolveProfile, type CompilerOptions } from "@quatico/websmith-core";
+import { TSC_ARGUMENT_KEYS, type CompilerOptions, type Reporter, type TscArgumentKey } from "@quatico/websmith-api";
+import { NoReporter, parsedCommandLine, resolveCompilationConfig, resolvePaths, resolveProfile } from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
@@ -52,6 +52,7 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
         cliArgs,
         ...(mergedConfig && { config: mergedConfig }),
         ...(configFile && { configFile }),
+        ...(tsConfigFile && { tsConfigFile }),
         debug,
         reporter,
         profile: resolveProfile(profile, compilationConfig, reporter),

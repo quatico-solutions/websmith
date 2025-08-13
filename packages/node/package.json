@@ -36,6 +36,7 @@
         "tildify": "^3.0.0"
     },
     "peerDependencies": {
+        "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-core": "workspace:*",
         "ts-loader": "9.x",
         "typescript": "5.x",
@@ -45,6 +46,7 @@
         "@eslint/compat": "^1.2.6",
         "@eslint/js": "^9.19.0",
         "@nx/eslint-plugin": "^18.3.4",
+        "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-core": "workspace:*",
         "websmith-loader": "workspace:*",
         "@types/cross-spawn": "^6.0.6",

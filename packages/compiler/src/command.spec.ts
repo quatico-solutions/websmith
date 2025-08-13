@@ -1,11 +1,15 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { WarnMessage } from "@quatico/websmith-api";
+/* eslint-disable @typescript-eslint/no-unsafe-assignment    */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+
+import { ErrorMessage, WarnMessage } from "@quatico/websmith-api";
 import { AddonRegistry, Compiler, NoReporter, createSystem } from "@quatico/websmith-core";
 import { Command } from "commander";
 import path from "node:path";
@@ -142,7 +146,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().config).toEqual({});
         expect(target.getReporter().reportDiagnostic).toHaveBeenNthCalledWith(
             1,
-            new WarnMessage(`No configuration file found at "${"/does-not-exist/websmith.config.json"}".`)
+            new ErrorMessage(`No configuration file found at "${"/does-not-exist/websmith.config.json"}".`)
         );
     });
 

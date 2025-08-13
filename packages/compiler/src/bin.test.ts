@@ -4,6 +4,12 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
+import type { TscArguments } from "@quatico/websmith-api";
 import type { CompilationConfig } from "@quatico/websmith-core";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
@@ -77,7 +83,7 @@ afterEach(() => {
 
 describe("bin.ts e2e tests", () => {
     it("should yield script file with single file and emit true", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
 
         createSourceFile(
             `
@@ -107,8 +113,8 @@ describe("bin.ts e2e tests", () => {
             noEmit: false,
             declaration: true,
             declarationMap: true,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         copySourceFile("foobar-arrow.ts");
 
@@ -134,7 +140,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: 1, module: 3 });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "es5", module: "commonjs" });
         createWebsmithConfig({
             profiles: {
                 target: {
@@ -167,7 +173,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli client-processor and emit", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons client-processor --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
@@ -185,7 +191,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-config client-processor and emit", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
         createWebsmithConfig({
             addons: ["client-processor"],
         });
@@ -211,8 +217,8 @@ describe("bin.ts e2e tests", () => {
         createTsConfig({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         copySourceFile("foobar-function.ts");
 
@@ -231,7 +237,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli export-yaml-generator and emit true", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons export-yaml-generator --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
@@ -253,8 +259,8 @@ describe("bin.ts e2e tests", () => {
         createTsConfig({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            moduleResolution: "node10",
         });
         copySourceFile("foobar-function.ts");
 
@@ -283,7 +289,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli function-json-result-processor and emit true", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: ts.ScriptTarget.ESNext });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(
@@ -343,20 +349,9 @@ describe("bin.ts e2e tests", () => {
         fs.writeFileSync(path.join(testDirs.SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
     };
 
-    const createTsConfig = (config: ts.CompilerOptions) => {
-        // Convert enum values to strings for proper JSON serialization
-        const normalizedConfig = {
-            ...config,
-            ...(config.target !== undefined && {
-                target: ts.ScriptTarget[config.target] === "Latest" ? "esnext" : ts.ScriptTarget[config.target].toLowerCase(),
-            }),
-            ...(config.module !== undefined && { module: ts.ModuleKind[config.module].toLowerCase() }),
-            ...(config.jsx !== undefined && { jsx: ts.JsxEmit[config.jsx].toLowerCase() }),
-            ...(config.moduleResolution !== undefined && { moduleResolution: ts.ModuleResolutionKind[config.moduleResolution].toLowerCase() }),
-        };
-
+    const createTsConfig = (config: TscArguments) => {
         const tsConfig = {
-            compilerOptions: normalizedConfig,
+            compilerOptions: config,
             include: ["src/**/*"],
             exclude: ["node_modules", "dist"],
         };
