@@ -4,6 +4,11 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/unbound-method */
+
 import { type TscArguments } from "@quatico/websmith-api";
 import { type CompilationConfig, Compiler, createSystem, NoReporter } from "@quatico/websmith-core";
 import { Command } from "commander";

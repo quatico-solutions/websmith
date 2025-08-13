@@ -4,6 +4,11 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+
 import type { TscArguments } from "@quatico/websmith-api";
 import type { CompilationConfig } from "@quatico/websmith-core";
 import { execSync } from "node:child_process";

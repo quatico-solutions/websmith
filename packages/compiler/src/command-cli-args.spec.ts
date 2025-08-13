@@ -4,6 +4,9 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+
 import { Compiler, createSystem, NoReporter } from "@quatico/websmith-core";
 import { Command } from "commander";
 import { addCompileCommand } from "./command";
