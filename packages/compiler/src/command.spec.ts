@@ -7,6 +7,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment    */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/unbound-method */
+
 import { ErrorMessage, WarnMessage } from "@quatico/websmith-api";
 import { AddonRegistry, Compiler, NoReporter, createSystem } from "@quatico/websmith-core";
 import { Command } from "commander";
