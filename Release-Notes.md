@@ -28,6 +28,58 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.13] - 2025-01-26
+
+This release focuses on improving TypeScript declaration file emission, enhancing addon compilation infrastructure, and upgrading dependencies. The main improvements include fixing .d.ts and .d.ts.map file emission in webpack loader, better addon compilation path handling, and comprehensive Jest dependency upgrades.
+
+### Added
+
+- 🚀 **Enhanced Declaration File Support**: Added proper .d.ts and .d.ts.map file emission support in websmith-loader
+  - Declaration files are now correctly emitted as webpack assets when `declaration: true` and `declarationMap: true` are set in tsconfig
+  - Files are emitted with proper filename extraction for webpack asset naming
+  - Supports both declaration files (.d.ts) and declaration maps (.d.ts.map)
+- 🧪 **Improved Addon Compilation Infrastructure**: Enhanced addon compilation from source with better lib folder handling
+  - Addons are now compiled into a lib folder next to src for better organization
+  - Enhanced path handling for addon compilation across different environments
+  - Better support for pre-built vs. source-based addon loading
+- 🧪 **Enhanced Test Infrastructure**: Added additional unit tests to ensure all CLI flags are passed correctly to the compiler
+
+### Removed
+
+- 🧹 **Configuration Cleanup**: Removed warnings for non-addon folders within the addonsDir to reduce noise
+
+### Changed
+
+- 🔧 **Message Category Handling**: Restructured diagnostic message handling to ensure proper categorization
+  - InfoMessages now properly display as message category instead of generic info
+  - Enhanced ErrorMessage and WarnMessage handling for better error reporting consistency
+  - Improved diagnostic message formatting and display in compiler output
+- 🔧 **Dependency Upgrades**: Upgraded Jest and related testing dependencies across all packages
+  - Updated Jest to version ^29.7.0 for better testing performance and compatibility
+  - Updated @types/jest to ^29.5.14 for improved TypeScript support
+  - Updated ts-jest to ^29.2.5 for better TypeScript integration in tests
+  - Upgraded peer dependency requirements for Jest to 29.x for consistency
+- 🔧 **Language Service Integration**: Improved language service integration with addon application
+  - Enhanced addon application process for better IDE support
+  - Fixed integration issues between language service and addon functionality
+
+### Fixed
+
+- 🐛 **Declaration File Emission**: Fixed critical issue where .d.ts and .d.ts.map files were not emitted to disk with tsconfig options `declaration` and `declarationMap` set to true
+  - Webpack loader now properly processes and emits TypeScript declaration files
+  - Fixed file emission logic to handle both declaration files and source maps correctly
+  - Ensured proper integration with webpack's asset emission system
+- 🐛 **Addon Compilation Path Handling**: Fixed issue with addon compilation path handling in different environments
+  - Improved path resolution for addon source files and compiled output
+  - Fixed compilation issues when addons are loaded from different directory structures
+  - Enhanced error handling for addon compilation failures
+- 🐛 **Language Service Addon Integration**: Fixed issue with the language service and addon application
+  - Resolved integration problems between TypeScript language service and addon functionality
+  - Improved addon activation process in language service context
+- 🐛 **Non-Addon Folder Warnings**: Fixed issue where warnings were issued for non-addon folders within the addonsDir
+  - Eliminated false positive warnings for shared folders and non-addon directories
+  - Improved addon discovery logic to properly identify actual addon folders
+
 ## [0.7.12] - 2025-08-10
 
 This release focuses on improving error handling reliability. The main improvements include removing unnecessary testing dependencies from production packages and implementing comprehensive error reporting for addon failures.
