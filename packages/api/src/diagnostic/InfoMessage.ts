@@ -14,7 +14,7 @@ import { DiagnosticMessage, isSourceFile } from "./DiagnosticMessage";
 export class InfoMessage extends DiagnosticMessage {
     constructor(message: string | ts.DiagnosticMessageChain, source?: ts.SourceFile | string) {
         super({
-            category: ts.DiagnosticCategory.Suggestion,
+            category: ts.DiagnosticCategory.Message,
             code: 0,
             file: isSourceFile(source) ? source : undefined,
             length: undefined,
