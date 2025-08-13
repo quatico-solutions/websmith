@@ -4,6 +4,9 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment    */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { ErrorMessage, WarnMessage } from "@quatico/websmith-api";
 import { AddonRegistry, Compiler, NoReporter, createSystem } from "@quatico/websmith-core";
 import { Command } from "commander";
