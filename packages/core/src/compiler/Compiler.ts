@@ -537,13 +537,46 @@ export class Compiler {
         const isTranspiledSourceFile = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)$/i);
         const isSourceMap = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)\.map$/i);
 
-        // For declaration files, use the language service approach
-        // Even in transpileOnly mode, we need the language service to generate declaration files
+        // For declaration files, we need to use the full compiler API instead of transpileModule
+        // because transpileModule doesn't generate declaration files
         if (ctx.getCliArgs().options.declaration) {
-            const langService = ctx.getLanguageService();
-            const output = langService.getEmitOutput(fileName);
-            // The type 'readonly Diagnostic[]' is 'readonly' cannot be assigned to the mutable type 'Diagnostic[]'
-            return { ...output, diagnostics: output.diagnostics as ts.Diagnostic[] };
+            // Create a temporary source file with the processed content
+            const sourceFile = ts.createSourceFile(fileName, content, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest, true);
+
+            // Create a simple program with just this file
+            const program = ts.createProgram({
+                rootNames: [fileName],
+                options: ctx.getCliArgs().options,
+                host: {
+                    ...ts.createCompilerHost(ctx.getCliArgs().options),
+                    getSourceFile: (name: string) => {
+                        if (name === fileName) {
+                            return sourceFile;
+                        }
+                        return ts
+                            .createCompilerHost(ctx.getCliArgs().options)
+                            .getSourceFile(name, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest);
+                    },
+                    writeFile: () => {}, // We'll collect the output ourselves
+                },
+            });
+
+            const outputFiles: ts.OutputFile[] = [];
+            const emitResult = program.emit(
+                sourceFile,
+                (fileName: string, text: string) => {
+                    outputFiles.push({ name: fileName, text, writeByteOrderMark: false });
+                },
+                undefined,
+                false,
+                ctx.getTransformers()
+            );
+
+            return {
+                outputFiles,
+                diagnostics: emitResult.diagnostics as ts.Diagnostic[],
+                emitSkipped: emitResult.emitSkipped,
+            };
         }
 
         const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
