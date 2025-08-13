@@ -244,6 +244,5 @@ const filterNonCliProperties = (args: CompilerArguments): CompilerArguments => {
             (filtered as any)[key] = value;
         }
     }
-
-    return filtered as CompilerArguments;
+    return filtered;
 };
