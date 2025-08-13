@@ -124,7 +124,7 @@ export class CompilationContext implements AddonContext {
             this.rootFiles.push(filePath);
         }
         if (this.watchCallback) {
-            this.reporter.reportDiagnostic(new InfoMessage(`Adding ${filePath} to watch`));
+            this.reporter.reportDiagnostic(new InfoMessage(`Adding ${filePath} to watch.`));
             this.watchCallback(filePath);
         }
     }

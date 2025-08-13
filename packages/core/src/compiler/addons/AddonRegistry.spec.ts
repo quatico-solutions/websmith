@@ -49,7 +49,7 @@ describe("Ctor", () => {
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
-                messageText: 'Addon "invalid" does not export an "activate" function and will be ignored',
+                messageText: 'Addon "invalid" does not export an "activate" function and will be ignored.',
             })
         );
     });
@@ -509,7 +509,7 @@ describe("Addon loading rules", () => {
 
             expect(target.reportDiagnostic).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    messageText: 'Addon "invalid-addon" does not export an "activate" function and will be ignored',
+                    messageText: 'Addon "invalid-addon" does not export an "activate" function and will be ignored.',
                 })
             );
         });

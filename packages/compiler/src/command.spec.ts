@@ -5,7 +5,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { WarnMessage } from "@quatico/websmith-api";
+import { ErrorMessage, WarnMessage } from "@quatico/websmith-api";
 import { AddonRegistry, Compiler, NoReporter, createSystem } from "@quatico/websmith-core";
 import { Command } from "commander";
 import path from "node:path";
@@ -142,7 +142,7 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().config).toEqual({});
         expect(target.getReporter().reportDiagnostic).toHaveBeenNthCalledWith(
             1,
-            new WarnMessage(`No configuration file found at "${"/does-not-exist/websmith.config.json"}".`)
+            new ErrorMessage(`No configuration file found at "${"/does-not-exist/websmith.config.json"}".`)
         );
     });
 

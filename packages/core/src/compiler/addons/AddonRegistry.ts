@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { WarnMessage, type AddonContext, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
+import { ErrorMessage, WarnMessage, type AddonContext, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
 import { createRequire } from "node:module";
 import path from "node:path";
 import ts from "typescript";
@@ -447,7 +447,7 @@ export class AddonRegistry {
             return compiledAddonFiles;
         } catch (error) {
             reporter?.reportDiagnostic(
-                new WarnMessage(`Failed to compile addons in ${addonsDir}: ${error instanceof Error ? error.message : String(error)}`)
+                new ErrorMessage(`Failed to compile addons in ${addonsDir}: ${error instanceof Error ? error.message : String(error)}`)
             );
             return [];
         }
@@ -518,7 +518,7 @@ export class AddonRegistry {
             if (!addonModule || (path.basename(importPath, path.extname(importPath)) === "addon" && typeof addonModule.activate !== "function")) {
                 // Return undefined and log warning instead of throwing error (restore original behavior)
                 this.config.reporter?.reportDiagnostic(
-                    new WarnMessage(`Addon "${addonName}" does not export an "activate" function and will be ignored`)
+                    new WarnMessage(`Addon "${addonName}" does not export an "activate" function and will be ignored.`)
                 );
                 return;
             }
