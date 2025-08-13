@@ -129,7 +129,7 @@ export class TsCompiler extends Compiler {
                 profiles: config?.profiles,
                 system: this.getSystem(),
                 reporter: this.getReporter(),
-                cacheDir: path.join(process.cwd(), ".websmith-cache", "addons"),
+                cacheDir: path.join(this.getSystem().getCurrentDirectory() || process.cwd(), ".websmith-cache", "addons"),
                 ...(options.debug ? { debug: true } : {}),
             };
 
