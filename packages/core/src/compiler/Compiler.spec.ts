@@ -5,17 +5,17 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type Reporter } from "@quatico/websmith-api";
+import { type CompilerOptions, type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
 import { ReporterMock } from "../../test";
 import { createSystem } from "../environment";
-import { Compiler, type CompileFragment } from "./Compiler";
 import { AddonRegistry } from "./addons";
 import { type CompilationContext } from "./compilation";
+import { Compiler, type CompileFragment } from "./Compiler";
 import { DefaultReporter } from "./DefaultReporter";
-import { type CompilerOptions, type ResolvedCompilerOptions, type WebpackLoaderOptions } from "./options";
 import { NoReporter } from "./NoReporter";
+import { type ResolvedCompilerOptions } from "./options";
 
 class CompilerTestClass extends Compiler {
     constructor(
@@ -953,7 +953,7 @@ describe("emitSourceFile", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: true, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
+            tsConfig: { declaration: false, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
             config: { transpileOnly: true },
         };
@@ -973,7 +973,7 @@ describe("emitSourceFile", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { declaration: true, declarationMap: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
+            tsConfig: { declaration: false, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
             cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
             config: { transpileOnly: true },
         };

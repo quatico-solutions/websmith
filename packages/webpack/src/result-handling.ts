@@ -28,6 +28,20 @@ export const processResultAndFinish = (context: LoaderContext<WebsmithLoaderConf
         // Check if we should preserve source map URLs (for testing purposes)
         const preserveSourceMapUrl = context.resourcePath.includes("source-map-test");
         const { output, sourceMap } = makeSourceMap(outputText, sourceMapText, preserveSourceMapUrl);
+
+        // Emit declaration files and declaration maps as additional assets
+        fragment.files.forEach((file: typescript.OutputFile) => {
+            if (file.name.match(/\.d\.ts$/i)) {
+                // Extract the filename without path for webpack asset naming
+                const fileName = file.name.split("/").pop() || file.name;
+                context.emitFile(fileName, file.text);
+            } else if (file.name.match(/\.d\.ts\.map$/i)) {
+                // Extract the filename without path for webpack asset naming
+                const fileName = file.name.split("/").pop() || file.name;
+                context.emitFile(fileName, file.text);
+            }
+        });
+
         context.callback(undefined, output, sourceMap);
     }
 };

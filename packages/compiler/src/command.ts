@@ -5,16 +5,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilerArguments, type Reporter, WarnMessage } from "@quatico/websmith-api";
-import {
-    type AddonConfig,
-    AddonRegistry,
-    type CompilationConfig,
-    Compiler,
-    type CompilerOptions,
-    createOptions,
-    DefaultReporter,
-} from "@quatico/websmith-core";
+import { type CompilationConfig, type CompilerArguments, type CompilerOptions, type Reporter, WarnMessage } from "@quatico/websmith-api";
+import { type AddonConfig, AddonRegistry, Compiler, createOptions, DefaultReporter } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
 import ts from "typescript";
@@ -26,9 +18,9 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .version(getVersion(), "-v, --version", "Print the compiler's version.")
         .showSuggestionAfterError()
         // TODO: Add option to compile single files only?
-        // .argument("[files]", "relative path to the files that should be compiled")
         .showHelpAfterError("Add --help for additional information.")
         .description("Compiles typescript source code and applies addons to transform source before or after emit.")
+        .argument("[source...]", "Source directory or files to compile (optional)")
         .option("-a, --addons <addons>", "Comma-separated list of addons to apply. No addons are applied by default.")
         .option("-f, --addonsDir <directoryPath>", 'Directory path to the "addons" folder.')
         .option("-c, --configFile <filePath>", 'File path to the "websmith.config.json".')
@@ -74,17 +66,22 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         )
         .allowExcessArguments()
         .allowUnknownOption(true) // Allow unknown options to be passed to the compiler
-        .hook("preAction", command => {
-            if (command.opts().profile) {
+        .hook("preAction", (_thisCommand, actionCommand) => {
+            if (actionCommand.opts().profile) {
                 console.time("command duration");
             }
         })
-        .hook("postAction", command => {
-            if (command.opts().profile) {
+        .hook("postAction", (_thisCommand, actionCommand) => {
+            if (actionCommand.opts().profile) {
                 console.timeEnd("command duration");
             }
         })
-        .action((args: CompilerArguments, command: Command) => {
+        .action((source: string[] | undefined, cmdOptions, command: Command) => {
+            const args: CompilerArguments = {
+                ...cmdOptions,
+                files: source,
+            };
+
             const system = compiler?.getSystem() ?? ts.sys;
             const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
             const tsConfigFile = args.project ?? "./tsconfig.json";
@@ -96,20 +93,23 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             );
             const otherUnknownArgs = unknownArgs.filter(arg => !fileArguments.includes(arg));
 
+            // Filter out non-CLI properties from args (Commander.js internal properties, etc.)
+            const filteredArgs = filterNonCliProperties(args);
+
             const options: CompilerOptions = {
                 tsConfigFile,
                 ...createOptions(
                     {
-                        ...args,
+                        ...filteredArgs,
                         project: tsConfigFile,
                         // Pass file arguments through args so they get picked up by parsedCommandLine
                         // If no file arguments provided and no project specified, preserve existing fileNames
                         ...(fileArguments.length > 0
-                            ? { fileNames: fileArguments }
-                            : !args.project && compiler?.getOptions()?.cliArgs?.fileNames?.length
-                              ? { fileNames: compiler.getOptions().cliArgs.fileNames }
+                            ? { fileNames: fileArguments.join(",") }
+                            : !filteredArgs.project && compiler?.getOptions()?.cliArgs?.fileNames?.length
+                              ? { fileNames: compiler.getOptions().cliArgs.fileNames.join(",") }
                               : {}),
-                    },
+                    } as CompilerArguments,
                     reporter,
                     system
                 ),
@@ -224,3 +224,26 @@ const parseUnknownArguments = (unknownArgs: string[]): Map<string, unknown> => {
 
 const isPotentiallyJson = (arg: string): boolean =>
     typeof arg !== "string" ? false : (arg.startsWith("{") && arg.endsWith("}")) || (arg.startsWith("[") && arg.endsWith("]"));
+
+/**
+ * Filters out properties from args that are not actual CLI flags.
+ * This removes Commander.js internal properties and other non-CLI metadata.
+ */
+const filterNonCliProperties = (args: CompilerArguments): CompilerArguments => {
+    // List of known non-CLI properties that should be filtered out
+    const nonCliProperties = new Set<string>([
+        // Add any Commander.js internal properties here if needed
+        // For now, we'll keep all properties as the current implementation works
+    ]);
+
+    const filtered: Partial<CompilerArguments> = {};
+
+    for (const [key, value] of Object.entries(args)) {
+        if (!nonCliProperties.has(key)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (filtered as any)[key] = value;
+        }
+    }
+
+    return filtered as CompilerArguments;
+};

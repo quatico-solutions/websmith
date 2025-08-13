@@ -4,11 +4,12 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import path from "node:path";
-import fs from "node:fs";
-import webpack from "webpack";
-import ts from "typescript";
+import type { LoaderOptions, TscArguments } from "@quatico/websmith-api";
 import type { CompilationConfig } from "@quatico/websmith-core";
+import fs from "node:fs";
+import path from "node:path";
+import ts from "typescript";
+import webpack from "webpack";
 
 const TEST_FILES_DIR = path.resolve(__dirname, "..", "..", "compiler", "test", "__data__", "functions");
 
@@ -116,7 +117,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
     // focus on bundling behavior. Some features like declaration file generation
     // and addon-generated additional files work differently in webpack context.
     it("should yield script file with single file and emit true", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: testDirs.OUTPUT_DIR, noEmit: false });
         createSourceFile(
             `
             export const hello = "world";            
@@ -127,7 +128,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
             "test.ts"
         );
 
-        await executeWebpack();
+        await executeWebpack({ tsConfigFile: testDirs.TSCONFIG_FILE });
 
         expect(getOutput("test.js")).toBeDefined();
         expect(getOutput("test.js")).toContain("hello");
@@ -135,24 +136,73 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
     }, 60000);
 
     it("should yield script and declaration files with single file, declaration and emit true", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false, declaration: true, declarationMap: true });
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            declaration: true,
+            declarationMap: true,
+            target: "esnext",
+            module: "esnext",
+            moduleResolution: "node",
+        });
         copySourceFile("foobar-arrow.ts");
 
-        await executeWebpack();
+        await executeWebpack({ tsConfigFile: testDirs.TSCONFIG_FILE });
 
         // For webpack e2e tests, we're testing the loader integration
         // The output will be bundled but should contain our transpiled code
-        expect(getOutput("foobar-arrow.js")).toBeDefined();
-        expect(getOutput("foobar-arrow.js")).toContain("getFoobar");
-        expect(getOutput("foobar-arrow.js")).toContain("foobar");
+        expect(getOutput("foobar-arrow.js")).toMatchInlineSnapshot(`
+            "/******/ // The require scope
+            /******/ var __webpack_require__ = {};
+            /******/ 
+            /************************************************************************/
+            /******/ /* webpack/runtime/define property getters */
+            /******/ (() => {
+            /******/ 	// define getter functions for harmony exports
+            /******/ 	__webpack_require__.d = (exports, definition) => {
+            /******/ 		for(var key in definition) {
+            /******/ 			if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            /******/ 				Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+            /******/ 			}
+            /******/ 		}
+            /******/ 	};
+            /******/ })();
+            /******/ 
+            /******/ /* webpack/runtime/hasOwnProperty shorthand */
+            /******/ (() => {
+            /******/ 	__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+            /******/ })();
+            /******/ 
+            /************************************************************************/
+            var __webpack_exports__ = {};
+            /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+            /* harmony export */   y: () => (/* binding */ getFoobar)
+            /* harmony export */ });
+            // @annotated()
+            const getFoobar = (date) => {
+                return foobar(date);
+            };
+            const foobar = (date) => {
+                return \`foobar \${date.toISOString()}\`;
+            };
 
-        // For webpack e2e, declaration files may not be generated the same way as CLI
-        // This is acceptable as webpack primarily focuses on bundling
+            var __webpack_exports__getFoobar = __webpack_exports__.y;
+            export { __webpack_exports__getFoobar as getFoobar };
+
+            //# sourceMappingURL=foobar-arrow.js.map"
+        `);
+        expect(getOutput("foobar-arrow.d.ts")).toMatchInlineSnapshot(`
+            "export declare const getFoobar: (date: Date) => string;
+            //# sourceMappingURL=foobar-arrow.d.ts.map"
+        `);
+        expect(getOutput("foobar-arrow.d.ts.map")).toMatchInlineSnapshot(
+            `"{"version":3,"file":"foobar-arrow.d.ts","sourceRoot":"","sources":["../src/foobar-arrow.ts"],"names":[],"mappings":"AACA,eAAO,MAAM,SAAS,SAAU,IAAI,WAEnC,CAAC"}"`
+        );
     }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false, target: ts.ScriptTarget.ES5, module: ts.ModuleKind.CommonJS });
-        createWebsmithConfig({
+        createTsConfigFile({ outDir: "./dist", noEmit: false, target: "es5", module: "commonjs" });
+        createWebsmithConfigFile({
             profiles: {
                 target: {
                     addons: ["client-processor"],
@@ -167,7 +217,10 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         copySourceFile("foobar-function.ts");
 
         await executeWebpack({
-            addonsDir: ADDONS_DIR,
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: ADDONS_DIR,
+            },
             profile: "target",
             configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
         });
@@ -175,35 +228,34 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         // In webpack context, profile-specific directories and addon transformations
         // may not work the same way as in CLI context
         expect(getOutput("foobar-function.js")).toBeDefined();
-        expect(getOutput("foobar-function.js")).toContain("getFoobar");
-
-        // Note: Profile-based addon transformations may behave differently in webpack
-        // The important thing is that the file compiles successfully
+        expect(getOutput("foobar-function.js")).toContain("function getCLIENT(date)");
     }, 60000);
 
     it("should yield transpiled script with single file, client-processor addon via webpack loader options", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         copySourceFile("foobar-function.ts");
 
         await executeWebpack({
-            addonsDir: ADDONS_DIR,
-            addons: "client-processor",
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: ADDONS_DIR,
+                addons: ["client-processor"],
+            },
         });
 
-        // For webpack e2e, test that the loader processes the file and addons can be configured
-        expect(getOutput("foobar-function.js")).toBeDefined();
-        expect(getOutput("foobar-function.js")).toContain("getFoobar");
+        expect(getOutput("foobar-function.js")).toContain("function getCLIENT(date)");
     }, 60000);
 
-    // FIXME: This test is failing because the client-processor addon is not being loaded
-    it.skip("should yield transpiled script with single file, websmith config client-processor and emit", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
-        createWebsmithConfig({
+    it("should yield transpiled script with single file, websmith config client-processor and emit", async () => {
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
+        createWebsmithConfigFile({
             addons: ["client-processor"],
+            addonsDir: ADDONS_DIR,
         });
         copySourceFile("foobar-function.ts");
 
         await executeWebpack({
+            tsConfigFile: testDirs.TSCONFIG_FILE,
             configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
         });
 
@@ -212,12 +264,15 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, client-transformer addon and emit true", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         copySourceFile("foobar-function.ts");
 
         await executeWebpack({
-            addonsDir: ADDONS_DIR,
-            addons: "client-transformer",
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: ADDONS_DIR,
+                addons: ["client-transformer"],
+            },
         });
 
         expect(getOutput("foobar-function.js")).toBeDefined();
@@ -225,12 +280,15 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, export-yaml-generator addon and emit true", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         copySourceFile("foobar-function.ts");
 
         await executeWebpack({
-            addonsDir: ADDONS_DIR,
-            addons: "export-yaml-generator",
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: ADDONS_DIR,
+                addons: ["export-yaml-generator"],
+            },
         });
 
         expect(getOutput("foobar-function.js")).toBeDefined();
@@ -240,12 +298,15 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, foo-added-generator addon and emit true", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         copySourceFile("foobar-function.ts");
 
         await executeWebpack({
-            addonsDir: ADDONS_DIR,
-            addons: "foo-added-generator",
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: ADDONS_DIR,
+                addons: ["foo-added-generator"],
+            },
         });
 
         expect(getOutput("foobar-function.js")).toBeDefined();
@@ -255,12 +316,15 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, function-json-result-processor addon and emit true", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         copySourceFile("foobar-function.ts");
 
         await executeWebpack({
-            addonsDir: ADDONS_DIR,
-            addons: "function-json-result-processor",
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: ADDONS_DIR,
+                addons: ["function-json-result-processor"],
+            },
         });
 
         expect(getOutput("foobar-function.js")).toBeDefined();
@@ -270,12 +334,15 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
     }, 60000);
 
     it("should handle multiple addons together", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         copySourceFile("foobar-function.ts");
 
         await executeWebpack({
-            addonsDir: ADDONS_DIR,
-            addons: "foo-added-generator,function-json-result-processor",
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: ADDONS_DIR,
+                addons: ["foo-added-generator", "function-json-result-processor"],
+            },
         });
 
         expect(getOutput("foobar-function.js")).toBeDefined();
@@ -284,7 +351,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
     }, 60000);
 
     it("should handle source maps generation", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false, sourceMap: true });
+        createTsConfigFile({ outDir: "./dist", noEmit: false, sourceMap: true });
         createSourceFile(
             `
             export const add = (a: number, b: number): number => a + b;
@@ -293,7 +360,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
             "math.ts"
         );
 
-        await executeWebpack();
+        await executeWebpack({ tsConfigFile: testDirs.TSCONFIG_FILE });
 
         expect(getOutput("math.js")).toBeDefined();
         expect(getOutput("math.js")).toContain("add");
@@ -304,11 +371,11 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
     }, 60000);
 
     it("should handle different TypeScript targets through webpack", async () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: "./dist",
             noEmit: false,
-            target: ts.ScriptTarget.ES5,
-            module: ts.ModuleKind.CommonJS,
+            target: "es5",
+            module: "commonjs",
         });
         createSourceFile(
             `
@@ -320,7 +387,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
             "target-test.ts"
         );
 
-        await executeWebpack();
+        await executeWebpack({ tsConfigFile: testDirs.TSCONFIG_FILE });
 
         const output = getOutput("target-test.js");
         expect(output).toBeDefined();
@@ -357,7 +424,7 @@ describe("logging and error handling", () => {
     });
 
     it("should handle compilation errors gracefully", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false, strict: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false, strict: false });
         createSourceFile(
             `
                 // This file contains TypeScript errors but should still transpile in transpile-only mode
@@ -371,7 +438,7 @@ describe("logging and error handling", () => {
         );
 
         // In webpack context with transpileOnly mode, errors should be ignored and code transpiled
-        await executeWebpack({ transpileOnly: true });
+        await executeWebpack({ transpileOnly: true, tsConfigFile: testDirs.TSCONFIG_FILE });
 
         // Output should be generated even with potential TypeScript issues in transpileOnly mode
         expect(getOutput("error-test.js")).toBeDefined();
@@ -379,13 +446,16 @@ describe("logging and error handling", () => {
     }, 60000);
 
     it("should handle missing addons directory gracefully", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         createSourceFile(`export const warningTest = "test";`, "warning-test.ts");
 
         // Should not crash when addons directory doesn't exist
         await executeWebpack({
-            addonsDir: path.join(testDirs.PROJECT_DIR, "non-existent-addons"),
-            addons: "non-existent-addon",
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: path.join(testDirs.PROJECT_DIR, "non-existent-addons"),
+                addons: ["non-existent-addon"],
+            },
         });
 
         // Should still generate output despite missing addons
@@ -394,7 +464,7 @@ describe("logging and error handling", () => {
     }, 60000);
 
     it("should handle missing specific addons gracefully", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         createSourceFile(`export const missingAddonTest = "test";`, "missing-addon-test.ts");
 
         // Create empty addons directory
@@ -403,8 +473,11 @@ describe("logging and error handling", () => {
 
         // Should not crash when specific addon doesn't exist
         await executeWebpack({
-            addonsDir: emptyAddonsDir,
-            addons: "non-existent-addon",
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: emptyAddonsDir,
+                addons: ["non-existent-addon"],
+            },
         });
 
         // Should still generate output despite missing specific addon
@@ -413,7 +486,7 @@ describe("logging and error handling", () => {
     }, 60000);
 
     it("should handle addon integration and reporter functionality", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         createSourceFile(
             `
                 // File with "foo" in name to trigger foo-added-generator addon
@@ -423,8 +496,11 @@ describe("logging and error handling", () => {
         );
 
         await executeWebpack({
-            addonsDir: ADDONS_DIR,
-            addons: "foo-added-generator",
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: ADDONS_DIR,
+                addons: ["foo-added-generator"],
+            },
         });
 
         // Should generate the main file and the additional file from foo-added-generator
@@ -436,7 +512,7 @@ describe("logging and error handling", () => {
     }, 60000);
 
     it("should handle strict mode compilation in webpack context", async () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: "./dist",
             noEmit: false,
             strict: true,
@@ -458,7 +534,7 @@ describe("logging and error handling", () => {
         );
 
         // In webpack context with transpileOnly, should handle strict mode settings
-        await executeWebpack({ transpileOnly: true });
+        await executeWebpack({ transpileOnly: true, tsConfigFile: testDirs.TSCONFIG_FILE });
 
         // Should generate output successfully
         expect(getOutput("strict-test.js")).toBeDefined();
@@ -466,14 +542,14 @@ describe("logging and error handling", () => {
     }, 60000);
 
     it("should handle file system errors gracefully", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         createSourceFile(`export const fsTest = "test";`, "fs-test.ts");
 
         // Make output directory read-only to simulate permission errors
         try {
             fs.chmodSync(testDirs.OUTPUT_DIR, 0o444);
 
-            await expect(executeWebpack()).rejects.toThrow();
+            await expect(executeWebpack({ tsConfigFile: testDirs.TSCONFIG_FILE })).rejects.toThrow();
         } finally {
             // Restore permissions
             fs.chmodSync(testDirs.OUTPUT_DIR, 0o755);
@@ -481,7 +557,7 @@ describe("logging and error handling", () => {
     }, 60000);
 
     it("should process addons and generate expected outputs", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         createSourceFile(
             `
                 // Test file for addon processing
@@ -493,8 +569,11 @@ describe("logging and error handling", () => {
         );
 
         await executeWebpack({
-            addonsDir: ADDONS_DIR,
-            addons: "function-json-result-processor",
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            config: {
+                addonsDir: ADDONS_DIR,
+                addons: ["function-json-result-processor"],
+            },
         });
 
         // Should have processed successfully and generated main output
@@ -507,7 +586,7 @@ describe("logging and error handling", () => {
     }, 60000);
 
     it("should handle configuration file loading errors", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         createSourceFile(`export const configTest = "test";`, "config-test.ts");
 
         // Create invalid JSON config file
@@ -517,17 +596,18 @@ describe("logging and error handling", () => {
         await expect(
             executeWebpack({
                 configFile: path.join(testDirs.PROJECT_DIR, "invalid-config.json"),
+                tsConfigFile: testDirs.TSCONFIG_FILE,
             })
         ).rejects.toThrow();
     }, 60000);
 
     it("should log information about tsconfig resolution", async () => {
         // Create tsconfig with basic settings that should work reliably
-        createTsConfig({
+        createTsConfigFile({
             outDir: "./dist",
             noEmit: false,
-            target: ts.ScriptTarget.ES2020,
-            module: ts.ModuleKind.ESNext,
+            target: "es2020",
+            module: "esnext",
         });
         createSourceFile(
             `
@@ -544,18 +624,18 @@ describe("logging and error handling", () => {
             "tsconfig-test.ts"
         );
 
-        await executeWebpack();
+        await executeWebpack({ tsConfigFile: testDirs.TSCONFIG_FILE });
 
         expect(getOutput("tsconfig-test.js")).toBeDefined();
         expect(getOutput("tsconfig-test.js")).toContain("TsConfigTest");
     }, 60000);
 
     it("should handle webpack plugin integration logging", async () => {
-        createTsConfig({ outDir: "./dist", noEmit: false });
+        createTsConfigFile({ outDir: "./dist", noEmit: false });
         createSourceFile(`export const pluginTest = "test";`, "plugin-test.ts");
 
         // Execute with minimal configuration to test plugin integration
-        const result = await executeWebpack();
+        const result = await executeWebpack({ tsConfigFile: testDirs.TSCONFIG_FILE });
 
         // Should complete without throwing
         expect(result).toBeUndefined(); // executeWebpack returns void on success
@@ -563,16 +643,7 @@ describe("logging and error handling", () => {
     }, 60000);
 });
 
-// Helper functions (similar to bin.test.ts)
-interface WebpackOptions {
-    addonsDir?: string;
-    addons?: string;
-    profile?: string;
-    configFile?: string;
-    transpileOnly?: boolean;
-}
-
-const executeWebpack = async (options: WebpackOptions = {}): Promise<void> => {
+const executeWebpack = async (options: LoaderOptions = {}): Promise<void> => {
     // DO NOT change working directory - this causes the "uv_cwd" error when directory gets deleted
 
     // Find the first TypeScript file in the source directory as entry
@@ -585,7 +656,6 @@ const executeWebpack = async (options: WebpackOptions = {}): Promise<void> => {
     const webpackConfig = createWebpackConfig(options, entryFile);
 
     // Webpack configuration is ready
-
     return new Promise((resolve, reject) => {
         webpack(webpackConfig, (err, stats) => {
             if (err) {
@@ -610,35 +680,13 @@ const executeWebpack = async (options: WebpackOptions = {}): Promise<void> => {
     });
 };
 
-const createWebpackConfig = (options: WebpackOptions, entryFile: string): webpack.Configuration => {
-    const { addonsDir, addons, profile, configFile, transpileOnly = false } = options;
-
-    const loaderOptions: any = {
-        transpileOnly,
-        // Always pass the correct tsconfig.json path from the test directory
-        tsConfigFile: testDirs.TSCONFIG_FILE,
-    };
-
-    if (profile) {
-        loaderOptions.profile = profile;
-    }
-    if (configFile) {
-        loaderOptions.configFile = configFile;
-    }
-    if (addonsDir) {
-        loaderOptions.addonsDir = addonsDir;
-    }
-    if (addons) {
-        loaderOptions.addons = addons.split(",");
-    }
-
+const createWebpackConfig = (options: LoaderOptions, entryFile: string): webpack.Configuration => {
     // Get the base name without extension for output filename
     const outputName = path.basename(entryFile, path.extname(entryFile));
 
     return {
-        mode: "production", // Use production mode to minimize webpack runtime
-        context: testDirs.PROJECT_DIR, // Set context so entry paths are relative to project directory
-        entry: `./src/${entryFile}`, // Use relative path from context
+        mode: "production",
+        entry: `${testDirs.SOURCE_DIR}/${entryFile}`, // Use relative path from context
         output: {
             path: testDirs.OUTPUT_DIR,
             filename: `${outputName}.js`,
@@ -650,23 +698,24 @@ const createWebpackConfig = (options: WebpackOptions, entryFile: string): webpac
         experiments: {
             outputModule: true,
         },
-        resolve: {
-            extensions: [".ts", ".js"],
-        },
         optimization: {
             minimize: false, // Don't minify to keep readable output
             concatenateModules: false, // Prevent module concatenation
         },
+        devtool: "source-map",
+        resolve: {
+            extensions: [".ts", ".js", ".tsx", ".jsx"],
+        },
         module: {
             rules: [
                 {
-                    test: /\.ts$/,
+                    test: /\.tsx?$/,
                     use: [
                         {
                             loader: path.resolve(__dirname, "..", "lib", "index.js"),
+                            // loader: "ts-loader",
                             options: {
-                                ...loaderOptions,
-                                transpileOnly: false, // Enable full compilation for declaration files
+                                ...options,
                             },
                         },
                     ],
@@ -687,20 +736,22 @@ const createSourceFile = (fileContent: string, fileName: string) => {
     fs.writeFileSync(filePath, fileContent, { encoding: "utf-8" });
 };
 
-const createTsConfig = (config: ts.CompilerOptions) => {
+const createTsConfig = (config: TscArguments) => {
     const tsConfig = {
-        compilerOptions: {
-            ...config,
-        },
+        compilerOptions: config,
         include: ["src/**/*"],
         exclude: ["node_modules", "dist"],
     };
-    fs.writeFileSync(testDirs.TSCONFIG_FILE, JSON.stringify(tsConfig, null, 2), { encoding: "utf-8" });
+    return JSON.stringify(tsConfig, null, 2);
+};
+
+const createTsConfigFile = (config: TscArguments) => {
+    fs.writeFileSync(path.resolve(testDirs.PROJECT_DIR, "tsconfig.json"), createTsConfig(config), { encoding: "utf-8" });
 };
 
 const getOutput = (filePath: string): string | undefined =>
     fs.existsSync(path.join(testDirs.OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(testDirs.OUTPUT_DIR, filePath), "utf-8") : undefined;
 
-const createWebsmithConfig = (config: CompilationConfig) => {
+const createWebsmithConfigFile = (config: CompilationConfig) => {
     fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "websmith.config.json"), JSON.stringify(config), { encoding: "utf-8" });
 };

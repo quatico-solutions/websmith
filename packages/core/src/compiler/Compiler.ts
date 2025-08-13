@@ -537,8 +537,9 @@ export class Compiler {
         const isTranspiledSourceFile = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)$/i);
         const isSourceMap = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)\.map$/i);
 
-        // For declaration files, use the language service approach (but not in transpileOnly mode)
-        if (ctx.getCliArgs().options.declaration && !this.transpileOnly) {
+        // For declaration files, use the language service approach
+        // Even in transpileOnly mode, we need the language service to generate declaration files
+        if (ctx.getCliArgs().options.declaration) {
             const langService = ctx.getLanguageService();
             const output = langService.getEmitOutput(fileName);
             // The type 'readonly Diagnostic[]' is 'readonly' cannot be assigned to the mutable type 'Diagnostic[]'

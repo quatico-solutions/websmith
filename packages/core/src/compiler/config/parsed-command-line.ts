@@ -99,7 +99,8 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
                     ...(instanceName ? { instanceName } : {}),
                     ...tsConfigResult.options, // Include all tsconfig options
                 },
-                fileNames: tscArgs.fileNames, // Use explicit files instead of tsconfig file discovery
+                // Filter out invalid file paths like "/" that can cause compilation errors
+                fileNames: tscArgs.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""), // Use explicit files instead of tsconfig file discovery
             };
         }
 
@@ -126,12 +127,15 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
                 ...(instanceName ? { instanceName } : {}),
                 ...result.options,
             },
+            // Filter out invalid file paths like "/" that can cause compilation errors
+            fileNames: result.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""),
         };
     }
 
     return {
         options: { ...extraArgs, ...tscArgs.options, configFilePath: system.resolvePath(tsConfigFile) },
-        fileNames: tscArgs.fileNames,
+        // Filter out invalid file paths like "/" that can cause compilation errors
+        fileNames: tscArgs.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""),
         errors: tscArgs.errors,
         compileOnSave: false,
         raw: {},
