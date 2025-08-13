@@ -9,6 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { TsCompiler } from "./TsCompiler";
+import { type TscArguments } from "@quatico/websmith-api";
 
 // Create unique test directories for each test to prevent cross-test contamination
 const getTestDirs = () => {
@@ -96,7 +97,7 @@ afterEach(() => {
 
 describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     it("should yield script file with single file and emit true", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false });
+        createTsConfigFile({ outDir: testDirs.OUTPUT_DIR, noEmit: false });
         createSourceFile(
             `
             export const hello = "world";            
@@ -136,7 +137,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     }, 60000);
 
     it("should yield script and declaration files with single file, declaration and emit true", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             declaration: true,
@@ -223,11 +224,11 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     }, 60000);
 
     it("should yield transpiled script with single file and different target/module settings", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ES5,
-            module: ts.ModuleKind.CommonJS,
+            target: "es5",
+            module: "commonjs",
         });
         createSourceFile(
             `
@@ -300,12 +301,12 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     }, 60000);
 
     it("should handle ESNext target compilation", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
-            target: ts.ScriptTarget.ESNext,
-            module: ts.ModuleKind.ESNext,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
+            target: "esnext",
+            module: "esnext",
+            moduleResolution: "node10",
         });
         createSourceFile(
             `
@@ -380,7 +381,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     }, 60000);
 
     it("should handle multiple compilation targets", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
@@ -486,7 +487,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     }, 60000);
 
     it("should handle source maps generation", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             sourceMap: true,
@@ -529,7 +530,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     }, 60000);
 
     it("should work with minimal configuration (demonstrating optional cliArgs/reporter)", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
@@ -557,7 +558,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     });
 
     it("should handle compilation errors gracefully", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             strict: true,
@@ -600,7 +601,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
 
 describe("addonsDir configuration tests", () => {
     it("should use addonsDir from CompilerOptions.config", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
@@ -642,7 +643,7 @@ describe("addonsDir configuration tests", () => {
     });
 
     it("should use addonsDir from websmith.config.json", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
@@ -684,7 +685,7 @@ describe("addonsDir configuration tests", () => {
     });
 
     it("should work with function-json-result-processor addon", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
@@ -731,7 +732,7 @@ describe("addonsDir configuration tests", () => {
     });
 
     it("should work with multiple addons", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
@@ -776,7 +777,7 @@ describe("addonsDir configuration tests", () => {
     });
 
     it("should use default addonsDir when not specified", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
@@ -833,7 +834,7 @@ describe("addonsDir configuration tests", () => {
     });
 
     it("should work with export-yaml-generator addon", () => {
-        createTsConfig({
+        createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
         });
@@ -890,15 +891,17 @@ const createSourceFile = (fileContent: string, fileName: string) => {
     fs.writeFileSync(path.join(testDirs.SOURCE_DIR, fileName), fileContent, { encoding: "utf-8" });
 };
 
-const createTsConfig = (config: ts.CompilerOptions) => {
+const createTsConfig = (config: TscArguments) => {
     const tsConfig = {
-        compilerOptions: {
-            ...config,
-        },
+        compilerOptions: config,
         include: ["src/**/*"],
         exclude: ["node_modules", "dist"],
     };
-    fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "tsconfig.json"), JSON.stringify(tsConfig, null, 2), { encoding: "utf-8" });
+    return JSON.stringify(tsConfig, null, 2);
+};
+
+const createTsConfigFile = (config: TscArguments) => {
+    fs.writeFileSync(path.resolve(testDirs.PROJECT_DIR, "tsconfig.json"), createTsConfig(config), { encoding: "utf-8" });
 };
 
 const getOutput = (filePath: string): string | undefined =>

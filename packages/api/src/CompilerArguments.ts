@@ -7,7 +7,7 @@
 import type ts from "typescript";
 import { type TscCliArguments } from "./TscArguments";
 import { type Reporter } from "./addons";
-import { CompilationProfile, type CompilationConfig } from "./config";
+import { type CompilationConfig, type CompilationProfile } from "./config";
 
 /**
  * Array of all TypeScript compiler option keys.
