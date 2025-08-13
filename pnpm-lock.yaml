@@ -629,6 +629,9 @@ importers:
       '@nx/eslint-plugin':
         specifier: ^18.3.4
         version: 18.3.4(@babel/traverse@7.24.5)(@swc/core@1.5.0)(@types/node@20.19.9)(@typescript-eslint/parser@8.22.0(eslint@9.19.0)(typescript@5.7.3))(eslint-config-prettier@10.0.1(eslint@9.19.0))(eslint@9.19.0)(nx@18.3.4(@swc/core@1.5.0))(typescript@5.7.3)
+      '@quatico/websmith-api':
+        specifier: workspace:*
+        version: link:../api
       '@quatico/websmith-core':
         specifier: workspace:*
         version: link:../core

@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import type { BaseOptions } from "./BaseOptions";
+import type { CompilationProfile } from "../config";
 
 export type WebpackLoaderOptions = BaseOptions & {
     /**
@@ -12,4 +13,12 @@ export type WebpackLoaderOptions = BaseOptions & {
      * Overrides the `transpileOnly` specified in the `config`.
      */
     transpileOnly?: boolean;
+    /**
+     * Instance name for webpack loader.
+     */
+    instanceName?: string;
+    /**
+     * Profiles configuration from loader options.
+     */
+    profiles?: Record<string, CompilationProfile>;
 };

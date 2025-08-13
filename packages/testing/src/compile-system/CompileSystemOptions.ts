@@ -4,7 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import type { BrowserSystemOptions, CompilerOptions } from "@quatico/websmith-core";
+import type { CompilerOptions } from "@quatico/websmith-api";
+import type { BrowserSystemOptions } from "@quatico/websmith-core";
 
 export type CompileSystemOptions = BrowserSystemOptions &
     CompilerOptions & {

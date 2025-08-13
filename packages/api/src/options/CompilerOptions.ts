@@ -4,8 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type Reporter } from "@quatico/websmith-api";
 import type ts from "typescript";
+import { type Reporter } from "../addons";
 import { type BaseOptions } from "./BaseOptions";
 
 export type CompilerOptions = BaseOptions & {
