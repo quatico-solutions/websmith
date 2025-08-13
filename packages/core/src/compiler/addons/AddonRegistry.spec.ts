@@ -690,7 +690,9 @@ describe("Addon Compilation", () => {
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
-                messageText: expect.stringContaining(`Failed to load addon "broken-addon" from "${ADDONS_DIR}/lib/broken-addon/addon.js"`),
+                messageText: expect.stringContaining(
+                    `Failed to load addon "broken-addon" from "${path.resolve(ADDONS_DIR, "..", "lib", "broken-addon", "addon.js")}"`
+                ),
             })
         );
     });
@@ -714,7 +716,7 @@ describe("Addon Compilation", () => {
             expect.objectContaining({
                 category: expect.any(Number),
                 messageText: expect.stringContaining(
-                    `Cannot find module '${ADDONS_DIR}/lib/missing-import-addon/addon.js' from 'src/compiler/addons/AddonRegistry.ts'`
+                    `Cannot find module '${path.resolve(ADDONS_DIR, "..", "lib", "missing-import-addon", "addon.js")}' from 'src/compiler/addons/AddonRegistry.ts'`
                 ),
             })
         );

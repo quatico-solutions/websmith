@@ -291,7 +291,7 @@ export class AddonRegistry {
             const tsFiles = addonEntryFiles.filter(isSourceFile);
             if (tsFiles.length > 0) {
                 // Calculate lib directory relative to addons directory
-                const libDir = path.isAbsolute(addonsDir) ? path.resolve(addonsDir, "lib") : resolvePath(system, ".", "lib");
+                const libDir = path.isAbsolute(addonsDir) ? path.resolve(addonsDir, "..", "lib") : resolvePath(system, ".", "lib");
 
                 if (!system.directoryExists(libDir)) {
                     system.createDirectory(libDir);
