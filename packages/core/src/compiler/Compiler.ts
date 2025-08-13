@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { ErrorMessage, type Reporter } from "@quatico/websmith-api";
+import { ErrorMessage, InfoMessage, type CompilerOptions, type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
 import deepmerge from "deepmerge";
 import path from "node:path";
 import ts from "typescript";
@@ -15,7 +15,7 @@ import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
 import { DefaultReporter } from "./DefaultReporter";
-import { resolveCompilerOptions, type CompilerOptions, type ResolvedCompilerOptions, type WebpackLoaderOptions, arrayMerge } from "./options";
+import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
     version: number;
@@ -64,39 +64,13 @@ export class Compiler {
         const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
 
         if (this.options.debug) {
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Starting compilation with debug mode enabled`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
+            this.reporter.reportDiagnostic(new InfoMessage(`Starting compilation with debug mode enabled.`));
             this.reporter.indent();
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Project directory: ${buildDir}`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Configuration: ${this.getConfigSummary()}`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Selected profiles: ${selectedProfiles.length ? selectedProfiles.join(", ") : "<NONE>"}`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
+            this.reporter.reportDiagnostic(new InfoMessage(`Project directory: ${buildDir}.`));
+            this.reporter.reportDiagnostic(new InfoMessage(`Configuration: ${this.getConfigSummary()}.`));
+            this.reporter.reportDiagnostic(
+                new InfoMessage(`Selected profiles: ${selectedProfiles.length ? selectedProfiles.join(", ") : "<NONE>"}.`)
+            );
         }
 
         this.createProfileContextsIfNecessary();
@@ -104,27 +78,13 @@ export class Compiler {
         const program = this.createProgram(profileOptions.tsConfig);
 
         if (this.options.debug) {
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Created TypeScript program with ${program.getSourceFiles().length} source files`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
+            this.reporter.reportDiagnostic(new InfoMessage(`Created TypeScript program with ${program.getSourceFiles().length} source files.`));
         }
 
         const results: ts.EmitResult[] = [];
         selectedProfiles.forEach(curProfile => {
             if (this.options.debug) {
-                this.reporter.reportDiagnostic({
-                    category: ts.DiagnosticCategory.Message,
-                    code: 0,
-                    messageText: `Processing profile: ${curProfile ?? "default"}`,
-                    file: undefined,
-                    start: undefined,
-                    length: undefined,
-                });
+                this.reporter.reportDiagnostic(new InfoMessage(`Processing profile: ${curProfile ?? "default"}.`));
                 this.reporter.indent();
             }
             const ctx = this.getContext(curProfile);
@@ -137,14 +97,7 @@ export class Compiler {
         });
 
         if (this.options.debug) {
-            this.reporter.reportDiagnostic({
-                category: ts.DiagnosticCategory.Message,
-                code: 0,
-                messageText: `Compilation completed with ${results.length} results`,
-                file: undefined,
-                start: undefined,
-                length: undefined,
-            });
+            this.reporter.reportDiagnostic(new InfoMessage(`Compilation completed with ${results.length} results.`));
             this.reporter.unindent?.();
         }
 

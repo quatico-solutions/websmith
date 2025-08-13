@@ -40,7 +40,7 @@ afterEach(() => {
 
 describe("getCompilerInstance", () => {
     it("should create a TsCompiler instance w/o instance in cache", () => {
-        jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't log missing configuration files
+        jest.spyOn(process.stderr, "write").mockImplementation(() => true); // Don't log missing configuration files
 
         const target = { _compiler: {} as Compiler } as LoaderContext<any>;
         const actual = getCompilerInstance(

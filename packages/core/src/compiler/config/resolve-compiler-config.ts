@@ -4,8 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { type CompilationProfile, ErrorMessage, type Reporter } from "@quatico/websmith-api";
 import { parse } from "comment-json";
-import { type CompilationProfile, ErrorMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
 import path from "node:path";
 import type ts from "typescript";
 import { type CompilationConfig } from "./CompilationConfig";
@@ -78,7 +78,7 @@ export const resolveCompilationConfig = (configFilePath: string | undefined, rep
 
     const resolvedPath = system.resolvePath(configFilePath);
     if (!system.fileExists(resolvedPath)) {
-        reporter.reportDiagnostic(new WarnMessage(`No configuration file found at "${resolvedPath}".`));
+        reporter.reportDiagnostic(new ErrorMessage(`No configuration file found at "${resolvedPath}".`));
     } else {
         const content = system.readFile(resolvedPath);
         if (content) {

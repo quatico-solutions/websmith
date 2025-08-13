@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type CompilationProfile, type Reporter, WarnMessage } from "@quatico/websmith-api";
+import { type CompilationProfile, ErrorMessage, InfoMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
 import { type CompilationContext, type CompilerAddon, type CompilerAddons, compilerAddons } from "@quatico/websmith-core";
 import fs from "node:fs";
 import path from "node:path";
@@ -19,6 +19,7 @@ export interface WebpackAddonConfig {
     system: ts.System;
     reporter: Reporter;
     cacheDir?: string;
+    debug?: boolean;
 }
 
 interface AddonCacheEntry {
@@ -63,8 +64,9 @@ export class WebpackAddonService {
         this.compileAndLoadAddons();
 
         const result = this.createCompilerAddons();
-        this.config.reporter.reportDiagnostic(new WarnMessage(`Loaded ${result.length} addons from ${this.config.addonsDir}`));
-
+        if (this.config.debug) {
+            this.config.reporter.reportDiagnostic(new InfoMessage(`Loaded ${result.length} addons from ${this.config.addonsDir}.`));
+        }
         return result;
     }
 
@@ -84,7 +86,7 @@ export class WebpackAddonService {
                 addon.activate(webpackContext);
             } catch (error) {
                 this.config.reporter.reportDiagnostic(
-                    new WarnMessage(`Failed to activate addon "${addon.getName()}": ${error instanceof Error ? error.message : String(error)}`)
+                    new ErrorMessage(`Failed to activate addon "${addon.getName()}": ${error instanceof Error ? error.message : String(error)}`)
                 );
             }
         }
@@ -107,7 +109,7 @@ export class WebpackAddonService {
                 addon.activate(webpackContext);
             } catch (error) {
                 this.config.reporter.reportDiagnostic(
-                    new WarnMessage(
+                    new ErrorMessage(
                         `Failed to execute addon "${addon.getName()}" post-compilation: ${error instanceof Error ? error.message : String(error)}`
                     )
                 );
@@ -120,9 +122,11 @@ export class WebpackAddonService {
 
     private compileAndLoadAddons(): void {
         const addonDirs = this.findAddonDirectories();
-        this.config.reporter.reportDiagnostic(
-            new WarnMessage(`Found ${addonDirs.length} addon directories: ${addonDirs.map(d => path.basename(d)).join(", ")}`)
-        );
+        if (this.config.debug) {
+            this.config.reporter.reportDiagnostic(
+                new InfoMessage(`Found ${addonDirs.length} addon directories: ${addonDirs.map(d => path.basename(d)).join(", ")}.`)
+            );
+        }
 
         for (const addonDir of addonDirs) {
             const addonName = path.basename(addonDir);
@@ -131,13 +135,15 @@ export class WebpackAddonService {
                 const compiledPath = this.compileAddonIfNeeded(addonDir, addonName);
                 if (compiledPath) {
                     this.loadCompiledAddon(compiledPath, addonName);
-                    this.config.reporter.reportDiagnostic(new WarnMessage(`Successfully loaded addon: ${addonName}`));
+                    if (this.config.debug) {
+                        this.config.reporter.reportDiagnostic(new InfoMessage(`Successfully loaded addon: ${addonName}.`));
+                    }
                 } else {
-                    this.config.reporter.reportDiagnostic(new WarnMessage(`No compiled path for addon: ${addonName}`));
+                    this.config.reporter.reportDiagnostic(new WarnMessage(`No compiled path for addon: ${addonName}.`));
                 }
             } catch (error) {
                 this.config.reporter.reportDiagnostic(
-                    new WarnMessage(`Failed to compile addon "${addonName}": ${error instanceof Error ? error.message : String(error)}`)
+                    new ErrorMessage(`Failed to compile addon "${addonName}": ${error instanceof Error ? error.message : String(error)}`)
                 );
             }
         }
@@ -331,7 +337,7 @@ export class WebpackAddonService {
             return [...new Set(addonDirs)];
         } catch (error) {
             this.config.reporter.reportDiagnostic(
-                new WarnMessage(
+                new ErrorMessage(
                     `Error reading addons directory "${this.config.addonsDir}": ${error instanceof Error ? error.message : String(error)}`
                 )
             );
@@ -484,7 +490,7 @@ export class WebpackAddonService {
         } catch (error) {
             // Silently ignore directory creation errors - cache is optional
             this.config.reporter.reportDiagnostic(
-                new WarnMessage(`Failed to create addon cache directory: ${error instanceof Error ? error.message : String(error)}`)
+                new ErrorMessage(`Failed to create addon cache directory: ${error instanceof Error ? error.message : String(error)}`)
             );
         }
     }

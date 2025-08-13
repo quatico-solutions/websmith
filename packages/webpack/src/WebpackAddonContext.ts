@@ -6,15 +6,17 @@
  */
 
 import {
-    type CompilationProfile,
     type AddonContext,
+    type CompilationProfile,
     type Generator,
     type Processor,
     type Reporter,
     type ResultProcessor,
+    ErrorMessage,
+    InfoMessage,
 } from "@quatico/websmith-api";
 import { type CompilationContext } from "@quatico/websmith-core";
-import ts from "typescript";
+import type ts from "typescript";
 
 /**
  * Webpack-specific implementation of AddonContext that provides proper integration
@@ -63,53 +65,33 @@ export class WebpackAddonContext implements AddonContext {
     addInputFile(filePath: string): void {
         // In webpack context, we can't directly add input files
         // Log for debugging purposes
-        this.reporter.reportDiagnostic({
-            category: ts.DiagnosticCategory.Message,
-            code: 0,
-            messageText: `WebpackAddonContext: addInputFile called for ${filePath} (not implemented in webpack context)`,
-            file: undefined,
-            start: undefined,
-            length: undefined,
-        });
+        this.reporter.reportDiagnostic(
+            new InfoMessage(`WebpackAddonContext: addInputFile called for ${filePath} (not implemented in webpack context).`)
+        );
     }
 
     addAssetDependency(childPath: string, parentPath: string): void {
         // In webpack context, we can't directly manage asset dependencies
         // Log for debugging purposes
-        this.reporter.reportDiagnostic({
-            category: ts.DiagnosticCategory.Message,
-            code: 0,
-            messageText: `WebpackAddonContext: addAssetDependency called for ${childPath} -> ${parentPath} (not implemented in webpack context)`,
-            file: undefined,
-            start: undefined,
-            length: undefined,
-        });
+        this.reporter.reportDiagnostic(
+            new InfoMessage(`WebpackAddonContext: addAssetDependency called for ${childPath} -> ${parentPath} (not implemented in webpack context).`)
+        );
     }
 
     addVirtualFile(filePath: string, _fileContent: string): void {
         // In webpack context, we can't directly add virtual files
         // Log for debugging purposes
-        this.reporter.reportDiagnostic({
-            category: ts.DiagnosticCategory.Message,
-            code: 0,
-            messageText: `WebpackAddonContext: addVirtualFile called for ${filePath} (not implemented in webpack context)`,
-            file: undefined,
-            start: undefined,
-            length: undefined,
-        });
+        this.reporter.reportDiagnostic(
+            new InfoMessage(`WebpackAddonContext: addVirtualFile called for ${filePath} (not implemented in webpack context).`)
+        );
     }
 
     removeOutputFile(filePath: string): void {
         // In webpack context, we can't directly remove output files
         // Log for debugging purposes
-        this.reporter.reportDiagnostic({
-            category: ts.DiagnosticCategory.Message,
-            code: 0,
-            messageText: `WebpackAddonContext: removeOutputFile called for ${filePath} (not implemented in webpack context)`,
-            file: undefined,
-            start: undefined,
-            length: undefined,
-        });
+        this.reporter.reportDiagnostic(
+            new InfoMessage(`WebpackAddonContext: removeOutputFile called for ${filePath} (not implemented in webpack context)`)
+        );
     }
 
     resolvePath(relativePath: string): string {
@@ -167,14 +149,9 @@ export class WebpackAddonContext implements AddonContext {
             try {
                 generator(filePath, fileContent);
             } catch (error) {
-                this.reporter.reportDiagnostic({
-                    category: ts.DiagnosticCategory.Warning,
-                    code: 0,
-                    messageText: `Generator failed for ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
-                    file: undefined,
-                    start: undefined,
-                    length: undefined,
-                });
+                this.reporter.reportDiagnostic(
+                    new ErrorMessage(`Generator failed for ${filePath}: ${error instanceof Error ? error.message : String(error)}`)
+                );
             }
         }
     }
@@ -189,14 +166,9 @@ export class WebpackAddonContext implements AddonContext {
             try {
                 processedContent = processor(filePath, processedContent);
             } catch (error) {
-                this.reporter.reportDiagnostic({
-                    category: ts.DiagnosticCategory.Warning,
-                    code: 0,
-                    messageText: `Processor failed for ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
-                    file: undefined,
-                    start: undefined,
-                    length: undefined,
-                });
+                this.reporter.reportDiagnostic(
+                    new ErrorMessage(`Processor failed for ${filePath}: ${error instanceof Error ? error.message : String(error)}`)
+                );
             }
         }
 
@@ -237,14 +209,9 @@ export class WebpackAddonContext implements AddonContext {
             try {
                 processor(filePaths);
             } catch (error) {
-                this.reporter.reportDiagnostic({
-                    category: ts.DiagnosticCategory.Warning,
-                    code: 0,
-                    messageText: `Result processor failed: ${error instanceof Error ? error.message : String(error)}`,
-                    file: undefined,
-                    start: undefined,
-                    length: undefined,
-                });
+                this.reporter.reportDiagnostic(
+                    new ErrorMessage(`Result processor failed: ${error instanceof Error ? error.message : String(error)}`)
+                );
             }
         }
     }

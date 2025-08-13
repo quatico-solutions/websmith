@@ -226,7 +226,7 @@ describe("constructor", () => {
     });
 
     it("should yield declaration and declarationMap true w/ properties set to true in valid tsconfig.json", () => {
-        jest.spyOn(process.stdout, "write").mockImplementation(() => true);
+        jest.spyOn(process.stderr, "write").mockImplementation(() => true);
         const target = createSystem(
             { "./project/tsconfig.json": JSON.stringify({ compilerOptions: { declaration: true, declarationMap: true } }) },
             { virtual: true }
