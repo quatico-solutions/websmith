@@ -4,10 +4,9 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { type CompilerOptions, type WebpackLoaderOptions } from "@quatico/websmith-api";
 import type ts from "typescript";
-import { type CompilerOptions } from "./CompilerOptions";
 import { ResolvedCompilerOptions } from "./ResolvedCompilerOptions";
-import { type WebpackLoaderOptions } from "./WebpackLoaderOptions";
 
 export const resolveCompilerOptions = (
     system: ts.System,

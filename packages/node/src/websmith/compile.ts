@@ -4,7 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilerOptions as WebsmithOptions, AddonRegistry, DefaultReporter, Compiler as WebsmithCompiler } from "@quatico/websmith-core";
+import { type CompilerOptions as WebsmithOptions } from "@quatico/websmith-api";
+import { AddonRegistry, DefaultReporter, Compiler as WebsmithCompiler } from "@quatico/websmith-core";
 import ts from "typescript";
 import { Compiler as TscCompiler } from "./Compiler";
 

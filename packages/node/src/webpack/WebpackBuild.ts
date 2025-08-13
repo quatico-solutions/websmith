@@ -6,7 +6,7 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { type WebpackLoaderOptions } from "@quatico/websmith-core";
+import { type WebpackLoaderOptions } from "@quatico/websmith-api";
 import { split } from "lodash";
 import path from "node:path";
 import tildify from "tildify";
