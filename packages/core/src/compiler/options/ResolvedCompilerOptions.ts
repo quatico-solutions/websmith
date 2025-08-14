@@ -227,6 +227,12 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             },
             fileNames: finalFileNames,
             errors: [],
+            // Explicitly set the raw.configFilePath for webpack loader access
+            raw: {
+                ...baseCliArgs.raw,
+                ...premergedCliArgs.raw,
+                ...(this.tsConfigFile && { configFilePath: this.tsConfigFile }),
+            },
         };
         this.tsConfig = deepmerge<ts.CompilerOptions>(this.tsConfig, this.cliArgs?.options ?? {}, { arrayMerge });
 

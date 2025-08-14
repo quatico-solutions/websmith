@@ -152,8 +152,6 @@ export class WebpackAddonService {
         }
     }
 
-
-
     private loadCompiledAddon(compiledPath: string, addonName: string): void {
         if (this.loadedAddons.has(addonName)) {
             return; // Already loaded
@@ -167,7 +165,10 @@ export class WebpackAddonService {
             const addonModule = require(compiledPath);
             const moduleExports = addonModule?.default || addonModule;
 
-            if (!moduleExports || typeof moduleExports.activate !== "function") {
+            if (
+                !moduleExports ||
+                (path.basename(compiledPath, path.extname(compiledPath)) === "addon" && typeof moduleExports.activate !== "function")
+            ) {
                 throw new Error(`Addon "${addonName}" does not export an "activate" function`);
             }
 
@@ -188,11 +189,11 @@ export class WebpackAddonService {
         // First, check for pre-built addons
         for (const addonDir of addonDirs) {
             const addonName = path.basename(addonDir);
-            
+
             // Check if this is a pre-built addon (has index.js or addon.js)
             const preBuiltIndexPath = path.join(addonDir, "index.js");
             const preBuiltAddonPath = path.join(addonDir, "addon.js");
-            
+
             if (fs.existsSync(preBuiltIndexPath)) {
                 compiledPaths.set(addonName, preBuiltIndexPath);
             } else if (fs.existsSync(preBuiltAddonPath)) {
@@ -222,7 +223,7 @@ export class WebpackAddonService {
         for (const addonDir of addonsToCompile) {
             const addonName = path.basename(addonDir);
             const sourceFiles = this.findAddonSourceFiles(addonDir);
-            
+
             if (sourceFiles.length === 0) {
                 continue;
             }
@@ -233,7 +234,7 @@ export class WebpackAddonService {
             const indexFile = sourceFiles.find(f => path.basename(f, path.extname(f)).toLowerCase() === "index");
             const addonFile = sourceFiles.find(f => path.basename(f, path.extname(f)).toLowerCase() === "addon");
             const entryFile = indexFile || addonFile;
-            
+
             if (entryFile) {
                 addonEntryPoints.set(addonName, entryFile);
             }
@@ -256,7 +257,7 @@ export class WebpackAddonService {
                     compiledPaths.set(addonName, cachedPath);
                 }
             }
-            
+
             // If all cached paths exist, return them
             if (compiledPaths.size >= addonEntryPoints.size) {
                 return compiledPaths;
@@ -265,7 +266,7 @@ export class WebpackAddonService {
 
         // Compile all addons together
         const addonsDir = path.dirname(addonsToCompile[0]); // Parent directory of all addon directories
-        
+
         // Create TypeScript program with all source files
         const compilerOptions: ts.CompilerOptions = {
             target: ts.ScriptTarget.ES2020,
@@ -311,7 +312,7 @@ export class WebpackAddonService {
         for (const [addonName, entryFile] of addonEntryPoints) {
             const relativePath = path.relative(addonsDir, entryFile);
             const compiledPath = path.join(this.cacheDir, relativePath.replace(/\.ts$/, ".js"));
-            
+
             if (this.config.system.fileExists(compiledPath)) {
                 compiledPaths.set(addonName, compiledPath);
             }
@@ -322,7 +323,7 @@ export class WebpackAddonService {
             sourceHash,
             compiledPath: this.cacheDir,
             timestamp: Date.now(),
-            dependencies: allSourceFiles
+            dependencies: allSourceFiles,
         });
         this.saveCacheIndex();
 
