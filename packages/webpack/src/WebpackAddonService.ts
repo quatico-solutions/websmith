@@ -10,7 +10,9 @@ import { type CompilationContext, type CompilerAddon, type CompilerAddons, compi
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { type LoaderContext, type Compilation } from "webpack";
 import { WebpackAddonContext } from "./WebpackAddonContext";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export interface WebpackAddonConfig {
     addonsDir?: string;
@@ -42,7 +44,6 @@ export class WebpackAddonService {
     constructor(config: WebpackAddonConfig) {
         this.config = config;
         this.cacheDir = config.cacheDir || path.join(this.config.system?.getCurrentDirectory() || process.cwd(), ".websmith-cache", "addons");
-        this.ensureCacheDirectory();
         this.loadCacheIndex();
     }
 
@@ -74,12 +75,26 @@ export class WebpackAddonService {
      * Apply addon transformations to a compilation context.
      * This is called during webpack compilation for each file.
      */
-    public applyAddonsToContext(context: CompilationContext, profile?: string): WebpackAddonContext {
+    public applyAddonsToContext(
+        context: CompilationContext,
+        profile?: string,
+        loaderContext?: LoaderContext<WebsmithLoaderConfig>,
+        webpackCompilation?: Compilation
+    ): WebpackAddonContext {
         const activeAddons = this.getActiveAddons(profile);
 
         const profileConfig = profile ? this.config.profiles?.[profile] : undefined;
 
-        const webpackContext = new WebpackAddonContext(this.config.system, this.config.reporter, profile, profileConfig, context);
+        const webpackContext = new WebpackAddonContext(
+            this.config.system,
+            this.config.reporter,
+            profile,
+            profileConfig,
+            context,
+            loaderContext,
+            webpackCompilation,
+            this.config.debug
+        );
 
         for (const addon of activeAddons) {
             try {
@@ -152,8 +167,6 @@ export class WebpackAddonService {
         }
     }
 
-
-
     private loadCompiledAddon(compiledPath: string, addonName: string): void {
         if (this.loadedAddons.has(addonName)) {
             return; // Already loaded
@@ -167,7 +180,10 @@ export class WebpackAddonService {
             const addonModule = require(compiledPath);
             const moduleExports = addonModule?.default || addonModule;
 
-            if (!moduleExports || typeof moduleExports.activate !== "function") {
+            if (
+                !moduleExports ||
+                (path.basename(compiledPath, path.extname(compiledPath)) === "addon" && typeof moduleExports.activate !== "function")
+            ) {
                 throw new Error(`Addon "${addonName}" does not export an "activate" function`);
             }
 
@@ -188,11 +204,11 @@ export class WebpackAddonService {
         // First, check for pre-built addons
         for (const addonDir of addonDirs) {
             const addonName = path.basename(addonDir);
-            
+
             // Check if this is a pre-built addon (has index.js or addon.js)
             const preBuiltIndexPath = path.join(addonDir, "index.js");
             const preBuiltAddonPath = path.join(addonDir, "addon.js");
-            
+
             if (fs.existsSync(preBuiltIndexPath)) {
                 compiledPaths.set(addonName, preBuiltIndexPath);
             } else if (fs.existsSync(preBuiltAddonPath)) {
@@ -222,7 +238,7 @@ export class WebpackAddonService {
         for (const addonDir of addonsToCompile) {
             const addonName = path.basename(addonDir);
             const sourceFiles = this.findAddonSourceFiles(addonDir);
-            
+
             if (sourceFiles.length === 0) {
                 continue;
             }
@@ -233,7 +249,7 @@ export class WebpackAddonService {
             const indexFile = sourceFiles.find(f => path.basename(f, path.extname(f)).toLowerCase() === "index");
             const addonFile = sourceFiles.find(f => path.basename(f, path.extname(f)).toLowerCase() === "addon");
             const entryFile = indexFile || addonFile;
-            
+
             if (entryFile) {
                 addonEntryPoints.set(addonName, entryFile);
             }
@@ -256,16 +272,19 @@ export class WebpackAddonService {
                     compiledPaths.set(addonName, cachedPath);
                 }
             }
-            
+
             // If all cached paths exist, return them
             if (compiledPaths.size >= addonEntryPoints.size) {
                 return compiledPaths;
             }
         }
 
+        // Ensure cache directory exists before compilation
+        this.ensureCacheDirectory();
+
         // Compile all addons together
         const addonsDir = path.dirname(addonsToCompile[0]); // Parent directory of all addon directories
-        
+
         // Create TypeScript program with all source files
         const compilerOptions: ts.CompilerOptions = {
             target: ts.ScriptTarget.ES2020,
@@ -311,7 +330,7 @@ export class WebpackAddonService {
         for (const [addonName, entryFile] of addonEntryPoints) {
             const relativePath = path.relative(addonsDir, entryFile);
             const compiledPath = path.join(this.cacheDir, relativePath.replace(/\.ts$/, ".js"));
-            
+
             if (this.config.system.fileExists(compiledPath)) {
                 compiledPaths.set(addonName, compiledPath);
             }
@@ -322,7 +341,7 @@ export class WebpackAddonService {
             sourceHash,
             compiledPath: this.cacheDir,
             timestamp: Date.now(),
-            dependencies: allSourceFiles
+            dependencies: allSourceFiles,
         });
         this.saveCacheIndex();
 
@@ -462,6 +481,10 @@ export class WebpackAddonService {
 
         // Remove duplicates and resolve to actual addon instances
         const uniqueAddonNames = [...new Set(requestedAddons)];
+
+        // Report warnings for missing addons (matching core AddonRegistry behavior)
+        this.reportMissingAddons(uniqueAddonNames, profile);
+
         const resolvedAddons = uniqueAddonNames
             .map(name => this.loadedAddons.get(name))
             .filter((addon): addon is CompilerAddon => addon !== undefined);
@@ -533,6 +556,11 @@ export class WebpackAddonService {
             return;
         }
 
+        // Only try to load cache if the cache directory exists
+        if (!this.config.system.directoryExists(this.cacheDir)) {
+            return;
+        }
+
         const indexPath = path.join(this.cacheDir, "index.json");
 
         try {
@@ -555,6 +583,9 @@ export class WebpackAddonService {
             return;
         }
 
+        // Ensure cache directory exists before saving
+        this.ensureCacheDirectory();
+
         const indexPath = path.join(this.cacheDir, "index.json");
 
         try {
@@ -562,6 +593,40 @@ export class WebpackAddonService {
             this.config.system.writeFile(indexPath, JSON.stringify(cacheData, null, 2));
         } catch {
             // Ignore cache saving errors
+        }
+    }
+
+    /**
+     * Reports warnings for missing addons, matching the behavior of core AddonRegistry.
+     */
+    private reportMissingAddons(expectedNames: string[] = [], profile?: string): void {
+        const missingAddons = expectedNames.filter(name => !this.loadedAddons.has(name));
+
+        if (missingAddons.length > 0) {
+            const availableAddons = Array.from(this.loadedAddons.keys());
+
+            // Enhanced error reporting for missing addons (matching core AddonRegistry style)
+            const detailedReport = [
+                profile
+                    ? `Missing addons for profile "${profile}": ${missingAddons.map(name => `"${name}"`).join(", ")}`
+                    : `Missing addons: ${missingAddons.map(name => `"${name}"`).join(", ")}`,
+                ``,
+                `🔍 Addon Resolution Details:`,
+                `   • Addons directory: ${this.config.addonsDir || "(not configured)"}`,
+                `   • Directory exists: ${this.config.addonsDir ? this.config.system.directoryExists(this.config.addonsDir) : false}`,
+                `   • Available addons (${availableAddons.length}): ${availableAddons.length > 0 ? availableAddons.join(", ") : "(none found)"}`,
+                ``,
+                `🛠️  Troubleshooting suggestions:`,
+                `   • Check if addon directories exist in: ${this.config.addonsDir}`,
+                `   • Verify addon naming matches expected names exactly`,
+                `   • Ensure addons have proper structure with 'addon.ts' or 'index.ts' files`,
+                `   • Check if addons compiled successfully (look for compilation errors above)`,
+                `   • Verify addon files export an 'activate' function`,
+                ``,
+                `ℹ️  For more information, see: https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md#addons`,
+            ].join("\n");
+
+            this.config.reporter.reportDiagnostic(new WarnMessage(detailedReport));
         }
     }
 }

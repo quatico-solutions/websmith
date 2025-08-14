@@ -705,6 +705,9 @@ describe("cliArgs", () => {
                 strict: false,
                 target: ts.ScriptTarget.ES5,
             },
+            raw: {
+                configFilePath: "/tsconfig.json",
+            },
         });
     });
 
@@ -1007,6 +1010,9 @@ describe("getOptions", () => {
                     removeComments: false,
                     strict: false,
                     target: ts.ScriptTarget.ES5,
+                },
+                raw: {
+                    configFilePath: "/tsconfig.json",
                 },
             },
             config: {},
