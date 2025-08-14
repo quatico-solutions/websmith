@@ -28,6 +28,51 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.14] - 2025-01-27
+
+This release significantly enhances webpack integration with full support for generator addons, improved rootDir inference, and comprehensive webpack asset manipulation capabilities. The main improvements include complete generator addon support in webpack builds, automatic rootDir detection from tsconfig.json, and enhanced webpack compilation context handling.
+
+### Added
+
+- 🚀 **Full Generator Addon Support in Webpack**: Added complete support for generator addons in webpack builds
+  - Generator addons can now manipulate webpack assets and dependencies during compilation
+  - Added support for `addInputFile`, `addVirtualFile`, `addAssetDependency`, and `removeOutputFile` operations
+  - Generator output is properly integrated into webpack's asset emission system
+  - Enhanced WebpackAddonContext with comprehensive asset and dependency management
+- 🧪 **Enhanced Test Coverage for Webpack Integration**: Added comprehensive E2E tests for generator addons with debug logging
+  - Tests ensure generated output is created and properly reported in logs
+  - Improved test coverage for webpack asset manipulation scenarios
+- 🔧 **Automatic rootDir Inference**: Added intelligent rootDir inference from tsconfig.json location in webpack compilation context
+  - Uses tsconfig.json file location and include patterns to automatically determine appropriate rootDir
+  - Eliminates manual rootDir configuration requirements for complex project setups
+  - Enhanced path resolution for better cross-platform compatibility
+
+### Fixed
+
+- 🐛 **Webpack Unknown Addon Reporting**: Fixed issue where webpack did not report unknown addons in websmith.config.json profiles
+  - Enhanced error reporting for invalid addon configurations in webpack context
+  - Improved validation and user feedback for addon configuration issues
+- 🐛 **Addon Cache Directory Creation**: Fixed unnecessary creation of `.websmith-cache/addons` directory when no addons need compilation
+  - Optimized addon compilation workflow to only create cache directories when needed
+  - Reduced filesystem clutter in projects without compiled addons
+- 🐛 **Complex Setup rootDir Issues**: Fixed rootDir resolution problems in more complex project setups
+  - Enhanced path resolution logic for nested project structures
+  - Improved handling of monorepo and multi-package project configurations
+- 🐛 **Test Environment Assumptions**: Fixed test assumptions and improved test reliability
+  - Enhanced test isolation and setup consistency
+  - Fixed flaky tests related to webpack compilation context
+
+### Changed
+
+- 🔧 **Enhanced Webpack Asset Handling**: Significantly improved webpack asset and dependency manipulation capabilities
+  - Enhanced WebpackAddonContext with 244+ lines of new functionality for asset management
+  - Improved WebpackAddonService with 93+ lines of enhanced addon compilation logic
+  - Expanded result-handling.ts with 523+ lines of comprehensive asset processing
+- 🔧 **Improved Webpack Integration Testing**: Enhanced webpack test suite with comprehensive coverage
+  - Added 794+ lines of enhanced webpack integration tests
+  - Improved test scenarios for complex webpack configurations and addon interactions
+  - Enhanced debugging and logging capabilities for webpack compilation issues
+
 ## [0.7.13] - 2025-01-26
 
 This release focuses on improving TypeScript declaration file emission, enhancing addon compilation infrastructure, and upgrading dependencies. The main improvements include fixing .d.ts and .d.ts.map file emission in webpack loader, better addon compilation path handling, and comprehensive Jest dependency upgrades.
