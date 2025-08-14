@@ -37,7 +37,16 @@ describe("WebpackAddonContext", () => {
             outputOptions: { path: "/output" },
         };
 
-        testObj = new WebpackAddonContext(mockSystem, mockReporter, "test-profile", undefined, undefined, mockLoaderContext, mockWebpackCompilation);
+        testObj = new WebpackAddonContext(
+            mockSystem,
+            mockReporter,
+            "test-profile",
+            undefined,
+            undefined,
+            mockLoaderContext,
+            mockWebpackCompilation,
+            true
+        );
     });
 
     describe("addInputFile", () => {
@@ -61,7 +70,16 @@ describe("WebpackAddonContext", () => {
         });
 
         it("should queue file when no loader context available", () => {
-            const testObjNoLoader = new WebpackAddonContext(mockSystem, mockReporter, "test-profile");
+            const testObjNoLoader = new WebpackAddonContext(
+                mockSystem,
+                mockReporter,
+                "test-profile",
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                true
+            );
 
             testObjNoLoader.addInputFile("queued.ts");
 
@@ -125,7 +143,16 @@ describe("WebpackAddonContext", () => {
         });
 
         it("should queue virtual file when no webpack compilation available", () => {
-            const testObjNoCompilation = new WebpackAddonContext(mockSystem, mockReporter, "test-profile", undefined, undefined, mockLoaderContext);
+            const testObjNoCompilation = new WebpackAddonContext(
+                mockSystem,
+                mockReporter,
+                "test-profile",
+                undefined,
+                undefined,
+                mockLoaderContext,
+                undefined,
+                true
+            );
 
             testObjNoCompilation.addVirtualFile("queued.ts", "content");
 
@@ -212,6 +239,43 @@ describe("WebpackAddonContext", () => {
             expect(mockReporter.reportDiagnostic).toHaveBeenCalledWith(
                 expect.objectContaining({
                     messageText: expect.stringContaining("Applied 0 virtual files and removed 0 files"),
+                })
+            );
+        });
+    });
+
+    describe("debug mode", () => {
+        it("should not report debug messages when debug is false", () => {
+            const testObjNoDebug = new WebpackAddonContext(
+                mockSystem,
+                mockReporter,
+                "test-profile",
+                undefined,
+                undefined,
+                mockLoaderContext,
+                mockWebpackCompilation,
+                false
+            );
+
+            jest.clearAllMocks();
+
+            testObjNoDebug.addInputFile("input.ts");
+
+            expect(testObjNoDebug.getInputFilesToAdd()).toContain("/resolved/input.ts");
+            expect(mockLoaderContext.addDependency).toHaveBeenCalledWith("/resolved/input.ts");
+            expect(mockReporter.reportDiagnostic).not.toHaveBeenCalled();
+        });
+
+        it("should report debug messages when debug is true", () => {
+            jest.clearAllMocks();
+
+            testObj.addInputFile("input.ts");
+
+            expect(testObj.getInputFilesToAdd()).toContain("/resolved/input.ts");
+            expect(mockLoaderContext.addDependency).toHaveBeenCalledWith("/resolved/input.ts");
+            expect(mockReporter.reportDiagnostic).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    messageText: expect.stringContaining("Added input file dependency"),
                 })
             );
         });

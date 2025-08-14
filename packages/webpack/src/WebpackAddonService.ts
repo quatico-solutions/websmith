@@ -92,7 +92,8 @@ export class WebpackAddonService {
             profileConfig,
             context,
             loaderContext,
-            webpackCompilation
+            webpackCompilation,
+            this.config.debug
         );
 
         for (const addon of activeAddons) {
