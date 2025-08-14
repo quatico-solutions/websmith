@@ -171,7 +171,15 @@ export class TsCompiler extends Compiler {
             if (context) {
                 // Cache the WebpackAddonContext to avoid re-creating it for each file
                 if (!this.cachedWebpackContext) {
-                    this.cachedWebpackContext = this.webpackAddonService.applyAddonsToContext(context, this.profile);
+                    // Access webpack compilation from loader context
+                    const webpackCompilation = this.loaderContext?._compilation;
+
+                    this.cachedWebpackContext = this.webpackAddonService.applyAddonsToContext(
+                        context,
+                        this.profile,
+                        this.loaderContext,
+                        webpackCompilation
+                    );
                 }
                 webpackContext = this.cachedWebpackContext;
 

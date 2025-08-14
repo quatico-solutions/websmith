@@ -227,4 +227,209 @@ describe("WebpackAddonService", () => {
             );
         });
     });
+
+    describe("WebpackAddonContext integration", () => {
+        let mockCompilationContext: any;
+        let mockLoaderContext: any;
+        let mockWebpackCompilation: any;
+
+        beforeEach(() => {
+            mockCompilationContext = {
+                getCliArgs: () => ({ options: {}, fileNames: [], errors: [] }),
+                addInputFile: jest.fn(),
+                addAssetDependency: jest.fn(),
+                addVirtualFile: jest.fn(),
+                removeOutputFile: jest.fn(),
+                registerGenerator: jest.fn(),
+                registerProcessor: jest.fn(),
+                registerTransformer: jest.fn(),
+                registerResultProcessor: jest.fn(),
+            };
+
+            mockLoaderContext = {
+                addDependency: jest.fn(),
+                _compilation: undefined,
+            };
+
+            mockWebpackCompilation = {
+                emitAsset: jest.fn(),
+                assets: {},
+                outputOptions: { path: "/output" },
+            };
+        });
+
+        it("should pass loader context and compilation to WebpackAddonContext", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            fs.mkdirSync(addonsDir, { recursive: true });
+
+            // Create a simple addon that uses the context methods
+            const addonDir = path.join(addonsDir, "test-addon");
+            fs.mkdirSync(addonDir, { recursive: true });
+            fs.writeFileSync(
+                path.join(addonDir, "addon.ts"),
+                `
+                export const activate = (ctx) => {
+                    ctx.addInputFile("test-input.ts");
+                    ctx.addVirtualFile("test-virtual.ts", "export const test = 'virtual';");
+                    ctx.addAssetDependency("asset.png", "parent.ts");
+                    ctx.removeOutputFile("unwanted.js");
+                };
+                `
+            );
+
+            const testObj = new WebpackAddonService({
+                addonsDir,
+                addons: ["test-addon"],
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // Load available addons first
+            testObj.getAvailableAddons();
+
+            const webpackContext = testObj.applyAddonsToContext(mockCompilationContext, undefined, mockLoaderContext, mockWebpackCompilation);
+
+            // Verify that the context was created with webpack integration
+            expect(webpackContext).toBeDefined();
+            expect(webpackContext.getInputFilesToAdd().size).toBeGreaterThan(0);
+            expect(webpackContext.getVirtualFiles().size).toBeGreaterThan(0);
+            expect(webpackContext.getAssetDependencies().size).toBeGreaterThan(0);
+            expect(webpackContext.getFilesToRemove().size).toBeGreaterThan(0);
+        });
+
+        it("should add dependencies to webpack loader context", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            fs.mkdirSync(addonsDir, { recursive: true });
+
+            const addonDir = path.join(addonsDir, "dependency-addon");
+            fs.mkdirSync(addonDir, { recursive: true });
+            fs.writeFileSync(
+                path.join(addonDir, "addon.ts"),
+                `
+                export const activate = (ctx) => {
+                    ctx.addInputFile("input.ts");
+                    ctx.addAssetDependency("style.css", "component.ts");
+                };
+                `
+            );
+
+            const testObj = new WebpackAddonService({
+                addonsDir,
+                addons: ["dependency-addon"],
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // Load available addons first
+            testObj.getAvailableAddons();
+
+            testObj.applyAddonsToContext(mockCompilationContext, undefined, mockLoaderContext, mockWebpackCompilation);
+
+            // Verify that dependencies were added to the loader context
+            expect(mockLoaderContext.addDependency).toHaveBeenCalledWith(expect.stringContaining("input.ts"));
+            expect(mockLoaderContext.addDependency).toHaveBeenCalledWith(expect.stringContaining("style.css"));
+        });
+
+        it("should emit virtual files as webpack assets", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            fs.mkdirSync(addonsDir, { recursive: true });
+
+            const addonDir = path.join(addonsDir, "virtual-addon");
+            fs.mkdirSync(addonDir, { recursive: true });
+            fs.writeFileSync(
+                path.join(addonDir, "addon.ts"),
+                `
+                export const activate = (ctx) => {
+                    ctx.addVirtualFile("generated.js", "console.log('generated');");
+                };
+                `
+            );
+
+            const testObj = new WebpackAddonService({
+                addonsDir,
+                addons: ["virtual-addon"],
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // Load available addons first
+            testObj.getAvailableAddons();
+
+            testObj.applyAddonsToContext(mockCompilationContext, undefined, mockLoaderContext, mockWebpackCompilation);
+
+            // Verify that virtual file was emitted as webpack asset
+            expect(mockWebpackCompilation.emitAsset).toHaveBeenCalledWith(expect.stringContaining("generated.js"), expect.any(Object));
+        });
+
+        it("should remove files from webpack assets", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            fs.mkdirSync(addonsDir, { recursive: true });
+
+            // Pre-populate webpack assets
+            mockWebpackCompilation.assets["unwanted.js"] = { source: () => "content", size: () => 7 };
+
+            const addonDir = path.join(addonsDir, "removal-addon");
+            fs.mkdirSync(addonDir, { recursive: true });
+            fs.writeFileSync(
+                path.join(addonDir, "addon.ts"),
+                `
+                export const activate = (ctx) => {
+                    ctx.removeOutputFile("/output/unwanted.js");
+                };
+                `
+            );
+
+            const testObj = new WebpackAddonService({
+                addonsDir,
+                addons: ["removal-addon"],
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // Load available addons first
+            testObj.getAvailableAddons();
+
+            const webpackContext = testObj.applyAddonsToContext(mockCompilationContext, undefined, mockLoaderContext, mockWebpackCompilation);
+
+            // Apply deferred operations to simulate webpack compilation hook
+            webpackContext.applyDeferredOperations(mockWebpackCompilation);
+
+            // Verify that file was removed from webpack assets
+            expect(mockWebpackCompilation.assets["unwanted.js"]).toBeUndefined();
+        });
+
+        it("should fall back to compilation context when webpack context is not available", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            fs.mkdirSync(addonsDir, { recursive: true });
+
+            const addonDir = path.join(addonsDir, "fallback-addon");
+            fs.mkdirSync(addonDir, { recursive: true });
+            fs.writeFileSync(
+                path.join(addonDir, "addon.ts"),
+                `
+                export const activate = (ctx) => {
+                    ctx.addInputFile("fallback-input.ts");
+                    ctx.addVirtualFile("fallback-virtual.ts", "export const fallback = true;");
+                };
+                `
+            );
+
+            const testObj = new WebpackAddonService({
+                addonsDir,
+                addons: ["fallback-addon"],
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // Load available addons first
+            testObj.getAvailableAddons();
+
+            // Apply without webpack contexts (fallback scenario)
+            testObj.applyAddonsToContext(mockCompilationContext);
+
+            // Verify that compilation context methods were called as fallback
+            expect(mockCompilationContext.addInputFile).toHaveBeenCalledWith("fallback-input.ts");
+            expect(mockCompilationContext.addVirtualFile).toHaveBeenCalledWith("fallback-virtual.ts", "export const fallback = true;");
+        });
+    });
 });
