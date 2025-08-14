@@ -10,7 +10,9 @@ import { type CompilationContext, type CompilerAddon, type CompilerAddons, compi
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
+import { type LoaderContext, type Compilation } from "webpack";
 import { WebpackAddonContext } from "./WebpackAddonContext";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 export interface WebpackAddonConfig {
     addonsDir?: string;
@@ -73,12 +75,25 @@ export class WebpackAddonService {
      * Apply addon transformations to a compilation context.
      * This is called during webpack compilation for each file.
      */
-    public applyAddonsToContext(context: CompilationContext, profile?: string): WebpackAddonContext {
+    public applyAddonsToContext(
+        context: CompilationContext,
+        profile?: string,
+        loaderContext?: LoaderContext<WebsmithLoaderConfig>,
+        webpackCompilation?: Compilation
+    ): WebpackAddonContext {
         const activeAddons = this.getActiveAddons(profile);
 
         const profileConfig = profile ? this.config.profiles?.[profile] : undefined;
 
-        const webpackContext = new WebpackAddonContext(this.config.system, this.config.reporter, profile, profileConfig, context);
+        const webpackContext = new WebpackAddonContext(
+            this.config.system,
+            this.config.reporter,
+            profile,
+            profileConfig,
+            context,
+            loaderContext,
+            webpackCompilation
+        );
 
         for (const addon of activeAddons) {
             try {
