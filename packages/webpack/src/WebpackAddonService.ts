@@ -465,6 +465,10 @@ export class WebpackAddonService {
 
         // Remove duplicates and resolve to actual addon instances
         const uniqueAddonNames = [...new Set(requestedAddons)];
+
+        // Report warnings for missing addons (matching core AddonRegistry behavior)
+        this.reportMissingAddons(uniqueAddonNames, profile);
+
         const resolvedAddons = uniqueAddonNames
             .map(name => this.loadedAddons.get(name))
             .filter((addon): addon is CompilerAddon => addon !== undefined);
@@ -573,6 +577,40 @@ export class WebpackAddonService {
             this.config.system.writeFile(indexPath, JSON.stringify(cacheData, null, 2));
         } catch {
             // Ignore cache saving errors
+        }
+    }
+
+    /**
+     * Reports warnings for missing addons, matching the behavior of core AddonRegistry.
+     */
+    private reportMissingAddons(expectedNames: string[] = [], profile?: string): void {
+        const missingAddons = expectedNames.filter(name => !this.loadedAddons.has(name));
+
+        if (missingAddons.length > 0) {
+            const availableAddons = Array.from(this.loadedAddons.keys());
+
+            // Enhanced error reporting for missing addons (matching core AddonRegistry style)
+            const detailedReport = [
+                profile
+                    ? `Missing addons for profile "${profile}": ${missingAddons.map(name => `"${name}"`).join(", ")}`
+                    : `Missing addons: ${missingAddons.map(name => `"${name}"`).join(", ")}`,
+                ``,
+                `🔍 Addon Resolution Details:`,
+                `   • Addons directory: ${this.config.addonsDir || "(not configured)"}`,
+                `   • Directory exists: ${this.config.addonsDir ? this.config.system.directoryExists(this.config.addonsDir) : false}`,
+                `   • Available addons (${availableAddons.length}): ${availableAddons.length > 0 ? availableAddons.join(", ") : "(none found)"}`,
+                ``,
+                `🛠️  Troubleshooting suggestions:`,
+                `   • Check if addon directories exist in: ${this.config.addonsDir}`,
+                `   • Verify addon naming matches expected names exactly`,
+                `   • Ensure addons have proper structure with 'addon.ts' or 'index.ts' files`,
+                `   • Check if addons compiled successfully (look for compilation errors above)`,
+                `   • Verify addon files export an 'activate' function`,
+                ``,
+                `ℹ️  For more information, see: https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md#addons`,
+            ].join("\n");
+
+            this.config.reporter.reportDiagnostic(new WarnMessage(detailedReport));
         }
     }
 }

@@ -136,4 +136,95 @@ describe("WebpackAddonService", () => {
             expect(fs.existsSync(cacheDir)).toBe(true);
         });
     });
+
+    describe("unknown addon validation", () => {
+        it("should report warning for unknown addons in profile", () => {
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+
+            const testObj = new WebpackAddonService({
+                addonsDir: path.join(tempDir, "addons"),
+                profiles: {
+                    "test-profile": {
+                        addons: ["unknown-addon", "another-missing-addon"],
+                    },
+                },
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons("test-profile");
+
+            expect(reporterSpy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    messageText: expect.stringContaining('Missing addons for profile "test-profile": "unknown-addon", "another-missing-addon"'),
+                })
+            );
+        });
+
+        it("should report warning for unknown addons in base configuration", () => {
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+
+            const testObj = new WebpackAddonService({
+                addonsDir: path.join(tempDir, "addons"),
+                addons: ["unknown-addon"],
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons();
+
+            expect(reporterSpy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    messageText: expect.stringContaining('Missing addons: "unknown-addon"'),
+                })
+            );
+        });
+
+        it("should not report warnings for known addons", () => {
+            // Create addons directory with valid addon
+            const addonsDir = path.join(tempDir, "addons");
+            const addonDir = path.join(addonsDir, "test-addon");
+            fs.mkdirSync(addonDir, { recursive: true });
+
+            fs.writeFileSync(
+                path.join(addonDir, "addon.js"),
+                `
+                module.exports = {
+                    activate: function(context) {
+                        // Test addon
+                    }
+                };
+            `
+            );
+
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+
+            const testObj = new WebpackAddonService({
+                addonsDir,
+                profiles: {
+                    "test-profile": {
+                        addons: ["test-addon"],
+                    },
+                },
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // Load available addons first to populate the loadedAddons map
+            testObj.getAvailableAddons();
+
+            // Then get active addons for the profile
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons("test-profile");
+
+            // Should not report any missing addon warnings
+            expect(reporterSpy).not.toHaveBeenCalledWith(
+                expect.objectContaining({
+                    messageText: expect.stringContaining("Missing addons"),
+                })
+            );
+        });
+    });
 });
