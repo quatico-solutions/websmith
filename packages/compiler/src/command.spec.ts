@@ -95,6 +95,9 @@ describe("addCompileCommand", () => {
                     strict: false,
                     target: ts.ScriptTarget.ES5,
                 },
+                raw: {
+                    configFilePath: "/tsconfig.json",
+                },
             },
             config: {
                 addons: [],
