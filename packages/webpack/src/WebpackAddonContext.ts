@@ -36,6 +36,7 @@ export class WebpackAddonContext implements AddonContext {
     private filesToRemove = new Set<string>();
     private assetDependencies = new Map<string, Set<string>>();
     private inputFilesToAdd = new Set<string>();
+    private debug: boolean;
 
     constructor(
         private system: ts.System,
@@ -44,8 +45,11 @@ export class WebpackAddonContext implements AddonContext {
         private profileConfig?: CompilationProfile,
         private compilationContext?: CompilationContext,
         private loaderContext?: LoaderContext<WebsmithLoaderConfig>,
-        private webpackCompilation?: Compilation
-    ) {}
+        private webpackCompilation?: Compilation,
+        debug?: boolean
+    ) {
+        this.debug = debug ?? false;
+    }
 
     getSystem(): ts.System {
         return this.system;
@@ -83,13 +87,13 @@ export class WebpackAddonContext implements AddonContext {
         // If we have a loader context, add the file as a dependency
         if (this.loaderContext) {
             this.loaderContext.addDependency(resolvedPath);
-            this.reporter.reportDiagnostic(new InfoMessage(`WebpackAddonContext: Added input file dependency ${resolvedPath}`));
+            this.reportDebug(`WebpackAddonContext: Added input file dependency ${resolvedPath}`);
         } else {
             // Fallback to compilation context if available
             if (this.compilationContext) {
                 this.compilationContext.addInputFile(filePath);
             }
-            this.reporter.reportDiagnostic(new InfoMessage(`WebpackAddonContext: Queued input file ${resolvedPath} for addition`));
+            this.reportDebug(`WebpackAddonContext: Queued input file ${resolvedPath} for addition`);
         }
     }
 
@@ -107,17 +111,13 @@ export class WebpackAddonContext implements AddonContext {
         // If we have a loader context, add the child as a dependency
         if (this.loaderContext) {
             this.loaderContext.addDependency(resolvedChildPath);
-            this.reporter.reportDiagnostic(
-                new InfoMessage(`WebpackAddonContext: Added asset dependency ${resolvedChildPath} -> ${resolvedParentPath}`)
-            );
+            this.reportDebug(`WebpackAddonContext: Added asset dependency ${resolvedChildPath} -> ${resolvedParentPath}`);
         } else {
             // Fallback to compilation context if available
             if (this.compilationContext) {
                 this.compilationContext.addAssetDependency(childPath, parentPath);
             }
-            this.reporter.reportDiagnostic(
-                new InfoMessage(`WebpackAddonContext: Queued asset dependency ${resolvedChildPath} -> ${resolvedParentPath}`)
-            );
+            this.reportDebug(`WebpackAddonContext: Queued asset dependency ${resolvedChildPath} -> ${resolvedParentPath}`);
         }
     }
 
@@ -149,13 +149,13 @@ export class WebpackAddonContext implements AddonContext {
 
             // Use webpack's compilation.emitAsset to add the virtual file
             this.webpackCompilation.emitAsset(relativePath, new sources.RawSource(fileContent));
-            this.reporter.reportDiagnostic(new InfoMessage(`WebpackAddonContext: Added virtual file ${resolvedPath} as webpack asset`));
+            this.reportDebug(`WebpackAddonContext: Added virtual file ${resolvedPath} as webpack asset`);
         } else {
             // Fallback to compilation context if available
             if (this.compilationContext) {
                 this.compilationContext.addVirtualFile(filePath, fileContent);
             }
-            this.reporter.reportDiagnostic(new InfoMessage(`WebpackAddonContext: Queued virtual file ${resolvedPath} for addition`));
+            this.reportDebug(`WebpackAddonContext: Queued virtual file ${resolvedPath} for addition`);
         }
     }
 
@@ -188,9 +188,9 @@ export class WebpackAddonContext implements AddonContext {
             // Remove from webpack's assets if it exists
             if (this.webpackCompilation.assets[relativePath]) {
                 delete this.webpackCompilation.assets[relativePath];
-                this.reporter.reportDiagnostic(new InfoMessage(`WebpackAddonContext: Removed output file ${resolvedPath} from webpack assets`));
+                this.reportDebug(`WebpackAddonContext: Removed output file ${resolvedPath} from webpack assets`);
             } else {
-                this.reporter.reportDiagnostic(new InfoMessage(`WebpackAddonContext: Queued output file ${resolvedPath} for removal`));
+                this.reportDebug(`WebpackAddonContext: Queued output file ${resolvedPath} for removal`);
             }
         } else {
             // Fallback to compilation context if available
@@ -361,6 +361,15 @@ export class WebpackAddonContext implements AddonContext {
     // Webpack-specific utility methods
 
     /**
+     * Report debug information only if debug is enabled.
+     */
+    private reportDebug(message: string): void {
+        if (this.debug) {
+            this.reporter.reportDiagnostic(new InfoMessage(message));
+        }
+    }
+
+    /**
      * Get all virtual files that have been added.
      */
     getVirtualFiles(): Map<string, string> {
@@ -437,8 +446,6 @@ export class WebpackAddonContext implements AddonContext {
             }
         }
 
-        this.reporter.reportDiagnostic(
-            new InfoMessage(`WebpackAddonContext: Applied ${this.virtualFiles.size} virtual files and removed ${this.filesToRemove.size} files`)
-        );
+        this.reportDebug(`WebpackAddonContext: Applied ${this.virtualFiles.size} virtual files and removed ${this.filesToRemove.size} files`);
     }
 }
