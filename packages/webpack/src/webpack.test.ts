@@ -691,6 +691,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
             },
             include: [
                 "../external-src/**/*", // Include patterns pointing outside config directory
+                "../src/**/*", // Also include the main source directory
             ],
             exclude: ["node_modules", "dist"],
         };

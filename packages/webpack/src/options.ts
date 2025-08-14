@@ -9,12 +9,36 @@ import { NoReporter, parsedCommandLine, resolveCompilationConfig, resolvePaths, 
 import path from "node:path";
 import ts from "typescript";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
+import { TsConfigAnalyzer } from "./result-handling";
 
 // TODO: Resolve compiler options
 export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
     const { config, configFile, debug = false, tsConfigFile = "./tsconfig.json", profile, tsConfig, transpileOnly } = args;
 
     const cliArgs = parsedCommandLine(tsConfigFile, args, system);
+
+    // Debug logging removed - rootDir inference working correctly
+
+    // Use TsConfigAnalyzer to automatically infer rootDir if not explicitly set
+    const configFilePath = cliArgs.raw?.configFilePath || tsConfigFile;
+    if (!cliArgs.options.rootDir && configFilePath) {
+        try {
+            const tsConfigAnalyzer = new TsConfigAnalyzer();
+            const analysis = tsConfigAnalyzer.analyzeConfig(configFilePath);
+            if (analysis.rootDirs.length > 0) {
+                // Use the first inferred root directory
+                const inferredRootDir = analysis.rootDirs[0];
+                const projectDir = path.dirname(configFilePath);
+                const relativeRootDir = path.relative(projectDir, inferredRootDir);
+                cliArgs.options.rootDir = relativeRootDir || ".";
+                // Successfully inferred rootDir from tsconfig include patterns
+            }
+        } catch (_error) {
+            // Silently continue if rootDir inference fails
+            // rootDir inference failed, continue with default behavior
+        }
+    }
+
     cliArgs.options = {
         ...(cliArgs.options &&
             Object.entries(cliArgs.options).reduce((acc: ts.CompilerOptions, [key, value]) => {
