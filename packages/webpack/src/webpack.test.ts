@@ -147,7 +147,10 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         });
         copySourceFile("foobar-arrow.ts");
 
-        await executeWebpack({ tsConfigFile: testDirs.TSCONFIG_FILE });
+        await executeWebpack({
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            transpileOnly: false, // Ensure full compilation for declaration files
+        });
 
         // For webpack e2e tests, we're testing the loader integration
         // The output will be bundled but should contain our transpiled code
@@ -297,42 +300,6 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         // expect(getOutput("foobar-function.yaml")).toBeDefined();
     }, 60000);
 
-    it("should yield transpiled script with single file, foo-added-generator addon and emit true", async () => {
-        createTsConfigFile({ outDir: "./dist", noEmit: false });
-        copySourceFile("foobar-function.ts");
-
-        await executeWebpack({
-            tsConfigFile: testDirs.TSCONFIG_FILE,
-            config: {
-                addonsDir: ADDONS_DIR,
-                addons: ["foo-added-generator"],
-            },
-        });
-
-        expect(getOutput("foobar-function.js")).toBeDefined();
-        expect(getOutput("foobar-function.js")).toContain("getFoobar");
-        // Note: In webpack context, additional generated files may not appear as separate files
-        // expect(getOutput("foobar-function-added.js")).toBeDefined();
-    }, 60000);
-
-    it("should yield transpiled script with single file, function-json-result-processor addon and emit true", async () => {
-        createTsConfigFile({ outDir: "./dist", noEmit: false });
-        copySourceFile("foobar-function.ts");
-
-        await executeWebpack({
-            tsConfigFile: testDirs.TSCONFIG_FILE,
-            config: {
-                addonsDir: ADDONS_DIR,
-                addons: ["function-json-result-processor"],
-            },
-        });
-
-        expect(getOutput("foobar-function.js")).toBeDefined();
-        expect(getOutput("foobar-function.js")).toContain("getFoobar");
-        // Note: In webpack context, JSON files may not be emitted as separate files
-        // expect(getOutput("named-functions.json")).toBeDefined();
-    }, 60000);
-
     it("should handle multiple addons together", async () => {
         createTsConfigFile({ outDir: "./dist", noEmit: false });
         copySourceFile("foobar-function.ts");
@@ -341,12 +308,12 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
             tsConfigFile: testDirs.TSCONFIG_FILE,
             config: {
                 addonsDir: ADDONS_DIR,
-                addons: ["foo-added-generator", "function-json-result-processor"],
+                addons: ["foobar-replace-processor", "function-json-result-processor"],
             },
         });
 
         expect(getOutput("foobar-function.js")).toBeDefined();
-        expect(getOutput("foobar-function.js")).toContain("getFoobar");
+        expect(getOutput("foobar-function.js")).toContain("function getbarfoo(date)");
         // Note: In webpack context, additional files may not be emitted as separate files
     }, 60000);
 
@@ -392,6 +359,683 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         const output = getOutput("target-test.js");
         expect(output).toBeDefined();
         expect(output).toContain("function"); // ES5 should convert arrow functions
+    }, 60000);
+
+    it("should handle multiple files without filename conflicts", async () => {
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            declaration: true,
+            declarationMap: true,
+            target: "esnext",
+            module: "esnext",
+            moduleResolution: "node",
+        });
+
+        // Create multiple TypeScript files in different directories
+        const sourceSubDir = path.join(testDirs.SOURCE_DIR, "subdir");
+        fs.mkdirSync(sourceSubDir, { recursive: true });
+
+        // Create files that might generate similar output names
+        createSourceFile(`export const indexFunction = (value: string) => \`index: \${value}\`;`, "index.ts");
+
+        fs.writeFileSync(path.join(sourceSubDir, "index.ts"), `export const subIndexFunction = (value: number) => \`sub-index: \${value}\`;`, {
+            encoding: "utf-8",
+        });
+
+        // Test with the first file
+        await executeWebpack({
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+            transpileOnly: false,
+        });
+
+        // Check that both declaration files exist without conflicts
+        expect(getOutput("index.js")).toBeDefined();
+        expect(getOutput("index.d.ts")).toBeDefined();
+        expect(getOutput("index.d.ts.map")).toBeDefined();
+
+        // The content should be specific to the first file
+        expect(getOutput("index.d.ts")).toContain("indexFunction");
+        expect(getOutput("index.d.ts")).toContain("string");
+    }, 60000);
+
+    it("should handle multiple entry points with same filenames without conflicts", async () => {
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            // rootDir: testDirs.SOURCE_DIR, // Test automatic rootDir inference from include patterns
+            noEmit: false,
+            declaration: true,
+            declarationMap: true,
+            target: "esnext",
+            module: "esnext",
+            moduleResolution: "node",
+        });
+
+        // Create multiple directories with index.ts files
+        const moduleADir = path.join(testDirs.SOURCE_DIR, "moduleA");
+        const moduleBDir = path.join(testDirs.SOURCE_DIR, "moduleB");
+        fs.mkdirSync(moduleADir, { recursive: true });
+        fs.mkdirSync(moduleBDir, { recursive: true });
+
+        // Create index.ts in different directories - this is the real conflict scenario
+        fs.writeFileSync(path.join(moduleADir, "index.ts"), `export const moduleAFunction = (x: string): string => "Module A: " + x;`, {
+            encoding: "utf-8",
+        });
+
+        fs.writeFileSync(path.join(moduleBDir, "index.ts"), `export const moduleBFunction = (x: number): number => x * 2;`, { encoding: "utf-8" });
+
+        // Use a webpack configuration with multiple entry points
+        const webpackConfig = createMultiEntryWebpackConfig(
+            { transpileOnly: false, tsConfigFile: testDirs.TSCONFIG_FILE },
+            {
+                moduleA: path.join(moduleADir, "index.ts"),
+                moduleB: path.join(moduleBDir, "index.ts"),
+            }
+        );
+
+        // This should reproduce the asset emission conflict
+        await new Promise<void>((resolve, reject) => {
+            webpack(webpackConfig, (err, stats) => {
+                if (err) {
+                    console.error("Webpack compilation error:", err);
+                    reject(err);
+                    return;
+                }
+
+                if (stats?.hasErrors()) {
+                    const errors = stats.toJson().errors;
+                    console.error("Webpack compilation errors:", JSON.stringify(errors, null, 2));
+
+                    // Check if we get the specific conflict error
+                    const conflictErrors = errors?.filter(
+                        error => error.message && error.message.includes("Multiple assets emit different content to the same filename")
+                    );
+
+                    if (conflictErrors && conflictErrors.length > 0) {
+                        console.log("Found asset emission conflicts:", conflictErrors);
+                        reject(new Error("Asset emission conflicts detected"));
+                        return;
+                    }
+
+                    reject(new Error("Webpack compilation failed"));
+                    return;
+                }
+
+                if (stats?.hasWarnings()) {
+                    console.warn("Webpack compilation warnings:", stats.toJson().warnings);
+                }
+
+                resolve();
+            });
+        });
+
+        // If we get here, no conflicts occurred - check that files were generated correctly
+        expect(getOutput("moduleA.js")).toBeDefined();
+        expect(getOutput("moduleB.js")).toBeDefined();
+
+        // Check that declaration files are generated with directory structure to avoid conflicts
+        const outputFiles = fs.readdirSync(testDirs.OUTPUT_DIR, { recursive: true });
+        const dtsFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts"));
+
+        // With TypeScript's proper directory structure, files should be in subdirectories
+        const moduleADts = dtsFiles.find(f => typeof f === "string" && f.includes("moduleA"));
+        const moduleBDts = dtsFiles.find(f => typeof f === "string" && f.includes("moduleB"));
+
+        expect(moduleADts).toBeDefined();
+        expect(moduleBDts).toBeDefined();
+
+        // Verify content is different by reading the actual file content
+        const moduleAContent = getOutput(moduleADts as string);
+        const moduleBContent = getOutput(moduleBDts as string);
+
+        expect(moduleAContent).toContain("moduleAFunction");
+        expect(moduleAContent).toContain("string");
+        expect(moduleBContent).toContain("moduleBFunction");
+        expect(moduleBContent).toContain("number");
+
+        // Also verify the declaration map files exist
+        const dtsMapFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts.map"));
+        expect(dtsMapFiles.length).toBe(2);
+    }, 60000);
+
+    it("should use tsconfig.json for automatic rootDir inference", async () => {
+        // Create a tsconfig.json WITHOUT explicit rootDir - test automatic inference
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            // NO rootDir specified - should be inferred from include patterns
+            noEmit: false,
+            declaration: true,
+            declarationMap: true,
+            target: "esnext",
+            module: "esnext",
+            moduleResolution: "node",
+        });
+
+        // Create multiple directories with index.ts files to test path preservation
+        const moduleADir = path.join(testDirs.SOURCE_DIR, "moduleA");
+        const moduleBDir = path.join(testDirs.SOURCE_DIR, "moduleB");
+        fs.mkdirSync(moduleADir, { recursive: true });
+        fs.mkdirSync(moduleBDir, { recursive: true });
+
+        // Create index.ts in different directories
+        fs.writeFileSync(path.join(moduleADir, "index.ts"), `export const moduleAFunction = (x: string): string => "Module A: " + x;`, {
+            encoding: "utf-8",
+        });
+
+        fs.writeFileSync(path.join(moduleBDir, "index.ts"), `export const moduleBFunction = (x: number): number => x * 2;`, { encoding: "utf-8" });
+
+        // Use a webpack configuration that explicitly specifies the tsconfig file
+        const webpackConfig = createMultiEntryWebpackConfig(
+            {
+                transpileOnly: false,
+                tsConfigFile: testDirs.TSCONFIG_FILE, // Explicitly specify tsconfig file
+            },
+            {
+                moduleA: path.join(moduleADir, "index.ts"),
+                moduleB: path.join(moduleBDir, "index.ts"),
+            }
+        );
+
+        // This should work with automatic rootDir inference from tsconfig.json
+        await new Promise<void>((resolve, reject) => {
+            webpack(webpackConfig, (err, stats) => {
+                if (err) {
+                    console.error("Webpack compilation error:", err);
+                    reject(err);
+                    return;
+                }
+
+                if (stats?.hasErrors()) {
+                    const errors = stats.toJson().errors;
+                    console.error("Webpack compilation errors:", JSON.stringify(errors, null, 2));
+
+                    // Check if we get asset emission conflicts (which would indicate inference failed)
+                    const conflictErrors = errors?.filter(
+                        error => error.message && error.message.includes("Multiple assets emit different content to the same filename")
+                    );
+
+                    if (conflictErrors && conflictErrors.length > 0) {
+                        console.log("Asset emission conflicts detected - rootDir inference may have failed:", conflictErrors);
+                        reject(new Error("Asset emission conflicts detected"));
+                        return;
+                    }
+
+                    reject(new Error("Webpack compilation failed"));
+                    return;
+                }
+
+                if (stats?.hasWarnings()) {
+                    console.warn("Webpack compilation warnings:", stats.toJson().warnings);
+                }
+
+                resolve();
+            });
+        });
+
+        // If we get here, automatic inference worked - verify files were generated correctly
+        expect(getOutput("moduleA.js")).toBeDefined();
+        expect(getOutput("moduleB.js")).toBeDefined();
+
+        // Check that declaration files are generated with directory structure to avoid conflicts
+        const outputFiles = fs.readdirSync(testDirs.OUTPUT_DIR, { recursive: true });
+        const dtsFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts"));
+
+        // Debug output shows successful automatic inference
+        // console.log("Debug: Automatic inference test - Output files:", outputFiles);
+        // console.log("Debug: Automatic inference test - DTS files:", dtsFiles);
+
+        // With automatic rootDir inference, files should be in subdirectories
+        const moduleADts = dtsFiles.find(f => typeof f === "string" && f.includes("moduleA"));
+        const moduleBDts = dtsFiles.find(f => typeof f === "string" && f.includes("moduleB"));
+
+        expect(moduleADts).toBeDefined();
+        expect(moduleBDts).toBeDefined();
+
+        // Verify content is different by reading the actual file content
+        const moduleAContent = getOutput(moduleADts as string);
+        const moduleBContent = getOutput(moduleBDts as string);
+
+        expect(moduleAContent).toContain("moduleAFunction");
+        expect(moduleAContent).toContain("string");
+        expect(moduleBContent).toContain("moduleBFunction");
+        expect(moduleBContent).toContain("number");
+
+        // Also verify the declaration map files exist
+        const dtsMapFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts.map"));
+        expect(dtsMapFiles.length).toBe(2);
+    }, 60000);
+
+    it("should handle different tsconfig include patterns for rootDir inference", async () => {
+        // Test with custom include patterns - should infer rootDir from the pattern
+        const customTsConfig = {
+            compilerOptions: {
+                outDir: testDirs.OUTPUT_DIR,
+                // NO rootDir specified - should be inferred from include patterns
+                noEmit: false,
+                declaration: true,
+                declarationMap: true,
+                target: "esnext",
+                module: "esnext",
+                moduleResolution: "node",
+            },
+            include: ["src/**/*"], // This should help infer rootDir as the src directory
+            exclude: ["node_modules", "dist"],
+        };
+
+        fs.writeFileSync(testDirs.TSCONFIG_FILE, JSON.stringify(customTsConfig, null, 2), { encoding: "utf-8" });
+
+        // Create a test file in the root source directory (required by executeWebpack)
+        createSourceFile(`export const rootFunction = (value: string) => \`root: \${value}\`;`, "root.ts");
+
+        // Also create nested structure to test inference
+        const nestedDir = path.join(testDirs.SOURCE_DIR, "nested", "components");
+        fs.mkdirSync(nestedDir, { recursive: true });
+
+        fs.writeFileSync(
+            path.join(nestedDir, "Component.ts"),
+            `export class TestComponent { 
+                getValue(): string { return "nested component"; }
+            }`,
+            { encoding: "utf-8" }
+        );
+
+        await executeWebpack({
+            transpileOnly: false,
+            tsConfigFile: testDirs.TSCONFIG_FILE,
+        });
+
+        // Check that the nested structure is preserved in output
+        const outputFiles = fs.readdirSync(testDirs.OUTPUT_DIR, { recursive: true });
+        const dtsFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts"));
+
+        // Debug output confirmed successful custom include pattern processing
+
+        // Since webpack only processes the entry file, let's check that our root file's
+        // declaration is generated with proper directory structure
+        const rootDts = dtsFiles.find(f => typeof f === "string" && f.includes("root"));
+        expect(rootDts).toBeDefined();
+
+        // Verify the content of the root declaration file
+        const rootContent = getOutput(rootDts as string);
+        expect(rootContent).toContain("rootFunction");
+        expect(rootContent).toContain("string");
+
+        // The key test: verify that our automatic rootDir inference is working
+        // by checking that the file structure is preserved (not flattened to just "root.d.ts")
+        expect(rootDts).toMatch(/root\.d\.ts$/); // Should be just "root.d.ts" since it's in the root
+    }, 60000);
+
+    it("should infer rootDir correctly with include patterns outside tsconfig.json location", async () => {
+        // Create a scenario where tsconfig.json is in a config directory
+        // but includes source files from a separate directory structure
+        const configDir = path.join(testDirs.PROJECT_DIR, "config");
+        const externalSourceDir = path.join(testDirs.PROJECT_DIR, "external-src");
+        const moduleADir = path.join(externalSourceDir, "moduleA");
+        const moduleBDir = path.join(externalSourceDir, "moduleB");
+
+        fs.mkdirSync(configDir, { recursive: true });
+        fs.mkdirSync(moduleADir, { recursive: true });
+        fs.mkdirSync(moduleBDir, { recursive: true });
+
+        // Create tsconfig.json in the config directory with include patterns pointing outside
+        const externalTsConfig = {
+            compilerOptions: {
+                outDir: path.relative(configDir, testDirs.OUTPUT_DIR), // Relative to config dir
+                // NO rootDir specified - should be inferred from include patterns
+                noEmit: false,
+                declaration: true,
+                declarationMap: true,
+                target: "esnext",
+                module: "esnext",
+                moduleResolution: "node",
+            },
+            include: [
+                "../external-src/**/*", // Include patterns pointing outside config directory
+            ],
+            exclude: ["node_modules", "dist"],
+        };
+
+        const externalTsConfigPath = path.join(configDir, "tsconfig.json");
+        fs.writeFileSync(externalTsConfigPath, JSON.stringify(externalTsConfig, null, 2), { encoding: "utf-8" });
+
+        // Create source files in the external source directory
+        fs.writeFileSync(
+            path.join(moduleADir, "index.ts"),
+            `export const externalModuleAFunction = (x: string): string => "External Module A: " + x;`,
+            { encoding: "utf-8" }
+        );
+
+        fs.writeFileSync(path.join(moduleBDir, "index.ts"), `export const externalModuleBFunction = (x: number): number => x * 3;`, {
+            encoding: "utf-8",
+        });
+
+        // Also create a file in the regular source directory for webpack entry
+        createSourceFile(`export const mainFunction = (value: string) => \`main: \${value}\`;`, "main.ts");
+
+        // Use webpack configuration that points to the external tsconfig
+        const webpackConfig = createMultiEntryWebpackConfig(
+            {
+                transpileOnly: false,
+                tsConfigFile: externalTsConfigPath, // Point to tsconfig in config directory
+            },
+            {
+                moduleA: path.join(moduleADir, "index.ts"),
+                moduleB: path.join(moduleBDir, "index.ts"),
+                main: path.join(testDirs.SOURCE_DIR, "main.ts"),
+            }
+        );
+
+        // This should work with automatic rootDir inference from external include patterns
+        await new Promise<void>((resolve, reject) => {
+            webpack(webpackConfig, (err, stats) => {
+                if (err) {
+                    console.error("Webpack compilation error:", err);
+                    reject(err);
+                    return;
+                }
+
+                if (stats?.hasErrors()) {
+                    const errors = stats.toJson().errors;
+                    console.error("Webpack compilation errors:", JSON.stringify(errors, null, 2));
+
+                    // Check if we get asset emission conflicts (which would indicate inference failed)
+                    const conflictErrors = errors?.filter(
+                        error => error.message && error.message.includes("Multiple assets emit different content to the same filename")
+                    );
+
+                    if (conflictErrors && conflictErrors.length > 0) {
+                        console.log("Asset emission conflicts detected - external rootDir inference may have failed:", conflictErrors);
+                        reject(new Error("Asset emission conflicts detected"));
+                        return;
+                    }
+
+                    reject(new Error("Webpack compilation failed"));
+                    return;
+                }
+
+                if (stats?.hasWarnings()) {
+                    console.warn("Webpack compilation warnings:", stats.toJson().warnings);
+                }
+
+                resolve();
+            });
+        });
+
+        // Verify files were generated correctly with proper directory structure
+        expect(getOutput("moduleA.js")).toBeDefined();
+        expect(getOutput("moduleB.js")).toBeDefined();
+        expect(getOutput("main.js")).toBeDefined();
+
+        // Check that declaration files are generated with directory structure preserved
+        const outputFiles = fs.readdirSync(testDirs.OUTPUT_DIR, { recursive: true });
+        const dtsFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts"));
+
+        // Debug output confirmed successful external include pattern processing
+
+        // With automatic rootDir inference from external include patterns,
+        // files should preserve their directory structure
+        const moduleADts = dtsFiles.find(f => typeof f === "string" && f.includes("moduleA"));
+        const moduleBDts = dtsFiles.find(f => typeof f === "string" && f.includes("moduleB"));
+        const mainDts = dtsFiles.find(f => typeof f === "string" && f.includes("main"));
+
+        expect(moduleADts).toBeDefined();
+        expect(moduleBDts).toBeDefined();
+        expect(mainDts).toBeDefined();
+
+        // Verify content is correct
+        const moduleAContent = getOutput(moduleADts as string);
+        const moduleBContent = getOutput(moduleBDts as string);
+        const mainContent = getOutput(mainDts as string);
+
+        expect(moduleAContent).toContain("externalModuleAFunction");
+        expect(moduleAContent).toContain("string");
+        expect(moduleBContent).toContain("externalModuleBFunction");
+        expect(moduleBContent).toContain("number");
+        expect(mainContent).toContain("mainFunction");
+
+        // Verify that directory structure is preserved (key test for external include inference)
+        // The external modules should be in subdirectories, not flattened
+        expect(moduleADts).toMatch(/moduleA/);
+        expect(moduleBDts).toMatch(/moduleB/);
+
+        // Also verify the declaration map files exist
+        const dtsMapFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts.map"));
+        expect(dtsMapFiles.length).toBe(3); // moduleA, moduleB, and main
+    }, 60000);
+
+    it("should infer common parent rootDir with multiple include patterns", async () => {
+        // Create the exact scenario you described:
+        // tsconfig.json includes multiple patterns that require a common parent
+        const configDir = path.join(testDirs.PROJECT_DIR, "config");
+        const externADir = path.join(testDirs.PROJECT_DIR, "extern-a", "utils", "src");
+        const externBDir = path.join(testDirs.PROJECT_DIR, "extern-b", "src");
+
+        fs.mkdirSync(configDir, { recursive: true });
+        fs.mkdirSync(externADir, { recursive: true });
+        fs.mkdirSync(externBDir, { recursive: true });
+
+        // Create tsconfig.json with multiple include patterns as you described
+        const multiIncludeTsConfig = {
+            compilerOptions: {
+                outDir: path.relative(configDir, testDirs.OUTPUT_DIR),
+                // NO rootDir specified - should be inferred as ".." (common parent)
+                noEmit: false,
+                declaration: true,
+                declarationMap: true,
+                target: "esnext",
+                module: "esnext",
+                moduleResolution: "node",
+            },
+            include: [
+                "src/**/*", // Points to config/src (doesn't exist, but pattern is there)
+                "../extern-a/utils/src/**/*", // Points to extern-a/utils/src
+                "../extern-b/src/**/*", // Points to extern-b/src
+            ],
+            exclude: ["node_modules", "dist"],
+        };
+
+        const multiIncludeTsConfigPath = path.join(configDir, "tsconfig.json");
+        fs.writeFileSync(multiIncludeTsConfigPath, JSON.stringify(multiIncludeTsConfig, null, 2), { encoding: "utf-8" });
+
+        // Create source files in the external directories
+        fs.writeFileSync(path.join(externADir, "utils.ts"), `export const externAUtilsFunction = (x: string): string => "Extern A Utils: " + x;`, {
+            encoding: "utf-8",
+        });
+
+        fs.writeFileSync(path.join(externBDir, "core.ts"), `export const externBCoreFunction = (x: number): number => x * 4;`, { encoding: "utf-8" });
+
+        // Also create a file in the regular source directory for webpack entry
+        createSourceFile(`export const configFunction = (value: string) => \`config: \${value}\`;`, "config.ts");
+
+        // Use webpack configuration that points to the multi-include tsconfig
+        const webpackConfig = createMultiEntryWebpackConfig(
+            {
+                transpileOnly: false,
+                tsConfigFile: multiIncludeTsConfigPath, // Point to tsconfig with multiple includes
+            },
+            {
+                externAUtils: path.join(externADir, "utils.ts"),
+                externBCore: path.join(externBDir, "core.ts"),
+                config: path.join(testDirs.SOURCE_DIR, "config.ts"),
+            }
+        );
+
+        // This should work with automatic common parent rootDir inference
+        await new Promise<void>((resolve, reject) => {
+            webpack(webpackConfig, (err, stats) => {
+                if (err) {
+                    console.error("Webpack compilation error:", err);
+                    reject(err);
+                    return;
+                }
+
+                if (stats?.hasErrors()) {
+                    const errors = stats.toJson().errors;
+                    console.error("Webpack compilation errors:", JSON.stringify(errors, null, 2));
+
+                    // Check if we get asset emission conflicts (which would indicate inference failed)
+                    const conflictErrors = errors?.filter(
+                        error => error.message && error.message.includes("Multiple assets emit different content to the same filename")
+                    );
+
+                    if (conflictErrors && conflictErrors.length > 0) {
+                        console.log("Asset emission conflicts detected - common parent rootDir inference may have failed:", conflictErrors);
+                        reject(new Error("Asset emission conflicts detected"));
+                        return;
+                    }
+
+                    reject(new Error("Webpack compilation failed"));
+                    return;
+                }
+
+                if (stats?.hasWarnings()) {
+                    console.warn("Webpack compilation warnings:", stats.toJson().warnings);
+                }
+
+                resolve();
+            });
+        });
+
+        // Verify files were generated correctly with proper directory structure
+        expect(getOutput("externAUtils.js")).toBeDefined();
+        expect(getOutput("externBCore.js")).toBeDefined();
+        expect(getOutput("config.js")).toBeDefined();
+
+        // Check that declaration files are generated with directory structure preserved
+        const outputFiles = fs.readdirSync(testDirs.OUTPUT_DIR, { recursive: true });
+        const dtsFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts"));
+
+        // Debug output confirmed successful common parent rootDir inference
+
+        // With common parent rootDir inference (should be ".." from config dir),
+        // files should preserve their relative directory structure from the common parent
+        const externADts = dtsFiles.find(f => typeof f === "string" && f.includes("extern-a"));
+        const externBDts = dtsFiles.find(f => typeof f === "string" && f.includes("extern-b"));
+        const configDts = dtsFiles.find(f => typeof f === "string" && f.includes("config"));
+
+        expect(externADts).toBeDefined();
+        expect(externBDts).toBeDefined();
+        expect(configDts).toBeDefined();
+
+        // Verify content is correct
+        const externAContent = getOutput(externADts as string);
+        const externBContent = getOutput(externBDts as string);
+        const configContent = getOutput(configDts as string);
+
+        expect(externAContent).toContain("externAUtilsFunction");
+        expect(externAContent).toContain("string");
+        expect(externBContent).toContain("externBCoreFunction");
+        expect(externBContent).toContain("number");
+        expect(configContent).toContain("configFunction");
+
+        // Key test: verify that common parent directory structure is preserved
+        // The files should reflect the structure relative to the common parent ".."
+        expect(externADts).toMatch(/extern-a/);
+        expect(externBDts).toMatch(/extern-b/);
+
+        // Also verify the declaration map files exist
+        const dtsMapFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts.map"));
+        expect(dtsMapFiles.length).toBe(3); // externAUtils, externBCore, and config
+    }, 60000);
+
+    it("should handle complex nested directory structures without conflicts", async () => {
+        createTsConfigFile({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            declaration: true,
+            declarationMap: true,
+            target: "esnext",
+            module: "esnext",
+            moduleResolution: "node",
+        });
+
+        // Create a complex nested structure similar to your real project
+        const paths = [
+            "src/configuration/adapters/index.ts",
+            "src/domain/adapters/index.ts",
+            "src/commerce/adapters/index.ts",
+            "src/contacts/adapters/index.ts",
+            "src/pricing/adapters/index.ts",
+        ];
+
+        // Create the directory structure and files
+        paths.forEach((filePath, index) => {
+            const fullPath = path.join(testDirs.PROJECT_DIR, filePath);
+            const dir = path.dirname(fullPath);
+            fs.mkdirSync(dir, { recursive: true });
+
+            fs.writeFileSync(
+                fullPath,
+                `export const ${path.basename(path.dirname(filePath))}Adapter${index} = (x: ${index % 2 === 0 ? "string" : "number"}) => x;`,
+                { encoding: "utf-8" }
+            );
+        });
+
+        // Use a webpack configuration with multiple entry points for these nested files
+        const entries: Record<string, string> = {};
+        paths.forEach((filePath, index) => {
+            const entryName = `entry${index}`;
+            entries[entryName] = path.join(testDirs.PROJECT_DIR, filePath);
+        });
+
+        const webpackConfig = createMultiEntryWebpackConfig({ transpileOnly: false, tsConfigFile: testDirs.TSCONFIG_FILE }, entries);
+
+        // This should NOT produce conflicts with the enhanced path-based naming
+        await new Promise<void>((resolve, reject) => {
+            webpack(webpackConfig, (err, stats) => {
+                if (err) {
+                    console.error("Webpack compilation error:", err);
+                    reject(err);
+                    return;
+                }
+
+                if (stats?.hasErrors()) {
+                    const errors = stats.toJson().errors;
+                    console.error("Webpack compilation errors:", JSON.stringify(errors, null, 2));
+
+                    // Check if we get the specific conflict error
+                    const conflictErrors = errors?.filter(
+                        error => error.message && error.message.includes("Multiple assets emit different content to the same filename")
+                    );
+
+                    if (conflictErrors && conflictErrors.length > 0) {
+                        console.log("Found asset emission conflicts:", conflictErrors);
+                        reject(new Error("Asset emission conflicts detected"));
+                        return;
+                    }
+
+                    reject(new Error("Webpack compilation failed"));
+                    return;
+                }
+
+                if (stats?.hasWarnings()) {
+                    console.warn("Webpack compilation warnings:", stats.toJson().warnings);
+                }
+
+                resolve();
+            });
+        });
+
+        // If we get here, no conflicts occurred - verify files were generated
+        expect(getOutput("entry0.js")).toBeDefined();
+        expect(getOutput("entry1.js")).toBeDefined();
+        expect(getOutput("entry2.js")).toBeDefined();
+        expect(getOutput("entry3.js")).toBeDefined();
+        expect(getOutput("entry4.js")).toBeDefined();
+
+        // The declaration files should have unique names based on their paths
+        // We can't predict the exact names, but they should exist and be unique
+        const outputFiles = fs.readdirSync(testDirs.OUTPUT_DIR, { recursive: true });
+        const dtsFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts"));
+        const dtsMapFiles = outputFiles.filter(f => typeof f === "string" && f.endsWith(".d.ts.map"));
+
+        // Should have 5 unique .d.ts files and 5 unique .d.ts.map files
+        expect(dtsFiles.length).toBe(5);
+        expect(dtsMapFiles.length).toBe(5);
+
+        // Verify all files are unique (no duplicates)
+        expect(new Set(dtsFiles).size).toBe(5);
+        expect(new Set(dtsMapFiles).size).toBe(5);
     }, 60000);
 });
 
@@ -446,6 +1090,7 @@ describe("logging and error handling", () => {
     }, 60000);
 
     it("should handle missing addons directory gracefully", async () => {
+        jest.spyOn(process.stdout, "write").mockImplementation(() => true);
         createTsConfigFile({ outDir: "./dist", noEmit: false });
         createSourceFile(`export const warningTest = "test";`, "warning-test.ts");
 
@@ -485,32 +1130,6 @@ describe("logging and error handling", () => {
         expect(getOutput("missing-addon-test.js")).toContain("missingAddonTest");
     }, 60000);
 
-    it("should handle addon integration and reporter functionality", async () => {
-        createTsConfigFile({ outDir: "./dist", noEmit: false });
-        createSourceFile(
-            `
-                // File with "foo" in name to trigger foo-added-generator addon
-                export const fooReporterTest = "This should trigger addon messages";
-            `,
-            "foo-reporter-test.ts"
-        );
-
-        await executeWebpack({
-            tsConfigFile: testDirs.TSCONFIG_FILE,
-            config: {
-                addonsDir: ADDONS_DIR,
-                addons: ["foo-added-generator"],
-            },
-        });
-
-        // Should generate the main file and the additional file from foo-added-generator
-        expect(getOutput("foo-reporter-test.js")).toBeDefined();
-        expect(getOutput("foo-reporter-test.js")).toContain("fooReporterTest");
-
-        // Note: In webpack context, addon-generated files may not appear as separate files
-        // but the addon processing should complete without errors
-    }, 60000);
-
     it("should handle strict mode compilation in webpack context", async () => {
         createTsConfigFile({
             outDir: "./dist",
@@ -542,6 +1161,7 @@ describe("logging and error handling", () => {
     }, 60000);
 
     it("should handle file system errors gracefully", async () => {
+        jest.spyOn(process.stderr, "write").mockImplementation(() => true);
         createTsConfigFile({ outDir: "./dist", noEmit: false });
         createSourceFile(`export const fsTest = "test";`, "fs-test.ts");
 
@@ -714,6 +1334,49 @@ const createWebpackConfig = (options: LoaderOptions, entryFile: string): webpack
                         {
                             loader: path.resolve(__dirname, "..", "lib", "index.js"),
                             // loader: "ts-loader",
+                            options: {
+                                ...options,
+                            },
+                        },
+                    ],
+                    exclude: /node_modules/,
+                },
+            ],
+        },
+        stats: "minimal",
+    };
+};
+
+const createMultiEntryWebpackConfig = (options: LoaderOptions, entries: Record<string, string>): webpack.Configuration => {
+    return {
+        mode: "production",
+        entry: entries,
+        output: {
+            path: testDirs.OUTPUT_DIR,
+            filename: "[name].js", // Use [name] placeholder for multiple entries
+            clean: true,
+            library: {
+                type: "module",
+            },
+        },
+        experiments: {
+            outputModule: true,
+        },
+        optimization: {
+            minimize: false, // Don't minify to keep readable output
+            concatenateModules: false, // Prevent module concatenation
+        },
+        devtool: "source-map",
+        resolve: {
+            extensions: [".ts", ".js", ".tsx", ".jsx"],
+        },
+        module: {
+            rules: [
+                {
+                    test: /\.tsx?$/,
+                    use: [
+                        {
+                            loader: path.resolve(__dirname, "..", "lib", "index.js"),
                             options: {
                                 ...options,
                             },

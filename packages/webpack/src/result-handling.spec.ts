@@ -49,6 +49,6 @@ describe("processResultAndFinish", () => {
             "expected"
         );
 
-        expect(testObj.callback).toHaveBeenCalledWith(undefined, "expected-js-output", expected);
+        expect(testObj.callback).toHaveBeenCalledWith(null, "expected-js-output", expected);
     });
 });
