@@ -42,7 +42,6 @@ export class WebpackAddonService {
     constructor(config: WebpackAddonConfig) {
         this.config = config;
         this.cacheDir = config.cacheDir || path.join(this.config.system?.getCurrentDirectory() || process.cwd(), ".websmith-cache", "addons");
-        this.ensureCacheDirectory();
         this.loadCacheIndex();
     }
 
@@ -263,6 +262,9 @@ export class WebpackAddonService {
                 return compiledPaths;
             }
         }
+
+        // Ensure cache directory exists before compilation
+        this.ensureCacheDirectory();
 
         // Compile all addons together
         const addonsDir = path.dirname(addonsToCompile[0]); // Parent directory of all addon directories
@@ -534,6 +536,11 @@ export class WebpackAddonService {
             return;
         }
 
+        // Only try to load cache if the cache directory exists
+        if (!this.config.system.directoryExists(this.cacheDir)) {
+            return;
+        }
+
         const indexPath = path.join(this.cacheDir, "index.json");
 
         try {
@@ -555,6 +562,9 @@ export class WebpackAddonService {
         if (!this.config.system) {
             return;
         }
+
+        // Ensure cache directory exists before saving
+        this.ensureCacheDirectory();
 
         const indexPath = path.join(this.cacheDir, "index.json");
 
