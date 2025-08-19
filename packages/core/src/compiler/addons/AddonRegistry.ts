@@ -23,6 +23,7 @@ export type AddonConfig = {
 export class AddonRegistry {
     private availableAddons: Map<string, CompilerAddon>;
     private config: AddonConfig;
+    private compilationCache: Map<string, { timestamp: number; outputPath: string }> = new Map();
 
     constructor(config: AddonConfig) {
         this.availableAddons = new Map();
@@ -161,110 +162,6 @@ export class AddonRegistry {
         }
     }
 
-    /**
-     * Recursively find all addon entry files in subdirectories.
-     * Prefers 'index' files over 'addon' files in each directory.
-     */
-    private findAddonEntryFiles(dir: string): string[] {
-        let results: string[] = [];
-        const { system } = this.config;
-        const entries = system.readDirectory(dir, [".ts", ".tsx", ".js", ".jsx"], undefined, undefined);
-
-        // Group entries by directory to prefer 'index' over 'addon' files
-        const entriesByDir = new Map<string, string[]>();
-        for (let entry of entries) {
-            if (!path.isAbsolute(dir)) {
-                // If the directory is absolute, make it relative to the addons directory
-                entry = resolvePath(system, entry);
-            }
-            const dirName = path.dirname(entry);
-            const fileName = path.basename(entry, path.extname(entry)).toLowerCase();
-            if (fileName === "addon" || fileName === "index") {
-                if (!entriesByDir.has(dirName)) {
-                    entriesByDir.set(dirName, []);
-                }
-                entriesByDir.get(dirName)!.push(entry);
-            }
-        }
-
-        // For each directory, prefer 'addon' over 'index' files
-        // Skip the root addons directory to avoid picking up main index files
-        const rootDir = path.resolve(dir);
-        for (const [dirPath, files] of entriesByDir) {
-            // Skip files in the root addons directory (like src/index.ts)
-            if (dirPath === rootDir) {
-                continue;
-            }
-
-            const addonFiles = files.filter((f: string) => path.basename(f, path.extname(f)).toLowerCase() === "addon");
-            const indexFiles = files.filter((f: string) => path.basename(f, path.extname(f)).toLowerCase() === "index");
-
-            // Prefer addon files for clarity, fall back to index files
-            if (addonFiles.length > 0) {
-                results.push(...addonFiles);
-            } else if (indexFiles.length > 0) {
-                results.push(...indexFiles);
-            }
-        }
-
-        // Recursively search subdirectories, excluding build and output directories
-        const subdirs = system.readDirectory(dir, undefined, ["directory"], undefined);
-        const excludedDirs = ["lib", "dist", "build", "node_modules", ".git"];
-
-        for (let subdir of subdirs) {
-            if (subdir !== dir) {
-                const subdirName = path.basename(subdir);
-                if (excludedDirs.includes(subdirName)) {
-                    continue; // Skip build/output directories
-                }
-
-                if (!path.isAbsolute(subdir)) {
-                    subdir = resolvePath(system, subdir);
-                }
-                results = results.concat(this.findAddonEntryFiles(subdir));
-            }
-        }
-        return results;
-    }
-
-    /**
-     * Recursively finds all TypeScript files in the given directory.
-     * This includes all .ts and .tsx files, not just entry points.
-     */
-    private findAllTypeScriptFiles(dir: string): string[] {
-        const results: string[] = [];
-        const { system } = this.config;
-
-        // Get all TypeScript files in the current directory
-        const tsFiles = system.readDirectory(dir, [".ts", ".tsx"], undefined, undefined);
-        for (let file of tsFiles) {
-            if (!path.isAbsolute(file)) {
-                file = resolvePath(system, file);
-            }
-            results.push(file);
-        }
-
-        // Recursively search subdirectories, excluding build and output directories
-        const subdirs = system.readDirectory(dir, undefined, ["directory"], undefined);
-        const excludedDirs = ["lib", "dist", "build", "node_modules", ".git"];
-
-        for (let subdir of subdirs) {
-            if (subdir !== dir) {
-                const subdirName = path.basename(subdir);
-                if (excludedDirs.includes(subdirName)) {
-                    continue; // Skip build/output directories
-                }
-
-                if (!path.isAbsolute(subdir)) {
-                    subdir = resolvePath(system, subdir);
-                }
-                results.push(...this.findAllTypeScriptFiles(subdir));
-            }
-        }
-
-        return results;
-    }
-
     private loadAddonsSync(): void {
         const { addonsDir, reporter, system, addons } = this.config;
         if (!addonsDir || !system.directoryExists(addonsDir)) {
@@ -274,49 +171,208 @@ export class AddonRegistry {
             return;
         }
 
-        const addonEntryFiles = this.findAddonEntryFiles(addonsDir);
+        const requestedAddons = addons || [];
+
+        // If no specific addons are requested, we don't load any addons
+        // This provides the performance optimization automatically
+        if (requestedAddons.length === 0) {
+            return; // No addons requested, skip loading entirely
+        }
+
         const loadedAddons: string[] = [];
 
-        // Try to load compiled JS files first
-        const jsFiles = addonEntryFiles.filter(f => f.endsWith(".js") || f.endsWith(".jsx"));
-        jsFiles.forEach(filePath => {
-            const addonName = this.loadSingleAddon(filePath, addonsDir);
-            if (addonName) {
-                loadedAddons.push(addonName);
-            }
-        });
-
-        // If no JS files found, check for TypeScript files and compile them first
-        if (loadedAddons.length === 0) {
-            const tsFiles = addonEntryFiles.filter(isSourceFile);
-            if (tsFiles.length > 0) {
-                // Calculate lib directory relative to addons directory
-                const libDir = path.isAbsolute(addonsDir) ? path.resolve(addonsDir, "..", "lib") : resolvePath(system, ".", "lib");
-
-                if (!system.directoryExists(libDir)) {
-                    system.createDirectory(libDir);
-                }
-
-                // Find all TypeScript files in the addons directory to compile dependencies
-                const allTsFiles = this.findAllTypeScriptFiles(addonsDir);
-
-                const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, allTsFiles);
-
-                // Load the compiled addons (only the entry point files)
-                compiledAddonFiles.forEach((filePath: string) => {
-                    const addonName = this.loadSingleAddon(filePath, libDir);
-                    if (addonName) {
-                        loadedAddons.push(addonName);
-                    }
-                });
+        // Try to load each requested addon specifically
+        for (const addonName of requestedAddons) {
+            const loaded = this.loadSpecificAddon(addonName, addonsDir, reporter, system);
+            if (loaded) {
+                loadedAddons.push(loaded);
             }
         }
 
         this.reportMissingAddons(addons);
     }
 
+    private loadSpecificAddon(addonName: string, addonsDir: string, reporter: Reporter, system: ts.System): string | null {
+        // Try to find the specific addon in common locations
+        const possiblePaths = [
+            path.join(addonsDir, addonName, "addon.js"),
+            path.join(addonsDir, addonName, "index.js"),
+            path.join(addonsDir, addonName, "addon.jsx"),
+            path.join(addonsDir, addonName, "index.jsx"),
+        ];
+
+        // First try to load pre-compiled JS files
+        for (const jsPath of possiblePaths) {
+            if (system.fileExists(jsPath)) {
+                const loadedName = this.loadSingleAddon(jsPath, addonsDir);
+                if (loadedName) {
+                    return loadedName;
+                }
+            }
+        }
+
+        // If no JS files found, look for TypeScript files and compile them
+        const tsPossiblePaths = [
+            path.join(addonsDir, addonName, "addon.ts"),
+            path.join(addonsDir, addonName, "index.ts"),
+            path.join(addonsDir, addonName, "addon.tsx"),
+            path.join(addonsDir, addonName, "index.tsx"),
+        ];
+
+        const foundTsFiles: string[] = [];
+        for (const tsPath of tsPossiblePaths) {
+            if (system.fileExists(tsPath)) {
+                foundTsFiles.push(tsPath);
+                break; // Only need one entry point per addon
+            }
+        }
+
+        if (foundTsFiles.length > 0) {
+            const libDir = path.isAbsolute(addonsDir) ? path.resolve(addonsDir, "..", "lib") : resolvePath(system, ".", "lib");
+
+            if (!system.directoryExists(libDir)) {
+                system.createDirectory(libDir);
+            }
+
+            // Find dependencies for this specific addon
+            const addonDir = path.join(addonsDir, addonName);
+            const allTsFilesForAddon = this.findTypeScriptFilesInDirectory(addonDir);
+
+            const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, allTsFilesForAddon);
+
+            // Load the compiled addon
+            for (const compiledFile of compiledAddonFiles) {
+                const loadedName = this.loadSingleAddon(compiledFile, libDir);
+                if (loadedName === addonName) {
+                    return loadedName;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private findTypeScriptFilesInDirectory(dir: string): string[] {
+        const results: string[] = [];
+        const { system } = this.config;
+
+        if (!system.directoryExists(dir)) {
+            return results;
+        }
+
+        // Get all TypeScript files in the current directory
+        const tsFiles = system.readDirectory(dir, [".ts", ".tsx"], undefined, undefined);
+        results.push(...tsFiles);
+
+        // Recursively search subdirectories, excluding build and output directories
+        const subdirs = system.readDirectory(dir, undefined, ["directory"], undefined);
+        const excludedDirs = ["lib", "dist", "build", "node_modules", ".git"];
+
+        for (let subdir of subdirs) {
+            if (subdir !== dir) {
+                const subdirName = path.basename(subdir);
+                if (excludedDirs.includes(subdirName)) {
+                    continue; // Skip build/output directories
+                }
+
+                if (!path.isAbsolute(subdir)) {
+                    subdir = resolvePath(system, subdir);
+                }
+                results.push(...this.findTypeScriptFilesInDirectory(subdir));
+            }
+        }
+
+        return results;
+    }
+
+    private needsCompilation(tsFiles: string[], libDir: string): { needsCompilation: boolean; filesToCompile: string[] } {
+        const filesToCompile: string[] = [];
+
+        for (const tsFile of tsFiles) {
+            const relativePath = path.relative(path.dirname(tsFile), tsFile);
+            const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
+            const cacheKey = tsFile;
+
+            // Check if source file exists and get its modification time
+            if (!this.config.system.fileExists(tsFile)) {
+                continue;
+            }
+
+            const sourceTime = this.config.system.getModifiedTime?.(tsFile);
+            const sourceTimestamp = sourceTime ? sourceTime.getTime() : 0;
+
+            // Check if output file exists
+            const outputExists = this.config.system.fileExists(outputPath);
+
+            // Check cache
+            const cached = this.compilationCache.get(cacheKey);
+
+            if (!outputExists || !cached || cached.timestamp < sourceTimestamp) {
+                filesToCompile.push(tsFile);
+            }
+        }
+
+        return {
+            needsCompilation: filesToCompile.length > 0,
+            filesToCompile,
+        };
+    }
+
+    private getExistingCompiledFiles(libDir: string): string[] {
+        const compiledAddonFiles: string[] = [];
+
+        if (!this.config.system.directoryExists(libDir)) {
+            return compiledAddonFiles;
+        }
+
+        // Get all files and extract unique addon directory names
+        const allFiles = this.config.system.readDirectory(libDir, [".js"], undefined, undefined);
+
+        // Extract unique directory names from file paths (excluding root level files)
+        const addonDirNames = new Set<string>();
+        for (const filePath of allFiles) {
+            const relativePath = path.relative(libDir, filePath);
+            const dirParts = relativePath.split(path.sep);
+            if (dirParts.length > 1) {
+                // Skip root level files like index.js
+                addonDirNames.add(dirParts[0]);
+            }
+        }
+        const addonDirs = Array.from(addonDirNames);
+
+        for (const addonDirName of addonDirs) {
+            const addonDirPath = path.join(libDir, addonDirName);
+            if (this.config.system.directoryExists(addonDirPath)) {
+                const files = this.config.system.readDirectory(addonDirPath, [".js", ".jsx"], undefined, undefined);
+
+                // Look for addon.js or index.js files
+                const addonFiles = files.filter(f => path.basename(f, path.extname(f)).toLowerCase() === "addon");
+                const indexFiles = files.filter(f => path.basename(f, path.extname(f)).toLowerCase() === "index");
+
+                if (addonFiles.length > 0) {
+                    compiledAddonFiles.push(addonFiles[0]);
+                } else if (indexFiles.length > 0) {
+                    compiledAddonFiles.push(indexFiles[0]);
+                }
+            }
+        }
+
+        return compiledAddonFiles;
+    }
+
     private compileSourceFiles(addonsDir: string, reporter: Reporter, libDir: string, tsFiles: string[]): string[] {
         try {
+            // Check if compilation is actually needed
+            const compilationCheck = this.needsCompilation(tsFiles, libDir);
+
+            if (!compilationCheck.needsCompilation) {
+                // All files are up to date, return existing compiled files
+                return this.getExistingCompiledFiles(libDir);
+            }
+
+            // Only compile files that actually need compilation
+            const filesToCompile = compilationCheck.filesToCompile;
+
             // Enhanced error reporting: Check filesystem permissions and paths
             const fsInfo = this.validateFilesystemAccess(addonsDir, libDir);
             if (!fsInfo.canCompile) {
@@ -333,7 +389,7 @@ export class AddonRegistry {
             }
 
             // Enhanced error reporting: List files being compiled
-            const fileList = tsFiles.map(f => `    - ${path.relative(addonsDir, f)}`).join("\n");
+            const fileList = filesToCompile.map(f => `    - ${path.relative(addonsDir, f)}`).join("\n");
 
             // Use TypeScript's simple transpile API instead of the full Compiler to avoid infinite loops
             const compilerOptions: ts.CompilerOptions = {
@@ -348,8 +404,8 @@ export class AddonRegistry {
                 strict: false,
             };
 
-            // Create output directory structure
-            for (const tsFile of tsFiles) {
+            // Create output directory structure and compile only files that need compilation
+            for (const tsFile of filesToCompile) {
                 const relativePath = path.relative(addonsDir, tsFile);
                 const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
                 const outputDir = path.dirname(outputPath);
@@ -368,6 +424,13 @@ export class AddonRegistry {
 
                     // Write the transpiled JavaScript
                     this.config.system.writeFile(outputPath, transpileResult.outputText);
+
+                    // Update cache
+                    const sourceTime = this.config.system.getModifiedTime?.(tsFile);
+                    this.compilationCache.set(tsFile, {
+                        timestamp: sourceTime ? sourceTime.getTime() : Date.now(),
+                        outputPath,
+                    });
                 }
             }
 
@@ -820,5 +883,3 @@ const getImportPath = (system: ts.System, filePath: string) => {
 };
 
 const getAddonName = (filePath: string) => filePath.replace(/\\/g, "/").split("/").slice(-2)[0];
-
-const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || filePath.endsWith(".tsx");
