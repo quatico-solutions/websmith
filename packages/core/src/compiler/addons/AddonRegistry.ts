@@ -24,6 +24,7 @@ export class AddonRegistry {
     private availableAddons: Map<string, CompilerAddon>;
     private config: AddonConfig;
     private compilationCache: Map<string, { timestamp: number; outputPath: string }> = new Map();
+    private addonLookupCache: Map<string, CompilerAddon> = new Map();
 
     constructor(config: AddonConfig) {
         this.availableAddons = new Map();
@@ -53,6 +54,20 @@ export class AddonRegistry {
      * 6. Returns no addons when profile defines unknown addon names
      * 7. Reports warnings for expected addons that cannot be returned
      */
+    getAddonByName(name: string): CompilerAddon | undefined {
+        // Check cache first
+        if (this.addonLookupCache.has(name)) {
+            return this.addonLookupCache.get(name);
+        }
+
+        // Find addon and cache result
+        const addon = Array.from(this.availableAddons.values()).find(addon => addon.getName() === name);
+        if (addon) {
+            this.addonLookupCache.set(name, addon);
+        }
+        return addon;
+    }
+
     getAvailableAddons(profile?: string): CompilerAddons {
         let expectedNames: string[];
 
@@ -391,7 +406,7 @@ export class AddonRegistry {
             // Enhanced error reporting: List files being compiled
             const fileList = filesToCompile.map(f => `    - ${path.relative(addonsDir, f)}`).join("\n");
 
-            // Use TypeScript's simple transpile API instead of the full Compiler to avoid infinite loops
+            // Use batch compilation instead of individual file transpilation for better performance
             const compilerOptions: ts.CompilerOptions = {
                 outDir: libDir,
                 rootDir: addonsDir,
@@ -404,34 +419,28 @@ export class AddonRegistry {
                 strict: false,
             };
 
-            // Create output directory structure and compile only files that need compilation
+            // Pre-create all necessary directories to avoid repeated checks
+            const outputDirs = new Set<string>();
             for (const tsFile of filesToCompile) {
                 const relativePath = path.relative(addonsDir, tsFile);
                 const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
                 const outputDir = path.dirname(outputPath);
+                outputDirs.add(outputDir);
+            }
 
+            // Create all directories at once
+            for (const outputDir of outputDirs) {
                 if (!this.config.system.directoryExists(outputDir)) {
                     this.config.system.createDirectory(outputDir);
                 }
+            }
 
-                // Read and transpile each file individually
-                const sourceCode = this.config.system.readFile(tsFile);
-                if (sourceCode) {
-                    const transpileResult = ts.transpileModule(sourceCode, {
-                        compilerOptions,
-                        fileName: tsFile,
-                    });
-
-                    // Write the transpiled JavaScript
-                    this.config.system.writeFile(outputPath, transpileResult.outputText);
-
-                    // Update cache
-                    const sourceTime = this.config.system.getModifiedTime?.(tsFile);
-                    this.compilationCache.set(tsFile, {
-                        timestamp: sourceTime ? sourceTime.getTime() : Date.now(),
-                        outputPath,
-                    });
-                }
+            // Use batch compilation with createProgram for better performance
+            if (filesToCompile.length > 1) {
+                this.batchCompileFiles(filesToCompile, compilerOptions, addonsDir, libDir);
+            } else {
+                // For single files, still use transpileModule for simplicity
+                this.transpileSingleFile(filesToCompile[0], compilerOptions, addonsDir, libDir);
             }
 
             const result = { emitSkipped: false, diagnostics: [] };
@@ -513,6 +522,50 @@ export class AddonRegistry {
                 new ErrorMessage(`Failed to compile addons in ${addonsDir}: ${error instanceof Error ? error.message : String(error)}`)
             );
             return [];
+        }
+    }
+
+    private batchCompileFiles(filesToCompile: string[], compilerOptions: ts.CompilerOptions, addonsDir: string, libDir: string): void {
+        // Create a TypeScript program for batch compilation
+        const host = ts.createCompilerHost(compilerOptions);
+        const program = ts.createProgram(filesToCompile, compilerOptions, host);
+
+        // Emit all files at once
+        program.emit();
+
+        // Update cache for all compiled files
+        for (const tsFile of filesToCompile) {
+            const sourceTime = this.config.system.getModifiedTime?.(tsFile);
+            const relativePath = path.relative(addonsDir, tsFile);
+            const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
+
+            this.compilationCache.set(tsFile, {
+                timestamp: sourceTime ? sourceTime.getTime() : Date.now(),
+                outputPath,
+            });
+        }
+    }
+
+    private transpileSingleFile(tsFile: string, compilerOptions: ts.CompilerOptions, addonsDir: string, libDir: string): void {
+        const sourceCode = this.config.system.readFile(tsFile);
+        if (sourceCode) {
+            const transpileResult = ts.transpileModule(sourceCode, {
+                compilerOptions,
+                fileName: tsFile,
+            });
+
+            const relativePath = path.relative(addonsDir, tsFile);
+            const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
+
+            // Write the transpiled JavaScript
+            this.config.system.writeFile(outputPath, transpileResult.outputText);
+
+            // Update cache
+            const sourceTime = this.config.system.getModifiedTime?.(tsFile);
+            this.compilationCache.set(tsFile, {
+                timestamp: sourceTime ? sourceTime.getTime() : Date.now(),
+                outputPath,
+            });
         }
     }
 
