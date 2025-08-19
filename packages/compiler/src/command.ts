@@ -147,7 +147,13 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             }
 
             const { addons, addonsDir, profiles } = options?.config ?? {};
-            if (addons?.length || addonsDir || Object.keys(profiles ?? {}).length || options.profile) {
+
+            // Automatically skip addon processing if no addons are configured
+            const hasAddonsConfigured = addons?.length || options.profile || Object.keys(profiles ?? {}).length;
+            const hasAddonsDir = addonsDir && compiler.getSystem().directoryExists(addonsDir);
+            const shouldLoadAddons = hasAddonsConfigured || hasAddonsDir;
+
+            if (shouldLoadAddons) {
                 const addonsReg = compiler.getAddonRegistry();
                 if (addonsReg) {
                     addonsReg.setConfig(addonConfig(command, compiler.getSystem(), options, reporter));

@@ -53,7 +53,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
             ...(config && config), // Merge any provided config
             ...(transpileOnly && { transpileOnly }),
             ...(addonsDir && { addonsDir }),
-            ...(addons !== undefined && { addons: addons.trim() ? addons.split(",") : [] }),
+            ...(addons !== undefined && { addons: addons && addons.trim() ? addons.split(",") : [] }),
         },
         // Include additional properties that might be used by the compiler
         ...(instanceName && { instanceName }),
