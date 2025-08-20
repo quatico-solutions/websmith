@@ -150,7 +150,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
 
             // Automatically skip addon processing if no addons are configured
             const hasAddonsConfigured = addons?.length || options.profile || Object.keys(profiles ?? {}).length;
-            const hasAddonsDir = addonsDir && compiler.getSystem().directoryExists(addonsDir);
+            const hasAddonsDir = !!addonsDir; // Create AddonRegistry if addonsDir is specified, even if it doesn't exist
             const shouldLoadAddons = hasAddonsConfigured || hasAddonsDir;
 
             if (shouldLoadAddons) {
@@ -192,6 +192,7 @@ export const addonConfig = (command: Command, system: ts.System, options: Compil
         ...(resolvedAddonsDir && { addonsDir: resolvedAddonsDir }),
         system,
         reporter,
+        cliMode: true, // Indicate this is CLI usage
 
         ...(!!options?.config?.profiles && { profiles: options?.config?.profiles }),
     };

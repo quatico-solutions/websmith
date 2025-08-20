@@ -203,12 +203,13 @@ export class CompilationEnv {
         }
 
         this.compileAddons(addonImportDir, this.addonsConfig.addonsDir);
-        this.getOrCreateAddonRegistry().refresh();
+
         if (!this.addonsConfig.addons) {
             this.addonsConfig.addons = [addonName];
         } else {
             this.addonsConfig.addons.push(addonName);
         }
+        this.getOrCreateAddonRegistry().setConfig(this.addonsConfig).refresh();
 
         return this;
     }
@@ -228,12 +229,12 @@ export class CompilationEnv {
             );
         });
         this.compileAddons(addonsSourceDirPath, addonsDir);
-        this.getOrCreateAddonRegistry().refresh();
         if (!this.addonsConfig.addons) {
             this.addonsConfig.addons = [...addonNames];
         } else {
             this.addonsConfig.addons.push(...addonNames);
         }
+        this.getOrCreateAddonRegistry().setConfig(this.addonsConfig).refresh();
 
         return this;
     }

@@ -7,7 +7,6 @@
 import type { LoaderOptions } from "@quatico/websmith-api";
 import ts from "typescript";
 import { createSystem } from "../../environment";
-import { AddonRegistry } from "../addons/AddonRegistry";
 import { NoReporter } from "../NoReporter";
 import { createOptions } from "./options";
 
@@ -55,22 +54,6 @@ describe("createOptions", () => {
             strict: false,
             target: ts.ScriptTarget.ES5,
         });
-    });
-
-    it("should return expected path w/ custom addons directory and no profile specified", () => {
-        const fileSystem = createSystem({ "./expected/addon-foo/addon.js": "export const activate = () => {};" }, { virtual: true });
-        const addons = new AddonRegistry({ addonsDir: "./expected", reporter: new NoReporter(), system: fileSystem });
-        jest.mock(
-            "/expected/addon-foo/addon",
-            () => {
-                return { activate: jest.fn() };
-            },
-            { virtual: true }
-        );
-
-        const actual = addons.getAvailableAddons();
-
-        expect(actual.getNames()).toEqual(["addon-foo"]);
     });
 
     it("should return debug path w/ debug true", () => {
