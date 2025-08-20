@@ -218,29 +218,24 @@ export class AddonRegistry {
      * @returns Array of addon names requested by profiles
      *
      * **Behavior:**
-     * - **CLI Mode** (when `activeProfile` is set): Returns addons only from the active profile
-     * - **Direct Usage** (when `activeProfile` is not set): Returns addons from all profiles (backward compatibility)
-     * - **No Profiles**: Returns empty array
+     * - Returns addons from all profiles to ensure they are available for activation
+     * - The Compiler class decides which addons to actually activate based on the selected profile
+     * - Returns empty array if no profiles are configured
      */
     private getRequestedProfileAddons(): string[] {
         if (!this.config.profiles) {
             return [];
         }
 
-        if (this.config.activeProfile) {
-            // CLI mode: Only load addons for the active profile
-            const activeProfile = this.config.profiles[this.config.activeProfile];
-            return activeProfile?.addons ? [...activeProfile.addons] : [];
-        } else {
-            // Direct AddonRegistry usage: Load addons from all profiles (backward compatibility)
-            const profileAddons: string[] = [];
-            for (const profile of Object.values(this.config.profiles)) {
-                if (profile.addons) {
-                    profileAddons.push(...profile.addons);
-                }
+        // Always load addons from all profiles - let the Compiler decide which ones to activate
+        // This ensures that profile-dependent addons are available when the Compiler needs them
+        const profileAddons: string[] = [];
+        for (const profile of Object.values(this.config.profiles)) {
+            if (profile.addons) {
+                profileAddons.push(...profile.addons);
             }
-            return profileAddons;
         }
+        return profileAddons;
     }
 
     private loadAddonsSync(): void {
