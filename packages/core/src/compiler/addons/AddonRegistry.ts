@@ -20,11 +20,33 @@ export type AddonConfig = {
     system: ts.System;
 };
 
+/**
+ * Registry for managing and loading compiler addons.
+ *
+ * ## Addon Loading Behavior
+ *
+ * When specific addons are requested via `addons` array or profile configurations:
+ * - **Loads ONLY the explicitly requested addons**
+ * - Provides better performance by avoiding unnecessary addon loading
+ * - Used by CLI when `--addons` flag is specified or profiles are configured
+ *
+ * @example
+ * ```typescript
+ * const registry = new AddonRegistry({
+ *   addonsDir: './addons',
+ *   addons: ['my-addon', 'another-addon'],
+ *   reporter,
+ *   system
+ * });
+ * ```
+ */
 export class AddonRegistry {
     private availableAddons: Map<string, CompilerAddon>;
     private config: AddonConfig;
     private compilationCache: Map<string, { timestamp: number; outputPath: string }> = new Map();
     private addonLookupCache: Map<string, CompilerAddon> = new Map();
+    private compilerHost?: ts.CompilerHost;
+    private lastCompilerOptions?: ts.CompilerOptions;
 
     constructor(config: AddonConfig) {
         this.availableAddons = new Map();
@@ -253,6 +275,7 @@ export class AddonRegistry {
         }
 
         if (foundTsFiles.length > 0) {
+            // This is the directory where the compiled addons will be stored, next the the addonsDir
             const libDir = path.isAbsolute(addonsDir) ? path.resolve(addonsDir, "..", "lib") : resolvePath(system, ".", "lib");
 
             if (!system.directoryExists(libDir)) {
@@ -536,23 +559,42 @@ export class AddonRegistry {
     }
 
     private batchCompileFiles(filesToCompile: string[], compilerOptions: ts.CompilerOptions, addonsDir: string, libDir: string): void {
-        // Create a TypeScript program for batch compilation
-        const host = ts.createCompilerHost(compilerOptions);
-        const program = ts.createProgram(filesToCompile, compilerOptions, host);
+        // Reuse compiler host if options have not changed
+        if (!this.compilerHost || !this.lastCompilerOptions || JSON.stringify(this.lastCompilerOptions) !== JSON.stringify(compilerOptions)) {
+            this.compilerHost = ts.createCompilerHost(compilerOptions);
+            this.lastCompilerOptions = { ...compilerOptions };
+        }
+        const program = ts.createProgram(filesToCompile, compilerOptions, this.compilerHost);
 
         // Emit all files at once
-        program.emit();
+        const emitResult = program.emit();
 
-        // Update cache for all compiled files
-        for (const tsFile of filesToCompile) {
-            const sourceTime = this.config.system.getModifiedTime?.(tsFile);
-            const relativePath = path.relative(addonsDir, tsFile);
-            const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
+        // Check for compilation errors and report them
+        if (emitResult.emitSkipped || emitResult.diagnostics.length > 0) {
+            const errorDiagnostics = emitResult.diagnostics.filter(diag => diag.category === ts.DiagnosticCategory.Error);
 
-            this.compilationCache.set(tsFile, {
-                timestamp: sourceTime ? sourceTime.getTime() : Date.now(),
-                outputPath,
-            });
+            if (emitResult.emitSkipped) {
+                this.config.reporter?.reportDiagnostic(new ErrorMessage(`TypeScript emit was skipped for files in "${addonsDir}".`));
+            }
+
+            for (const diag of errorDiagnostics) {
+                const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
+                this.config.reporter?.reportDiagnostic(new ErrorMessage(`TypeScript error in "${addonsDir}": ${message}`));
+            }
+        }
+
+        // Update cache only for successfully compiled files
+        if (!emitResult.emitSkipped && emitResult.diagnostics.filter(d => d.category === ts.DiagnosticCategory.Error).length === 0) {
+            for (const tsFile of filesToCompile) {
+                const sourceTime = this.config.system.getModifiedTime?.(tsFile);
+                const relativePath = path.relative(addonsDir, tsFile);
+                const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
+
+                this.compilationCache.set(tsFile, {
+                    timestamp: sourceTime ? sourceTime.getTime() : Date.now(),
+                    outputPath,
+                });
+            }
         }
     }
 
