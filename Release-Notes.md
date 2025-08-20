@@ -28,6 +28,37 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.7.15] - 2025-08-20
+
+This release represents a significant improvement in both performance and reliability, especially for CI environments where the race condition was most problematic.
+
+### Added
+
+- 🚀 **File Modification Time Caching**: Added intelligent caching for file modification times to avoid repeated filesystem operations
+  - Cache entries are valid for 1 second to balance performance with accuracy
+  - Significantly reduces I/O overhead during addon compilation, especially in CI environments
+  - Cache is properly invalidated during configuration changes and refreshes
+- 🎯 **Selective Cache Invalidation**: Implemented smart cache invalidation strategy for addon lookup cache
+  - Only clears cache entries for addons that are no longer requested or available
+  - Preserves cache entries for addons that are still needed, maintaining performance benefits
+  - Prevents cache clearing on every `loadAddonsSync()` call, preserving performance gains
+- 🔍 **Enhanced Error Messages with Context**: Added comprehensive error reporting with detailed context information
+  - Error messages now include the list of files being compiled when TypeScript program creation fails
+  - File-specific context in diagnostic messages with relative paths for better readability
+  - Improved debugging capabilities for addon compilation issues
+- 📊 **Comprehensive Diagnostic Reporting**: Implemented complete TypeScript diagnostic reporting for addon compilation
+  - **Errors** are reported as `ErrorMessage` with full context
+  - **Warnings** are reported as `WarnMessage` instead of being silently discarded
+  - **Info/Suggestions** are reported as `InfoMessage` for complete developer feedback
+  - All diagnostics include file names and detailed TypeScript compiler messages
+
+### Fixed
+
+- 🐛 **Cross-Addon Dependency Compilation**: Fixed critical race condition in CI environments where addons with cross-dependencies failed to compile
+- 🐛 **Addon Lookup Cache Stale References**: Fixed issue where addon lookup cache was never cleared during registry refresh
+- 🐛 **Inefficient Map Iteration**: Optimized addon lookup by replacing `Array.from(Map.values()).find()` with direct Map iteration
+- 🐛 **Fallback Compilation Cache Bypass**: Fixed issue where fallback compilation processed all files regardless of
+
 ## [0.7.14] - 2025-01-27
 
 This release significantly enhances webpack integration with full support for generator addons, improved rootDir inference, and comprehensive webpack asset manipulation capabilities. The main improvements include complete generator addon support in webpack builds, automatic rootDir detection from tsconfig.json, and enhanced webpack compilation context handling.
