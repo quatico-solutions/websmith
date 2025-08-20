@@ -42,6 +42,19 @@ export type AddonConfig = {
 export class AddonRegistry {
     private availableAddons: Map<string, CompilerAddon>;
     private config: AddonConfig;
+    /**
+     * Cache for compilation results to optimize repeated builds.
+     *
+     * - **Key:** string representing a unique compilation identifier (e.g., source file path or hash).
+     * - **Value:** Object containing:
+     *    - `timestamp`: number indicating when the compilation occurred.
+     *    - `outputPath`: string path to the compiled output.
+     *
+     * The cache is invalidated when configuration changes (e.g., via `setConfig` or `refresh`),
+     * or when a new compilation is triggered for a different source or with different options.
+     * This mechanism helps avoid redundant compilations and improves performance by reusing
+     * previous results when possible.
+     */
     private compilationCache: Map<string, { timestamp: number; outputPath: string }> = new Map();
     private addonLookupCache: Map<string, CompilerAddon> = new Map();
     private compilerHost?: ts.CompilerHost;
@@ -74,6 +87,15 @@ export class AddonRegistry {
      * 5. Returns no addons when profile and all depends define no addons
      * 6. Returns no addons when profile defines unknown addon names
      * 7. Reports warnings for expected addons that cannot be returned
+     */
+    /**
+     * Retrieves a loaded addon by its name, using an internal cache for performance optimization.
+     *
+     * If the addon has been previously looked up, it is returned from the cache.
+     * Otherwise, the method searches the available addons, caches the result, and returns it.
+     *
+     * @param name - The name of the addon to retrieve.
+     * @returns The `CompilerAddon` instance if found; otherwise, `undefined`.
      */
     getAddonByName(name: string): CompilerAddon | undefined {
         // Check cache first
@@ -332,11 +354,11 @@ export class AddonRegistry {
         return results;
     }
 
-    private needsCompilation(tsFiles: string[], libDir: string): { needsCompilation: boolean; filesToCompile: string[] } {
+    private needsCompilation(tsFiles: string[], libDir: string, addonsDir: string): { needsCompilation: boolean; filesToCompile: string[] } {
         const filesToCompile: string[] = [];
 
         for (const tsFile of tsFiles) {
-            const relativePath = path.relative(path.dirname(tsFile), tsFile);
+            const relativePath = path.relative(addonsDir, tsFile);
             const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
             const cacheKey = tsFile;
 
@@ -410,7 +432,7 @@ export class AddonRegistry {
     private compileSourceFiles(addonsDir: string, reporter: Reporter, libDir: string, tsFiles: string[]): string[] {
         try {
             // Check if compilation is actually needed
-            const compilationCheck = this.needsCompilation(tsFiles, libDir);
+            const compilationCheck = this.needsCompilation(tsFiles, libDir, addonsDir);
 
             if (!compilationCheck.needsCompilation) {
                 // All files are up to date, return existing compiled files
@@ -559,7 +581,7 @@ export class AddonRegistry {
 
     private batchCompileFiles(filesToCompile: string[], compilerOptions: ts.CompilerOptions, addonsDir: string, libDir: string): void {
         // Reuse compiler host if options have not changed
-        if (!this.compilerHost || !this.lastCompilerOptions || JSON.stringify(this.lastCompilerOptions) !== JSON.stringify(compilerOptions)) {
+        if (!this.compilerHost || !this.lastCompilerOptions || this.hasCompilerOptionsChanged(compilerOptions)) {
             this.compilerHost = ts.createCompilerHost(compilerOptions);
             this.lastCompilerOptions = { ...compilerOptions };
         }
@@ -882,6 +904,131 @@ export class AddonRegistry {
             .join("\n");
 
         return formatted;
+    }
+
+    /**
+     * Performs a deep equality comparison between two values.
+     * Handles objects, arrays, and primitive values correctly without relying on JSON.stringify.
+     */
+    private deepEqual(a: unknown, b: unknown): boolean {
+        // Same reference or both null/undefined
+        if (a === b) {
+            return true;
+        }
+
+        // Different types or one is null/undefined
+        if (a == null || b == null || typeof a !== typeof b) {
+            return false;
+        }
+
+        // Handle arrays
+        if (Array.isArray(a) && Array.isArray(b)) {
+            if (a.length !== b.length) {
+                return false;
+            }
+            return a.every((val, index) => this.deepEqual(val, b[index]));
+        }
+
+        // Handle objects (but not arrays, which are handled above)
+        if (typeof a === "object" && !Array.isArray(a)) {
+            const keysA = Object.keys(a as Record<string, unknown>);
+            const keysB = Object.keys(b as Record<string, unknown>);
+
+            if (keysA.length !== keysB.length) {
+                return false;
+            }
+
+            return keysA.every(
+                key => keysB.includes(key) && this.deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
+            );
+        }
+
+        // Primitive values (already handled by a === b above, but explicit for clarity)
+        return a === b;
+    }
+
+    /**
+     * Efficiently compares compiler options to determine if the compiler host needs to be recreated.
+     * Only checks properties that actually affect compiler host behavior, avoiding expensive deep equality.
+     */
+    private hasCompilerOptionsChanged(newOptions: ts.CompilerOptions): boolean {
+        const lastOptions = this.lastCompilerOptions;
+        if (!lastOptions) {
+            return true;
+        }
+
+        // Properties that affect compiler host behavior and require recreation
+        const criticalProperties: (keyof ts.CompilerOptions)[] = [
+            "target",
+            "module",
+            "moduleResolution",
+            "baseUrl",
+            "paths",
+            "rootDir",
+            "outDir",
+            "typeRoots",
+            "types",
+            "lib",
+            "allowJs",
+            "checkJs",
+            "jsx",
+            "jsxFactory",
+            "jsxFragmentFactory",
+            "jsxImportSource",
+            "resolveJsonModule",
+            "esModuleInterop",
+            "allowSyntheticDefaultImports",
+            "experimentalDecorators",
+            "emitDecoratorMetadata",
+        ];
+
+        // Fast comparison of critical properties
+        for (const prop of criticalProperties) {
+            const lastValue = lastOptions[prop];
+            const newValue = newOptions[prop];
+
+            // Handle array properties (like 'lib', 'types', 'typeRoots')
+            if (Array.isArray(lastValue) && Array.isArray(newValue)) {
+                if (lastValue.length !== newValue.length || !lastValue.every((val, index) => val === newValue[index])) {
+                    return true;
+                }
+            }
+            // Handle object properties (like 'paths')
+            else if (typeof lastValue === "object" && typeof newValue === "object" && lastValue !== null && newValue !== null) {
+                // For paths specifically, do a shallow comparison
+                if (prop === "paths") {
+                    const lastPaths = lastValue as Record<string, string[]>;
+                    const newPaths = newValue as Record<string, string[]>;
+                    const lastKeys = Object.keys(lastPaths);
+                    const newKeys = Object.keys(newPaths);
+
+                    if (
+                        lastKeys.length !== newKeys.length ||
+                        !lastKeys.every(
+                            key =>
+                                newKeys.includes(key) &&
+                                Array.isArray(lastPaths[key]) &&
+                                Array.isArray(newPaths[key]) &&
+                                lastPaths[key].length === newPaths[key].length &&
+                                lastPaths[key].every((val, idx) => val === newPaths[key][idx])
+                        )
+                    ) {
+                        return true;
+                    }
+                } else {
+                    // For other objects, use proper deep equality comparison
+                    if (!this.deepEqual(lastValue, newValue)) {
+                        return true;
+                    }
+                }
+            }
+            // Handle primitive properties
+            else if (lastValue !== newValue) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
