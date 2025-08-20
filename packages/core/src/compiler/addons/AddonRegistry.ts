@@ -78,18 +78,6 @@ export class AddonRegistry {
     }
 
     /**
-     * Retrieves all available addons based on the provided profile and its dependencies.
-     *
-     * RULES:
-     * 1. Returns all loaded addons when profile is undefined/not passed
-     * 2. Returns addons defined by the specified profile
-     * 3. Returns addons from profile + all depends profiles (recursively)
-     * 4. Returns no addons when profile defines no addons
-     * 5. Returns no addons when profile and all depends define no addons
-     * 6. Returns no addons when profile defines unknown addon names
-     * 7. Reports warnings for expected addons that cannot be returned
-     */
-    /**
      * Retrieves a loaded addon by its name, using an internal cache for performance optimization.
      *
      * If the addon has been previously looked up, it is returned from the cache.
@@ -105,11 +93,13 @@ export class AddonRegistry {
         }
 
         // Find addon and cache result
-        const addon = Array.from(this.availableAddons.values()).find(addon => addon.getName() === name);
-        if (addon) {
-            this.addonLookupCache.set(name, addon);
+        for (const addon of this.availableAddons.values()) {
+            if (addon.getName() === name) {
+                this.addonLookupCache.set(name, addon);
+                return addon;
+            }
         }
-        return addon;
+        return undefined;
     }
 
     getAvailableAddons(profile?: string): CompilerAddons {
@@ -136,6 +126,7 @@ export class AddonRegistry {
 
     refresh(): this {
         this.availableAddons.clear();
+        this.addonLookupCache.clear(); // Clear cache to prevent stale references
         this.loadAddonsSync();
         return this;
     }
@@ -221,7 +212,41 @@ export class AddonRegistry {
         }
     }
 
+    /**
+     * Gets the list of addon names requested by profiles based on the current configuration.
+     *
+     * @returns Array of addon names requested by profiles
+     *
+     * **Behavior:**
+     * - **CLI Mode** (when `activeProfile` is set): Returns addons only from the active profile
+     * - **Direct Usage** (when `activeProfile` is not set): Returns addons from all profiles (backward compatibility)
+     * - **No Profiles**: Returns empty array
+     */
+    private getRequestedProfileAddons(): string[] {
+        if (!this.config.profiles) {
+            return [];
+        }
+
+        if (this.config.activeProfile) {
+            // CLI mode: Only load addons for the active profile
+            const activeProfile = this.config.profiles[this.config.activeProfile];
+            return activeProfile?.addons ? [...activeProfile.addons] : [];
+        } else {
+            // Direct AddonRegistry usage: Load addons from all profiles (backward compatibility)
+            const profileAddons: string[] = [];
+            for (const profile of Object.values(this.config.profiles)) {
+                if (profile.addons) {
+                    profileAddons.push(...profile.addons);
+                }
+            }
+            return profileAddons;
+        }
+    }
+
     private loadAddonsSync(): void {
+        // Clear lookup cache to prevent stale references when reloading addons
+        this.addonLookupCache.clear();
+
         const { addonsDir, reporter, system, addons } = this.config;
         if (!addonsDir || !system.directoryExists(addonsDir)) {
             if (addonsDir) {
@@ -232,22 +257,8 @@ export class AddonRegistry {
 
         const requestedAddons = addons || [];
 
-        // Check if any profiles request addons
-        const profileAddons: string[] = [];
-        if (this.config.activeProfile && this.config.profiles) {
-            // CLI mode: Only load addons for the active profile
-            const activeProfile = this.config.profiles[this.config.activeProfile];
-            if (activeProfile?.addons) {
-                profileAddons.push(...activeProfile.addons);
-            }
-        } else if (this.config.profiles) {
-            // Direct AddonRegistry usage: Load addons from all profiles (backward compatibility)
-            for (const profile of Object.values(this.config.profiles)) {
-                if (profile.addons) {
-                    profileAddons.push(...profile.addons);
-                }
-            }
-        }
+        // Get addons requested by profiles
+        const profileAddons = this.getRequestedProfileAddons();
         const hasProfileAddons = profileAddons.length > 0;
 
         if (requestedAddons.length === 0 && !hasProfileAddons) {
@@ -598,10 +609,27 @@ export class AddonRegistry {
         let program: ts.Program;
         try {
             program = ts.createProgram(filesToCompile, compilerOptions, this.compilerHost);
-        } catch (_error) {
+        } catch (error) {
+            // Log the original error for debugging
+            this.config.reporter?.reportDiagnostic(
+                new WarnMessage(
+                    `Failed to create TypeScript program with cached compiler host: ${error}. Attempting fallback with new compiler host.`
+                )
+            );
+
             // Fallback: create a new compiler host if the cached one fails
-            this.compilerHost = ts.createCompilerHost(compilerOptions);
-            program = ts.createProgram(filesToCompile, compilerOptions, this.compilerHost);
+            try {
+                this.compilerHost = ts.createCompilerHost(compilerOptions);
+                program = ts.createProgram(filesToCompile, compilerOptions, this.compilerHost);
+            } catch (fallbackError) {
+                // If fallback also fails, report both errors and throw
+                this.config.reporter?.reportDiagnostic(
+                    new ErrorMessage(
+                        `Failed to create TypeScript program even with new compiler host. Original error: ${error}. Fallback error: ${fallbackError}`
+                    )
+                );
+                throw fallbackError;
+            }
         }
 
         // Emit all files at once
@@ -613,11 +641,15 @@ export class AddonRegistry {
 
         if (emitResult.emitSkipped) {
             // If emit was skipped, try fallback to individual file transpilation
+            // But only for files that actually need compilation
             for (const tsFile of filesToCompile) {
-                try {
-                    this.transpileSingleFile(tsFile, compilerOptions, addonsDir, libDir);
-                } catch (error) {
-                    this.config.reporter?.reportDiagnostic(new ErrorMessage(`Failed to compile addon file ${tsFile}: ${error}`));
+                const { needsCompilation: fileNeedsCompilation } = this.needsCompilation([tsFile], libDir, addonsDir);
+                if (fileNeedsCompilation) {
+                    try {
+                        this.transpileSingleFile(tsFile, compilerOptions, addonsDir, libDir);
+                    } catch (error) {
+                        this.config.reporter?.reportDiagnostic(new ErrorMessage(`Failed to compile addon file ${tsFile}: ${error}`));
+                    }
                 }
             }
             return;
