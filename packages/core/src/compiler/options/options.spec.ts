@@ -7,7 +7,6 @@
 import type { LoaderOptions } from "@quatico/websmith-api";
 import ts from "typescript";
 import { createSystem } from "../../environment";
-import { AddonRegistry } from "../addons/AddonRegistry";
 import { NoReporter } from "../NoReporter";
 import { createOptions } from "./options";
 
@@ -55,22 +54,6 @@ describe("createOptions", () => {
             strict: false,
             target: ts.ScriptTarget.ES5,
         });
-    });
-
-    it("should return expected path w/ custom addons directory and no profile specified", () => {
-        const fileSystem = createSystem({ "./expected/addon-foo/addon.js": "export const activate = () => {};" }, { virtual: true });
-        const addons = new AddonRegistry({ addonsDir: "./expected", reporter: new NoReporter(), system: fileSystem });
-        jest.mock(
-            "/expected/addon-foo/addon",
-            () => {
-                return { activate: jest.fn() };
-            },
-            { virtual: true }
-        );
-
-        const actual = addons.getAvailableAddons();
-
-        expect(actual.getNames()).toEqual(["addon-foo"]);
     });
 
     it("should return debug path w/ debug true", () => {
@@ -411,6 +394,31 @@ describe("createOptions", () => {
 
             expect(actual.config?.addons).toEqual([]); // Empty string results in empty array
             expect(actual.config?.addonsDir).toBe("/addons"); // Paths get resolved to absolute
+        });
+
+        it("should handle null and undefined addons safely", () => {
+            const target = createSystem({}, { virtual: true });
+
+            // The main issue was that `addons && addons.trim()` could throw TypeError
+            // if addons was null. Using `addons?.trim()` fixes this.
+
+            // Test with null - should handle gracefully without throwing
+            expect(() => {
+                const argsWithNull = { addons: null as any, addonsDir: "./addons" };
+                const actualWithNull = createOptions(argsWithNull, new NoReporter(), target);
+                expect(actualWithNull.config?.addons).toEqual([]); // null results in empty array
+            }).not.toThrow();
+
+            // Test with undefined - should handle gracefully without throwing
+            expect(() => {
+                const argsWithUndefined = { addons: undefined, addonsDir: "./addons" };
+                createOptions(argsWithUndefined, new NoReporter(), target);
+            }).not.toThrow();
+
+            // Test with whitespace-only string - should create empty array
+            const argsWithWhitespace = { addons: "   \t\n   ", addonsDir: "./addons" };
+            const actualWithWhitespace = createOptions(argsWithWhitespace, new NoReporter(), target);
+            expect(actualWithWhitespace.config?.addons).toEqual([]); // whitespace-only results in empty array
         });
 
         it("should use default project path when not specified", () => {

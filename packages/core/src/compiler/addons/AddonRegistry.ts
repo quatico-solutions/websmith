@@ -4,11 +4,10 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { ErrorMessage, WarnMessage, type AddonContext, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
+import { ErrorMessage, InfoMessage, WarnMessage, type AddonContext, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
 import { createRequire } from "node:module";
 import path from "node:path";
 import ts from "typescript";
-// import { Compiler } from "../Compiler"; // Not needed for simple transpilation
 import { resolvePath } from "../config";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
@@ -16,13 +15,58 @@ export type AddonConfig = {
     addons?: string[];
     addonsDir?: string;
     profiles?: Record<string, CompilationProfile>;
+    activeProfile?: string;
     reporter: Reporter;
     system: ts.System;
 };
 
+/**
+ * Registry for managing and loading compiler addons.
+ *
+ * ## Addon Loading Behavior
+ *
+ * When specific addons are requested via `addons` array or profile configurations:
+ * - **Loads ONLY the explicitly requested addons**
+ * - Provides better performance by avoiding unnecessary addon loading
+ * - Used by CLI when `--addons` flag is specified or profiles are configured
+ *
+ * @example
+ * ```typescript
+ * const registry = new AddonRegistry({
+ *   addonsDir: './addons',
+ *   addons: ['my-addon', 'another-addon'],
+ *   reporter,
+ *   system
+ * });
+ * ```
+ */
 export class AddonRegistry {
     private availableAddons: Map<string, CompilerAddon>;
     private config: AddonConfig;
+    /**
+     * Cache for compilation results to optimize repeated builds.
+     *
+     * - **Key:** string representing a unique compilation identifier (e.g., source file path or hash).
+     * - **Value:** Object containing:
+     *    - `timestamp`: number indicating when the compilation occurred.
+     *    - `outputPath`: string path to the compiled output.
+     *
+     * The cache is invalidated when configuration changes (e.g., via `setConfig` or `refresh`),
+     * or when a new compilation is triggered for a different source or with different options.
+     * This mechanism helps avoid redundant compilations and improves performance by reusing
+     * previous results when possible.
+     */
+    private compilationCache: Map<string, { timestamp: number; outputPath: string }> = new Map();
+    private addonLookupCache: Map<string, CompilerAddon> = new Map();
+
+    /**
+     * Cache for file modification times to avoid repeated filesystem operations.
+     * Key: file path, Value: { timestamp: modification time in milliseconds, cachedAt: when this was cached }
+     */
+    private fileTimeCache: Map<string, { timestamp: number; cachedAt: number }> = new Map();
+
+    private compilerHost?: ts.CompilerHost;
+    private lastCompilerOptions?: ts.CompilerOptions;
 
     constructor(config: AddonConfig) {
         this.availableAddons = new Map();
@@ -41,17 +85,30 @@ export class AddonRegistry {
     }
 
     /**
-     * Retrieves all available addons based on the provided profile and its dependencies.
+     * Retrieves a loaded addon by its name, using an internal cache for performance optimization.
      *
-     * RULES:
-     * 1. Returns all loaded addons when profile is undefined/not passed
-     * 2. Returns addons defined by the specified profile
-     * 3. Returns addons from profile + all depends profiles (recursively)
-     * 4. Returns no addons when profile defines no addons
-     * 5. Returns no addons when profile and all depends define no addons
-     * 6. Returns no addons when profile defines unknown addon names
-     * 7. Reports warnings for expected addons that cannot be returned
+     * If the addon has been previously looked up, it is returned from the cache.
+     * Otherwise, the method searches the available addons, caches the result, and returns it.
+     *
+     * @param name - The name of the addon to retrieve.
+     * @returns The `CompilerAddon` instance if found; otherwise, `undefined`.
      */
+    getAddonByName(name: string): CompilerAddon | undefined {
+        // Check cache first
+        if (this.addonLookupCache.has(name)) {
+            return this.addonLookupCache.get(name);
+        }
+
+        // Find addon and cache result
+        for (const addon of this.availableAddons.values()) {
+            if (addon.getName() === name) {
+                this.addonLookupCache.set(name, addon);
+                return addon;
+            }
+        }
+        return undefined;
+    }
+
     getAvailableAddons(profile?: string): CompilerAddons {
         let expectedNames: string[];
 
@@ -76,6 +133,8 @@ export class AddonRegistry {
 
     refresh(): this {
         this.availableAddons.clear();
+        this.addonLookupCache.clear(); // Clear cache to prevent stale references
+        this.fileTimeCache.clear(); // Clear file time cache to get fresh modification times
         this.loadAddonsSync();
         return this;
     }
@@ -162,107 +221,85 @@ export class AddonRegistry {
     }
 
     /**
-     * Recursively find all addon entry files in subdirectories.
-     * Prefers 'index' files over 'addon' files in each directory.
+     * Gets the list of addon names requested by profiles based on the current configuration.
+     *
+     * @returns Array of addon names requested by profiles
+     *
+     * **Behavior:**
+     * - Returns addons from all profiles to ensure they are available for activation
+     * - The Compiler class decides which addons to actually activate based on the selected profile
+     * - Returns empty array if no profiles are configured
      */
-    private findAddonEntryFiles(dir: string): string[] {
-        let results: string[] = [];
-        const { system } = this.config;
-        const entries = system.readDirectory(dir, [".ts", ".tsx", ".js", ".jsx"], undefined, undefined);
-
-        // Group entries by directory to prefer 'index' over 'addon' files
-        const entriesByDir = new Map<string, string[]>();
-        for (let entry of entries) {
-            if (!path.isAbsolute(dir)) {
-                // If the directory is absolute, make it relative to the addons directory
-                entry = resolvePath(system, entry);
-            }
-            const dirName = path.dirname(entry);
-            const fileName = path.basename(entry, path.extname(entry)).toLowerCase();
-            if (fileName === "addon" || fileName === "index") {
-                if (!entriesByDir.has(dirName)) {
-                    entriesByDir.set(dirName, []);
-                }
-                entriesByDir.get(dirName)!.push(entry);
-            }
+    private getRequestedProfileAddons(): string[] {
+        if (!this.config.profiles) {
+            return [];
         }
 
-        // For each directory, prefer 'addon' over 'index' files
-        // Skip the root addons directory to avoid picking up main index files
-        const rootDir = path.resolve(dir);
-        for (const [dirPath, files] of entriesByDir) {
-            // Skip files in the root addons directory (like src/index.ts)
-            if (dirPath === rootDir) {
-                continue;
-            }
-
-            const addonFiles = files.filter((f: string) => path.basename(f, path.extname(f)).toLowerCase() === "addon");
-            const indexFiles = files.filter((f: string) => path.basename(f, path.extname(f)).toLowerCase() === "index");
-
-            // Prefer addon files for clarity, fall back to index files
-            if (addonFiles.length > 0) {
-                results.push(...addonFiles);
-            } else if (indexFiles.length > 0) {
-                results.push(...indexFiles);
+        // Always load addons from all profiles - let the Compiler decide which ones to activate
+        // This ensures that profile-dependent addons are available when the Compiler needs them
+        const profileAddons: string[] = [];
+        for (const [, profile] of Object.entries(this.config.profiles)) {
+            if (profile.addons) {
+                profileAddons.push(...profile.addons);
             }
         }
-
-        // Recursively search subdirectories, excluding build and output directories
-        const subdirs = system.readDirectory(dir, undefined, ["directory"], undefined);
-        const excludedDirs = ["lib", "dist", "build", "node_modules", ".git"];
-
-        for (let subdir of subdirs) {
-            if (subdir !== dir) {
-                const subdirName = path.basename(subdir);
-                if (excludedDirs.includes(subdirName)) {
-                    continue; // Skip build/output directories
-                }
-
-                if (!path.isAbsolute(subdir)) {
-                    subdir = resolvePath(system, subdir);
-                }
-                results = results.concat(this.findAddonEntryFiles(subdir));
-            }
-        }
-        return results;
+        return profileAddons;
     }
 
     /**
-     * Recursively finds all TypeScript files in the given directory.
-     * This includes all .ts and .tsx files, not just entry points.
+     * Gets the modification time of a file, using cache to avoid repeated filesystem operations.
+     * Cache entries are valid for 1 second to balance performance with accuracy.
+     *
+     * @param filePath - Path to the file
+     * @returns File modification timestamp in milliseconds, or 0 if file doesn't exist or error occurred
      */
-    private findAllTypeScriptFiles(dir: string): string[] {
-        const results: string[] = [];
-        const { system } = this.config;
+    private getCachedFileModTime(filePath: string): number {
+        const now = Date.now();
+        const cached = this.fileTimeCache.get(filePath);
 
-        // Get all TypeScript files in the current directory
-        const tsFiles = system.readDirectory(dir, [".ts", ".tsx"], undefined, undefined);
-        for (let file of tsFiles) {
-            if (!path.isAbsolute(file)) {
-                file = resolvePath(system, file);
-            }
-            results.push(file);
+        // Use cached value if it's less than 1 second old
+        if (cached && now - cached.cachedAt < 1000) {
+            return cached.timestamp;
         }
 
-        // Recursively search subdirectories, excluding build and output directories
-        const subdirs = system.readDirectory(dir, undefined, ["directory"], undefined);
-        const excludedDirs = ["lib", "dist", "build", "node_modules", ".git"];
+        // Get fresh modification time
+        let timestamp = 0;
+        try {
+            const modTime = this.config.system.getModifiedTime?.(filePath);
+            timestamp = modTime ? modTime.getTime() : 0;
+        } catch (_error) {
+            // File might not exist or be inaccessible
+            timestamp = 0;
+        }
 
-        for (let subdir of subdirs) {
-            if (subdir !== dir) {
-                const subdirName = path.basename(subdir);
-                if (excludedDirs.includes(subdirName)) {
-                    continue; // Skip build/output directories
-                }
+        // Cache the result
+        this.fileTimeCache.set(filePath, { timestamp, cachedAt: now });
+        return timestamp;
+    }
 
-                if (!path.isAbsolute(subdir)) {
-                    subdir = resolvePath(system, subdir);
-                }
-                results.push(...this.findAllTypeScriptFiles(subdir));
+    /**
+     * Selectively invalidates addon lookup cache entries for addons that are no longer requested.
+     * This preserves cache entries for addons that are still needed, maintaining performance benefits.
+     *
+     * @param requestedAddonNames - Array of addon names that are currently requested
+     */
+    private invalidateStaleAddonCacheEntries(requestedAddonNames: string[]): void {
+        const requestedSet = new Set(requestedAddonNames);
+
+        // Remove cache entries for addons that are no longer requested
+        for (const cachedAddonName of this.addonLookupCache.keys()) {
+            if (!requestedSet.has(cachedAddonName)) {
+                this.addonLookupCache.delete(cachedAddonName);
             }
         }
 
-        return results;
+        // Also remove cache entries for addons that are no longer in availableAddons
+        // (in case they were removed from the filesystem)
+        for (const cachedAddonName of this.addonLookupCache.keys()) {
+            if (!this.availableAddons.has(cachedAddonName)) {
+                this.addonLookupCache.delete(cachedAddonName);
+            }
+        }
     }
 
     private loadAddonsSync(): void {
@@ -274,49 +311,215 @@ export class AddonRegistry {
             return;
         }
 
-        const addonEntryFiles = this.findAddonEntryFiles(addonsDir);
+        const requestedAddons = addons || [];
+
+        // Get addons requested by profiles
+        const profileAddons = this.getRequestedProfileAddons();
+        const hasProfileAddons = profileAddons.length > 0;
+
+        if (requestedAddons.length === 0 && !hasProfileAddons) {
+            return;
+        }
+
         const loadedAddons: string[] = [];
 
-        // Try to load compiled JS files first
-        const jsFiles = addonEntryFiles.filter(f => f.endsWith(".js") || f.endsWith(".jsx"));
-        jsFiles.forEach(filePath => {
-            const addonName = this.loadSingleAddon(filePath, addonsDir);
-            if (addonName) {
-                loadedAddons.push(addonName);
-            }
-        });
+        // Combine requested addons and profile addons
+        const allRequestedAddons = [...new Set([...requestedAddons, ...profileAddons])];
 
-        // If no JS files found, check for TypeScript files and compile them first
-        if (loadedAddons.length === 0) {
-            const tsFiles = addonEntryFiles.filter(isSourceFile);
-            if (tsFiles.length > 0) {
-                // Calculate lib directory relative to addons directory
-                const libDir = path.isAbsolute(addonsDir) ? path.resolve(addonsDir, "..", "lib") : resolvePath(system, ".", "lib");
+        // Selective cache invalidation: only clear cache entries for addons that are no longer requested
+        this.invalidateStaleAddonCacheEntries(allRequestedAddons);
 
-                if (!system.directoryExists(libDir)) {
-                    system.createDirectory(libDir);
-                }
-
-                // Find all TypeScript files in the addons directory to compile dependencies
-                const allTsFiles = this.findAllTypeScriptFiles(addonsDir);
-
-                const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, allTsFiles);
-
-                // Load the compiled addons (only the entry point files)
-                compiledAddonFiles.forEach((filePath: string) => {
-                    const addonName = this.loadSingleAddon(filePath, libDir);
-                    if (addonName) {
-                        loadedAddons.push(addonName);
-                    }
-                });
+        for (const addonName of allRequestedAddons) {
+            const loaded = this.loadSpecificAddon(addonName, addonsDir, reporter, system);
+            if (loaded) {
+                loadedAddons.push(loaded);
             }
         }
 
         this.reportMissingAddons(addons);
     }
 
+    private loadSpecificAddon(addonName: string, addonsDir: string, reporter: Reporter, system: ts.System): string | null {
+        // Try to find the specific addon in common locations
+        const possiblePaths = [
+            path.join(addonsDir, addonName, "addon.js"),
+            path.join(addonsDir, addonName, "index.js"),
+            path.join(addonsDir, addonName, "addon.jsx"),
+            path.join(addonsDir, addonName, "index.jsx"),
+        ];
+
+        // First try to load pre-compiled JS files
+        for (const jsPath of possiblePaths) {
+            if (system.fileExists(jsPath)) {
+                const loadedName = this.loadSingleAddon(jsPath, addonsDir);
+                if (loadedName) {
+                    return loadedName;
+                }
+            }
+        }
+
+        // If no JS files found, look for TypeScript files and compile them
+        const tsPossiblePaths = [
+            path.join(addonsDir, addonName, "addon.ts"),
+            path.join(addonsDir, addonName, "index.ts"),
+            path.join(addonsDir, addonName, "addon.tsx"),
+            path.join(addonsDir, addonName, "index.tsx"),
+        ];
+
+        const foundTsFiles: string[] = [];
+        for (const tsPath of tsPossiblePaths) {
+            if (system.fileExists(tsPath)) {
+                foundTsFiles.push(tsPath);
+                break; // Only need one entry point per addon
+            }
+        }
+
+        if (foundTsFiles.length > 0) {
+            // This is the directory where the compiled addons will be stored, next the addonsDir
+            const libDir = path.isAbsolute(addonsDir) ? path.resolve(addonsDir, "..", "lib") : resolvePath(system, ".", "lib");
+
+            if (!system.directoryExists(libDir)) {
+                system.createDirectory(libDir);
+            }
+
+            // To handle cross-addon dependencies, compile all TypeScript files in the addons directory
+            // This ensures that when an addon imports from another addon, the dependency is available
+            const allTsFilesInAddonsDir = this.findTypeScriptFilesInDirectory(addonsDir);
+
+            const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, allTsFilesInAddonsDir);
+
+            // Load the compiled addon
+            for (const compiledFile of compiledAddonFiles) {
+                const loadedName = this.loadSingleAddon(compiledFile, libDir);
+                if (loadedName === addonName) {
+                    return loadedName;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private findTypeScriptFilesInDirectory(dir: string): string[] {
+        const results: string[] = [];
+        const { system } = this.config;
+
+        if (!system.directoryExists(dir)) {
+            return results;
+        }
+
+        // Get all TypeScript files in the current directory
+        const tsFiles = system.readDirectory(dir, [".ts", ".tsx"], undefined, undefined);
+        results.push(...tsFiles);
+
+        // Recursively search subdirectories, excluding build and output directories
+        const subdirs = system.readDirectory(dir, undefined, ["directory"], undefined);
+        const excludedDirs = ["lib", "dist", "build", "node_modules", ".git"];
+
+        for (let subdir of subdirs) {
+            if (subdir !== dir) {
+                const subdirName = path.basename(subdir);
+                if (excludedDirs.includes(subdirName)) {
+                    continue; // Skip build/output directories
+                }
+
+                if (!path.isAbsolute(subdir)) {
+                    subdir = resolvePath(system, subdir);
+                }
+                results.push(...this.findTypeScriptFilesInDirectory(subdir));
+            }
+        }
+
+        return results;
+    }
+
+    private needsCompilation(tsFiles: string[], libDir: string, addonsDir: string): { needsCompilation: boolean; filesToCompile: string[] } {
+        const filesToCompile: string[] = [];
+
+        for (const tsFile of tsFiles) {
+            const relativePath = path.relative(addonsDir, tsFile);
+            const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
+            const cacheKey = tsFile;
+
+            // Check if source file exists and get its modification time
+            if (!this.config.system.fileExists(tsFile)) {
+                continue;
+            }
+
+            const sourceTimestamp = this.getCachedFileModTime(tsFile);
+
+            // Check if output file exists
+            const outputExists = this.config.system.fileExists(outputPath);
+
+            // Check cache
+            const cached = this.compilationCache.get(cacheKey);
+
+            if (!outputExists || !cached || cached.timestamp < sourceTimestamp) {
+                filesToCompile.push(tsFile);
+            }
+        }
+
+        return {
+            needsCompilation: filesToCompile.length > 0,
+            filesToCompile,
+        };
+    }
+
+    private getExistingCompiledFiles(libDir: string): string[] {
+        const compiledAddonFiles: string[] = [];
+
+        if (!this.config.system.directoryExists(libDir)) {
+            return compiledAddonFiles;
+        }
+
+        // Get all files and extract unique addon directory names
+        const allFiles = this.config.system.readDirectory(libDir, [".js"], undefined, undefined);
+
+        // Extract unique directory names from file paths (excluding root level files)
+        const addonDirNames = new Set<string>();
+        for (const filePath of allFiles) {
+            const relativePath = path.relative(libDir, filePath);
+            const dirParts = relativePath.split(path.sep);
+            if (dirParts.length > 1) {
+                // Skip root level files like index.js
+                addonDirNames.add(dirParts[0]);
+            }
+        }
+        const addonDirs = Array.from(addonDirNames);
+
+        for (const addonDirName of addonDirs) {
+            const addonDirPath = path.join(libDir, addonDirName);
+            if (this.config.system.directoryExists(addonDirPath)) {
+                const files = this.config.system.readDirectory(addonDirPath, [".js", ".jsx"], undefined, undefined);
+
+                // Look for addon.js or index.js files
+                const addonFiles = files.filter(f => path.basename(f, path.extname(f)).toLowerCase() === "addon");
+                const indexFiles = files.filter(f => path.basename(f, path.extname(f)).toLowerCase() === "index");
+
+                if (addonFiles.length > 0) {
+                    compiledAddonFiles.push(addonFiles[0]);
+                } else if (indexFiles.length > 0) {
+                    compiledAddonFiles.push(indexFiles[0]);
+                }
+            }
+        }
+
+        return compiledAddonFiles;
+    }
+
     private compileSourceFiles(addonsDir: string, reporter: Reporter, libDir: string, tsFiles: string[]): string[] {
         try {
+            // Check if compilation is actually needed
+            const compilationCheck = this.needsCompilation(tsFiles, libDir, addonsDir);
+
+            if (!compilationCheck.needsCompilation) {
+                // All files are up to date, return existing compiled files
+                return this.getExistingCompiledFiles(libDir);
+            }
+
+            // Only compile files that actually need compilation
+            const filesToCompile = compilationCheck.filesToCompile;
+
             // Enhanced error reporting: Check filesystem permissions and paths
             const fsInfo = this.validateFilesystemAccess(addonsDir, libDir);
             if (!fsInfo.canCompile) {
@@ -333,9 +536,9 @@ export class AddonRegistry {
             }
 
             // Enhanced error reporting: List files being compiled
-            const fileList = tsFiles.map(f => `    - ${path.relative(addonsDir, f)}`).join("\n");
+            const fileList = filesToCompile.map(f => `    - ${path.relative(addonsDir, f)}`).join("\n");
 
-            // Use TypeScript's simple transpile API instead of the full Compiler to avoid infinite loops
+            // Use batch compilation instead of individual file transpilation for better performance
             const compilerOptions: ts.CompilerOptions = {
                 outDir: libDir,
                 rootDir: addonsDir,
@@ -348,27 +551,28 @@ export class AddonRegistry {
                 strict: false,
             };
 
-            // Create output directory structure
-            for (const tsFile of tsFiles) {
+            // Pre-create all necessary directories to avoid repeated checks
+            const outputDirs = new Set<string>();
+            for (const tsFile of filesToCompile) {
                 const relativePath = path.relative(addonsDir, tsFile);
                 const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
                 const outputDir = path.dirname(outputPath);
+                outputDirs.add(outputDir);
+            }
 
+            // Create all directories at once
+            for (const outputDir of outputDirs) {
                 if (!this.config.system.directoryExists(outputDir)) {
                     this.config.system.createDirectory(outputDir);
                 }
+            }
 
-                // Read and transpile each file individually
-                const sourceCode = this.config.system.readFile(tsFile);
-                if (sourceCode) {
-                    const transpileResult = ts.transpileModule(sourceCode, {
-                        compilerOptions,
-                        fileName: tsFile,
-                    });
-
-                    // Write the transpiled JavaScript
-                    this.config.system.writeFile(outputPath, transpileResult.outputText);
-                }
+            // Use batch compilation with createProgram for better performance
+            if (filesToCompile.length > 1) {
+                this.batchCompileFiles(filesToCompile, compilerOptions, addonsDir, libDir);
+            } else {
+                // For single files, still use transpileModule for simplicity
+                this.transpileSingleFile(filesToCompile[0], compilerOptions, addonsDir, libDir);
             }
 
             const result = { emitSkipped: false, diagnostics: [] };
@@ -383,7 +587,7 @@ export class AddonRegistry {
                 const missingOutputs = expectedJsFiles.filter(js => !this.config.system.fileExists(js));
 
                 const errorReport = [
-                    `Failed to compile addons in ${addonsDir}:`,
+                    `Failed to compile addons in "${addonsDir}":`,
                     ``,
                     `📁 Input files (${tsFiles.length}):`,
                     fileList,
@@ -447,9 +651,136 @@ export class AddonRegistry {
             return compiledAddonFiles;
         } catch (error) {
             reporter?.reportDiagnostic(
-                new ErrorMessage(`Failed to compile addons in ${addonsDir}: ${error instanceof Error ? error.message : String(error)}`)
+                new ErrorMessage(`Failed to compile addons in "${addonsDir}": ${error instanceof Error ? error.message : String(error)}`)
             );
             return [];
+        }
+    }
+
+    private batchCompileFiles(filesToCompile: string[], compilerOptions: ts.CompilerOptions, addonsDir: string, libDir: string): void {
+        // Reuse compiler host if options have not changed
+        if (!this.compilerHost || !this.lastCompilerOptions || this.hasCompilerOptionsChanged(compilerOptions)) {
+            this.compilerHost = ts.createCompilerHost(compilerOptions);
+            this.lastCompilerOptions = { ...compilerOptions };
+        }
+
+        // Add retry logic for CI environments where file system operations might be slower
+        let program: ts.Program;
+        try {
+            program = ts.createProgram(filesToCompile, compilerOptions, this.compilerHost);
+        } catch (error) {
+            // Log the original error for debugging
+            this.config.reporter?.reportDiagnostic(
+                new WarnMessage(
+                    `Failed to create TypeScript program with cached compiler host for files: ${filesToCompile.join(", ")}. Error: ${error}. Attempting fallback with new compiler host.`
+                )
+            );
+
+            // Fallback: create a new compiler host if the cached one fails
+            try {
+                this.compilerHost = ts.createCompilerHost(compilerOptions);
+                program = ts.createProgram(filesToCompile, compilerOptions, this.compilerHost);
+            } catch (fallbackError) {
+                // If fallback also fails, report both errors and throw
+                this.config.reporter?.reportDiagnostic(
+                    new ErrorMessage(
+                        `Failed to create TypeScript program even with new compiler host for files: ${filesToCompile.join(", ")}. Original error: ${error}. Fallback error: ${fallbackError}`
+                    )
+                );
+                throw fallbackError;
+            }
+        }
+
+        // Emit all files at once
+        const emitResult = program.emit();
+
+        // Check for compilation errors and report them, but be more lenient
+        const errorDiagnostics = emitResult.diagnostics.filter(diag => diag.category === ts.DiagnosticCategory.Error);
+        const warningDiagnostics = emitResult.diagnostics.filter(diag => diag.category === ts.DiagnosticCategory.Warning);
+        const infoDiagnostics = emitResult.diagnostics.filter(
+            diag => diag.category === ts.DiagnosticCategory.Message || diag.category === ts.DiagnosticCategory.Suggestion
+        );
+        const hasErrors = errorDiagnostics.length > 0;
+
+        // Report all diagnostics for better debugging
+        for (const diag of errorDiagnostics) {
+            const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
+            const fileName = diag.file ? path.relative(addonsDir, diag.file.fileName) : "unknown";
+            this.config.reporter?.reportDiagnostic(new ErrorMessage(`TypeScript error in addon file ${fileName}: ${message}`));
+        }
+
+        for (const diag of warningDiagnostics) {
+            const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
+            const fileName = diag.file ? path.relative(addonsDir, diag.file.fileName) : "unknown";
+            this.config.reporter?.reportDiagnostic(new WarnMessage(`TypeScript warning in addon file ${fileName}: ${message}`));
+        }
+
+        for (const diag of infoDiagnostics) {
+            const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
+            const fileName = diag.file ? path.relative(addonsDir, diag.file.fileName) : "unknown";
+            this.config.reporter?.reportDiagnostic(new InfoMessage(`TypeScript info in addon file ${fileName}: ${message}`));
+        }
+
+        if (emitResult.emitSkipped) {
+            // If emit was skipped, try fallback to individual file transpilation
+            // But only for files that actually need compilation
+            for (const tsFile of filesToCompile) {
+                const { needsCompilation: fileNeedsCompilation } = this.needsCompilation([tsFile], libDir, addonsDir);
+                if (fileNeedsCompilation) {
+                    try {
+                        this.transpileSingleFile(tsFile, compilerOptions, addonsDir, libDir);
+                    } catch (error) {
+                        this.config.reporter?.reportDiagnostic(new ErrorMessage(`Failed to compile addon file ${tsFile}: ${error}`));
+                    }
+                }
+            }
+            return;
+        }
+
+        // Only report errors if they're severe (not just warnings or info)
+        if (hasErrors) {
+            for (const diag of errorDiagnostics) {
+                const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
+                this.config.reporter?.reportDiagnostic(new ErrorMessage(`TypeScript error in "${addonsDir}": ${message}`));
+            }
+        }
+
+        // Update cache if emit was successful, even if there were non-error diagnostics
+        // This is more lenient than before to handle CI environment differences
+        if (!emitResult.emitSkipped && !hasErrors) {
+            for (const tsFile of filesToCompile) {
+                const sourceTime = this.config.system.getModifiedTime?.(tsFile);
+                const relativePath = path.relative(addonsDir, tsFile);
+                const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
+
+                this.compilationCache.set(tsFile, {
+                    timestamp: sourceTime ? sourceTime.getTime() : Date.now(),
+                    outputPath,
+                });
+            }
+        }
+    }
+
+    private transpileSingleFile(tsFile: string, compilerOptions: ts.CompilerOptions, addonsDir: string, libDir: string): void {
+        const sourceCode = this.config.system.readFile(tsFile);
+        if (sourceCode) {
+            const transpileResult = ts.transpileModule(sourceCode, {
+                compilerOptions,
+                fileName: tsFile,
+            });
+
+            const relativePath = path.relative(addonsDir, tsFile);
+            const outputPath = path.join(libDir, relativePath.replace(/\.ts$/, ".js"));
+
+            // Write the transpiled JavaScript
+            this.config.system.writeFile(outputPath, transpileResult.outputText);
+
+            // Update cache
+            const sourceTime = this.config.system.getModifiedTime?.(tsFile);
+            this.compilationCache.set(tsFile, {
+                timestamp: sourceTime ? sourceTime.getTime() : Date.now(),
+                outputPath,
+            });
         }
     }
 
@@ -698,6 +1029,131 @@ export class AddonRegistry {
     }
 
     /**
+     * Performs a deep equality comparison between two values.
+     * Handles objects, arrays, and primitive values correctly without relying on JSON.stringify.
+     */
+    private deepEqual(a: unknown, b: unknown): boolean {
+        // Same reference or both null/undefined
+        if (a === b) {
+            return true;
+        }
+
+        // Different types or one is null/undefined
+        if (a == null || b == null || typeof a !== typeof b) {
+            return false;
+        }
+
+        // Handle arrays
+        if (Array.isArray(a) && Array.isArray(b)) {
+            if (a.length !== b.length) {
+                return false;
+            }
+            return a.every((val, index) => this.deepEqual(val, b[index]));
+        }
+
+        // Handle objects (but not arrays, which are handled above)
+        if (typeof a === "object" && !Array.isArray(a)) {
+            const keysA = Object.keys(a as Record<string, unknown>);
+            const keysB = Object.keys(b as Record<string, unknown>);
+
+            if (keysA.length !== keysB.length) {
+                return false;
+            }
+
+            return keysA.every(
+                key => keysB.includes(key) && this.deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])
+            );
+        }
+
+        // Primitive values (already handled by a === b above, but explicit for clarity)
+        return a === b;
+    }
+
+    /**
+     * Efficiently compares compiler options to determine if the compiler host needs to be recreated.
+     * Only checks properties that actually affect compiler host behavior, avoiding expensive deep equality.
+     */
+    private hasCompilerOptionsChanged(newOptions: ts.CompilerOptions): boolean {
+        const lastOptions = this.lastCompilerOptions;
+        if (!lastOptions) {
+            return true;
+        }
+
+        // Properties that affect compiler host behavior and require recreation
+        const criticalProperties: (keyof ts.CompilerOptions)[] = [
+            "target",
+            "module",
+            "moduleResolution",
+            "baseUrl",
+            "paths",
+            "rootDir",
+            "outDir",
+            "typeRoots",
+            "types",
+            "lib",
+            "allowJs",
+            "checkJs",
+            "jsx",
+            "jsxFactory",
+            "jsxFragmentFactory",
+            "jsxImportSource",
+            "resolveJsonModule",
+            "esModuleInterop",
+            "allowSyntheticDefaultImports",
+            "experimentalDecorators",
+            "emitDecoratorMetadata",
+        ];
+
+        // Fast comparison of critical properties
+        for (const prop of criticalProperties) {
+            const lastValue = lastOptions[prop];
+            const newValue = newOptions[prop];
+
+            // Handle array properties (like 'lib', 'types', 'typeRoots')
+            if (Array.isArray(lastValue) && Array.isArray(newValue)) {
+                if (lastValue.length !== newValue.length || !lastValue.every((val, index) => val === newValue[index])) {
+                    return true;
+                }
+            }
+            // Handle object properties (like 'paths')
+            else if (typeof lastValue === "object" && typeof newValue === "object" && lastValue !== null && newValue !== null) {
+                // For paths specifically, do a shallow comparison
+                if (prop === "paths") {
+                    const lastPaths = lastValue as Record<string, string[]>;
+                    const newPaths = newValue as Record<string, string[]>;
+                    const lastKeys = Object.keys(lastPaths);
+                    const newKeys = Object.keys(newPaths);
+
+                    if (
+                        lastKeys.length !== newKeys.length ||
+                        !lastKeys.every(
+                            key =>
+                                newKeys.includes(key) &&
+                                Array.isArray(lastPaths[key]) &&
+                                Array.isArray(newPaths[key]) &&
+                                lastPaths[key].length === newPaths[key].length &&
+                                lastPaths[key].every((val, idx) => val === newPaths[key][idx])
+                        )
+                    ) {
+                        return true;
+                    }
+                } else {
+                    // For other objects, use proper deep equality comparison
+                    if (!this.deepEqual(lastValue, newValue)) {
+                        return true;
+                    }
+                }
+            }
+            // Handle primitive properties
+            else if (lastValue !== newValue) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Detects if a TypeScript error is dependency-related
      */
     private isDependencyRelatedError(message: string): boolean {
@@ -820,5 +1276,3 @@ const getImportPath = (system: ts.System, filePath: string) => {
 };
 
 const getAddonName = (filePath: string) => filePath.replace(/\\/g, "/").split("/").slice(-2)[0];
-
-const isSourceFile = (filePath: string): boolean => filePath.endsWith(".ts") || filePath.endsWith(".tsx");

@@ -241,9 +241,11 @@ export class Compiler {
                 const profileAddons = this.options.getAddons(profile);
                 // Reverse the addon order so current profile addons run before dependency addons
                 // This ensures transformers chain correctly (e.g., foobar→CLIENT→SERVER)
+
+                // Optimize addon resolution with direct lookup instead of linear search
                 const resolvedAddons = profileAddons
                     .reverse()
-                    .map(name => this.addons?.getAvailableAddons().find(addon => addon.getName() === name))
+                    .map(name => this.addons?.getAddonByName(name))
                     .filter(addon => addon !== undefined);
 
                 resolvedAddons.forEach(addon => {
