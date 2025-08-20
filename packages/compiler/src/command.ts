@@ -190,6 +190,7 @@ export const addonConfig = (command: Command, system: ts.System, options: Compil
                 .filter((it: string) => it.length > 0) ?? [],
 
         ...(resolvedAddonsDir && { addonsDir: resolvedAddonsDir }),
+        ...(options?.profile && { activeProfile: options.profile }),
         system,
         reporter,
         ...(!!options?.config?.profiles && { profiles: options?.config?.profiles }),

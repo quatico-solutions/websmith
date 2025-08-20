@@ -15,6 +15,7 @@ export type AddonConfig = {
     addons?: string[];
     addonsDir?: string;
     profiles?: Record<string, CompilationProfile>;
+    activeProfile?: string;
     reporter: Reporter;
     system: ts.System;
 };
@@ -233,7 +234,14 @@ export class AddonRegistry {
 
         // Check if any profiles request addons
         const profileAddons: string[] = [];
-        if (this.config.profiles) {
+        if (this.config.activeProfile && this.config.profiles) {
+            // CLI mode: Only load addons for the active profile
+            const activeProfile = this.config.profiles[this.config.activeProfile];
+            if (activeProfile?.addons) {
+                profileAddons.push(...activeProfile.addons);
+            }
+        } else if (this.config.profiles) {
+            // Direct AddonRegistry usage: Load addons from all profiles (backward compatibility)
             for (const profile of Object.values(this.config.profiles)) {
                 if (profile.addons) {
                     profileAddons.push(...profile.addons);
