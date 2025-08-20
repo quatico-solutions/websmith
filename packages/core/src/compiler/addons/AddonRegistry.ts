@@ -18,8 +18,6 @@ export type AddonConfig = {
     profiles?: Record<string, CompilationProfile>;
     reporter: Reporter;
     system: ts.System;
-    /** If true, only load addons when explicitly requested (CLI behavior) */
-    cliMode?: boolean;
 };
 
 export class AddonRegistry {
@@ -202,15 +200,7 @@ export class AddonRegistry {
         const hasProfileAddons = profileAddons.length > 0;
 
         if (requestedAddons.length === 0 && !hasProfileAddons) {
-            // No specific addons requested
-            if (this.config.cliMode === true) {
-                // CLI mode: don't load any addons unless explicitly requested
-                return;
-            } else {
-                // Direct usage (cliMode is undefined or false): load ALL available addons (backward compatibility)
-                this.loadAllAvailableAddons(addonsDir, reporter, system);
-                return;
-            }
+            return;
         }
 
         const loadedAddons: string[] = [];
@@ -225,79 +215,6 @@ export class AddonRegistry {
         }
 
         this.reportMissingAddons(addons);
-    }
-
-    private loadAllAvailableAddons(addonsDir: string, reporter: Reporter, _system: ts.System): void {
-        // Load all available addons in the directory (original behavior)
-        // Try to load compiled JS files first
-        const allAddonPaths = this.findAllAddonPaths(addonsDir);
-        const loadedAddons: string[] = [];
-
-        // Try JS files first
-        const jsFiles = allAddonPaths.filter(f => f.endsWith(".js") || f.endsWith(".jsx"));
-        jsFiles.forEach(filePath => {
-            const addonName = this.loadSingleAddon(filePath, addonsDir);
-            if (addonName) {
-                loadedAddons.push(addonName);
-            }
-        });
-
-        // If no JS files were loaded, try to compile and load TS files
-        if (loadedAddons.length === 0) {
-            const tsFiles = allAddonPaths.filter(f => f.endsWith(".ts") || f.endsWith(".tsx"));
-            if (tsFiles.length > 0) {
-                const libDir = path.join(addonsDir, "..", "lib");
-                const compiledFiles = this.compileSourceFiles(addonsDir, reporter, libDir, tsFiles);
-
-                compiledFiles.forEach(filePath => {
-                    const addonName = this.loadSingleAddon(filePath, libDir);
-                    if (addonName) {
-                        loadedAddons.push(addonName);
-                    }
-                });
-            }
-        }
-    }
-
-    private findAllAddonPaths(addonsDir: string): string[] {
-        const results: string[] = [];
-        const { system } = this.config;
-
-        if (!system.directoryExists(addonsDir)) {
-            return results;
-        }
-
-        try {
-            // Get all subdirectories
-            const entries = system.readDirectory(addonsDir, undefined, ["directory"], undefined);
-
-            for (const entry of entries) {
-                if (entry !== addonsDir) {
-                    // Look for addon.ts/js or index.ts/js in each subdirectory
-                    const addonFiles = [
-                        path.join(entry, "addon.js"),
-                        path.join(entry, "addon.jsx"),
-                        path.join(entry, "index.js"),
-                        path.join(entry, "index.jsx"),
-                        path.join(entry, "addon.ts"),
-                        path.join(entry, "addon.tsx"),
-                        path.join(entry, "index.ts"),
-                        path.join(entry, "index.tsx"),
-                    ];
-
-                    for (const addonFile of addonFiles) {
-                        if (system.fileExists(addonFile)) {
-                            results.push(addonFile);
-                            break; // Only take the first match per directory
-                        }
-                    }
-                }
-            }
-        } catch (_error) {
-            // Ignore errors and return empty results
-        }
-
-        return results;
     }
 
     private loadSpecificAddon(addonName: string, addonsDir: string, reporter: Reporter, system: ts.System): string | null {
