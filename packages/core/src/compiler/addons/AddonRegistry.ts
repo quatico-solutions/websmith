@@ -238,7 +238,7 @@ export class AddonRegistry {
         // Always load addons from all profiles - let the Compiler decide which ones to activate
         // This ensures that profile-dependent addons are available when the Compiler needs them
         const profileAddons: string[] = [];
-        for (const profile of Object.values(this.config.profiles)) {
+        for (const [, profile] of Object.entries(this.config.profiles)) {
             if (profile.addons) {
                 profileAddons.push(...profile.addons);
             }
@@ -382,11 +382,11 @@ export class AddonRegistry {
                 system.createDirectory(libDir);
             }
 
-            // Find dependencies for this specific addon
-            const addonDir = path.join(addonsDir, addonName);
-            const allTsFilesForAddon = this.findTypeScriptFilesInDirectory(addonDir);
+            // To handle cross-addon dependencies, compile all TypeScript files in the addons directory
+            // This ensures that when an addon imports from another addon, the dependency is available
+            const allTsFilesInAddonsDir = this.findTypeScriptFilesInDirectory(addonsDir);
 
-            const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, allTsFilesForAddon);
+            const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, allTsFilesInAddonsDir);
 
             // Load the compiled addon
             for (const compiledFile of compiledAddonFiles) {
