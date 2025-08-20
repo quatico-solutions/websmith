@@ -45,7 +45,12 @@ describe("Ctor", () => {
         createAddon("addons/invalid/addon", system, "export const whatever = () => {};", { whatever: jest.fn() });
         target.reportDiagnostic = jest.fn();
 
-        new AddonRegistry({ addonsDir: "./addons", reporter: target, system });
+        new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: target,
+            system,
+            profiles: { target: { addons: ["expected", "invalid"] } },
+        }).getAvailableAddons("target");
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -68,7 +73,12 @@ describe("getAvailableAddons", () => {
     it("returns addons w/ single addon in addon directory", () => {
         const system = createSystem({}, { virtual: true });
         createAddon("addons/expected/addon", system);
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: new ReporterMock(system), system });
+        const testObj = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: new ReporterMock(system),
+            system,
+            profiles: { target: { addons: ["expected"] } },
+        });
 
         const actual = testObj.getAvailableAddons();
 
@@ -80,7 +90,12 @@ describe("getAvailableAddons", () => {
         createAddon("addons/one/addon", system);
         createAddon("addons/two/addon", system);
         createAddon("addons/three/addon", system);
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: new ReporterMock(system), system });
+        const testObj = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: new ReporterMock(system),
+            system,
+            profiles: { target: { addons: ["one", "two", "three"] } },
+        });
 
         const actual = testObj.getAvailableAddons();
 
@@ -283,7 +298,7 @@ describe("reportMissingAddons", () => {
 });
 
 describe("Addon loading rules", () => {
-    describe("loadAddonsSync() - With profile 'target', no profile addons, no global addons - load all found addons", () => {
+    describe("loadAddonsSync() - With profile 'target', no profile addons, but global addons - load all global addons", () => {
         it("loads all found addons when profile has no specific configuration", () => {
             const system = createSystem({}, { virtual: true });
             createAddon("addons/addon-one/addon", system);
@@ -294,19 +309,20 @@ describe("Addon loading rules", () => {
                 addonsDir: "./addons",
                 reporter: new ReporterMock(system),
                 system,
+                addons: ["addon-one", "addon-two"],
             });
 
             const actual = testObj.getAvailableAddons("target");
 
-            expect(actual.getNames()).toEqual(["addon-one", "addon-two", "addon-three"]);
+            expect(actual.getNames()).toEqual(["addon-one", "addon-two"]);
         });
 
-        it("loads all found addons when profile exists but has no addons property", () => {
+        it("loads profile addons when profile exists but has no addons property", () => {
             const system = createSystem({}, { virtual: true });
             createAddon("addons/first/addon", system);
             createAddon("addons/second/addon", system);
             const testObj = new AddonRegistry({
-                profiles: { target: {} },
+                profiles: { target: { addons: ["second"] } },
                 addonsDir: "./addons",
                 reporter: new ReporterMock(system),
                 system,
@@ -314,7 +330,7 @@ describe("Addon loading rules", () => {
 
             const actual = testObj.getAvailableAddons("target");
 
-            expect(actual.getNames()).toEqual(["first", "second"]);
+            expect(actual.getNames()).toEqual(["second"]);
         });
     });
 
@@ -627,7 +643,7 @@ describe("Addon Compilation", () => {
         createAddon(`${ADDONS_DIR}/js-addon/addon`, system);
         target.reportDiagnostic = jest.fn();
 
-        const testObj = new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system });
+        const testObj = new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system, addons: ["js-addon"] });
 
         const actual = testObj.getAvailableAddons();
         expect(actual.getNames()).toContain("js-addon");
@@ -686,7 +702,7 @@ describe("Addon Compilation", () => {
         );
         target.reportDiagnostic = jest.fn();
 
-        new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system }).getAvailableAddons();
+        new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system, addons: ["broken-addon"] }).getAvailableAddons();
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -709,15 +725,25 @@ describe("Addon Compilation", () => {
         );
         target.reportDiagnostic = jest.fn();
 
-        const testObj = new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system });
+        const testObj = new AddonRegistry({
+            addonsDir: ADDONS_DIR,
+            reporter: target,
+            system,
+            profiles: { target: { addons: ["missing-import-addon"] } },
+        });
 
-        testObj.getAvailableAddons();
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+        testObj.getAvailableAddons("target");
+        expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
+            1,
             expect.objectContaining({
                 category: expect.any(Number),
-                messageText: expect.stringContaining(
-                    `Cannot find module '${path.resolve(ADDONS_DIR, "..", "lib", "missing-import-addon", "addon.js")}' from 'src/compiler/addons/AddonRegistry.ts'`
-                ),
+                messageText: expect.stringContaining(`Failed to compile addons in "${ADDONS_DIR}"`),
+            })
+        );
+        expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({
+                messageText: expect.stringContaining('Missing addons for profile "target": "missing-import-addon"'),
             })
         );
     });
@@ -749,7 +775,7 @@ describe("Addon Compilation", () => {
         createAddon("addons/priority-addon/addon", system);
         target.reportDiagnostic = jest.fn();
 
-        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: target, system });
+        const testObj = new AddonRegistry({ addonsDir: "./addons", reporter: target, system, profiles: { target: { addons: ["priority-addon"] } } });
 
         const actual = testObj.getAvailableAddons();
         expect(actual.getNames()).toContain("priority-addon");
