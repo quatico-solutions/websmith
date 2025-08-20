@@ -192,8 +192,6 @@ export const addonConfig = (command: Command, system: ts.System, options: Compil
         ...(resolvedAddonsDir && { addonsDir: resolvedAddonsDir }),
         system,
         reporter,
-        cliMode: true, // Indicate this is CLI usage
-
         ...(!!options?.config?.profiles && { profiles: options?.config?.profiles }),
     };
 };
