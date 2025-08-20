@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { ErrorMessage, WarnMessage, type AddonContext, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
+import { ErrorMessage, InfoMessage, WarnMessage, type AddonContext, type CompilationProfile, type Reporter } from "@quatico/websmith-api";
 import { createRequire } from "node:module";
 import path from "node:path";
 import ts from "typescript";
@@ -58,6 +58,13 @@ export class AddonRegistry {
      */
     private compilationCache: Map<string, { timestamp: number; outputPath: string }> = new Map();
     private addonLookupCache: Map<string, CompilerAddon> = new Map();
+
+    /**
+     * Cache for file modification times to avoid repeated filesystem operations.
+     * Key: file path, Value: { timestamp: modification time in milliseconds, cachedAt: when this was cached }
+     */
+    private fileTimeCache: Map<string, { timestamp: number; cachedAt: number }> = new Map();
+
     private compilerHost?: ts.CompilerHost;
     private lastCompilerOptions?: ts.CompilerOptions;
 
@@ -127,6 +134,7 @@ export class AddonRegistry {
     refresh(): this {
         this.availableAddons.clear();
         this.addonLookupCache.clear(); // Clear cache to prevent stale references
+        this.fileTimeCache.clear(); // Clear file time cache to get fresh modification times
         this.loadAddonsSync();
         return this;
     }
@@ -238,10 +246,63 @@ export class AddonRegistry {
         return profileAddons;
     }
 
-    private loadAddonsSync(): void {
-        // Clear lookup cache to prevent stale references when reloading addons
-        this.addonLookupCache.clear();
+    /**
+     * Gets the modification time of a file, using cache to avoid repeated filesystem operations.
+     * Cache entries are valid for 1 second to balance performance with accuracy.
+     *
+     * @param filePath - Path to the file
+     * @returns File modification timestamp in milliseconds, or 0 if file doesn't exist or error occurred
+     */
+    private getCachedFileModTime(filePath: string): number {
+        const now = Date.now();
+        const cached = this.fileTimeCache.get(filePath);
 
+        // Use cached value if it's less than 1 second old
+        if (cached && now - cached.cachedAt < 1000) {
+            return cached.timestamp;
+        }
+
+        // Get fresh modification time
+        let timestamp = 0;
+        try {
+            const modTime = this.config.system.getModifiedTime?.(filePath);
+            timestamp = modTime ? modTime.getTime() : 0;
+        } catch (_error) {
+            // File might not exist or be inaccessible
+            timestamp = 0;
+        }
+
+        // Cache the result
+        this.fileTimeCache.set(filePath, { timestamp, cachedAt: now });
+        return timestamp;
+    }
+
+    /**
+     * Selectively invalidates addon lookup cache entries for addons that are no longer requested.
+     * This preserves cache entries for addons that are still needed, maintaining performance benefits.
+     *
+     * @param requestedAddonNames - Array of addon names that are currently requested
+     */
+    private invalidateStaleAddonCacheEntries(requestedAddonNames: string[]): void {
+        const requestedSet = new Set(requestedAddonNames);
+
+        // Remove cache entries for addons that are no longer requested
+        for (const cachedAddonName of this.addonLookupCache.keys()) {
+            if (!requestedSet.has(cachedAddonName)) {
+                this.addonLookupCache.delete(cachedAddonName);
+            }
+        }
+
+        // Also remove cache entries for addons that are no longer in availableAddons
+        // (in case they were removed from the filesystem)
+        for (const cachedAddonName of this.addonLookupCache.keys()) {
+            if (!this.availableAddons.has(cachedAddonName)) {
+                this.addonLookupCache.delete(cachedAddonName);
+            }
+        }
+    }
+
+    private loadAddonsSync(): void {
         const { addonsDir, reporter, system, addons } = this.config;
         if (!addonsDir || !system.directoryExists(addonsDir)) {
             if (addonsDir) {
@@ -264,6 +325,10 @@ export class AddonRegistry {
 
         // Combine requested addons and profile addons
         const allRequestedAddons = [...new Set([...requestedAddons, ...profileAddons])];
+
+        // Selective cache invalidation: only clear cache entries for addons that are no longer requested
+        this.invalidateStaleAddonCacheEntries(allRequestedAddons);
+
         for (const addonName of allRequestedAddons) {
             const loaded = this.loadSpecificAddon(addonName, addonsDir, reporter, system);
             if (loaded) {
@@ -381,8 +446,7 @@ export class AddonRegistry {
                 continue;
             }
 
-            const sourceTime = this.config.system.getModifiedTime?.(tsFile);
-            const sourceTimestamp = sourceTime ? sourceTime.getTime() : 0;
+            const sourceTimestamp = this.getCachedFileModTime(tsFile);
 
             // Check if output file exists
             const outputExists = this.config.system.fileExists(outputPath);
@@ -608,7 +672,7 @@ export class AddonRegistry {
             // Log the original error for debugging
             this.config.reporter?.reportDiagnostic(
                 new WarnMessage(
-                    `Failed to create TypeScript program with cached compiler host: ${error}. Attempting fallback with new compiler host.`
+                    `Failed to create TypeScript program with cached compiler host for files: ${filesToCompile.join(", ")}. Error: ${error}. Attempting fallback with new compiler host.`
                 )
             );
 
@@ -620,7 +684,7 @@ export class AddonRegistry {
                 // If fallback also fails, report both errors and throw
                 this.config.reporter?.reportDiagnostic(
                     new ErrorMessage(
-                        `Failed to create TypeScript program even with new compiler host. Original error: ${error}. Fallback error: ${fallbackError}`
+                        `Failed to create TypeScript program even with new compiler host for files: ${filesToCompile.join(", ")}. Original error: ${error}. Fallback error: ${fallbackError}`
                     )
                 );
                 throw fallbackError;
@@ -632,7 +696,30 @@ export class AddonRegistry {
 
         // Check for compilation errors and report them, but be more lenient
         const errorDiagnostics = emitResult.diagnostics.filter(diag => diag.category === ts.DiagnosticCategory.Error);
+        const warningDiagnostics = emitResult.diagnostics.filter(diag => diag.category === ts.DiagnosticCategory.Warning);
+        const infoDiagnostics = emitResult.diagnostics.filter(
+            diag => diag.category === ts.DiagnosticCategory.Message || diag.category === ts.DiagnosticCategory.Suggestion
+        );
         const hasErrors = errorDiagnostics.length > 0;
+
+        // Report all diagnostics for better debugging
+        for (const diag of errorDiagnostics) {
+            const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
+            const fileName = diag.file ? path.relative(addonsDir, diag.file.fileName) : "unknown";
+            this.config.reporter?.reportDiagnostic(new ErrorMessage(`TypeScript error in addon file ${fileName}: ${message}`));
+        }
+
+        for (const diag of warningDiagnostics) {
+            const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
+            const fileName = diag.file ? path.relative(addonsDir, diag.file.fileName) : "unknown";
+            this.config.reporter?.reportDiagnostic(new WarnMessage(`TypeScript warning in addon file ${fileName}: ${message}`));
+        }
+
+        for (const diag of infoDiagnostics) {
+            const message = ts.flattenDiagnosticMessageText(diag.messageText, "\n");
+            const fileName = diag.file ? path.relative(addonsDir, diag.file.fileName) : "unknown";
+            this.config.reporter?.reportDiagnostic(new InfoMessage(`TypeScript info in addon file ${fileName}: ${message}`));
+        }
 
         if (emitResult.emitSkipped) {
             // If emit was skipped, try fallback to individual file transpilation
