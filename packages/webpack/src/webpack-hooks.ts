@@ -7,11 +7,44 @@
  */
 import fs from "node:fs";
 import { parse } from "comment-json";
-import { Compilation, type Compiler, type LoaderContext, NormalModule, type Stats } from "webpack";
+import { type Compilation, type Compiler, type LoaderContext, NormalModule, type Stats } from "webpack";
 import { type WebpackLoaderContext } from "./loader";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 const LOADER_NAME = "websmith-loader";
+
+// Type guard interface for compilation validation
+interface CompilationLike {
+    hooks: {
+        processAssets: unknown;
+        [key: string]: unknown;
+    };
+    compiler: unknown;
+    emitAsset: unknown;
+}
+
+/**
+ * Validates if an object is a valid webpack Compilation using duck typing.
+ * This approach avoids instanceof issues with multiple webpack versions or different module contexts.
+ * @internal - Exported for testing purposes
+ */
+export const isValidCompilation = (compilation: unknown): compilation is CompilationLike => {
+    if (!compilation || typeof compilation !== "object" || compilation === null) {
+        return false;
+    }
+
+    const comp = compilation as Record<string, unknown>;
+
+    return (
+        "hooks" in comp &&
+        typeof comp.hooks === "object" &&
+        comp.hooks !== null &&
+        "processAssets" in (comp.hooks as Record<string, unknown>) &&
+        "compiler" in comp &&
+        "emitAsset" in comp &&
+        typeof comp.emitAsset === "function"
+    );
+};
 
 export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderConfig, context: WebpackLoaderContext) => {
     if (compiler.hooks) {
@@ -50,8 +83,8 @@ const makeCompilation = (loaderContext: WebpackLoaderContext) => {
     return (compilation: Compilation, options: WebsmithLoaderConfig): void => {
         // Register loader hooks for configuration updates
 
-        // Validate that compilation is a proper Compilation instance before calling getCompilationHooks
-        if (compilation && compilation instanceof Compilation) {
+        // Validate that compilation has required properties using duck typing
+        if (isValidCompilation(compilation)) {
             try {
                 const hooks = NormalModule.getCompilationHooks(compilation);
                 hooks?.loader?.tap(LOADER_NAME, (ctx: object) => {
@@ -71,7 +104,7 @@ const makeCompilation = (loaderContext: WebpackLoaderContext) => {
                 console.warn(`${LOADER_NAME}: Failed to register compilation hooks:`, error);
             }
         } else {
-            console.warn(`${LOADER_NAME}: Invalid compilation object received, skipping hook registration`);
+            console.warn(`${LOADER_NAME}: Invalid compilation object received (missing required properties), skipping hook registration`);
         }
     };
 };
