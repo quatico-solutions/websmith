@@ -131,7 +131,7 @@ export class WebpackAddonContext implements AddonContext {
         // If we have a webpack compilation, we can emit the file as an asset
         if (this.webpackCompilation) {
             // Calculate relative path from output directory, handling both absolute and relative paths
-            const outputPath = this.webpackCompilation.outputOptions.path || process.cwd();
+            const outputPath = this.webpackCompilation.outputOptions?.path || process.cwd();
             let relativePath = resolvedPath;
 
             if (resolvedPath.startsWith(outputPath)) {
