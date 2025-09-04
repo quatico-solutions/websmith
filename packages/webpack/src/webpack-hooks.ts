@@ -94,9 +94,44 @@ const makeCompilation = (loaderContext: WebpackLoaderContext) => {
                         // TODO: Do we need to cache the compiler instance here?
                         // const instance = getCompilerInstance(options, context, dependencyCallback);
                         if (options.configFile && loaderContext.websmithCompiler) {
-                            loaderContext.websmithCompiler.updateLoaderConfig(
-                                parse(fs.readFileSync(options.configFile).toString()) as WebsmithLoaderConfig
-                            );
+                            try {
+                                const configContent = fs.readFileSync(options.configFile, "utf8");
+                                const parsedConfig = parse(configContent) as WebsmithLoaderConfig;
+                                loaderContext.websmithCompiler.updateLoaderConfig(parsedConfig);
+                            } catch (error) {
+                                const errorMessage = error instanceof Error ? error.message : String(error);
+
+                                if (error instanceof Error) {
+                                    // Handle specific Node.js file system errors
+                                    if ("code" in error) {
+                                        const fsError = error as NodeJS.ErrnoException;
+                                        switch (fsError.code) {
+                                            case "ENOENT":
+                                                console.warn(`${LOADER_NAME}: Config file not found: "${options.configFile}"`);
+                                                break;
+                                            case "EACCES":
+                                                console.warn(`${LOADER_NAME}: Permission denied reading config file: "${options.configFile}"`);
+                                                break;
+                                            case "EISDIR":
+                                                console.warn(`${LOADER_NAME}: Config file path is a directory, not a file: "${options.configFile}"`);
+                                                break;
+                                            default:
+                                                console.warn(
+                                                    `${LOADER_NAME}: File system error reading config file "${options.configFile}": ${errorMessage}`
+                                                );
+                                        }
+                                    } else {
+                                        // Handle JSON parsing errors
+                                        if (errorMessage.includes("JSON") || errorMessage.includes("parse") || errorMessage.includes("Unexpected")) {
+                                            console.warn(`${LOADER_NAME}: Invalid JSON in config file "${options.configFile}": ${errorMessage}`);
+                                        } else {
+                                            console.warn(`${LOADER_NAME}: Error processing config file "${options.configFile}": ${errorMessage}`);
+                                        }
+                                    }
+                                } else {
+                                    console.warn(`${LOADER_NAME}: Unknown error reading config file "${options.configFile}": ${errorMessage}`);
+                                }
+                            }
                         }
                     }
                 });
