@@ -42,29 +42,37 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
 const makeCompilationCallback = (compilation: Compilation, loaderOptions: WebsmithLoaderConfig, context: WebpackLoaderContext) => {
     const cachedMakeCompilation = makeCompilation(context);
 
-    compilation.hooks.processAssets.tap({ name: LOADER_NAME, stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL }, () => {
-        cachedMakeCompilation(compilation, loaderOptions);
-    });
+    // Register hooks immediately on compilation, not during processAssets
+    cachedMakeCompilation(compilation, loaderOptions);
 };
 
 const makeCompilation = (loaderContext: WebpackLoaderContext) => {
     return (compilation: Compilation, options: WebsmithLoaderConfig): void => {
-        // NormalModule.getCompilationHooks(compilation).loader.tap(LOADER_NAME, (ctx: object) => {
-        compilation.hooks.processAssets.tap(LOADER_NAME, assets => {
-            console.error(`processAssets for ${JSON.stringify(assets)}`);
-        });
+        // Register loader hooks for configuration updates
 
-        NormalModule.getCompilationHooks(compilation)?.loader?.tap(LOADER_NAME, (ctx: object) => {
-            const configContext: LoaderContext<WebsmithLoaderConfig> = ctx as LoaderContext<WebsmithLoaderConfig>;
+        // Validate that compilation is a proper Compilation instance before calling getCompilationHooks
+        if (compilation && compilation instanceof Compilation) {
+            try {
+                const hooks = NormalModule.getCompilationHooks(compilation);
+                hooks?.loader?.tap(LOADER_NAME, (ctx: object) => {
+                    const configContext: LoaderContext<WebsmithLoaderConfig> = ctx as LoaderContext<WebsmithLoaderConfig>;
 
-            if (configContext) {
-                // TODO: Do we need to cache the compiler instance here?
-                // const instance = getCompilerInstance(options, context, dependencyCallback);
-                if (options.configFile && loaderContext.websmithCompiler) {
-                    loaderContext.websmithCompiler.updateLoaderConfig(parse(fs.readFileSync(options.configFile).toString()) as WebsmithLoaderConfig);
-                }
+                    if (configContext) {
+                        // TODO: Do we need to cache the compiler instance here?
+                        // const instance = getCompilerInstance(options, context, dependencyCallback);
+                        if (options.configFile && loaderContext.websmithCompiler) {
+                            loaderContext.websmithCompiler.updateLoaderConfig(
+                                parse(fs.readFileSync(options.configFile).toString()) as WebsmithLoaderConfig
+                            );
+                        }
+                    }
+                });
+            } catch (error) {
+                console.warn(`${LOADER_NAME}: Failed to register compilation hooks:`, error);
             }
-        });
+        } else {
+            console.warn(`${LOADER_NAME}: Invalid compilation object received, skipping hook registration`);
+        }
     };
 };
 

@@ -36,3 +36,6 @@ test-output*
 !.idea/jsLinters
 !.idea/jsLinters/eslint.xml
 !.idea/vcs.xml
+
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
