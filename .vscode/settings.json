@@ -15,5 +15,6 @@
     "typescript.tsdk": "node_modules/typescript/lib",
     "eslint.useESLintClass": true,
     "eslint.problems.shortenToSingleLine": true,
-    "eslint.quiet": true
+    "eslint.quiet": true,
+    "nxConsole.generateAiAgentRules": true
 }
