@@ -5,10 +5,10 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { Compilation, type Compiler } from "webpack";
-import { addCompilationHooks, isValidCompilation } from "./webpack-hooks";
-import { type WebpackLoaderContext } from "./loader";
+import { type Compiler } from "webpack";
 import { CompilationQueue } from "./CompilationQueue";
+import { type WebpackLoaderContext } from "./loader";
+import { addCompilationHooks, isValidCompilation } from "./webpack-hooks";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 describe("webpack-hooks", () => {
