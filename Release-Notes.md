@@ -15,7 +15,7 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 ### Added
 
 - TBA
-  
+
 ### Removed
 
 - TBA
@@ -27,6 +27,18 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 ### Fixed
 
 - TBA
+
+## [0.7.16] - 2025-09-05
+
+### Added
+
+- 🔒 **Runtime Configuration Validation**: Added comprehensive runtime validation for WebsmithLoaderConfig to ensure type safety when loading JSON configurations
+- 🛡️ **Duck Typing for Webpack Compilation Objects**: Implemented robust duck typing validation for webpack Compilation objects to avoid instanceof issues
+- 📊 **Enhanced Error Classification**: Added specific error handling for different failure types in config file operations
+
+### Fixed
+
+- 🐛 **Critical Webpack Plugin Error**: Fixed an issue where `HookWebpackError: The 'compilation' argument must be an instance of Compilation` was preventing webpack builds
 
 ## [0.7.15] - 2025-08-20
 
