@@ -13,6 +13,36 @@ import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 const LOADER_NAME = "websmith-loader";
 
+/**
+ * Validates if a parsed object conforms to the WebsmithLoaderConfig structure.
+ * This provides runtime type safety for configuration loaded from JSON files.
+ */
+const isValidWebsmithLoaderConfig = (config: unknown): config is WebsmithLoaderConfig => {
+    if (!config || typeof config !== "object") {
+        return false;
+    }
+
+    const cfg = config as Record<string, unknown>;
+
+    // Validate optional properties with correct types
+    return (
+        // BaseOptions properties
+        (cfg.configFile === undefined || typeof cfg.configFile === "string") &&
+        (cfg.config === undefined || (typeof cfg.config === "object" && cfg.config !== null)) &&
+        (cfg.debug === undefined || typeof cfg.debug === "boolean") &&
+        (cfg.tsConfigFile === undefined || typeof cfg.tsConfigFile === "string") &&
+        (cfg.tsConfig === undefined || (typeof cfg.tsConfig === "object" && cfg.tsConfig !== null)) &&
+        (cfg.profile === undefined || typeof cfg.profile === "string") &&
+        // WebpackLoaderOptions properties
+        (cfg.transpileOnly === undefined || typeof cfg.transpileOnly === "boolean") &&
+        (cfg.instanceName === undefined || typeof cfg.instanceName === "string") &&
+        (cfg.profiles === undefined || (typeof cfg.profiles === "object" && cfg.profiles !== null)) &&
+        // WebsmithLoaderConfig properties
+        (cfg.warn === undefined || typeof cfg.warn === "function") &&
+        (cfg.error === undefined || typeof cfg.error === "function")
+    );
+};
+
 // Type guard interface for compilation validation
 interface CompilationLike {
     hooks: {
@@ -60,7 +90,7 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
         });
 
         compiler.hooks.compilation.tap(LOADER_NAME, compilation => {
-            return makeCompilationCallback(compilation, options, context);
+            return registerCompilationHooks(compilation, options, context);
         });
 
         compiler.hooks.done.tapAsync(LOADER_NAME, (stats, callback) => {
@@ -72,14 +102,14 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
     }
 };
 
-const makeCompilationCallback = (compilation: Compilation, loaderOptions: WebsmithLoaderConfig, context: WebpackLoaderContext) => {
-    const cachedMakeCompilation = makeCompilation(context);
+const registerCompilationHooks = (compilation: Compilation, loaderOptions: WebsmithLoaderConfig, context: WebpackLoaderContext) => {
+    const compilationHandler = createCompilationHandler(context);
 
     // Register hooks immediately on compilation, not during processAssets
-    cachedMakeCompilation(compilation, loaderOptions);
+    compilationHandler(compilation, loaderOptions);
 };
 
-const makeCompilation = (loaderContext: WebpackLoaderContext) => {
+const createCompilationHandler = (loaderContext: WebpackLoaderContext) => {
     return (compilation: Compilation, options: WebsmithLoaderConfig): void => {
         // Register loader hooks for configuration updates
 
@@ -96,7 +126,16 @@ const makeCompilation = (loaderContext: WebpackLoaderContext) => {
                         if (options.configFile && loaderContext.websmithCompiler) {
                             try {
                                 const configContent = fs.readFileSync(options.configFile, "utf8");
-                                const parsedConfig = parse(configContent) as WebsmithLoaderConfig;
+                                const parsedConfig = parse(configContent);
+
+                                // Validate the parsed config structure
+                                if (!isValidWebsmithLoaderConfig(parsedConfig)) {
+                                    console.warn(
+                                        `${LOADER_NAME}: Invalid configuration structure in config file "${options.configFile}". Expected WebsmithLoaderConfig format.`
+                                    );
+                                    return;
+                                }
+
                                 loaderContext.websmithCompiler.updateLoaderConfig(parsedConfig);
                             } catch (error) {
                                 const errorMessage = error instanceof Error ? error.message : String(error);
@@ -120,13 +159,12 @@ const makeCompilation = (loaderContext: WebpackLoaderContext) => {
                                                     `${LOADER_NAME}: File system error reading config file "${options.configFile}": ${errorMessage}`
                                                 );
                                         }
+                                    } else if (error instanceof SyntaxError) {
+                                        // Handle JSON parsing errors (SyntaxError is thrown by JSON.parse and comment-json parse)
+                                        console.warn(`${LOADER_NAME}: Invalid JSON in config file "${options.configFile}": ${errorMessage}`);
                                     } else {
-                                        // Handle JSON parsing errors
-                                        if (errorMessage.includes("JSON") || errorMessage.includes("parse") || errorMessage.includes("Unexpected")) {
-                                            console.warn(`${LOADER_NAME}: Invalid JSON in config file "${options.configFile}": ${errorMessage}`);
-                                        } else {
-                                            console.warn(`${LOADER_NAME}: Error processing config file "${options.configFile}": ${errorMessage}`);
-                                        }
+                                        // Handle other processing errors
+                                        console.warn(`${LOADER_NAME}: Error processing config file "${options.configFile}": ${errorMessage}`);
                                     }
                                 } else {
                                     console.warn(`${LOADER_NAME}: Unknown error reading config file "${options.configFile}": ${errorMessage}`);
