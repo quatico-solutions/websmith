@@ -34,7 +34,6 @@ export class Compiler {
     private options!: ResolvedCompilerOptions;
     private reporter!: Reporter;
     private contextMap = new Map<string, CompilationContext>();
-    private configPath!: string;
     private addons?: AddonRegistry;
     private transpileOnly: boolean = false;
     private dependencyCallback?: (filePath: string) => void;
@@ -628,11 +627,15 @@ export class Compiler {
     }
 
     private getRootFiles(): string[] {
-        const { cliArgs } = this.options;
+        const { cliArgs, tsConfigFile, buildDir } = this.options;
 
         return cliArgs?.fileNames
             ? cliArgs.fileNames
-            : recursiveFindByFilter(this.system.resolvePath(path.join(path.dirname(this.configPath), "./src")), undefined, this.system);
+            : recursiveFindByFilter(
+                  this.system.resolvePath(path.join(tsConfigFile ? path.dirname(tsConfigFile) : buildDir, "./src")),
+                  undefined,
+                  this.system
+              );
     }
 
     private writeOutputFiles(files: ts.OutputFile[]) {
