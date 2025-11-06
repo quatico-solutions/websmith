@@ -25,7 +25,7 @@ Whenever you use the `tsc` command to compile your TypeScript project, you can r
 Add websmith to your TypeScript project with the `@quatico/websmith-compiler` package. For example, use the following command with `pnpm`:
 
 ```bash
-pnpm add --dev @quatico/websmith-compiler
+pnpm add -D @quatico/websmith-compiler
 ```
 
 If you don't have added the "typescript" dependency yet, add it to your project too.
@@ -63,7 +63,7 @@ You can use `websmith-loader` as drop-in replacement for the `ts-loader` to appl
 Install the `websmith-loader` package:
 
 ```bash
-pnpm add --dev websmith-loader
+pnpm add -D websmith-loader
 ```
 
 In your webpack configuration, replace the `ts-loader` with the `websmith-loader`:
@@ -102,7 +102,7 @@ Compiler addons can be used for code generation, but also to process non-script 
 Websmith addons are ECMAScript modules with an `activate` function that takes an `AddonContext` as its only parameter. Install the `@quatico/websmith-api` package to use the `AddonContext` type:
 
 ```bash
-pnpm add --dev @quatico/websmith-api
+pnpm add -D @quatico/websmith-api
 ```
 
 Create an directory e.g. `my-code-generator` in the `addons` folder in your project folder and add an ECMAScript module named `addon.ts` or `addon.js`:
@@ -143,7 +143,7 @@ You can find a few examples for addons in the [@quatico/websmith-examples](packa
 Install the `@quatico/websmith-examples` package to use the examples:
 
 ```bash
-pnpm add --dev @quatico/websmith-examples
+pnpm add -D @quatico/websmith-examples
 ```
 
 The `@quatico/websmith-examples` package contains the following examples:
