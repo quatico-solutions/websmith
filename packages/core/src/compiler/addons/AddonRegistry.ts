@@ -385,8 +385,8 @@ export class AddonRegistry {
             // Only compile TypeScript files for the specific addon directory (lazy compilation)
             // This significantly improves performance when loading individual addons
             // Note: If the addon has dependencies on other addons, those must be pre-compiled.
-            //       See the documentation at https://github.com/quatico/websmith/blob/main/docs/addons.md#cross-addon-dependencies
-            //       for instructions on how to pre-compile dependent addons.
+            //       Ensure that any dependent addons are compiled before loading this addon.
+            //       For more information, see the general documentation at https://github.com/quatico/websmith/blob/main/docs/addons.md
             const addonSpecificDir = path.join(addonsDir, addonName);
             const addonTsFiles = this.findTypeScriptFilesInDirectory(addonSpecificDir);
 
