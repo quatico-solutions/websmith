@@ -75,4 +75,7 @@ export const createVersionedFile = (name: string, content: string, tsConfig: ts.
     };
 };
 
-export const ignoreConfigFiles = (name: string): boolean => ["tsconfig", "websmith.config"].find(it => name.includes(it)) === undefined;
+export const ignoreConfigFiles = (name: string): boolean => {
+    const excludePatterns = ["tsconfig", "websmith.config", ".spec.", ".test.", "__tests__", "__mocks__"];
+    return !excludePatterns.some(pattern => name.includes(pattern));
+};
