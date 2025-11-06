@@ -123,9 +123,9 @@ export class Compiler {
             const files = this.getRootFiles();
 
             if (profiles.length) {
-                // Process all profiles for all files with better cache locality
-                profiles.forEach(curProfile => {
-                    files.forEach(curFile => this.emitSourceFile(curFile, curProfile, true));
+                // Process all profiles for each file before moving to the next file
+                files.forEach(curFile => {
+                    profiles.forEach(curProfile => this.emitSourceFile(curFile, curProfile, true));
                 });
                 // Register watches once per file
                 files.forEach(curFile => this.registerWatch(curFile, profiles));
