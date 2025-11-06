@@ -38,6 +38,10 @@ export class Compiler {
     private transpileOnly: boolean = false;
     private dependencyCallback?: (filePath: string) => void;
     private fileWatchers: ts.FileWatcher[] = [];
+    private rootFilesCache?: string[];
+    private rootFilesCacheInvalidated = true;
+    private cachedProgram?: ts.Program;
+    private lastProgramOptions?: string; // JSON stringified options for comparison
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -116,13 +120,17 @@ export class Compiler {
             const profiles = this.options.profile
                 ? [...(this.options.config?.profiles?.[this.options.profile]?.depends ?? []), this.options.profile]
                 : [];
+            const files = this.getRootFiles();
+
             if (profiles.length) {
-                this.getRootFiles().forEach(curFile => {
-                    profiles.forEach(curProfile => this.emitSourceFile(curFile, curProfile, true));
-                    this.registerWatch(curFile, profiles);
+                // Process all profiles for all files with better cache locality
+                profiles.forEach(curProfile => {
+                    files.forEach(curFile => this.emitSourceFile(curFile, curProfile, true));
                 });
+                // Register watches once per file
+                files.forEach(curFile => this.registerWatch(curFile, profiles));
             } else {
-                this.getRootFiles().forEach(curFile => {
+                files.forEach(curFile => {
                     this.emitSourceFile(curFile, undefined, true);
                     this.registerWatch(curFile);
                 });
@@ -175,6 +183,11 @@ export class Compiler {
         };
 
         this.options = resolveCompilerOptions(this.system, optionsWithReporter, loaderOptions);
+
+        // Invalidate caches when options change
+        this.rootFilesCacheInvalidated = true;
+        this.cachedProgram = undefined; // Invalidate program cache
+        this.lastProgramOptions = undefined;
 
         // Update AddonRegistry with resolved configuration
         if (this.addons && this.options.config) {
@@ -377,7 +390,10 @@ export class Compiler {
     private emitResult(profile: string | undefined, ctx: CompilationContext): ts.EmitResult {
         const result: ts.EmitResult = { diagnostics: [], emitSkipped: false, emittedFiles: [] };
 
-        for (const fileName of this.getRootFiles()) {
+        // Cache getRootFiles() result to avoid redundant calls
+        const files = this.getRootFiles();
+
+        for (const fileName of files) {
             const fragment = this.emitSourceFile(fileName, profile);
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
@@ -388,7 +404,6 @@ export class Compiler {
             }
         }
 
-        const files = this.getRootFiles();
         ctx.getResultProcessors().forEach(cur => {
             try {
                 cur(files);
@@ -471,11 +486,29 @@ export class Compiler {
     }
 
     protected createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
-        return ts.createProgram({
+        // Serialize options for comparison (exclude functions and complex objects)
+        const currentOptionsKey = JSON.stringify({
+            ...tsConfig,
+            // Exclude non-serializable properties
+            configFilePath: undefined,
+        });
+
+        // Check if we can reuse the existing program
+        if (this.cachedProgram && this.lastProgramOptions === currentOptionsKey) {
+            return this.cachedProgram;
+        }
+
+        // Create a new program with incremental compilation support
+        this.cachedProgram = ts.createProgram({
             rootNames: this.getRootFiles(),
             options: tsConfig ?? {},
             host: createCompileHost(tsConfig ?? {}),
+            oldProgram: this.cachedProgram, // Enable incremental compilation
         });
+
+        this.lastProgramOptions = currentOptionsKey;
+
+        return this.cachedProgram;
     }
 
     private processOutput(
@@ -627,15 +660,23 @@ export class Compiler {
     }
 
     private getRootFiles(): string[] {
+        // Return cached result if available and valid
+        if (this.rootFilesCache && !this.rootFilesCacheInvalidated) {
+            return this.rootFilesCache;
+        }
+
         const { cliArgs, tsConfigFile, buildDir } = this.options;
 
-        return cliArgs?.fileNames
+        this.rootFilesCache = cliArgs?.fileNames
             ? cliArgs.fileNames
             : recursiveFindByFilter(
                   this.system.resolvePath(path.join(tsConfigFile ? path.dirname(tsConfigFile) : buildDir, "./src")),
                   undefined,
                   this.system
               );
+
+        this.rootFilesCacheInvalidated = false;
+        return this.rootFilesCache;
     }
 
     private writeOutputFiles(files: ts.OutputFile[]) {

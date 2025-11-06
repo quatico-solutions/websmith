@@ -382,11 +382,13 @@ export class AddonRegistry {
                 system.createDirectory(libDir);
             }
 
-            // To handle cross-addon dependencies, compile all TypeScript files in the addons directory
-            // This ensures that when an addon imports from another addon, the dependency is available
-            const allTsFilesInAddonsDir = this.findTypeScriptFilesInDirectory(addonsDir);
+            // Only compile TypeScript files for the specific addon directory (lazy compilation)
+            // This significantly improves performance when loading individual addons
+            // Note: If the addon has dependencies on other addons, those must be pre-compiled
+            const addonSpecificDir = path.join(addonsDir, addonName);
+            const addonTsFiles = this.findTypeScriptFilesInDirectory(addonSpecificDir);
 
-            const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, allTsFilesInAddonsDir);
+            const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, addonTsFiles);
 
             // Load the compiled addon
             for (const compiledFile of compiledAddonFiles) {
