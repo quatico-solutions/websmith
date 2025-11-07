@@ -186,8 +186,9 @@ export class Compiler {
 
         // Invalidate caches when options change
         this.rootFilesCacheInvalidated = true;
-        this.cachedProgram = undefined; // Invalidate program cache
-        this.lastProgramOptions = undefined;
+        // Don't invalidate cachedProgram - keep it for incremental compilation
+        // The createProgram() method will detect option changes and create a new program
+        // while still passing the old program for incremental type checking
 
         // Update AddonRegistry with resolved configuration
         if (this.addons && this.options.config) {
