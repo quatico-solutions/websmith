@@ -382,15 +382,11 @@ export class AddonRegistry {
                 system.createDirectory(libDir);
             }
 
-            // Only compile TypeScript files for the specific addon directory (lazy compilation)
-            // This significantly improves performance when loading individual addons
-            // Note: If the addon has dependencies on other addons, those must be pre-compiled.
-            //       Ensure that any dependent addons are compiled before loading this addon.
-            //       For more information, see the general documentation at https://github.com/quatico/websmith/blob/main/docs/addons.md
-            const addonSpecificDir = path.join(addonsDir, addonName);
-            const addonTsFiles = this.findTypeScriptFilesInDirectory(addonSpecificDir);
+            // To handle cross-addon dependencies, compile all TypeScript files in the addons directory
+            // This ensures that when an addon imports from another addon, the dependency is available
+            const allTsFilesInAddonsDir = this.findTypeScriptFilesInDirectory(addonsDir);
 
-            const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, addonTsFiles);
+            const compiledAddonFiles = this.compileSourceFiles(addonsDir, reporter, libDir, allTsFilesInAddonsDir);
 
             // Load the compiled addon
             for (const compiledFile of compiledAddonFiles) {
@@ -587,7 +583,7 @@ export class AddonRegistry {
 
             // Enhanced error reporting for compilation failures
             if (result.emitSkipped || (result.diagnostics && result.diagnostics.length > 0) || !outputExists) {
-                const diagnosticDetails = this.formatCompilationDiagnostics([...(result.diagnostics || [])], tsFiles, addonsDir);
+                const diagnosticDetails = this.formatCompilationDiagnostics([...(result.diagnostics || [])], addonsDir);
                 const missingOutputs = expectedJsFiles.filter(js => !this.config.system.fileExists(js));
 
                 const errorReport = [
@@ -993,7 +989,7 @@ export class AddonRegistry {
     /**
      * Formats TypeScript diagnostics with enhanced dependency information
      */
-    private formatCompilationDiagnostics(diagnostics: ts.Diagnostic[], tsFiles: string[], addonsDir: string): string {
+    private formatCompilationDiagnostics(diagnostics: ts.Diagnostic[], addonsDir: string): string {
         if (!diagnostics.length) {
             return "    (no compilation errors)";
         }
