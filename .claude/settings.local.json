@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(episodic-memory:remembering-conversations)",
+      "Bash(cat:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx websmith:*)",
+      "Bash(npm run build:*)",
+      "Bash(node packages/compiler/lib/bin.js:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm test)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

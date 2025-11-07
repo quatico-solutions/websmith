@@ -583,7 +583,7 @@ export class AddonRegistry {
 
             // Enhanced error reporting for compilation failures
             if (result.emitSkipped || (result.diagnostics && result.diagnostics.length > 0) || !outputExists) {
-                const diagnosticDetails = this.formatCompilationDiagnostics([...(result.diagnostics || [])], tsFiles, addonsDir);
+                const diagnosticDetails = this.formatCompilationDiagnostics([...(result.diagnostics || [])], addonsDir);
                 const missingOutputs = expectedJsFiles.filter(js => !this.config.system.fileExists(js));
 
                 const errorReport = [
@@ -989,7 +989,7 @@ export class AddonRegistry {
     /**
      * Formats TypeScript diagnostics with enhanced dependency information
      */
-    private formatCompilationDiagnostics(diagnostics: ts.Diagnostic[], tsFiles: string[], addonsDir: string): string {
+    private formatCompilationDiagnostics(diagnostics: ts.Diagnostic[], addonsDir: string): string {
         if (!diagnostics.length) {
             return "    (no compilation errors)";
         }
