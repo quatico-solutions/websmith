@@ -77,6 +77,7 @@ Compiler addons can be used to modify the compilation artifacts before, during a
 The `websmith` command supports the same command line parameters as the `tsc` command. In addition, it supports parameters to customize the compilation output, like:
 
 * `--addons <addons>`: Comma-separated list of addons to apply. No addons are applied by default.
+* `--addonEmitOnly`: Only emit files that are processed by active addons. All files are still compiled for type checking and dependencies, but only addon-processed files are written to disk. This is useful for code generation workflows where you want to preserve original source files unchanged while emitting only generated or transformed files. Can be combined with `--transpileOnly` for fast builds without type checking.
 * `--addonsDir <directoryPath>`: Directory path to the "addons" folder. Defaults to `./addons`.
 * `--configFile <filePath>`: File path to the "websmith.config.json". Defaults to `./websmith.config.json`.
 * `--debug`: Enable the output of debug information.
@@ -132,6 +133,7 @@ You can apply a compilation profile by using the `--profile` command line parame
 The `websmith.config.json` file is used to configure the compilation output. It's placed in your project root and may contain the following sections:
 
 * `addons`: A list of compiler addons
+* `addonEmitOnly`: Whether to only emit files processed by active addons (boolean)
 * `addonsDir`: Relative path to the directory containing the addons.
 * `profiles`: A list of compilation profiles
 * `transpileOnly`: Whether the compiler should emit any output.

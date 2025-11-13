@@ -36,6 +36,7 @@ export class Compiler {
     private contextMap = new Map<string, CompilationContext>();
     private addons?: AddonRegistry;
     private transpileOnly: boolean = false;
+    private addonEmitOnly: boolean = false;
     private dependencyCallback?: (filePath: string) => void;
     private fileWatchers: ts.FileWatcher[] = [];
     private rootFilesCache?: string[];
@@ -60,6 +61,7 @@ export class Compiler {
         this.setOptions(options, loaderOptions);
         this.dependencyCallback = dependencyCallback;
         this.transpileOnly = this.options.config?.transpileOnly ?? false;
+        this.addonEmitOnly = this.options.config?.addonEmitOnly ?? false;
     }
 
     compile(): ts.EmitResult {
@@ -326,20 +328,33 @@ export class Compiler {
 
             let content = this.system.readFile(fileName) ?? cache.getCachedFile(fileName)?.content ?? "";
 
-            ctx.getGenerators().forEach(cur => {
-                try {
-                    cur(fileName, content);
-                } catch (err) {
-                    this.reporter.reportDiagnostic(new ErrorMessage(`Error in generator "${ctx.getAddonName(cur)}": ${err}`));
-                }
-            });
+            const generators = ctx.getGenerators();
+            if (generators.length > 0) {
+                // Mark file as addon-processed since generators ran on it
+                ctx.markFileAsAddonProcessed(fileName);
+                generators.forEach(cur => {
+                    try {
+                        cur(fileName, content);
+                    } catch (err) {
+                        this.reporter.reportDiagnostic(new ErrorMessage(`Error in generator "${ctx.getAddonName(cur)}": ${err}`));
+                    }
+                });
+            }
 
-            for (const cur of ctx.getProcessors()) {
-                try {
-                    content = cur(fileName, content);
-                } catch (err) {
-                    this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
-                    break; // Stop processing further processors on error
+            const processors = ctx.getProcessors();
+            if (processors.length > 0) {
+                const originalContent = content;
+                for (const cur of processors) {
+                    try {
+                        content = cur(fileName, content);
+                    } catch (err) {
+                        this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
+                        break; // Stop processing further processors on error
+                    }
+                }
+                // Only mark file as addon-processed if content was actually modified
+                if (content !== originalContent) {
+                    ctx.markFileAsAddonProcessed(fileName);
                 }
             }
 
@@ -517,12 +532,15 @@ export class Compiler {
         output: (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined,
         writeFile: boolean,
         fileName: string,
-        _ctx?: CompilationContext
+        ctx?: CompilationContext
     ) {
         if (output && !output.emitSkipped) {
             cache.updateOutput(fileName, output.outputFiles);
 
-            if (writeFile && output.outputFiles) {
+            // Check if we should emit this file based on addonEmitOnly flag
+            const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName));
+
+            if (writeFile && output.outputFiles && shouldEmitFile) {
                 this.writeOutputFiles(output.outputFiles);
             }
             return {
@@ -537,6 +555,17 @@ export class Compiler {
 
     private transpile(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
         const { fileName, ctx } = compilationFragment;
+
+        // Mark file as addon-processed if transformers are registered
+        const transformers = ctx.getTransformers();
+        if (
+            transformers &&
+            ((transformers.before && transformers.before.length > 0) ||
+                (transformers.after && transformers.after.length > 0) ||
+                (transformers.afterDeclarations && transformers.afterDeclarations.length > 0))
+        ) {
+            ctx.markFileAsAddonProcessed(fileName);
+        }
 
         if (this.transpileOnly) {
             if (fileName.endsWith(".d.ts")) {

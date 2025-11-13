@@ -18,4 +18,11 @@ export type CompilationConfig = {
      * Overrides the `transpileOnly` specified in the `tsconfig.json`.
      */
     transpileOnly?: boolean;
+    /**
+     * Whether to only emit files that are processed by active addons.
+     * When enabled, all files are still compiled for type checking and dependencies,
+     * but only files processed by addon callbacks (generators, processors, transformers) are written to disk.
+     * Can be combined with `transpileOnly` for fast builds without type checking.
+     */
+    addonEmitOnly?: boolean;
 };

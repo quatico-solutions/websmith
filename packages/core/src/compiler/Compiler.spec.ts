@@ -2155,6 +2155,131 @@ describe("addon error reporting", () => {
     });
 });
 
+describe("addonEmitOnly mode", () => {
+    it("should emit files processed by processors when addonEmitOnly is enabled", () => {
+        const fileSystem = createSystem(
+            {
+                "src/target.ts": `export const test = () => "original";`,
+            },
+            { virtual: true }
+        );
+        const processorMock = jest.fn((fileName: string, content: string) => content.replace("original", "modified"));
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            config: { addonEmitOnly: true },
+        };
+
+        const testObj = new CompilerTestClass(target, undefined, fileSystem).createProfileContextsIfNecessary();
+        const ctx = testObj.getContext();
+        ctx?.registerProcessor(processorMock);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, true);
+
+        expect(processorMock).toHaveBeenCalled();
+        expect(actual.files.length).toBeGreaterThan(0);
+        expect(getText("target.js", actual)).toContain("modified");
+    });
+
+    it("should not emit files not processed by addons when addonEmitOnly is enabled", () => {
+        const fileSystem = createSystem(
+            {
+                "src/target.ts": `export const test = () => "original";`,
+            },
+            { virtual: true }
+        );
+        const writeFileSpy = jest.spyOn(fileSystem, "writeFile");
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            config: { addonEmitOnly: true },
+        };
+
+        const testObj = new CompilerTestClass(target, undefined, fileSystem).createProfileContextsIfNecessary();
+
+        testObj.emitSourceFile("/src/target.ts", undefined, true);
+
+        // Verify that writeFile was not called (file should not be written to disk)
+        expect(writeFileSpy).not.toHaveBeenCalledWith(expect.stringContaining("target.js"), expect.any(String));
+    });
+
+    it("should emit files processed by generators when addonEmitOnly is enabled", () => {
+        const fileSystem = createSystem(
+            {
+                "src/target.ts": `export const test = () => "original";`,
+            },
+            { virtual: true }
+        );
+        const generatorMock = jest.fn();
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            config: { addonEmitOnly: true },
+        };
+
+        const testObj = new CompilerTestClass(target, undefined, fileSystem).createProfileContextsIfNecessary();
+        const ctx = testObj.getContext();
+        ctx?.registerGenerator(generatorMock);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, true);
+
+        expect(generatorMock).toHaveBeenCalled();
+        expect(actual.files.length).toBeGreaterThan(0);
+    });
+
+    it("should emit all files when addonEmitOnly is disabled", () => {
+        const fileSystem = createSystem(
+            {
+                "src/target.ts": `export const test = () => "original";`,
+            },
+            { virtual: true }
+        );
+        const writeFileSpy = jest.spyOn(fileSystem, "writeFile");
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            config: { addonEmitOnly: false },
+        };
+
+        const testObj = new CompilerTestClass(target, undefined, fileSystem).createProfileContextsIfNecessary();
+
+        testObj.emitSourceFile("/src/target.ts", undefined, true);
+
+        // Verify that writeFile was called (file should be written to disk)
+        expect(writeFileSpy).toHaveBeenCalledWith(expect.stringContaining("target.js"), expect.any(String));
+    });
+
+    it("should work with transpileOnly and addonEmitOnly together", () => {
+        const fileSystem = createSystem(
+            {
+                "src/target.ts": `export const test = () => "original";`,
+            },
+            { virtual: true }
+        );
+        const processorMock = jest.fn((fileName: string, content: string) => content.replace("original", "modified"));
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            config: { addonEmitOnly: true, transpileOnly: true },
+        };
+
+        const testObj = new CompilerTestClass(target, undefined, fileSystem).createProfileContextsIfNecessary();
+        const ctx = testObj.getContext();
+        ctx?.registerProcessor(processorMock);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, true);
+
+        expect(processorMock).toHaveBeenCalled();
+        expect(actual.files.length).toBeGreaterThan(0);
+        expect(getText("target.js", actual)).toContain("modified");
+    });
+});
+
 const complexFileExtension = (name: string): string => {
     return path.basename(name).replace(path.basename(name).split(".")[0], "");
 };

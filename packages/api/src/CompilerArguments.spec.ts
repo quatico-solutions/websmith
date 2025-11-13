@@ -55,7 +55,7 @@ describe("CompilerArguments", () => {
         });
 
         it("should have exactly 9 options", () => {
-            expect(WEBSMITH_ARGUMENT_KEYS).toHaveLength(10);
+            expect(WEBSMITH_ARGUMENT_KEYS).toHaveLength(11);
         });
     });
 
@@ -82,7 +82,7 @@ describe("CompilerArguments", () => {
             }
 
             // The actual length should be the unique keys length
-            expect(COMPILER_ARGUMENT_KEYS).toHaveLength(148);
+            expect(COMPILER_ARGUMENT_KEYS).toHaveLength(149);
         });
 
         it("should contain keys from all categories", () => {
