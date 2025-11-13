@@ -46,6 +46,9 @@ export class CompilationContext implements AddonContext {
     protected addonFunctions: WeakMap<Function, string> = new WeakMap();
     private currentAddonName?: string;
 
+    // Track files that have been processed by addons
+    private addonProcessedFiles: Set<string> = new Set();
+
     private cache: FileCache;
     private languageHost: ts.LanguageServiceHost;
     private languageService: ts.LanguageService;
@@ -127,6 +130,8 @@ export class CompilationContext implements AddonContext {
             this.reporter.reportDiagnostic(new InfoMessage(`Adding ${filePath} to watch.`));
             this.watchCallback(filePath);
         }
+        // Mark file as addon-processed since it was explicitly added by an addon
+        this.markFileAsAddonProcessed(filePath);
     }
 
     // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
@@ -176,6 +181,8 @@ export class CompilationContext implements AddonContext {
             this.rootFiles.push(filePath);
         }
         this.cache.updateSource(filePath, fileContent);
+        // Mark file as addon-processed since it was explicitly added by an addon
+        this.markFileAsAddonProcessed(filePath);
     }
 
     public removeOutputFile(filePath: string) {
@@ -260,6 +267,24 @@ export class CompilationContext implements AddonContext {
 
     public getAddonName(func: Function): string {
         return this.addonFunctions.get(func) || "unknown addon function";
+    }
+
+    /**
+     * Mark a file as having been processed by an addon.
+     * This is used to track which files should be emitted when addonEmitOnly mode is enabled.
+     */
+    public markFileAsAddonProcessed(fileName: string): void {
+        const resolvedPath = this.system.resolvePath(fileName);
+        this.addonProcessedFiles.add(resolvedPath);
+    }
+
+    /**
+     * Check if a file has been processed by an addon.
+     * Used to determine if a file should be emitted in addonEmitOnly mode.
+     */
+    public isFileProcessedByAddon(fileName: string): boolean {
+        const resolvedPath = this.system.resolvePath(fileName);
+        return this.addonProcessedFiles.has(resolvedPath);
     }
 
     private createLanguageServiceHost({

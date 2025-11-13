@@ -27,6 +27,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .option("--debug", "Enable the output of debug information.")
         .option("-p, --project <projectPath>", "Compile the project given the path to its configuration file, or to a folder with a 'tsconfig.json'.")
         .option("-o, --transpileOnly", "Enable the transpile only mode.")
+        .option("--addonEmitOnly", "Only emit files that are processed by active addons. All files are still compiled for dependencies, but only addon-processed files are written to disk.")
         .option("-l, --profile <profileName>", "Name of the profile to use with a specific compiler configuration and list of addons.")
         .option("-w, --watch", "Enable watch mode.")
         .option("--init", "Initializes a TypeScript project and creates a tsconfig.json file.")

@@ -183,6 +183,7 @@ export const TSC_ARGUMENT_KEYS: (keyof TscCliArguments)[] = [
 
 export const WEBSMITH_ARGUMENT_KEYS: (keyof WebsmithArguments)[] = [
     "addons",
+    "addonEmitOnly",
     "addonsDir",
     "configFile",
     "debug",
@@ -263,6 +264,13 @@ export interface WebsmithArguments {
      * Example: "addon1,addon2,addon3"
      */
     addons?: string;
+
+    /**
+     * Only emit files that are processed by active addons.
+     * When enabled, all files are still compiled for type checking and dependencies,
+     * but only files processed by addon callbacks are written to disk.
+     */
+    addonEmitOnly?: boolean;
 
     /**
      * Directory path containing addons.

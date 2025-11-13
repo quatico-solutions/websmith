@@ -14,6 +14,13 @@ export type WebpackLoaderOptions = BaseOptions & {
      */
     transpileOnly?: boolean;
     /**
+     * Whether to only emit files that are processed by active addons.
+     * When enabled, all files are still compiled for dependencies,
+     * but only addon-processed files are written to disk.
+     * Overrides the `addonEmitOnly` specified in the `config`.
+     */
+    addonEmitOnly?: boolean;
+    /**
      * Instance name for webpack loader.
      */
     instanceName?: string;

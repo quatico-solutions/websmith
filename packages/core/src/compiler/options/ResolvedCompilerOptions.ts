@@ -6,6 +6,7 @@
  */
 import {
     TSC_ARGUMENT_KEYS,
+    type CompilationConfig,
     type CompilationProfile,
     type CompilerOptions,
     type Reporter,
@@ -16,7 +17,7 @@ import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
 import type ts from "typescript";
 import type { CompilerOptionsValue } from "typescript";
-import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, type CompilationConfig } from "../config";
+import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
 import { tsDefaults } from "../defaults";
 

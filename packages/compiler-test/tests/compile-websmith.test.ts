@@ -525,6 +525,112 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-function.js")).toContain("function getbarfoo");
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     }, 60000);
+
+    it("should only emit files processed by addons when addonEmitOnly is enabled", async () => {
+        writeTsConfig({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            declaration: true,
+            ...tsDefaults,
+        });
+
+        // Create a simple processor addon that only processes files containing "foobar-arrow"
+        const addonDir = path.join(testDirs.PROJECT_DIR, "addons", "test-processor");
+        fs.mkdirSync(addonDir, { recursive: true });
+        fs.writeFileSync(
+            path.join(addonDir, "addon.ts"),
+            `
+            export const activate = (ctx) => {
+                ctx.registerProcessor((fileName, content) => {
+                    // Only process files with "arrow" in the name
+                    if (fileName.includes("arrow")) {
+                        return content.replace("foobar", "processed-foobar");
+                    }
+                    return content;
+                });
+            };
+            `,
+            "utf-8"
+        );
+
+        // Copy multiple source files
+        fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+
+        const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            tsConfig: {
+                project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+            },
+            websmith: {
+                config: {
+                    addonsDir: path.join(testDirs.PROJECT_DIR, "addons"),
+                    addons: ["test-processor"],
+                    addonEmitOnly: true,
+                },
+                tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+            },
+        });
+
+        expect(result).toBe("");
+
+        // File processed by addon should be emitted
+        expect(getOutput("foobar-arrow.js")).toBeDefined();
+        expect(getOutput("foobar-arrow.js")).toContain("processed - foobar");
+
+        // File NOT processed by addon should NOT be emitted
+        expect(getOutput("foobar-function.js")).toBeUndefined();
+    }, 60000);
+
+    it("should emit all files when addonEmitOnly is disabled", async () => {
+        writeTsConfig({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            declaration: true,
+            ...tsDefaults,
+        });
+
+        // Create a simple processor addon that only processes files containing "arrow"
+        const addonDir = path.join(testDirs.PROJECT_DIR, "addons", "test-processor");
+        fs.mkdirSync(addonDir, { recursive: true });
+        fs.writeFileSync(
+            path.join(addonDir, "addon.ts"),
+            `
+            export const activate = (ctx) => {
+                ctx.registerProcessor((fileName, content) => {
+                    // Only process files with "arrow" in the name
+                    if (fileName.includes("arrow")) {
+                        return content.replace("foobar", "processed-foobar");
+                    }
+                    return content;
+                });
+            };
+            `,
+            "utf-8"
+        );
+
+        // Copy multiple source files
+        fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+
+        const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            tsConfig: {
+                project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+            },
+            websmith: {
+                config: {
+                    addonsDir: path.join(testDirs.PROJECT_DIR, "addons"),
+                    addons: ["test-processor"],
+                    addonEmitOnly: false, // Disabled
+                },
+                tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+            },
+        });
+
+        expect(result).toBe("");
+
+        // Both files should be emitted
+        expect(getOutput("foobar-arrow.js")).toBeDefined();
+        expect(getOutput("foobar-arrow.js")).toContain("processed - foobar");
+        expect(getOutput("foobar-function.js")).toBeDefined();
+    }, 60000);
 });
 
 const writeWebsmithConfig = (config?: CompilationConfig) => {

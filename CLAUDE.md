@@ -417,6 +417,22 @@ This allows multiple addons to chainably transform code.
 - Slower but complete type information
 - Used for CLI builds
 
+**Addon Emit Only (addonEmitOnly)**:
+- Only emits files that are processed by addon callbacks
+- Files are marked as addon-processed when:
+  - Generators run on them
+  - Processors modify them
+  - Transformers are applied to them
+  - Explicitly added via `addInputFile()` or `addVirtualFile()`
+- All files are still compiled for dependencies and type checking
+- Only addon-processed files are written to disk
+- Can be combined with `transpileOnly` for fast builds without type checking
+- Useful for code generation workflows where original source files should remain unchanged
+- Example use cases:
+  - Generate API documentation from source without emitting transpiled code
+  - Create transformed versions of specific files while preserving originals
+  - Selective code generation pipelines
+
 ---
 
 ## 8. Webpack Loader Specifics
@@ -432,6 +448,7 @@ interface WebsmithLoaderConfig {
     profiles?: Record<string, CompilationProfile>;
   };
   transpileOnly?: boolean;            // Skip type checking
+  addonEmitOnly?: boolean;            // Only emit files processed by addons
   profile?: string;                   // Profile name
   warn?: (err: WebpackError) => void; // Warning handler
   error?: (err: WebpackError) => void;// Error handler
