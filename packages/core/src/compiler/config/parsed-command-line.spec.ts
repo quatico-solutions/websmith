@@ -752,6 +752,30 @@ describe("createArgs", () => {
         expect(actual).toEqual(["--types", "node,jest"]);
     });
 
+    it("returns array with array containing null values", () => {
+        const actual = createArgs({ lib: ["dom", null as any, "es2015"] });
+
+        expect(actual).toEqual(["--lib", "dom,,es2015"]);
+    });
+
+    it("returns array with array containing undefined values", () => {
+        const actual = createArgs({ lib: ["dom", undefined as any, "es2015"] });
+
+        expect(actual).toEqual(["--lib", "dom,,es2015"]);
+    });
+
+    it("returns array with object value", () => {
+        const actual = createArgs({ config: { key: "value" } as any });
+
+        expect(actual).toEqual(["--config", '{"key":"value"}']);
+    });
+
+    it("returns array with empty object value", () => {
+        const actual = createArgs({ config: {} as any });
+
+        expect(actual).toEqual(["--config", "{}"]);
+    });
+
     it("handles all CompilerArguments properties", () => {
         const testObj = createArgs({
             addons: "addon1,addon2",

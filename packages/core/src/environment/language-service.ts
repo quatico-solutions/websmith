@@ -35,7 +35,7 @@ export const createLanguageServiceHost = (
     transformers?: ts.CustomTransformers
 ): ts.LanguageServiceHost => ({
     ...compilerHost,
-    fileExists: system.fileExists,
+    fileExists: (path: string) => system.fileExists(path),
     getCompilationSettings: () => tsConfig,
     getCurrentDirectory: () => process.cwd(),
     getCustomTransformers: () => transformers,
@@ -50,8 +50,9 @@ export const createLanguageServiceHost = (
         return undefined;
     },
     getScriptVersion: fileName => (sourceFiles[fileName] ? sourceFiles[fileName].version.toString() : "0"),
-    readDirectory: system.readDirectory,
-    readFile: system.readFile,
+    readDirectory: (path: string, extensions?: readonly string[], exclude?: readonly string[], include?: readonly string[], depth?: number) =>
+        system.readDirectory(path, extensions, exclude, include, depth),
+    readFile: (path: string, encoding?: string) => system.readFile(path, encoding),
     writeFile: (path: string, content: string, writeByteOrderMark?: boolean) => {
         const file = sourceFiles[path];
         if (file) {

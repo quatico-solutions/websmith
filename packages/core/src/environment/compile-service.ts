@@ -36,8 +36,8 @@ export const createWatchHost = (
         tsConfig,
         system,
         createProgram,
-        reporter.reportDiagnostic,
-        reporter.reportWatchStatus,
+        (diagnostic: ts.Diagnostic) => reporter.reportDiagnostic(diagnostic),
+        (diagnostic: ts.Diagnostic) => reporter.reportWatchStatus(diagnostic),
         undefined /* no project references */,
         undefined /* no extra watch options */
     );

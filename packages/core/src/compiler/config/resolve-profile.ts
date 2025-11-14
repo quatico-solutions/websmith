@@ -6,12 +6,13 @@
  */
 import { WarnMessage, type CompilationConfig, type Reporter } from "@quatico/websmith-api";
 
-export const resolveProfile = (name: string | undefined, config: CompilationConfig | undefined, reporter: Reporter) => {
-    if (name) {
-        const configured = Object.keys(config?.profiles ?? {});
-        if (!configured.includes(name)) {
-            reporter.reportDiagnostic(new WarnMessage(`Missing profile: The following profile is passed but not configured "${name}".`));
-        }
+export const resolveProfile = (name: string | undefined, config?: CompilationConfig, reporter?: Reporter): string | undefined => {
+    if (!name || !config || !reporter) {
+        return name;
+    }
+    const configured = Object.keys(config.profiles ?? {});
+    if (!configured.includes(name)) {
+        reporter.reportDiagnostic(new WarnMessage(`Missing profile: The following profile is passed but not configured "${name}".`));
     }
     return name;
 };

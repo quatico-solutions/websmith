@@ -100,7 +100,8 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
                     ...tsConfigResult.options, // Include all tsconfig options
                 },
                 // Filter out invalid file paths like "/" that can cause compilation errors
-                fileNames: tscArgs.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""), // Use explicit files instead of tsconfig file discovery
+                // Use explicit files instead of tsconfig file discovery
+                fileNames: tscArgs.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""),
             };
         }
 
@@ -159,6 +160,16 @@ export const createArgs = (args: CompilerArguments): string[] =>
         if (value === undefined) {
             return acc;
         }
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        return acc.concat(`--${key}`, value != null ? value.toString() : "");
+
+        let stringValue: string;
+        if (value === null) {
+            stringValue = "";
+        } else if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+            stringValue = String(value);
+        } else if (Array.isArray(value)) {
+            stringValue = value.length > 0 ? value.join(",") : "";
+        } else {
+            stringValue = JSON.stringify(value);
+        }
+        return acc.concat(`--${key}`, stringValue);
     }, []);
