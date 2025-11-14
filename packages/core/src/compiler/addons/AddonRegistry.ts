@@ -672,7 +672,8 @@ export class AddonRegistry {
             // Log the original error for debugging
             this.config.reporter?.reportDiagnostic(
                 new WarnMessage(
-                    `Failed to create TypeScript program with cached compiler host for files: ${filesToCompile.join(", ")}. Error: ${error}. Attempting fallback with new compiler host.`
+                    `Failed to create TypeScript program with cached compiler host for files: ${filesToCompile.join(", ")}. ` +
+                        `Error: ${error}. Attempting fallback with new compiler host.`
                 )
             );
 
@@ -684,7 +685,8 @@ export class AddonRegistry {
                 // If fallback also fails, report both errors and throw
                 this.config.reporter?.reportDiagnostic(
                     new ErrorMessage(
-                        `Failed to create TypeScript program even with new compiler host for files: ${filesToCompile.join(", ")}. Original error: ${error}. Fallback error: ${fallbackError}`
+                        `Failed to create TypeScript program even with new compiler host for files: ${filesToCompile.join(", ")}. ` +
+                            `Original error: ${error}. Fallback error: ${fallbackError}`
                     )
                 );
                 throw fallbackError;
