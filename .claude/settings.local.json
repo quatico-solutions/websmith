@@ -25,7 +25,8 @@
       "Bash(pnpm --filter \"websmith-loader-test\" test:e2e --testNamePattern=\"addonEmitOnly\")",
       "Bash(pnpm --filter \"@quatico/websmith-compiler-test\" test:e2e --testNamePattern=\"addonEmitOnly\")",
       "Bash(pnpm:*)",
-      "Skill(superpowers:brainstorming)"
+      "Skill(superpowers:brainstorming)",
+      "Bash(git grep:*)"
     ],
     "deny": [],
     "ask": []

@@ -234,7 +234,7 @@ export type LoaderOptions = {
 };
 
 export type WebsmithOptions = {
-    additionalArguments?: Map<string, unknown>;
+    additionalArguments?: Record<string, unknown>;
     addons?: string;
     addonsDir?: string;
     cliArgs?: ts.ParsedCommandLine;

@@ -91,7 +91,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly cliArgs: ts.ParsedCommandLine;
     public readonly reporter: Reporter;
     public readonly watch?: boolean;
-    public readonly additionalArguments?: Map<string, unknown>;
+    public readonly additionalArguments?: Record<string, unknown>;
     /** Instance name for webpack loader. */
     public readonly instanceName?: string;
     /** Profiles configuration from loader options. */
