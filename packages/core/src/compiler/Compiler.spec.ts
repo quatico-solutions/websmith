@@ -430,7 +430,7 @@ describe("constructor", () => {
             module: ts.ModuleKind.ES2022,
         });
 
-        expect(testObj.getContext("target-profile")!.getCliArgs().options).toMatchObject({
+        expect(testObj.getContext("target-profile")!.getCompilerOptions()).toMatchObject({
             target: ts.ScriptTarget.ES2022,
             module: ts.ModuleKind.ES2022,
         });
@@ -469,7 +469,7 @@ describe("constructor", () => {
             module: ts.ModuleKind.ES2022,
         });
 
-        expect(testObj.getContext("target-profile")!.getCliArgs().options).toMatchObject({
+        expect(testObj.getContext("target-profile")!.getCompilerOptions()).toMatchObject({
             target: ts.ScriptTarget.ES2022,
             module: ts.ModuleKind.ES2022,
         });
@@ -815,7 +815,7 @@ describe("compile", () => {
 
         testObj.compile();
 
-        expect(testObj.getContext("target-profile")?.getCliArgs().options).toEqual(
+        expect(testObj.getContext("target-profile")?.getCompilerOptions()).toEqual(
             expect.objectContaining({
                 allowJs: false,
                 checkJs: false,

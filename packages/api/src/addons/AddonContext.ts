@@ -35,6 +35,13 @@ export interface AddonContext<O = unknown> {
     getCompilerOptions(): ts.CompilerOptions;
 
     /**
+     * Returns the list of file names included in the current compilation.
+     * Use this method instead of getCliArgs().fileNames to access the file list
+     * without CLI implementation details.
+     */
+    getFileNames(): string[];
+
+    /**
      * Returns the reporter to display error, warning and info messages.
      */
     getReporter(): Reporter;

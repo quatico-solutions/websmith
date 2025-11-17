@@ -580,7 +580,7 @@ export class Compiler {
         }
 
         // If declaration files are requested, use transpileSourceCode to ensure they are generated
-        const compilerOptions = ctx.getCliArgs().options;
+        const compilerOptions = ctx.getCompilerOptions();
         if (compilerOptions.declaration) {
             const isSourceFile = (name: string) => name.match(/\.([cm]?ts|tsx)$/i);
             if (isSourceFile(fileName)) {
@@ -603,23 +603,23 @@ export class Compiler {
 
         // For declaration files, we need to use the full compiler API instead of transpileModule
         // because transpileModule doesn't generate declaration files
-        if (ctx.getCliArgs().options.declaration) {
+        if (ctx.getCompilerOptions().declaration) {
             // Create a temporary source file with the processed content
-            const sourceFile = ts.createSourceFile(fileName, content, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest, true);
+            const sourceFile = ts.createSourceFile(fileName, content, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest, true);
 
             // Create a simple program with just this file
             const program = ts.createProgram({
                 rootNames: [fileName],
-                options: ctx.getCliArgs().options,
+                options: ctx.getCompilerOptions(),
                 host: {
-                    ...ts.createCompilerHost(ctx.getCliArgs().options),
+                    ...ts.createCompilerHost(ctx.getCompilerOptions()),
                     getSourceFile: (name: string) => {
                         if (name === fileName) {
                             return sourceFile;
                         }
                         return ts
-                            .createCompilerHost(ctx.getCliArgs().options)
-                            .getSourceFile(name, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest);
+                            .createCompilerHost(ctx.getCompilerOptions())
+                            .getSourceFile(name, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest);
                     },
                     writeFile: () => {}, // We'll collect the output ourselves
                 },
@@ -644,7 +644,7 @@ export class Compiler {
         }
 
         const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
-            compilerOptions: ctx.getCliArgs().options,
+            compilerOptions: ctx.getCompilerOptions(),
             fileName,
             transformers: ctx.getTransformers(),
         });
@@ -667,7 +667,7 @@ export class Compiler {
         if (outDir !== undefined) {
             // JSON are only output by TypeScript if an outDir is provided, otherwise they are ignored.
             // For JSON files, manually construct the output path since ts.getOutputFileNames doesn't handle JSON files consistently
-            const relativePath = path.relative(ctx.getCliArgs().options.rootDir || this.options.buildDir, fileName);
+            const relativePath = path.relative(ctx.getCompilerOptions().rootDir || this.options.buildDir, fileName);
             const outputFileName = path.join(outDir, relativePath);
 
             return {
