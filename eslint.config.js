@@ -134,5 +134,5 @@ module.exports = [
             "@typescript-eslint/no-redundant-type-constituents": "off",
         },
     },
-    { ignores: ["**/dist/*", "**/lib/*"] },
+    { ignores: ["**/dist/*", "**/lib/*", "**/test-temp/*"] },
 ];

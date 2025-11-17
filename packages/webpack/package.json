@@ -19,7 +19,7 @@
         "lib"
     ],
     "scripts": {
-        "clean": "rimraf lib coverage test-output",
+        "clean": "rimraf lib coverage test-output src/test-temp",
         "lint": "eslint \"{src,tests}/**/*.{js,ts,tsx}\" --color",
         "lint:fix": "pnpm lint --fix",
         "build": "tsc",

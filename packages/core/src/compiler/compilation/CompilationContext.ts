@@ -99,6 +99,10 @@ export class CompilationContext implements AddonContext {
         return this.cliArgs.options;
     }
 
+    public getFileNames(): string[] {
+        return this.cliArgs.fileNames;
+    }
+
     public getReporter(): Reporter {
         return this.reporter;
     }
