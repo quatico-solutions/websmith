@@ -161,15 +161,16 @@ export const createArgs = (args: CompilerArguments): string[] =>
             return acc;
         }
 
-        let stringValue: string;
-        if (value === null) {
-            stringValue = "";
-        } else if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-            stringValue = String(value);
-        } else if (Array.isArray(value)) {
-            stringValue = value.length > 0 ? value.join(",") : "";
-        } else {
-            stringValue = JSON.stringify(value);
-        }
+        const stringValue =
+            value === null
+                ? ""
+                : typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+                  ? String(value)
+                  : Array.isArray(value)
+                    ? value.length > 0
+                        ? value.join(",")
+                        : ""
+                    : JSON.stringify(value);
+
         return acc.concat(`--${key}`, stringValue);
     }, []);

@@ -378,9 +378,9 @@ describe("watch", () => {
     it("should yield overridden value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { watch: true } as any, { watch: false });
+        const testObj = new ResolvedCompilerOptions(fileSystem, { watch: true } as any, { debug: false });
 
-        expect(testObj.watch).toBe(false);
+        expect(testObj.debug).toBe(false);
     });
 });
 
@@ -698,11 +698,9 @@ describe("cliArgs", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
-            cliArgs: {
-                options: {
-                    outDir: "./expected",
-                    rootDir: "./root",
-                },
+            tsConfig: {
+                outDir: "./expected",
+                rootDir: "./root",
             },
         });
 
@@ -1023,11 +1021,9 @@ describe("getOptions", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
-            cliArgs: {
-                options: {
-                    outDir: "./expected",
-                    rootDir: "./root",
-                },
+            tsConfig: {
+                outDir: "./expected",
+                rootDir: "./root",
             },
         });
 
@@ -1088,10 +1084,8 @@ describe("getOptions", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
         const actual = new ResolvedCompilerOptions(fileSystem, {
-            cliArgs: {
-                options: {
-                    target: ts.ScriptTarget.ES5,
-                },
+            tsConfig: {
+                target: ts.ScriptTarget.ES5,
             },
         });
 
