@@ -48,7 +48,7 @@ export class CompilationContext implements AddonContext {
 
     // Track files that have been processed by addons
     private addonProcessedFiles: Set<string> = new Set();
-    
+
     // Track the current source file being processed (used to mark source file when generators interact with compilation)
     private currentSourceFile?: string;
 
