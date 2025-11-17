@@ -69,6 +69,16 @@ export class WebpackAddonContext implements AddonContext {
         };
     }
 
+    getCompilerOptions(): ts.CompilerOptions {
+        // Delegate to the underlying CompilationContext if available
+        if (this.compilationContext) {
+            return this.compilationContext.getCompilerOptions();
+        }
+
+        // Fallback to empty options if no compilation context
+        return {};
+    }
+
     getReporter(): Reporter {
         return this.reporter;
     }

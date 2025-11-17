@@ -10,7 +10,22 @@
       "Bash(npm run test:*)",
       "Bash(npm test)",
       "Bash(npm run test:e2e:*)",
-      "Bash(npx nx test:*)"
+      "Bash(npx nx test:*)",
+      "Bash(pnpm dist:*)",
+      "Bash(pnpm test:e2e:*)",
+      "Bash(npm test:*)",
+      "Bash(tee:*)",
+      "Bash(pnpm build:*)",
+      "Bash(xargs cat:*)",
+      "Bash(npx jest:*)",
+      "Skill(superpowers:systematic-debugging)",
+      "Bash(npx ts-node:*)",
+      "Bash(node debug-transformer.js:*)",
+      "Skill(superpowers:verification-before-completion)",
+      "Bash(pnpm --filter \"websmith-loader-test\" test:e2e --testNamePattern=\"addonEmitOnly\")",
+      "Bash(pnpm --filter \"@quatico/websmith-compiler-test\" test:e2e --testNamePattern=\"addonEmitOnly\")",
+      "Bash(pnpm:*)",
+      "Skill(superpowers:brainstorming)"
     ],
     "deny": [],
     "ask": []

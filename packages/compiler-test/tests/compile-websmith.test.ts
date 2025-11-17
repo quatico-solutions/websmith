@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilationConfig } from "@quatico/websmith-core";
+import { type CompilationConfig } from "@quatico/websmith-api";
 import { compile } from "@quatico/websmith-node";
 import fs from "node:fs";
 import path from "node:path";
@@ -534,25 +534,6 @@ describe("compile w/ websmith", () => {
             ...tsDefaults,
         });
 
-        // Create a simple processor addon that only processes files containing "foobar-arrow"
-        const addonDir = path.join(testDirs.PROJECT_DIR, "addons", "test-processor");
-        fs.mkdirSync(addonDir, { recursive: true });
-        fs.writeFileSync(
-            path.join(addonDir, "addon.ts"),
-            `
-            export const activate = (ctx) => {
-                ctx.registerProcessor((fileName, content) => {
-                    // Only process files with "arrow" in the name
-                    if (fileName.includes("arrow")) {
-                        return content.replace("foobar", "processed-foobar");
-                    }
-                    return content;
-                });
-            };
-            `,
-            "utf-8"
-        );
-
         // Copy multiple source files
         fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
 
@@ -562,10 +543,21 @@ describe("compile w/ websmith", () => {
             },
             websmith: {
                 config: {
-                    addonsDir: path.join(testDirs.PROJECT_DIR, "addons"),
-                    addons: ["test-processor"],
+                    addonsDir: ADDONS_DIR,
                     addonEmitOnly: true,
+                    profiles: {
+                        "test-profile": {
+                            addons: ["selective-processor"],
+                            config: {
+                                "selective-processor": {
+                                    filePattern: "arrow",
+                                    replacement: "processedFoobar",
+                                },
+                            },
+                        },
+                    },
                 },
+                profile: "test-profile",
                 tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
             },
         });
@@ -574,7 +566,7 @@ describe("compile w/ websmith", () => {
 
         // File processed by addon should be emitted
         expect(getOutput("foobar-arrow.js")).toBeDefined();
-        expect(getOutput("foobar-arrow.js")).toContain("processed - foobar");
+        expect(getOutput("foobar-arrow.js")).toContain("processedFoobar");
 
         // File NOT processed by addon should NOT be emitted
         expect(getOutput("foobar-function.js")).toBeUndefined();
@@ -588,25 +580,6 @@ describe("compile w/ websmith", () => {
             ...tsDefaults,
         });
 
-        // Create a simple processor addon that only processes files containing "arrow"
-        const addonDir = path.join(testDirs.PROJECT_DIR, "addons", "test-processor");
-        fs.mkdirSync(addonDir, { recursive: true });
-        fs.writeFileSync(
-            path.join(addonDir, "addon.ts"),
-            `
-            export const activate = (ctx) => {
-                ctx.registerProcessor((fileName, content) => {
-                    // Only process files with "arrow" in the name
-                    if (fileName.includes("arrow")) {
-                        return content.replace("foobar", "processed-foobar");
-                    }
-                    return content;
-                });
-            };
-            `,
-            "utf-8"
-        );
-
         // Copy multiple source files
         fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
 
@@ -616,10 +589,21 @@ describe("compile w/ websmith", () => {
             },
             websmith: {
                 config: {
-                    addonsDir: path.join(testDirs.PROJECT_DIR, "addons"),
-                    addons: ["test-processor"],
+                    addonsDir: ADDONS_DIR,
                     addonEmitOnly: false, // Disabled
+                    profiles: {
+                        "test-profile": {
+                            addons: ["selective-processor"],
+                            config: {
+                                "selective-processor": {
+                                    filePattern: "arrow",
+                                    replacement: "processedFoobar",
+                                },
+                            },
+                        },
+                    },
                 },
+                profile: "test-profile",
                 tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
             },
         });
@@ -628,7 +612,7 @@ describe("compile w/ websmith", () => {
 
         // Both files should be emitted
         expect(getOutput("foobar-arrow.js")).toBeDefined();
-        expect(getOutput("foobar-arrow.js")).toContain("processed - foobar");
+        expect(getOutput("foobar-arrow.js")).toContain("processedFoobar");
         expect(getOutput("foobar-function.js")).toBeDefined();
     }, 60000);
 });

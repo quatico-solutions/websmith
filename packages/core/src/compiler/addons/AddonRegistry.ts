@@ -376,7 +376,7 @@ export class AddonRegistry {
 
         if (foundTsFiles.length > 0) {
             // This is the directory where the compiled addons will be stored, next the addonsDir
-            const libDir = path.isAbsolute(addonsDir) ? path.resolve(addonsDir, "..", "lib") : resolvePath(system, ".", "lib");
+            const libDir = path.resolve(addonsDir, "..", "lib");
 
             if (!system.directoryExists(libDir)) {
                 system.createDirectory(libDir);

@@ -12,5 +12,7 @@ export { activate as foobarExportProcessorActivate } from "./foobar-export-proce
 export { activate as foobarReplaceProcessorActivate } from "./foobar-replace-processor";
 export { activate as foobarReplaceTransformerActivate } from "./foobar-replace-transformer";
 export { activate as functionJsonResultProcessorActivate } from "./function-json-result-processor";
+export { activate as selectiveProcessorActivate } from "./selective-processor";
+export type { SelectiveProcessorConfig } from "./selective-processor";
 export { activate as serverProcessorActivate } from "./server-processor";
 export { activate as serverTransformerActivate } from "./server-transformer";
