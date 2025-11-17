@@ -54,7 +54,7 @@ describe("CompilerArguments", () => {
             expect(WEBSMITH_ARGUMENT_KEYS).toContain("transpileOnly");
         });
 
-        it("should have exactly 9 options", () => {
+        it("should have exactly 11 options", () => {
             expect(WEBSMITH_ARGUMENT_KEYS).toHaveLength(11);
         });
     });
