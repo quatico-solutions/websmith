@@ -357,14 +357,8 @@ export class Compiler {
                         break; // Stop processing further processors on error
                     }
                 }
-                // Mark file as addon-processed only if content was actually modified.
-                // This distinguishes between "processed" (processor ran) and "modified" (content changed).
-                // For addonEmitOnly mode, we only emit files that were modified, not just processed.
-                // This enables selective processing patterns where processors return unchanged content
-                // for non-matching files (see selective-processor example).
-                // Note: Processors that validate/analyze without modifying content won't mark files
-                // as processed. If you need to mark files that were processed but not modified,
-                // consider using generators or transformers instead.
+                // Mark file as addon-processed only if content was modified by the processor.
+                // This enables selective processing where processors can return unchanged content for non-matching files without marking them as processed.
                 if (content !== originalContent) {
                     ctx.markFileAsAddonProcessed(fileName);
                 }
