@@ -378,7 +378,7 @@ describe("watch", () => {
     it("should yield overridden value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { watch: true } as any, { debug: false });
+        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any, { debug: false });
 
         expect(testObj.debug).toBe(false);
     });
