@@ -10,12 +10,15 @@ export const resolveProfile = (name: string | undefined, config?: CompilationCon
     if (!name) {
         return undefined;
     }
-    if (!config || !reporter) {
+    if (!config) {
         return name;
     }
-    const configured = Object.keys(config.profiles ?? {});
-    if (!configured.includes(name)) {
-        reporter.reportDiagnostic(new WarnMessage(`Missing profile: The following profile is passed but not configured "${name}".`));
+
+    if (reporter) {
+        const configured = Object.keys(config.profiles ?? {});
+        if (!configured.includes(name)) {
+            reporter.reportDiagnostic(new WarnMessage(`Missing profile: The following profile is passed but not configured "${name}".`));
+        }
     }
     return name;
 };
