@@ -17,7 +17,7 @@ describe("WebpackAddonService", () => {
     let mockReporter: DefaultReporter;
 
     beforeEach(() => {
-        tempDir = path.join(__dirname, "test-temp", `test-${Date.now()}`);
+        tempDir = path.join(__dirname, "..", "test-temp", `test-${Date.now()}`);
 
         mockSystem = {
             ...ts.sys,

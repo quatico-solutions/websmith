@@ -162,7 +162,7 @@ const convertValueToString = (value: unknown): string => {
     }
 
     if (Array.isArray(value)) {
-        return value.length > 0 ? value.join(",") : "";
+        return value.length > 0 ? value.map(v => (v === null || v === undefined ? "" : String(v))).join(",") : "";
     }
 
     return JSON.stringify(value);
