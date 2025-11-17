@@ -10,10 +10,21 @@ import { createReplaceIdentifierTransformer } from "../foobar-replace-transforme
 /**
  * Example addon that registers a TypeScript transformer to replace "foobar" identifiers with "barfoo".
  *
- * This demonstrates the correct pattern for AST manipulation:
- * - Use registerTransformer() for AST-based transformations
- * - The transformer is executed during TypeScript compilation
+ * This example demonstrates using registerTransformer() for pure AST manipulation (identifier replacement).
+ * This is simpler than the processor-based approach because:
+ * - The transformer is executed during TypeScript compilation as part of the standard pipeline
  * - No need to manually call ts.transform() or handle compiler options
+ * - Error handling is managed by the compiler
+ * - No need to convert AST back to source code with ts.createPrinter()
+ *
+ * When to use Processors instead:
+ * - When you need to modify imports/exports before compilation (TypeScript can resolve these changes)
+ * - When you need explicit control over error handling and diagnostics
+ * - When you need to modify source files before the TypeScript compilation step
+ * - When you need to chain multiple transformations with custom error recovery
+ *
+ * See client-processor and server-processor examples for the processor-based pattern that manually
+ * invokes ts.transform() with explicit error handling.
  *
  * @param ctx The addon context for the compilation.
  */
