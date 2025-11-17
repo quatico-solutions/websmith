@@ -28,6 +28,22 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.8.0] - 2025-11-17
+
+### Added
+
+- 🚀 **Addon Emit Only Compilation Mode**: Added new `addonEmitOnly` compilation mode for selective file emission
+  - New `--addonEmitOnly` CLI flag to only emit files processed by active addons
+  - Files are marked as addon-processed when generators, processors, or transformers operate on them
+  - Files can also be explicitly marked via `addInputFile()` or `addVirtualFile()` methods
+  - All files are still compiled for type checking and dependency resolution, but only addon-processed files are written to disk
+  - Can be combined with `transpileOnly` for fast builds without type checking
+  - Perfect for code generation workflows where original source files should remain unchanged
+  - Added `addonEmitOnly` option to `CompilationConfig`, `WebpackLoaderOptions`, and `CompilerArguments`
+  - Implemented file tracking in `CompilationContext` with `markFileAsAddonProcessed()` and `isFileProcessedByAddon()` methods
+  - Added comprehensive test coverage for CLI, webpack loader, and compiler scenarios
+  - Added `selective-processor` example addon demonstrating selective file processing patterns
+
 ## [0.7.16] - 2025-09-05
 
 ### Added
