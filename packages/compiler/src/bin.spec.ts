@@ -152,7 +152,7 @@ describe("bin.ts", () => {
         executeCompiler("", target);
 
         expect(target.getOptions()).toMatchObject({
-            additionalArguments: expect.any(Map),
+            additionalArguments: expect.any(Object),
             buildDir: "/",
             cliArgs: {
                 errors: [],
@@ -208,10 +208,10 @@ describe("bin.ts", () => {
         executeCompiler("--unknown --another-unknown expected", target);
 
         expect(target.getOptions()).toMatchObject({
-            additionalArguments: new Map<string, unknown>([
-                ["unknown", true],
-                ["another-unknown", "expected"],
-            ]),
+            additionalArguments: {
+                unknown: true,
+                "another-unknown": "expected",
+            },
         });
     }, 60000);
 

@@ -26,5 +26,5 @@ export type CompilerOptions = BaseOptions & {
     /**
      * Additional arguments to be passed to the compiler
      */
-    additionalArguments?: Map<string, unknown>;
+    additionalArguments?: Record<string, unknown>;
 };
