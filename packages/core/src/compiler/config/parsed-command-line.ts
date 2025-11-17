@@ -153,7 +153,7 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
  * @returns The string representation of the value
  */
 const convertValueToString = (value: unknown): string => {
-    if (value === null) {
+    if (value === undefined || value === null) {
         return "";
     }
 
