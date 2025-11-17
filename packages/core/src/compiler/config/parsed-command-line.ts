@@ -147,6 +147,27 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
     };
 };
 
+/**
+ * Converts a value to its string representation for command-line arguments.
+ * @param value The value to convert
+ * @returns The string representation of the value
+ */
+const convertValueToString = (value: unknown): string => {
+    if (value === null) {
+        return "";
+    }
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+        return String(value);
+    }
+
+    if (Array.isArray(value)) {
+        return value.length > 0 ? value.join(",") : "";
+    }
+
+    return JSON.stringify(value);
+};
+
 export const createArgs = (args: CompilerArguments): string[] =>
     Object.entries(args).reduce((acc: string[], [key, value]) => {
         if (typeof value === "boolean") {
@@ -161,16 +182,5 @@ export const createArgs = (args: CompilerArguments): string[] =>
             return acc;
         }
 
-        const stringValue =
-            value === null
-                ? ""
-                : typeof value === "string" || typeof value === "number" || typeof value === "boolean"
-                  ? String(value)
-                  : Array.isArray(value)
-                    ? value.length > 0
-                        ? value.join(",")
-                        : ""
-                    : JSON.stringify(value);
-
-        return acc.concat(`--${key}`, stringValue);
+        return acc.concat(`--${key}`, convertValueToString(value));
     }, []);
