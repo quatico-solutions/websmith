@@ -7,7 +7,10 @@
 import { WarnMessage, type CompilationConfig, type Reporter } from "@quatico/websmith-api";
 
 export const resolveProfile = (name: string | undefined, config?: CompilationConfig, reporter?: Reporter): string | undefined => {
-    if (!name || !config || !reporter) {
+    if (!name) {
+        return undefined;
+    }
+    if (!config || !reporter) {
         return name;
     }
     const configured = Object.keys(config.profiles ?? {});
