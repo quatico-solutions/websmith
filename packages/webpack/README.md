@@ -46,6 +46,7 @@ module.exports = {
                                 addons: ["export-yaml-generator"],
                             },
                             transpileOnly: true,
+                            addonEmitOnly: false, // Set to true to only emit files processed by addons
                         },
                     },
                 ],
@@ -57,6 +58,14 @@ module.exports = {
 ```
 
 The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Add a custom compilation config to the loader options or use the `websmith.config.json` file to configure the compilation output.
+
+#### Loader Options
+
+- **tsConfigFile** (string): Path to the TypeScript configuration file
+- **config** (object): Websmith configuration (can also be loaded from `websmith.config.json`)
+- **transpileOnly** (boolean): Enable transpile-only mode for faster builds without type checking
+- **addonEmitOnly** (boolean): Only emit files that are processed by active addons. When enabled, all files are still compiled for dependencies and type checking, but only files processed by addon callbacks (generators, processors, transformers) are written to disk. This is useful for code generation workflows where you want to preserve original source files unchanged while emitting only generated or transformed files.
+- **profile** (string): Name of the compilation profile to use
 
 ### Add websmith configuration
 

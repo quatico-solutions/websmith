@@ -4,12 +4,18 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type Reporter, WarnMessage } from "@quatico/websmith-api";
-import { type CompilationConfig } from "./CompilationConfig";
+import { WarnMessage, type CompilationConfig, type Reporter } from "@quatico/websmith-api";
 
-export const resolveProfile = (name: string | undefined, config: CompilationConfig | undefined, reporter: Reporter) => {
-    if (name) {
-        const configured = Object.keys(config?.profiles ?? {});
+export const resolveProfile = (name: string | undefined, config?: CompilationConfig, reporter?: Reporter): string | undefined => {
+    if (!name) {
+        return undefined;
+    }
+    if (!config) {
+        return name;
+    }
+
+    if (reporter) {
+        const configured = Object.keys(config.profiles ?? {});
         if (!configured.includes(name)) {
             reporter.reportDiagnostic(new WarnMessage(`Missing profile: The following profile is passed but not configured "${name}".`));
         }

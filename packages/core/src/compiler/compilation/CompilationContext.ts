@@ -46,6 +46,12 @@ export class CompilationContext implements AddonContext {
     protected addonFunctions: WeakMap<Function, string> = new WeakMap();
     private currentAddonName?: string;
 
+    // Track files that have been processed by addons
+    private addonProcessedFiles: Set<string> = new Set();
+
+    // Track the current source file being processed (used to mark source file when generators interact with compilation)
+    private currentSourceFile?: string;
+
     private cache: FileCache;
     private languageHost: ts.LanguageServiceHost;
     private languageService: ts.LanguageService;
@@ -92,6 +98,14 @@ export class CompilationContext implements AddonContext {
         return this.cliArgs;
     }
 
+    public getCompilerOptions(): ts.CompilerOptions {
+        return this.cliArgs.options;
+    }
+
+    public getFileNames(): string[] {
+        return this.cliArgs.fileNames;
+    }
+
     public getReporter(): Reporter {
         return this.reporter;
     }
@@ -126,6 +140,12 @@ export class CompilationContext implements AddonContext {
         if (this.watchCallback) {
             this.reporter.reportDiagnostic(new InfoMessage(`Adding ${filePath} to watch.`));
             this.watchCallback(filePath);
+        }
+        // Mark file as addon-processed since it was explicitly added by an addon
+        this.markFileAsAddonProcessed(filePath);
+        // Also mark the current source file as processed if generators are interacting with compilation
+        if (this.currentSourceFile) {
+            this.markFileAsAddonProcessed(this.currentSourceFile);
         }
     }
 
@@ -176,6 +196,12 @@ export class CompilationContext implements AddonContext {
             this.rootFiles.push(filePath);
         }
         this.cache.updateSource(filePath, fileContent);
+        // Mark file as addon-processed since it was explicitly added by an addon
+        this.markFileAsAddonProcessed(filePath);
+        // Also mark the current source file as processed if generators are interacting with compilation
+        if (this.currentSourceFile) {
+            this.markFileAsAddonProcessed(this.currentSourceFile);
+        }
     }
 
     public removeOutputFile(filePath: string) {
@@ -260,6 +286,33 @@ export class CompilationContext implements AddonContext {
 
     public getAddonName(func: Function): string {
         return this.addonFunctions.get(func) || "unknown addon function";
+    }
+
+    /**
+     * Mark a file as having been processed by an addon.
+     * This is used to track which files should be emitted when addonEmitOnly mode is enabled.
+     */
+    public markFileAsAddonProcessed(fileName: string): void {
+        const resolvedPath = this.system.resolvePath(fileName);
+        this.addonProcessedFiles.add(resolvedPath);
+    }
+
+    /**
+     * Check if a file has been processed by an addon.
+     * Used to determine if a file should be emitted in addonEmitOnly mode.
+     */
+    public isFileProcessedByAddon(fileName: string): boolean {
+        const resolvedPath = this.system.resolvePath(fileName);
+        return this.addonProcessedFiles.has(resolvedPath);
+    }
+
+    /**
+     * Set the current source file being processed.
+     * Used to mark the source file when generators interact with compilation via addInputFile/addVirtualFile.
+     * @internal
+     */
+    public setCurrentSourceFile(fileName: string | undefined): void {
+        this.currentSourceFile = fileName;
     }
 
     private createLanguageServiceHost({

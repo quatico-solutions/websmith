@@ -11,9 +11,19 @@ import ts from "typescript";
 import { resolvePath } from "../config";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
+/**
+ * Default directory name for compiled addon output, relative to the addons directory's parent.
+ */
+const DEFAULT_ADDON_LIB_DIR = "lib";
+
 export type AddonConfig = {
     addons?: string[];
     addonsDir?: string;
+    /**
+     * Directory name for compiled addon output, relative to the addons directory's parent.
+     * Defaults to "lib" if not specified.
+     */
+    addonLibDir?: string;
     profiles?: Record<string, CompilationProfile>;
     activeProfile?: string;
     reporter: Reporter;
@@ -375,8 +385,9 @@ export class AddonRegistry {
         }
 
         if (foundTsFiles.length > 0) {
-            // This is the directory where the compiled addons will be stored, next the addonsDir
-            const libDir = path.isAbsolute(addonsDir) ? path.resolve(addonsDir, "..", "lib") : resolvePath(system, ".", "lib");
+            // This is the directory where the compiled addons will be stored, next to the addonsDir
+            const addonLibDirName = this.config.addonLibDir ?? DEFAULT_ADDON_LIB_DIR;
+            const libDir = path.resolve(addonsDir, "..", addonLibDirName);
 
             if (!system.directoryExists(libDir)) {
                 system.createDirectory(libDir);
@@ -672,7 +683,8 @@ export class AddonRegistry {
             // Log the original error for debugging
             this.config.reporter?.reportDiagnostic(
                 new WarnMessage(
-                    `Failed to create TypeScript program with cached compiler host for files: ${filesToCompile.join(", ")}. Error: ${error}. Attempting fallback with new compiler host.`
+                    `Failed to create TypeScript program with cached compiler host for files: ${filesToCompile.join(", ")}. ` +
+                        `Error: ${error}. Attempting fallback with new compiler host.`
                 )
             );
 
@@ -684,7 +696,8 @@ export class AddonRegistry {
                 // If fallback also fails, report both errors and throw
                 this.config.reporter?.reportDiagnostic(
                     new ErrorMessage(
-                        `Failed to create TypeScript program even with new compiler host for files: ${filesToCompile.join(", ")}. Original error: ${error}. Fallback error: ${fallbackError}`
+                        `Failed to create TypeScript program even with new compiler host for files: ${filesToCompile.join(", ")}. ` +
+                            `Original error: ${error}. Fallback error: ${fallbackError}`
                     )
                 );
                 throw fallbackError;

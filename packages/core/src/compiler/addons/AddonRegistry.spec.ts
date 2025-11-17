@@ -713,6 +713,78 @@ describe("Addon Compilation", () => {
         );
     });
 
+    it("uses default lib directory when addonLibDir is not specified", () => {
+        const system = createSystem({}, { virtual: true });
+        const target = new ReporterMock(system);
+        const addonsDir = system.resolvePath("./addons");
+        system.createDirectory(addonsDir);
+        system.createDirectory(`${addonsDir}/custom-lib-addon`);
+        system.writeFile(`${addonsDir}/custom-lib-addon/addon.ts`, "export const activate = () => {};");
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new AddonRegistry({ addonsDir, reporter: target, system, addons: ["custom-lib-addon"] });
+
+        testObj.getAvailableAddons();
+        expect(target.reportDiagnostic).not.toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Failed to compile addons"),
+            })
+        );
+        const expectedLibDir = path.resolve(addonsDir, "..", "lib");
+        expect(system.directoryExists(expectedLibDir)).toBe(true);
+    });
+
+    it("uses custom addonLibDir when specified", () => {
+        const system = createSystem({}, { virtual: true });
+        const target = new ReporterMock(system);
+        const addonsDir = system.resolvePath("./addons");
+        system.createDirectory(addonsDir);
+        system.createDirectory(`${addonsDir}/custom-output-addon`);
+        system.writeFile(`${addonsDir}/custom-output-addon/addon.ts`, "export const activate = () => {};");
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new AddonRegistry({
+            addonsDir,
+            addonLibDir: "dist",
+            reporter: target,
+            system,
+            addons: ["custom-output-addon"],
+        });
+
+        testObj.getAvailableAddons();
+        expect(target.reportDiagnostic).not.toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringContaining("Failed to compile addons"),
+            })
+        );
+        const expectedDistDir = path.resolve(addonsDir, "..", "dist");
+        expect(system.directoryExists(expectedDistDir)).toBe(true);
+    });
+
+    it("creates custom addonLibDir directory if it does not exist", () => {
+        const system = createSystem({}, { virtual: true });
+        const target = new ReporterMock(system);
+        const addonsDir = system.resolvePath("./addons");
+        system.createDirectory(addonsDir);
+        system.createDirectory(`${addonsDir}/new-dir-addon`);
+        system.writeFile(`${addonsDir}/new-dir-addon/addon.ts`, "export const activate = () => {};");
+        target.reportDiagnostic = jest.fn();
+
+        const customLibDir = path.resolve(addonsDir, "..", "custom-lib");
+        expect(system.directoryExists(customLibDir)).toBe(false);
+
+        const testObj = new AddonRegistry({
+            addonsDir,
+            addonLibDir: "custom-lib",
+            reporter: target,
+            system,
+            addons: ["new-dir-addon"],
+        });
+
+        testObj.getAvailableAddons();
+        expect(system.directoryExists(customLibDir)).toBe(true);
+    });
+
     it("reports compilation error when index.ts imports missing addon.ts", () => {
         const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);

@@ -4,11 +4,10 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilationProfile, ErrorMessage, type Reporter } from "@quatico/websmith-api";
+import { type CompilationConfig, type CompilationProfile, ErrorMessage, type Reporter } from "@quatico/websmith-api";
 import { parse } from "comment-json";
 import path from "node:path";
 import type ts from "typescript";
-import { type CompilationConfig } from "./CompilationConfig";
 
 const updatePaths = (config: CompilationConfig, basePath: string, system: ts.System): CompilationConfig => {
     return {

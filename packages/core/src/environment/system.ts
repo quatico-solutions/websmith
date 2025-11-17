@@ -15,7 +15,7 @@ export const isNodeJs = (): boolean => {
     if (typeof process !== "undefined" && process.argv && process.argv.length > 0) {
         return true;
     }
-    return typeof module !== "undefined" && module.exports;
+    return typeof module !== "undefined" && Boolean(module.exports);
 };
 
 /**

@@ -55,6 +55,9 @@ export class WebpackAddonContext implements AddonContext {
         return this.system;
     }
 
+    /**
+     * @deprecated Use getCompilerOptions() instead for accessing TypeScript compiler options.
+     */
     getCliArgs(): ts.ParsedCommandLine {
         // Delegate to the underlying CompilationContext if available
         if (this.compilationContext) {
@@ -67,6 +70,26 @@ export class WebpackAddonContext implements AddonContext {
             options: {},
             errors: [],
         };
+    }
+
+    getCompilerOptions(): ts.CompilerOptions {
+        // Delegate to the underlying CompilationContext if available
+        if (this.compilationContext) {
+            return this.compilationContext.getCompilerOptions();
+        }
+
+        // Fallback to empty options if no compilation context
+        return {};
+    }
+
+    getFileNames(): string[] {
+        // Delegate to the underlying CompilationContext if available
+        if (this.compilationContext) {
+            return this.compilationContext.getFileNames();
+        }
+
+        // Fallback to empty array if no compilation context
+        return [];
     }
 
     getReporter(): Reporter {

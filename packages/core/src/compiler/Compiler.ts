@@ -36,6 +36,7 @@ export class Compiler {
     private contextMap = new Map<string, CompilationContext>();
     private addons?: AddonRegistry;
     private transpileOnly: boolean = false;
+    private addonEmitOnly: boolean = false;
     private dependencyCallback?: (filePath: string) => void;
     private fileWatchers: ts.FileWatcher[] = [];
     private rootFilesCache?: string[];
@@ -60,6 +61,7 @@ export class Compiler {
         this.setOptions(options, loaderOptions);
         this.dependencyCallback = dependencyCallback;
         this.transpileOnly = this.options.config?.transpileOnly ?? false;
+        this.addonEmitOnly = this.options.config?.addonEmitOnly ?? false;
     }
 
     compile(): ts.EmitResult {
@@ -326,20 +328,39 @@ export class Compiler {
 
             let content = this.system.readFile(fileName) ?? cache.getCachedFile(fileName)?.content ?? "";
 
-            ctx.getGenerators().forEach(cur => {
-                try {
-                    cur(fileName, content);
-                } catch (err) {
-                    this.reporter.reportDiagnostic(new ErrorMessage(`Error in generator "${ctx.getAddonName(cur)}": ${err}`));
-                }
-            });
+            const generators = ctx.getGenerators();
+            if (generators.length > 0) {
+                // Set the current source file so that generators calling addInputFile/addVirtualFile
+                // can automatically mark the source file as processed
+                ctx.setCurrentSourceFile(fileName);
+                // Generators are executed, but files are only marked as addon-processed
+                // if generators actually perform actions (e.g., via addInputFile/addVirtualFile)
+                generators.forEach(cur => {
+                    try {
+                        cur(fileName, content);
+                    } catch (err) {
+                        this.reporter.reportDiagnostic(new ErrorMessage(`Error in generator "${ctx.getAddonName(cur)}": ${err}`));
+                    }
+                });
+                // Clear the current source file after generators run
+                ctx.setCurrentSourceFile(undefined);
+            }
 
-            for (const cur of ctx.getProcessors()) {
-                try {
-                    content = cur(fileName, content);
-                } catch (err) {
-                    this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
-                    break; // Stop processing further processors on error
+            const processors = ctx.getProcessors();
+            if (processors.length > 0) {
+                const originalContent = content;
+                for (const cur of processors) {
+                    try {
+                        content = cur(fileName, content);
+                    } catch (err) {
+                        this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
+                        break; // Stop processing further processors on error
+                    }
+                }
+                // Mark file as addon-processed only if content was modified by the processor.
+                // This enables selective processing where processors can return unchanged content for non-matching files without marking them as processed.
+                if (content !== originalContent) {
+                    ctx.markFileAsAddonProcessed(fileName);
                 }
             }
 
@@ -517,12 +538,15 @@ export class Compiler {
         output: (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined,
         writeFile: boolean,
         fileName: string,
-        _ctx?: CompilationContext
+        ctx?: CompilationContext
     ) {
         if (output && !output.emitSkipped) {
             cache.updateOutput(fileName, output.outputFiles);
 
-            if (writeFile && output.outputFiles) {
+            // Check if we should emit this file based on addonEmitOnly flag
+            const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName));
+
+            if (writeFile && output.outputFiles && shouldEmitFile) {
                 this.writeOutputFiles(output.outputFiles);
             }
             return {
@@ -538,6 +562,17 @@ export class Compiler {
     private transpile(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
         const { fileName, ctx } = compilationFragment;
 
+        // Mark file as addon-processed if transformers are registered
+        const transformers = ctx.getTransformers();
+        if (
+            transformers &&
+            ((transformers.before && transformers.before.length > 0) ||
+                (transformers.after && transformers.after.length > 0) ||
+                (transformers.afterDeclarations && transformers.afterDeclarations.length > 0))
+        ) {
+            ctx.markFileAsAddonProcessed(fileName);
+        }
+
         if (this.transpileOnly) {
             if (fileName.endsWith(".d.ts")) {
                 return undefined;
@@ -551,7 +586,7 @@ export class Compiler {
         }
 
         // If declaration files are requested, use transpileSourceCode to ensure they are generated
-        const compilerOptions = ctx.getCliArgs().options;
+        const compilerOptions = ctx.getCompilerOptions();
         if (compilerOptions.declaration) {
             const isSourceFile = (name: string) => name.match(/\.([cm]?ts|tsx)$/i);
             if (isSourceFile(fileName)) {
@@ -574,23 +609,23 @@ export class Compiler {
 
         // For declaration files, we need to use the full compiler API instead of transpileModule
         // because transpileModule doesn't generate declaration files
-        if (ctx.getCliArgs().options.declaration) {
+        if (ctx.getCompilerOptions().declaration) {
             // Create a temporary source file with the processed content
-            const sourceFile = ts.createSourceFile(fileName, content, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest, true);
+            const sourceFile = ts.createSourceFile(fileName, content, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest, true);
 
             // Create a simple program with just this file
             const program = ts.createProgram({
                 rootNames: [fileName],
-                options: ctx.getCliArgs().options,
+                options: ctx.getCompilerOptions(),
                 host: {
-                    ...ts.createCompilerHost(ctx.getCliArgs().options),
+                    ...ts.createCompilerHost(ctx.getCompilerOptions()),
                     getSourceFile: (name: string) => {
                         if (name === fileName) {
                             return sourceFile;
                         }
                         return ts
-                            .createCompilerHost(ctx.getCliArgs().options)
-                            .getSourceFile(name, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest);
+                            .createCompilerHost(ctx.getCompilerOptions())
+                            .getSourceFile(name, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest);
                     },
                     writeFile: () => {}, // We'll collect the output ourselves
                 },
@@ -615,7 +650,7 @@ export class Compiler {
         }
 
         const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
-            compilerOptions: ctx.getCliArgs().options,
+            compilerOptions: ctx.getCompilerOptions(),
             fileName,
             transformers: ctx.getTransformers(),
         });
@@ -638,7 +673,7 @@ export class Compiler {
         if (outDir !== undefined) {
             // JSON are only output by TypeScript if an outDir is provided, otherwise they are ignored.
             // For JSON files, manually construct the output path since ts.getOutputFileNames doesn't handle JSON files consistently
-            const relativePath = path.relative(ctx.getCliArgs().options.rootDir || this.options.buildDir, fileName);
+            const relativePath = path.relative(ctx.getCompilerOptions().rootDir || this.options.buildDir, fileName);
             const outputFileName = path.join(outDir, relativePath);
 
             return {

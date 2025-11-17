@@ -4,32 +4,32 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type AddonContext, ErrorMessage, type Processor } from "@quatico/websmith-api";
-import ts from "typescript";
+import { type AddonContext } from "@quatico/websmith-api";
 import { createReplaceIdentifierTransformer } from "../foobar-replace-transformer";
 
-export const activate = (ctx: AddonContext): void => {
-    ctx.registerProcessor(createProcessor(ctx));
-};
-
 /**
- * Creates a processor that uses a TS transformer to replace every found "foobar" identifier with "barfoo".
+ * Example addon that registers a TypeScript transformer to replace "foobar" identifiers with "barfoo".
+ *
+ * This demonstrates the recommended approach for pure AST manipulation: using registerTransformer().
+ * This is simpler than the processor-based approach because:
+ * - The transformer is executed during TypeScript compilation as part of the standard pipeline
+ * - No need to manually call ts.transform() or handle compiler options
+ * - Error handling is managed by the compiler
+ * - No need to convert AST back to source code with ts.createPrinter()
+ *
+ * When to use Processors instead:
+ * - When you need to modify imports/exports before compilation (TypeScript can resolve these changes)
+ * - When you need explicit control over error handling and diagnostics
+ * - When you need to modify source files before the TypeScript compilation step
+ * - When you need to chain multiple transformations with custom error recovery
+ *
+ * For the processor-based pattern that manually invokes ts.transform() with explicit error handling,
+ * see the client-processor and server-processor examples.
  *
  * @param ctx The addon context for the compilation.
- * @returns A websmith processor factory function.
  */
-const createProcessor =
-    (ctx: AddonContext): Processor =>
-    (fileName: string, content: string): string => {
-        const file = ts.createSourceFile(fileName, content, ctx.getCliArgs().options.target ?? ts.ScriptTarget.Latest, true);
-        const result = ts.transform(file, [createReplaceIdentifierTransformer(/foobar/gi, "barfoo")], ctx.getCliArgs().options);
-        if (result.diagnostics && result.diagnostics.length > 0) {
-            result.diagnostics.forEach(it => ctx.getReporter().reportDiagnostic(new ErrorMessage(it.messageText, file)));
-            return "";
-        }
-        if (result.transformed.length > 0) {
-            return ts.createPrinter().printFile(result.transformed[0]);
-        }
-        ctx.getReporter().reportDiagnostic(new ErrorMessage(`Foobar-Replacer failed for ${fileName} without identifiable error.`, file));
-        return "";
-    };
+export const activate = (ctx: AddonContext): void => {
+    ctx.registerTransformer({
+        before: [createReplaceIdentifierTransformer(/foobar/gi, "barfoo")],
+    });
+};

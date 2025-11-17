@@ -629,4 +629,56 @@ describe("webpack w/ websmith, multiple profiles", () => {
         expect(getOutput("server.js")).toContain("function getCLIENTServer");
         expect(getOutput("server.js")).toContain("foobar ${date.toISOString()}");
     }, 60000);
+
+    describe("addonEmitOnly mode", () => {
+        it("should emit only addon-processed files with addonEmitOnly: true", async () => {
+            // This test verifies that only addon-processed files are emitted to disk with addonEmitOnly
+            // (webpack still bundles all files in the bundle)
+            await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                webpack: { ...getWebpackDefaults() },
+                websmith: {
+                    addonEmitOnly: true,
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addons: ["foobar-replace-processor"],
+                    },
+                    tsConfig: {
+                        target: ts.ScriptTarget.ES2020,
+                    },
+                },
+            });
+
+            // Webpack should bundle the file
+            expect(getOutput("main.js")).toBeDefined();
+            const mainJs = getOutput("main.js");
+
+            // The foobar-replace-processor processes the file, replacing "foobar" with "barfoo"
+            expect(mainJs).toContain("barfoo");
+        }, 60000);
+
+        it("should work with generator addons when addonEmitOnly: true", async () => {
+            // This test verifies that generator addons work correctly with addonEmitOnly
+            await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                webpack: { ...getWebpackDefaults() },
+                websmith: {
+                    addonEmitOnly: true,
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addons: ["export-yaml-generator"],
+                    },
+                    tsConfig: {
+                        target: ts.ScriptTarget.ES2020,
+                    },
+                },
+            });
+
+            // Webpack should bundle the file
+            expect(getOutput("main.js")).toBeDefined();
+            const mainJs = getOutput("main.js");
+            expect(mainJs).toContain("function foobar");
+
+            // Generator should create output.yaml
+            expect(getOutput("output.yaml")).toContain("exports:");
+        }, 60000);
+    });
 });

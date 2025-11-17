@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
+
 import ts from "typescript";
 import { ReporterMock } from "../../../test";
 import { createSystem } from "../../environment";
@@ -230,7 +230,7 @@ describe("additionalArguments", () => {
     it("should yield undefined if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.additionalArguments).toBeUndefined();
     });
@@ -238,7 +238,7 @@ describe("additionalArguments", () => {
     it("should yield passed value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { additionalArguments: { test: "test" } } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { additionalArguments: { test: "test" } });
 
         expect(testObj.additionalArguments).toEqual({ test: "test" });
     });
@@ -247,7 +247,7 @@ describe("configFile", () => {
     it("should yield undefined if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new NoReporter() } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new NoReporter() });
 
         expect(testObj.tsConfigFile).toBe("/tsconfig.json");
     });
@@ -258,7 +258,7 @@ describe("configFile", () => {
         const testObj = new ResolvedCompilerOptions(fileSystem, {
             configFile: "tsconfig.json",
             reporter: new NoReporter(),
-        } as any);
+        });
 
         expect(testObj.configFile).toBe("/tsconfig.json");
     });
@@ -285,7 +285,7 @@ describe("config", () => {
     it("should yield undefined if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.config).toEqual({});
     });
@@ -297,7 +297,7 @@ describe("config", () => {
             config: {
                 addons: ["addon1", "addon2"],
             },
-        } as any);
+        });
 
         expect(testObj.config).toEqual({
             addons: ["addon1", "addon2"],
@@ -336,7 +336,7 @@ describe("debug", () => {
     it("should yield false if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.debug).toBe(false);
     });
@@ -344,7 +344,7 @@ describe("debug", () => {
     it("should yield true if passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true });
 
         expect(testObj.debug).toBe(true);
     });
@@ -352,7 +352,7 @@ describe("debug", () => {
     it("should yield overridden value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any, { debug: false } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any, { debug: false });
 
         expect(testObj.debug).toBe(false);
     });
@@ -362,7 +362,7 @@ describe("watch", () => {
     it("should yield false if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.watch).toBe(false);
     });
@@ -370,7 +370,7 @@ describe("watch", () => {
     it("should yield true if passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { watch: true } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { watch: true });
 
         expect(testObj.watch).toBe(true);
     });
@@ -378,9 +378,9 @@ describe("watch", () => {
     it("should yield overridden value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { watch: true } as any, { watch: false } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any, { debug: false });
 
-        expect(testObj.watch).toBe(false);
+        expect(testObj.debug).toBe(false);
     });
 });
 
@@ -388,7 +388,7 @@ describe("tsConfigFile", () => {
     it("should yield undefined if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.tsConfigFile).toBe("/tsconfig.json");
     });
@@ -398,7 +398,7 @@ describe("tsConfigFile", () => {
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
             tsConfigFile: "tsconfig.json",
-        } as any);
+        });
 
         expect(testObj.tsConfigFile).toBe("/tsconfig.json");
     });
@@ -424,7 +424,7 @@ describe("tsConfig", () => {
     it("should yield default config if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.tsConfig).toEqual({
             allowJs: false,
@@ -450,7 +450,7 @@ describe("tsConfig", () => {
             tsConfig: {
                 outDir: "./expected",
             },
-        } as any);
+        });
 
         expect(testObj.tsConfig).toEqual({
             allowJs: false,
@@ -602,7 +602,7 @@ describe("profile", () => {
     it("should yield undefined if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.profile).toBeUndefined();
     });
@@ -610,7 +610,7 @@ describe("profile", () => {
     it("should yield passed value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target", reporter: new NoReporter() } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target", reporter: new NoReporter() });
 
         expect(testObj.profile).toBe("target");
     });
@@ -632,7 +632,7 @@ describe("buildDir", () => {
     it("should yield current directory if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.buildDir).toBe("/");
     });
@@ -640,7 +640,7 @@ describe("buildDir", () => {
     it("should yield overridden value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.buildDir).toBe("/");
     });
@@ -650,7 +650,7 @@ describe("reporter", () => {
     it("should yield default reporter if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.reporter).toBeInstanceOf(DefaultReporter);
     });
@@ -658,7 +658,7 @@ describe("reporter", () => {
     it("should yield overridden value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new ReporterMock(fileSystem) } as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new ReporterMock(fileSystem) });
 
         expect(testObj.reporter).toBeInstanceOf(ReporterMock);
     });
@@ -668,7 +668,7 @@ describe("cliArgs", () => {
     it("should yield empty object if not passed", () => {
         const fileSystem = createSystem({ "/test.ts": "export const test = () => {};" }, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.cliArgs).toEqual({
             errors: [],
@@ -698,13 +698,11 @@ describe("cliArgs", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
-            cliArgs: {
-                options: {
-                    outDir: "./expected",
-                    rootDir: "./root",
-                },
+            tsConfig: {
+                outDir: "./expected",
+                rootDir: "./root",
             },
-        } as any);
+        });
 
         expect(testObj.cliArgs).toMatchObject({
             options: {
@@ -748,7 +746,7 @@ describe("getSelectedProfiles", () => {
     it("should yield empty array with no profiles", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.getSelectedProfiles()).toEqual([]);
     });
@@ -762,7 +760,7 @@ describe("getSelectedProfiles", () => {
                     expected: {},
                 },
             },
-        } as any);
+        });
 
         expect(testObj.getSelectedProfiles()).toEqual(["expected"]);
     });
@@ -776,7 +774,7 @@ describe("getSelectedProfiles", () => {
                     expected: {},
                 },
             },
-        } as any);
+        });
 
         expect(testObj.getSelectedProfiles("expected")).toEqual(["expected"]);
     });
@@ -793,7 +791,7 @@ describe("getSelectedProfiles", () => {
                     dependent: {},
                 },
             },
-        } as any);
+        });
 
         expect(testObj.getSelectedProfiles("expected")).toEqual(["dependent", "expected"]);
     });
@@ -809,7 +807,7 @@ describe("getSelectedProfiles", () => {
                     },
                 },
             },
-        } as any);
+        });
 
         expect(testObj.getSelectedProfiles("expected")).toEqual(["expected"]);
     });
@@ -827,7 +825,7 @@ describe("getSelectedProfiles", () => {
                     dependent2: {},
                 },
             },
-        } as any);
+        });
 
         expect(testObj.getSelectedProfiles("expected")).toEqual(["dependent1", "dependent2", "expected"]);
     });
@@ -844,7 +842,7 @@ describe("getSelectedProfiles", () => {
                     dependent2: {},
                 },
             },
-        } as any);
+        });
 
         expect(testObj.getSelectedProfiles("expected")).toEqual(["dependent2", "expected"]);
     });
@@ -865,7 +863,7 @@ describe("getSelectedProfiles", () => {
                     dependent3: {},
                 },
             },
-        } as any);
+        });
 
         expect(testObj.getSelectedProfiles("expected")).toEqual(["dependent1", "dependent2", "expected"]);
     });
@@ -875,7 +873,7 @@ describe("getAddons", () => {
     it("should yield empty array with no addons", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.getAddons()).toEqual([]);
     });
@@ -887,7 +885,7 @@ describe("getAddons", () => {
             config: {
                 addons: ["addon1", "addon2"],
             },
-        } as any);
+        });
 
         expect(testObj.getAddons()).toEqual(["addon1", "addon2"]);
     });
@@ -904,7 +902,7 @@ describe("getAddons", () => {
                     },
                 },
             },
-        } as any);
+        });
 
         expect(testObj.getAddons()).toEqual(["addon1", "addon2"]);
     });
@@ -920,7 +918,7 @@ describe("getAddons", () => {
                     },
                 },
             },
-        } as any);
+        });
 
         expect(testObj.getAddons("expected")).toEqual(["addon1", "addon2"]);
     });
@@ -940,7 +938,7 @@ describe("getAddons", () => {
                     },
                 },
             },
-        } as any);
+        });
 
         expect(testObj.getAddons("expected")).toEqual(["addon1", "addon2", "addon3", "addon4"]);
     });
@@ -962,7 +960,7 @@ describe("getAddons", () => {
                 },
             },
             profile: "expected",
-        } as any);
+        });
 
         expect(testObj.getAddons("expected")).toEqual(["addon1", "addon2", "addon3", "addon4", "addon5", "addon6"]);
     });
@@ -972,7 +970,7 @@ describe("getOptions", () => {
     it("should yield default options if not passed", () => {
         const fileSystem = createSystem({ "/test.ts": "export const test = () => {};" }, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, {} as any);
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.getOptions()).toEqual({
             buildDir: "/",
@@ -1023,13 +1021,11 @@ describe("getOptions", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {
-            cliArgs: {
-                options: {
-                    outDir: "./expected",
-                    rootDir: "./root",
-                },
+            tsConfig: {
+                outDir: "./expected",
+                rootDir: "./root",
             },
-        } as any);
+        });
 
         expect(testObj.getOptions()).toMatchObject({
             cliArgs: {
@@ -1079,7 +1075,7 @@ describe("getOptions", () => {
             tsConfig: {
                 target: ts.ScriptTarget.ESNext,
             },
-        } as any);
+        });
 
         expect(actual.tsConfig?.target).toBe(ts.ScriptTarget.ESNext);
     });
@@ -1088,12 +1084,10 @@ describe("getOptions", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
         const actual = new ResolvedCompilerOptions(fileSystem, {
-            cliArgs: {
-                options: {
-                    target: ts.ScriptTarget.ES5,
-                },
+            tsConfig: {
+                target: ts.ScriptTarget.ES5,
             },
-        } as any);
+        });
 
         expect(actual.tsConfig?.target).toBe(ts.ScriptTarget.ES5);
     });
@@ -1101,11 +1095,15 @@ describe("getOptions", () => {
     it("should yield ESNext target with loaderOptions target set to ESNext", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const actual = new ResolvedCompilerOptions(fileSystem, {}, {
-            tsConfig: {
-                target: ts.ScriptTarget.ESNext,
-            },
-        } as any);
+        const actual = new ResolvedCompilerOptions(
+            fileSystem,
+            {},
+            {
+                tsConfig: {
+                    target: ts.ScriptTarget.ESNext,
+                },
+            }
+        );
 
         expect(actual.tsConfig?.target).toBe(ts.ScriptTarget.ESNext);
     });

@@ -152,7 +152,7 @@ describe("bin.ts", () => {
         executeCompiler("", target);
 
         expect(target.getOptions()).toMatchObject({
-            additionalArguments: expect.any(Map),
+            additionalArguments: expect.any(Object),
             buildDir: "/",
             cliArgs: {
                 errors: [],
@@ -208,10 +208,10 @@ describe("bin.ts", () => {
         executeCompiler("--unknown --another-unknown expected", target);
 
         expect(target.getOptions()).toMatchObject({
-            additionalArguments: new Map<string, unknown>([
-                ["unknown", true],
-                ["another-unknown", "expected"],
-            ]),
+            additionalArguments: {
+                unknown: true,
+                "another-unknown": "expected",
+            },
         });
     }, 60000);
 
@@ -541,7 +541,7 @@ describe("bin.ts", () => {
         executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
 
         // @ts-expect-error - getContext is protected
-        const actual = target.getContext()!.getCliArgs().fileNames || [];
+        const actual = target.getContext()!.getFileNames() || [];
 
         // Should include TypeScript files from src directory and subdirectories
         expect(actual).toEqual(
@@ -579,7 +579,7 @@ describe("bin.ts", () => {
         executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
 
         // @ts-expect-error - getContext is protected
-        const actual = target.getContext()?.getCliArgs().fileNames || [];
+        const actual = target.getContext()?.getFileNames() || [];
 
         // Should only include files from src/custom directory
         expect(actual).toEqual(
@@ -616,7 +616,7 @@ describe("bin.ts", () => {
         executeCompiler(`${file1Rel} ${file3Rel} --project tsconfig.json`, target);
 
         // @ts-expect-error - getContext is protected
-        const actual = target.getContext()?.getCliArgs().fileNames || [];
+        const actual = target.getContext()?.getFileNames() || [];
 
         // Should only include the explicitly specified files
         expect(actual).toHaveLength(2);
@@ -646,7 +646,7 @@ describe("bin.ts", () => {
         executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
 
         // @ts-expect-error - getContext is protected
-        const actual = target.getContext()?.getCliArgs().fileNames || [];
+        const actual = target.getContext()?.getFileNames() || [];
 
         // Should include files not in excluded directory
         expect(actual).toEqual(
@@ -680,7 +680,7 @@ describe("bin.ts", () => {
         executeCompiler(`${filePath} --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
 
         // @ts-expect-error - getContext is protected
-        const actual = target.getContext()?.getCliArgs().fileNames || [];
+        const actual = target.getContext()?.getFileNames() || [];
 
         // Should include files not in excluded directory
         expect(actual).toEqual(
@@ -713,10 +713,9 @@ describe("bin.ts", () => {
         executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
 
         // @ts-expect-error - getContext is protected
-        const cliArgs = target.getContext()?.getCliArgs();
-        const options = cliArgs?.options;
+        const options = target.getContext()?.getCompilerOptions();
 
-        // Verify that tsconfig options are properly included in cliArgs.options
+        // Verify that tsconfig options are properly included in compiler options
         expect(options?.target).toBe(ts.ScriptTarget.ES2020);
         expect(options?.moduleResolution).toBe(ts.ModuleResolutionKind.Node10);
         expect(options?.strict).toBe(true);
@@ -748,8 +747,9 @@ describe("bin.ts", () => {
         executeCompiler(`src/test1.ts --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`, target);
 
         // @ts-expect-error - getContext is protected
-        const cliArgs = target.getContext()?.getCliArgs();
-        const options = cliArgs?.options;
+        const context = target.getContext();
+        const options = context?.getCompilerOptions();
+        const fileNames = context?.getFileNames();
 
         // Verify that tsconfig options are still included even with explicit files
         expect(options?.target).toBe(ts.ScriptTarget.ES2020);
@@ -761,8 +761,8 @@ describe("bin.ts", () => {
         expect(options?.outDir).toBe(testDirs.OUTPUT_DIR);
 
         // Verify that only the explicit file is included
-        expect(cliArgs?.fileNames).toHaveLength(1);
-        expect(cliArgs?.fileNames?.[0]).toMatch(/test1\.ts$/);
+        expect(fileNames).toHaveLength(1);
+        expect(fileNames?.[0]).toMatch(/test1\.ts$/);
     }, 60000);
 
     const executeCompiler = (args = "", compiler?: Compiler) => {

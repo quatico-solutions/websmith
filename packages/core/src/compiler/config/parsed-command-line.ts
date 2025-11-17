@@ -99,8 +99,9 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
                     ...(instanceName ? { instanceName } : {}),
                     ...tsConfigResult.options, // Include all tsconfig options
                 },
-                // Filter out invalid file paths like "/" that can cause compilation errors
-                fileNames: tscArgs.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""), // Use explicit files instead of tsconfig file discovery
+                // Filter out invalid file paths like "/" and empty strings.
+                // Use explicit files provided via CLI arguments instead of tsconfig file discovery.
+                fileNames: tscArgs.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""),
             };
         }
 
@@ -146,6 +147,27 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
     };
 };
 
+/**
+ * Converts a value to its string representation for command-line arguments.
+ * @param value The value to convert
+ * @returns The string representation of the value
+ */
+const convertValueToString = (value: unknown): string => {
+    if (value === undefined || value === null) {
+        return "";
+    }
+
+    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+        return String(value);
+    }
+
+    if (Array.isArray(value)) {
+        return value.length > 0 ? value.map(v => (v === null || v === undefined ? "" : String(v))).join(",") : "";
+    }
+
+    return JSON.stringify(value);
+};
+
 export const createArgs = (args: CompilerArguments): string[] =>
     Object.entries(args).reduce((acc: string[], [key, value]) => {
         if (typeof value === "boolean") {
@@ -159,6 +181,6 @@ export const createArgs = (args: CompilerArguments): string[] =>
         if (value === undefined) {
             return acc;
         }
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        return acc.concat(`--${key}`, value != null ? value.toString() : "");
+
+        return acc.concat(`--${key}`, convertValueToString(value));
     }, []);

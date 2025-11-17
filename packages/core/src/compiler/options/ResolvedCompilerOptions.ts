@@ -6,6 +6,7 @@
  */
 import {
     TSC_ARGUMENT_KEYS,
+    type CompilationConfig,
     type CompilationProfile,
     type CompilerOptions,
     type Reporter,
@@ -16,7 +17,7 @@ import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
 import type ts from "typescript";
 import type { CompilerOptionsValue } from "typescript";
-import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, type CompilationConfig } from "../config";
+import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
 import { tsDefaults } from "../defaults";
 
@@ -90,7 +91,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly cliArgs: ts.ParsedCommandLine;
     public readonly reporter: Reporter;
     public readonly watch?: boolean;
-    public readonly additionalArguments?: Map<string, unknown>;
+    public readonly additionalArguments?: Record<string, unknown>;
     /** Instance name for webpack loader. */
     public readonly instanceName?: string;
     /** Profiles configuration from loader options. */

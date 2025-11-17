@@ -27,6 +27,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .option("--debug", "Enable the output of debug information.")
         .option("-p, --project <projectPath>", "Compile the project given the path to its configuration file, or to a folder with a 'tsconfig.json'.")
         .option("-o, --transpileOnly", "Enable the transpile only mode.")
+        .option("--addonEmitOnly", "Only emit files that are processed by active addons. All files are still compiled for dependencies, but only addon-processed files are written to disk.")
         .option("-l, --profile <profileName>", "Name of the profile to use with a specific compiler configuration and list of addons.")
         .option("-w, --watch", "Enable watch mode.")
         .option("--init", "Initializes a TypeScript project and creates a tsconfig.json file.")
@@ -210,19 +211,16 @@ export const hasInvalidProfile = (profile?: string, config?: CompilationConfig) 
     return !selectedProfiles.every(it => definedProfiles.includes(it));
 };
 
-const parseUnknownArguments = (unknownArgs: string[]): Map<string, unknown> => {
-    const result = new Map<string, unknown>();
+const parseUnknownArguments = (unknownArgs: string[]): Record<string, unknown> => {
+    const result: Record<string, unknown> = {};
     const args = parseArgs(unknownArgs);
     for (const key in args) {
         if (key === "_") {
             if (args[key].length > 0) {
-                result.set(
-                    "undefined",
-                    args[key].map(cur => (isPotentiallyJson(cur) ? JSON.parse(cur) : cur))
-                );
+                result.undefined = args[key].map(cur => (isPotentiallyJson(cur) ? JSON.parse(cur) : cur));
             }
         } else {
-            result.set(key, isPotentiallyJson(args[key]) ? JSON.parse(args[key]) : args[key]);
+            result[key] = isPotentiallyJson(args[key]) ? JSON.parse(args[key]) : args[key];
         }
     }
     return result;

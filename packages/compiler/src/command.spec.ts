@@ -39,14 +39,12 @@ describe("addCompileCommand", () => {
             { from: "user" }
         );
 
-        expect(target.getOptions().additionalArguments).toEqual(
-            new Map<string, unknown>([
-                ["unknown", { key1: 13, key2: { key1: "expected", key2: false } }],
-                ["port", 3000],
-                ["hostname", "http://localhost"],
-                ["booleanFlag", true],
-            ])
-        );
+        expect(target.getOptions().additionalArguments).toEqual({
+            unknown: { key1: 13, key2: { key1: "expected", key2: false } },
+            port: 3000,
+            hostname: "http://localhost",
+            booleanFlag: true,
+        });
     });
 
     it("should yield default options w/o config and w/o CLI arguments", () => {
@@ -208,12 +206,10 @@ describe("addCompileCommand", () => {
 
         addCompileCommand(new Command(), target).parse(["--debug", "--fooBar", "--zipZap"], { from: "user" });
 
-        expect(target.getOptions().additionalArguments).toEqual(
-            new Map([
-                ["fooBar", true],
-                ["zipZap", true],
-            ])
-        );
+        expect(target.getOptions().additionalArguments).toEqual({
+            fooBar: true,
+            zipZap: true,
+        });
     });
 
     it("should call compile w/o --watch cli argument", () => {
