@@ -48,6 +48,9 @@ export class CompilationContext implements AddonContext {
 
     // Track files that have been processed by addons
     private addonProcessedFiles: Set<string> = new Set();
+    
+    // Track the current source file being processed (used to mark source file when generators interact with compilation)
+    private currentSourceFile?: string;
 
     private cache: FileCache;
     private languageHost: ts.LanguageServiceHost;
@@ -140,6 +143,10 @@ export class CompilationContext implements AddonContext {
         }
         // Mark file as addon-processed since it was explicitly added by an addon
         this.markFileAsAddonProcessed(filePath);
+        // Also mark the current source file as processed if generators are interacting with compilation
+        if (this.currentSourceFile) {
+            this.markFileAsAddonProcessed(this.currentSourceFile);
+        }
     }
 
     // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
@@ -191,6 +198,10 @@ export class CompilationContext implements AddonContext {
         this.cache.updateSource(filePath, fileContent);
         // Mark file as addon-processed since it was explicitly added by an addon
         this.markFileAsAddonProcessed(filePath);
+        // Also mark the current source file as processed if generators are interacting with compilation
+        if (this.currentSourceFile) {
+            this.markFileAsAddonProcessed(this.currentSourceFile);
+        }
     }
 
     public removeOutputFile(filePath: string) {
@@ -293,6 +304,15 @@ export class CompilationContext implements AddonContext {
     public isFileProcessedByAddon(fileName: string): boolean {
         const resolvedPath = this.system.resolvePath(fileName);
         return this.addonProcessedFiles.has(resolvedPath);
+    }
+
+    /**
+     * Set the current source file being processed.
+     * Used to mark the source file when generators interact with compilation via addInputFile/addVirtualFile.
+     * @internal
+     */
+    public setCurrentSourceFile(fileName: string | undefined): void {
+        this.currentSourceFile = fileName;
     }
 
     private createLanguageServiceHost({

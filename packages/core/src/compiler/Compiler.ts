@@ -330,8 +330,11 @@ export class Compiler {
 
             const generators = ctx.getGenerators();
             if (generators.length > 0) {
-                // Mark file as addon-processed since generators ran on it
-                ctx.markFileAsAddonProcessed(fileName);
+                // Set the current source file so that generators calling addInputFile/addVirtualFile
+                // can automatically mark the source file as processed
+                ctx.setCurrentSourceFile(fileName);
+                // Generators are executed, but files are only marked as addon-processed
+                // if generators actually perform actions (e.g., via addInputFile/addVirtualFile)
                 generators.forEach(cur => {
                     try {
                         cur(fileName, content);
@@ -339,6 +342,8 @@ export class Compiler {
                         this.reporter.reportDiagnostic(new ErrorMessage(`Error in generator "${ctx.getAddonName(cur)}": ${err}`));
                     }
                 });
+                // Clear the current source file after generators run
+                ctx.setCurrentSourceFile(undefined);
             }
 
             const processors = ctx.getProcessors();
