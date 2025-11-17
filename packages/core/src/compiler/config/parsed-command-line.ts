@@ -99,8 +99,7 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
                     ...(instanceName ? { instanceName } : {}),
                     ...tsConfigResult.options, // Include all tsconfig options
                 },
-                // Filter out invalid file paths like "/" that can cause compilation errors
-                // Use explicit files instead of tsconfig file discovery
+                // Filter out invalid file paths like "/" and use explicit files instead of tsconfig file discovery
                 fileNames: tscArgs.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""),
             };
         }
