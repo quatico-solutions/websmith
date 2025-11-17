@@ -2212,7 +2212,6 @@ describe("addonEmitOnly mode", () => {
             },
             { virtual: true }
         );
-        const generatorMock = jest.fn();
         const target = {
             reporter: new ReporterMock(fileSystem),
             tsConfig: { target: ts.ScriptTarget.ESNext },
@@ -2222,6 +2221,13 @@ describe("addonEmitOnly mode", () => {
 
         const testObj = new CompilerTestClass(target, undefined, fileSystem).createProfileContextsIfNecessary();
         const ctx = testObj.getContext();
+        // Generator that performs an action (addVirtualFile) which automatically marks the source file as processed
+        // because it interacts with the compilation process
+        const generatorMock = jest.fn((filePath: string, fileContent: string) => {
+            // Create a new file, which demonstrates the generator is actually processing the source
+            // This will automatically mark the source file as processed
+            ctx?.addVirtualFile(filePath.replace(".ts", "-generated.ts"), fileContent);
+        });
         ctx?.registerGenerator(generatorMock);
 
         const actual = testObj.emitSourceFile("/src/target.ts", undefined, true);
