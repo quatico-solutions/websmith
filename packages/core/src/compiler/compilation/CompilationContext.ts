@@ -95,6 +95,10 @@ export class CompilationContext implements AddonContext {
         return this.cliArgs;
     }
 
+    public getCompilerOptions(): ts.CompilerOptions {
+        return this.cliArgs.options;
+    }
+
     public getReporter(): Reporter {
         return this.reporter;
     }

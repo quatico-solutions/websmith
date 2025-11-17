@@ -23,8 +23,16 @@ export interface AddonContext<O = unknown> {
 
     /**
      * Returns the command line options used to run the compiler.
+     * @deprecated Use getCompilerOptions() instead for accessing TypeScript compiler options.
      */
     getCliArgs(): ts.ParsedCommandLine;
+
+    /**
+     * Returns the TypeScript compiler options for the current compilation.
+     * Use this method instead of getCliArgs().options to access clean CompilerOptions
+     * without CLI implementation details.
+     */
+    getCompilerOptions(): ts.CompilerOptions;
 
     /**
      * Returns the reporter to display error, warning and info messages.
