@@ -53,12 +53,13 @@ export const activate = (ctx: AddonContext<EmitMetadataConfig>): void => {
             const fileInfo: Record<string, unknown> = {
                 path: filePath,
                 name: fileName,
-                size: system.fileExists(filePath) ? system.readFile(filePath)?.length ?? 0 : 0,
+                size: system.fileExists(filePath) ? (system.readFile(filePath)?.length ?? 0) : 0,
             };
 
             // Optionally include file content
             if (includeContent && system.fileExists(filePath)) {
-                fileInfo.content = system.readFile(filePath);
+                const content = system.readFile(filePath);
+                fileInfo.content = content !== undefined ? content : null;
             }
 
             return fileInfo;
