@@ -29,6 +29,38 @@ type CompilationFragment = {
     content: string;
 };
 
+const TARGET_MAP: Record<number, ts.ScriptTarget> = {
+    0: ts.ScriptTarget.ES3,
+    1: ts.ScriptTarget.ES5,
+    2: ts.ScriptTarget.ES2015,
+    3: ts.ScriptTarget.ES2016,
+    4: ts.ScriptTarget.ES2017,
+    5: ts.ScriptTarget.ES2018,
+    6: ts.ScriptTarget.ES2019,
+    7: ts.ScriptTarget.ES2020,
+    8: ts.ScriptTarget.ES2021,
+    9: ts.ScriptTarget.ES2022,
+    10: ts.ScriptTarget.ES2023,
+    11: ts.ScriptTarget.ES2024,
+    99: ts.ScriptTarget.ESNext,
+    100: ts.ScriptTarget.JSON,
+};
+
+const MODULE_MAP: Record<number, ts.ModuleKind> = {
+    0: ts.ModuleKind.None,
+    1: ts.ModuleKind.CommonJS,
+    2: ts.ModuleKind.AMD,
+    3: ts.ModuleKind.UMD,
+    4: ts.ModuleKind.System,
+    5: ts.ModuleKind.ES2015,
+    6: ts.ModuleKind.ES2020,
+    7: ts.ModuleKind.ES2022,
+    99: ts.ModuleKind.ESNext,
+    100: ts.ModuleKind.Node16,
+    101: ts.ModuleKind.NodeNext,
+    199: ts.ModuleKind.Preserve,
+};
+
 export class Compiler {
     private system: ts.System;
     private options!: ResolvedCompilerOptions;
@@ -535,44 +567,14 @@ export class Compiler {
 
         // Normalize target if it's a number
         if (typeof normalized.target === "number") {
-            const targetMap: Record<number, ts.ScriptTarget> = {
-                0: ts.ScriptTarget.ES3,
-                1: ts.ScriptTarget.ES5,
-                2: ts.ScriptTarget.ES2015,
-                3: ts.ScriptTarget.ES2016,
-                4: ts.ScriptTarget.ES2017,
-                5: ts.ScriptTarget.ES2018,
-                6: ts.ScriptTarget.ES2019,
-                7: ts.ScriptTarget.ES2020,
-                8: ts.ScriptTarget.ES2021,
-                9: ts.ScriptTarget.ES2022,
-                10: ts.ScriptTarget.ES2023,
-                11: ts.ScriptTarget.ES2024,
-                99: ts.ScriptTarget.ESNext,
-                100: ts.ScriptTarget.JSON,
-            };
             // Keep the numeric value - TypeScript accepts it internally
-            normalized.target = targetMap[normalized.target] ?? normalized.target;
+            normalized.target = TARGET_MAP[normalized.target] ?? normalized.target;
         }
 
         // Normalize module if it's a number
         if (typeof normalized.module === "number") {
-            const moduleMap: Record<number, ts.ModuleKind> = {
-                0: ts.ModuleKind.None,
-                1: ts.ModuleKind.CommonJS,
-                2: ts.ModuleKind.AMD,
-                3: ts.ModuleKind.UMD,
-                4: ts.ModuleKind.System,
-                5: ts.ModuleKind.ES2015,
-                6: ts.ModuleKind.ES2020,
-                7: ts.ModuleKind.ES2022,
-                99: ts.ModuleKind.ESNext,
-                100: ts.ModuleKind.Node16,
-                101: ts.ModuleKind.NodeNext,
-                199: ts.ModuleKind.Preserve,
-            };
             // Keep the numeric value - TypeScript accepts it internally
-            normalized.module = moduleMap[normalized.module] ?? normalized.module;
+            normalized.module = MODULE_MAP[normalized.module] ?? normalized.module;
         }
 
         return normalized;
@@ -620,15 +622,10 @@ export class Compiler {
             // Check if we should emit this file based on addonEmitOnly flag
             // In full compilation mode (!transpileOnly) with transformers, conservatively emit all files
             // to avoid expensive AST-based detection of which files were actually transformed
-            const hasTransformers = ctx && (
-                ctx.getTransformers().before?.length ||
-                ctx.getTransformers().after?.length ||
-                ctx.getTransformers().afterDeclarations?.length
-            );
-            const shouldEmitFile = !this.addonEmitOnly ||
-                (ctx && ctx.isFileProcessedByAddon(fileName)) ||
-                (!this.transpileOnly && hasTransformers);
-
+            const hasTransformers =
+                ctx &&
+                (ctx.getTransformers().before?.length || ctx.getTransformers().after?.length || ctx.getTransformers().afterDeclarations?.length);
+            const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName)) || (!this.transpileOnly && hasTransformers);
 
             if (writeFile && output.outputFiles && shouldEmitFile) {
                 this.writeOutputFiles(output.outputFiles);
@@ -650,9 +647,7 @@ export class Compiler {
         // Only do this expensive check in transpileOnly mode when addonEmitOnly is enabled
         if (this.transpileOnly && this.addonEmitOnly && ctx) {
             const transformers = ctx.getTransformers();
-            const hasTransformers = transformers.before?.length ||
-                                  transformers.after?.length ||
-                                  transformers.afterDeclarations?.length;
+            const hasTransformers = transformers.before?.length || transformers.after?.length || transformers.afterDeclarations?.length;
 
             if (hasTransformers) {
                 // Transpile with transformers to get the actual output
