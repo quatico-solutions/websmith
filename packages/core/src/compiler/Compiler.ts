@@ -626,9 +626,7 @@ export class Compiler {
             // Check if we should emit this file based on addonEmitOnly flag
             // In full compilation mode (!transpileOnly) with transformers, conservatively emit all files
             // to avoid expensive AST-based detection of which files were actually transformed
-            const hasTransformers =
-                ctx &&
-                !!(ctx.getTransformers().before?.length || ctx.getTransformers().after?.length || ctx.getTransformers().afterDeclarations?.length);
+            const hasTransformers = this.hasRegisteredTransformers(ctx);
             const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName)) || (!this.transpileOnly && hasTransformers);
 
             if (writeFile && output.outputFiles && shouldEmitFile) {
@@ -651,7 +649,7 @@ export class Compiler {
         // Only do this expensive check in transpileOnly mode when addonEmitOnly is enabled
         if (this.transpileOnly && this.addonEmitOnly && ctx) {
             const transformers = ctx.getTransformers();
-            const hasTransformers = !!(transformers.before?.length || transformers.after?.length || transformers.afterDeclarations?.length);
+            const hasTransformers = this.hasRegisteredTransformers(ctx);
 
             if (hasTransformers) {
                 const compilerOptions = ctx.getCompilerOptions();
@@ -701,6 +699,14 @@ export class Compiler {
         }
         // Fallback: use content directly (may be inefficient for large files)
         return `${fileName}:${content.length}:${optionsKey}`;
+    }
+
+    private hasRegisteredTransformers(ctx?: CompilationContext): boolean {
+        if (!ctx) {
+            return false;
+        }
+        const transformers = ctx.getTransformers();
+        return !!(transformers.before?.length || transformers.after?.length || transformers.afterDeclarations?.length);
     }
 
     private transpileInternal(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
