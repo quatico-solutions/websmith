@@ -10,6 +10,11 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 
+type FileMetadata = {
+    name: string;
+    size?: number;
+};
+
 // Create unique test directories for each test to prevent cross-test contamination
 const getTestDirs = () => {
     const testId = expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
@@ -1161,7 +1166,7 @@ describe("compile w/ websmith", () => {
             const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
             // With transpileOnly, we might still get .d.ts file if declaration is enabled
             // Filter to just .js files for this assertion
-            const jsFiles = metadata.files.filter((f: { name: string; size: number }) => f.name.endsWith(".js") && f.size > 0);
+            const jsFiles = metadata.files.filter((f: FileMetadata) => f.name.endsWith(".js") && (f.size ?? 0) > 0);
             expect(jsFiles).toHaveLength(1);
             expect(jsFiles[0].name).toBe("foobar-arrow.js");
         }, 60000);
@@ -1213,8 +1218,8 @@ describe("compile w/ websmith", () => {
             const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
             expect(metadata.totalFiles).toBe(2);
             expect(metadata.files).toHaveLength(2);
-            expect(metadata.files.some((f: { name: string }) => f.name === "foobar-arrow.js")).toBe(true);
-            expect(metadata.files.some((f: { name: string }) => f.name === "foobar-function.js")).toBe(true);
+            expect(metadata.files.some((f: FileMetadata) => f.name === "foobar-arrow.js")).toBe(true);
+            expect(metadata.files.some((f: FileMetadata) => f.name === "foobar-function.js")).toBe(true);
         }, 60000);
     });
 });
