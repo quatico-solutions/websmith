@@ -75,7 +75,9 @@ export const activate = (ctx: AddonContext) => {
                 compilerOptions
             );
             // Report info message to the console.
-            processorCtx.getReporter().reportDiagnostic(new InfoMessage(`Example result processor: processed "${emittedPath}" (source: "${sourceFile}")"`));
+            processorCtx
+                .getReporter()
+                .reportDiagnostic(new InfoMessage(`Example result processor: processed "${emittedPath}" (source: "${sourceFile}")`));
         });
 
         // Write the result to the output JSON file.
