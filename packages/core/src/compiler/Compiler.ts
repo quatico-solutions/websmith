@@ -438,9 +438,12 @@ export class Compiler {
             }
         }
 
+        // Pass the actually emitted files to result processors
+        // This respects addonEmitOnly mode - only emitted files are passed
+        const emittedFiles = result.emittedFiles ?? [];
         ctx.getResultProcessors().forEach(cur => {
             try {
-                cur(files);
+                cur(emittedFiles, ctx);
             } catch (err) {
                 this.reporter.reportDiagnostic(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
             }
