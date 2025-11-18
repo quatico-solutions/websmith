@@ -697,8 +697,9 @@ export class Compiler {
             const optionsHash = this.system.createHash(optionsKey);
             return `${fileName}:${contentHash}:${optionsHash}`;
         }
-        // Fallback: use content directly (may be inefficient for large files)
-        return `${fileName}:${content.length}:${optionsKey}`;
+        // Fallback: use a substring of content to reduce cache collisions (may be inefficient for large files)
+        const contentSnippet = content.substring(0, 64); // Use first 64 chars as a simple fingerprint
+        return `${fileName}:${contentSnippet}:${optionsKey}`;
     }
 
     private hasRegisteredTransformers(ctx?: CompilationContext): boolean {
