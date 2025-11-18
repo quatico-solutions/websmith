@@ -61,6 +61,10 @@ const MODULE_MAP: Record<number, ts.ModuleKind> = {
     199: ts.ModuleKind.Preserve,
 };
 
+// TypeScript error code for invalid CLI option arguments
+// This error occurs when numeric enum values are used in CLI args that TypeScript's command-line parser rejects
+const TS_ERROR_CODE_INVALID_CLI_OPTION = 6046;
+
 export class Compiler {
     private system: ts.System;
     private options!: ResolvedCompilerOptions;
@@ -796,12 +800,12 @@ export class Compiler {
         });
 
         // Use ts.getOutputFileNames to get correct output paths
-        // Note: We filter error 6046 below, so numeric enum values won't cause issues
+        // Note: We filter TS_ERROR_CODE_INVALID_CLI_OPTION below, so numeric enum values won't cause issues
         const fileNames = ts.getOutputFileNames(ctx.getCliArgs(), fileName, !this.system.useCaseSensitiveFileNames);
 
-        // Filter out cliArgs validation errors (error code 6046) to avoid reporting issues
+        // Filter out cliArgs validation errors to avoid reporting issues
         // with numeric enum values that TypeScript's command-line parser rejects
-        const filteredDiagnostics = (diagnostics ?? []).filter(d => d.code !== 6046);
+        const filteredDiagnostics = (diagnostics ?? []).filter(d => d.code !== TS_ERROR_CODE_INVALID_CLI_OPTION);
 
         return {
             outputFiles: concat(
