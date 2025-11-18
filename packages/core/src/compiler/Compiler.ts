@@ -75,6 +75,7 @@ export class Compiler {
     private rootFilesCacheInvalidated = true;
     private cachedProgram?: ts.Program;
     private lastProgramOptions?: string; // JSON stringified options for comparison
+    private baselineTranspileCache = new Map<string, string>(); // Cache for "without transformers" baseline output
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -220,6 +221,7 @@ export class Compiler {
 
         // Invalidate caches when options change
         this.rootFilesCacheInvalidated = true;
+        this.baselineTranspileCache.clear(); // Clear baseline cache when options change
         // Don't invalidate cachedProgram - keep it for incremental compilation
         // The createProgram() method will detect option changes and create a new program
         // while still passing the old program for incremental type checking
@@ -650,19 +652,29 @@ export class Compiler {
             const hasTransformers = transformers.before?.length || transformers.after?.length || transformers.afterDeclarations?.length;
 
             if (hasTransformers) {
+                const compilerOptions = ctx.getCompilerOptions();
+
                 // Transpile with transformers to get the actual output
                 const { outputText: withTransformers } = ts.transpileModule(content, {
-                    compilerOptions: ctx.getCompilerOptions(),
+                    compilerOptions,
                     fileName,
                     transformers,
                 });
 
-                // Transpile without transformers for comparison
-                const { outputText: withoutTransformers } = ts.transpileModule(content, {
-                    compilerOptions: ctx.getCompilerOptions(),
-                    fileName,
-                    transformers: {},
-                });
+                // Get or compute baseline output without transformers (cached per file/content/options)
+                const cacheKey = this.getBaselineCacheKey(fileName, content, compilerOptions);
+                let withoutTransformers = this.baselineTranspileCache.get(cacheKey);
+
+                if (withoutTransformers === undefined) {
+                    // Transpile without transformers for comparison
+                    const result = ts.transpileModule(content, {
+                        compilerOptions,
+                        fileName,
+                        transformers: {},
+                    });
+                    withoutTransformers = result.outputText;
+                    this.baselineTranspileCache.set(cacheKey, withoutTransformers);
+                }
 
                 // Compare outputs to detect if transformers actually changed anything
                 if (withTransformers !== withoutTransformers) {
@@ -674,6 +686,19 @@ export class Compiler {
 
         // Generate output normally (with transformers if any)
         return this.transpileInternal(compilationFragment);
+    }
+
+    private getBaselineCacheKey(fileName: string, content: string, compilerOptions: ts.CompilerOptions): string {
+        // Create a cache key from fileName, content, and compiler options
+        // Use hash if available, otherwise fall back to string concatenation
+        const optionsKey = JSON.stringify(compilerOptions);
+        if (this.system.createHash) {
+            const contentHash = this.system.createHash(content);
+            const optionsHash = this.system.createHash(optionsKey);
+            return `${fileName}:${contentHash}:${optionsHash}`;
+        }
+        // Fallback: use content directly (may be inefficient for large files)
+        return `${fileName}:${content.length}:${optionsKey}`;
     }
 
     private transpileInternal(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
