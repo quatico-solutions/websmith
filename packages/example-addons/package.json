@@ -20,10 +20,11 @@
     ],
     "scripts": {
         "clean": "rimraf lib dist bin coverage test-output",
-        "lint": "eslint \"{addons,tests}/**/*.ts\" --color",
-        "lint:fix": "pnpm lint --fix",
+        "lint": "eslint \"{addons,tests}/**/*.ts\" --color && pnpm typecheck",
+        "lint:fix": "eslint \"{addons,tests}/**/*.ts\" --color --fix",
         "execute": "websmith --addons foo-added-generator,foobar-export-processor,foobar-replace-transformer,function-json-result-processor -p tsconfig.execute.json",
         "build": "tsc",
+        "typecheck": "tsc --project tsconfig.test.json",
         "watch": "pnpm build --watch",
         "watch:test": "jest --watch --runInBand",
         "test:e2e": "jest --coverage --runInBand --passWithNoTests",

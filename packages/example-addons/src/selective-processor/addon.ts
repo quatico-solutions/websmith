@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type AddonContext, type Processor } from "@quatico/websmith-api";
-import path from "path";
+import path from "node:path";
 
 export interface SelectiveProcessorConfig {
     /**
@@ -34,12 +34,11 @@ export interface SelectiveProcessorConfig {
  *
  * @param ctx The addon context for the compilation.
  */
-export const activate = (ctx: AddonContext): void => {
-    const profileConfig = ctx.getProfileConfig() as any;
-    const config = profileConfig?.["selective-processor"] as SelectiveProcessorConfig | undefined;
-    const filePattern = config?.filePattern;
-    const matchPattern = config?.matchPattern ? new RegExp(config.matchPattern, "gi") : /foobar/gi;
-    const replacement = config?.replacement ?? "barfoo";
+export const activate = (ctx: AddonContext<SelectiveProcessorConfig>): void => {
+    const profileConfig = ctx.getProfileConfig();
+    const filePattern = profileConfig?.filePattern;
+    const matchPattern = profileConfig?.matchPattern ? new RegExp(profileConfig.matchPattern, "gi") : /foobar/gi;
+    const replacement = profileConfig?.replacement ?? "barfoo";
 
     const processor: Processor = (fileName: string, content: string): string => {
         // If filePattern is specified, only process files matching the pattern

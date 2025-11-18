@@ -24,6 +24,7 @@
         "lint": "nx run-many --target=lint",
         "lint:fix": "nx run-many --target=lint:fix",
         "build": "nx run-many --target=build",
+        "typecheck": "nx run-many --target=typecheck",
         "watch": "nx run-many --target=watch --parallel=10",
         "watch:test": "nx run-many --target=watch:test --parallel=10",
         "test": "nx run-many --target=test",
