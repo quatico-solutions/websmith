@@ -81,6 +81,7 @@ export class Compiler {
     private lastProgramOptions?: string; // JSON stringified options for comparison
     // Cache for "without transformers" baseline output.
     // This cache is only used in transpileOnly mode with addonEmitOnly enabled, as an important performance optimization.
+    // Cleared when compiler options change or on full rebuild.
     private baselineTranspileCache = new Map<string, string>();
 
     constructor(
