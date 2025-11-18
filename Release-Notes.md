@@ -28,6 +28,18 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.8.1] - 2025-11-19
+
+This release focuses on performance optimizations for the compiler.
+
+### Added
+
+- ⚡ **Baseline Transpile Cache**: Added intelligent caching for "without transformers" baseline output in `transpileOnly` mode with `addonEmitOnly` enabled
+  - Caches baseline transpilation results per file/content/compiler options combination
+  - Significantly reduces redundant transpilation when the same file is processed multiple times
+  - Cache is automatically cleared when compiler options change or on full rebuild
+  - Uses content hashing when available for efficient cache key generation
+
 ## [0.8.0] - 2025-11-17
 
 ### Added
