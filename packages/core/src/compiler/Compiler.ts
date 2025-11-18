@@ -29,6 +29,42 @@ type CompilationFragment = {
     content: string;
 };
 
+const TARGET_MAP: Record<number, ts.ScriptTarget> = {
+    0: ts.ScriptTarget.ES3,
+    1: ts.ScriptTarget.ES5,
+    2: ts.ScriptTarget.ES2015,
+    3: ts.ScriptTarget.ES2016,
+    4: ts.ScriptTarget.ES2017,
+    5: ts.ScriptTarget.ES2018,
+    6: ts.ScriptTarget.ES2019,
+    7: ts.ScriptTarget.ES2020,
+    8: ts.ScriptTarget.ES2021,
+    9: ts.ScriptTarget.ES2022,
+    10: ts.ScriptTarget.ES2023,
+    11: ts.ScriptTarget.ES2024,
+    99: ts.ScriptTarget.ESNext,
+    100: ts.ScriptTarget.JSON,
+};
+
+const MODULE_MAP: Record<number, ts.ModuleKind> = {
+    0: ts.ModuleKind.None,
+    1: ts.ModuleKind.CommonJS,
+    2: ts.ModuleKind.AMD,
+    3: ts.ModuleKind.UMD,
+    4: ts.ModuleKind.System,
+    5: ts.ModuleKind.ES2015,
+    6: ts.ModuleKind.ES2020,
+    7: ts.ModuleKind.ES2022,
+    99: ts.ModuleKind.ESNext,
+    100: ts.ModuleKind.Node16,
+    101: ts.ModuleKind.NodeNext,
+    199: ts.ModuleKind.Preserve,
+};
+
+// TypeScript error code for invalid CLI option arguments
+// This error occurs when numeric enum values are used in CLI args that TypeScript's command-line parser rejects
+const TS_ERROR_CODE_INVALID_CLI_OPTION = 6046;
+
 export class Compiler {
     private system: ts.System;
     private options!: ResolvedCompilerOptions;
@@ -43,6 +79,10 @@ export class Compiler {
     private rootFilesCacheInvalidated = true;
     private cachedProgram?: ts.Program;
     private lastProgramOptions?: string; // JSON stringified options for comparison
+    // Cache for "without transformers" baseline output.
+    // This cache is only used in transpileOnly mode with addonEmitOnly enabled, as an important performance optimization.
+    // Cleared when compiler options change or on full rebuild.
+    private baselineTranspileCache = new Map<string, string>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -188,6 +228,7 @@ export class Compiler {
 
         // Invalidate caches when options change
         this.rootFilesCacheInvalidated = true;
+        this.baselineTranspileCache.clear(); // Clear baseline cache when options change
         // Don't invalidate cachedProgram - keep it for incremental compilation
         // The createProgram() method will detect option changes and create a new program
         // while still passing the old program for incremental type checking
@@ -302,11 +343,17 @@ export class Compiler {
                   },
               };
 
+        // Normalize compiler options to fix numeric enum values
+        const normalizedCliArgs = {
+            ...profileCliArgs,
+            options: this.normalizeCompilerOptions(profileCliArgs.options),
+        };
+
         return new CompilationContext({
             tsConfig: profileOptions.tsConfig ?? {},
             projectDir: path.dirname(configFile ?? tsConfigFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
-            cliArgs: profileCliArgs,
+            cliArgs: normalizedCliArgs,
             rootFiles: this.getRootFiles(),
             reporter: this.reporter,
             ...(profile && { config: this.options.config?.profiles?.[profile]?.config }),
@@ -357,8 +404,7 @@ export class Compiler {
                         break; // Stop processing further processors on error
                     }
                 }
-                // Mark file as addon-processed only if content was modified by the processor.
-                // This enables selective processing where processors can return unchanged content for non-matching files without marking them as processed.
+                // Automatically mark file as addon-processed if content was modified
                 if (content !== originalContent) {
                     ctx.markFileAsAddonProcessed(fileName);
                 }
@@ -392,10 +438,17 @@ export class Compiler {
     }
 
     protected report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
-        ts.getPreEmitDiagnostics(program)
-            .concat(result.diagnostics)
-            .filter(cur => program?.getProjectReferences?.()?.length || cur.file) // Filter out global diagnostics
-            .forEach(cur => this.reporter.reportDiagnostic(cur));
+        // Skip pre-emit diagnostics in transpileOnly mode to avoid validation errors
+        // with numeric enum values that TypeScript's internal validation rejects
+        if (!this.transpileOnly) {
+            ts.getPreEmitDiagnostics(program)
+                .concat(result.diagnostics)
+                .filter(cur => program?.getProjectReferences?.()?.length || cur.file) // Filter out global diagnostics
+                .forEach(cur => this.reporter.reportDiagnostic(cur));
+        } else {
+            // In transpileOnly mode, only report diagnostics from the result
+            result.diagnostics.forEach(cur => this.reporter.reportDiagnostic(cur));
+        }
 
         return result;
     }
@@ -426,9 +479,12 @@ export class Compiler {
             }
         }
 
+        // Pass the actually emitted files to result processors
+        // This respects addonEmitOnly mode - only emitted files are passed
+        const emittedFiles = result.emittedFiles ?? [];
         ctx.getResultProcessors().forEach(cur => {
             try {
-                cur(files);
+                cur(emittedFiles, ctx);
             } catch (err) {
                 this.reporter.reportDiagnostic(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
             }
@@ -507,10 +563,39 @@ export class Compiler {
         return parts.join(", ");
     }
 
+    /**
+     * Normalizes TypeScript compiler options by converting numeric enum values to their string equivalents.
+     * This ensures compatibility with TypeScript's diagnostic checking which expects string values.
+     */
+    private normalizeCompilerOptions(tsConfig?: ts.CompilerOptions): ts.CompilerOptions {
+        if (!tsConfig) {
+            return {};
+        }
+
+        const normalized = { ...tsConfig };
+
+        // Normalize target if it's a number
+        if (typeof normalized.target === "number") {
+            // Keep the numeric value - TypeScript accepts it internally
+            normalized.target = TARGET_MAP[normalized.target] ?? normalized.target;
+        }
+
+        // Normalize module if it's a number
+        if (typeof normalized.module === "number") {
+            // Keep the numeric value - TypeScript accepts it internally
+            normalized.module = MODULE_MAP[normalized.module] ?? normalized.module;
+        }
+
+        return normalized;
+    }
+
     protected createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
+        // Normalize TypeScript options to ensure enum values are properly formatted
+        const normalizedConfig = this.normalizeCompilerOptions(tsConfig);
+
         // Serialize options for comparison (exclude functions and complex objects)
         const currentOptionsKey = JSON.stringify({
-            ...tsConfig,
+            ...normalizedConfig,
             // Exclude non-serializable properties
             configFilePath: undefined,
         });
@@ -523,8 +608,8 @@ export class Compiler {
         // Create a new program with incremental compilation support
         this.cachedProgram = ts.createProgram({
             rootNames: this.getRootFiles(),
-            options: tsConfig ?? {},
-            host: createCompileHost(tsConfig ?? {}),
+            options: normalizedConfig ?? {},
+            host: createCompileHost(normalizedConfig ?? {}),
             oldProgram: this.cachedProgram, // Enable incremental compilation
         });
 
@@ -544,7 +629,10 @@ export class Compiler {
             cache.updateOutput(fileName, output.outputFiles);
 
             // Check if we should emit this file based on addonEmitOnly flag
-            const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName));
+            // In full compilation mode (!transpileOnly) with transformers, conservatively emit all files
+            // to avoid expensive AST-based detection of which files were actually transformed
+            const hasTransformers = this.hasRegisteredTransformers(ctx);
+            const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName)) || (!this.transpileOnly && hasTransformers);
 
             if (writeFile && output.outputFiles && shouldEmitFile) {
                 this.writeOutputFiles(output.outputFiles);
@@ -560,18 +648,75 @@ export class Compiler {
     }
 
     private transpile(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
-        const { fileName, ctx } = compilationFragment;
+        const { ctx, fileName, content } = compilationFragment;
 
-        // Mark file as addon-processed if transformers are registered
-        const transformers = ctx.getTransformers();
-        if (
-            transformers &&
-            ((transformers.before && transformers.before.length > 0) ||
-                (transformers.after && transformers.after.length > 0) ||
-                (transformers.afterDeclarations && transformers.afterDeclarations.length > 0))
-        ) {
-            ctx.markFileAsAddonProcessed(fileName);
+        // Automatically detect if transformers actually changed the output
+        // Only do this expensive check in transpileOnly mode when addonEmitOnly is enabled
+        if (this.transpileOnly && this.addonEmitOnly && ctx) {
+            const transformers = ctx.getTransformers();
+            const hasTransformers = this.hasRegisteredTransformers(ctx);
+
+            if (hasTransformers) {
+                const compilerOptions = ctx.getCompilerOptions();
+
+                // Transpile with transformers to get the actual output
+                const { outputText: withTransformers } = ts.transpileModule(content, {
+                    compilerOptions,
+                    fileName,
+                    transformers,
+                });
+
+                // Get or compute baseline output without transformers (cached per file/content/options)
+                const cacheKey = this.getBaselineCacheKey(fileName, content, compilerOptions);
+                let withoutTransformers = this.baselineTranspileCache.get(cacheKey);
+
+                if (withoutTransformers === undefined) {
+                    // Transpile without transformers for comparison
+                    const result = ts.transpileModule(content, {
+                        compilerOptions,
+                        fileName,
+                        transformers: {},
+                    });
+                    withoutTransformers = result.outputText;
+                    this.baselineTranspileCache.set(cacheKey, withoutTransformers);
+                }
+
+                // Compare outputs to detect if transformers actually changed anything
+                if (withTransformers !== withoutTransformers) {
+                    // Transformers actually modified the output - mark file as processed
+                    ctx.markFileAsAddonProcessed(fileName);
+                }
+            }
         }
+
+        // Generate output normally (with transformers if any)
+        return this.transpileInternal(compilationFragment);
+    }
+
+    private getBaselineCacheKey(fileName: string, content: string, compilerOptions: ts.CompilerOptions): string {
+        // Create a cache key from fileName, content, and compiler options
+        // Use hash if available, otherwise fall back to string concatenation
+        const optionsKey = JSON.stringify(compilerOptions);
+        if (this.system.createHash) {
+            const contentHash = this.system.createHash(content);
+            const optionsHash = this.system.createHash(optionsKey);
+            return `${fileName}:${contentHash}:${optionsHash}`;
+        }
+        // Fallback: use a substring of content to reduce cache collisions (may be inefficient for large files)
+        const contentSnippet = content.substring(0, 64); // Use first 64 chars as a simple fingerprint
+        return `${fileName}:${contentSnippet}:${optionsKey}`;
+    }
+
+    private hasRegisteredTransformers(ctx?: CompilationContext): boolean {
+        if (!ctx) {
+            return false;
+        }
+        const transformers = ctx.getTransformers();
+        return !!(transformers.before?.length || transformers.after?.length || transformers.afterDeclarations?.length);
+    }
+
+    private transpileInternal(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
+        const { fileName, ctx } = compilationFragment;
 
         if (this.transpileOnly) {
             if (fileName.endsWith(".d.ts")) {
@@ -655,15 +800,21 @@ export class Compiler {
             transformers: ctx.getTransformers(),
         });
 
+        // Use ts.getOutputFileNames to get correct output paths
+        // Note: We filter TS_ERROR_CODE_INVALID_CLI_OPTION below, so numeric enum values won't cause issues
         const fileNames = ts.getOutputFileNames(ctx.getCliArgs(), fileName, !this.system.useCaseSensitiveFileNames);
+
+        // Filter out cliArgs validation errors to avoid reporting issues
+        // with numeric enum values that TypeScript's command-line parser rejects
+        const filteredDiagnostics = (diagnostics ?? []).filter(d => d.code !== TS_ERROR_CODE_INVALID_CLI_OPTION);
 
         return {
             outputFiles: concat(
                 this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText),
                 this.extractOutputFile(fileNames, isSourceMap, sourceMapText)
             ),
-            diagnostics: diagnostics ?? [],
-            emitSkipped: diagnostics !== undefined && diagnostics.length > 0,
+            diagnostics: filteredDiagnostics,
+            emitSkipped: filteredDiagnostics.length > 0,
         };
     }
 

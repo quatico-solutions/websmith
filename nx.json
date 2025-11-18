@@ -28,6 +28,16 @@
             "outputs": [
                 "{projectRoot}/lib"
             ]
+        },
+        "typecheck": {
+            "dependsOn": [
+                "^build"
+            ]
+        },
+        "lint": {
+            "dependsOn": [
+                "^build"
+            ]
         }
     },
     "affected": {

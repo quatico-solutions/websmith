@@ -148,16 +148,78 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
 };
 
 /**
+ * Converts TypeScript ScriptTarget enum value to its string name.
+ * @param target The ScriptTarget enum value
+ * @returns The string name (e.g., "esnext", "es2020")
+ */
+const scriptTargetToString = (target: number): string => {
+    // Map TypeScript ScriptTarget enum values to their string names
+    const targetMap: Record<number, string> = {
+        0: "es3",
+        1: "es5",
+        2: "es2015",
+        3: "es2016",
+        4: "es2017",
+        5: "es2018",
+        6: "es2019",
+        7: "es2020",
+        8: "es2021",
+        9: "es2022",
+        10: "es2023",
+        11: "es2024",
+        99: "esnext",
+        100: "json",
+    };
+    return targetMap[target] ?? String(target);
+};
+
+/**
+ * Converts TypeScript ModuleKind enum value to its string name.
+ * @param module The ModuleKind enum value
+ * @returns The string name (e.g., "esnext", "commonjs")
+ */
+const moduleKindToString = (module: number): string => {
+    // Map TypeScript ModuleKind enum values to their string names
+    const moduleMap: Record<number, string> = {
+        0: "none",
+        1: "commonjs",
+        2: "amd",
+        3: "umd",
+        4: "system",
+        5: "es2015",
+        6: "es2020",
+        7: "es2022",
+        99: "esnext",
+        100: "node16",
+        101: "nodenext",
+        199: "preserve",
+    };
+    return moduleMap[module] ?? String(module);
+};
+
+/**
  * Converts a value to its string representation for command-line arguments.
+ * @param key The option key (to handle special cases like 'target' and 'module')
  * @param value The value to convert
  * @returns The string representation of the value
  */
-const convertValueToString = (value: unknown): string => {
+const convertValueToString = (key: string, value: unknown): string => {
     if (value === undefined || value === null) {
         return "";
     }
 
-    if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    // Handle TypeScript enum values that need special conversion
+    if (typeof value === "number") {
+        if (key === "target") {
+            return scriptTargetToString(value);
+        }
+        if (key === "module") {
+            return moduleKindToString(value);
+        }
+        return String(value);
+    }
+
+    if (typeof value === "string" || typeof value === "boolean") {
         return String(value);
     }
 
@@ -182,5 +244,5 @@ export const createArgs = (args: CompilerArguments): string[] =>
             return acc;
         }
 
-        return acc.concat(`--${key}`, convertValueToString(value));
+        return acc.concat(`--${key}`, convertValueToString(key, value));
     }, []);

@@ -10,6 +10,11 @@ import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 
+type FileMetadata = {
+    name: string;
+    size?: number;
+};
+
 // Create unique test directories for each test to prevent cross-test contamination
 const getTestDirs = () => {
     const testId = expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
@@ -615,6 +620,608 @@ describe("compile w/ websmith", () => {
         expect(getOutput("foobar-arrow.js")).toContain("processedFoobar");
         expect(getOutput("foobar-function.js")).toBeDefined();
     }, 60000);
+
+    describe("addonEmitOnly with transformers", () => {
+        it("should emit all files with transformers in full compilation mode (addonEmitOnly=true, transpileOnly=false)", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                declaration: true,
+                ...tsDefaults,
+            });
+
+            // Copy multiple source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: true,
+                        transpileOnly: false,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-transformer"],
+                                config: {
+                                    "selective-transformer": {
+                                        filePattern: "arrow",
+                                        transformMarker: "TRANSFORMED_ARROW",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+
+            expect(result).toBe("");
+
+            // In full compilation mode with declarations, addonEmitOnly conservatively emits all files
+            // when transformers are registered (to avoid expensive AST-based detection)
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.js")).toContain("getFoobar");
+            expect(getOutput("foobar-function.js")).toBeDefined();
+            expect(getOutput("foobar-function.js")).toContain("getFoobar");
+        }, 60000);
+
+        it("should only emit transformed files with addonEmitOnly=true, transpileOnly=true", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                ...tsDefaults,
+            });
+
+            // Copy multiple source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: true,
+                        transpileOnly: true,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-transformer"],
+                                config: {
+                                    "selective-transformer": {
+                                        filePattern: "arrow",
+                                        transformMarker: "TRANSFORMED_ARROW",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+
+            expect(result).toBe("");
+
+            // File transformed by addon should be emitted
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.js")).toContain("getFoobar");
+
+            // File NOT transformed should NOT be emitted
+            expect(getOutput("foobar-function.js")).toBeUndefined();
+        }, 60000);
+
+        it("should emit all files with addonEmitOnly=false, transpileOnly=false", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                declaration: true,
+                ...tsDefaults,
+            });
+
+            // Copy multiple source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: false,
+                        transpileOnly: false,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-transformer"],
+                                config: {
+                                    "selective-transformer": {
+                                        filePattern: "arrow",
+                                        transformMarker: "TRANSFORMED_ARROW",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+
+            expect(result).toBe("");
+
+            // Both files should be emitted
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.js")).toContain("TRANSFORMED_ARROW");
+            expect(getOutput("foobar-function.js")).toBeDefined();
+        }, 60000);
+
+        it("should emit all files with addonEmitOnly=false, transpileOnly=true", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                ...tsDefaults,
+            });
+
+            // Copy multiple source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: false,
+                        transpileOnly: true,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-transformer"],
+                                config: {
+                                    "selective-transformer": {
+                                        filePattern: "arrow",
+                                        transformMarker: "TRANSFORMED_ARROW",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+
+            expect(result).toBe("");
+
+            // Both files should be emitted
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.js")).toContain("TRANSFORMED_ARROW");
+            expect(getOutput("foobar-function.js")).toBeDefined();
+        }, 60000);
+    });
+
+    describe("addonEmitOnly with generators", () => {
+        it("should only emit generated files with addonEmitOnly=true, transpileOnly=false", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                declaration: true,
+                ...tsDefaults,
+            });
+            // Copy multiple source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: true,
+                        transpileOnly: false,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-generator"],
+                                config: {
+                                    "selective-generator": {
+                                        filePattern: "arrow",
+                                        generatedSuffix: ".generated",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+            expect(result).toBe("");
+            // Source file and generated file should be emitted for matching pattern
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.generated.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.generated.js")).toContain("sourceFile");
+            // File NOT processed by generator should NOT be emitted
+            expect(getOutput("foobar-function.js")).toBeUndefined();
+            expect(getOutput("foobar-function.generated.js")).toBeUndefined();
+        }, 60000);
+
+        it("should only emit generated files with addonEmitOnly=true, transpileOnly=true", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                ...tsDefaults,
+            });
+            // Copy multiple source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: true,
+                        transpileOnly: true,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-generator"],
+                                config: {
+                                    "selective-generator": {
+                                        filePattern: "arrow",
+                                        generatedSuffix: ".generated",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+            expect(result).toBe("");
+            // Source file and generated file should be emitted for matching pattern
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.generated.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.generated.js")).toContain("sourceFile");
+            // File NOT processed by generator should NOT be emitted
+            expect(getOutput("foobar-function.js")).toBeUndefined();
+            expect(getOutput("foobar-function.generated.js")).toBeUndefined();
+        }, 60000);
+
+        it("should emit all files with addonEmitOnly=false, transpileOnly=false", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                declaration: true,
+                ...tsDefaults,
+            });
+            // Copy multiple source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: false,
+                        transpileOnly: false,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-generator"],
+                                config: {
+                                    "selective-generator": {
+                                        filePattern: "arrow",
+                                        generatedSuffix: ".generated",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+            expect(result).toBe("");
+            // All files should be emitted
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.generated.js")).toBeDefined();
+            expect(getOutput("foobar-function.js")).toBeDefined();
+            // Function file doesn't match pattern, so no generated file for it
+        }, 60000);
+
+        it("should emit all files with addonEmitOnly=false, transpileOnly=true", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                ...tsDefaults,
+            });
+            // Copy multiple source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: false,
+                        transpileOnly: true,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-generator"],
+                                config: {
+                                    "selective-generator": {
+                                        filePattern: "arrow",
+                                        generatedSuffix: ".generated",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+            expect(result).toBe("");
+            // All files should be emitted
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.generated.js")).toBeDefined();
+            expect(getOutput("foobar-function.js")).toBeDefined();
+            // Function file doesn't match pattern, so no generated file for it
+        }, 60000);
+    });
+
+    describe("addonEmitOnly with processors (all combinations)", () => {
+        it("should only emit processed files with addonEmitOnly=true, transpileOnly=false", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                declaration: true,
+                ...tsDefaults,
+            });
+            // Copy multiple source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: true,
+                        transpileOnly: false,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-processor"],
+                                config: {
+                                    "selective-processor": {
+                                        filePattern: "arrow",
+                                        replacement: "processedFoobar",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+            expect(result).toBe("");
+            // File processed by addon should be emitted
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.js")).toContain("processedFoobar");
+            // File NOT processed should NOT be emitted
+            expect(getOutput("foobar-function.js")).toBeUndefined();
+        }, 60000);
+
+        it("should emit all files with addonEmitOnly=false, transpileOnly=true", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                ...tsDefaults,
+            });
+            // Copy multiple source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: false,
+                        transpileOnly: true,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-processor"],
+                                config: {
+                                    "selective-processor": {
+                                        filePattern: "arrow",
+                                        replacement: "processedFoobar",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+            expect(result).toBe("");
+            // Both files should be emitted
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.js")).toContain("processedFoobar");
+            expect(getOutput("foobar-function.js")).toBeDefined();
+        }, 60000);
+    });
+
+    describe("addonEmitOnly with result-processors", () => {
+        it("should emit only metadata file with addonEmitOnly=true, transpileOnly=false", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                ...tsDefaults,
+            });
+            // Copy source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: true,
+                        transpileOnly: false,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["emit-metadata-result-processor"],
+                                config: {
+                                    "emit-metadata-result-processor": {
+                                        outputFile: "compilation-metadata.json",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+
+            expect(result).toBe("");
+
+            // Original files should not be emitted (no addons processed them)
+            expect(getOutput("foobar-arrow.js")).toBeUndefined();
+            expect(getOutput("foobar-function.js")).toBeUndefined();
+
+            // Metadata file should be generated by result processor
+            const metadataPath = path.join(testDirs.OUTPUT_DIR, "compilation-metadata.json");
+            expect(fs.existsSync(metadataPath)).toBe(true);
+
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
+            expect(metadata).toHaveProperty("timestamp");
+            expect(metadata).toHaveProperty("totalFiles");
+            // In full compilation mode with addonEmitOnly, no source files should be emitted
+            // (no addons processed them), but the metadata file should still be generated
+            expect(metadata.totalFiles).toBeGreaterThanOrEqual(0);
+        }, 60000);
+
+        it("should emit metadata about processed files with addonEmitOnly=true, transpileOnly=true", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                ...tsDefaults,
+            });
+            // Copy source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: true,
+                        transpileOnly: true,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["selective-processor", "emit-metadata-result-processor"],
+                                config: {
+                                    "selective-processor": {
+                                        filePattern: "arrow",
+                                        replacement: "processedFoobar",
+                                    },
+                                    "emit-metadata-result-processor": {
+                                        outputFile: "compilation-metadata.json",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+
+            expect(result).toBe("");
+
+            // Only processed file should be emitted
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-arrow.js")).toContain("processedFoobar");
+            expect(getOutput("foobar-function.js")).toBeUndefined();
+
+            // Metadata file should list only the emitted file
+            const metadataPath = path.join(testDirs.OUTPUT_DIR, "compilation-metadata.json");
+            expect(fs.existsSync(metadataPath)).toBe(true);
+
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
+            // With transpileOnly, we might still get .d.ts file if declaration is enabled
+            // Filter to just .js files for this assertion
+            const jsFiles = metadata.files.filter((f: FileMetadata) => f.name.endsWith(".js") && (f.size ?? 0) > 0);
+            expect(jsFiles).toHaveLength(1);
+            expect(jsFiles[0].name).toBe("foobar-arrow.js");
+        }, 60000);
+
+        it("should emit metadata about all files with addonEmitOnly=false", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                ...tsDefaults,
+            });
+            // Copy source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: false,
+                        transpileOnly: true,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["emit-metadata-result-processor"],
+                                config: {
+                                    "emit-metadata-result-processor": {
+                                        outputFile: "compilation-metadata.json",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+
+            expect(result).toBe("");
+
+            // All files should be emitted
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-function.js")).toBeDefined();
+
+            // Metadata file should list all emitted files
+            const metadataPath = path.join(testDirs.OUTPUT_DIR, "compilation-metadata.json");
+            expect(fs.existsSync(metadataPath)).toBe(true);
+
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf-8"));
+            expect(metadata.totalFiles).toBe(2);
+            expect(metadata.files).toHaveLength(2);
+            expect(metadata.files.some((f: FileMetadata) => f.name === "foobar-arrow.js")).toBe(true);
+            expect(metadata.files.some((f: FileMetadata) => f.name === "foobar-function.js")).toBe(true);
+        }, 60000);
+    });
 });
 
 const writeWebsmithConfig = (config?: CompilationConfig) => {

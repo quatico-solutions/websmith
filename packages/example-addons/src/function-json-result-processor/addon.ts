@@ -12,21 +12,46 @@ import ts from "typescript";
  * Example addon with a result processor that creates JSON data with found
  * function names.
  *
- * This addon consumes all processed source files to find function declarations
+ * This addon consumes all emitted source files to find function declarations
  * and arrow functions to extract their names into a JSON file.
+ *
+ * When addonEmitOnly is enabled, only files that were actually emitted
+ * (processed by addons) are analyzed.
  *
  * @param ctx The compilation context for this addon.
  */
 export const activate = (ctx: AddonContext) => {
-    ctx.registerResultProcessor((filePaths: string[]): void => {
+    ctx.registerResultProcessor((emittedFiles: string[], processorCtx: AddonContext): void => {
         const result: Record<string, string[]> = {};
+        const compilerOptions = processorCtx.getCompilerOptions();
 
-        filePaths.forEach(curPath => {
-            const content = ctx.getFileContent(curPath);
-            const target = ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest;
+        // Get all source file names from the compilation
+        const sourceFiles = processorCtx.getFileNames();
+
+        // Build a map from baseName to sourceFile path for efficient lookup
+        const baseNameToSourceFile: Record<string, string> = {};
+        sourceFiles.forEach(src => {
+            const srcBaseName = path.basename(src, path.extname(src));
+            baseNameToSourceFile[srcBaseName] = src;
+        });
+
+        emittedFiles.forEach(emittedPath => {
+            // Find the corresponding source file for this emitted file
+            // Remove the output extension and directory to match with source file
+            const baseName = path.basename(emittedPath, path.extname(emittedPath));
+
+            // Lookup matching source file using the map
+            const sourceFile = baseNameToSourceFile[baseName];
+
+            if (!sourceFile) {
+                return; // Skip if no matching source file found
+            }
+
+            const content = processorCtx.getFileContent(sourceFile);
+            const target = compilerOptions.target ?? ts.ScriptTarget.Latest;
 
             ts.transform(
-                ts.createSourceFile(curPath, content, target),
+                ts.createSourceFile(sourceFile, content, target),
                 [
                     (context: ts.TransformationContext) =>
                         (curFile: ts.SourceFile): ts.SourceFile => {
@@ -45,18 +70,21 @@ export const activate = (ctx: AddonContext) => {
                             };
 
                             curFile = ts.visitNode(curFile, visitor, ts.isSourceFile);
-                            result[path.basename(curPath, path.extname(curPath))] = funcNames;
+                            // Use the base name from the emitted file for the result key
+                            result[baseName] = funcNames;
 
                             return curFile;
                         },
                 ],
-                ctx.getCompilerOptions()
+                compilerOptions
             );
             // Report info message to the console.
-            ctx.getReporter().reportDiagnostic(new InfoMessage(`Example result processor: processed "${curPath}"`));
+            processorCtx
+                .getReporter()
+                .reportDiagnostic(new InfoMessage(`Example result processor: processed "${emittedPath}" (source: "${sourceFile}")`));
         });
 
         // Write the result to the output JSON file.
-        ctx.getSystem().writeFile(path.join(ctx.getCompilerOptions().outDir ?? "", "named-functions.json"), JSON.stringify(result));
+        processorCtx.getSystem().writeFile(path.join(processorCtx.getCompilerOptions().outDir ?? "", "named-functions.json"), JSON.stringify(result));
     });
 };
