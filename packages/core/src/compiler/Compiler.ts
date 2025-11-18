@@ -626,7 +626,7 @@ export class Compiler {
             // to avoid expensive AST-based detection of which files were actually transformed
             const hasTransformers =
                 ctx &&
-                (ctx.getTransformers().before?.length || ctx.getTransformers().after?.length || ctx.getTransformers().afterDeclarations?.length);
+                !!(ctx.getTransformers().before?.length || ctx.getTransformers().after?.length || ctx.getTransformers().afterDeclarations?.length);
             const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName)) || (!this.transpileOnly && hasTransformers);
 
             if (writeFile && output.outputFiles && shouldEmitFile) {
@@ -649,7 +649,7 @@ export class Compiler {
         // Only do this expensive check in transpileOnly mode when addonEmitOnly is enabled
         if (this.transpileOnly && this.addonEmitOnly && ctx) {
             const transformers = ctx.getTransformers();
-            const hasTransformers = transformers.before?.length || transformers.after?.length || transformers.afterDeclarations?.length;
+            const hasTransformers = !!(transformers.before?.length || transformers.after?.length || transformers.afterDeclarations?.length);
 
             if (hasTransformers) {
                 const compilerOptions = ctx.getCompilerOptions();
