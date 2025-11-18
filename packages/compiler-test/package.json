@@ -7,9 +7,10 @@
     "private": true,
     "scripts": {
         "clean": "rimraf lib bin coverage test-output",
-        "lint": "eslint \"{src,test}/**/*.ts\" --color",
-        "lint:fix": "pnpm lint --fix",
+        "lint": "eslint \"{src,test}/**/*.ts\" --color && pnpm typecheck",
+        "lint:fix": "eslint \"{src,test}/**/*.ts\" --color --fix",
         "build": "tsc",
+        "typecheck": "tsc --project tsconfig.test.json",
         "watch": "tsc --watch",
         "dist": "pnpm clean && pnpm lint && cross-env-shell NODE_ENV=production \"pnpm build\"",
         "test:e2e": "jest --verbose --runInBand"
