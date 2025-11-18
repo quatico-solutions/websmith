@@ -1,6 +1,6 @@
 {
     "name": "websmith-loader",
-    "version": "0.8.0",
+    "version": "0.8.1",
     "description": "A webpack loader for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
