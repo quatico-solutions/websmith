@@ -59,18 +59,18 @@ export const activate = (ctx: AddonContext<SelectiveGeneratorConfig>): void => {
         const generatedFileName = path.join(dir, `${baseName}${generatedSuffix}.ts`);
 
         const generatedContent = `/*
-            * AUTO-GENERATED FILE - DO NOT EDIT
-            * Generated from: ${path.basename(fileName)}
-            */
+ * AUTO-GENERATED FILE - DO NOT EDIT
+ * Generated from: ${path.basename(fileName)}
+ */
 
-            export const metadata = {
-                sourceFile: "${path.basename(fileName)}",
-                generated: true,
-                timestamp: "${new Date().toISOString()}",
-            };
+export const metadata = {
+    sourceFile: "${path.basename(fileName)}",
+    generated: true,
+    timestamp: "${new Date().toISOString()}",
+};
 
-            export { ${baseName} } from "./${baseName}";
-        `;
+export { ${baseName} } from "./${baseName}";
+`;
 
         // Add the generated file to the compilation
         ctx.addVirtualFile(generatedFileName, generatedContent);
