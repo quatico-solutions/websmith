@@ -360,7 +360,47 @@ export const activate = (ctx: AddonContext) => {
 
 #### Result Processors
 
-Result processors operate on compiled output and do not affect which files are emitted. They run after emission decisions are made.
+Result processors operate after compilation and receive the list of files that were actually emitted. They can generate supplementary files like documentation, metadata, or reports.
+
+**Key characteristics:**
+* Run after all other addons and compilation is complete
+* Receive only the files that were actually emitted (respecting `addonEmitOnly`)
+* Have access to AddonContext for file system operations and utilities
+* Can create additional output files directly
+
+**Example:**
+
+```typescript
+// ./addons/my-result-processor/addon.ts
+export const activate = (ctx: AddonContext) => {
+    ctx.registerResultProcessor((emittedFiles: string[], processorCtx: AddonContext): void => {
+        const system = processorCtx.getSystem();
+        const outDir = processorCtx.getCompilerOptions().outDir;
+
+        if (!outDir) return;
+
+        // Create metadata about emitted files
+        const metadata = {
+            timestamp: new Date().toISOString(),
+            totalFiles: emittedFiles.length,
+            files: emittedFiles.map(filePath => ({
+                path: filePath,
+                name: path.basename(filePath),
+                size: system.readFile(filePath)?.length ?? 0,
+            })),
+        };
+
+        // Write metadata file
+        const metadataPath = path.join(outDir, "build-metadata.json");
+        system.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
+    });
+};
+```
+
+**Detection:** Result processors receive the actual emitted files list
+* When `addonEmitOnly: true` → Only addon-processed files are passed
+* When `addonEmitOnly: false` → All compiled files are passed
+* Result processors can create their own output files which are not subject to `addonEmitOnly`
 
 ### Use Cases
 

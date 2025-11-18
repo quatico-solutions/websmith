@@ -271,11 +271,15 @@ Processes compiler output for webpack:
 - Apply transformers during TypeScript compilation
 - Generate output files
 
-**Result Processors** (`emitResult()` line 393-399):
+**Result Processors** (`emitResult()` line 441-450):
 
-- Run once per profile (not per file)
-- Access to all file names and content
-- Can create additional output files
+- Run once per profile after all files have been processed and emitted
+- Receive the list of actually emitted files (respecting addonEmitOnly mode)
+- Have access to AddonContext for file system operations and utilities
+- Can create additional supplementary files (documentation, metadata, reports)
+- When `addonEmitOnly: true`, only receive addon-processed files
+- When `addonEmitOnly: false`, receive all compiled files
+- Files created by result processors are not subject to addonEmitOnly filtering
 
 ---
 

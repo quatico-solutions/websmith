@@ -82,9 +82,10 @@ export class TsCompiler extends Compiler {
                     this.emitSourceFile(filePath, profile, true);
 
                     // TODO: We cannot apply the resultProcessors to the resulting fragment, because webpack has not written the file yet.
-                    this.getContext(profile)
-                        ?.getResultProcessors()
-                        .forEach(cur => cur([filePath]));
+                    const ctx = this.getContext(profile);
+                    if (ctx) {
+                        ctx.getResultProcessors().forEach(cur => cur([filePath], ctx));
+                    }
                 });
         }
 

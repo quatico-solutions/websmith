@@ -337,7 +337,7 @@ export class WebpackAddonContext implements AddonContext {
     executeResultProcessors(filePaths: string[]): void {
         for (const processor of this.resultProcessors) {
             try {
-                processor(filePaths);
+                processor(filePaths, this);
             } catch (error) {
                 this.reporter.reportDiagnostic(
                     new ErrorMessage(`Result processor failed: ${error instanceof Error ? error.message : String(error)}`)
