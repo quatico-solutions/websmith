@@ -28,16 +28,20 @@ export const activate = (ctx: AddonContext) => {
         // Get all source file names from the compilation
         const sourceFiles = processorCtx.getFileNames();
 
+        // Build a map from baseName to sourceFile path for efficient lookup
+        const baseNameToSourceFile: Record<string, string> = {};
+        sourceFiles.forEach(src => {
+            const srcBaseName = path.basename(src, path.extname(src));
+            baseNameToSourceFile[srcBaseName] = src;
+        });
+
         emittedFiles.forEach(emittedPath => {
             // Find the corresponding source file for this emitted file
             // Remove the output extension and directory to match with source file
             const baseName = path.basename(emittedPath, path.extname(emittedPath));
 
-            // Find matching source file
-            const sourceFile = sourceFiles.find(src => {
-                const srcBaseName = path.basename(src, path.extname(src));
-                return srcBaseName === baseName;
-            });
+            // Lookup matching source file using the map
+            const sourceFile = baseNameToSourceFile[baseName];
 
             if (!sourceFile) {
                 return; // Skip if no matching source file found
