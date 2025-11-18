@@ -2284,6 +2284,72 @@ describe("addonEmitOnly mode", () => {
         expect(actual.files.length).toBeGreaterThan(0);
         expect(getText("target.js", actual)).toContain("modified");
     });
+
+    it("should only emit files actually transformed by transformers", () => {
+        const fileSystem = createSystem(
+            {
+                "src/service.ts": `export function serviceFunction() { return "service"; }`,
+                "src/helper.ts": `export function helperFunction() { return "helper"; }`,
+            },
+            { virtual: true }
+        );
+        const writeFileSpy = jest.spyOn(fileSystem, "writeFile");
+
+        // Create a transformer that only transforms files containing "service"
+        const selectiveTransformer: ts.TransformerFactory<ts.SourceFile> = context => {
+            return sourceFile => {
+                if (!sourceFile.fileName.includes("service")) {
+                    // Don't transform files that don't contain "service" in the name
+                    return sourceFile;
+                }
+
+                // Transform the service file by adding a comment
+                const visitor = (node: ts.Node): ts.Node => {
+                    if (ts.isFunctionDeclaration(node) && node.name?.text === "serviceFunction") {
+                        // Add a leading comment to mark this was transformed
+                        return ts.addSyntheticLeadingComment(
+                            node,
+                            ts.SyntaxKind.MultiLineCommentTrivia,
+                            " TRANSFORMED ",
+                            false
+                        );
+                    }
+                    return ts.visitEachChild(node, visitor, context);
+                };
+
+                return ts.visitNode(sourceFile, visitor) as ts.SourceFile;
+            };
+        };
+
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext },
+            cliArgs: { fileNames: ["/src/service.ts", "/src/helper.ts"], options: {}, errors: [] },
+            config: { addonEmitOnly: true, transpileOnly: true },
+        };
+
+        const testObj = new CompilerTestClass(target, undefined, fileSystem).createProfileContextsIfNecessary();
+        const ctx = testObj.getContext();
+        ctx?.registerTransformer({ before: [selectiveTransformer] });
+
+        // Emit both files
+        const serviceResult = testObj.emitSourceFile("/src/service.ts", undefined, true);
+        const helperResult = testObj.emitSourceFile("/src/helper.ts", undefined, true);
+
+        // Service file should be emitted (transformed)
+        expect(serviceResult.files.length).toBeGreaterThan(0);
+        expect(getText("service.js", serviceResult)).toContain("TRANSFORMED");
+
+        // Helper file should NOT be emitted (not transformed)
+        expect(helperResult.files.length).toBeGreaterThan(0); // Files returned but...
+
+        // Check actual file writes - only service should be written
+        const serviceCalls = writeFileSpy.mock.calls.filter(call => call[0].includes("service.js"));
+        const helperCalls = writeFileSpy.mock.calls.filter(call => call[0].includes("helper.js"));
+
+        expect(serviceCalls.length).toBeGreaterThan(0); // Service was written
+        expect(helperCalls.length).toBe(0); // Helper was NOT written
+    });
 });
 
 const complexFileExtension = (name: string): string => {

@@ -9,6 +9,7 @@ The websmith monorepo is organized as a pnpm workspace with the following packag
 ### Core Packages
 
 #### `packages/api`
+
 - **Purpose**: Public API interfaces and types for addon developers
 - **Key Exports**:
   - `AddonContext`: Main interface addons receive in their activate function
@@ -20,6 +21,7 @@ The websmith monorepo is organized as a pnpm workspace with the following packag
 - **Key Files**: `/packages/api/src/addons/`, `/packages/api/src/config/`, `/packages/api/src/options/`
 
 #### `packages/core`
+
 - **Purpose**: Shared compiler implementation and utilities (internal, not used directly by consumers)
 - **Key Components**:
   - `Compiler`: Main compilation engine
@@ -31,6 +33,7 @@ The websmith monorepo is organized as a pnpm workspace with the following packag
 - **Key Files**: `/packages/core/src/compiler/`, `/packages/core/src/environment/`
 
 #### `packages/compiler`
+
 - **Purpose**: CLI tool for standalone TypeScript compilation with websmith addons
 - **Entry Point**: `bin.ts` - Command-line interface
 - **Key Features**:
@@ -43,6 +46,7 @@ The websmith monorepo is organized as a pnpm workspace with the following packag
 - **Key Files**: `/packages/compiler/src/command.ts`, `/packages/compiler/src/bin.ts`
 
 #### `packages/webpack`
+
 - **Purpose**: webpack loader integration (`websmith-loader`)
 - **Key Components**:
   - `loader.ts`: Main webpack loader entry point
@@ -54,14 +58,17 @@ The websmith monorepo is organized as a pnpm workspace with the following packag
 - **Key Files**: `/packages/webpack/src/loader.ts`, `/packages/webpack/src/TsCompiler.ts`
 
 #### `packages/testing`
+
 - **Purpose**: Testing utilities and helpers
 - **Features**: Helpers for addon testing, mock systems, test fixtures
 
 #### `packages/node`
+
 - **Purpose**: Node.js specific utilities
 - **Features**: System implementation for Node.js environments
 
 #### `packages/example-addons`
+
 - **Purpose**: Reference examples for addon developers
 - **Examples**:
   - `foo-added-generator`: Generator that creates additional source files
@@ -71,6 +78,7 @@ The websmith monorepo is organized as a pnpm workspace with the following packag
   - Profile-based examples: `client-processor`, `server-processor`, `client-transformer`, `server-transformer`
 
 #### `packages/compiler-test` and `packages/webpack-test`
+
 - **Purpose**: End-to-end test suites for compiler and webpack loader
 
 ---
@@ -106,6 +114,7 @@ The addon system operates in the following sequence:
 ### 2.2 Addon Registry (`packages/core/src/compiler/addons/AddonRegistry.ts`)
 
 **Key Features**:
+
 - **Selective Loading**: Only loads addons explicitly requested via CLI or profiles
 - **Compilation Caching**: Uses file modification times to skip unnecessary recompilation
 - **Lookup Cache**: Caches addon references for performance
@@ -118,6 +127,7 @@ The addon system operates in the following sequence:
   - Filesystem problems
 
 **Key Methods**:
+
 - `getAddonByName(name)`: Fast lookup with cache
 - `getAvailableAddons(profile?)`: Get addons for profile with dependency resolution
 - `refresh()`: Clear caches and reload
@@ -128,6 +138,7 @@ The addon system operates in the following sequence:
 Implements the `AddonContext` interface provided to addons.
 
 **Key Methods**:
+
 - `registerGenerator(fn)`: Register pre-compilation file generator
 - `registerProcessor(fn)`: Register source code processor
 - `registerTransformer(transformers)`: Register TypeScript transformers
@@ -138,6 +149,7 @@ Implements the `AddonContext` interface provided to addons.
 - `getProfileConfig()`: Get addon-specific configuration
 
 **Internal Structure**:
+
 - `FileCache`: Tracks source and output files
 - `LanguageService`: TypeScript language service for diagnostics
 - `CompilationHost`: Custom TypeScript host
@@ -164,12 +176,14 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
 Extends base `Compiler` for webpack-specific features:
 
 **Key Features**:
+
 - Extends webpack's dependency callback for change detection
 - Manages profile-specific compilation
 - Handles webpack's compilation context
 - Provides version-based cache invalidation
 
 **Instance Caching** (`compiler-instances.ts`):
+
 - Caches `TsCompiler` instances per webpack config
 - Reuses instances across multiple file compilations
 - Intelligent cache invalidation on config changes
@@ -177,6 +191,7 @@ Extends base `Compiler` for webpack-specific features:
 ### 3.3 Compilation Queue (`packages/webpack/src/CompilationQueue.ts`)
 
 Manages concurrent compilation requests:
+
 - Queues compilation tasks
 - Prevents race conditions
 - Handles errors gracefully
@@ -184,6 +199,7 @@ Manages concurrent compilation requests:
 ### 3.4 Result Handling (`packages/webpack/src/result-handling.ts`)
 
 Processes compiler output for webpack:
+
 - Converts to webpack-compatible format
 - Handles source maps
 - Manages error/warning reporting
@@ -195,6 +211,7 @@ Processes compiler output for webpack:
 ### 4.1 Main Compilation Flow
 
 **Entry Points**:
+
 1. CLI: `packages/compiler/src/bin.ts` → `addCompileCommand()` → `command.ts`
 2. Webpack Loader: `packages/webpack/src/loader.ts`
 3. Direct API: Import `Compiler` from `@quatico/websmith-core`
@@ -231,26 +248,31 @@ Processes compiler output for webpack:
 ### 4.3 File Processing Detail
 
 **Generators** (`emitSourceFile()` line 316-322):
+
 - Read unmodified source file
 - Run each registered generator
 - Generators can create side effects (write files, etc.)
 - Cannot modify source code
 
 **Processors** (`emitSourceFile()` line 324-331):
+
 - Run sequentially, each receives output of previous
 - Can modify source code completely
 - Can add/remove imports and exports
 - Stop on first error
 
 **Cache Update** (line 333):
+
 - Update cache with processed source code
 
 **Transpilation** (line 336):
+
 - Use either `transpileOnly` mode or full compilation
 - Apply transformers during TypeScript compilation
 - Generate output files
 
 **Result Processors** (`emitResult()` line 393-399):
+
 - Run once per profile (not per file)
 - Access to all file names and content
 - Can create additional output files
@@ -286,6 +308,7 @@ Processes compiler output for webpack:
 ### 5.2 Configuration Resolution (`packages/core/src/compiler/config/resolve-compiler-config.ts`)
 
 **Process**:
+
 1. Parse JSON with comment support via `comment-json`
 2. Resolve relative paths to absolute (based on config file location)
 3. Merge profile addons with base addons
@@ -293,6 +316,7 @@ Processes compiler output for webpack:
 5. Update path references in profiles
 
 **Key Functions**:
+
 - `resolveCompilationConfig()`: Load and parse config file
 - `resolvePaths()`: Convert relative paths to absolute
 - `updatePaths()`: Apply path resolution to entire config
@@ -300,6 +324,7 @@ Processes compiler output for webpack:
 ### 5.3 Options Resolution (`packages/core/src/compiler/options/resolveCompilerOptions.ts`)
 
 Merges configuration from multiple sources (priority order):
+
 1. CLI arguments
 2. Webpack loader options
 3. Profile-specific tsConfig
@@ -311,7 +336,9 @@ Merges configuration from multiple sources (priority order):
 ## 6. Key Design Patterns
 
 ### 6.1 Registry Pattern
+
 `AddonRegistry` maintains:
+
 - Available addons map
 - Compilation cache
 - File modification time cache
@@ -319,7 +346,9 @@ Merges configuration from multiple sources (priority order):
 - Compiler host reuse
 
 ### 6.2 Context Pattern
+
 `CompilationContext` implements `AddonContext` to provide addons with:
+
 - Access to TypeScript compiler
 - File system operations
 - Configuration
@@ -327,7 +356,9 @@ Merges configuration from multiple sources (priority order):
 - Lifecycle hooks (generators, processors, transformers, result processors)
 
 ### 6.3 Plugin Pattern
+
 Addons use a registration pattern:
+
 ```typescript
 export const activate = (ctx: AddonContext) => {
   ctx.registerGenerator((fileName, content) => { /* ... */ });
@@ -340,11 +371,13 @@ export const activate = (ctx: AddonContext) => {
 ```
 
 ### 6.4 Lazy Initialization
+
 - WebpackAddonService initialized only when needed
 - Compiler host reused if options unchanged
 - Files compiled incrementally with caching
 
 ### 6.5 Error Handling Strategy
+
 - Detailed categorization (dependency, syntax, filesystem, etc.)
 - Suggestions for resolution
 - Non-fatal errors allow compilation to continue
@@ -357,6 +390,7 @@ export const activate = (ctx: AddonContext) => {
 ### 7.1 Profile Dependency Resolution
 
 Profiles can depend on other profiles via `depends` array:
+
 ```json
 {
   "profiles": {
@@ -370,6 +404,7 @@ Profiles can depend on other profiles via `depends` array:
 ```
 
 When `client` profile is selected:
+
 1. Both `client` and `server` profiles are compiled
 2. Server addons run first, then client addons
 3. Circular dependencies prevented with visited set
@@ -377,11 +412,13 @@ When `client` profile is selected:
 ### 7.2 Incremental Compilation
 
 `FileCache` stores:
+
 - Source file content and modification time
 - Compiled output files
 - Version number for webpack cache invalidation
 
 **Cache Invalidation**:
+
 - Per-file modification time tracking
 - Configuration changes clear caches
 - Webpack uses `version` property for smart cache
@@ -389,6 +426,7 @@ When `client` profile is selected:
 ### 7.3 Watch Mode
 
 Implemented in `Compiler.watch()`:
+
 - Registers file watchers via `ts.System.watchFile()`
 - Debounced (50ms) to prevent rapid recompilation
 - Resolves dependencies and recompiles affected files
@@ -397,6 +435,7 @@ Implemented in `Compiler.watch()`:
 ### 7.4 Transformers Merging
 
 TypeScript transformers are merged by phase:
+
 - **before**: All "before" transformers from all addons
 - **after**: All "after" transformers from all addons  
 - **afterDeclarations**: All "afterDeclarations" transformers
@@ -406,32 +445,66 @@ This allows multiple addons to chainably transform code.
 ### 7.5 Compilation Modes
 
 **transpileOnly**:
+
 - Uses `ts.transpileModule()` for speed
 - No type checking
 - Smaller output files
 - Good for webpack builds
 
 **Full Compilation**:
+
 - Uses TypeScript compiler API
 - Type checking and .d.ts generation
 - Slower but complete type information
 - Used for CLI builds
 
 **Addon Emit Only (addonEmitOnly)**:
+
 - Only emits files that are processed by addon callbacks
-- Files are marked as addon-processed when:
-  - Generators run on them
-  - Processors modify them
-  - Transformers are applied to them
-  - Explicitly added via `addInputFile()` or `addVirtualFile()`
+- Files are **automatically marked as addon-processed** when:
+  - **Processors** return different content than they received (automatic content comparison)
+  - **Transformers** modify the output (automatic detection varies by compilation mode):
+    - In `transpileOnly: true` mode: Compares transpiled output with/without transformers (precise)
+    - In `transpileOnly: false` mode: Uses conservative strategy - emits all files when transformers are registered
+  - **Generators** call `addInputFile()` or `addVirtualFile()` (marks both generated file and source file)
 - All files are still compiled for dependencies and type checking
 - Only addon-processed files are written to disk
-- Can be combined with `transpileOnly` for fast builds without type checking
+- Can be combined with `transpileOnly` for different compilation strategies:
+  - `transpileOnly: true` + `addonEmitOnly: true` = Fast selective builds (precise transformer detection)
+  - `transpileOnly: false` + `addonEmitOnly: true` = Full compilation with selective emission (conservative transformer handling)
+  - `transpileOnly: true` + `addonEmitOnly: false` = Fast builds, emit all files
+  - `transpileOnly: false` + `addonEmitOnly: false` = Full builds, emit all files
 - Useful for code generation workflows where original source files should remain unchanged
 - Example use cases:
   - Generate API documentation from source without emitting transpiled code
   - Create transformed versions of specific files while preserving originals
   - Selective code generation pipelines
+  - Decorator-based transformations (e.g., Magellan's `@service()` decorator)
+- **Implementation Details**:
+  - **Processor detection**: Compares content before and after processing (Compiler.ts:355-370)
+  - **Transformer detection in transpileOnly mode**: Uses `ts.transpileModule()` twice to compare output with/without transformers (Compiler.ts:643-679)
+  - **Transformer detection in full compilation mode**: Conservative - emits all files when transformers are registered to avoid expensive AST comparisons (Compiler.ts:620-627)
+  - **Generator detection**: Files marked when `addInputFile()` or `addVirtualFile()` is called (CompilationContext.ts:126-150, 186-205)
+  - **Performance impact**: Minimal in transpileOnly mode (fast transpile comparison), zero overhead in full compilation mode (conservative strategy)
+- Configuration example:
+
+  ```json
+  {
+    "addonsDir": "./addons",
+    "addonEmitOnly": true,
+    "profiles": {
+      "selective": {
+        "addons": ["selective-processor"],
+        "config": {
+          "selective-processor": {
+            "filePattern": "arrow",
+            "replacement": "processedFoobar"
+          }
+        }
+      }
+    }
+  }
+  ```
 
 ---
 
@@ -458,6 +531,7 @@ interface WebsmithLoaderConfig {
 ### 8.2 Dependency Tracking
 
 Loader calls `this.addDependency(path)` for:
+
 - All source files
 - Dependencies added via `addAssetDependency()`
 - Configuration file changes
@@ -465,6 +539,7 @@ Loader calls `this.addDependency(path)` for:
 ### 8.3 Cache Invalidation
 
 Webpack cache uses `loader.version`:
+
 - Set to `CompileFragment.version` for each file
 - Version incremented when source changes
 - Enables incremental builds
@@ -490,6 +565,7 @@ Webpack cache uses `loader.version`:
 ### Extending CompilationContext
 
 The context is created per profile and stores:
+
 - File cache
 - Language service
 - Registered functions (with addon tracking)
@@ -544,6 +620,7 @@ To add new capability, extend `CompilationContext` and update `AddonContext` int
 ---
 
 This guide should provide Claude instances with the foundational understanding needed to:
+
 - Navigate the codebase effectively
 - Understand addon execution flow
 - Modify compilation pipeline
