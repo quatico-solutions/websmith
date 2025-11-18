@@ -75,7 +75,9 @@ export class Compiler {
     private rootFilesCacheInvalidated = true;
     private cachedProgram?: ts.Program;
     private lastProgramOptions?: string; // JSON stringified options for comparison
-    private baselineTranspileCache = new Map<string, string>(); // Cache for "without transformers" baseline output
+    // Cache for "without transformers" baseline output.
+    // This cache is only used in transpileOnly mode with addonEmitOnly enabled, as an important performance optimization.
+    private baselineTranspileCache = new Map<string, string>();
 
     constructor(
         options: Partial<CompilerOptions>,
