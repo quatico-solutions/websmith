@@ -14,7 +14,11 @@
  * Use this processor function to modify input files before the actual
  * compilation.
  *
+ * The framework automatically detects when content is changed and marks
+ * the file as processed for `addonEmitOnly` mode.
+ *
  * @param filePath The path of the source file that is being compiled.
  * @param fileContent The content of the source file.
+ * @returns Modified content or the original content if no changes were made
  */
 export type Processor = (filePath: string, fileContent: string) => string | never;

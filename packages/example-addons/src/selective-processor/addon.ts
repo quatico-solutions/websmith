@@ -28,7 +28,8 @@ export interface SelectiveProcessorConfig {
  *
  * This demonstrates the proper use of Processors for selective string manipulation:
  * - Processors operate on source code strings before TypeScript compilation
- * - Return unchanged content for non-matching files (won't be marked as addon-processed)
+ * - Return modified content to trigger automatic processing detection
+ * - Files that don't match the pattern return the original content unchanged
  * - Use simple string replacement (not AST transformation)
  * - Perfect for addonEmitOnly mode where only modified files should be emitted
  *
@@ -36,20 +37,25 @@ export interface SelectiveProcessorConfig {
  */
 export const activate = (ctx: AddonContext<SelectiveProcessorConfig>): void => {
     const profileConfig = ctx.getProfileConfig();
-    const filePattern = profileConfig?.filePattern;
-    const matchPattern = profileConfig?.matchPattern ? new RegExp(profileConfig.matchPattern, "gi") : /foobar/gi;
-    const replacement = profileConfig?.replacement ?? "barfoo";
+
+    // Handle both flat config and nested config with addon name as key
+    const addonConfig = (profileConfig as Record<string, SelectiveProcessorConfig>)?.["selective-processor"] ?? profileConfig;
+
+    const filePattern = addonConfig?.filePattern;
+    const matchPattern = addonConfig?.matchPattern ? new RegExp(addonConfig.matchPattern, "gi") : /foobar/gi;
+    const replacement = addonConfig?.replacement ?? "barfoo";
 
     const processor: Processor = (fileName: string, content: string): string => {
         // If filePattern is specified, only process files matching the pattern
         if (filePattern) {
             const basename = path.basename(fileName);
             if (!basename.includes(filePattern)) {
-                return content; // Return unchanged - won't be marked as addon-processed
+                return content; // Return original content for non-matching files
             }
         }
 
         // Simple string replacement (not AST transformation)
+        // Framework automatically detects content change and marks file as processed
         return content.replace(matchPattern, replacement);
     };
 
