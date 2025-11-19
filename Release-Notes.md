@@ -20,6 +20,18 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.8.4] - TBA
+
+This release enhances webpack loader integration with support for `addonEmitOnly` flag in loader options.
+
+### Added
+
+- 🚀 **Webpack Loader addonEmitOnly Support**: Added support for `addonEmitOnly` flag in webpack loader options
+  - `addonEmitOnly` can now be specified directly in webpack loader configuration, overriding config file settings
+  - Works consistently with `transpileOnly` flag, allowing both to be used together
+  - Loader options take precedence over websmith.config.json settings, providing flexible configuration
+  - Added comprehensive test coverage to verify correct override behavior
+
 ## [0.8.3] - TBA
 
 This release includes code cleanup, a new example addon demonstrating common processor pitfalls, and improved test coverage.
