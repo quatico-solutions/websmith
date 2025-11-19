@@ -63,6 +63,18 @@ class CompilerTestClass extends Compiler {
     public getReporter(): Reporter {
         return super.getReporter();
     }
+
+    public getBaselineTranspileCache(): Map<string, string> {
+        return this["baselineTranspileCache"];
+    }
+
+    public getBaselineEmitCache(): Map<string, string> {
+        return this["baselineEmitCache"];
+    }
+
+    public getBaselineEmitCacheFileTimes(): Map<string, Date> {
+        return this["baselineEmitCacheFileTimes"];
+    }
 }
 
 beforeEach(() => {
@@ -658,6 +670,78 @@ describe("setOptions", () => {
         const actual = testObj.getOptions().getAddons("target-profile");
 
         expect(actual).toEqual(["addon1", "addon2"]);
+    });
+
+    it("should clear baseline transpile cache when options change (transpileOnly mode)", () => {
+        const fileSystem = createSystem(
+            {
+                "src/target.ts": `export const test = 'hello';`,
+            },
+            { virtual: true }
+        );
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                config: { transpileOnly: true, addonEmitOnly: true },
+                cliArgs: { fileNames: [path.resolve("/src/target.ts")], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+
+        // Register transformer to trigger baseline cache usage
+        const ctx = testObj.getContext();
+        ctx?.registerTransformer({
+            before: [_context => sourceFile => sourceFile],
+        });
+
+        // Compile file to populate cache
+        testObj.emitSourceFile(path.resolve("/src/target.ts"), undefined, false);
+        expect(testObj.getBaselineTranspileCache().size).toBeGreaterThan(0);
+
+        // Change options - should clear cache
+        testObj.setOptions({ tsConfig: { target: ts.ScriptTarget.ES5 } });
+
+        expect(testObj.getBaselineTranspileCache().size).toBe(0);
+    });
+
+    it("should clear baseline emit caches when options change (full compilation mode)", () => {
+        const fileSystem = createSystem(
+            {
+                "src/target.ts": `export const test = 'hello';`,
+            },
+            { virtual: true }
+        );
+
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, declaration: true },
+                config: { transpileOnly: false, addonEmitOnly: true },
+                cliArgs: { fileNames: [path.resolve("/src/target.ts")], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+
+        // Register transformer to trigger baseline cache usage
+        const ctx = testObj.getContext();
+        ctx?.registerTransformer({
+            before: [_context => sourceFile => sourceFile],
+        });
+
+        // Compile file to populate caches
+        testObj.emitSourceFile(path.resolve("/src/target.ts"), undefined, false);
+        expect(testObj.getBaselineEmitCache().size).toBeGreaterThan(0);
+        expect(testObj.getBaselineEmitCacheFileTimes().size).toBeGreaterThan(0);
+
+        // Change options - should clear both caches
+        testObj.setOptions({ tsConfig: { target: ts.ScriptTarget.ES5 } });
+
+        expect(testObj.getBaselineEmitCache().size).toBe(0);
+        expect(testObj.getBaselineEmitCacheFileTimes().size).toBe(0);
     });
 });
 
@@ -2307,12 +2391,7 @@ describe("addonEmitOnly mode", () => {
                 const visitor = (node: ts.Node): ts.Node => {
                     if (ts.isFunctionDeclaration(node) && node.name?.text === "serviceFunction") {
                         // Add a leading comment to mark this was transformed
-                        return ts.addSyntheticLeadingComment(
-                            node,
-                            ts.SyntaxKind.MultiLineCommentTrivia,
-                            " TRANSFORMED ",
-                            false
-                        );
+                        return ts.addSyntheticLeadingComment(node, ts.SyntaxKind.MultiLineCommentTrivia, " TRANSFORMED ", false);
                     }
                     return ts.visitEachChild(node, visitor, context);
                 };

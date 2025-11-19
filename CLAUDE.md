@@ -467,15 +467,15 @@ This allows multiple addons to chainably transform code.
 - Only emits files that are processed by addon callbacks
 - Files are **automatically marked as addon-processed** when:
   - **Processors** return different content than they received (automatic content comparison)
-  - **Transformers** modify the output (automatic detection varies by compilation mode):
+  - **Transformers** modify the output (automatic detection in both compilation modes):
     - In `transpileOnly: true` mode: Compares transpiled output with/without transformers (precise)
-    - In `transpileOnly: false` mode: Uses conservative strategy - emits all files when transformers are registered
+    - In `transpileOnly: false` mode: Compares emit output with/without transformers (precise)
   - **Generators** call `addInputFile()` or `addVirtualFile()` (marks both generated file and source file)
 - All files are still compiled for dependencies and type checking
 - Only addon-processed files are written to disk
 - Can be combined with `transpileOnly` for different compilation strategies:
   - `transpileOnly: true` + `addonEmitOnly: true` = Fast selective builds (precise transformer detection)
-  - `transpileOnly: false` + `addonEmitOnly: true` = Full compilation with selective emission (conservative transformer handling)
+  - `transpileOnly: false` + `addonEmitOnly: true` = Full compilation with selective emission (precise transformer detection)
   - `transpileOnly: true` + `addonEmitOnly: false` = Fast builds, emit all files
   - `transpileOnly: false` + `addonEmitOnly: false` = Full builds, emit all files
 - Useful for code generation workflows where original source files should remain unchanged
@@ -486,10 +486,10 @@ This allows multiple addons to chainably transform code.
   - Decorator-based transformations (e.g., Magellan's `@service()` decorator)
 - **Implementation Details**:
   - **Processor detection**: Compares content before and after processing (Compiler.ts:355-370)
-  - **Transformer detection in transpileOnly mode**: Uses `ts.transpileModule()` twice to compare output with/without transformers (Compiler.ts:643-679)
-  - **Transformer detection in full compilation mode**: Conservative - emits all files when transformers are registered to avoid expensive AST comparisons (Compiler.ts:620-627)
+  - **Transformer detection in transpileOnly mode**: Uses `ts.transpileModule()` twice to compare output with/without transformers (Compiler.ts:654-689)
+  - **Transformer detection in full compilation mode**: Uses `program.emit()` twice to compare output with/without transformers (Compiler.ts:803-842)
   - **Generator detection**: Files marked when `addInputFile()` or `addVirtualFile()` is called (CompilationContext.ts:126-150, 186-205)
-  - **Performance impact**: Minimal in transpileOnly mode (fast transpile comparison), zero overhead in full compilation mode (conservative strategy)
+  - **Performance impact**: Minimal overhead in both modes due to caching - baseline output is computed once and cached per file
 - Configuration example:
 
   ```json
