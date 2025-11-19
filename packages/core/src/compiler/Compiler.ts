@@ -87,6 +87,8 @@ export class Compiler {
     // This cache is only used in full compilation mode with addonEmitOnly enabled for precise transformer detection.
     // Cleared when compiler options change or on full rebuild.
     private baselineEmitCache = new Map<string, string>();
+    // Track file modification times to detect when files change and invalidate stale cache entries
+    private baselineEmitCacheFileTimes = new Map<string, Date>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -234,6 +236,7 @@ export class Compiler {
         this.rootFilesCacheInvalidated = true;
         this.baselineTranspileCache.clear(); // Clear baseline transpile cache when options change
         this.baselineEmitCache.clear(); // Clear baseline emit cache when options change
+        this.baselineEmitCacheFileTimes.clear(); // Clear file modification time tracking when options change
         // Don't invalidate cachedProgram - keep it for incremental compilation
         // The createProgram() method will detect option changes and create a new program
         // while still passing the old program for incremental type checking
@@ -711,6 +714,34 @@ export class Compiler {
         return `${fileName}:${contentSnippet}:${optionsKey}`;
     }
 
+    /**
+     * Invalidates baseline emit cache entries for a specific file when its content has changed.
+     * This prevents stale cache entries from accumulating in memory.
+     * Cache keys follow the format: `${fileName}:${contentHash}:${optionsHash}`
+     */
+    private invalidateBaselineEmitCacheForFile(fileName: string): void {
+        const currentModTime = this.system.getModifiedTime?.(fileName);
+        const lastKnownModTime = this.baselineEmitCacheFileTimes.get(fileName);
+
+        // If file modification time has changed, clear all cache entries for this file
+        if (currentModTime && lastKnownModTime && currentModTime.getTime() !== lastKnownModTime.getTime()) {
+            // Clear all cache entries for this file (they have different content hashes/options)
+            // Since cache keys start with `${fileName}:`, we can identify and remove them
+            const keysToDelete: string[] = [];
+            for (const key of this.baselineEmitCache.keys()) {
+                if (key.startsWith(`${fileName}:`)) {
+                    keysToDelete.push(key);
+                }
+            }
+            keysToDelete.forEach(key => this.baselineEmitCache.delete(key));
+        }
+
+        // Update the tracked modification time for this file
+        if (currentModTime) {
+            this.baselineEmitCacheFileTimes.set(fileName, currentModTime);
+        }
+    }
+
     private hasRegisteredTransformers(ctx?: CompilationContext): boolean {
         if (!ctx) {
             return false;
@@ -815,6 +846,9 @@ export class Compiler {
                 if (hasTransformers) {
                     // Emit with transformers to get the actual output
                     const { outputFiles: withTransformers, diagnostics } = emitWithTransformers(transformers);
+
+                    // Invalidate stale cache entries if file content has changed
+                    this.invalidateBaselineEmitCacheForFile(fileName);
 
                     // Get or compute baseline output without transformers (cached per file/content/options)
                     const compilerOptions = ctx.getCompilerOptions();
