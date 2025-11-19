@@ -1222,6 +1222,51 @@ describe("compile w/ websmith", () => {
             expect(metadata.files.some((f: FileMetadata) => f.name === "foobar-function.js")).toBe(true);
         }, 60000);
     });
+
+    describe("addonEmitOnly gotcha: reformatting processors", () => {
+        it("should emit all files when processor reformats code (even without semantic changes)", async () => {
+            writeTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                ...tsDefaults,
+            });
+
+            // Copy source files
+            fs.copyFileSync(path.join(__dirname, "..", "src", "foobar-function.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+
+            const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"), path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                tsConfig: {
+                    project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+                websmith: {
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addonEmitOnly: true,
+                        transpileOnly: false,
+                        profiles: {
+                            "test-profile": {
+                                addons: ["reformatting-processor"],
+                            },
+                        },
+                    },
+                    profile: "test-profile",
+                    tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                },
+            });
+
+            expect(result).toBe("");
+
+            // BOTH files are emitted because reformatting-processor uses ts.createPrinter()
+            // which reformats the code, causing content to differ from original
+            // This demonstrates the gotcha: processors that use AST transformation
+            // must check if actual semantic changes occurred before printing
+            expect(getOutput("foobar-arrow.js")).toBeDefined();
+            expect(getOutput("foobar-function.js")).toBeDefined();
+
+            // This is EXPECTED behavior - websmith correctly detects content changes
+            // The issue is in the processor implementation, not websmith
+        }, 60000);
+    });
 });
 
 const writeWebsmithConfig = (config?: CompilationConfig) => {
