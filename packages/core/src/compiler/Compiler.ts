@@ -758,7 +758,7 @@ export class Compiler {
 
         // Helper function to find the main output file (excluding .d.ts and .js.map files)
         const findMainOutputFile = (outputFiles: ts.OutputFile[]): ts.OutputFile | undefined => {
-            return outputFiles.find(file => isTranspiledSourceFile(file.name));
+            return outputFiles.find(file => isTranspiledSourceFile(file.name) && !isSourceMap(file.name));
         };
 
         // For declaration files, we need to use the full compiler API instead of transpileModule
