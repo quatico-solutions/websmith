@@ -86,7 +86,8 @@ export class Compiler {
     // Cache for "without transformers" baseline output in full compilation mode.
     // This cache is only used in full compilation mode with addonEmitOnly enabled for precise transformer detection.
     // Cleared when compiler options change or on full rebuild.
-    private baselineEmitCache = new Map<string, string>();
+    // Stores undefined when no main output file is found (distinct from empty string output)
+    private baselineEmitCache = new Map<string, string | undefined>();
     // Track file modification times to detect when files change and invalidate stale cache entries
     private baselineEmitCacheFileTimes = new Map<string, Date>();
 
@@ -860,15 +861,19 @@ export class Compiler {
                         const { outputFiles: baselineOutput } = emitWithTransformers({});
                         // Only compare the main .js output file (not .d.ts or .js.map)
                         const mainOutput = findMainOutputFile(baselineOutput);
-                        withoutTransformersText = mainOutput?.text ?? "";
+                        // If no main output file is found, cache undefined to indicate absence of output
+                        withoutTransformersText = mainOutput?.text;
                         this.baselineEmitCache.set(cacheKey, withoutTransformersText);
                     }
 
                     // Compare outputs to detect if transformers actually changed anything
                     // Only compare the main .js output file (not .d.ts or .js.map)
                     const mainOutput = findMainOutputFile(withTransformers);
-                    const withTransformersText = mainOutput?.text ?? "";
+                    const withTransformersText = mainOutput?.text;
 
+                    // Mark file as processed if:
+                    // - Output exists with transformers but not without, or vice versa
+                    // - Both outputs exist and are different
                     if (withTransformersText !== withoutTransformersText) {
                         // Transformers actually modified the output - mark file as processed
                         ctx.markFileAsAddonProcessed(fileName);
