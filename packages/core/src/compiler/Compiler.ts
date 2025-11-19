@@ -875,6 +875,8 @@ export class Compiler {
                     // Mark file as processed if:
                     // - Output exists with transformers but not without, or vice versa
                     // - Both outputs exist and are different
+                    // If both outputs are undefined (no main output file in either case), this comparison yields false,
+                    // and the file is not marked as processed. This is the correct behavior for this edge case.
                     if (withTransformersText !== withoutTransformersText) {
                         // Transformers actually modified the output - mark file as processed
                         ctx.markFileAsAddonProcessed(fileName);
