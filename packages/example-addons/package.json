@@ -20,7 +20,7 @@
     ],
     "scripts": {
         "clean": "rimraf lib dist bin coverage test-output",
-        "lint": "eslint \"{addons,tests}/**/*.ts\" --color && pnpm typecheck",
+        "lint": "eslint \"{addons,tests}/**/*.ts\" --color",
         "lint:fix": "eslint \"{addons,tests}/**/*.ts\" --color --fix",
         "execute": "websmith --addons foo-added-generator,foobar-export-processor,foobar-replace-transformer,function-json-result-processor -p tsconfig.execute.json",
         "build": "tsc",

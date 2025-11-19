@@ -20,7 +20,7 @@
     ],
     "scripts": {
         "clean": "rimraf lib coverage test-output test-temp",
-        "lint": "eslint \"{src,tests}/**/*.{js,ts,tsx}\" --color && pnpm typecheck",
+        "lint": "eslint \"{src,tests}/**/*.{js,ts,tsx}\" --color",
         "lint:fix": "eslint \"{src,tests}/**/*.{js,ts,tsx}\" --color --fix",
         "build": "tsc",
         "typecheck": "tsc --project tsconfig.test.json",
