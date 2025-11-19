@@ -756,6 +756,11 @@ export class Compiler {
         const isTranspiledSourceFile = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)$/i);
         const isSourceMap = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)\.map$/i);
 
+        // Helper function to find the main output file (excluding .d.ts and .js.map files)
+        const findMainOutputFile = (outputFiles: ts.OutputFile[]): ts.OutputFile | undefined => {
+            return outputFiles.find(file => isTranspiledSourceFile(file.name));
+        };
+
         // For declaration files, we need to use the full compiler API instead of transpileModule
         // because transpileModule doesn't generate declaration files
         if (ctx.getCompilerOptions().declaration) {
@@ -820,14 +825,14 @@ export class Compiler {
                         // Emit without transformers for comparison
                         const { outputFiles: baselineOutput } = emitWithTransformers({});
                         // Only compare the main .js output file (not .d.ts or .js.map)
-                        const mainOutput = baselineOutput.find(file => isTranspiledSourceFile(file.name));
+                        const mainOutput = findMainOutputFile(baselineOutput);
                         withoutTransformersText = mainOutput?.text ?? "";
                         this.baselineEmitCache.set(cacheKey, withoutTransformersText);
                     }
 
                     // Compare outputs to detect if transformers actually changed anything
                     // Only compare the main .js output file (not .d.ts or .js.map)
-                    const mainOutput = withTransformers.find(file => isTranspiledSourceFile(file.name));
+                    const mainOutput = findMainOutputFile(withTransformers);
                     const withTransformersText = mainOutput?.text ?? "";
 
                     if (withTransformersText !== withoutTransformersText) {
