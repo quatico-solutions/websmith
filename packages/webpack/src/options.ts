@@ -13,7 +13,7 @@ import { TsConfigAnalyzer } from "./result-handling";
 
 // TODO: Resolve compiler options
 export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = new NoReporter(), system = ts.sys): CompilerOptions => {
-    const { config, configFile, debug = false, tsConfigFile = "./tsconfig.json", profile, tsConfig, transpileOnly } = args;
+    const { config, configFile, debug = false, tsConfigFile = "./tsconfig.json", profile, tsConfig, transpileOnly, addonEmitOnly } = args;
 
     const cliArgs = parsedCommandLine(tsConfigFile, args, system);
 
@@ -69,6 +69,13 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
             mergedConfig = { transpileOnly: true };
         } else {
             mergedConfig.transpileOnly = true;
+        }
+    }
+    if (addonEmitOnly !== undefined) {
+        if (!mergedConfig) {
+            mergedConfig = { addonEmitOnly };
+        } else {
+            mergedConfig.addonEmitOnly = addonEmitOnly;
         }
     }
 
