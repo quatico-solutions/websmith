@@ -20,6 +20,23 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.8.3] - TBA
+
+This release includes code cleanup, a new example addon demonstrating common processor pitfalls, and improved test coverage.
+
+### Added
+
+- 📚 **Reformatting Processor Example**: Added new `reformatting-processor` example addon that demonstrates a common pitfall in processor implementations
+  - Shows how using `ts.createPrinter()` without checking for actual semantic changes can cause all files to be marked as addon-processed
+  - Highlights the importance of tracking AST changes before printing transformed code
+  - Includes comprehensive test case demonstrating the behavior
+  - Serves as an educational example for addon developers
+
+### Changed
+
+- 🧹 **Code Cleanup**: Removed unused TypeScript path mappings from compiler package
+  - Removed unnecessary `baseUrl` and `paths` configuration from `packages/compiler/tsconfig.json`
+
 ## [0.8.2] - TBA
 
 This release improves the baseline emit cache with better invalidation, enhanced code quality, and comprehensive documentation updates. It also introduces precise transformer detection for `addonEmitOnly` in full compilation mode.
