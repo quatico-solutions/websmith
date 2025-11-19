@@ -725,7 +725,8 @@ export class Compiler {
         const lastKnownModTime = this.baselineEmitCacheFileTimes.get(fileName);
 
         // If file modification time has changed, clear all cache entries for this file
-        if (currentModTime && lastKnownModTime && currentModTime.getTime() !== lastKnownModTime.getTime()) {
+        // Only invalidate if we have a previous known time and it differs (skip on first processing)
+        if (currentModTime && (!lastKnownModTime || currentModTime.getTime() !== lastKnownModTime.getTime())) {
             // Clear all cache entries for this file (they have different content hashes/options)
             // Since cache keys start with `${fileName}:`, we can identify and remove them
             const keysToDelete: string[] = [];
