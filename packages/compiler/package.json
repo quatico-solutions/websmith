@@ -24,8 +24,8 @@
     ],
     "scripts": {
         "clean": "rimraf lib bin coverage test-output",
-        "lint": "eslint \"{src,test}/**/*.ts\" --color && pnpm typecheck",
-        "lint:fix": "eslint \"{src,test}/**/*.ts\" --color --fix && pnpm typecheck",
+        "lint": "eslint \"{src,test}/**/*.ts\" --color",
+        "lint:fix": "eslint \"{src,test}/**/*.ts\" --color --fix",
         "build": "pnpm build:lib && pnpm build:binary",
         "build:binary": "webpack",
         "build:lib": "tsc",

@@ -6,7 +6,7 @@
     "private": true,
     "scripts": {
         "clean": "rimraf lib coverage test-output",
-        "lint": "eslint \"{src,test}/**/*.{js,ts,tsx}\" --color && pnpm typecheck",
+        "lint": "eslint \"{src,test}/**/*.{js,ts,tsx}\" --color",
         "lint:fix": "eslint \"{src,test}/**/*.{js,ts,tsx}\" --color --fix",
         "build": "tsc",
         "typecheck": "tsc --project tsconfig.test.json",
