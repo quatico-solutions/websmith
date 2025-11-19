@@ -622,7 +622,7 @@ describe("compile w/ websmith", () => {
     }, 60000);
 
     describe("addonEmitOnly with transformers", () => {
-        it("should emit all files with transformers in full compilation mode (addonEmitOnly=true, transpileOnly=false)", async () => {
+        it("should only emit transformed files in full compilation mode (addonEmitOnly=true, transpileOnly=false)", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
                 noEmit: false,
@@ -661,12 +661,12 @@ describe("compile w/ websmith", () => {
 
             expect(result).toBe("");
 
-            // In full compilation mode with declarations, addonEmitOnly conservatively emits all files
-            // when transformers are registered (to avoid expensive AST-based detection)
+            // In full compilation mode with declarations, addonEmitOnly now uses precise emit-based detection
+            // Only files actually transformed by addons are emitted
             expect(getOutput("foobar-arrow.js")).toBeDefined();
             expect(getOutput("foobar-arrow.js")).toContain("getFoobar");
-            expect(getOutput("foobar-function.js")).toBeDefined();
-            expect(getOutput("foobar-function.js")).toContain("getFoobar");
+            // File not matching the pattern should NOT be emitted
+            expect(getOutput("foobar-function.js")).toBeUndefined();
         }, 60000);
 
         it("should only emit transformed files with addonEmitOnly=true, transpileOnly=true", async () => {

@@ -22,11 +22,20 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
-- TBA
+- ⚡ **Improved addonEmitOnly Precision**: The `addonEmitOnly` feature now uses precise transformer detection in full compilation mode
+  - Previously used a conservative strategy that emitted all files when transformers were registered
+  - Now compares emit output with and without transformers to detect actual changes
+  - Enables selective file emission in full compilation mode with type checking
+  - Particularly beneficial for decorator-based transformations (e.g., Magellan's `@service()` decorator)
+  - Added `baselineEmitCache` for caching baseline emit output to minimize performance impact
+  - Cache is automatically cleared when compiler options change
 
 ### Fixed
 
-- TBA
+- 🐛 **Fixed addonEmitOnly in Full Compilation Mode** ([#103](https://github.com/quatico-solutions/websmith/issues/103)): Files not processed by transformers are now correctly excluded from emission when `addonEmitOnly: true` and `transpileOnly: false`
+  - Previously emitted all files in full compilation mode when transformers were registered
+  - Now only emits files that were actually transformed, matching the expected behavior
+  - Fixes integration issues for projects like Magellan CLI that rely on selective transformer emission with type checking
 
 ## [0.8.1] - 2025-11-19
 
