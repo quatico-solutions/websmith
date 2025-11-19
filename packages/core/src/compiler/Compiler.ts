@@ -79,10 +79,14 @@ export class Compiler {
     private rootFilesCacheInvalidated = true;
     private cachedProgram?: ts.Program;
     private lastProgramOptions?: string; // JSON stringified options for comparison
-    // Cache for "without transformers" baseline output.
+    // Cache for "without transformers" baseline output in transpileOnly mode.
     // This cache is only used in transpileOnly mode with addonEmitOnly enabled, as an important performance optimization.
     // Cleared when compiler options change or on full rebuild.
     private baselineTranspileCache = new Map<string, string>();
+    // Cache for "without transformers" baseline output in full compilation mode.
+    // This cache is only used in full compilation mode with addonEmitOnly enabled for precise transformer detection.
+    // Cleared when compiler options change or on full rebuild.
+    private baselineEmitCache = new Map<string, string>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -228,7 +232,8 @@ export class Compiler {
 
         // Invalidate caches when options change
         this.rootFilesCacheInvalidated = true;
-        this.baselineTranspileCache.clear(); // Clear baseline cache when options change
+        this.baselineTranspileCache.clear(); // Clear baseline transpile cache when options change
+        this.baselineEmitCache.clear(); // Clear baseline emit cache when options change
         // Don't invalidate cachedProgram - keep it for incremental compilation
         // The createProgram() method will detect option changes and create a new program
         // while still passing the old program for incremental type checking
@@ -629,10 +634,9 @@ export class Compiler {
             cache.updateOutput(fileName, output.outputFiles);
 
             // Check if we should emit this file based on addonEmitOnly flag
-            // In full compilation mode (!transpileOnly) with transformers, conservatively emit all files
-            // to avoid expensive AST-based detection of which files were actually transformed
-            const hasTransformers = this.hasRegisteredTransformers(ctx);
-            const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName)) || (!this.transpileOnly && hasTransformers);
+            // With the new emit-based detection, we no longer need the conservative fallback
+            // Files are marked as processed through automatic detection in both transpileOnly and full compilation modes
+            const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName));
 
             if (writeFile && output.outputFiles && shouldEmitFile) {
                 this.writeOutputFiles(output.outputFiles);
@@ -758,39 +762,92 @@ export class Compiler {
             // Create a temporary source file with the processed content
             const sourceFile = ts.createSourceFile(fileName, content, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest, true);
 
-            // Create a simple program with just this file
-            const program = ts.createProgram({
-                rootNames: [fileName],
-                options: ctx.getCompilerOptions(),
-                host: {
-                    ...ts.createCompilerHost(ctx.getCompilerOptions()),
-                    getSourceFile: (name: string) => {
-                        if (name === fileName) {
-                            return sourceFile;
-                        }
-                        return ts
-                            .createCompilerHost(ctx.getCompilerOptions())
-                            .getSourceFile(name, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest);
+            // Helper function to emit with given transformers
+            const emitWithTransformers = (transformers: ts.CustomTransformers): { outputFiles: ts.OutputFile[]; diagnostics: readonly ts.Diagnostic[] } => {
+                // Create a simple program with just this file
+                const program = ts.createProgram({
+                    rootNames: [fileName],
+                    options: ctx.getCompilerOptions(),
+                    host: {
+                        ...ts.createCompilerHost(ctx.getCompilerOptions()),
+                        getSourceFile: (name: string) => {
+                            if (name === fileName) {
+                                return sourceFile;
+                            }
+                            return ts
+                                .createCompilerHost(ctx.getCompilerOptions())
+                                .getSourceFile(name, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest);
+                        },
+                        writeFile: () => {}, // We'll collect the output ourselves
                     },
-                    writeFile: () => {}, // We'll collect the output ourselves
-                },
-            });
+                });
 
-            const outputFiles: ts.OutputFile[] = [];
-            const emitResult = program.emit(
-                sourceFile,
-                (fileName: string, text: string) => {
-                    outputFiles.push({ name: fileName, text, writeByteOrderMark: false });
-                },
-                undefined,
-                false,
-                ctx.getTransformers()
-            );
+                const outputFiles: ts.OutputFile[] = [];
+                const emitResult = program.emit(
+                    sourceFile,
+                    (fileName: string, text: string) => {
+                        outputFiles.push({ name: fileName, text, writeByteOrderMark: false });
+                    },
+                    undefined,
+                    false,
+                    transformers
+                );
+
+                return {
+                    outputFiles,
+                    diagnostics: emitResult.diagnostics,
+                };
+            };
+
+            // Automatically detect if transformers actually changed the output in full compilation mode
+            // Only do this check when addonEmitOnly is enabled
+            if (this.addonEmitOnly && !this.transpileOnly) {
+                const transformers = ctx.getTransformers();
+                const hasTransformers = this.hasRegisteredTransformers(ctx);
+
+                if (hasTransformers) {
+                    // Emit with transformers to get the actual output
+                    const { outputFiles: withTransformers, diagnostics } = emitWithTransformers(transformers);
+
+                    // Get or compute baseline output without transformers (cached per file/content/options)
+                    const compilerOptions = ctx.getCompilerOptions();
+                    const cacheKey = this.getBaselineCacheKey(fileName, content, compilerOptions);
+                    let withoutTransformersText = this.baselineEmitCache.get(cacheKey);
+
+                    if (withoutTransformersText === undefined) {
+                        // Emit without transformers for comparison
+                        const { outputFiles: baselineOutput } = emitWithTransformers({});
+                        // Only compare the main .js output file (not .d.ts or .js.map)
+                        const mainOutput = baselineOutput.find((f) => isTranspiledSourceFile(f.name));
+                        withoutTransformersText = mainOutput?.text ?? "";
+                        this.baselineEmitCache.set(cacheKey, withoutTransformersText);
+                    }
+
+                    // Compare outputs to detect if transformers actually changed anything
+                    // Only compare the main .js output file (not .d.ts or .js.map)
+                    const mainOutput = withTransformers.find((f) => isTranspiledSourceFile(f.name));
+                    const withTransformersText = mainOutput?.text ?? "";
+
+                    if (withTransformersText !== withoutTransformersText) {
+                        // Transformers actually modified the output - mark file as processed
+                        ctx.markFileAsAddonProcessed(fileName);
+                    }
+
+                    return {
+                        outputFiles: withTransformers,
+                        diagnostics: diagnostics as ts.Diagnostic[],
+                        emitSkipped: false,
+                    };
+                }
+            }
+
+            // Default behavior: emit with transformers (when addonEmitOnly is disabled or no transformers)
+            const { outputFiles, diagnostics } = emitWithTransformers(ctx.getTransformers());
 
             return {
                 outputFiles,
-                diagnostics: emitResult.diagnostics as ts.Diagnostic[],
-                emitSkipped: emitResult.emitSkipped,
+                diagnostics: diagnostics as ts.Diagnostic[],
+                emitSkipped: false,
             };
         }
 

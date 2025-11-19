@@ -239,8 +239,8 @@ The `addonEmitOnly` mode can be combined with `transpileOnly` for different comp
 
 | Mode | transpileOnly | addonEmitOnly | Behavior |
 |------|--------------|---------------|----------|
-| **Full Selective** | `false` | `true` | Full compilation with type checking. Only addon-processed files are emitted. Conservative: emits all files when transformers are registered. |
-| **Fast Selective** | `true` | `true` | Fast transpilation without type checking. Only addon-processed files are emitted. Precise: compares output to detect transformer changes. |
+| **Full Selective** | `false` | `true` | Full compilation with type checking. Only addon-processed files are emitted. Precise: compares emit output to detect transformer changes. |
+| **Fast Selective** | `true` | `true` | Fast transpilation without type checking. Only addon-processed files are emitted. Precise: compares transpile output to detect transformer changes. |
 | **Full Emission** | `false` | `false` | Full compilation with type checking. All files are emitted. |
 | **Fast Emission** | `true` | `false` | Fast transpilation without type checking. All files are emitted. |
 
