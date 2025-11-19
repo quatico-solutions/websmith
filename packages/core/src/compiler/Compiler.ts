@@ -763,7 +763,9 @@ export class Compiler {
             const sourceFile = ts.createSourceFile(fileName, content, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest, true);
 
             // Helper function to emit with given transformers
-            const emitWithTransformers = (transformers: ts.CustomTransformers): { outputFiles: ts.OutputFile[]; diagnostics: readonly ts.Diagnostic[] } => {
+            const emitWithTransformers = (
+                transformers: ts.CustomTransformers
+            ): { outputFiles: ts.OutputFile[]; diagnostics: readonly ts.Diagnostic[] } => {
                 // Create a simple program with just this file
                 const program = ts.createProgram({
                     rootNames: [fileName],
@@ -818,14 +820,14 @@ export class Compiler {
                         // Emit without transformers for comparison
                         const { outputFiles: baselineOutput } = emitWithTransformers({});
                         // Only compare the main .js output file (not .d.ts or .js.map)
-                        const mainOutput = baselineOutput.find((f) => isTranspiledSourceFile(f.name));
+                        const mainOutput = baselineOutput.find(file => isTranspiledSourceFile(file.name));
                         withoutTransformersText = mainOutput?.text ?? "";
                         this.baselineEmitCache.set(cacheKey, withoutTransformersText);
                     }
 
                     // Compare outputs to detect if transformers actually changed anything
                     // Only compare the main .js output file (not .d.ts or .js.map)
-                    const mainOutput = withTransformers.find((f) => isTranspiledSourceFile(f.name));
+                    const mainOutput = withTransformers.find(file => isTranspiledSourceFile(file.name));
                     const withTransformersText = mainOutput?.text ?? "";
 
                     if (withTransformersText !== withoutTransformersText) {
