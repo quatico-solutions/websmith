@@ -50,7 +50,9 @@
       "Bash(timeout 90 npm run test:e2e:*)",
       "Bash(node -e:*)",
       "Bash(timeout 30 pnpm:*)",
-      "Bash(timeout 60 pnpm:*)"
+      "Bash(timeout 60 pnpm:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh issue create:*)"
     ],
     "deny": [],
     "ask": []
