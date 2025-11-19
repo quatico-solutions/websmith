@@ -68,7 +68,7 @@ class CompilerTestClass extends Compiler {
         return this["baselineTranspileCache"];
     }
 
-    public getBaselineEmitCache(): Map<string, string> {
+    public getBaselineEmitCache(): Map<string, string | undefined> {
         return this["baselineEmitCache"];
     }
 
