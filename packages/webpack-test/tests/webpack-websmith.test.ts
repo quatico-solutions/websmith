@@ -680,5 +680,168 @@ describe("webpack w/ websmith, multiple profiles", () => {
             // Generator should create output.yaml
             expect(getOutput("output.yaml")).toContain("exports:");
         }, 60000);
+
+        it("should allow addonEmitOnly in loader options to override config file", async () => {
+            // This test verifies that addonEmitOnly in loader options overrides config file setting
+            writeWebsmithConfig(
+                {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["foobar-replace-processor"],
+                    addonEmitOnly: false, // Config says false, loader option should override to true
+                },
+                testDirs.PROJECT_DIR
+            );
+
+            await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                webpack: { ...getWebpackDefaults() },
+                websmith: {
+                    addonEmitOnly: true, // Loader option overrides config file
+                    configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
+                    tsConfig: {
+                        target: ts.ScriptTarget.ES2020,
+                    },
+                },
+            });
+
+            expect(getOutput("main.js")).toBeDefined();
+            const mainJs = getOutput("main.js");
+            expect(mainJs).toContain("barfoo");
+        }, 60000);
+
+        it("should allow transpileOnly in loader options to override config file", async () => {
+            // This test verifies that transpileOnly in loader options overrides config file setting
+            writeWebsmithConfig(
+                {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["foobar-replace-processor"],
+                    transpileOnly: false, // Config says false, loader option should override to true
+                },
+                testDirs.PROJECT_DIR
+            );
+
+            await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                webpack: { ...getWebpackDefaults() },
+                websmith: {
+                    transpileOnly: true, // Loader option overrides config file
+                    configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
+                    tsConfig: {
+                        target: ts.ScriptTarget.ES2020,
+                    },
+                },
+            });
+
+            expect(getOutput("main.js")).toBeDefined();
+            const mainJs = getOutput("main.js");
+            expect(mainJs).toContain("barfoo");
+        }, 60000);
+
+        it("should allow both addonEmitOnly and transpileOnly in loader options", async () => {
+            // This test verifies that both flags can be set together in loader options
+            await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                webpack: { ...getWebpackDefaults() },
+                websmith: {
+                    addonEmitOnly: true,
+                    transpileOnly: true,
+                    config: {
+                        addonsDir: ADDONS_DIR,
+                        addons: ["foobar-replace-processor"],
+                    },
+                    tsConfig: {
+                        target: ts.ScriptTarget.ES2020,
+                    },
+                },
+            });
+
+            expect(getOutput("main.js")).toBeDefined();
+            const mainJs = getOutput("main.js");
+            expect(mainJs).toContain("barfoo");
+        }, 60000);
+
+        it("should produce same result when addonEmitOnly is in config vs loader options", async () => {
+            // First run: addonEmitOnly in config file
+            writeWebsmithConfig(
+                {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["foobar-replace-processor"],
+                    addonEmitOnly: true,
+                },
+                testDirs.PROJECT_DIR
+            );
+
+            await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                webpack: { ...getWebpackDefaults() },
+                websmith: {
+                    configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
+                    tsConfig: {
+                        target: ts.ScriptTarget.ES2020,
+                    },
+                },
+            });
+
+            const resultFromConfig = getOutput("main.js");
+            expect(resultFromConfig).toBeDefined();
+            expect(resultFromConfig).toContain("barfoo");
+
+            // Clean up for second run
+            fs.rmSync(testDirs.PROJECT_DIR, { recursive: true, force: true });
+            testDirs = getTestDirs();
+            fs.mkdirSync(testDirs.OUTPUT_DIR, { recursive: true });
+            fs.mkdirSync(testDirs.SOURCE_DIR, { recursive: true });
+
+            // Copy source files again
+            const originalSourceDir = path.join(__dirname, "..", "src");
+            const sourceFiles = fs.readdirSync(originalSourceDir);
+            for (const file of sourceFiles) {
+                const srcPath = path.join(originalSourceDir, file);
+                const destPath = path.join(testDirs.SOURCE_DIR, file);
+                if (fs.statSync(srcPath).isDirectory()) {
+                    fs.cpSync(srcPath, destPath, { recursive: true });
+                } else {
+                    fs.copyFileSync(srcPath, destPath);
+                }
+            }
+
+            writeTsConfig(
+                {
+                    target: ts.ScriptTarget.ES2020,
+                    outDir: testDirs.OUTPUT_DIR,
+                },
+                testDirs.PROJECT_DIR
+            );
+
+            // Second run: addonEmitOnly in loader options
+            writeWebsmithConfig(
+                {
+                    addonsDir: ADDONS_DIR,
+                    addons: ["foobar-replace-processor"],
+                    // No addonEmitOnly in config
+                },
+                testDirs.PROJECT_DIR
+            );
+
+            await webpack([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+                webpack: { ...getWebpackDefaults() },
+                websmith: {
+                    addonEmitOnly: true, // Set via loader options instead
+                    configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
+                    tsConfig: {
+                        target: ts.ScriptTarget.ES2020,
+                    },
+                },
+            });
+
+            const resultFromLoaderOption = getOutput("main.js");
+            expect(resultFromLoaderOption).toBeDefined();
+            expect(resultFromLoaderOption).toContain("barfoo");
+
+            // Both results should contain the same transformed code (ignoring webpack path comments)
+            // The path comments will differ due to different test directory timestamps
+            const normalizeOutput = (output: string) => {
+                // Remove webpack path comments that contain timestamps
+                return output.replace(/\/\*!.*?\*\//gs, "");
+            };
+
+            expect(normalizeOutput(resultFromLoaderOption)).toEqual(normalizeOutput(resultFromConfig));
+        }, 120000);
     });
 });
