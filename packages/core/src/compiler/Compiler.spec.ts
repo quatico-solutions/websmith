@@ -694,7 +694,7 @@ describe("setOptions", () => {
         // Register transformer to trigger baseline cache usage
         const ctx = testObj.getContext();
         ctx?.registerTransformer({
-            before: [(context) => (sourceFile) => sourceFile],
+            before: [_context => sourceFile => sourceFile],
         });
 
         // Compile file to populate cache
@@ -729,7 +729,7 @@ describe("setOptions", () => {
         // Register transformer to trigger baseline cache usage
         const ctx = testObj.getContext();
         ctx?.registerTransformer({
-            before: [(context) => (sourceFile) => sourceFile],
+            before: [_context => sourceFile => sourceFile],
         });
 
         // Compile file to populate caches
@@ -2391,12 +2391,7 @@ describe("addonEmitOnly mode", () => {
                 const visitor = (node: ts.Node): ts.Node => {
                     if (ts.isFunctionDeclaration(node) && node.name?.text === "serviceFunction") {
                         // Add a leading comment to mark this was transformed
-                        return ts.addSyntheticLeadingComment(
-                            node,
-                            ts.SyntaxKind.MultiLineCommentTrivia,
-                            " TRANSFORMED ",
-                            false
-                        );
+                        return ts.addSyntheticLeadingComment(node, ts.SyntaxKind.MultiLineCommentTrivia, " TRANSFORMED ", false);
                     }
                     return ts.visitEachChild(node, visitor, context);
                 };
