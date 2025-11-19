@@ -20,6 +20,22 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
+## [0.8.2] - TBA
+
+This release improves the baseline emit cache with better invalidation, enhanced code quality, and comprehensive documentation updates. It also introduces precise transformer detection for `addonEmitOnly` in full compilation mode.
+
+### Added
+
+- ⚡ **Baseline Emit Cache**: Added intelligent caching for "without transformers" baseline output in full compilation mode with `addonEmitOnly` enabled
+  - Caches baseline emit results per file/content/compiler options combination
+  - Significantly reduces redundant emit operations when the same file is processed multiple times
+  - Cache is automatically cleared when compiler options change or when file modification times change
+  - Uses content hashing when available for efficient cache key generation
+- 📚 **Performance Documentation**: Added comprehensive documentation for `addonEmitOnly` performance tradeoffs
+  - Documents that full compilation mode performs two emit operations per file (with and without transformers) for precise detection
+  - Explains that results are cached to minimize overhead on subsequent builds
+  - Added to `CompilationConfig`, `WebpackLoaderOptions`, and `CompilerArguments` type definitions
+
 ### Changed
 
 - ⚡ **Improved addonEmitOnly Precision**: The `addonEmitOnly` feature now uses precise transformer detection in full compilation mode
@@ -29,6 +45,19 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   - Particularly beneficial for decorator-based transformations (e.g., Magellan's `@service()` decorator)
   - Added `baselineEmitCache` for caching baseline emit output to minimize performance impact
   - Cache is automatically cleared when compiler options change
+- ⚡ **Enhanced Baseline Emit Cache**: Improved cache invalidation and handling
+  - Added file modification time tracking to detect when files change and invalidate stale cache entries
+  - Cache now properly handles initialization (first-time processing) without unnecessary invalidation
+  - Improved cache key generation to include content hash and compiler options
+  - Cache automatically clears entries for files when their modification time changes
+- 🔧 **Code Quality Improvements**: Refactored duplicate code and improved maintainability
+  - Extracted duplicate logic into `findMainOutputFile()` helper function
+  - Added explicit source map exclusion in output file detection
+  - Improved comments explaining edge cases (undefined outputs, no main output file scenarios)
+- 📝 **Enhanced Type Safety**: Improved handling of undefined outputs in baseline emit cache
+  - Cache now stores `undefined` when no main output file is found (distinct from empty string)
+  - Explicit handling of edge cases where transformers produce no output vs. empty output
+  - Better documentation of comparison behavior for different output scenarios
 
 ### Fixed
 
@@ -36,6 +65,13 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   - Previously emitted all files in full compilation mode when transformers were registered
   - Now only emits files that were actually transformed, matching the expected behavior
   - Fixes integration issues for projects like Magellan CLI that rely on selective transformer emission with type checking
+- 🐛 **Cache Invalidation Logic**: Fixed cache invalidation to properly handle first-time file processing
+  - Cache no longer attempts to invalidate on first processing when no previous modification time exists
+  - Properly tracks file modification times for subsequent cache invalidation
+- 🐛 **Test Infrastructure**: Fixed Jest and TypeScript configuration issues
+  - Added missing `@quatico/websmith-core` module mapping to `example-addons` Jest configuration
+  - Added TypeScript path mappings to `compiler` package tsconfig.json for proper module resolution
+  - Ensures workspace packages resolve correctly during compilation and testing
 
 ## [0.8.1] - 2025-11-19
 
