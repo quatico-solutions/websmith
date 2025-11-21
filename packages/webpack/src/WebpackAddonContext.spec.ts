@@ -391,11 +391,11 @@ describe("WebpackAddonContext", () => {
         it("should report debug message when marking file", () => {
             jest.clearAllMocks();
 
-            testObj.markFileAsAddonProcessed("/path/file.ts");
+            testObj.markFileAsAddonProcessed("path/file.ts");
 
             expect(mockReporter.reportDiagnostic).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    messageText: expect.stringContaining("Marked file /path/file.ts as addon-processed"),
+                    messageText: expect.stringContaining("Marked file /resolved/path/file.ts as addon-processed"),
                 })
             );
         });
