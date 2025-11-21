@@ -36,6 +36,7 @@ export class WebpackAddonContext implements AddonContext {
     private filesToRemove = new Set<string>();
     private assetDependencies = new Map<string, Set<string>>();
     private inputFilesToAdd = new Set<string>();
+    private addonProcessedFiles = new Set<string>();
     private debug: boolean;
 
     constructor(
@@ -418,6 +419,49 @@ export class WebpackAddonContext implements AddonContext {
      */
     getInputFilesToAdd(): Set<string> {
         return new Set(this.inputFilesToAdd);
+    }
+
+    /**
+     * Mark a file as having been processed by an addon.
+     * This is used to track which files should be emitted when addonEmitOnly mode is enabled.
+     * Use this for files that are processed but produce identical output (e.g., barrel files with re-exports).
+     */
+    markFileAsAddonProcessed(fileName: string): void {
+        const resolvedPath = this.system.resolvePath(fileName);
+        this.addonProcessedFiles.add(resolvedPath);
+
+        // Delegate to the compilation context if available
+        if (this.compilationContext) {
+            this.compilationContext.markFileAsAddonProcessed(fileName);
+        }
+        this.reportDebug(`WebpackAddonContext: Marked file ${resolvedPath} as addon-processed`);
+    }
+
+    /**
+     * Check if a file has been processed by an addon.
+     * Used to determine if a file should be emitted in addonEmitOnly mode.
+     */
+    isFileProcessedByAddon(fileName: string): boolean {
+        const resolvedPath = this.system.resolvePath(fileName);
+
+        // Check local tracking first
+        if (this.addonProcessedFiles.has(resolvedPath)) {
+            return true;
+        }
+
+        // Fall back to compilation context if available
+        if (this.compilationContext) {
+            return this.compilationContext.isFileProcessedByAddon(fileName);
+        }
+
+        return false;
+    }
+
+    /**
+     * Get all files that have been marked as addon-processed.
+     */
+    getAddonProcessedFiles(): Set<string> {
+        return new Set(this.addonProcessedFiles);
     }
 
     /**

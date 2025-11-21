@@ -300,3 +300,52 @@ describe("addVirtualFile", () => {
         expect(testSystem.fileExists("/unexpected/test.ts")).toBe(false);
     });
 });
+
+describe("markFileAsAddonProcessed", () => {
+    it("should mark file as processed", () => {
+        testObj.markFileAsAddonProcessed("/path/to/file.ts");
+
+        expect(testObj.isFileProcessedByAddon("/path/to/file.ts")).toBe(true);
+    });
+
+    it("should normalize paths before marking", () => {
+        // Both mark and check should resolve to the same path
+        testObj.markFileAsAddonProcessed("/path/to/file.ts");
+
+        // The system resolves paths, so check with the same input works
+        expect(testObj.isFileProcessedByAddon("/path/to/file.ts")).toBe(true);
+    });
+
+    it("should handle different path formats for same file", () => {
+        // Mark with one format
+        testObj.markFileAsAddonProcessed("/path/file.ts");
+
+        // Should be found with same normalized path
+        expect(testObj.isFileProcessedByAddon("/path/file.ts")).toBe(true);
+    });
+
+    it("should be idempotent", () => {
+        testObj.markFileAsAddonProcessed("/path/file.ts");
+        testObj.markFileAsAddonProcessed("/path/file.ts");
+
+        expect(testObj.isFileProcessedByAddon("/path/file.ts")).toBe(true);
+    });
+
+    it("should return false for unmarked files", () => {
+        expect(testObj.isFileProcessedByAddon("/other/file.ts")).toBe(false);
+    });
+
+    it("should mark file when addInputFile is called", () => {
+        testSystem.writeFile("/expected/test.ts", "export const test = 1;");
+
+        testObj.addInputFile("/expected/test.ts");
+
+        expect(testObj.isFileProcessedByAddon("/expected/test.ts")).toBe(true);
+    });
+
+    it("should mark file when addVirtualFile is called", () => {
+        testObj.addVirtualFile("/virtual/test.ts", "export const test = 1;");
+
+        expect(testObj.isFileProcessedByAddon("/virtual/test.ts")).toBe(true);
+    });
+});

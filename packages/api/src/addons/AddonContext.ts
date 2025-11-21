@@ -121,4 +121,13 @@ export interface AddonContext<O = unknown> {
      * @param processor Function `(fileNames: string[]) => void` that is executed after the compilation of all files. Must not be null.
      */
     registerResultProcessor(processor: ResultProcessor): void;
+
+    /**
+     * Mark a file as having been processed by an addon.
+     * This is used to track which files should be emitted when addonEmitOnly mode is enabled.
+     * Use this for files that are processed but produce identical output (e.g., barrel files with re-exports).
+     *
+     * @param fileName Path to the file to mark as processed.
+     */
+    markFileAsAddonProcessed(fileName: string): void;
 }
