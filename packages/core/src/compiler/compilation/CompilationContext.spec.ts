@@ -348,4 +348,14 @@ describe("markFileAsAddonProcessed", () => {
 
         expect(testObj.isFileProcessedByAddon("/virtual/test.ts")).toBe(true);
     });
+
+    it("should return immutable copy of addon processed files", () => {
+        testObj.markFileAsAddonProcessed("/path/file.ts");
+
+        const processedFiles = testObj.getAddonProcessedFiles();
+        processedFiles.add("should-not-affect-original");
+
+        expect(testObj.getAddonProcessedFiles()).not.toContain("should-not-affect-original");
+        expect(testObj.getAddonProcessedFiles()).toContain("/path/file.ts");
+    });
 });
