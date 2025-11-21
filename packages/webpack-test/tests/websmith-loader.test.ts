@@ -500,11 +500,13 @@ describe("webpack w/ websmith", () => {
         expect(fs.existsSync(path.join(testDirs.OUTPUT_DIR, "bundle.js"))).toBe(true);
     }, 60000);
 
-    // TODO: Skipped Test: Preloaders seem to be broken with the current project setup
+    // thread-loader runs loaders in worker threads which don't share state with the main process.
+    // websmith-loader maintains compilation state that can't be serialized across worker boundaries.
+    // This is a known limitation with thread-loader and stateful TypeScript loaders.
     it.skip("should bundle the file w/ thread-loader being used", async () => {
         const webpackConfig = { ...webpackDefaults };
         webpackConfig.module.rules[0].use.unshift({
-            loader: "thread-loader",
+            loader: require.resolve("thread-loader"),
         } as any);
         writeWebsmithConfig(
             {
@@ -519,7 +521,7 @@ describe("webpack w/ websmith", () => {
         );
 
         await webpack(undefined, {
-            webpack: { ...webpackDefaults },
+            webpack: webpackConfig,
             websmith: {
                 configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 transpileOnly: true,

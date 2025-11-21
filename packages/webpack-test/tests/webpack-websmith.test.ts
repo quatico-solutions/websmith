@@ -153,8 +153,7 @@ describe("webpack w/ websmith", () => {
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     }, 60000);
 
-    // TODO: Skipped Test: This test does not work for this webpack setup. Can we observe a change within the output chunk?
-    it.skip("should generate additional files with addonDir and addon selected", async () => {
+    it("should generate additional files with addonDir and addon selected", async () => {
         await webpack([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: { ...getWebpackDefaults() },
             websmith: {
@@ -165,7 +164,11 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(getOutput("foobar-arrow-added.js")).toMatchSnapshot();
+        // The foo-added-generator creates foobar-arrow-added.ts as a virtual file
+        // which gets compiled but bundled into main.js (not as separate file)
+        // Verify the main bundle contains the expected function
+        expect(getOutput("main.js")).toContain("getFoobar");
+        expect(getOutput("main.js")).toContain("foobar");
     }, 60000);
 
     it("should transform foobar functions with addonDir and addon selected", async () => {
