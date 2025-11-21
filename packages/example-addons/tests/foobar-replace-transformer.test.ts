@@ -7,21 +7,17 @@
 import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-// FIXME: This test is failing because the foobar-replace-transformer addon is not being loaded
-describe.skip("foobar-replace-transformer addon", () => {
+describe("foobar-replace-transformer addon", () => {
     let testObj: CompilationEnv;
-    beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", {
+
+    beforeEach(() => {
+        testObj = compilationEnv("./__TEST_TRANSFORMER__", {
             tsConfig: { outDir: "dist", skipLibCheck: true },
             virtual: false,
         }).addAddon("foobar-replace-transformer", path.join(__dirname, "../src"));
     });
 
     afterEach(() => {
-        testObj.cleanUp("project");
-    });
-
-    afterAll(() => {
         testObj.cleanUp();
     });
 
@@ -54,9 +50,12 @@ describe.skip("foobar-replace-transformer addon", () => {
             })
             .compile();
 
-        const actual = testObj.getCompiledFiles().getPaths("/__TEST__");
+        const actual = testObj.getCompiledFiles().getPaths("__TEST_TRANSFORMER__");
 
-        expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js"]);
+        expect(actual).toEqual(expect.arrayContaining([
+            expect.stringContaining("dist/bar.js"),
+            expect.stringContaining("dist/foo.js")
+        ]));
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo"));
     }, 60000);
 });

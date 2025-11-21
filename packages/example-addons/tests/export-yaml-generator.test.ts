@@ -7,25 +7,21 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-// FIXME: This test is failing because the export-yaml-generator addon is not being loaded
-describe.skip("export-yaml-generator addon", () => {
+describe("export-yaml-generator addon", () => {
     let testObj: CompilationEnv;
-    beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", {
+
+    beforeEach(() => {
+        testObj = compilationEnv("./__TEST_YAML_GENERATOR__", {
             tsConfig: { outDir: "dist", skipLibCheck: true },
             virtual: false,
         }).addAddon("export-yaml-generator", path.join(__dirname, "../src"));
     });
 
     afterEach(() => {
-        testObj.cleanUp("project");
-    });
-
-    afterAll(() => {
         testObj.cleanUp();
     });
 
-    // TODO: Skipped Test: BUG in addon? The test fails as the addon does not report on exported classes.
+    // TODO: BUG in addon? The test fails as the addon does not report on exported classes.
     it.skip("should create additional input files and add them to compilation", () => {
         testObj
             .addProjectFromSource({

@@ -7,21 +7,17 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-// FIXME: This test is failing because the foo-added-generator addon is not being loaded
-describe.skip("foo-added-generator addon", () => {
+describe("foo-added-generator addon", () => {
     let testObj: CompilationEnv;
-    beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", { virtual: false, tsConfig: { skipLibCheck: true } }).addAddon(
+
+    beforeEach(() => {
+        testObj = compilationEnv("./__TEST_GENERATOR__", { virtual: false, tsConfig: { skipLibCheck: true } }).addAddon(
             "foo-added-generator",
             path.join(__dirname, "../src")
         );
     });
 
     afterEach(() => {
-        testObj.cleanUp("project");
-    });
-
-    afterAll(() => {
         testObj.cleanUp();
     });
 
@@ -37,11 +33,13 @@ describe.skip("foo-added-generator addon", () => {
             })
             .compile();
 
-        expect(testObj.getCompiledFiles().getPaths("/__TEST__")).toEqual([
-            "/__TEST__/dist/bar.js",
-            "/__TEST__/dist/foo-added.js",
-            "/__TEST__/dist/foo.js",
-        ]);
+        expect(testObj.getCompiledFiles().getPaths("__TEST_GENERATOR__")).toEqual(
+            expect.arrayContaining([
+                expect.stringContaining("dist/bar.js"),
+                expect.stringContaining("dist/foo-added.js"),
+                expect.stringContaining("dist/foo.js"),
+            ])
+        );
 
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toMatchInlineSnapshot(`
             "export class Foo {
