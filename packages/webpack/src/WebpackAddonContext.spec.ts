@@ -388,6 +388,32 @@ describe("WebpackAddonContext", () => {
             expect(testObj.getAddonProcessedFiles()).toContain("/resolved/path/file.ts");
         });
 
+        it("should merge local and compilation context files in getAddonProcessedFiles", () => {
+            const mockCompilationContext = {
+                markFileAsAddonProcessed: jest.fn(),
+                isFileProcessedByAddon: jest.fn(),
+                getAddonProcessedFiles: jest.fn().mockReturnValue(new Set(["/context/file.ts"])),
+            };
+
+            const testObjWithContext = new WebpackAddonContext(
+                mockSystem,
+                mockReporter,
+                "test-profile",
+                undefined,
+                mockCompilationContext as any,
+                mockLoaderContext,
+                mockWebpackCompilation,
+                true
+            );
+
+            testObjWithContext.markFileAsAddonProcessed("/local/file.ts");
+
+            const allFiles = testObjWithContext.getAddonProcessedFiles();
+            expect(allFiles).toContain("/local/file.ts");
+            expect(allFiles).toContain("/context/file.ts");
+            expect(allFiles.size).toBe(2);
+        });
+
         it("should report debug message when marking file", () => {
             jest.clearAllMocks();
 

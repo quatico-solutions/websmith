@@ -350,7 +350,7 @@ describe("markFileAsAddonProcessed", () => {
     });
 
     it("should return immutable copy of addon processed files", () => {
-        testObj.markFileAsAddonProcessed("path/file.ts");
+        testObj.markFileAsAddonProcessed("/path/file.ts");
 
         const processedFiles = testObj.getAddonProcessedFiles();
         processedFiles.add("should-not-affect-original");

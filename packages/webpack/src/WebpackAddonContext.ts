@@ -459,9 +459,16 @@ export class WebpackAddonContext implements AddonContext {
 
     /**
      * Get all files that have been marked as addon-processed.
+     * Returns a copy that includes both local tracking and compilation context files.
      */
     getAddonProcessedFiles(): Set<string> {
-        return new Set(this.addonProcessedFiles);
+        const files = new Set(this.addonProcessedFiles);
+        if (this.compilationContext) {
+            for (const file of this.compilationContext.getAddonProcessedFiles()) {
+                files.add(file);
+            }
+        }
+        return files;
     }
 
     /**
