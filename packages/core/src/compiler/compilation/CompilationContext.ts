@@ -307,6 +307,14 @@ export class CompilationContext implements AddonContext {
     }
 
     /**
+     * Get all files that have been marked as addon-processed.
+     * Returns a copy of the internal set, not the original.
+     */
+    public getAddonProcessedFiles(): Set<string> {
+        return new Set(this.addonProcessedFiles);
+    }
+
+    /**
      * Set the current source file being processed.
      * Used to mark the source file when generators interact with compilation via addInputFile/addVirtualFile.
      * @internal
