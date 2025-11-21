@@ -379,13 +379,13 @@ describe("WebpackAddonContext", () => {
         });
 
         it("should return immutable copy of addon processed files", () => {
-            testObj.markFileAsAddonProcessed("/path/file.ts");
+            testObj.markFileAsAddonProcessed("path/file.ts");
 
             const processedFiles = testObj.getAddonProcessedFiles();
             processedFiles.add("should-not-affect-original");
 
             expect(testObj.getAddonProcessedFiles()).not.toContain("should-not-affect-original");
-            expect(testObj.getAddonProcessedFiles()).toContain("/path/file.ts");
+            expect(testObj.getAddonProcessedFiles()).toContain("/resolved/path/file.ts");
         });
 
         it("should report debug message when marking file", () => {
