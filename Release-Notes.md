@@ -20,7 +20,36 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - TBA
 
-## [0.8.4] - TBA
+## [0.8.5] - 2025-11-21
+
+This release adds explicit file tracking capabilities for addons and improves test coverage for example addons.
+
+### Added
+
+- 🎯 **Addon File Tracking API**: Added new methods to `AddonContext` interface for explicit file tracking
+  - `markFileAsAddonProcessed(fileName: string)`: Allows addons to explicitly mark files as processed, useful for files that are processed but produce identical output (e.g., barrel files with re-exports)
+  - `isFileProcessedByAddon(fileName: string)`: Checks if a file has been marked as processed by an addon
+  - `getAddonProcessedFiles()`: Returns an immutable copy of all files marked as processed
+  - These methods work in conjunction with `addonEmitOnly` mode to provide fine-grained control over which files are emitted
+  - Implemented in both `CompilationContext` and `WebpackAddonContext` with consistent behavior
+  - Paths are automatically resolved using `system.resolvePath()` before being stored
+
+### Changed
+
+- 🔧 **Improved File Tracking Consistency**: `getAddonProcessedFiles()` in `WebpackAddonContext` now merges local tracking with compilation context files
+  - Ensures consistency with `isFileProcessedByAddon()` which checks both sources
+  - Prevents data inconsistency issues when files are tracked in both contexts
+  - Added comprehensive test coverage to verify merge behavior
+
+### Testing
+
+- ✅ **Enhanced Test Coverage**: Improved test coverage for example addons
+  - Enabled previously skipped addon tests and adjusted paths for consistency
+  - Added verification for virtual file bundling in webpack-websmith tests
+  - Enhanced export transformer to include class declarations in exported identifiers
+  - Improved output verification for file generation with addonDir selected
+
+## [0.8.4] - 2025-11-21
 
 This release enhances webpack loader integration with support for `addonEmitOnly` flag in loader options.
 
@@ -32,7 +61,7 @@ This release enhances webpack loader integration with support for `addonEmitOnly
   - Loader options take precedence over websmith.config.json settings, providing flexible configuration
   - Added comprehensive test coverage to verify correct override behavior
 
-## [0.8.3] - TBA
+## [0.8.3] - 2025-11-19
 
 This release includes code cleanup, a new example addon demonstrating common processor pitfalls, and improved test coverage.
 
@@ -49,7 +78,7 @@ This release includes code cleanup, a new example addon demonstrating common pro
 - 🧹 **Code Cleanup**: Removed unused TypeScript path mappings from compiler package
   - Removed unnecessary `baseUrl` and `paths` configuration from `packages/compiler/tsconfig.json`
 
-## [0.8.2] - TBA
+## [0.8.2] - 2025-11-19
 
 This release improves the baseline emit cache with better invalidation, enhanced code quality, and comprehensive documentation updates. It also introduces precise transformer detection for `addonEmitOnly` in full compilation mode.
 
