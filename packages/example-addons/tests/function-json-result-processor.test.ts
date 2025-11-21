@@ -7,21 +7,17 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-// FIXME: This test is failing because the function-json-result-processor addon is not being loaded
-describe.skip("function-json-result-processor addon", () => {
+describe("function-json-result-processor addon", () => {
     let testObj: CompilationEnv;
-    beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", {
+
+    beforeEach(() => {
+        testObj = compilationEnv("./__TEST_RESULT_PROCESSOR__", {
             virtual: false,
             tsConfig: { skipLibCheck: true },
         }).addAddon("function-json-result-processor", path.join(__dirname, "../src"));
     });
 
     afterEach(() => {
-        testObj.cleanUp("project");
-    });
-
-    afterAll(() => {
         testObj.cleanUp();
     });
 

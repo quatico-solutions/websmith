@@ -7,21 +7,17 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-// FIXME: This test is failing because the foobar-export-processor addon is not being loaded
-describe.skip("foobar-export-processor addon", () => {
+describe("foobar-export-processor addon", () => {
     let testObj: CompilationEnv;
-    beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", { virtual: false, tsConfig: { skipLibCheck: true } }).addAddon(
+
+    beforeEach(() => {
+        testObj = compilationEnv("./__TEST_EXPORT_PROCESSOR__", { virtual: false, tsConfig: { skipLibCheck: true } }).addAddon(
             "foobar-export-processor",
             path.join(__dirname, "../src")
         );
     });
 
     afterEach(() => {
-        testObj.cleanUp("project");
-    });
-
-    afterAll(() => {
         testObj.cleanUp();
     });
 

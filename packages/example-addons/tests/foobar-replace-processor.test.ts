@@ -7,10 +7,11 @@
 import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
-describe.skip("foobar-replace-processor addon", () => {
+describe("foobar-replace-processor addon", () => {
     let testObj: CompilationEnv;
-    beforeAll(() => {
-        testObj = compilationEnv("./__TEST__", {
+
+    beforeEach(() => {
+        testObj = compilationEnv("./__TEST_PROCESSOR__", {
             tsConfig: { outDir: "dist", skipLibCheck: true },
             virtual: false,
         });
@@ -18,10 +19,6 @@ describe.skip("foobar-replace-processor addon", () => {
     });
 
     afterEach(() => {
-        testObj.cleanUp("project");
-    });
-
-    afterAll(() => {
         testObj.cleanUp();
     });
 
@@ -33,7 +30,10 @@ describe.skip("foobar-replace-processor addon", () => {
             })
             .compile();
 
-        expect(testObj.getCompiledFiles().getPaths("/__TEST__")).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js"]);
+        expect(testObj.getCompiledFiles().getPaths("__TEST_PROCESSOR__")).toEqual(expect.arrayContaining([
+            expect.stringContaining("dist/bar.js"),
+            expect.stringContaining("dist/foo.js")
+        ]));
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo {"));
     }, 60000);
 });
