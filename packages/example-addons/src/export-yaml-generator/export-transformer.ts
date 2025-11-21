@@ -20,9 +20,9 @@ export const createTransformer = (context: AddonContext): ts.TransformerFactory<
         return (input: ts.SourceFile): ts.SourceFile => {
             const foundDecls: string[] = [];
             const visitor = (node: ts.Node): ts.VisitResult<ts.Node> => {
-                // Collect node identifier if it is exported and a function or variable
+                // Collect node identifier if it is exported and a function, variable, or class
                 if (
-                    (ts.isVariableStatement(node) || ts.isFunctionDeclaration(node)) &&
+                    (ts.isVariableStatement(node) || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) &&
                     node.modifiers?.some(it => it.kind === ts.SyntaxKind.ExportKeyword)
                 ) {
                     foundDecls.push(getName(node));
@@ -67,6 +67,8 @@ const getName = (node: ts.Node): string => {
         return node.name?.getText() ?? "unknown";
     } else if (ts.isVariableStatement(node)) {
         return node.declarationList?.declarations[0]?.name?.getText() ?? "unknown";
+    } else if (ts.isClassDeclaration(node)) {
+        return node.name?.getText() ?? "unknown";
     }
     return "";
 };

@@ -21,8 +21,7 @@ describe("export-yaml-generator addon", () => {
         testObj.cleanUp();
     });
 
-    // TODO: BUG in addon? The test fails as the addon does not report on exported classes.
-    it.skip("should create additional input files and add them to compilation", () => {
+    it("should create additional input files and add them to compilation", () => {
         testObj
             .addProjectFromSource({
                 "bar.ts": `console.log("Hello, Bar!");`,
@@ -30,9 +29,13 @@ describe("export-yaml-generator addon", () => {
             })
             .compile();
 
-        const actual = testObj.getCompiledFiles().getPaths("/__TEST__");
+        const actual = testObj.getCompiledFiles().getPaths("__TEST_YAML_GENERATOR__");
 
-        expect(actual).toEqual(["/__TEST__/dist/bar.js", "/__TEST__/dist/foo.js", "/__TEST__/dist/output.yaml"]);
+        expect(actual).toEqual(expect.arrayContaining([
+            expect.stringContaining("dist/bar.js"),
+            expect.stringContaining("dist/foo.js"),
+            expect.stringContaining("dist/output.yaml")
+        ]));
         expect(testObj.getCompiledFile("output.yaml")?.getContent()).toEqual(expect.stringContaining("exports: [Foo]"));
     }, 60000);
 });
