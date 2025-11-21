@@ -169,6 +169,8 @@ describe("webpack w/ websmith", () => {
         // Verify the main bundle contains the expected function
         expect(getOutput("main.js")).toContain("getFoobar");
         expect(getOutput("main.js")).toContain("foobar");
+        // Virtual files are bundled into main.js, not emitted as separate files
+        expect(getOutput("foobar-arrow-added.js")).toBeUndefined();
     }, 60000);
 
     it("should transform foobar functions with addonDir and addon selected", async () => {
