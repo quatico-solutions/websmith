@@ -306,4 +306,124 @@ describe("WebpackAddonContext", () => {
             expect(testObj.getFilesToRemove()).not.toContain("should-not-affect-original");
         });
     });
+
+    describe("markFileAsAddonProcessed", () => {
+        it("should mark file as processed", () => {
+            testObj.markFileAsAddonProcessed("/path/to/file.ts");
+
+            expect(testObj.isFileProcessedByAddon("/path/to/file.ts")).toBe(true);
+        });
+
+        it("should normalize paths before marking", () => {
+            testObj.markFileAsAddonProcessed("src/index.ts");
+
+            // Check with resolved path
+            expect(testObj.isFileProcessedByAddon("/resolved/src/index.ts")).toBe(true);
+        });
+
+        it("should be idempotent", () => {
+            testObj.markFileAsAddonProcessed("/path/file.ts");
+            testObj.markFileAsAddonProcessed("/path/file.ts");
+
+            expect(testObj.isFileProcessedByAddon("/path/file.ts")).toBe(true);
+        });
+
+        it("should return false for unmarked files", () => {
+            expect(testObj.isFileProcessedByAddon("/other/file.ts")).toBe(false);
+        });
+
+        it("should delegate to compilation context when available", () => {
+            const mockCompilationContext = {
+                markFileAsAddonProcessed: jest.fn(),
+                isFileProcessedByAddon: jest.fn().mockReturnValue(true),
+            };
+
+            const testObjWithContext = new WebpackAddonContext(
+                mockSystem,
+                mockReporter,
+                "test-profile",
+                undefined,
+                mockCompilationContext as any,
+                mockLoaderContext,
+                mockWebpackCompilation,
+                true
+            );
+
+            testObjWithContext.markFileAsAddonProcessed("/path/file.ts");
+
+            expect(mockCompilationContext.markFileAsAddonProcessed).toHaveBeenCalledWith("/path/file.ts");
+        });
+
+        it("should check compilation context when file not in local tracking", () => {
+            const mockCompilationContext = {
+                markFileAsAddonProcessed: jest.fn(),
+                isFileProcessedByAddon: jest.fn().mockReturnValue(true),
+            };
+
+            const testObjWithContext = new WebpackAddonContext(
+                mockSystem,
+                mockReporter,
+                "test-profile",
+                undefined,
+                mockCompilationContext as any,
+                mockLoaderContext,
+                mockWebpackCompilation,
+                true
+            );
+
+            // Don't mark locally, but compilation context says it's processed
+            const result = testObjWithContext.isFileProcessedByAddon("/path/file.ts");
+
+            expect(result).toBe(true);
+            expect(mockCompilationContext.isFileProcessedByAddon).toHaveBeenCalledWith("/path/file.ts");
+        });
+
+        it("should return immutable copy of addon processed files", () => {
+            testObj.markFileAsAddonProcessed("path/file.ts");
+
+            const processedFiles = testObj.getAddonProcessedFiles();
+            processedFiles.add("should-not-affect-original");
+
+            expect(testObj.getAddonProcessedFiles()).not.toContain("should-not-affect-original");
+            expect(testObj.getAddonProcessedFiles()).toContain("/resolved/path/file.ts");
+        });
+
+        it("should merge local and compilation context files in getAddonProcessedFiles", () => {
+            const mockCompilationContext = {
+                markFileAsAddonProcessed: jest.fn(),
+                isFileProcessedByAddon: jest.fn(),
+                getAddonProcessedFiles: jest.fn().mockReturnValue(new Set(["/context/file.ts"])),
+            };
+
+            const testObjWithContext = new WebpackAddonContext(
+                mockSystem,
+                mockReporter,
+                "test-profile",
+                undefined,
+                mockCompilationContext as any,
+                mockLoaderContext,
+                mockWebpackCompilation,
+                true
+            );
+
+            testObjWithContext.markFileAsAddonProcessed("/local/file.ts");
+
+            const allFiles = testObjWithContext.getAddonProcessedFiles();
+            expect(allFiles).toContain("/local/file.ts");
+            expect(allFiles).toContain("/context/file.ts");
+            expect(allFiles.size).toBe(2);
+        });
+
+        it("should report debug message when marking file", () => {
+            jest.clearAllMocks();
+
+            testObj.markFileAsAddonProcessed("path/file.ts");
+
+            expect(mockReporter.reportDiagnostic).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    messageText: expect.stringContaining("Marked file /resolved/path/file.ts as addon-processed"),
+                })
+            );
+        });
+    });
 });
