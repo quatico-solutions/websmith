@@ -32,7 +32,7 @@
     },
     "dependencies": {
         "cross-spawn": "^7.0.6",
-        "lodash": "^4.17.21",
+        "lodash": "^4.17.23",
         "path-exists": "^5.0.0",
         "tildify": "^3.0.0"
     },
