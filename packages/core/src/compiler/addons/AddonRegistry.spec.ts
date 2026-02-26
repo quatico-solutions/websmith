@@ -874,6 +874,111 @@ describe("Addon Compilation", () => {
     });
 });
 
+describe("shouldProcessFile loading", () => {
+    it("should load shouldProcessFile method from addon module", () => {
+        const system = createSystem({}, { virtual: true });
+        const shouldProcessFileFn = jest.fn((filePath: string) => filePath.includes("service"));
+
+        createAddon(
+            "addons/with-filter/addon",
+            system,
+            "export const activate = () => {}; export const shouldProcessFile = (path) => path.includes('service');",
+            { activate: jest.fn(), shouldProcessFile: shouldProcessFileFn }
+        );
+
+        const testObj = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: new ReporterMock(system),
+            system,
+            profiles: { target: { addons: ["with-filter"] } },
+        });
+
+        const addons = testObj.getAvailableAddons("target");
+        expect(addons).toHaveLength(1);
+
+        const addon = addons[0];
+        expect(addon.shouldProcessFile).toBeDefined();
+        expect(typeof addon.shouldProcessFile).toBe("function");
+
+        // Test that the function works correctly
+        expect(addon.shouldProcessFile!("/src/service.ts", {} as any)).toBe(true);
+        expect(addon.shouldProcessFile!("/src/helper.ts", {} as any)).toBe(false);
+    });
+
+    it("should work without shouldProcessFile for legacy addons", () => {
+        const system = createSystem({}, { virtual: true });
+
+        createAddon("addons/legacy/addon", system, "export const activate = () => {};", { activate: jest.fn() });
+
+        const testObj = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: new ReporterMock(system),
+            system,
+            profiles: { target: { addons: ["legacy"] } },
+        });
+
+        const addons = testObj.getAvailableAddons("target");
+        expect(addons).toHaveLength(1);
+
+        const addon = addons[0];
+        expect(addon.shouldProcessFile).toBeUndefined();
+        expect(addon.activate).toBeDefined();
+    });
+
+    it("should handle addon with both activate and shouldProcessFile", () => {
+        const system = createSystem({}, { virtual: true });
+        const activateFn = jest.fn();
+        const shouldProcessFileFn = jest.fn(() => true);
+
+        createAddon(
+            "addons/full-featured/addon",
+            system,
+            "export const activate = () => {}; export const shouldProcessFile = () => true;",
+            { activate: activateFn, shouldProcessFile: shouldProcessFileFn }
+        );
+
+        const testObj = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: new ReporterMock(system),
+            system,
+            profiles: { target: { addons: ["full-featured"] } },
+        });
+
+        const addons = testObj.getAvailableAddons("target");
+        expect(addons).toHaveLength(1);
+
+        const addon = addons[0];
+        expect(addon.activate).toBeDefined();
+        expect(addon.shouldProcessFile).toBeDefined();
+        expect(typeof addon.activate).toBe("function");
+        expect(typeof addon.shouldProcessFile).toBe("function");
+    });
+
+    it("should not copy shouldProcessFile if it's not a function", () => {
+        const system = createSystem({}, { virtual: true });
+
+        createAddon(
+            "addons/invalid-filter/addon",
+            system,
+            "export const activate = () => {}; export const shouldProcessFile = 'not a function';",
+            { activate: jest.fn(), shouldProcessFile: "not a function" }
+        );
+
+        const testObj = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter: new ReporterMock(system),
+            system,
+            profiles: { target: { addons: ["invalid-filter"] } },
+        });
+
+        const addons = testObj.getAvailableAddons("target");
+        expect(addons).toHaveLength(1);
+
+        const addon = addons[0];
+        expect(addon.shouldProcessFile).toBeUndefined(); // Not copied because it's not a function
+    });
+});
+
 const createAddon = (
     addonPath: string,
     system: ts.System,
