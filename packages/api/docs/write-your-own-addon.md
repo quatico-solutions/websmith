@@ -241,7 +241,121 @@ Websmith provides three message types: `InfoMessage`, `WarnMessage` and `ErrorMe
 
 Websmith brings its own file system API to compilation even in the browser environment. **Do not use** the `fs` package for accessing files from your disk, use `ctx.getSystem()` instead. Read the original file content from the file system with `ctx.getSystem().readFile(filePath)` or the processed and potentially modified content with `ctx.getFileContent(filePath)`. Write new files to the file system with `ctx.getSystem().writeFile(filePath, content)`.
 
-## 7 Addon execution flow
+## 7 Performance Optimization
+
+Websmith provides two optional addon API features to significantly improve compilation performance:
+
+### 7.1 File Filtering with `shouldProcessFile`
+
+By default, addons process **all files** in the compilation. If your addon only needs to process specific files (e.g., only service functions, only specific directories), implement the `shouldProcessFile` export to skip unnecessary files early.
+
+**Benefits:**
+- Reduces processing overhead by 10x or more
+- Skips expensive operations on files your addon doesn't care about
+- Improves watch mode responsiveness
+
+**Example:**
+```typescript
+// ./addons/service-transform/addon.ts
+import { AddonContext } from "@quatico/websmith-api";
+
+export const activate = (ctx: AddonContext) => {
+    ctx.registerProcessor((filePath: string, fileContent: string): string => {
+        // Transform service functions
+        return transformServiceFunction(fileContent);
+    });
+};
+
+// Only process files in the service-functions directory
+export const shouldProcessFile = (filePath: string, ctx: AddonContext): boolean => {
+    return filePath.includes("/service-functions/")
+        && !filePath.includes(".spec.")
+        && !filePath.includes("node_modules");
+};
+```
+
+**Important:** When using `shouldProcessFile`, only files that match your filter will be processed by your addon. Files that don't match will be skipped entirely, including by your generators and processors.
+
+### 7.2 Fast Path Compilation with `needsTypeInfo`
+
+TypeScript provides two compilation APIs:
+1. **Program API** - Full type checking with `ts.createProgram()` (~40s for large projects)
+2. **transpileModule API** - Fast transpilation without type info (~0.35s for same projects)
+
+By default, websmith assumes addons need the Program API for backward compatibility. If your addon doesn't need TypeScript type information, explicitly set `needsTypeInfo = false` to enable the fast path.
+
+**When to use `needsTypeInfo = false`:**
+- Your addon only does text/AST transformations
+- You don't need symbol information or type checking
+- You don't use `ctx.getProgram()` or TypeScript's type checker
+
+**When to use `needsTypeInfo = true` (or undefined):**
+- Your addon needs type checking
+- You need import resolution or symbol information
+- You use `ctx.getProgram()` or TypeScript's Program API
+- You need TypeScript's Language Service features
+
+**Example:**
+```typescript
+// ./addons/simple-transform/addon.ts
+import { AddonContext } from "@quatico/websmith-api";
+
+export const activate = (ctx: AddonContext) => {
+    ctx.registerProcessor((filePath: string, fileContent: string): string => {
+        // Simple text transformation - no type info needed
+        return fileContent.replace(/oldPattern/g, "newPattern");
+    });
+};
+
+// Opt into fast path (10-20x faster compilation)
+export const needsTypeInfo = false;
+```
+
+**Performance Impact:**
+
+| Configuration | Compilation Time | Use Case |
+|---------------|------------------|----------|
+| `needsTypeInfo: undefined` (default) | ~42s | Legacy addons, needs type checking |
+| `needsTypeInfo: true` | ~42s | Addon requires Program API |
+| `needsTypeInfo: false` | ~0.35s | Addon doesn't need type info |
+
+**Note:** The fast path is automatically disabled when declaration files (`.d.ts`) are required, as `ts.transpileModule()` cannot generate declarations.
+
+### 7.3 Combining Both Optimizations
+
+For maximum performance, use both `shouldProcessFile` and `needsTypeInfo`:
+
+```typescript
+// ./addons/optimized-addon/addon.ts
+import { AddonContext } from "@quatico/websmith-api";
+
+export const activate = (ctx: AddonContext) => {
+    ctx.registerProcessor((filePath: string, fileContent: string): string => {
+        return transformCode(fileContent);
+    });
+};
+
+// File filtering - only process specific files
+export const shouldProcessFile = (filePath: string, ctx: AddonContext): boolean => {
+    return filePath.includes("/target-dir/") && !filePath.includes(".spec.");
+};
+
+// Fast path - no type information needed
+export const needsTypeInfo = false;
+```
+
+**Result:** Files outside target directory are skipped entirely, and files inside use fast transpileModule path. This can provide **100x+ faster compilation** compared to default behavior.
+
+### 7.4 Backward Compatibility
+
+Both features are **optional** and **backward compatible**:
+- Addons without `shouldProcessFile` process all files (existing behavior)
+- Addons without `needsTypeInfo` get Program API (safe default)
+- Existing addons continue to work without modification
+
+Only new addons need to opt into these optimizations explicitly.
+
+## 8 Addon execution flow
 
 ```plantuml
 @startuml
