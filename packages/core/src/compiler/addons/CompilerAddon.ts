@@ -24,20 +24,25 @@ export interface CompilerAddon {
     /**
      * Whether this addon needs TypeScript type information (Program API).
      *
-     * **Defaults to `false`** (fast path - no Program creation).
+     * **Important for backward compatibility:**
+     * - `undefined` (not set): Legacy addon - assumes type info needed (safe default)
+     * - `false` (explicit): Opts into fast path - no Program creation
+     * - `true` (explicit): Requires Program for type information
      *
-     * Set to `true` only if your addon needs:
+     * Set to `false` to enable 10-20x faster compilation by:
+     * - Skipping TypeScript Program creation
+     * - Using ts.transpileModule instead
+     * - Avoiding full type graph construction
+     *
+     * Set to `true` if your addon needs:
      * - Type checking
      * - Import resolution
      * - Symbol information
      * - TypeScript's Program API
      *
-     * Setting to `false` (default) enables 10-20x faster compilation by:
-     * - Skipping TypeScript Program creation
-     * - Using ts.transpileModule instead
-     * - Avoiding full type graph construction
+     * **Legacy addons (undefined) are treated as needing type info to maintain backward compatibility.**
      *
-     * @default false
+     * @default undefined (treated as true for safety)
      */
     needsTypeInfo?: boolean;
 }

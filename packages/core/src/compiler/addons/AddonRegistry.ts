@@ -875,8 +875,10 @@ export class AddonRegistry {
                     shouldProcessFile: (addonModule as { shouldProcessFile: (filePath: string, context: AddonContext) => boolean })
                         .shouldProcessFile,
                 }),
-                // Copy needsTypeInfo if explicitly set (defaults to false for fast path)
-                needsTypeInfo: (addonModule as { needsTypeInfo?: boolean }).needsTypeInfo ?? false,
+                // Copy needsTypeInfo if explicitly set
+                // Keep undefined as undefined for backward compatibility (legacy addons assumed to need type info)
+                // Only explicit false opts into fast path
+                needsTypeInfo: (addonModule as { needsTypeInfo?: boolean }).needsTypeInfo,
             };
             this.availableAddons.set(addonName, addon);
             return addonName;

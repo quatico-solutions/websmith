@@ -553,14 +553,18 @@ export class Compiler {
     /**
      * Checks if any addon requires TypeScript type information (Program API).
      *
-     * When true, we must create a full TypeScript Program to provide:
-     * - Type checking
-     * - Import resolution
-     * - Symbol information
-     * - TypeScript's Program API
+     * Returns true if any addon:
+     * - Has needsTypeInfo explicitly set to true, OR
+     * - Has needsTypeInfo undefined (legacy addon - conservative default for backward compatibility)
+     *
+     * Returns false only when ALL addons explicitly set needsTypeInfo to false.
+     *
+     * This conservative approach ensures legacy addons continue to work:
+     * - Legacy addons (needsTypeInfo: undefined) → get Program (safe default)
+     * - New addons must explicitly opt into fast path with needsTypeInfo: false
      *
      * @param profile - The compilation profile to check
-     * @returns true if any addon needs type info, false otherwise
+     * @returns true if any addon needs type info or is legacy, false only if all addons opt out
      */
     private anyAddonNeedsTypeInfo(profile?: string): boolean {
         if (!this.addons) {
@@ -568,7 +572,10 @@ export class Compiler {
         }
 
         const activeAddons = this.addons.getAvailableAddons(profile);
-        return activeAddons.some(addon => addon.needsTypeInfo === true);
+
+        // Check if any addon needs type info or is legacy (undefined)
+        // Only return false if ALL addons explicitly set needsTypeInfo: false
+        return activeAddons.some(addon => addon.needsTypeInfo !== false);
     }
 
     protected report(program: ts.Program | undefined, result: ts.EmitResult): ts.EmitResult {
