@@ -76,6 +76,10 @@ export class Compiler {
     // Flag to force transpileModule fast path when no addons need type info
     // This provides 10-20x speedup by skipping Program creation entirely
     private useTranspileModuleFastPath: boolean = false;
+    // Flag indicating if any addon needs the big Program for type information
+    // When true, we create one Program and use it for both type info and declarations
+    // When false with declarations needed, we use per-file Programs instead
+    private addonNeedsBigProgram: boolean = false;
     private dependencyCallback?: (filePath: string) => void;
     private fileWatchers: ts.FileWatcher[] = [];
     private rootFilesCache?: string[];
@@ -130,19 +134,33 @@ export class Compiler {
 
         this.createProfileContextsIfNecessary();
 
-        // Fast path: Skip Program creation if no addons need type information
-        // This provides 10-20x speedup by using transpileModule instead of full Program API
-        this.useTranspileModuleFastPath = this.shouldUseTranspileModule(profile);
+        // Determine compilation strategy based on addon requirements
+        this.addonNeedsBigProgram = this.anyAddonNeedsTypeInfo(profile);
+        const profileOptions = this.options.getOptions(profile);
+        const declarationsNeeded = profileOptions.tsConfig?.declaration === true;
 
-        if (this.useTranspileModuleFastPath && this.options.debug) {
-            this.reporter.reportDiagnostic(
-                new InfoMessage(`Using fast transpileModule path (no addons require type information).`)
-            );
+        // Fast path: Skip Program creation if no addons need type info AND no declarations needed
+        this.useTranspileModuleFastPath = !this.addonNeedsBigProgram && !declarationsNeeded;
+
+        if (this.options.debug) {
+            if (this.useTranspileModuleFastPath) {
+                this.reporter.reportDiagnostic(
+                    new InfoMessage(`Using fast transpileModule path (no addons require type information, no declarations).`)
+                );
+            } else if (this.addonNeedsBigProgram) {
+                this.reporter.reportDiagnostic(
+                    new InfoMessage(`Creating TypeScript Program (addon requires type information).`)
+                );
+            } else if (declarationsNeeded) {
+                this.reporter.reportDiagnostic(
+                    new InfoMessage(`Using per-file Programs for declaration generation (no addon requires type information).`)
+                );
+            }
         }
 
-        // Only create Program if addons need type info (slow path)
-        const profileOptions = this.options.getOptions(profile);
-        const program = this.useTranspileModuleFastPath ? undefined : this.createProgram(profileOptions.tsConfig);
+        // Only create big Program if addons need type info
+        // If only declarations are needed, per-file Programs will be used in transpileSourceCode
+        const program = this.addonNeedsBigProgram ? this.createProgram(profileOptions.tsConfig) : undefined;
 
         if (this.options.debug && program) {
             this.reporter.reportDiagnostic(new InfoMessage(`Created TypeScript program with ${program.getSourceFiles().length} source files.`));
@@ -168,8 +186,9 @@ export class Compiler {
             this.reporter.unindent?.();
         }
 
-        // Reset fast path flag after compilation
+        // Reset compilation flags after compilation
         this.useTranspileModuleFastPath = false;
+        this.addonNeedsBigProgram = false;
 
         return results.filter(cur => !!cur).length < 1
             ? { emitSkipped: true, diagnostics: [] }
@@ -532,48 +551,24 @@ export class Compiler {
     }
 
     /**
-     * Determines if we can use the fast transpileModule path instead of creating a full TypeScript Program.
-     * The fast path is 10-20x faster because it skips type checking and program creation.
+     * Checks if any addon requires TypeScript type information (Program API).
      *
-     * Fast path is used when:
-     * - No addons are registered, OR
-     * - All registered addons have needsTypeInfo set to false (or undefined, which defaults to false)
-     * - AND declaration file generation is NOT required (transpileModule doesn't support .d.ts generation)
-     *
-     * Slow path (Program creation) is used when:
-     * - At least one addon has needsTypeInfo set to true, OR
-     * - Declaration files are required (declaration: true in tsconfig)
+     * When true, we must create a full TypeScript Program to provide:
+     * - Type checking
+     * - Import resolution
+     * - Symbol information
+     * - TypeScript's Program API
      *
      * @param profile - The compilation profile to check
-     * @returns true if transpileModule can be used (fast path), false if Program is needed (slow path)
+     * @returns true if any addon needs type info, false otherwise
      */
-    private shouldUseTranspileModule(profile?: string): boolean {
-        // Check if declaration files are required
-        // transpileModule doesn't support declaration file generation, so we must use slow path
-        const profileOptions = this.options.getOptions(profile);
-        if (profileOptions.tsConfig?.declaration) {
-            return false; // Must use slow path for declaration generation
-        }
-
+    private anyAddonNeedsTypeInfo(profile?: string): boolean {
         if (!this.addons) {
-            // No addons registered - use fast path
-            return true;
+            return false;
         }
 
-        // Get active addons for the current profile
         const activeAddons = this.addons.getAvailableAddons(profile);
-
-        // If no addons are active, use fast path
-        if (activeAddons.length === 0) {
-            return true;
-        }
-
-        // Check if ANY addon needs type information
-        // If even one addon needs type info, we must use the slow path (Program creation)
-        const someAddonNeedsTypeInfo = activeAddons.some(addon => addon.needsTypeInfo === true);
-
-        // Use fast path only if NO addon needs type info
-        return !someAddonNeedsTypeInfo;
+        return activeAddons.some(addon => addon.needsTypeInfo === true);
     }
 
     protected report(program: ts.Program | undefined, result: ts.EmitResult): ts.EmitResult {
@@ -885,7 +880,7 @@ export class Compiler {
     private transpileInternal(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
         const { fileName, ctx } = compilationFragment;
 
-        // Fast path: Use transpileModule when flag is set (no addons need type info)
+        // Fast path: Use transpileModule when flag is set (no addons need type info, no declarations)
         // OR when explicitly in transpileOnly mode
         if (this.transpileOnly || this.useTranspileModuleFastPath) {
             if (fileName.endsWith(".d.ts")) {
@@ -899,16 +894,29 @@ export class Compiler {
             }
         }
 
-        // If declaration files are requested, use transpileSourceCode to ensure they are generated
         const compilerOptions = ctx.getCompilerOptions();
-        if (compilerOptions.declaration) {
-            const isSourceFile = (name: string) => name.match(/\.([cm]?ts|tsx)$/i);
-            if (isSourceFile(fileName)) {
-                return this.transpileSourceCode(compilationFragment);
-            }
+        const isSourceFile = (name: string) => name.match(/\.([cm]?ts|tsx)$/i);
+
+        // Case 4: If addon needs big Program AND declarations needed, use language service
+        // The language service uses the big Program and can generate declarations
+        // This avoids creating per-file Programs
+        if (this.addonNeedsBigProgram && compilerOptions.declaration && isSourceFile(fileName)) {
+            const langService = ctx.getLanguageService();
+            const emitOutput = langService.getEmitOutput(fileName);
+
+            return {
+                ...emitOutput,
+                diagnostics: langService.getSyntacticDiagnostics(fileName),
+            };
         }
 
-        // Slow path: Use language service (creates Program internally)
+        // Case 3: If only declarations needed (no addon needs Program), use per-file Programs
+        // This avoids creating the big Program when it's not needed
+        if (!this.addonNeedsBigProgram && compilerOptions.declaration && isSourceFile(fileName)) {
+            return this.transpileSourceCode(compilationFragment);
+        }
+
+        // Default slow path: Use language service (which uses the big Program if it exists)
         const langService = ctx.getLanguageService();
         const emitOutput = langService.getEmitOutput(fileName);
 
