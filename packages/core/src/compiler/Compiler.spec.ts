@@ -78,8 +78,9 @@ class CompilerTestClass extends Compiler {
 
     public testShouldSkipFile(fileName: string, ctx: CompilationContext, profile?: string): boolean {
         // Access the private shouldSkipFile method using bracket notation
-        // TypeScript doesn't allow direct access to private methods, so we use type assertion
-        return (this as any)["shouldSkipFile"](fileName, ctx, profile);
+        // Get active addons for the profile (same logic as emitSourceFile)
+        const activeAddons = this.addons ? this.addons.getAvailableAddons(profile) : [];
+        return (this as any)["shouldSkipFile"](fileName, ctx, activeAddons);
     }
 }
 
@@ -1272,10 +1273,7 @@ describe("emitSourceFile", () => {
             .createProfileContextsIfNecessary()
             .emitSourceFile("/src/config.json", undefined, false);
 
-        expect(getText("config.json", actual)).toMatchInlineSnapshot(`
-            "{ "name": "test" }
-            "
-        `);
+        expect(getText("config.json", actual)).toMatchInlineSnapshot(`"{"name":"test"}"`);
     });
 
     it("yields transpiled d.ts w/ transpileOnly", () => {

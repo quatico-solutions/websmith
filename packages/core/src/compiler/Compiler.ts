@@ -11,6 +11,7 @@ import path from "node:path";
 import ts from "typescript";
 import { createCompileHost, createSystem, recursiveFindByFilter } from "../environment";
 import type { AddonRegistry } from "./addons";
+import type { CompilerAddon } from "./addons/CompilerAddon";
 import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
@@ -27,6 +28,7 @@ type CompilationFragment = {
     ctx: CompilationContext;
     fileName: string;
     content: string;
+    profile?: string;
 };
 
 const TARGET_MAP: Record<number, ts.ScriptTarget> = {
@@ -75,11 +77,11 @@ export class Compiler {
     private addonEmitOnly: boolean = false;
     // Flag to force transpileModule fast path when no addons need type info
     // This provides 10-20x speedup by skipping Program creation entirely
-    private useTranspileModuleFastPath: boolean = false;
+    // Removed: Fast path flag is now calculated per-profile in shouldUseTranspileModuleFastPath()
     // Flag indicating if any addon needs the big Program for type information
     // When true, we create one Program and use it for both type info and declarations
     // When false with declarations needed, we use per-file Programs instead
-    private addonNeedsBigProgram: boolean = false;
+    // Removed: Program requirement is now calculated per-profile in anyAddonNeedsTypeInfo()
     private dependencyCallback?: (filePath: string) => void;
     private fileWatchers: ts.FileWatcher[] = [];
     private rootFilesCache?: string[];
@@ -134,44 +136,43 @@ export class Compiler {
 
         this.createProfileContextsIfNecessary();
 
-        // Determine compilation strategy based on addon requirements
-        this.addonNeedsBigProgram = this.anyAddonNeedsTypeInfo(profile);
-        const profileOptions = this.options.getOptions(profile);
-        const declarationsNeeded = profileOptions.tsConfig?.declaration === true;
-
-        // Fast path: Skip Program creation if no addons need type info AND no declarations needed
-        this.useTranspileModuleFastPath = !this.addonNeedsBigProgram && !declarationsNeeded;
-
-        if (this.options.debug) {
-            if (this.useTranspileModuleFastPath) {
-                this.reporter.reportDiagnostic(
-                    new InfoMessage(`Using fast transpileModule path (no addons require type information, no declarations).`)
-                );
-            } else if (this.addonNeedsBigProgram) {
-                this.reporter.reportDiagnostic(
-                    new InfoMessage(`Creating TypeScript Program (addon requires type information).`)
-                );
-            } else if (declarationsNeeded) {
-                this.reporter.reportDiagnostic(
-                    new InfoMessage(`Using per-file Programs for declaration generation (no addon requires type information).`)
-                );
-            }
-        }
-
-        // Only create big Program if addons need type info
-        // If only declarations are needed, per-file Programs will be used in transpileSourceCode
-        const program = this.addonNeedsBigProgram ? this.createProgram(profileOptions.tsConfig) : undefined;
-
-        if (this.options.debug && program) {
-            this.reporter.reportDiagnostic(new InfoMessage(`Created TypeScript program with ${program.getSourceFiles().length} source files.`));
-        }
-
         const results: ts.EmitResult[] = [];
         selectedProfiles.forEach(curProfile => {
             if (this.options.debug) {
                 this.reporter.reportDiagnostic(new InfoMessage(`Processing profile: ${curProfile ?? "default"}.`));
                 this.reporter.indent();
             }
+
+            // Determine compilation strategy per-profile (each profile may have different addon/declaration config)
+            const addonNeedsBigProgram = this.anyAddonNeedsTypeInfo(curProfile);
+            const curProfileOptions = this.options.getOptions(curProfile);
+            const declarationsNeeded = curProfileOptions.tsConfig?.declaration === true;
+            const useFastPath = this.shouldUseTranspileModuleFastPath(curProfile);
+
+            if (this.options.debug) {
+                if (useFastPath) {
+                    this.reporter.reportDiagnostic(
+                        new InfoMessage(`Using fast transpileModule path (no addons require type information, no declarations).`)
+                    );
+                } else if (addonNeedsBigProgram) {
+                    this.reporter.reportDiagnostic(
+                        new InfoMessage(`Creating TypeScript Program (addon requires type information).`)
+                    );
+                } else if (declarationsNeeded) {
+                    this.reporter.reportDiagnostic(
+                        new InfoMessage(`Using per-file Programs for declaration generation (no addon requires type information).`)
+                    );
+                }
+            }
+
+            // Only create big Program if addons need type info
+            // If only declarations are needed, per-file Programs will be used in transpileSourceCode
+            const program = addonNeedsBigProgram ? this.createProgram(curProfileOptions.tsConfig) : undefined;
+
+            if (this.options.debug && program) {
+                this.reporter.reportDiagnostic(new InfoMessage(`Created TypeScript program with ${program.getSourceFiles().length} source files.`));
+            }
+
             const ctx = this.getContext(curProfile);
             if (ctx) {
                 results.push(this.report(program, this.emitResult(curProfile, ctx)));
@@ -185,10 +186,6 @@ export class Compiler {
             this.reporter.reportDiagnostic(new InfoMessage(`Compilation completed with ${results.length} results.`));
             this.reporter.unindent?.();
         }
-
-        // Reset compilation flags after compilation
-        this.useTranspileModuleFastPath = false;
-        this.addonNeedsBigProgram = false;
 
         return results.filter(cur => !!cur).length < 1
             ? { emitSkipped: true, diagnostics: [] }
@@ -414,8 +411,11 @@ export class Compiler {
         const ctx = this.getContext(profile);
         const cache = ctx?.getCache();
 
+        // Get active addons once for this file (used by both shouldSkipFile and later checks)
+        const activeAddons = this.addons ? this.addons.getAvailableAddons(profile) : [];
+
         // Early skip check - avoid processing if no addon wants this file
-        if (ctx && this.shouldSkipFile(fileName, ctx, profile)) {
+        if (ctx && this.shouldSkipFile(fileName, ctx, activeAddons)) {
             if (cache && !skipCache && !cache.hasChanged(filePath)) {
                 return { files: [], content: "", ...cache.getCachedFile(filePath) };
             }
@@ -485,7 +485,7 @@ export class Compiler {
             }
 
             try {
-                return this.processOutput(cache, this.transpile({ fileName, ctx, content }), writeFile, fileName, ctx);
+                return this.processOutput(cache, this.transpile({ fileName, ctx, content, profile }), writeFile, fileName, ctx);
             } catch (err) {
                 this.reporter.reportDiagnostic(new ErrorMessage(`Error during transpilation of "${fileName}": ${err}`));
                 // Return a minimal result to allow compilation to continue
@@ -515,35 +515,34 @@ export class Compiler {
      *
      * @param fileName - The file to check
      * @param ctx - The compilation context with active addons
-     * @param profile - The current compilation profile
+     * @param activeAddons - The list of active addons for the current profile
      * @returns true if the file should be skipped, false if it needs processing
      */
-    private shouldSkipFile(fileName: string, ctx: CompilationContext, profile?: string): boolean {
-        if (!this.addons) {
-            return false;
-        }
-
-        // Get active addons for the current profile
-        const activeAddons = this.addons.getAvailableAddons(profile);
-
+    private shouldSkipFile(fileName: string, ctx: CompilationContext, activeAddons: CompilerAddon[]): boolean {
         // If no addons are active, process normally (don't skip)
         if (activeAddons.length === 0) {
             return false;
         }
 
+        // Track if any addon wants this file
+        let wantedByAnyAddon = false;
+
         // Check if ANY addon wants to process this file
         for (const addon of activeAddons) {
             // Legacy addons without shouldProcessFile - must process all files
             if (!addon.shouldProcessFile) {
-                return false;
+                wantedByAnyAddon = true;
+                // Don't break - need to check other addons too
+            } else if (addon.shouldProcessFile(fileName, ctx as unknown as AddonContext)) {
+                // Filter addon explicitly wants this file
+                wantedByAnyAddon = true;
             }
+        }
 
-            // Check if addon wants this file (pass AddonContext)
-            if (addon.shouldProcessFile(fileName, ctx as unknown as AddonContext)) {
-                // Mark file as addon-processed so lazy transpilation knows to transpile it
-                ctx.markFileAsAddonProcessed(fileName);
-                return false; // At least one addon wants it
-            }
+        // If ANY addon wants the file (legacy or filter), mark as processed and don't skip
+        if (wantedByAnyAddon) {
+            ctx.markFileAsAddonProcessed(fileName);
+            return false;
         }
 
         // No addon wants this file - skip it
@@ -576,6 +575,23 @@ export class Compiler {
         // Check if any addon needs type info or is legacy (undefined)
         // Only return false if ALL addons explicitly set needsTypeInfo: false
         return activeAddons.some(addon => addon.needsTypeInfo !== false);
+    }
+
+    /**
+     * Determines if the fast transpileModule path should be used for a specific profile.
+     * Fast path can be used when:
+     * - No addons need type information (all have needsTypeInfo: false), AND
+     * - No declaration files are required
+     *
+     * @param profile - The compilation profile to check
+     * @returns true if fast path can be used, false if Program creation is needed
+     */
+    private shouldUseTranspileModuleFastPath(profile?: string): boolean {
+        const addonNeedsBigProgram = this.anyAddonNeedsTypeInfo(profile);
+        const profileOptions = this.options.getOptions(profile);
+        const declarationsNeeded = profileOptions.tsConfig?.declaration === true;
+
+        return !addonNeedsBigProgram && !declarationsNeeded;
     }
 
     protected report(program: ts.Program | undefined, result: ts.EmitResult): ts.EmitResult {
@@ -885,11 +901,15 @@ export class Compiler {
     }
 
     private transpileInternal(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
-        const { fileName, ctx } = compilationFragment;
+        const { fileName, ctx, profile } = compilationFragment;
+
+        // Calculate profile-specific compilation strategy
+        const useFastPath = this.shouldUseTranspileModuleFastPath(profile);
+        const addonNeedsBigProgram = this.anyAddonNeedsTypeInfo(profile);
 
         // Fast path: Use transpileModule when flag is set (no addons need type info, no declarations)
         // OR when explicitly in transpileOnly mode
-        if (this.transpileOnly || this.useTranspileModuleFastPath) {
+        if (this.transpileOnly || useFastPath) {
             if (fileName.endsWith(".d.ts")) {
                 return undefined;
             } else {
@@ -907,7 +927,7 @@ export class Compiler {
         // Case 4: If addon needs big Program AND declarations needed, use language service
         // The language service uses the big Program and can generate declarations
         // This avoids creating per-file Programs
-        if (this.addonNeedsBigProgram && compilerOptions.declaration && isSourceFile(fileName)) {
+        if (addonNeedsBigProgram && compilerOptions.declaration && isSourceFile(fileName)) {
             const langService = ctx.getLanguageService();
             const emitOutput = langService.getEmitOutput(fileName);
 
@@ -919,7 +939,7 @@ export class Compiler {
 
         // Case 3: If only declarations needed (no addon needs Program), use per-file Programs
         // This avoids creating the big Program when it's not needed
-        if (!this.addonNeedsBigProgram && compilerOptions.declaration && isSourceFile(fileName)) {
+        if (!addonNeedsBigProgram && compilerOptions.declaration && isSourceFile(fileName)) {
             return this.transpileSourceCode(compilationFragment);
         }
 
