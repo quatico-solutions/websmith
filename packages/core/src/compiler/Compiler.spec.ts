@@ -2731,3 +2731,162 @@ describe("File Filtering Optimization (shouldSkipFile)", () => {
         });
     });
 });
+
+describe("Declaration generation for client proxy addons", () => {
+    // Simulates a client proxy transformer addon (e.g., Magellan's @service() decorator)
+    // that transforms source code but whose consumers need .d.ts type declarations.
+    const createProxyTransformerAddon = (options: { needsTypeInfo?: boolean } = {}) => ({
+        getName: () => "client-proxy-transformer",
+        needsTypeInfo: options.needsTypeInfo,
+        activate: (ctx: CompilationContext) => {
+            ctx.registerTransformer({
+                before: [
+                    (context: ts.TransformationContext) => {
+                        return (sourceFile: ts.SourceFile) => {
+                            // Identity transformer — simulates a proxy transformer that
+                            // wraps functions without changing their type signatures
+                            return ts.visitEachChild(sourceFile, node => node, context);
+                        };
+                    },
+                ],
+            });
+        },
+    });
+
+    it("generates .d.ts files when transpileOnly is false and declaration is true", () => {
+        const fileSystem = createSystem(
+            { "src/service.ts": `export const getUser = async (): Promise<string> => "user";` },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        fileSystem.createDirectory("./addons");
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter,
+            system: fileSystem,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([createProxyTransformerAddon({ needsTypeInfo: false })]);
+
+        const actual = new CompilerTestClass(
+            {
+                reporter,
+                tsConfig: { declaration: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
+                config: { transpileOnly: false, addons: ["client-proxy-transformer"] },
+                cliArgs: { fileNames: ["/src/service.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/service.ts", undefined, false);
+
+        // Client proxy consumers get type declarations
+        expect(getFilesByExtension(actual, ".d.ts")).toHaveLength(1);
+        expect(getText("service.d.ts", actual)).toContain("getUser");
+        expect(getText("service.js", actual)).toBeDefined();
+    });
+
+    it("does NOT generate .d.ts files when transpileOnly is true, even with declaration: true", () => {
+        const fileSystem = createSystem(
+            { "src/service.ts": `export const getUser = async (): Promise<string> => "user";` },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        fileSystem.createDirectory("./addons");
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter,
+            system: fileSystem,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([createProxyTransformerAddon({ needsTypeInfo: false })]);
+
+        const actual = new CompilerTestClass(
+            {
+                reporter,
+                tsConfig: { declaration: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
+                config: { transpileOnly: true, addons: ["client-proxy-transformer"] },
+                cliArgs: { fileNames: ["/src/service.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/service.ts", undefined, false);
+
+        // transpileOnly fast path: no declarations possible
+        expect(getFilesByExtension(actual, ".d.ts")).toHaveLength(0);
+        // But JS output is still generated
+        expect(actual.files.some(f => f.name.endsWith(".js"))).toBe(true);
+    });
+
+    it("generates .d.ts files with per-file Programs when needsTypeInfo is false and declaration is true", () => {
+        const fileSystem = createSystem(
+            { "src/service.ts": `export const getUser = async (): Promise<string> => "user";` },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        fileSystem.createDirectory("./addons");
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter,
+            system: fileSystem,
+        });
+        // Addon explicitly opts out of type info — no big Program needed
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([createProxyTransformerAddon({ needsTypeInfo: false })]);
+
+        const actual = new CompilerTestClass(
+            {
+                reporter,
+                tsConfig: { declaration: true, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
+                config: { transpileOnly: false, addons: ["client-proxy-transformer"] },
+                cliArgs: { fileNames: ["/src/service.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/service.ts", undefined, false);
+
+        // Per-file Program path still generates declarations
+        expect(getFilesByExtension(actual, ".d.ts")).toHaveLength(1);
+        expect(getText("service.d.ts", actual)).toContain("getUser");
+        expect(getText("service.d.ts", actual)).toContain("Promise<string>");
+    });
+
+    it("generates .d.ts with legacy addon (needsTypeInfo undefined) and declaration: true", () => {
+        const fileSystem = createSystem(
+            { "src/service.ts": `export const getUser = async (): Promise<string> => "user";` },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        fileSystem.createDirectory("./addons");
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter,
+            system: fileSystem,
+        });
+        // Legacy addon: needsTypeInfo is undefined → treated as true → big Program created
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([createProxyTransformerAddon()]);
+
+        const actual = new CompilerTestClass(
+            {
+                reporter,
+                tsConfig: { declaration: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
+                config: { transpileOnly: false, addons: ["client-proxy-transformer"] },
+                cliArgs: { fileNames: ["/src/service.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/service.ts", undefined, false);
+
+        // Legacy addons always get the big Program → declarations generated
+        expect(getFilesByExtension(actual, ".d.ts")).toHaveLength(1);
+        expect(getText("service.d.ts", actual)).toContain("getUser");
+    });
+});
