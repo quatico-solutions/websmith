@@ -77,10 +77,8 @@ class CompilerTestClass extends Compiler {
     }
 
     public testShouldSkipFile(fileName: string, ctx: CompilationContext, profile?: string): boolean {
-        // Access the private shouldSkipFile method using bracket notation
-        // Get active addons for the profile (same logic as emitSourceFile)
         const activeAddons = this.addons ? this.addons.getAvailableAddons(profile) : [];
-        return (this as any)["shouldSkipFile"](fileName, ctx, activeAddons);
+        return this.shouldSkipFile(fileName, ctx, activeAddons);
     }
 }
 
