@@ -1,6 +1,6 @@
 {
     "name": "@quatico/websmith-core",
-    "version": "0.8.5",
+    "version": "0.9.0",
     "description": "Shared library functions for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",

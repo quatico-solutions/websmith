@@ -14,6 +14,26 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Added
 
+- TBA
+
+### Changed
+
+- TBA
+
+### Fixed
+
+- TBA
+
+### Removed
+
+- TBA
+
+## [0.9.0] - 2026-03-16
+
+This release introduces a Performance Optimization API for addons, enabling 10-120x faster compilation through optional file filtering and fast transpileModule paths.
+
+### Added
+
 - 🚀 **Performance Optimization API**: Added optional addon API features for 10-120x faster compilation
   - `shouldProcessFile(filePath, context)`: Allows addons to filter which files they process, skipping unnecessary files early
   - `needsTypeInfo: boolean`: Allows addons to opt into fast transpileModule path when TypeScript type information isn't required
@@ -41,10 +61,6 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - 🔧 **Performance**: Optimized `getAvailableAddons()` calls to avoid redundant addon registry lookups
   - Previously called twice per file (in `shouldSkipFile` and `anyAddonNeedsTypeInfo`)
   - Now called once and passed as parameter, reducing overhead
-
-### Removed
-
-- TBA
 
 ## [0.8.5] - 2025-11-21
 
