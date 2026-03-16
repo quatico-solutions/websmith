@@ -14,7 +14,33 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Added
 
-- TBA
+- 🚀 **Performance Optimization API**: Added optional addon API features for 10-120x faster compilation
+  - `shouldProcessFile(filePath, context)`: Allows addons to filter which files they process, skipping unnecessary files early
+  - `needsTypeInfo: boolean`: Allows addons to opt into fast transpileModule path when TypeScript type information isn't required
+  - Both features are optional and backward compatible - existing addons continue to work without modification
+  - See [write-your-own-addon.md](packages/api/docs/write-your-own-addon.md#7-performance-optimization) for detailed documentation
+
+- 📦 **CompilerAddon Interface**: Added `CompilerAddon` interface to `@quatico/websmith-api` package
+  - Provides public API for `shouldProcessFile` and `needsTypeInfo` fields
+  - Documents the addon performance optimization features for external addon authors
+  - Includes comprehensive JSDoc documentation with usage examples
+
+### Changed
+
+- ⚡ **Multi-Profile Compilation Strategy**: Compilation strategy is now calculated per-profile instead of globally
+  - Each profile gets correct compilation strategy based on its specific addon configuration
+  - Fixes bug where global flags caused incorrect behavior with multi-profile compilation
+  - Fast path optimization now works in watch mode and webpack, not just CLI compile
+
+### Fixed
+
+- 🐛 **Mixed Legacy + Filter Addon Bug**: Fixed critical bug where files were silently skipped when legacy addons coexisted with filter addons
+  - Legacy addons (without `shouldProcessFile`) now correctly mark files as processed
+  - Ensures backward compatibility with legacy addons while supporting new file filtering features
+
+- 🔧 **Performance**: Optimized `getAvailableAddons()` calls to avoid redundant addon registry lookups
+  - Previously called twice per file (in `shouldSkipFile` and `anyAddonNeedsTypeInfo`)
+  - Now called once and passed as parameter, reducing overhead
 
 ### Removed
 

@@ -6,6 +6,7 @@
  */
 export type { AddonActivator } from "./AddonActivator";
 export type { AddonContext } from "./AddonContext";
+export type { CompilerAddon } from "./CompilerAddon";
 export type { Generator } from "./Generator";
 export type { Processor } from "./Processor";
 export type { Reporter } from "./Reporter";

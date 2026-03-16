@@ -5,10 +5,24 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type AddonContext } from "@quatico/websmith-api";
+import { type AddonContext } from "./AddonContext";
 
+/**
+ * Represents a compiler addon that can be registered with the websmith compiler.
+ * Addons can provide custom transformations, type checking, and file filtering.
+ */
 export interface CompilerAddon {
+    /**
+     * Returns the unique name of this addon.
+     */
     getName: () => string;
+
+    /**
+     * Called when the addon is activated. Use the context to register processors,
+     * generators, transformers, and result processors.
+     *
+     * @param context - The addon context for registering compilation hooks
+     */
     activate: (context: AddonContext) => void;
 
     /**
@@ -46,9 +60,3 @@ export interface CompilerAddon {
      */
     needsTypeInfo?: boolean;
 }
-
-export type CompilerAddons = CompilerAddon[] & {
-    getNames: () => string[];
-};
-
-export const compilerAddons = (addons: CompilerAddon[]): CompilerAddons => Object.assign(addons, { getNames: () => addons.map(it => it.getName()) });

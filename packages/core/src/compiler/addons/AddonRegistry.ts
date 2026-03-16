@@ -870,6 +870,15 @@ export class AddonRegistry {
             const addon: CompilerAddon = {
                 getName: () => addonName,
                 activate: addonModule.activate as (context: AddonContext) => void,
+                // Copy shouldProcessFile if it exists (for optimized file filtering)
+                ...(typeof (addonModule as { shouldProcessFile?: unknown }).shouldProcessFile === "function" && {
+                    shouldProcessFile: (addonModule as { shouldProcessFile: (filePath: string, context: AddonContext) => boolean })
+                        .shouldProcessFile,
+                }),
+                // Copy needsTypeInfo if explicitly set
+                // Keep undefined as undefined for backward compatibility (legacy addons assumed to need type info)
+                // Only explicit false opts into fast path
+                needsTypeInfo: (addonModule as { needsTypeInfo?: boolean }).needsTypeInfo,
             };
             this.availableAddons.set(addonName, addon);
             return addonName;

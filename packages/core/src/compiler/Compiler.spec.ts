@@ -75,6 +75,11 @@ class CompilerTestClass extends Compiler {
     public getBaselineEmitCacheFileTimes(): Map<string, Date> {
         return this["baselineEmitCacheFileTimes"];
     }
+
+    public testShouldSkipFile(fileName: string, ctx: CompilationContext, profile?: string): boolean {
+        const activeAddons = this.addons ? this.addons.getAvailableAddons(profile) : [];
+        return this.shouldSkipFile(fileName, ctx, activeAddons);
+    }
 }
 
 beforeEach(() => {
@@ -1266,10 +1271,7 @@ describe("emitSourceFile", () => {
             .createProfileContextsIfNecessary()
             .emitSourceFile("/src/config.json", undefined, false);
 
-        expect(getText("config.json", actual)).toMatchInlineSnapshot(`
-            "{ "name": "test" }
-            "
-        `);
+        expect(getText("config.json", actual)).toMatchInlineSnapshot(`"{"name":"test"}"`);
     });
 
     it("yields transpiled d.ts w/ transpileOnly", () => {
@@ -2452,3 +2454,439 @@ const createAddon = (testSystem: ts.System, path: string, code = "export const a
         { virtual: true }
     );
 };
+
+describe("File Filtering Optimization (shouldSkipFile)", () => {
+    describe("with addon that has shouldProcessFile", () => {
+        it("should skip files that no addon wants to process", () => {
+            const fileSystem = createSystem(
+                {
+                    "src/service.ts": `export const getUser = () => "user";`,
+                    "src/helper.ts": `export const formatDate = () => "date";`,
+                },
+                { virtual: true }
+            );
+
+            const shouldProcessFileMock = jest.fn((filePath: string) => filePath.includes("service.ts"));
+
+            // Create addon with shouldProcessFile using proper helper
+            createAddon(
+                fileSystem,
+                "addons/test-addon/addon",
+                "export const activate = () => {}; export const shouldProcessFile = (path) => path.includes('service');",
+                {
+                    activate: jest.fn(),
+                    shouldProcessFile: shouldProcessFileMock,
+                }
+            );
+
+            const addons = new AddonRegistry({
+                addonsDir: "./addons",
+                addons: ["test-addon"],
+                reporter: new ReporterMock(fileSystem),
+                system: fileSystem,
+            });
+
+            const compiler = new CompilerTestClass(
+                {
+                    reporter: new ReporterMock(fileSystem),
+                    tsConfig: { target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["/src/service.ts", "/src/helper.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem,
+                addons
+            );
+
+            compiler.createProfileContextsIfNecessary();
+            const ctx = compiler.getContext();
+
+            // Test that service.ts is NOT skipped (addon wants it)
+            const shouldSkipService = compiler.testShouldSkipFile("/src/service.ts", ctx!);
+            expect(shouldSkipService).toBe(false);
+
+            // Test that helper.ts IS skipped (no addon wants it)
+            const shouldSkipHelper = compiler.testShouldSkipFile("/src/helper.ts", ctx!);
+            expect(shouldSkipHelper).toBe(true);
+
+            // Verify the addon's shouldProcessFile was called
+            expect(shouldProcessFileMock).toHaveBeenCalledWith("/src/service.ts", expect.any(Object));
+            expect(shouldProcessFileMock).toHaveBeenCalledWith("/src/helper.ts", expect.any(Object));
+        });
+
+        it("should not skip if ANY addon wants the file", () => {
+            const fileSystem = createSystem({ "src/target.ts": `export const test = 1;` }, { virtual: true });
+
+            const shouldProcessFile1 = jest.fn(() => false); // addon1 doesn't want it
+            const shouldProcessFile2 = jest.fn(() => true); // addon2 wants it
+
+            // Create first addon that rejects the file
+            createAddon(
+                fileSystem,
+                "addons/addon1/addon",
+                "export const activate = () => {}; export const shouldProcessFile = () => false;",
+                {
+                    activate: jest.fn(),
+                    shouldProcessFile: shouldProcessFile1,
+                }
+            );
+
+            // Create second addon that accepts the file
+            createAddon(
+                fileSystem,
+                "addons/addon2/addon",
+                "export const activate = () => {}; export const shouldProcessFile = () => true;",
+                {
+                    activate: jest.fn(),
+                    shouldProcessFile: shouldProcessFile2,
+                }
+            );
+
+            const addons = new AddonRegistry({
+                addonsDir: "./addons",
+                addons: ["addon1", "addon2"],
+                reporter: new ReporterMock(fileSystem),
+                system: fileSystem,
+            });
+
+            const compiler = new CompilerTestClass(
+                {
+                    reporter: new ReporterMock(fileSystem),
+                    tsConfig: { target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem,
+                addons
+            );
+
+            compiler.createProfileContextsIfNecessary();
+            const ctx = compiler.getContext();
+
+            const shouldSkip = compiler.testShouldSkipFile("/src/target.ts", ctx!);
+            expect(shouldSkip).toBe(false); // Should not skip because addon2 wants it
+        });
+    });
+
+    describe("backward compatibility with legacy addons", () => {
+        it("should not skip files when addon lacks shouldProcessFile (legacy behavior)", () => {
+            const fileSystem = createSystem({ "src/target.ts": `export const test = 1;` }, { virtual: true });
+
+            // Create legacy addon WITHOUT shouldProcessFile
+            createAddon(
+                fileSystem,
+                "addons/legacy-addon/addon",
+                "export const activate = () => {};", // No shouldProcessFile export
+                {
+                    activate: jest.fn(),
+                    // No shouldProcessFile - legacy addon
+                }
+            );
+
+            const addons = new AddonRegistry({
+                addonsDir: "./addons",
+                addons: ["legacy-addon"],
+                reporter: new ReporterMock(fileSystem),
+                system: fileSystem,
+            });
+
+            const compiler = new CompilerTestClass(
+                {
+                    reporter: new ReporterMock(fileSystem),
+                    tsConfig: { target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem,
+                addons
+            );
+
+            compiler.createProfileContextsIfNecessary();
+            const ctx = compiler.getContext();
+
+            const shouldSkip = compiler.testShouldSkipFile("/src/target.ts", ctx!);
+            expect(shouldSkip).toBe(false); // Legacy addon processes all files
+        });
+    });
+
+    describe("with no addons", () => {
+        it("should not skip files when no addons are registered", () => {
+            const fileSystem = createSystem({ "src/target.ts": `export const test = 1;` }, { virtual: true });
+
+            const compiler = new CompilerTestClass(
+                {
+                    reporter: new ReporterMock(fileSystem),
+                    tsConfig: { target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem
+                // No addons registry
+            );
+
+            compiler.createProfileContextsIfNecessary();
+            const ctx = compiler.getContext();
+
+            const shouldSkip = compiler.testShouldSkipFile("/src/target.ts", ctx!);
+            expect(shouldSkip).toBe(false); // Should process when no addons
+        });
+    });
+
+    describe("emitSourceFile integration with file filtering", () => {
+        it("should skip processing when addon filters out the file", () => {
+            const fileSystem = createSystem(
+                {
+                    "src/service.ts": `export const getUser = () => "user";`,
+                    "src/helper.ts": `export const formatDate = () => "date";`,
+                },
+                { virtual: true }
+            );
+
+            const shouldProcessFileMock = jest.fn((filePath: string) => filePath.includes("service.ts"));
+
+            // Create addon with file filtering
+            createAddon(
+                fileSystem,
+                "addons/filter-addon/addon",
+                "export const activate = () => {}; export const shouldProcessFile = (path) => path.includes('service');",
+                {
+                    activate: jest.fn(),
+                    shouldProcessFile: shouldProcessFileMock,
+                }
+            );
+
+            const addons = new AddonRegistry({
+                addonsDir: "./addons",
+                addons: ["filter-addon"],
+                reporter: new ReporterMock(fileSystem),
+                system: fileSystem,
+            });
+
+            const compiler = new CompilerTestClass(
+                {
+                    reporter: new ReporterMock(fileSystem),
+                    tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["/src/service.ts", "/src/helper.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem,
+                addons
+            );
+
+            compiler.createProfileContextsIfNecessary();
+
+            // Emit service.ts - should be processed
+            const serviceResult = compiler.emitSourceFile("/src/service.ts", undefined, false);
+            expect(serviceResult.files.length).toBeGreaterThan(0); // Should have output files
+
+            // Emit helper.ts - should be skipped
+            const helperResult = compiler.emitSourceFile("/src/helper.ts", undefined, false);
+            expect(helperResult.files.length).toBe(0); // Should have no output files (skipped)
+            expect(helperResult.diagnostics || []).toHaveLength(0); // No errors
+        });
+
+        it("should return cached result when file is skipped but cache exists", () => {
+            const fileSystem = createSystem({ "src/helper.ts": `export const formatDate = () => "date";` }, { virtual: true });
+
+            const shouldProcessFileMock = jest.fn(() => false); // Skip all files
+
+            // Create addon that skips all files
+            createAddon(
+                fileSystem,
+                "addons/filter-addon/addon",
+                "export const activate = () => {}; export const shouldProcessFile = () => false;",
+                {
+                    activate: jest.fn(),
+                    shouldProcessFile: shouldProcessFileMock,
+                }
+            );
+
+            const addons = new AddonRegistry({
+                addonsDir: "./addons",
+                addons: ["filter-addon"],
+                reporter: new ReporterMock(fileSystem),
+                system: fileSystem,
+            });
+
+            const compiler = new CompilerTestClass(
+                {
+                    reporter: new ReporterMock(fileSystem),
+                    tsConfig: { target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["/src/helper.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem,
+                addons
+            );
+
+            compiler.createProfileContextsIfNecessary();
+
+            // First call - file is skipped
+            const firstResult = compiler.emitSourceFile("/src/helper.ts", undefined, false);
+            expect(firstResult.files.length).toBe(0);
+
+            // Second call - should use cache
+            const secondResult = compiler.emitSourceFile("/src/helper.ts", undefined, false);
+            expect(secondResult.files.length).toBe(0);
+            expect(secondResult.version).toBe(firstResult.version);
+        });
+    });
+});
+
+describe("Declaration generation for client proxy addons", () => {
+    // Simulates a client proxy transformer addon (e.g., Magellan's @service() decorator)
+    // that transforms source code but whose consumers need .d.ts type declarations.
+    const createProxyTransformerAddon = (options: { needsTypeInfo?: boolean } = {}) => ({
+        getName: () => "client-proxy-transformer",
+        needsTypeInfo: options.needsTypeInfo,
+        activate: (ctx: CompilationContext) => {
+            ctx.registerTransformer({
+                before: [
+                    (context: ts.TransformationContext) => {
+                        return (sourceFile: ts.SourceFile) => {
+                            // Identity transformer — simulates a proxy transformer that
+                            // wraps functions without changing their type signatures
+                            return ts.visitEachChild(sourceFile, node => node, context);
+                        };
+                    },
+                ],
+            });
+        },
+    });
+
+    it("generates .d.ts files when transpileOnly is false and declaration is true", () => {
+        const fileSystem = createSystem(
+            { "src/service.ts": `export const getUser = async (): Promise<string> => "user";` },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        fileSystem.createDirectory("./addons");
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter,
+            system: fileSystem,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([createProxyTransformerAddon({ needsTypeInfo: false })]);
+
+        const actual = new CompilerTestClass(
+            {
+                reporter,
+                tsConfig: { declaration: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
+                config: { transpileOnly: false, addons: ["client-proxy-transformer"] },
+                cliArgs: { fileNames: ["/src/service.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/service.ts", undefined, false);
+
+        // Client proxy consumers get type declarations
+        expect(getFilesByExtension(actual, ".d.ts")).toHaveLength(1);
+        expect(getText("service.d.ts", actual)).toContain("getUser");
+        expect(getText("service.js", actual)).toBeDefined();
+    });
+
+    it("does NOT generate .d.ts files when transpileOnly is true, even with declaration: true", () => {
+        const fileSystem = createSystem(
+            { "src/service.ts": `export const getUser = async (): Promise<string> => "user";` },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        fileSystem.createDirectory("./addons");
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter,
+            system: fileSystem,
+        });
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([createProxyTransformerAddon({ needsTypeInfo: false })]);
+
+        const actual = new CompilerTestClass(
+            {
+                reporter,
+                tsConfig: { declaration: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
+                config: { transpileOnly: true, addons: ["client-proxy-transformer"] },
+                cliArgs: { fileNames: ["/src/service.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/service.ts", undefined, false);
+
+        // transpileOnly fast path: no declarations possible
+        expect(getFilesByExtension(actual, ".d.ts")).toHaveLength(0);
+        // But JS output is still generated
+        expect(actual.files.some(f => f.name.endsWith(".js"))).toBe(true);
+    });
+
+    it("generates .d.ts files with per-file Programs when needsTypeInfo is false and declaration is true", () => {
+        const fileSystem = createSystem(
+            { "src/service.ts": `export const getUser = async (): Promise<string> => "user";` },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        fileSystem.createDirectory("./addons");
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter,
+            system: fileSystem,
+        });
+        // Addon explicitly opts out of type info — no big Program needed
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([createProxyTransformerAddon({ needsTypeInfo: false })]);
+
+        const actual = new CompilerTestClass(
+            {
+                reporter,
+                tsConfig: { declaration: true, declarationMap: false, sourceMap: false, target: ts.ScriptTarget.ESNext },
+                config: { transpileOnly: false, addons: ["client-proxy-transformer"] },
+                cliArgs: { fileNames: ["/src/service.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/service.ts", undefined, false);
+
+        // Per-file Program path still generates declarations
+        expect(getFilesByExtension(actual, ".d.ts")).toHaveLength(1);
+        expect(getText("service.d.ts", actual)).toContain("getUser");
+        expect(getText("service.d.ts", actual)).toContain("Promise<string>");
+    });
+
+    it("generates .d.ts with legacy addon (needsTypeInfo undefined) and declaration: true", () => {
+        const fileSystem = createSystem(
+            { "src/service.ts": `export const getUser = async (): Promise<string> => "user";` },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        fileSystem.createDirectory("./addons");
+        const addonRegistry = new AddonRegistry({
+            addonsDir: "./addons",
+            reporter,
+            system: fileSystem,
+        });
+        // Legacy addon: needsTypeInfo is undefined → treated as true → big Program created
+        addonRegistry.getAvailableAddons = jest.fn().mockReturnValue([createProxyTransformerAddon()]);
+
+        const actual = new CompilerTestClass(
+            {
+                reporter,
+                tsConfig: { declaration: true, sourceMap: false, target: ts.ScriptTarget.ESNext },
+                config: { transpileOnly: false, addons: ["client-proxy-transformer"] },
+                cliArgs: { fileNames: ["/src/service.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addonRegistry)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/service.ts", undefined, false);
+
+        // Legacy addons always get the big Program → declarations generated
+        expect(getFilesByExtension(actual, ".d.ts")).toHaveLength(1);
+        expect(getText("service.d.ts", actual)).toContain("getUser");
+    });
+});

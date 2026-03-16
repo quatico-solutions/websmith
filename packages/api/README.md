@@ -59,6 +59,33 @@ The `addon.ts` file must export an `activate` function implementing the `AddonAc
 
 For more information on how to implement addons, see the [write your own addon](docs/write-your-own-addon.md) documentation.
 
+## CompilerAddon Interface
+
+Starting with websmith v0.8.6, addons can implement the `CompilerAddon` interface to declare performance optimization features:
+
+```typescript
+import type { AddonContext, CompilerAddon } from "@quatico/websmith-api";
+
+export const activate = (ctx: AddonContext) => {
+    // Register your addon logic
+};
+
+// Optional: Filter which files this addon processes
+export const shouldProcessFile = (filePath: string, ctx: AddonContext): boolean => {
+    return filePath.includes("/target-directory/");
+};
+
+// Optional: Declare if addon needs TypeScript type information
+export const needsTypeInfo = false; // Enables 10-20x faster compilation
+```
+
+### Performance Features
+
+- **`shouldProcessFile`**: Skip files your addon doesn't need to process, reducing overhead by 10x+
+- **`needsTypeInfo`**: Opt into fast transpileModule path when type information isn't required (10-20x faster)
+
+See the [performance optimization section](docs/write-your-own-addon.md#7-performance-optimization) for detailed documentation and examples.
+
 ## Activate a compiler addon
 
 You can activate your addon by using the `--addons` command line parameter when calling the websmith compiler. Add the `--addons` parameter to the build command in the `package.json` file:
