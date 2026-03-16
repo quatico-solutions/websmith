@@ -899,7 +899,7 @@ export class Compiler {
     }
 
     private transpileInternal(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
-        const { fileName, ctx, profile, useFastPath, addonNeedsBigProgram: precomputedAddonNeedsBigProgram } = compilationFragment;
+        const { fileName, ctx, content, profile, useFastPath, addonNeedsBigProgram: precomputedAddonNeedsBigProgram } = compilationFragment;
 
         // Use precomputed compilation strategy (calculated once per file in emitSourceFile)
         // Falls back to calculating if not provided (for backward compatibility with other call sites)
@@ -929,6 +929,39 @@ export class Compiler {
         if (addonNeedsBigProgram && compilerOptions.declaration && isSourceFile(fileName)) {
             const langService = ctx.getLanguageService();
             const emitOutput = langService.getEmitOutput(fileName);
+
+            // When addonEmitOnly is enabled, detect if transformers changed the output
+            // Uses per-file Program comparison (same as Case 3) while returning language service output
+            if (this.addonEmitOnly && this.hasRegisteredTransformers(ctx)) {
+                const sourceFile = ts.createSourceFile(fileName, content, compilerOptions.target ?? ts.ScriptTarget.Latest, true);
+                const perFileHost = {
+                    ...ts.createCompilerHost(compilerOptions),
+                    getSourceFile: (name: string) => {
+                        if (name === fileName) {
+                            return sourceFile;
+                        }
+                        return ts.createCompilerHost(compilerOptions).getSourceFile(name, compilerOptions.target ?? ts.ScriptTarget.Latest);
+                    },
+                    writeFile: () => {},
+                };
+
+                const emitPerFile = (transformers: ts.CustomTransformers): string | undefined => {
+                    const program = ts.createProgram({ rootNames: [fileName], options: compilerOptions, host: perFileHost });
+                    const outputFiles: ts.OutputFile[] = [];
+                    program.emit(sourceFile, (name: string, text: string) => {
+                        outputFiles.push({ name, text, writeByteOrderMark: false });
+                    }, undefined, false, transformers);
+                    const isJS = (name: string) => !!name.match(/\.([cm]?js|jsx)$/i) && !name.match(/\.map$/i);
+                    return outputFiles.find(f => isJS(f.name))?.text;
+                };
+
+                const withTransformers = emitPerFile(ctx.getTransformers());
+                const withoutTransformers = emitPerFile({});
+
+                if (withTransformers !== withoutTransformers) {
+                    ctx.markFileAsAddonProcessed(fileName);
+                }
+            }
 
             return {
                 ...emitOutput,
