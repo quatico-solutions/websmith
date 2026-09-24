@@ -35,28 +35,45 @@ separately in `node24-esm-support`.
 
 ## Current Plan
 
-### Phase 1: Map the TypeScript 7 API gap ⏸️
+Research details: [analysis-ts7-api-gap.md](analysis-ts7-api-gap.md).
 
-- ⏸️ Inventory websmith's use of the `typescript` API (62 non-test source files import it)
-- ⏸️ Map each use onto `typescript@7` `./unstable/*` exports (`sync`, `async`, `ast`, `ast/factory`,
-  `ast/visitor`, `fs`, `proto`), or record it as missing
-- ⏸️ Determine whether custom transformers (`before` / `after` / `afterDeclarations`) exist in 7.x at all
-- ⏸️ Check TypeScript 6.x as a stepping stone (still ships `lib/typescript.js`)
+### Phase 1: Map the TypeScript 7 API gap ✅
 
-### Phase 2: Decide the compatibility strategy ⏸️
+- ✅ Inventory: 62 non-test files, 125 distinct `ts.*` symbols; public addon API coupling listed (analysis 1)
+- ✅ Mapped against `typescript@7.0.2` and the `7.1.0-dev.20260924.1` nightly (analysis 2, 4)
+- ✅ Custom transformers: missing in 7.0.2 and in the 7.1 nightly; planned as roadmap item 3C, a post-emit AST
+  round trip rather than TS 5's `before` phase (analysis 2.5)
+- ✅ TypeScript 6.x: same JS API as 5.7.3 (identical exported function names), but 6.0 deprecations are hard
+  errors, and websmith hits several of them (analysis 3)
 
-- ⏸️ Choose among the options in Open Points and write the implementation plans
+### Phase 2: Decide the compatibility strategy 🟡
+
+- 🟡 Choose among options A–D (analysis 5); C combines with A or B
+- ⏸️ Write the implementation plans for the chosen option
+
+### Candidate slice independent of the strategy
+
+- ⏸️ Clear the TypeScript 6.0 deprecation hits (`esModuleInterop: false` and `strict: false` defaults,
+  `Classic` resolution for addon compilation, ES3/ES5/AMD/UMD/System tables, repo tsconfigs using
+  `moduleResolution: "node"` and `downlevelIteration`, the `--outFile` CLI flag) — needed by options A, B and D
 
 ## Open Points
 
-- ⏸️ Which TypeScript majors does websmith support after this — 7.x only, or 5.x/6.x and 7.x side by side?
-- ⏸️ Does the addon API (`AddonContext.registerTransformer(ts.CustomTransformers)`, `Processor`,
-  `Generator`) keep its `ts.*` types, or does it get a websmith-owned abstraction?
-- ⏸️ Can the webpack loader keep in-process compilation, or does 7.x's native compiler force an out-of-process
-  model?
-- ⏸️ `transpileOnly` / `transpileModule` fast path: is there an equivalent in 7.x?
-- ⏸️ Does the ESM work in `node24-esm-support` change how addons are loaded here?
-- ⏸️ "7.1" is not released yet — target 7.0.x now and re-check at 7.1, or wait?
+- 🟡 Strategy: A (stay on 6.x, wait for a stable 7.x API), B (dual backend adapter), C (websmith-owned AST and
+  types in `packages/api`, combines with A or B), D (7.x only, out of process). See analysis 5.
+- 🟡 Which TypeScript majors does websmith support after this? Answered per option (analysis 5).
+- 🟡 Addon API: keep `ts.*` types or introduce websmith-owned ones? Only option C removes them; `packages/api`
+  also imports `typescript` at runtime (`DiagnosticMessage.ts:7`).
+- ✅ In-process webpack loader: impossible on 7.x — the API always runs the native compiler out of process over
+  IPC; it stays possible on 5.x/6.x (analysis 2.2).
+- ✅ `transpileOnly` fast path: 7.1 nightly has `transpileModule`, but without a `transformers` option
+  (analysis 2.4).
+- 🟡 Target version: 7.1 is unreleased; the 7.0 blog says 7.1 ships "a new (and different) API". Tools that
+  need the API today are pointed at `@typescript/typescript6` (analysis 2.5).
+- ⏸️ Will 7.1 GA ship custom transformers (roadmap 3C), and in which phase?
+- ⏸️ IPC cost of per-file `transpileModule` / `getJavaScriptEmit` for webpack workloads — worth measuring.
+- ⏸️ Does the ESM work in `node24-esm-support` change how addons are loaded here? (It keeps CJS loading under
+  its suggested option 1.)
 
 ## Decisions
 
@@ -81,6 +98,21 @@ delivered as per-platform native packages (`@typescript/typescript-<os>-<arch>`)
 **Impact:** support for TypeScript 7 is a re-architecture question, not a version bump. Phase 1 must answer it
 before any TypeScript plan is written.
 
+### 2026-09-24 — No transformers, no in-process API in TypeScript 7
+
+**Expected:** 7.x exposes the compiler API under a new path.
+
+**Discovered:** the 7.x API runs the native compiler in a separate process (MessagePack or JSON-RPC over
+stdio). 7.0.2 offers project snapshots, diagnostics, checker queries and `printNode`, but no emit, no
+`transpileModule` and no parser. The 7.1 nightly adds `createProgram`, `createSourceFile`, `transpileModule`,
+per-file emit and a printer. Neither has custom transformers, a language service with emit output, a watch
+API, or a `ts.System` host; browser execution is impossible. Microsoft's roadmap (microsoft/TypeScript#63875)
+plans transformers as a post-emit AST round trip and treats watch as out of scope.
+
+**Impact:** websmith's transformer addons, watch mode, browser system and in-process loader have no 7.x
+counterpart yet. TypeScript 6.x keeps the full API (also as `@typescript/typescript6`), so the strategy
+decision is about timing and addon-type ownership.
+
 ## Session Log
 
 ### 2026-09-24 — Story created
@@ -102,3 +134,15 @@ to `node24-esm-support`. Renamed from `ts7-node24-support`.
 **Key outcomes:**
 
 - Slug `ts7-rearchitecture`; Node 24 phase removed, remaining phases renumbered
+
+### 2026-09-24 — Research for Phase 1
+
+Downloaded `typescript` 5.7.3, 6.0.3, 7.0.2 and the 7.1 nightly from the npm registry (outside the repo) and
+read their typings; read the TypeScript 6.0 and 7.0 announcements and the API roadmap issue. Findings in
+`analysis-ts7-api-gap.md`; review spot-checked the websmith call sites, `@typescript/typescript6` and the
+7.1 nightly's `TranspileOptions`.
+
+**Key outcomes:**
+
+- Phase 1 complete; four strategy options described
+- A TypeScript 6.0 deprecation clean-up is useful under every option except C alone
