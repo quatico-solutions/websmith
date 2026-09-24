@@ -72,6 +72,8 @@ pnpm license:add                 # Add missing license headers
 - **Plan directory:** docs/plans/
 - **Active index:** docs/plans/active/
 - **Delivered index:** docs/plans/delivered/
+- **Story directory:** docs/stories/
+- **Story index:** docs/stories/README.md
 - **Definition of Done:** lint, test, build, test:e2e
 - **Git host:** github
 - **Tracker:** github
