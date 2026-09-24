@@ -1,5 +1,5 @@
 ---
-title: Support TypeScript 7.1 and Node 24
+title: Re-architecture for TypeScript 7
 author: Jan Wloka
 status: draft
 created: 2026-09-24
@@ -13,25 +13,24 @@ updated: 2026-09-24
  ---------------------------------------------------------------------------------------------
 -->
 
-# Support TypeScript 7.1 and Node 24
+# Re-architecture for TypeScript 7
 
 ## Objective
 
-Make websmith (CLI, webpack loader, addon API) work with TypeScript 7.1 and run on Node 24, and decide how
-addons keep working when the TypeScript compiler API they build on changes shape.
+Make websmith (CLI, webpack loader, addon API) work with TypeScript 7 (target: 7.1), and decide how addons keep
+working when the TypeScript compiler API they build on changes shape. Node 24 and ESM support are tracked
+separately in `node24-esm-support`.
 
 ## Why Now
 
 - TypeScript 7 is `latest` on npm (7.0.2); 7.1 is in nightlies (`7.1.0-dev.*`). Consumers upgrading their
   `typescript` dependency will leave websmith's `5.x` peer range behind.
-- Node 24 is the active LTS (`v24.21.0`, "Krypton"); the repo still pins Node 20 in `.nvmrc` and in all three
-  GitHub workflows.
 
 ## Decisions Taken in Scoping
 
 - **Story, not plan.** The TypeScript half is research before implementation (the compiler API websmith depends
-  on is not exported by 7.x), so no bounded plan can be written yet. Bounded slices (e.g. Node 24) become plans
-  under this story.
+  on is not exported by 7.x), so no bounded plan can be written yet. Bounded slices become plans under this
+  story.
 - **Tracker.** No GitHub issue covers this; the story is the umbrella until issues or plans exist.
 
 ## Current Plan
@@ -44,13 +43,7 @@ addons keep working when the TypeScript compiler API they build on changes shape
 - ⏸️ Determine whether custom transformers (`before` / `after` / `afterDeclarations`) exist in 7.x at all
 - ⏸️ Check TypeScript 6.x as a stepping stone (still ships `lib/typescript.js`)
 
-### Phase 2: Node 24 ⏸️
-
-- ⏸️ Candidate plan: `.nvmrc`, CI workflows (`pull-request.yml`, `protect-stable.yml`,
-  `release-and-publish.yml`), `@types/node`, `engines`
-- ⏸️ Run the full Definition of Done on Node 24
-
-### Phase 3: Decide the compatibility strategy ⏸️
+### Phase 2: Decide the compatibility strategy ⏸️
 
 - ⏸️ Choose among the options in Open Points and write the implementation plans
 
@@ -62,7 +55,7 @@ addons keep working when the TypeScript compiler API they build on changes shape
 - ⏸️ Can the webpack loader keep in-process compilation, or does 7.x's native compiler force an out-of-process
   model?
 - ⏸️ `transpileOnly` / `transpileModule` fast path: is there an equivalent in 7.x?
-- ⏸️ Should Node 24 ship first and on its own? (It does not depend on the TypeScript decision.)
+- ⏸️ Does the ESM work in `node24-esm-support` change how addons are loaded here?
 - ⏸️ "7.1" is not released yet — target 7.0.x now and re-check at 7.1, or wait?
 
 ## Decisions
@@ -70,6 +63,7 @@ addons keep working when the TypeScript compiler API they build on changes shape
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-09-24 | Track as a story in `docs/stories/`, index in `docs/stories/README.md` | Research-heavy, epic-scale, no ticket; keeps internal tracking off the public README |
+| 2026-09-24 | Split off Node 24 + ESM into `node24-esm-support` | Independent of the TypeScript decision and shippable on its own (Jan Wloka) |
 
 ## Key Findings
 
@@ -99,3 +93,12 @@ manifests) and Node's release index, and counted `ts.*` API use in the repo.
 
 - Story created as `draft`; Node 24 identified as an independent, plannable slice
 - TypeScript 7 finding recorded; strategy questions listed under Open Points
+
+### 2026-09-24 — Story split
+
+Split at the author's request: this story keeps the TypeScript 7 re-architecture; Node 24 and ESM support moved
+to `node24-esm-support`. Renamed from `ts7-node24-support`.
+
+**Key outcomes:**
+
+- Slug `ts7-rearchitecture`; Node 24 phase removed, remaining phases renumbered

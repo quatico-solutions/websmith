@@ -11,4 +11,5 @@ Multi-session work items (see the `story-tracking` skill). Bounded work pieces a
 
 ## Active Stories
 
-- 📝 [ts7-node24-support](ts7-node24-support/STORY-ts7-node24-support.md) — Support TypeScript 7.1 and Node 24 (draft)
+- 📝 [node24-esm-support](node24-esm-support/STORY-node24-esm-support.md) — Node 24 and ESM support (draft)
+- 📝 [ts7-rearchitecture](ts7-rearchitecture/STORY-ts7-rearchitecture.md) — Re-architecture for TypeScript 7 (draft)
