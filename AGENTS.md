@@ -65,3 +65,65 @@ pnpm license:add                 # Add missing license headers
 ---
 
 *This file follows AGENTS.md convention for cross-tool compatibility (Claude Code, Cursor, Windsurf, etc.)*
+
+## Plot Config
+
+- **Branch prefixes:** idea/, feature/, bug/, docs/, infra/
+- **Plan directory:** docs/plans/
+- **Active index:** docs/plans/active/
+- **Delivered index:** docs/plans/delivered/
+- **Definition of Done:** lint, test, build, test:e2e
+- **Git host:** github
+- **Tracker:** github
+- **CI:** github-actions
+- **Worktree root:** .worktrees
+- **Commit style:** arlo-no-colon — e.g. `R Fixes …`; see the `commit-notation` skill
+
+<!-- Written by /plot-init.
+     Definition of Done: confirmed
+     Git host: the remote
+     CI: confirmed
+     Commit style: probe proposed arlo-colon (2 of 80 subjects); corrected to the no-colon majority, confirmed
+-->
+
+## Definition of Done
+
+A PR is ready when:
+
+- `pnpm lint`, `pnpm test`, `pnpm build` and `pnpm test:e2e` pass (what `.github/workflows/pull-request.yml` runs).
+- Every code change has unit tests (see `docs/rules/testing.md`). Behaviour visible through the CLI, the webpack
+  loader or the addon API also gets an end-to-end case in `packages/compiler-test` or `packages/webpack-test`.
+- User-visible changes add an entry under `## [Unreleased]` in `Release-Notes.md`. Changes to CLI flags, config
+  keys or the addon API update `README.md` or the affected `packages/*/README.md`. No changesets.
+- User-facing text is English.
+- Commits follow Arlo's notation without a colon; the `commit-notation` skill owns the details. The host is GitHub,
+  so PR operations use `gh` (see `handling-pull-requests`).
+
+## Agentic Workflow
+
+Four phases, each turning one durable artifact into the next.
+
+| Phase | Produces | Commands and skills |
+|-------|----------|---------------------|
+| **Discovery** | a story (`docs/stories/`) or a ticket assessment | `triage-ticket` for an incoming issue · `story-tracking` for multi-session work |
+| **Design** | an approved plan (`docs/plans/`) | `/plot-idea` → `challenge-the-plan` → `/plot-approve` |
+| **Development** | merged branches | `/plot-implement` · `test-driven-development` · `commit-notation` · `handling-pull-requests` → `/plot-deliver` |
+| **Endgame** | a verified release | `reality-check` before claiming done · `/plot-release rc` → verify the checklist → `/plot-release` |
+
+Discovery is optional: small, well-understood work goes straight to Design.
+
+**Plans vs. session logs.** A plan says what will be built and is frozen on approval. A session log says how it
+was decided — including the alternatives that were rejected — stays amendable, and outlives the plan. If it must
+be true *before* building starts, it belongs in the plan; if it answers "why not the other way?", it belongs in a
+log.
+
+## Session Wrap Up
+
+Include the Plot context for this session in the log. Run `plot-context.sh` from the Plot plugin
+(`skills/plot/scripts/plot-context.sh` inside the plugin; this repo does not vendor it).
+
+It reports the governing plan, its phase, its wave, and its PRs as JSON. An empty `plan_slug` means the branch
+belongs to no plan — say that rather than guessing, because a log attributed to the wrong plan outlives the
+session that mis-attributed it.
+
+Record decisions and their **rejected alternatives** here, not in the plan.

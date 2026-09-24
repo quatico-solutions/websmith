@@ -42,3 +42,8 @@ test-output*
 
 # claude settings
 .claude/settings.local.json
+
+# The dispatch worktrees, gathered here by the `Worktree root` key rather than
+# scattered beside the checkout. They are CHECKOUTS — every one is re-creatable
+# with `git worktree add`, and none of them is content this repo carries.
+.worktrees/
