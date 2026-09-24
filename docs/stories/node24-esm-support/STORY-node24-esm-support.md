@@ -62,26 +62,32 @@ Research details: [analysis-node24-esm.md](analysis-node24-esm.md).
 Requirement: a client compilation whose output (including processor, transformer and generator output) is
 not ESM compatible reports a diagnostic at compile time.
 
-- ⏸️ Define "ESM compatible" for websmith's clients: Node's ESM loader (strict — explicit `.js` extensions,
-  no `require` / `module.exports` / `__dirname`, CJS named-import limits) or bundler ESM (webpack; lenient)?
-  Possibly per profile
+- ✅ "ESM compatible" is set **per profile**: a profile declares its runtime — Node's ESM loader (strict:
+  explicit `.js` extensions, no `require` / `module.exports` / `__dirname`, CJS named-import limits) or
+  bundler ESM (webpack; lenient) — and websmith applies the matching rules
 - ⏸️ Map which checks TypeScript already gives (with `module: node16/nodenext`) and on which websmith paths
   they run today (see Key Findings: none on transformer output, none in `transpileOnly`)
 - ⏸️ Design websmith's own check on the **emitted** JavaScript, so it covers every path, e.g.: CommonJS
   constructs in ESM output; relative specifiers without extension or not resolving to an emitted file;
   output module format vs the nearest `package.json` `"type"`; `.cjs`/`.mjs` naming; top-level await
   targets; imports of CJS packages by name
-- ⏸️ Severity and control: error by default for ESM targets? opt-out per profile? how it interacts with
-  `addonEmitOnly` and `ResultProcessor`s
+- ✅ Severity: **error** by default for ESM targets; a profile can downgrade to a warning or disable the check
+- ✅ Rule sources: all three — (1) websmith's check on the emitted JavaScript, on every path; (2) TypeScript's
+  `node16`/`nodenext` diagnostics where a Program exists; (3) output format and `.cjs`/`.mjs` naming vs the
+  nearest `package.json` `"type"`
+- ⏸️ Interaction with `addonEmitOnly` and `ResultProcessor`s
+- ⏸️ Config shape: the profile key(s) for the runtime and the severity
 - ⏸️ Candidate e2e fixtures: an addon that generates `require(...)`, one that generates an extensionless
   relative import, one that emits CJS into a `"type": "module"` package
 
 ### Phase 3: Implement ⏸️
 
 - 🟡 Choose the package-output option (analysis B.5)
-- ⏸️ Write plans per slice. Candidate slices under option 1: discover `.mjs/.cjs/.mts/.cts` addons; compile
-  `.ts` addons to output that works in `"type": "module"` projects; clear diagnostic for top-level-await
-  addons; ESM addon e2e tests; the same changes in `WebpackAddonService`
+- ⏸️ First: fix [#111](https://github.com/quatico-solutions/websmith/issues/111) (`.ts` addons in
+  `"type": "module"` projects) as its own plan
+- ⏸️ Write plans per slice. Candidate slices: the per-profile ESM check (Phase 2b); discover
+  `.mjs/.cjs/.mts/.cts` addons; clear diagnostic for top-level-await addons; ESM addon e2e tests; the same
+  addon changes in `WebpackAddonService`
 
 ## Open Points
 
@@ -94,12 +100,11 @@ not ESM compatible reports a diagnostic at compile time.
 - ✅ `createRequire(__filename)` in an ESM build: only matters for options 2 and 3; option 1 keeps it.
 - ✅ Webpack loader: same addon gaps as the CLI, in a second implementation (`WebpackAddonService`); an ESM
   loader package would load (analysis B.4).
-- 🟡 What does "ESM compatible" mean for websmith's clients — Node ESM, bundler ESM, or configurable per
-  profile? This decides which checks Phase 2b builds.
-- ⏸️ Should the ESM check fail the build (error) or warn, and can a profile opt out?
+- ✅ "ESM compatible" is configured per profile (Node ESM or bundler ESM) → See Decisions
+- ✅ A failed check is an error with a per-profile opt-out → See Decisions
 - ⏸️ Watch mode: ESM addons do not reload after `delete require.cache` — document, or reload via `import()`?
-- ⏸️ Should the `.ts`-addon failure in `"type": "module"` projects (a bug today, see Key Findings) become a
-  GitHub issue fixed ahead of this story?
+- ✅ The `.ts`-addon failure in `"type": "module"` projects is filed as
+  [#111](https://github.com/quatico-solutions/websmith/issues/111), to be fixed ahead of this story as its own plan
 
 ## Decisions
 
@@ -107,6 +112,10 @@ not ESM compatible reports a diagnostic at compile time.
 |------|----------|-----------|
 | 2026-09-24 | Split from the TypeScript 7 story | Independent of the TypeScript decision and shippable on its own (Jan Wloka) |
 | 2026-09-24 | Client output must be ESM compatible; websmith reports incompatibility at compile time | Clients get generated code from addons; without a compile-time check it builds and fails at runtime (Jan Wloka) |
+| 2026-09-24 | "ESM compatible" is configured per profile: Node ESM or bundler ESM | Clients run generated code in Node and through webpack; one rule set cannot serve both (Jan Wloka) |
+| 2026-09-24 | ESM check failures are errors by default, with a per-profile downgrade or opt-out | Compile-time failure is the point; the opt-out allows gradual migration (Jan Wloka) |
+| 2026-09-24 | Check sources: emitted-JS check, TypeScript `nodenext` diagnostics, `package.json` `"type"` consistency | Only the emitted-JS check covers transformer output and `transpileOnly`; the others add precision where available (Jan Wloka) |
+| 2026-09-24 | File the `.ts`-addon bug as #111 and fix it ahead of the story | It breaks ESM projects today, independent of the story's other work (Jan Wloka) |
 
 ## Key Findings
 
@@ -194,3 +203,14 @@ diagnostics websmith reports on each compilation path.
 
 - Client-output compatibility is now the story's priority; package publishing format is secondary
 - Phase 2b drafted; needs the "Node ESM vs bundler ESM" answer before design
+
+### 2026-09-24 — Phase 2b decisions
+
+Jan Wloka answered the Phase 2b questions: ESM compatibility per profile (Node ESM or bundler ESM); errors by
+default with a per-profile opt-out; all three check sources. Filed the `.ts`-addon bug as
+[#111](https://github.com/quatico-solutions/websmith/issues/111).
+
+**Key outcomes:**
+
+- Phase 2b scope settled; open: config shape, and interaction with `addonEmitOnly` / `ResultProcessor`s
+- #111 becomes the first plan, ahead of this story
