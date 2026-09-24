@@ -79,6 +79,10 @@ not ESM compatible reports a diagnostic at compile time.
 - ⏸️ Config shape: the profile key(s) for the runtime and the severity
 - ⏸️ Candidate e2e fixtures: an addon that generates `require(...)`, one that generates an extensionless
   relative import, one that emits CJS into a `"type": "module"` package
+- 🔄 Planned as `esm-output-check` ([PR #112](https://github.com/quatico-solutions/websmith/pull/112)): panel
+  round (unanimous amend) and six interrogation rounds; 4 waves, 6 slices
+- ⏸️ Not in v1 of the check, tracked here: bare-specifier subpaths a package's `exports` map does not allow,
+  directory and extensionless subpaths without one, tsconfig `paths` aliases left in emitted specifiers
 
 ### Phase 3: Implement ⏸️
 
@@ -214,3 +218,16 @@ default with a per-profile opt-out; all three check sources. Filed the `.ts`-add
 
 - Phase 2b scope settled; open: config shape, and interaction with `addonEmitOnly` / `ResultProcessor`s
 - #111 becomes the first plan, ahead of this story
+
+### 2026-09-24 — `esm-output-check` panel and interrogation
+
+Panel of four jurors (addon author, compiler pipeline, webpack loader, ESM semantics), unanimous `amend`;
+moderation in `.plot/panels/2026-09-24-esm-output-check/panel.md`. Six `/challenge-the-plan` rounds with
+Jan Wloka settled module classification, parser (`ts.createSourceFile` plus a websmith scope walk, TS 7 cost
+recorded), failure semantics (non-zero CLI exit, webpack `emitError`), the rule table per runtime, coverage,
+attribution, the performance budget and the slices.
+
+**Key outcomes:**
+
+- Plan ready for review in PR #112; the CLI exit-code change ships as its own first slice
+- Three Node ESM failure classes deferred beyond v1 (listed in Phase 2b)
