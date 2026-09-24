@@ -17,19 +17,24 @@ updated: 2026-09-24
 
 ## Objective
 
-Run and test websmith on Node 24, and support ES modules: consuming websmith packages from ESM projects and
-loading addons written as ES modules.
+Run and test websmith on Node 24, and support ES modules: consuming websmith packages from ESM projects,
+loading addons written as ES modules, and — most important for clients — guaranteeing that the code websmith
+compiles and addons generate for a client is ESM compatible. When it is not, the compilation must report it,
+instead of succeeding and failing at runtime.
 
 ## Why Now
 
 - Node 24 is the active LTS (`v24.21.0`, "Krypton"); the repo pins Node 20 in `.nvmrc` and in all three GitHub
   workflows (`pull-request.yml`, `protect-stable.yml`, `release-and-publish.yml`).
 - Every websmith package is CommonJS today, while consumers and addon authors increasingly write ESM.
+- Most websmith clients get generated code from addons, and that code now has to run as ESM.
 
 ## Decisions Taken in Scoping
 
 - **Separate from the TypeScript 7 work** (`ts7-rearchitecture`): Node 24 and ESM do not depend on the
   TypeScript decision and can ship first.
+- **Client output is the priority** (Jan Wloka, 2026-09-24): how websmith's own packages are published is
+  secondary; what matters is that client builds produce ESM-compatible code, or fail the build saying why.
 
 ## Current Plan
 
@@ -52,6 +57,25 @@ Research details: [analysis-node24-esm.md](analysis-node24-esm.md).
 - ✅ ESM consumers and the webpack loader (analysis B.4)
 - ✅ Three package-output options with consequences (analysis B.5)
 
+### Phase 2b: ESM compatibility of client output ⏸️
+
+Requirement: a client compilation whose output (including processor, transformer and generator output) is
+not ESM compatible reports a diagnostic at compile time.
+
+- ⏸️ Define "ESM compatible" for websmith's clients: Node's ESM loader (strict — explicit `.js` extensions,
+  no `require` / `module.exports` / `__dirname`, CJS named-import limits) or bundler ESM (webpack; lenient)?
+  Possibly per profile
+- ⏸️ Map which checks TypeScript already gives (with `module: node16/nodenext`) and on which websmith paths
+  they run today (see Key Findings: none on transformer output, none in `transpileOnly`)
+- ⏸️ Design websmith's own check on the **emitted** JavaScript, so it covers every path, e.g.: CommonJS
+  constructs in ESM output; relative specifiers without extension or not resolving to an emitted file;
+  output module format vs the nearest `package.json` `"type"`; `.cjs`/`.mjs` naming; top-level await
+  targets; imports of CJS packages by name
+- ⏸️ Severity and control: error by default for ESM targets? opt-out per profile? how it interacts with
+  `addonEmitOnly` and `ResultProcessor`s
+- ⏸️ Candidate e2e fixtures: an addon that generates `require(...)`, one that generates an extensionless
+  relative import, one that emits CJS into a `"type": "module"` package
+
 ### Phase 3: Implement ⏸️
 
 - 🟡 Choose the package-output option (analysis B.5)
@@ -70,6 +94,9 @@ Research details: [analysis-node24-esm.md](analysis-node24-esm.md).
 - ✅ `createRequire(__filename)` in an ESM build: only matters for options 2 and 3; option 1 keeps it.
 - ✅ Webpack loader: same addon gaps as the CLI, in a second implementation (`WebpackAddonService`); an ESM
   loader package would load (analysis B.4).
+- 🟡 What does "ESM compatible" mean for websmith's clients — Node ESM, bundler ESM, or configurable per
+  profile? This decides which checks Phase 2b builds.
+- ⏸️ Should the ESM check fail the build (error) or warn, and can a profile opt out?
 - ⏸️ Watch mode: ESM addons do not reload after `delete require.cache` — document, or reload via `import()`?
 - ⏸️ Should the `.ts`-addon failure in `"type": "module"` projects (a bug today, see Key Findings) become a
   GitHub issue fixed ahead of this story?
@@ -79,6 +106,7 @@ Research details: [analysis-node24-esm.md](analysis-node24-esm.md).
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-09-24 | Split from the TypeScript 7 story | Independent of the TypeScript decision and shippable on its own (Jan Wloka) |
+| 2026-09-24 | Client output must be ESM compatible; websmith reports incompatibility at compile time | Clients get generated code from addons; without a compile-time check it builds and fails at runtime (Jan Wloka) |
 
 ## Key Findings
 
@@ -116,6 +144,20 @@ in-process, so coverage belongs in e2e tests (analysis B.1–B.3).
 
 **Impact:** ESM support is mostly addon-loading work, not a package-format migration.
 
+### 2026-09-24 — ESM problems in client output go unreported on most paths
+
+**Expected:** TypeScript's diagnostics catch ESM problems in client code.
+
+**Discovered:** websmith only reports what TypeScript checks, and on several paths TypeScript checks nothing:
+transformer output is produced during emit, after type checking, in every mode; `transpileOnly` and the
+`transpileModule` fast path report no semantic diagnostics (`Compiler.ts:597-604`); the language-service path
+reports syntactic diagnostics only (`Compiler.ts:968`, `984`); processor output is type-checked in full
+compilation only. Even where checking runs, TypeScript enforces Node's ESM rules only under
+`module: node16/nodenext`, not under `esnext` + `bundler` resolution.
+
+**Impact:** ESM compatibility needs a websmith-owned check on the emitted JavaScript (Phase 2b), not just
+TypeScript settings.
+
 ## Session Log
 
 ### 2026-09-24 — Story created
@@ -140,3 +182,15 @@ unchanged.
 
 - Phase 1 ready to plan once the Node range is decided
 - Phase 2 mapped; package-output option to be chosen
+
+### 2026-09-24 — Requirement: ESM-compatible client output
+
+Jan Wloka: most clients get generated code through addons, and that code now has to be ESM compatible; the
+compiler must tell a client run when its code is not, instead of compiling and failing at runtime. Added
+Phase 2b, the decision, and the open question of what "ESM compatible" means for clients. Checked which
+diagnostics websmith reports on each compilation path.
+
+**Key outcomes:**
+
+- Client-output compatibility is now the story's priority; package publishing format is secondary
+- Phase 2b drafted; needs the "Node ESM vs bundler ESM" answer before design
