@@ -25,6 +25,7 @@
 ## Changelog
 
 - TypeScript addons now load in projects whose `package.json` declares `"type": "module"` (#111).
+- Compiled addons are written to `.websmith-cache/addons` instead of `lib/` next to the addons directory.
 
 ## Motivation
 
@@ -48,24 +49,38 @@ consumer's `"type"` is. Two compile sites need the same change:
 Tests first: an e2e case in `compiler-test` with a `"type": "module"` consumer and a `.ts` addon (fails today),
 the same for the webpack loader in `webpack-test`, and unit tests for the marker/rename logic.
 
+**Decided (in-session, Jan Wloka, 2026-09-24): compile into a websmith-owned directory with one CommonJS
+marker at its root.**
+
+- `AddonRegistry` stops writing to `<addonsDir>/../lib` by default and compiles into
+  `<project root>/.websmith-cache/addons`, as the webpack loader already does. `addonLibDir` (internal
+  `AddonRegistry` config, not part of `packages/api`) keeps working as an explicit override.
+- Both compile sites write `{"type": "commonjs"}` as `package.json` at the root of that directory, so every
+  compiled file — including cross-addon imports such as `foobar-replace-processor` →
+  `../foobar-replace-transformer` — loads as CommonJS.
+- Never overwrite an existing `package.json`: with an explicit `addonLibDir` that already holds one, report a
+  warning instead of writing.
+- Why not `lib/`: the default can be the client's own `lib/`. In this repo it already is —
+  `packages/example-addons` publishes `main: lib/index.js` and the registry compiles addons into the same
+  `lib/`. A marker there would turn the client's own ESM output into CommonJS.
+- Rejected: `.cjs` output (breaks `require("./helper")` in multi-file and cross-addon addons); a marker per
+  addon directory (leaves root-level addon files unmarked and still writes into the client's `lib/`).
+
 ### Open Points
 
-- [ ] **How to mark the output as CommonJS.** Constraints found while drafting:
-  - A `{"type": "commonjs"}` `package.json` in the output root is simplest, but the default output root
-    `<addonsDir>/../lib` can be the **client's own** `lib/` — a marker there would turn the client's own ESM
-    output into CommonJS. Scope it to websmith-owned directories (e.g. one marker per compiled addon
-    directory), never overwrite an existing `package.json`, or move the default output somewhere
-    websmith owns.
-  - Emitting `.cjs` (rename on write) needs no marker, but breaks multi-file addons: the CommonJS
-    `require("./helper")` does not resolve `helper.cjs`. Cross-addon imports (e.g.
-    `foobar-replace-processor` → `../foobar-replace-transformer`) have the same problem.
-  - The webpack cache (`.websmith-cache/addons`) is websmith-owned, so a root marker is safe there.
-- [ ] Does the same failure reproduce through the webpack loader? (Inferred from code in #111, not yet run.)
-- [ ] Should the chosen output location or marker be documented for addon authors (`README.md`)?
+- [ ] Tests and fixtures that expect compiled addons in `example-addons/lib`
+  (`compiler-test/tests/compile-websmith.test.ts:34`, `webpack-test/tests/webpack-websmith.test.ts:55`) move to
+  the cache directory.
+- [ ] Is `<project root>` the working directory (as in `TsCompiler.ts:133`) or the directory of
+  `websmith.config.json` / `tsconfig.json` for the CLI?
+- [ ] Does the failure reproduce through the webpack loader today? (Inferred from code in #111.) The e2e case
+  answers it.
+- [ ] Release note and `README.md`: compiled addons move out of `lib/`; `.websmith-cache/` belongs in the
+  client's `.gitignore`.
 
 ## Slices
 
-- `feature/fix-ts-addons-esm-projects` — CommonJS-safe addon output in `AddonRegistry` and `WebpackAddonService`, with e2e cases for `"type": "module"` consumers <!-- builds: CommonJS marker for compiled addon output -->
+- `feature/fix-ts-addons-esm-projects` — CommonJS-safe addon output in `AddonRegistry` and `WebpackAddonService`, with e2e cases for `"type": "module"` consumers <!-- builds: websmith-owned addon output dir with a CommonJS package.json marker -->
 
 ## Definition of Done
 
