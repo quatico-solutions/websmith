@@ -76,6 +76,7 @@ pnpm license:add                 # Add missing license headers
 - **Story index:** docs/stories/README.md
 - **Definition of Done:** lint, test, build, test:e2e
 - **Git host:** github
+- **Main branch:** develop
 - **Tracker:** github
 - **CI:** github-actions
 - **Worktree root:** .worktrees
