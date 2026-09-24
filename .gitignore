@@ -47,3 +47,7 @@ test-output*
 # scattered beside the checkout. They are CHECKOUTS — every one is re-creatable
 # with `git worktree add`, and none of them is content this repo carries.
 .worktrees/
+
+# Plot runtime state and logs (board pidfile, pulse records)
+.plot/state/
+.plot/logs/
