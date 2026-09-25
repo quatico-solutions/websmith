@@ -5,7 +5,16 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { ErrorMessage, InfoMessage, type AddonContext, type CompilerOptions, type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
+import {
+    ErrorMessage,
+    InfoMessage,
+    type AddonContext,
+    type CompilerOptions,
+    type EsmProfileOptions,
+    type Reporter,
+    type ResultProcessor,
+    type WebpackLoaderOptions,
+} from "@quatico/websmith-api";
 import deepmerge from "deepmerge";
 import path from "node:path";
 import ts from "typescript";
@@ -16,7 +25,7 @@ import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
 import { DefaultReporter } from "./DefaultReporter";
-import { checkEsm, getEmittedModuleKind, isEsmModuleKind } from "./esm";
+import { checkEsm, createCjsNamesCache, getEmittedModuleKind, isEsmModuleKind } from "./esm";
 import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
@@ -25,6 +34,12 @@ export type CompileFragment = {
     /** Output files actually written to disk by this emit (respects addonEmitOnly); empty when nothing was written. */
     writtenFiles: ts.OutputFile[];
     diagnostics?: ts.Diagnostic[];
+};
+
+/** Output files and the addons that changed their source, empty when the files come from the client's own source. */
+type AttributedOutput = {
+    files: readonly ts.OutputFile[];
+    addons: string[];
 };
 
 type CompilationFragment = {
@@ -80,6 +95,14 @@ const TRANSPILE_REMOVED_OPTIONS = [
     "tsBuildInfoFile",
     "types",
 ] as const;
+
+/**
+ * TypeScript codes for imports and syntax that fail when the output loads as ESM: TS2835 (relative import without
+ * extension), TS2834 (directory import), TS1543 (JSON import without attribute), TS1470 (`import.meta` in
+ * CommonJS output), TS1309 (top-level `await` in CommonJS output) and TS1203 (`export =` in ESM). TS1479 and
+ * TS1471 are left out: a CommonJS `require()` of ESM runs on the supported Node versions.
+ */
+const ESM_LABELLED_TS_CODES: ReadonlySet<number> = new Set([2835, 2834, 1543, 1470, 1309, 1203]);
 
 export class Compiler {
     private system: ts.System;
@@ -185,7 +208,7 @@ export class Compiler {
 
             const ctx = this.getContext(curProfile);
             if (ctx) {
-                results.push(this.report(program, this.emitResult(curProfile, ctx)));
+                results.push(this.report(program, this.emitResult(curProfile, ctx), curProfile));
             }
             if (this.options.debug) {
                 this.reporter.unindent();
@@ -214,11 +237,18 @@ export class Compiler {
                 ? [...(this.options.config?.profiles?.[this.options.profile]?.depends ?? []), this.options.profile]
                 : [];
             const files = this.getRootFiles();
+            // Report a profile whose output is not ESM once, not on every rebuild
+            profiles.forEach(curProfile => {
+                const ctx = this.getContext(curProfile);
+                if (ctx) {
+                    this.getCheckedEsm(curProfile, ctx);
+                }
+            });
 
             if (profiles.length) {
                 // Process all profiles for each file before moving to the next file
                 files.forEach(curFile => {
-                    profiles.forEach(curProfile => this.emitSourceFile(curFile, curProfile, true));
+                    profiles.forEach(curProfile => this.checkWatchedFragment(curFile, curProfile, this.emitSourceFile(curFile, curProfile, true)));
                 });
                 // Register watches once per file
                 files.forEach(curFile => this.registerWatch(curFile, profiles));
@@ -447,6 +477,8 @@ export class Compiler {
             }
 
             let content = this.system.readFile(fileName) ?? cache.getCachedFile(fileName)?.content ?? "";
+            // Attribution describes this build of the file only, so a rebuild does not name addons of an earlier one
+            ctx.resetAddonChanges(fileName);
 
             const generators = ctx.getGenerators();
             if (generators.length > 0) {
@@ -457,7 +489,12 @@ export class Compiler {
                 // if generators actually perform actions (e.g., via addInputFile/addVirtualFile)
                 generators.forEach(cur => {
                     try {
-                        cur(fileName, content);
+                        const addonName = ctx.findAddonName(cur);
+                        if (addonName) {
+                            ctx.runAsAddon(addonName, () => cur(fileName, content));
+                        } else {
+                            cur(fileName, content);
+                        }
                     } catch (err) {
                         this.reporter.reportDiagnostic(new ErrorMessage(`Error in generator "${ctx.getAddonName(cur)}": ${err}`));
                     }
@@ -471,7 +508,13 @@ export class Compiler {
                 const originalContent = content;
                 for (const cur of processors) {
                     try {
+                        const previousContent = content;
                         content = cur(fileName, content);
+                        // Compare per processor, so only the addons that changed the file are named in diagnostics
+                        const addonName = ctx.findAddonName(cur);
+                        if (addonName && content !== previousContent) {
+                            ctx.markFileAsChangedByAddon(fileName, addonName);
+                        }
                     } catch (err) {
                         this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
                         break; // Stop processing further processors on error
@@ -612,20 +655,45 @@ export class Compiler {
         return !addonNeedsBigProgram && (!declarationsNeeded || this.transpileOnly);
     }
 
-    protected report(program: ts.Program | undefined, result: ts.EmitResult): ts.EmitResult {
+    protected report(program: ts.Program | undefined, result: ts.EmitResult, profile?: string): ts.EmitResult {
+        const label = this.createEsmLabel(profile);
         // Skip pre-emit diagnostics in transpileOnly mode or when using fast transpileModule path
         // to avoid validation errors with numeric enum values that TypeScript's internal validation rejects
         if (!this.transpileOnly && program) {
             ts.getPreEmitDiagnostics(program)
                 .concat(result.diagnostics)
                 .filter(cur => program?.getProjectReferences?.()?.length || cur.file) // Filter out global diagnostics
-                .forEach(cur => this.reporter.reportDiagnostic(cur));
+                .forEach(cur => this.reporter.reportDiagnostic(label(cur)));
         } else {
             // In transpileOnly mode or fast path (no Program), only report diagnostics from the result
-            result.diagnostics.forEach(cur => this.reporter.reportDiagnostic(cur));
+            result.diagnostics.forEach(cur => this.reporter.reportDiagnostic(label(cur)));
         }
 
         return result;
+    }
+
+    /**
+     * Returns a function that appends the ESM check label and the profile name to TypeScript diagnostics of
+     * failures when the output loads as ESM, if the profile sets `esm` with a check. Code and category stay unchanged.
+     */
+    private createEsmLabel(profile?: string): (diagnostic: ts.Diagnostic) => ts.Diagnostic {
+        const esm = profile ? this.options.config?.profiles?.[profile]?.esm : undefined;
+        if (!esm || esm.check === "off") {
+            return diagnostic => diagnostic;
+        }
+        const suffix = ` (ESM check, profile "${profile}")`;
+        return diagnostic => {
+            if (!ESM_LABELLED_TS_CODES.has(diagnostic.code)) {
+                return diagnostic;
+            }
+            const { messageText } = diagnostic;
+            // TypeScript caches its diagnostics per Program, so the label goes on a copy
+            return {
+                ...diagnostic,
+                messageText:
+                    typeof messageText === "string" ? messageText + suffix : { ...messageText, messageText: messageText.messageText + suffix },
+            };
+        };
     }
 
     protected getDefinedProfiles(name?: string): string[] {
@@ -642,11 +710,11 @@ export class Compiler {
 
         // Cache getRootFiles() result to avoid redundant calls
         const files = this.getRootFiles();
-        const writtenFiles: ts.OutputFile[] = [];
+        const writtenFiles: AttributedOutput[] = [];
 
         for (const fileName of files) {
             const fragment = this.emitSourceFile(fileName, profile);
-            writtenFiles.push(...fragment.writtenFiles);
+            writtenFiles.push({ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName) });
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
             } else {
@@ -656,13 +724,60 @@ export class Compiler {
             }
         }
 
+        // Pass all output files to result processors, including files skipped in addonEmitOnly mode
+        // and declaration/map files; the files actually written are in each fragment's writtenFiles
+        const emittedFiles = result.emittedFiles ?? [];
+        const runResultProcessors = (onRun: (cur: ResultProcessor) => void = () => undefined) =>
+            ctx.getResultProcessors().forEach(cur => {
+                try {
+                    onRun(cur);
+                    cur(emittedFiles, ctx);
+                } catch (err) {
+                    this.reporter.reportDiagnostic(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
+                }
+            });
+
+        const esm = this.getCheckedEsm(profile, ctx);
+        if (esm) {
+            // Check each written file once, in its final content: a result processor that rewrites an emitted file
+            // replaces its earlier content and is named with the addons that changed the file before
+            const outputs = new Map<string, AttributedOutput>();
+            writtenFiles.forEach(({ files: outputFiles, addons }) =>
+                outputFiles.forEach(cur => outputs.set(this.system.resolvePath(cur.name), { files: [cur], addons }))
+            );
+            let resultProcessorAddon: string | undefined;
+            // Result processors write through the context's system; files they write with fs directly are invisible here
+            ctx.observeWrites(
+                (name, text) => {
+                    const key = this.system.resolvePath(name);
+                    const previous = outputs.get(key);
+                    const changed = previous?.files[0].text !== text;
+                    const addons = [...(previous?.addons ?? []), ...(changed && resultProcessorAddon ? [resultProcessorAddon] : [])];
+                    outputs.set(key, { files: [{ name, text, writeByteOrderMark: false }], addons: [...new Set(addons)] });
+                },
+                () => runResultProcessors(cur => (resultProcessorAddon = ctx.findAddonName(cur)))
+            );
+            // Diagnostics carry the emitted file as location, so report() keeps them on the Program path too
+            result.diagnostics = [...result.diagnostics, ...this.checkEsmOutput(esm, profile, ctx, [...outputs.values()])];
+        } else {
+            runResultProcessors();
+        }
+
+        return result;
+    }
+
+    /**
+     * Returns the profile's `esm` options when its output is checked. A profile whose effective module format is not
+     * ESM is not checked; it is reported when `reportNonEsm` is set.
+     */
+    private getCheckedEsm(profile: string | undefined, ctx: CompilationContext, reportNonEsm = true): EsmProfileOptions | undefined {
         // esm is read from the profile itself, not from its dependencies: it is not inherited through depends
         const profileConfig = profile ? this.options.config?.profiles?.[profile] : undefined;
         const esm = profileConfig?.esm;
         const { module, target } = ctx.getCompilerOptions();
         if (esm && !isEsmModuleKind(getEmittedModuleKind({ module, target }))) {
             // The config validation reports a module set by the profile itself; name one set elsewhere once here
-            if (isEsmModuleKind(profileConfig?.tsConfig?.module)) {
+            if (reportNonEsm && isEsmModuleKind(profileConfig?.tsConfig?.module)) {
                 const targetName = typeof target === "number" ? ts.ScriptTarget[target] : (target ?? "ES5");
                 const moduleName = typeof module === "number" ? ts.ModuleKind[module] : module;
                 const cause =
@@ -676,33 +791,52 @@ export class Compiler {
                     )
                 );
             }
-        } else if (esm) {
-            // Diagnostics carry the emitted file as location, so report() keeps them on the Program path too
-            result.diagnostics = [
-                ...result.diagnostics,
-                ...checkEsm(writtenFiles, esm, {
-                    system: this.system,
-                    reporter: this.reporter,
-                    projectDir: ctx.resolvePath("."),
-                    debug: this.options.debug,
-                    profile,
-                    addons: this.addons?.getAvailableAddons(profile).map(cur => cur.getName()) ?? [],
-                }),
-            ];
+            return undefined;
         }
+        return esm;
+    }
 
-        // Pass all output files to result processors, including files skipped in addonEmitOnly mode
-        // and declaration/map files; the files actually written are in each fragment's writtenFiles
-        const emittedFiles = result.emittedFiles ?? [];
-        ctx.getResultProcessors().forEach(cur => {
-            try {
-                cur(emittedFiles, ctx);
-            } catch (err) {
-                this.reporter.reportDiagnostic(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
-            }
+    /** Reports ESM diagnostics for the files a watch build of one source file wrote; watching goes on regardless. */
+    private checkWatchedFragment(fileName: string, profile: string, fragment: CompileFragment | undefined): CompileFragment | undefined {
+        const ctx = this.getContext(profile);
+        const esm = ctx && this.getCheckedEsm(profile, ctx, false);
+        if (ctx && esm && fragment?.writtenFiles.length) {
+            this.checkEsmOutput(esm, profile, ctx, [{ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName) }]).forEach(cur =>
+                this.reporter.reportDiagnostic(cur)
+            );
+        }
+        return fragment;
+    }
+
+    /**
+     * Checks output files once per set of addons that changed them, so each diagnostic names the addons of its file.
+     * Each group is a separate checkEsm call; the groups share one cache of resolved CommonJS packages and their names.
+     */
+    private checkEsmOutput(
+        esm: EsmProfileOptions,
+        profile: string | undefined,
+        ctx: CompilationContext,
+        outputs: AttributedOutput[]
+    ): ts.Diagnostic[] {
+        const groups = new Map<string, { files: ts.OutputFile[]; addons: string[] }>();
+        outputs.forEach(({ files, addons }) => {
+            const key = addons.join("\n");
+            const group = groups.get(key) ?? { files: [], addons };
+            group.files.push(...files);
+            groups.set(key, group);
         });
-
-        return result;
+        const cjsNamesCache = createCjsNamesCache();
+        return [...groups.values()].flatMap(({ files, addons }) =>
+            checkEsm(files, esm, {
+                system: this.system,
+                reporter: this.reporter,
+                projectDir: ctx.resolvePath("."),
+                debug: this.options.debug,
+                profile,
+                addons,
+                cjsNamesCache,
+            })
+        );
     }
 
     registerWatch(filePath: string, profileNames?: string[]): this {
@@ -725,11 +859,11 @@ export class Compiler {
                     } else {
                         return profileNames.forEach(profile =>
                             fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                                ? this.emitSourceFile(fileName, profile, true, true)
+                                ? this.checkWatchedFragment(fileName, profile, this.emitSourceFile(fileName, profile, true, true))
                                 : this.hasContext(profile) &&
                                   this.getContext(profile)!
                                       .resolveDependency(fileName)
-                                      .map(cur => this.emitSourceFile(cur, profile, true, true))
+                                      .map(cur => this.checkWatchedFragment(cur, profile, this.emitSourceFile(cur, profile, true, true)))
                         );
                     }
                 },

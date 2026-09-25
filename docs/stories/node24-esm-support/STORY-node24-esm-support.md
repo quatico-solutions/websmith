@@ -272,3 +272,37 @@ Accepted for v1; each is a real Node failure that the rules do not report:
   way under Node. The rules check ESM-classified files only.
 - **Lenient `auto` resolution under `bundler`.** It accepts any directory and `.js`/`.mjs`/`.cjs`/`.json`, so
   `./dir` without an index file is not reported.
+
+### 2026-09-25 — Wave 3 verification follow-ups
+
+- **UMD free references in ESM files.** A typeof-guarded UMD wrapper in an ESM-classified file still lists free
+  `require`/`exports` inside it, which gives 91001/91002. This is carried over from wave 2.
+- **Shadowing in 91021.** A local variable that shadows the default binding, or a use such as `typeof pkg`, still
+  counts as a value use. That can give a false 91021; it never misses a real one.
+- **In-place transformer edits.** Transformers that edit nodes in place (`addSyntheticLeadingComment`,
+  `setEmitFlags`) are not attributed. The plan's claim that "no changing transformer is missed" does not hold for
+  them.
+- **Plan vs. brief on attribution fallback.** The plan (§ Diagnostics) says a diagnostic lists the profile's active
+  addons when attribution is unclear. The brief and the implementation list the addons that changed the file, or
+  none. The implementation follows the brief.
+- **Duplicate watch diagnostics for generator-added files.** `registerWatch` (`Compiler.ts`) adds another watcher each
+  time a generator re-adds a file with `addInputFile`, so every change is reported once per watcher. This predates
+  the ESM check: without `esm`, the file is written twice. Separately, the first watch build does not emit a file
+  that a generator added this way.
+- **Nested compiles through the context's system are checked twice.** A result processor that runs a nested
+  websmith compile through `ctx.getSystem()` has that compile's output checked by both compiles.
+
+### 2026-09-26 — Follow-ups from the nodenext module fix (bug/nodenext-module-map)
+
+- **Profile `lib` names are not converted.** `lib: ["ES2022"]` in a profile `tsConfig` of `websmith.config.json` is
+  passed to TypeScript as written. Declarations then degrade (`f(): unknown`), and the Program path reports errors.
+  `ts.convertCompilerOptionsFromJson` already maps it to `lib.es2022.d.ts`, but the conversion keeps only numeric
+  results.
+- **Webpack loader options are not converted.** Strings in `tsConfig` passed straight to the loader, or in an inline
+  `config.profiles`, stay strings; only profiles loaded from `websmith.config.json` are converted.
+- **Default `target` and `esModuleInterop` differ from `tsc`.** `tsDefaults` (`defaults.ts`) sets `target: ES5` and
+  `esModuleInterop: false` before node16/nodenext would imply ES2022/ESNext and interop. A project that omits `target`
+  gets `var` output where `tsc` emits `const`.
+- **One declaration type differs from `tsc`.** In `.d.mts` output under `"type": "commonjs"` (or no `"type"`),
+  websmith emits `Promise<{ default: …; x: 1 }>` where `tsc` emits `Promise<typeof def>`, on every path, including
+  develop's full Program.
