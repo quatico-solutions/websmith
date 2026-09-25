@@ -405,6 +405,22 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toEqual([expect.stringContaining("sets 'esm', but its 'tsConfig.module' is 'CommonJS'")]);
     }, 60000);
 
+    it("should exit with status 1 and report 91030 naming the file w/ .cts source emitting export into .cjs in node ESM profile", () => {
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "preserve", types: [] });
+        createWebsmithConfig({ profiles: { client: { esm: { runtime: "node" }, tsConfig: { outDir: testDirs.OUTPUT_DIR } } } });
+        createSourceFile(`export const hello: string = "world";`, "test.cts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.cjs")} (1,1): ESM91030`);
+    }, 60000);
+
     const createEsmProject = (check: "error" | "warn") => {
         fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
