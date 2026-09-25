@@ -21,8 +21,8 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   See "ESM check" in `packages/compiler/README.md`.
 - The ESM check also runs in watch mode and on JavaScript that result processors write through
   `ctx.getSystem().writeFile`; files addons write with `fs` directly are not checked. Its diagnostics name the addons
-  that changed the file (processors, generators and transformers are tracked per addon), and no addon when the
-  construct comes from the project's own source.
+  that changed the file in its latest build (processors and transformers are tracked per addon, generators on the
+  files they add), and no addon when the construct comes from the project's own source.
 
 ### Changed
 
