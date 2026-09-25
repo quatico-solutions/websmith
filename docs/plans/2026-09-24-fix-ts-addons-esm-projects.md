@@ -22,6 +22,7 @@
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
 -->
 - **Approved:** 2026-09-25, Jan Wloka, in-session
+- **Started:** 2026-09-25, Jan Wloka, `feature/fix-ts-addons-esm-projects`
 
 ## Approval
 
