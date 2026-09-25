@@ -45,6 +45,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - TypeScript addons now load in projects whose `package.json` declares `"type": "module"`, in the CLI and the webpack loader ([#111](https://github.com/quatico-solutions/websmith/issues/111)).
 - Diagnostics located at the first character of a file now show their file name and position (`(1,1)`) instead of
   only their message.
+- `"module": "nodenext"` in `tsconfig.json` was treated as `"preserve"`, so `websmith` emitted ES modules where `tsc`
+  emits CommonJS, for example under `package.json` `"type": "commonjs"`. With `"module": "node16"` or `"nodenext"`,
+  `websmith` now picks CommonJS or ESM per file from the extension and the nearest `package.json` `"type"`, as `tsc`
+  does, also in builds without type-checking addons and in builds that emit declarations.
 
 ### Removed
 

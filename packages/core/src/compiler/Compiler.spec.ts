@@ -491,6 +491,24 @@ describe("constructor", () => {
             module: ts.ModuleKind.ES2022,
         });
     });
+
+    it.each(Object.values(ts.ModuleKind).filter((cur): cur is ts.ModuleKind => typeof cur === "number"))(
+        "yields tsConfig module %s from profile unchanged in compilation context",
+        module => {
+            const target = createSystem(
+                { "./websmith.config.json": JSON.stringify({ profiles: { "target-profile": { tsConfig: { module } } } }) },
+                { virtual: true }
+            );
+
+            const testObj = new CompilerTestClass(
+                { reporter: new ReporterMock(target), configFile: "./websmith.config.json", profile: "target-profile" },
+                undefined,
+                target
+            ).createProfileContextsIfNecessary();
+
+            expect(testObj.getContext("target-profile")!.getCompilerOptions().module).toBe(module);
+        }
+    );
 });
 
 describe("getSystem", () => {
@@ -974,6 +992,34 @@ describe("compile", () => {
 });
 
 describe("emitSourceFile", () => {
+    it.each([
+        { type: "module", declaration: false, expected: "export const hello" },
+        { type: "commonjs", declaration: false, expected: "exports.hello" },
+        { type: "module", declaration: true, expected: "export const hello" },
+        { type: "commonjs", declaration: true, expected: "exports.hello" },
+    ])("yields $expected w/ module NodeNext, package.json type $type and declaration $declaration", ({ type, declaration, expected }) => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type }), "src/target.ts": `export const hello: string = "world";` },
+            { virtual: true }
+        );
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: {
+                declaration,
+                target: ts.ScriptTarget.ESNext,
+                module: ts.ModuleKind.NodeNext,
+                moduleResolution: ts.ModuleResolutionKind.NodeNext,
+            },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(getText("target.js", actual)).toContain(expected);
+    });
+
     it("yields modified client function w/ annotated arrow function", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
         const target = {

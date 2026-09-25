@@ -53,21 +53,6 @@ const TARGET_MAP: Record<number, ts.ScriptTarget> = {
     100: ts.ScriptTarget.JSON,
 };
 
-const MODULE_MAP: Record<number, ts.ModuleKind> = {
-    0: ts.ModuleKind.None,
-    1: ts.ModuleKind.CommonJS,
-    2: ts.ModuleKind.AMD,
-    3: ts.ModuleKind.UMD,
-    4: ts.ModuleKind.System,
-    5: ts.ModuleKind.ES2015,
-    6: ts.ModuleKind.ES2020,
-    7: ts.ModuleKind.ES2022,
-    99: ts.ModuleKind.ESNext,
-    100: ts.ModuleKind.Node16,
-    101: ts.ModuleKind.NodeNext,
-    199: ts.ModuleKind.Preserve,
-};
-
 // TypeScript error code for invalid CLI option arguments
 // This error occurs when numeric enum values are used in CLI args that TypeScript's command-line parser rejects
 const TS_ERROR_CODE_INVALID_CLI_OPTION = 6046;
@@ -778,12 +763,6 @@ export class Compiler {
             normalized.target = TARGET_MAP[normalized.target] ?? normalized.target;
         }
 
-        // Normalize module if it's a number
-        if (typeof normalized.module === "number") {
-            // Keep the numeric value - TypeScript accepts it internally
-            normalized.module = MODULE_MAP[normalized.module] ?? normalized.module;
-        }
-
         return normalized;
     }
 
@@ -1051,7 +1030,15 @@ export class Compiler {
         // so creating per-file Programs for declaration generation would be wasted work.
         if (ctx.getCompilerOptions().declaration && !this.transpileOnly) {
             // Create a temporary source file with the processed content
-            const sourceFile = ts.createSourceFile(fileName, content, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest, true);
+            const sourceFile = ts.createSourceFile(
+                fileName,
+                content,
+                {
+                    languageVersion: ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest,
+                    impliedNodeFormat: ts.getImpliedNodeFormatForFile(fileName, undefined, this.system, ctx.getCompilerOptions()),
+                },
+                true
+            );
 
             // Helper function to emit with given transformers
             const emitWithTransformers = (
@@ -1154,7 +1141,7 @@ export class Compiler {
         }
 
         const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
-            compilerOptions: ctx.getCompilerOptions(),
+            compilerOptions: this.getTranspileModuleOptions(fileName, ctx.getCompilerOptions()),
             fileName,
             transformers: ctx.getTransformers(),
         });
@@ -1174,6 +1161,27 @@ export class Compiler {
             ),
             diagnostics: filteredDiagnostics,
             emitSkipped: filteredDiagnostics.length > 0,
+        };
+    }
+
+    /**
+     * Pins the module format for ts.transpileModule, which cannot read package.json and so emits every .ts file as
+     * CommonJS under node16/nodenext. Keeps the defaults that node16/nodenext imply for target, esModuleInterop and
+     * moduleDetection.
+     */
+    private getTranspileModuleOptions(fileName: string, options: ts.CompilerOptions): ts.CompilerOptions {
+        const { module } = options;
+        if (module !== ts.ModuleKind.Node16 && module !== ts.ModuleKind.NodeNext) {
+            return options;
+        }
+        const format = ts.getImpliedNodeFormatForFile(fileName, undefined, this.system, options);
+        return {
+            ...options,
+            module: format === ts.ModuleKind.ESNext ? ts.ModuleKind.ESNext : ts.ModuleKind.CommonJS,
+            moduleResolution: undefined,
+            target: options.target ?? (module === ts.ModuleKind.Node16 ? ts.ScriptTarget.ES2022 : ts.ScriptTarget.ESNext),
+            esModuleInterop: options.esModuleInterop ?? true,
+            moduleDetection: options.moduleDetection ?? ts.ModuleDetectionKind.Force,
         };
     }
 

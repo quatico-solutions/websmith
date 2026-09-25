@@ -484,6 +484,32 @@ describe("bin.ts e2e tests", () => {
         expect(getOutput("foobar-function.js")).toContain("function projectPackageProcessed(date)");
     }, 60000);
 
+    it("should yield CommonJS script w/ module nodenext and consumer package.json type commonjs", () => {
+        createPackageJson({ type: "commonjs" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "nodenext", moduleResolution: "nodenext", types: [] });
+        createSourceFile(`export const world: string = "world";`, "other.ts");
+        createSourceFile(`import { world } from "./other.js";\nexport const hello: string = world;`, "test.ts");
+
+        executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+
+        const actual = getOutput("test.js");
+        expect(actual).toContain(`require("./other.js")`);
+        expect(actual).toContain("exports.hello");
+    }, 60000);
+
+    it("should yield ES module script w/ module nodenext and consumer package.json type module", () => {
+        createPackageJson({ type: "module" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "nodenext", moduleResolution: "nodenext", types: [] });
+        createSourceFile(`export const world: string = "world";`, "other.ts");
+        createSourceFile(`import { world } from "./other.js";\nexport const hello: string = world;`, "test.ts");
+
+        executeCompiler(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+
+        const actual = getOutput("test.js");
+        expect(actual).toContain(`import { world } from "./other.js";`);
+        expect(actual).not.toContain("require(");
+    }, 60000);
+
     const executeCompiler = (args = ""): string => {
         process.chdir(testDirs.PROJECT_DIR);
 

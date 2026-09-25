@@ -178,24 +178,7 @@ const scriptTargetToString = (target: number): string => {
  * @param module The ModuleKind enum value
  * @returns The string name (e.g., "esnext", "commonjs")
  */
-const moduleKindToString = (module: number): string => {
-    // Map TypeScript ModuleKind enum values to their string names
-    const moduleMap: Record<number, string> = {
-        0: "none",
-        1: "commonjs",
-        2: "amd",
-        3: "umd",
-        4: "system",
-        5: "es2015",
-        6: "es2020",
-        7: "es2022",
-        99: "esnext",
-        100: "node16",
-        101: "nodenext",
-        199: "preserve",
-    };
-    return moduleMap[module] ?? String(module);
-};
+const moduleKindToString = (module: number): string => (ts.ModuleKind[module] as string | undefined)?.toLowerCase() ?? String(module);
 
 /**
  * Converts a value to its string representation for command-line arguments.
