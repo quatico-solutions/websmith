@@ -8,6 +8,7 @@ import { InfoMessage, type EsmProfileOptions, type Reporter } from "@quatico/web
 import path from "node:path";
 import ts from "typescript";
 import { classifyModule, createPackageTypeLookup, type DependencyCallback } from "./classify-module";
+import { checkImports } from "./import-rules";
 import { scanModule, type FreeReference } from "./scan-module";
 
 export type EsmCheckContext = {
@@ -76,6 +77,7 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
     const suffix = describeOrigin(context);
     const lookupPackageType = createPackageTypeLookup(context.system, context.onDependency);
     const isIgnored = createIgnoreMatcher(esm.ignore, context);
+    const importContext = { runtime: esm.runtime, system: context.system, writtenFiles: new Set(files.map(cur => path.resolve(cur.name))) };
 
     return files
         .filter(cur => JS_FILE.test(cur.name) && !isIgnored(cur.name))
@@ -102,6 +104,7 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
                     report(code, message, category, ref.start, ref.length);
                 }
             });
+            checkImports({ file }, { kind }, importContext).forEach(cur => report(cur.code, cur.message, category, cur.start, cur.length));
             return diagnostics;
         });
 };
