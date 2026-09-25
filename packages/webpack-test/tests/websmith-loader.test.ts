@@ -26,7 +26,7 @@ let testDirs: { PROJECT_DIR: string; OUTPUT_DIR: string; SOURCE_DIR: string };
 let webpackDefaults: any;
 
 beforeAll(() => {
-    fs.rmSync(path.resolve(path.join(__dirname, "..", "..", "example-addons", "lib")), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, "..", ".websmith-cache", "addons"), { recursive: true, force: true });
 });
 
 // Temporarily disable beforeEach to test if it's causing issues

@@ -105,6 +105,8 @@ Websmith addons are ECMAScript modules with an `activate` function that takes an
 pnpm add -D @quatico/websmith-api
 ```
 
+Websmith compiles TypeScript addons to CommonJS in a `.websmith-cache/` directory: the CLI in `.websmith-cache/addons-cli` next to your `tsconfig.json`, the webpack loader in `.websmith-cache/addons` in the working directory. This works in projects with `"type": "module"` too. Add `.websmith-cache/` to your `.gitignore`. Addons should import only files inside the addons directory or packages installed in your project: compiled addons resolve imports from the cache directory, so relative imports that leave the addons directory and packages installed only next to the addons do not resolve.
+
 Create an directory e.g. `my-code-generator` in the `addons` folder in your project folder and add an ECMAScript module named `addon.ts` or `addon.js`:
 
 ```javascript

@@ -12,18 +12,56 @@ import { resolvePath } from "../config";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
 /**
- * Default directory name for compiled addon output, relative to the addons directory's parent.
+ * Default directory for compiled addon output, relative to the project directory.
  */
-const DEFAULT_ADDON_LIB_DIR = "lib";
+const DEFAULT_ADDON_OUT_DIR = path.join(".websmith-cache", "addons-cli");
+
+/**
+ * Marks the compiled addon output as CommonJS, whatever "type" the consumer's package.json declares.
+ */
+const COMMONJS_PACKAGE_JSON = { type: "commonjs" };
+
+/**
+ * Writes a package.json with "type": "commonjs" into a directory of compiled addons, so that Node loads them as
+ * CommonJS even in projects that declare "type": "module". Never overwrites an existing package.json, but warns if it
+ * does not declare "type": "commonjs".
+ */
+export const writeCommonJsMarker = (dir: string, system: ts.System, reporter?: Reporter): void => {
+    const packageJsonPath = path.join(dir, "package.json");
+    if (!system.fileExists(packageJsonPath)) {
+        system.writeFile(packageJsonPath, JSON.stringify(COMMONJS_PACKAGE_JSON));
+        return;
+    }
+
+    let packageType: unknown;
+    try {
+        packageType = (JSON.parse(system.readFile(packageJsonPath) ?? "{}") as { type?: unknown }).type;
+    } catch {
+        packageType = undefined;
+    }
+    if (packageType !== COMMONJS_PACKAGE_JSON.type) {
+        reporter?.reportDiagnostic(
+            new WarnMessage(
+                `"${packageJsonPath}" already exists and was not changed. ` +
+                    `Compiled addons may fail to load unless it declares "type": "commonjs".`
+            )
+        );
+    }
+};
 
 export type AddonConfig = {
     addons?: string[];
     addonsDir?: string;
     /**
      * Directory name for compiled addon output, relative to the addons directory's parent.
-     * Defaults to "lib" if not specified.
+     * Takes precedence over `addonOutDir`.
      */
     addonLibDir?: string;
+    /**
+     * Absolute directory for compiled addon output.
+     * Defaults to ".websmith-cache/addons-cli" in the current directory if neither this nor `addonLibDir` is specified.
+     */
+    addonOutDir?: string;
     profiles?: Record<string, CompilationProfile>;
     activeProfile?: string;
     reporter: Reporter;
@@ -385,13 +423,18 @@ export class AddonRegistry {
         }
 
         if (foundTsFiles.length > 0) {
-            // This is the directory where the compiled addons will be stored, next to the addonsDir
-            const addonLibDirName = this.config.addonLibDir ?? DEFAULT_ADDON_LIB_DIR;
-            const libDir = path.resolve(addonsDir, "..", addonLibDirName);
+            const { addonLibDir, addonOutDir } = this.config;
+            const libDir = addonLibDir
+                ? path.resolve(addonsDir, "..", addonLibDir)
+                : system.resolvePath(addonOutDir ?? path.join(system.getCurrentDirectory(), DEFAULT_ADDON_OUT_DIR));
 
-            if (!system.directoryExists(libDir)) {
-                system.createDirectory(libDir);
+            // ts.sys.createDirectory is not recursive, so create missing parents (e.g. ".websmith-cache") first
+            const missingDirs: string[] = [];
+            for (let dir = libDir; !system.directoryExists(dir) && dir !== path.dirname(dir); dir = path.dirname(dir)) {
+                missingDirs.unshift(dir);
             }
+            missingDirs.forEach(dir => system.createDirectory(dir));
+            writeCommonJsMarker(libDir, system, reporter);
 
             // To handle cross-addon dependencies, compile all TypeScript files in the addons directory
             // This ensures that when an addon imports from another addon, the dependency is available

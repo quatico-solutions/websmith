@@ -572,6 +572,32 @@ describe("addonConfig", () => {
 
         expect(actual).toEqual(expected);
     });
+
+    it("should yield addonOutDir in .websmith-cache/addons-cli of tsconfig.json directory", () => {
+        const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}, { virtual: true }));
+
+        const actual = addonConfig(
+            new Command(),
+            target.getSystem(),
+            { ...target.getOptions(), tsConfigFile: "/project/packages/whatever/tsconfig.json" },
+            target.getReporter()
+        ).addonOutDir;
+
+        expect(actual).toBe(path.join("/project/packages/whatever", ".websmith-cache", "addons-cli"));
+    });
+
+    it("should yield addonOutDir in .websmith-cache/addons-cli of resolved relative tsconfig.json directory", () => {
+        const target = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}, { virtual: true }));
+
+        const actual = addonConfig(
+            new Command(),
+            target.getSystem(),
+            { ...target.getOptions(), tsConfigFile: "./project/tsconfig.json" },
+            target.getReporter()
+        ).addonOutDir;
+
+        expect(actual).toBe(path.join(target.getSystem().resolvePath("./project"), ".websmith-cache", "addons-cli"));
+    });
 });
 
 const createAddon = (testSystem: ts.System, path: string, code = "export const activate = () => {};", mock: object = { activate: jest.fn() }) => {

@@ -1,0 +1,1 @@
+../2026-09-24-fix-ts-addons-esm-projects.md

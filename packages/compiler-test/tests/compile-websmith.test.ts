@@ -31,7 +31,7 @@ let testDirs: { PROJECT_DIR: string; OUTPUT_DIR: string; SOURCE_DIR: string };
 let tsDefaults: ts.CompilerOptions;
 
 beforeAll(() => {
-    fs.rmSync(path.resolve(path.join(__dirname, "..", "..", "example-addons", "lib")), { recursive: true, force: true });
+    fs.rmSync(path.resolve(__dirname, "..", ".websmith-cache", "addons-cli"), { recursive: true, force: true });
     jest.spyOn(console, "log").mockImplementation(() => {});
 });
 
