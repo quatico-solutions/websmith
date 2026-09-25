@@ -43,14 +43,22 @@ type RelativeImport = {
     length: number;
     /** True when the import carries `with { type: "json" }`. */
     hasJsonAttribute: boolean;
+    /** True when the import carries an `assert` clause instead of `with`. */
+    usesAssert: boolean;
 };
+
+/** What an ES module import names: an existing file, a file without its extension, a directory or nothing. */
+type ImportTarget = "file" | "missing-extension" | "directory" | "unresolved";
+
+// Extensions Node and webpack load without further configuration; any other extension is part of the file name
+const KNOWN_EXTENSIONS: ReadonlySet<string> = new Set([".js", ".mjs", ".cjs", ".json", ".node", ".wasm"]);
 
 /** Extensionless relative import in an ES module (Node, webpack `fullySpecified`). */
 export const checkMissingExtension: ImportRule = ({ file }, { kind }, context) =>
     kind !== "esm"
         ? []
         : collectRelativeImports(file)
-              .filter(cur => !hasExtension(cur.specifier) && !isDirectory(cur.resolved, context))
+              .filter(cur => getTarget(cur, context) === "missing-extension")
               .map(cur =>
                   finding(
                       ImportDiagnosticCode.MissingExtension,
@@ -64,12 +72,14 @@ export const checkDirectoryImport: ImportRule = ({ file }, { kind }, context) =>
     kind !== "esm"
         ? []
         : collectRelativeImports(file)
-              .filter(cur => isDirectory(cur.resolved, context))
+              .filter(cur => getTarget(cur, context) === "directory")
               .map(cur =>
                   finding(
                       ImportDiagnosticCode.DirectoryImport,
                       `relative import "${cur.specifier}" names a directory, which ES modules cannot import; ` +
-                          `import the file: "${cur.specifier.replace(/\/+$/, "")}/index.js"`,
+                          (isFile(path.join(cur.resolved, "index.js"), context)
+                              ? `import the file: "${cur.specifier.replace(/\/+$/, "")}/index.js"`
+                              : "import a file inside the directory"),
                       cur
                   )
               );
@@ -85,15 +95,10 @@ export const checkUnresolvedImport: ImportRule = ({ file }, { kind }, context) =
     if (kind !== "esm" && kind !== "auto") {
         return [];
     }
-    const resolves = (cur: RelativeImport): boolean => {
-        if (isDirectory(cur.resolved, context)) {
-            return true;
-        }
-        if (kind === "esm") {
-            return !hasExtension(cur.specifier) || isFile(cur.resolved, context);
-        }
-        return isFile(cur.resolved, context) || AUTO_EXTENSIONS.some(ext => isFile(cur.resolved + ext, context));
-    };
+    const resolves = (cur: RelativeImport): boolean =>
+        kind === "esm"
+            ? getTarget(cur, context) !== "unresolved"
+            : isFile(cur.resolved, context) || AUTO_EXTENSIONS.some(ext => isFile(cur.resolved + ext, context)) || isDirectory(cur.resolved, context);
     return collectRelativeImports(file)
         .filter(cur => !resolves(cur))
         .map(cur =>
@@ -114,7 +119,9 @@ export const checkJsonImportAttribute: ImportRule = ({ file }, { kind }, context
               .map(cur =>
                   finding(
                       ImportDiagnosticCode.MissingJsonAttribute,
-                      `JSON import "${cur.specifier}" has no import attribute, which Node requires; add: with { type: "json" }`,
+                      cur.usesAssert
+                          ? `JSON import "${cur.specifier}" uses "assert", which Node does not support; replace "assert" with "with"`
+                          : `JSON import "${cur.specifier}" has no import attribute, which Node requires; add: with { type: "json" }`,
                       cur
                   )
               );
@@ -126,13 +133,60 @@ export const checkImports: ImportRule = (scan, classification, context) => IMPOR
 
 const finding = (code: number, message: string, { start, length }: RelativeImport): ImportFinding => ({ code, message, start, length });
 
-const hasExtension = (specifier: string): boolean => path.posix.extname(specifier) !== "";
+const targets = new WeakMap<ImportRuleContext, Map<string, ImportTarget>>();
+
+/**
+ * Tells what an import of an ES module names, once per path and context. Existing files are recognized without
+ * probing for a directory; a missing name counts as extensionless when adding `.js` finds a file or its extension is
+ * not one the runtime loads (e.g. `./user.service`).
+ */
+const getTarget = ({ specifier, resolved }: RelativeImport, context: ImportRuleContext): ImportTarget => {
+    // `./utils/`, `.` and `..` name a directory even when a file of the same name exists
+    const namesDirectory = /(?:^|\/)\.{0,2}$/.test(specifier);
+    const key = namesDirectory ? `${resolved}${path.sep}` : resolved;
+    const cached = memo(targets, context);
+    let result = cached.get(key);
+    if (!result) {
+        if (namesDirectory) {
+            result = isDirectory(resolved, context) ? "directory" : "unresolved";
+        } else if (isFile(resolved, context)) {
+            result = "file";
+        } else if (isFile(`${resolved}.js`, context)) {
+            result = "missing-extension";
+        } else if (isDirectory(resolved, context)) {
+            result = "directory";
+        } else {
+            result = KNOWN_EXTENSIONS.has(path.extname(resolved).toLowerCase()) ? "unresolved" : "missing-extension";
+        }
+        cached.set(key, result);
+    }
+    return result;
+};
+
+const memo = <T>(store: WeakMap<ImportRuleContext, Map<string, T>>, context: ImportRuleContext): Map<string, T> => {
+    let result = store.get(context);
+    if (!result) {
+        result = new Map();
+        store.set(context, result);
+    }
+    return result;
+};
 
 const isFile = (fileName: string, context: ImportRuleContext): boolean =>
     !!context.writtenFiles?.has(fileName) || context.system.fileExists(fileName);
 
-const isDirectory = (dirName: string, context: ImportRuleContext): boolean =>
-    (!!context.writtenFiles && getWrittenDirectories(context.writtenFiles).has(dirName)) || context.system.directoryExists(dirName);
+const directories = new WeakMap<ImportRuleContext, Map<string, boolean>>();
+
+/** True when a written file lies below the path or the file system has the directory, probed once per context. */
+const isDirectory = (dirName: string, context: ImportRuleContext): boolean => {
+    const cached = memo(directories, context);
+    let result = cached.get(dirName);
+    if (result === undefined) {
+        result = (!!context.writtenFiles && getWrittenDirectories(context.writtenFiles).has(dirName)) || context.system.directoryExists(dirName);
+        cached.set(dirName, result);
+    }
+    return result;
+};
 
 const writtenDirectories = new WeakMap<ReadonlySet<string>, Set<string>>();
 
@@ -162,7 +216,7 @@ const collectRelativeImports = (file: ts.SourceFile): RelativeImport[] => {
         return cached;
     }
     const result: RelativeImport[] = [];
-    const add = (literal: ts.Node, hasJsonAttribute: boolean): void => {
+    const add = (literal: ts.Node, hasJsonAttribute: boolean, usesAssert: boolean): void => {
         if (ts.isStringLiteralLike(literal) && isRelative(literal.text)) {
             result.push({
                 specifier: literal.text,
@@ -170,14 +224,20 @@ const collectRelativeImports = (file: ts.SourceFile): RelativeImport[] => {
                 start: literal.getStart(file),
                 length: literal.getWidth(file),
                 hasJsonAttribute,
+                usesAssert,
             });
         }
     };
     const visit = (node: ts.Node): void => {
         if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
-            add(node.moduleSpecifier, hasStaticJsonAttribute(node.attributes));
+            add(node.moduleSpecifier, hasStaticJsonAttribute(node.attributes), node.attributes?.token === ts.SyntaxKind.AssertKeyword);
         } else if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments.length > 0) {
-            add(node.arguments[0], hasDynamicJsonAttribute(node.arguments[1]));
+            const options = node.arguments[1];
+            add(
+                node.arguments[0],
+                hasDynamicJsonAttribute(options),
+                !!options && ts.isObjectLiteralExpression(options) && !!findProperty(options, "assert")
+            );
         }
         ts.forEachChild(node, visit);
     };

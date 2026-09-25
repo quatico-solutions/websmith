@@ -108,6 +108,36 @@ describe("checkMissingExtension", () => {
     });
 });
 
+describe("checkMissingExtension w/ ambiguous names", () => {
+    it("yields 91010 with hint w/ dotted extensionless name of written file in ESM file", () => {
+        const actual = checkMissingExtension(
+            scan(`import "./user.service";`),
+            ESM,
+            createContext({}, { writtenFiles: new Set(["/dist/user.service.js"]) })
+        ).map(cur => cur.message);
+
+        expect(actual).toEqual([
+            `relative import "./user.service" has no file extension, which ES modules require; add the extension: "./user.service.js"`,
+        ]);
+    });
+
+    it("yields 91010 w/ dotted extensionless name of missing file in ESM file", () => {
+        const actual = checkMissingExtension(scan(`import "./app.module";`), ESM, createContext()).map(cur => cur.code);
+
+        expect(actual).toEqual([91010]);
+    });
+
+    it("yields 91010 with hint w/ file and directory of the same name in ESM file", () => {
+        const actual = checkMissingExtension(
+            scan(`import "./b";`),
+            ESM,
+            createContext({}, { writtenFiles: new Set(["/dist/b.js", "/dist/b/other.js"]) })
+        ).map(cur => cur.message);
+
+        expect(actual).toEqual([`relative import "./b" has no file extension, which ES modules require; add the extension: "./b.js"`]);
+    });
+});
+
 describe("checkDirectoryImport", () => {
     it("yields 91011 w/ import of directory on disk in ESM file", () => {
         const actual = checkDirectoryImport(scan(`import "./utils";`), ESM, createContext({ "/dist/utils/index.js": "" })).map(cur => cur.code);
@@ -141,6 +171,34 @@ describe("checkDirectoryImport", () => {
         const actual = checkDirectoryImport(scan(`import "./utils/";`), ESM, createContext({ "/dist/utils/index.js": "" })).map(cur => cur.message);
 
         expect(actual).toEqual([`relative import "./utils/" names a directory, which ES modules cannot import; import the file: "./utils/index.js"`]);
+    });
+});
+
+describe("checkDirectoryImport w/ ambiguous names", () => {
+    it("yields nothing w/ file and directory of the same name in ESM file", () => {
+        const actual = checkDirectoryImport(
+            scan(`import "./b";`),
+            ESM,
+            createContext({}, { writtenFiles: new Set(["/dist/b.js", "/dist/b/other.js"]) })
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91011 w/ trailing slash import of directory next to file of the same name in ESM file", () => {
+        const actual = checkImports(
+            scan(`import "./utils/";`),
+            ESM,
+            createContext({}, { writtenFiles: new Set(["/dist/utils.js", "/dist/utils/index.js"]) })
+        ).map(cur => cur.code);
+
+        expect(actual).toEqual([91011]);
+    });
+
+    it("yields message without index file hint w/ directory without index.js", () => {
+        const actual = checkDirectoryImport(scan(`import "./utils";`), ESM, createContext({ "/dist/utils/other.js": "" })).map(cur => cur.message);
+
+        expect(actual).toEqual([`relative import "./utils" names a directory, which ES modules cannot import; import a file inside the directory`]);
     });
 });
 
@@ -219,12 +277,13 @@ describe("checkJsonImportAttribute", () => {
         expect(actual).toEqual([]);
     });
 
-    it("yields 91013 w/ JSON import with assert clause in node ESM file", () => {
-        const actual = checkJsonImportAttribute(scan(`import data from "./d.json" assert { type: "json" };`), ESM, createContext()).map(
-            cur => cur.code
-        );
+    it("yields 91013 asking to replace assert w/ JSON import with assert clause in node ESM file", () => {
+        const actual = checkJsonImportAttribute(scan(`import data from "./d.json" assert { type: "json" };`), ESM, createContext()).map(cur => [
+            cur.code,
+            cur.message,
+        ]);
 
-        expect(actual).toEqual([91013]);
+        expect(actual).toEqual([[91013, `JSON import "./d.json" uses "assert", which Node does not support; replace "assert" with "with"`]]);
     });
 
     it("yields 91013 w/ JSON re-export without attribute in node ESM file", () => {
@@ -259,6 +318,35 @@ describe("checkJsonImportAttribute", () => {
 });
 
 describe("checkImports", () => {
+    it("yields only 91010 w/ dotted extensionless name of written file in ESM file", () => {
+        const actual = checkImports(
+            scan(`import "./user.service";`),
+            ESM,
+            createContext({}, { writtenFiles: new Set(["/dist/user.service.js"]) })
+        ).map(cur => cur.code);
+
+        expect(actual).toEqual([91010]);
+    });
+
+    it("probes no directory w/ imports of existing files", () => {
+        const system = createSystem({}, { virtual: true });
+        const target = jest.spyOn(system, "directoryExists");
+        const names = Array.from({ length: 50 }, (_, i) => `/dist/m${i}.js`);
+
+        checkImports(scan(names.map(cur => `import ".${cur.slice(5)}";`).join("\n")), ESM, { runtime: "node", system, writtenFiles: new Set(names) });
+
+        expect(target).not.toHaveBeenCalled();
+    });
+
+    it("probes each directory once w/ repeated imports of a directory", () => {
+        const system = createSystem({ "/dist/utils/index.js": "" }, { virtual: true });
+        const target = jest.spyOn(system, "directoryExists");
+
+        checkImports(scan(`import "./utils";\nexport * from "./utils";`), ESM, { runtime: "node", system });
+
+        expect(target).toHaveBeenCalledTimes(1);
+    });
+
     it("yields every import rule w/ violations in node ESM file", () => {
         const actual = checkImports(
             scan(`import "./b";\nimport "./utils";\nimport "./gone.js";\nimport data from "./d.json";`),
