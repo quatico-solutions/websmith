@@ -32,6 +32,8 @@ export type ModuleClassification = {
     kind: "esm" | "commonjs" | "dynamic" | "auto";
     /** True when Node classifies the file by its syntax because no package.json `"type"` applies. */
     typeMissing: boolean;
+    /** Path of the package.json whose `"type"` decided the kind, undefined when no `"type"` did. */
+    packageJson?: string;
 };
 
 /**
@@ -51,12 +53,13 @@ export const classifyModule = (
     if (extension === ".cjs") {
         return { kind: runtime === "node" ? "commonjs" : "dynamic", typeMissing: false };
     }
-    const packageType = lookupPackageType(fileName)?.type;
+    const { type: packageType, packageJson } = lookupPackageType(fileName) ?? {};
+    const source = packageType && { packageJson };
     if (runtime === "bundler") {
-        return { kind: packageType === "module" ? "esm" : packageType === "commonjs" ? "dynamic" : "auto", typeMissing: false };
+        return { kind: packageType === "module" ? "esm" : packageType === "commonjs" ? "dynamic" : "auto", typeMissing: false, ...source };
     }
     if (packageType) {
-        return { kind: packageType === "module" ? "esm" : "commonjs", typeMissing: false };
+        return { kind: packageType === "module" ? "esm" : "commonjs", typeMissing: false, ...source };
     }
     return { kind: hasEsmSyntax ? "esm" : "commonjs", typeMissing: true };
 };
