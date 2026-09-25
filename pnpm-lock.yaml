@@ -420,6 +420,9 @@ importers:
       '@quatico/websmith-api':
         specifier: workspace:*
         version: link:../api
+      cjs-module-lexer:
+        specifier: ^2.2.1
+        version: 2.2.1
       comment-json:
         specifier: ^4.2.5
         version: 4.2.5
@@ -435,6 +438,9 @@ importers:
       path:
         specifier: 0.12.7
         version: 0.12.7
+      resolve.exports:
+        specifier: ^2.0.2
+        version: 2.0.2
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.6
@@ -2715,6 +2721,9 @@ packages:
 
   cjs-module-lexer@1.3.1:
     resolution: {integrity: sha512-a3KdPAANPbNE4ZUv9h6LckSl9zLsYOP4MBmhIPkRaeyybt+r4UghLvq+xw/YwUcC1gqylCkL4rdVs3Lwupjm4Q==}
+
+  cjs-module-lexer@2.2.1:
+    resolution: {integrity: sha512-Ca8swihM+/4yKecYHY52kgJd300hi2lADU/a1RxNTRe+RJ9jvqQlESpbz9DnG9mowez8qwXHB8qYdIUw9e+F5Q==}
 
   clean-regexp@1.0.0:
     resolution: {integrity: sha512-GfisEZEJvzKrmGWkvfhgzcz/BllN1USeqD2V6tg14OAOgaCD2Z/PUEuxnAZ/nPvmaHRG7a8y77p1T/IRQ4D1Hw==}
@@ -7265,6 +7274,8 @@ snapshots:
       safe-buffer: 5.2.1
 
   cjs-module-lexer@1.3.1: {}
+
+  cjs-module-lexer@2.2.1: {}
 
   clean-regexp@1.0.0:
     dependencies:
