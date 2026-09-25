@@ -378,6 +378,34 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (2,26): ESM91001`);
     }, 60000);
 
+    it("should exit with status 1 and report 91002 naming addon w/ result processor writing CommonJS into node ESM profile output", () => {
+        createEsmProject("error", []);
+        const metaFile = path.join(testDirs.OUTPUT_DIR, "meta.js");
+        createAddon(
+            "meta-writer",
+            `exports.activate = ctx => ctx.registerResultProcessor((_files, processorCtx) => processorCtx.getSystem().writeFile(${JSON.stringify(metaFile)}, "module.exports = {};\\n"));`
+        );
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    addons: ["meta-writer"],
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, module: ts.ModuleKind.ESNext },
+                },
+            },
+        });
+
+        const target = executeCompilerStatus(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`${metaFile} (1,1): ESM91002`);
+        expect(actual2).toContain(`(profile "client", addons: meta-writer).`);
+    }, 60000);
+
     it("should exit with status 1 and report only the config error w/ node ESM profile and CommonJS profile module", () => {
         fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
@@ -405,13 +433,13 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toEqual([expect.stringContaining("sets 'esm', but its 'tsConfig.module' is 'CommonJS'")]);
     }, 60000);
 
-    const createEsmProject = (check: "error" | "warn") => {
+    const createEsmProject = (check: "error" | "warn", addons = ["require-generator"]) => {
         fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
         createWebsmithConfig({
             profiles: {
                 client: {
-                    addons: ["require-generator"],
+                    addons,
                     esm: { runtime: "node", check },
                     tsConfig: { outDir: testDirs.OUTPUT_DIR, module: ts.ModuleKind.ESNext },
                 },
