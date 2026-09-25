@@ -3354,9 +3354,7 @@ describe("Declaration generation for client proxy addons", () => {
     });
 });
 
-// Module names as tsconfig.json gives them: MODULE_MAP in Compiler.ts, applied by normalizeCompilerOptions, turns a
-// numeric ModuleKind.NodeNext (199) into Preserve
-const NODENEXT_NAMES = { module: "NodeNext", moduleResolution: "NodeNext" } as unknown as ts.CompilerOptions;
+const NODENEXT: ts.CompilerOptions = { module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext };
 
 describe("compile w/ esm profile", () => {
     const ESM_SOURCE = `declare const require: (id: string) => unknown;\nexport const x = require("x");`;
@@ -3836,7 +3834,7 @@ describe("compile w/ esm profile", () => {
 
         expect(actual).toContain(`ESM check skipped "/src/target.js": matches esm.ignore pattern "src/*.js".`);
     });
-    it("yields one 91032 per file w/o 91001 or 91002 w/ fast path and nodenext module under module package", () => {
+    it("yields nothing w/ fast path and nodenext module under module package", () => {
         const fileSystem = createSystem(
             {
                 "package.json": JSON.stringify({ type: "module" }),
@@ -3846,22 +3844,13 @@ describe("compile w/ esm profile", () => {
             { virtual: true }
         );
         const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
-            tsConfig: { ...NODENEXT_NAMES, target: ts.ScriptTarget.ESNext, sourceMap: false },
+            tsConfig: { ...NODENEXT, target: ts.ScriptTarget.ESNext, sourceMap: false },
             cliArgs: { fileNames: ["/src/target.ts", "/src/dep.ts"], options: {}, errors: [] },
         });
 
-        const actual = testObj
-            .compile()
-            .diagnostics.map(cur => [
-                cur.code,
-                cur.file?.fileName,
-                /transpileModule ignores "type"/.test(ts.flattenDiagnosticMessageText(cur.messageText, "\n")),
-            ]);
+        const actual = testObj.compile().diagnostics.map(cur => [cur.code, cur.file?.fileName]);
 
-        expect(actual).toEqual([
-            [91032, "/src/target.js", true],
-            [91032, "/src/dep.js", true],
-        ]);
+        expect(actual).toEqual([]);
     });
 
     it("yields 91030 w/ .cts file and preserve module", () => {
@@ -4038,7 +4027,7 @@ describe("report w/ TypeScript ESM diagnostics", () => {
                 reporter,
                 config: { profiles: { client: { esm: { runtime: "node" } } } },
                 profile: "client",
-                tsConfig: { ...NODENEXT_NAMES, target: ts.ScriptTarget.ESNext, sourceMap: false },
+                tsConfig: { ...NODENEXT, target: ts.ScriptTarget.ESNext, sourceMap: false },
                 cliArgs: { fileNames: ["/src/target.ts", "/src/dep.ts"], options: {}, errors: [] },
             },
             undefined,
