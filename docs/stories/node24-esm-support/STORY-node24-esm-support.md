@@ -249,7 +249,8 @@ without a file. Both predate the change; recorded as open points.
 Research for `esm-check-package-type` measured that `ts.transpileModule` (the fast path and `transpileOnly`) never
 reads `package.json`: with `module: nodenext`/`node16` every `.ts` file emits CommonJS, including files under
 `"type": "module"` (TypeScript 5.7.3). websmith passes no format hint (`Compiler.ts:1111`, `:823`/`:835`). The ESM
-check reports it (91032); fixing the emit itself is open.
+check reports it (91032). **Fixed in #124** (2026-09-26): node16/nodenext files on the fast path are emitted
+through a one-file Program with their implied format, matching `tsc`.
 
 ### 2026-09-25 — Config errors print twice on the CLI
 
