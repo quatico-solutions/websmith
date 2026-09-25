@@ -433,6 +433,61 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toEqual([expect.stringContaining("sets 'esm', but its 'tsConfig.module' is 'CommonJS'")]);
     }, 60000);
 
+    it("should exit with status 1 and report 91010 in emitted file w/ extensionless relative import in node ESM profile", () => {
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
+        createWebsmithConfig({ profiles: { client: { esm: { runtime: "node" }, tsConfig: { outDir: testDirs.OUTPUT_DIR } } } });
+        createSourceFile(`export const b = "b";`, "b.ts");
+        createSourceFile(`import { b } from "./b";\nexport const a = b;`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (1,19): ESM91010`);
+    }, 60000);
+
+    it("should exit with status 1 and report 91020 in emitted file w/ missing name imported from CommonJS package in node ESM profile", () => {
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        const packageDir = path.join(testDirs.PROJECT_DIR, "node_modules", "cjs-package");
+        fs.mkdirSync(packageDir, { recursive: true });
+        fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "cjs-package" }), { encoding: "utf-8" });
+        fs.writeFileSync(path.join(packageDir, "index.js"), `module.exports = Object.assign({}, { present: 1 });`, { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: { client: { esm: { runtime: "node" }, tsConfig: { outDir: testDirs.OUTPUT_DIR, module: ts.ModuleKind.ESNext } } },
+        });
+        createSourceFile(`// @ts-nocheck\nimport { missing } from "cjs-package";\nexport const value = missing;`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (2,10): ESM91020`);
+    }, 60000);
+
+    it("should exit with status 1 and report 91030 naming the file w/ .cts source emitting export into .cjs in node ESM profile", () => {
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "preserve", types: [] });
+        createWebsmithConfig({ profiles: { client: { esm: { runtime: "node" }, tsConfig: { outDir: testDirs.OUTPUT_DIR } } } });
+        createSourceFile(`export const hello: string = "world";`, "test.cts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.cjs")} (1,1): ESM91030`);
+    }, 60000);
+
     const createEsmProject = (check: "error" | "warn", addons = ["require-generator"]) => {
         fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });

@@ -28,8 +28,8 @@ class CompilerTestClass extends Compiler {
         super(options, loaderOptions, system, addons, dependencyCallback);
     }
 
-    public report(program: ts.Program, result: ts.EmitResult): ts.EmitResult {
-        return super.report(program, result);
+    public report(program: ts.Program | undefined, result: ts.EmitResult, profile?: string): ts.EmitResult {
+        return super.report(program, result, profile);
     }
 
     public emitSourceFile(fileName: string, profile?: string, writeFile?: boolean, skipCache = false): CompileFragment {
@@ -3215,6 +3215,10 @@ describe("Declaration generation for client proxy addons", () => {
     });
 });
 
+// Module names as tsconfig.json gives them: MODULE_MAP in Compiler.ts, applied by normalizeCompilerOptions, turns a
+// numeric ModuleKind.NodeNext (199) into Preserve
+const NODENEXT_NAMES = { module: "NodeNext", moduleResolution: "NodeNext" } as unknown as ts.CompilerOptions;
+
 describe("compile w/ esm profile", () => {
     const ESM_SOURCE = `declare const require: (id: string) => unknown;\nexport const x = require("x");`;
 
@@ -3656,5 +3660,219 @@ describe("compile w/ esm profile", () => {
         const actual = reporter.message;
 
         expect(actual).toContain(`ESM check skipped "/src/target.js": matches esm.ignore pattern "src/*.js".`);
+    });
+    it("yields one 91032 per file w/o 91001 or 91002 w/ fast path and nodenext module under module package", () => {
+        const fileSystem = createSystem(
+            {
+                "package.json": JSON.stringify({ type: "module" }),
+                "src/target.ts": `import { a } from "./dep.js";\nexport const x = a;`,
+                "src/dep.ts": `export const a = 1;`,
+            },
+            { virtual: true }
+        );
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
+            tsConfig: { ...NODENEXT_NAMES, target: ts.ScriptTarget.ESNext, sourceMap: false },
+            cliArgs: { fileNames: ["/src/target.ts", "/src/dep.ts"], options: {}, errors: [] },
+        });
+
+        const actual = testObj
+            .compile()
+            .diagnostics.map(cur => [
+                cur.code,
+                cur.file?.fileName,
+                /transpileModule ignores "type"/.test(ts.flattenDiagnosticMessageText(cur.messageText, "\n")),
+            ]);
+
+        expect(actual).toEqual([
+            [91032, "/src/target.js", true],
+            [91032, "/src/dep.js", true],
+        ]);
+    });
+
+    it("yields 91030 w/ .cts file and preserve module", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.cts": `export const x = 1;` },
+            { virtual: true }
+        );
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
+            tsConfig: { module: ts.ModuleKind.Preserve, target: ts.ScriptTarget.ESNext, sourceMap: false },
+            cliArgs: { fileNames: ["/src/target.cts"], options: {}, errors: [] },
+        });
+
+        const actual = testObj.compile().diagnostics.map(cur => [cur.code, cur.file?.fileName]);
+
+        expect(actual).toEqual([[91030, "/src/target.cjs"]]);
+    });
+
+    it("yields 91031 w/ esnext module under commonjs package", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "commonjs" }), "src/target.ts": `export const x = 1;` },
+            { virtual: true }
+        );
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } });
+
+        const actual = testObj.compile().diagnostics.map(cur => cur.code);
+
+        expect(actual).toEqual([91031]);
+    });
+});
+
+describe("report w/ TypeScript ESM diagnostics", () => {
+    const FILES: Record<string, string> = {
+        "/project/package.json": JSON.stringify({ type: "module" }),
+        "/project/src/target.ts": `import { a } from "./dep";\nexport const x = a;`,
+        "/project/src/dep.ts": `export const a = 1;`,
+        "/project/src/legacy.cts": `import esm from "esm-only";\nexport const y = esm;`,
+        "/project/node_modules/esm-only/package.json": JSON.stringify({ name: "esm-only", type: "module", types: "index.d.ts" }),
+        "/project/node_modules/esm-only/index.d.ts": `declare const esm: number;\nexport default esm;`,
+    };
+
+    const createNodeNextProgram = (): ts.Program => {
+        const options = {
+            module: ts.ModuleKind.NodeNext,
+            moduleResolution: ts.ModuleResolutionKind.NodeNext,
+            target: ts.ScriptTarget.ESNext,
+            types: [],
+        };
+        const base = ts.createCompilerHost(options);
+        const host: ts.CompilerHost = {
+            ...base,
+            fileExists: fileName => fileName in FILES || base.fileExists(fileName),
+            readFile: fileName => FILES[fileName] ?? base.readFile(fileName),
+            directoryExists: dirName => Object.keys(FILES).some(cur => cur.startsWith(`${dirName}/`)) || !!base.directoryExists?.(dirName),
+            getSourceFile: (fileName, languageVersion, ...rest) =>
+                fileName in FILES
+                    ? ts.createSourceFile(fileName, FILES[fileName], languageVersion)
+                    : base.getSourceFile(fileName, languageVersion, ...rest),
+        };
+        return ts.createProgram(["/project/src/target.ts", "/project/src/dep.ts", "/project/src/legacy.cts"], options, host);
+    };
+
+    const reportWith = (profiles: Record<string, object>, program: ts.Program | undefined, code: number): [ts.DiagnosticCategory, string][] => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = new CompilerTestClass({ reporter, config: { profiles }, profile: "client" }, undefined, fileSystem);
+
+        testObj.report(program, { diagnostics: [], emitSkipped: false }, "client");
+
+        return target.mock.calls
+            .map(([cur]) => cur)
+            .filter(cur => cur.code === code)
+            .map(cur => [cur.category, ts.flattenDiagnosticMessageText(cur.messageText, "\n")]);
+    };
+
+    it("reports TS2835 unchanged w/ profile without esm", () => {
+        const program = createNodeNextProgram();
+
+        const actual = reportWith({ client: {} }, program, 2835);
+
+        expect(actual).toEqual([[ts.DiagnosticCategory.Error, expect.stringMatching(/'\.\/dep\.js'\?$/)]]);
+    });
+
+    it("reports TS2835 labelled with ESM check and profile w/ esm profile on Program path", () => {
+        const program = createNodeNextProgram();
+
+        const actual = reportWith({ client: { esm: { runtime: "node" } } }, program, 2835);
+
+        expect(actual).toEqual([[ts.DiagnosticCategory.Error, expect.stringMatching(/'\.\/dep\.js'\? \(ESM check, profile "client"\)$/)]]);
+    });
+
+    it("reports TS2835 labelled once w/ same Program reported twice", () => {
+        const program = createNodeNextProgram();
+        reportWith({ client: { esm: { runtime: "node" } } }, program, 2835);
+
+        const actual = reportWith({ client: { esm: { runtime: "node" } } }, program, 2835);
+
+        expect(actual).toEqual([[ts.DiagnosticCategory.Error, expect.stringMatching(/'\.\/dep\.js'\? \(ESM check, profile "client"\)$/)]]);
+    });
+
+    const reportResultDiagnostic = (profiles: Record<string, object>, diagnostic: ts.Diagnostic): ts.Diagnostic => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = new CompilerTestClass({ reporter, config: { profiles }, profile: "client" }, undefined, fileSystem);
+
+        testObj.report(undefined, { diagnostics: [diagnostic], emitSkipped: false }, "client");
+
+        return target.mock.calls[0][0];
+    };
+
+    const createTsDiagnostic = (code: number, messageText: string | ts.DiagnosticMessageChain): ts.Diagnostic => ({
+        category: ts.DiagnosticCategory.Error,
+        code,
+        file: ts.createSourceFile("/project/src/target.ts", "whatever;", ts.ScriptTarget.ESNext),
+        start: 0,
+        length: 8,
+        messageText,
+    });
+
+    it.each([2835, 2834, 1543, 1470, 1309, 1203])("reports TS%i labelled with code and category kept w/ esm profile", code => {
+        const diagnostic = createTsDiagnostic(code, "Failure.");
+
+        const actual = reportResultDiagnostic({ client: { esm: { runtime: "node" } } }, diagnostic);
+
+        expect([actual.code, actual.category, actual.messageText]).toEqual([
+            code,
+            ts.DiagnosticCategory.Error,
+            `Failure. (ESM check, profile "client")`,
+        ]);
+    });
+
+    it("reports head of message chain labelled w/ esm profile", () => {
+        const next: ts.DiagnosticMessageChain = { messageText: "Detail.", category: ts.DiagnosticCategory.Error, code: 0, next: undefined };
+        const diagnostic = createTsDiagnostic(2835, { messageText: "Failure.", category: ts.DiagnosticCategory.Error, code: 2835, next: [next] });
+
+        const actual = ts.flattenDiagnosticMessageText(
+            reportResultDiagnostic({ client: { esm: { runtime: "node" } } }, diagnostic).messageText,
+            "\n"
+        );
+
+        expect(actual).toBe(`Failure. (ESM check, profile "client")\n  Detail.`);
+    });
+
+    it("reports TS2835 unlabelled w/ esm check off", () => {
+        const diagnostic = createTsDiagnostic(2835, "Failure.");
+
+        const actual = reportResultDiagnostic({ client: { esm: { runtime: "node", check: "off" } } }, diagnostic).messageText;
+
+        expect(actual).toBe("Failure.");
+    });
+
+    it("reports TS1479 unlabelled w/ esm profile on Program path", () => {
+        const program = createNodeNextProgram();
+
+        const actual = reportWith({ client: { esm: { runtime: "node" } } }, program, 1479);
+
+        expect(actual).toEqual([[ts.DiagnosticCategory.Error, expect.not.stringContaining("ESM check")]]);
+    });
+
+    it("reports no TS2835 w/ esm profile on fast path", () => {
+        const fileSystem = createSystem(
+            {
+                "package.json": JSON.stringify({ type: "module" }),
+                "src/target.ts": `import { a } from "./dep";\nexport const x = a;`,
+                "src/dep.ts": `export const a = 1;`,
+            },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = new CompilerTestClass(
+            {
+                reporter,
+                config: { profiles: { client: { esm: { runtime: "node" } } } },
+                profile: "client",
+                tsConfig: { ...NODENEXT_NAMES, target: ts.ScriptTarget.ESNext, sourceMap: false },
+                cliArgs: { fileNames: ["/src/target.ts", "/src/dep.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = target.mock.calls.map(([cur]) => cur.code).filter(cur => cur === 2835);
+
+        expect(actual).toEqual([]);
     });
 });

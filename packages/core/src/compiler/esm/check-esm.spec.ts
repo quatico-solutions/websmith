@@ -69,10 +69,10 @@ describe("checkEsm", () => {
         expect(actual).toEqual([91003, 91003]);
     });
 
-    it("yields 91002 w/ module.exports assignment without ESM syntax in node ESM output", () => {
+    it("yields 91032 w/ module.exports assignment without ESM syntax in node ESM output", () => {
         const actual = codesOf([output("/dist/target.js", `module.exports = 42;`)], { runtime: "node" });
 
-        expect(actual).toEqual([91002]);
+        expect(actual).toEqual([91032]);
     });
 
     it("yields only 91004 w/ ESM syntax mixed with module.exports in node ESM output", () => {
@@ -109,20 +109,20 @@ describe("checkEsm", () => {
         expect(actual).toEqual([]);
     });
 
-    it("yields 91004 w/ ESM syntax mixed with module.exports in bundler .cjs output", () => {
+    it("yields only 91030 w/ ESM syntax mixed with module.exports in bundler .cjs output", () => {
         const actual = codesOf([output("/dist/target.cjs", `import x from "y";\nmodule.exports = x;`)], { runtime: "bundler" });
 
-        expect(actual).toEqual([91004]);
+        expect(actual).toEqual([91030]);
     });
 
-    it("yields 91004 w/ ESM syntax mixed with module.exports in bundler output under commonjs package", () => {
+    it("yields only 91031 w/ ESM syntax mixed with module.exports in bundler output under commonjs package", () => {
         const actual = codesOf(
             [output("/dist/target.js", `import x from "y";\nrequire("z");\nmodule.exports = x;`)],
             { runtime: "bundler" },
             createContext({ "/package.json": JSON.stringify({ type: "commonjs" }) })
         );
 
-        expect(actual).toEqual([91004]);
+        expect(actual).toEqual([91031]);
     });
 
     it("yields 91001 w/ free require in bundler .mjs output", () => {
@@ -334,6 +334,179 @@ describe("checkEsm", () => {
         expect(actual.messageText).toBe(
             `ESM91001: "require" is not defined in ES module output; use "import" or "createRequire(import.meta.url)" instead (profile "client", addons: one-addon, two-addon).`
         );
+    });
+    it("yields 91031 naming package.json w/ export in .js output under commonjs package", () => {
+        const actual = checkEsm(
+            [output("/dist/target.js", `export const x = 1;`)],
+            { runtime: "node" },
+            createContext({ "/package.json": JSON.stringify({ type: "commonjs" }) })
+        ).map(cur => [cur.code, cur.messageText]);
+
+        expect(actual).toEqual([
+            [
+                91031,
+                `ESM91031: ES module syntax in a .js file that "/package.json" declares "type": "commonjs"; ` +
+                    `set "type": "module" in "/package.json" or rename to ".mjs".`,
+            ],
+        ]);
+    });
+
+    it("yields 91005 only w/ ESM output under nested package.json without type in module package", () => {
+        const actual = codesOf(
+            [output("/dist/target.js", `export const x = 1;`)],
+            { runtime: "node" },
+            createContext({ "/package.json": JSON.stringify({ type: "module" }), "/dist/package.json": "{}" })
+        );
+
+        expect(actual).toEqual([91005]);
+    });
+
+    it("yields 91030 w/ only import.meta in node .cjs output", () => {
+        const actual = codesOf([output("/dist/target.cjs", `console.log(import.meta.url);`)], { runtime: "node" });
+
+        expect(actual).toEqual([91030]);
+    });
+
+    it("yields nothing w/ dynamic import in async function in node .cjs output", () => {
+        const actual = codesOf([output("/dist/target.cjs", `async function f() { await import("./x.mjs"); }\nmodule.exports = f;`)], {
+            runtime: "node",
+        });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91030 error w/ export in bundler .cjs output", () => {
+        const actual = checkEsm([output("/dist/target.cjs", `export const x = 1;`)], { runtime: "bundler" }, createContext()).map(cur => [
+            cur.code,
+            cur.category,
+        ]);
+
+        expect(actual).toEqual([[91030, ts.DiagnosticCategory.Error]]);
+    });
+
+    it("yields 91031 w/ export in bundler output under commonjs package", () => {
+        const actual = codesOf(
+            [output("/dist/target.js", `export const x = 1;`)],
+            { runtime: "bundler" },
+            createContext({ "/package.json": JSON.stringify({ type: "commonjs" }) })
+        );
+
+        expect(actual).toEqual([91031]);
+    });
+
+    it("yields one 91032 and no 91001 or 91002 w/ TypeScript CommonJS output in node ESM output", () => {
+        const actual = codesOf(
+            [
+                output(
+                    "/dist/target.js",
+                    `"use strict";\nObject.defineProperty(exports, "__esModule", { value: true });\nexports.b = exports.a = void 0;\n` +
+                        `const b_1 = require("./b");\nexports.a = 1;\nexports.b = b_1.b;\nmodule.exports.c = __dirname;`
+                ),
+            ],
+            { runtime: "node" }
+        );
+
+        expect(actual).toEqual([91032]);
+    });
+
+    it("yields nothing w/ typeof exports guarded CommonJS export in node ESM output", () => {
+        const actual = codesOf(
+            [
+                output(
+                    "/dist/target.js",
+                    `if (typeof exports === "object") { Object.defineProperty(exports, "__esModule", { value: true }); exports.a = 1; }`
+                ),
+            ],
+            { runtime: "node" }
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ exports parameter with __esModule marker in node ESM output", () => {
+        const actual = codesOf(
+            [
+                output(
+                    "/dist/target.js",
+                    `function f(exports) { Object.defineProperty(exports, "__esModule", { value: true }); exports.x = 1; return exports; }`
+                ),
+            ],
+            { runtime: "node" }
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ esbuild bundle wrapping CommonJS dependency in node ESM output", () => {
+        const actual = codesOf(
+            [
+                output(
+                    "/dist/target.js",
+                    `var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);\n` +
+                        `var require_dep = __commonJS((exports, module) => {\n` +
+                        `  Object.defineProperty(exports, "__esModule", { value: true });\n` +
+                        `  exports.a = 1;\n` +
+                        `  module.exports.b = 2;\n` +
+                        `});\n` +
+                        `console.log(require_dep().a);`
+                ),
+            ],
+            { runtime: "node" }
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91032 w/ CommonJS output in bundler .mjs output", () => {
+        const actual = codesOf([output("/dist/target.mjs", `exports.x = require("x");`)], { runtime: "bundler" });
+
+        expect(actual).toEqual([91032]);
+    });
+
+    it("yields 91033 w/ top-level await in node output under commonjs package", () => {
+        const actual = codesOf(
+            [output("/dist/target.js", `const x = await load();`)],
+            { runtime: "node" },
+            createContext({ "/package.json": JSON.stringify({ type: "commonjs" }) })
+        );
+
+        expect(actual).toEqual([91033]);
+    });
+
+    it("yields nothing w/ await in async function in node .cjs output", () => {
+        const actual = codesOf([output("/dist/target.cjs", `async function f() { await load(); }`)], { runtime: "node" });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields warning category for package type rules w/ check warn", () => {
+        const actual = checkEsm([output("/dist/target.cjs", `export const x = 1;`)], { runtime: "node", check: "warn" }, createContext()).map(
+            cur => cur.category
+        );
+
+        expect(actual).toEqual([ts.DiagnosticCategory.Warning]);
+    });
+
+    it("yields nothing w/ package type violations in files matching ignore pattern", () => {
+        const actual = codesOf(
+            [output("/dist/legacy/a.cjs", `export const x = await load();`), output("/dist/legacy/b.js", `module.exports = 42;`)],
+            { runtime: "node", ignore: ["dist/legacy/*"] }
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields package type diagnostics located in emitted file", () => {
+        const actual = checkEsm(
+            [output("/dist/a.cjs", `const a = 1;\nexport { a };`), output("/dist/b.js", `const b = 1;\nexports.b = b;`)],
+            { runtime: "node" },
+            createContext()
+        ).map(cur => [cur.code, cur.file?.fileName, cur.start, cur.length]);
+
+        expect(actual).toEqual([
+            [91030, "/dist/a.cjs", 13, 6],
+            [91032, "/dist/b.js", 13, 7],
+        ]);
     });
 });
 

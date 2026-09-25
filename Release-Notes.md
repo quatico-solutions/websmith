@@ -19,6 +19,19 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   would fail to load as an ES module, including code that addons generate: free `require`, `module`, `exports`,
   `__dirname` or `__filename`, and ESM syntax mixed with `module.exports`. Profiles without `esm` are not checked.
   See "ESM check" in `packages/compiler/README.md`.
+- The ESM check reports relative imports in emitted JavaScript that fail to load as ES modules: a missing file
+  extension (91010), a directory import (91011), a specifier that resolves to no file (91012) and, under
+  `runtime: "node"`, a JSON import without `with { type: "json" }` (91013).
+- The ESM check reports imports of CommonJS packages that fail as ES module: a named import the package does not
+  export as Node's `cjs-module-lexer` detects it (91020, `node` runtime), and a default import from a module that
+  exports `__esModule` and `default` and is used other than through property access, which binds the whole
+  `module.exports` (91021, `node` and `javascript/esm`). Imports the check cannot resolve are skipped and listed
+  with `--debug`.
+- ESM check codes 91030–91033 for module formats that contradict how the file loads: ESM syntax in a `.cjs` file
+  (91030) or in a `.js` file under `"type": "commonjs"` (91031), CommonJS output in a file loaded as ESM (91032), and
+  top-level `await` in a file loaded as CommonJS (91033). 91030–91032 replace the file's per-identifier 91001–91004
+  findings. With `esm`, TypeScript's TS2835, TS2834, TS1543, TS1470, TS1309 and TS1203 are labelled with the ESM check
+  and the profile.
 - The ESM check also runs in watch mode and on JavaScript that result processors write through
   `ctx.getSystem().writeFile`; files addons write with `fs` directly are not checked. Its diagnostics name the addons
   that changed the file in its latest build (processors and transformers are tracked per addon, generators on the

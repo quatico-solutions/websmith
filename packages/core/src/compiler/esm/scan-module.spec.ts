@@ -6,6 +6,15 @@
  */
 import { scanModule } from "./scan-module";
 
+const ESBUILD_BUNDLE =
+    `var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);\n` +
+    `var require_dep = __commonJS((exports, module) => {\n` +
+    `  Object.defineProperty(exports, "__esModule", { value: true });\n` +
+    `  exports.a = 1;\n` +
+    `  module.exports.b = 2;\n` +
+    `});\n` +
+    `console.log(require_dep().a);`;
+
 const freeNames = (content: string): string[] => scanModule("/dist/target.js", content).freeReferences.map(cur => cur.name);
 
 describe("scanModule", () => {
@@ -219,5 +228,101 @@ describe("scanModule", () => {
         const actual = scanModule("/dist/target.js", `const x = 1; import("y");`).hasEsmSyntax;
 
         expect(actual).toBe(false);
+    });
+
+    it("yields location of first ESM construct w/ import declaration after statement", () => {
+        const actual = scanModule("/dist/target.js", `const a = 1;\nimport x from "y";\nexport const b = x;`).esmSyntax;
+
+        expect(actual).toEqual({ start: 13, length: 6 });
+    });
+
+    it("yields location of export keyword w/ exported function", () => {
+        const actual = scanModule("/dist/target.js", `export function f() {}`).esmSyntax;
+
+        expect(actual).toEqual({ start: 0, length: 6 });
+    });
+
+    it("yields location of import.meta w/ import.meta only", () => {
+        const actual = scanModule("/dist/target.js", `use(import.meta.url);`).esmSyntax;
+
+        expect(actual).toEqual({ start: 4, length: 11 });
+    });
+
+    it("yields no ESM construct location w/ top-level await only", () => {
+        const actual = scanModule("/dist/target.js", `const x = await load();`).esmSyntax;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("yields no ESM construct location w/ dynamic import in async function", () => {
+        const actual = scanModule("/dist/target.js", `async function f() { await import("./x.mjs"); }`).esmSyntax;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("yields location of top-level await", () => {
+        const actual = scanModule("/dist/target.js", `const x = await load();`).topLevelAwait;
+
+        expect(actual).toEqual({ start: 10, length: 5 });
+    });
+
+    it("yields location of await keyword w/ top-level for await", () => {
+        const actual = scanModule("/dist/target.js", `for await (const x of load()) {}`).topLevelAwait;
+
+        expect(actual).toEqual({ start: 4, length: 5 });
+    });
+
+    it("yields no top-level await w/ await in async function", () => {
+        const actual = scanModule("/dist/target.js", `async function f() { await load(); for await (const x of load()) {} }`).topLevelAwait;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("yields ES module marker w/ Object.defineProperty on exports", () => {
+        const actual = scanModule("/dist/target.js", `"use strict";\nObject.defineProperty(exports, "__esModule", { value: true });`).esModuleMarker;
+
+        expect(actual).toEqual({ start: 14, length: 61 });
+    });
+
+    it("yields ES module marker w/ __esModule property assignment", () => {
+        const actual = scanModule("/dist/target.js", `exports.__esModule = true;`).esModuleMarker;
+
+        expect(actual).toEqual({ start: 0, length: 25 });
+    });
+
+    it("yields no ES module marker w/ __esModule read", () => {
+        const actual = scanModule("/dist/target.js", `use(x.__esModule);`).esModuleMarker;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("yields no ES module marker w/ marker in typeof exports guard", () => {
+        const actual = scanModule(
+            "/dist/target.js",
+            `if (typeof exports === "object") { Object.defineProperty(exports, "__esModule", { value: true }); exports.a = 1; }`
+        ).esModuleMarker;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("yields no ES module marker w/ exports as function parameter", () => {
+        const actual = scanModule(
+            "/dist/target.js",
+            `function f(exports) { Object.defineProperty(exports, "__esModule", { value: true }); exports.x = 1; return exports; }`
+        ).esModuleMarker;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("yields no ES module marker w/ esbuild __commonJS wrapper", () => {
+        const actual = scanModule("/dist/target.js", ESBUILD_BUNDLE).esModuleMarker;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("yields ES module marker w/ module.exports.__esModule assignment", () => {
+        const actual = scanModule("/dist/target.js", `module.exports.__esModule = true;`).esModuleMarker;
+
+        expect(actual).toEqual({ start: 0, length: 32 });
     });
 });
