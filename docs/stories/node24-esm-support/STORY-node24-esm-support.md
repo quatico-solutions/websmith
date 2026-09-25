@@ -306,3 +306,7 @@ Accepted for v1; each is a real Node failure that the rules do not report:
 - **One declaration type differs from `tsc`.** In `.d.mts` output under `"type": "commonjs"` (or no `"type"`),
   websmith emits `Promise<{ default: …; x: 1 }>` where `tsc` emits `Promise<typeof def>`, on every path, including
   develop's full Program.
+- **`TARGET_MAP` is now an identity map** (`Compiler.ts`). It is the same kind of hand-copied enum table as the
+  `MODULE_MAP` that caused the nodenext bug; derive it from `ts.ScriptTarget` or drop it (#124 review).
+- **Error code 6046 is defined twice.** `TS_ERROR_CODE_INVALID_CLI_OPTION` (`Compiler.ts`) and
+  `TS_ERROR_CODE_INVALID_OPTION_VALUE` (`resolve-compiler-config.ts`) are both 6046; share one constant.
