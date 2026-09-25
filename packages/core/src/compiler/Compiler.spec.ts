@@ -3048,7 +3048,8 @@ describe("Declaration generation for client proxy addons", () => {
     });
 });
 
-// Module names as tsconfig.json gives them: websmith converts a numeric ModuleKind.NodeNext to "preserve"
+// Module names as tsconfig.json gives them: MODULE_MAP in Compiler.ts, applied by normalizeCompilerOptions, turns a
+// numeric ModuleKind.NodeNext (199) into Preserve
 const NODENEXT_NAMES = { module: "NodeNext", moduleResolution: "NodeNext" } as unknown as ts.CompilerOptions;
 
 describe("compile w/ esm profile", () => {
@@ -3351,6 +3352,58 @@ describe("report w/ TypeScript ESM diagnostics", () => {
         const actual = reportWith({ client: { esm: { runtime: "node" } } }, program, 2835);
 
         expect(actual).toEqual([[ts.DiagnosticCategory.Error, expect.stringMatching(/'\.\/dep\.js'\? \(ESM check, profile "client"\)$/)]]);
+    });
+
+    const reportResultDiagnostic = (profiles: Record<string, object>, diagnostic: ts.Diagnostic): ts.Diagnostic => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = new CompilerTestClass({ reporter, config: { profiles }, profile: "client" }, undefined, fileSystem);
+
+        testObj.report(undefined, { diagnostics: [diagnostic], emitSkipped: false }, "client");
+
+        return target.mock.calls[0][0];
+    };
+
+    const createTsDiagnostic = (code: number, messageText: string | ts.DiagnosticMessageChain): ts.Diagnostic => ({
+        category: ts.DiagnosticCategory.Error,
+        code,
+        file: ts.createSourceFile("/project/src/target.ts", "whatever;", ts.ScriptTarget.ESNext),
+        start: 0,
+        length: 8,
+        messageText,
+    });
+
+    it.each([2835, 2834, 1543, 1470, 1309, 1203])("reports TS%i labelled with code and category kept w/ esm profile", code => {
+        const diagnostic = createTsDiagnostic(code, "Failure.");
+
+        const actual = reportResultDiagnostic({ client: { esm: { runtime: "node" } } }, diagnostic);
+
+        expect([actual.code, actual.category, actual.messageText]).toEqual([
+            code,
+            ts.DiagnosticCategory.Error,
+            `Failure. (ESM check, profile "client")`,
+        ]);
+    });
+
+    it("reports head of message chain labelled w/ esm profile", () => {
+        const next: ts.DiagnosticMessageChain = { messageText: "Detail.", category: ts.DiagnosticCategory.Error, code: 0, next: undefined };
+        const diagnostic = createTsDiagnostic(2835, { messageText: "Failure.", category: ts.DiagnosticCategory.Error, code: 2835, next: [next] });
+
+        const actual = ts.flattenDiagnosticMessageText(
+            reportResultDiagnostic({ client: { esm: { runtime: "node" } } }, diagnostic).messageText,
+            "\n"
+        );
+
+        expect(actual).toBe(`Failure. (ESM check, profile "client")\n  Detail.`);
+    });
+
+    it("reports TS2835 unlabelled w/ esm check off", () => {
+        const diagnostic = createTsDiagnostic(2835, "Failure.");
+
+        const actual = reportResultDiagnostic({ client: { esm: { runtime: "node", check: "off" } } }, diagnostic).messageText;
+
+        expect(actual).toBe("Failure.");
     });
 
     it("reports TS1479 unlabelled w/ esm profile on Program path", () => {

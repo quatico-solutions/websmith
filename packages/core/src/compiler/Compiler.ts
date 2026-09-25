@@ -625,10 +625,11 @@ export class Compiler {
 
     /**
      * Returns a function that appends the ESM check label and the profile name to TypeScript diagnostics of
-     * failures when the output loads as ESM, if the profile sets `esm`. Code and category stay unchanged.
+     * failures when the output loads as ESM, if the profile sets `esm` with a check. Code and category stay unchanged.
      */
     private createEsmLabel(profile?: string): (diagnostic: ts.Diagnostic) => ts.Diagnostic {
-        if (!profile || !this.options.config?.profiles?.[profile]?.esm) {
+        const esm = profile ? this.options.config?.profiles?.[profile]?.esm : undefined;
+        if (!esm || esm.check === "off") {
             return diagnostic => diagnostic;
         }
         const suffix = ` (ESM check, profile "${profile}")`;

@@ -188,8 +188,9 @@ ESM syntax. When 91030, 91031 or 91032 reports a file, its 91001–91004 finding
 a module format that contradicts how the file loads, often a `module` that emits CommonJS. The `transpileModule` fast path ignores `"type"` and can emit CommonJS into files loaded
 as ESM, for example with `module: "Node16"`.
 
-With `esm`, TypeScript diagnostics for imports and syntax that fail to load as ESM get the label
-`(ESM check, profile "<name>")` appended; code and category stay the same. The labelled codes are TS2835 (relative
+With `esm` and a `check` other than `"off"`, TypeScript diagnostics for imports and syntax that fail to load as ESM
+get the label `(ESM check, profile "<name>")` appended to the printed message; code and category stay the same, and
+the diagnostics in a programmatic `EmitResult` stay unlabelled. The labelled codes are TS2835 (relative
 import without extension), TS2834 (directory import), TS1543 (JSON import without `with { type: "json" }`), TS1470
 (`import.meta` in CommonJS output), TS1309 (top-level `await` in CommonJS output) and TS1203 (`export =` in an ES
 module). TypeScript reports them only when it type checks, which is when an active addon needs type information; the
