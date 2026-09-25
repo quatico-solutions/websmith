@@ -291,3 +291,18 @@ Accepted for v1; each is a real Node failure that the rules do not report:
   that a generator added this way.
 - **Nested compiles through the context's system are checked twice.** A result processor that runs a nested
   websmith compile through `ctx.getSystem()` has that compile's output checked by both compiles.
+
+### 2026-09-26 — Follow-ups from the nodenext module fix (bug/nodenext-module-map)
+
+- **Profile `lib` names are not converted.** `lib: ["ES2022"]` in a profile `tsConfig` of `websmith.config.json` is
+  passed to TypeScript as written. Declarations then degrade (`f(): unknown`), and the Program path reports errors.
+  `ts.convertCompilerOptionsFromJson` already maps it to `lib.es2022.d.ts`, but the conversion keeps only numeric
+  results.
+- **Webpack loader options are not converted.** Strings in `tsConfig` passed straight to the loader, or in an inline
+  `config.profiles`, stay strings; only profiles loaded from `websmith.config.json` are converted.
+- **Default `target` and `esModuleInterop` differ from `tsc`.** `tsDefaults` (`defaults.ts`) sets `target: ES5` and
+  `esModuleInterop: false` before node16/nodenext would imply ES2022/ESNext and interop. A project that omits `target`
+  gets `var` output where `tsc` emits `const`.
+- **One declaration type differs from `tsc`.** In `.d.mts` output under `"type": "commonjs"` (or no `"type"`),
+  websmith emits `Promise<{ default: …; x: 1 }>` where `tsc` emits `Promise<typeof def>`, on every path, including
+  develop's full Program.
