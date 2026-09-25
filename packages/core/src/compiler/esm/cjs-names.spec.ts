@@ -69,6 +69,14 @@ const PACKAGES: Record<string, string> = {
     "node_modules/cycle/package.json": JSON.stringify({ name: "cycle" }),
     "node_modules/cycle/index.js": `exports.first = 1;\nmodule.exports = require("./other");`,
     "node_modules/cycle/other.js": `exports.second = 1;\nmodule.exports = require("./index");`,
+    "node_modules/tsnodef/package.json": JSON.stringify({ name: "tsnodef" }),
+    "node_modules/tsnodef/index.js": `"use strict";\nObject.defineProperty(exports, "__esModule", { value: true });\nexports.named = 1;`,
+    "node_modules/modsync/package.json": JSON.stringify({ name: "modsync", exports: { "module-sync": "./esm.mjs", default: "./cjs.js" } }),
+    "node_modules/modsync/esm.mjs": `export const onlyEsm = 1;`,
+    "node_modules/modsync/cjs.js": `module.exports = Object.assign({}, { onlyCjs: 1 });`,
+    "node_modules/mainmod/package.json": JSON.stringify({ name: "mainmod", main: "cjs/index.js", module: "esm/index.js" }),
+    "node_modules/mainmod/cjs/index.js": TS_CJS,
+    "node_modules/mainmod/esm/index.js": `export default function def() {}`,
 };
 
 const roots: string[] = [];
@@ -163,31 +171,31 @@ describe("checkEsm CommonJS names", () => {
     });
 
     it("yields 91021 w/ default import from __esModule package in node output", () => {
-        const actual = codesOf(`import def from "tscjs";`, { runtime: "node" });
+        const actual = codesOf(`import def from "tscjs";\ndef();`, { runtime: "node" });
 
         expect(actual).toEqual([91021]);
     });
 
     it("yields 91021 w/ default and named import from __esModule package in node output", () => {
-        const actual = codesOf(`import def, { named } from "tscjs";`, { runtime: "node" });
+        const actual = codesOf(`import def, { named } from "tscjs";\ndef(named);`, { runtime: "node" });
 
         expect(actual).toEqual([91021]);
     });
 
     it("yields 91021 w/ default import from __esModule package in bundler ESM output", () => {
-        const actual = codesOf(`import def from "tscjs";`, { runtime: "bundler" });
+        const actual = codesOf(`import def from "tscjs";\ndef();`, { runtime: "bundler" });
 
         expect(actual).toEqual([91021]);
     });
 
     it("yields nothing w/ default import from __esModule package in bundler auto output", () => {
-        const actual = codesOf(`import def from "tscjs";`, { runtime: "bundler" }, JSON.stringify({}));
+        const actual = codesOf(`import def from "tscjs";\ndef();`, { runtime: "bundler" }, JSON.stringify({}));
 
         expect(actual).toEqual([]);
     });
 
     it("yields nothing w/ default import from plain CommonJS package in node output", () => {
-        const actual = codesOf(`import def from "plaincjs";`, { runtime: "node" });
+        const actual = codesOf(`import def from "plaincjs";\ndef();`, { runtime: "node" });
 
         expect(actual).toEqual([]);
     });
@@ -222,8 +230,153 @@ describe("checkEsm CommonJS names", () => {
         expect(actual).toEqual([]);
     });
 
+    it("yields nothing w/ default import of __esModule package used through property access only in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";\nconsole.log(pkg.named, pkg["named"], pkg?.named);`, { runtime: "node" });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ default import of __esModule package calling its default property in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";\npkg.default();`, { runtime: "node" });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ unused default import of __esModule package in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";`, { runtime: "node" });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91021 w/ default import of __esModule package passed as argument in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";\nfn(pkg.named, pkg);`, { runtime: "node" });
+
+        expect(actual).toEqual([91021]);
+    });
+
+    it("yields 91021 w/ default import of __esModule package exported locally in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";\nexport { pkg };`, { runtime: "node" });
+
+        expect(actual).toEqual([91021]);
+    });
+
+    it("yields nothing w/ called default import of __esModule package without default export in node output", () => {
+        const actual = codesOf(`import pkg from "tsnodef";\npkg();`, { runtime: "node" });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91021 w/ called default specifier of __esModule package in node output", () => {
+        const actual = codesOf(`import { default as x } from "tscjs";\nx();`, { runtime: "node" });
+
+        expect(actual).toEqual([91021]);
+    });
+
+    it("yields 91021 w/ default re-exported from __esModule package in node output", () => {
+        const actual = codesOf(`export { default } from "tscjs";`, { runtime: "node" });
+
+        expect(actual).toEqual([91021]);
+    });
+
+    it("yields nothing w/ module.exports name imported from CommonJS package in node output", () => {
+        const actual = codesOf(`import { "module.exports" as m } from "objcjs";\nm();`, { runtime: "node" });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ named import from package whose module-sync condition points at ESM entry in node output", () => {
+        const actual = codesOf(`import { onlyEsm } from "modsync";`, { runtime: "node" });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91021 w/ called default import of package with module field in node output", () => {
+        const actual = codesOf(`import def from "mainmod";\ndef();`, { runtime: "node" });
+
+        expect(actual).toEqual([91021]);
+    });
+
+    it("yields nothing w/ called default import of package with module field in bundler ESM output", () => {
+        const actual = codesOf(`import def from "mainmod";\ndef();`, { runtime: "bundler" });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("reports package with module field w/ debug in bundler ESM output", () => {
+        const reporter = new NoReporter();
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+
+        check(`import def from "mainmod";\ndef();`, { runtime: "bundler" }, MODULE_PACKAGE, { reporter, debug: true });
+        const actual = target.mock.calls.map(([cur]) => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/^ESM check skipped "mainmod" imported by .*: .*"module" or "browser" field.*\.$/)]);
+    });
+
+    it("reports not installed package once w/ debug and several imports of it", () => {
+        const reporter = new NoReporter();
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+
+        check(`import { x } from "not-installed";\nimport { y } from "not-installed";`, { runtime: "node" }, MODULE_PACKAGE, {
+            reporter,
+            debug: true,
+        });
+        const actual = target.mock.calls;
+
+        expect(actual).toHaveLength(1);
+    });
+
+    it("yields nothing w/ named import re-exported from pnpm sibling of symlinked package in node output", () => {
+        const root = createProject({
+            "package.json": MODULE_PACKAGE,
+            "node_modules/.pnpm/wrap@1.0.0/node_modules/wrap/package.json": JSON.stringify({ name: "wrap" }),
+            "node_modules/.pnpm/wrap@1.0.0/node_modules/wrap/index.js": `module.exports = require("core");`,
+            "node_modules/.pnpm/wrap@1.0.0/node_modules/core/package.json": JSON.stringify({ name: "core" }),
+            "node_modules/.pnpm/wrap@1.0.0/node_modules/core/index.js": `exports.fromCore = 1;`,
+            "node_modules/core/package.json": JSON.stringify({ name: "core" }),
+            "node_modules/core/index.js": `exports.other = 1;`,
+        });
+        fs.symlinkSync(
+            path.join(root, "node_modules", ".pnpm", "wrap@1.0.0", "node_modules", "wrap"),
+            path.join(root, "node_modules", "wrap"),
+            "junction"
+        );
+
+        const actual = checkEsm(
+            [output(path.join(root, "dist", "main.js"), `import { fromCore } from "wrap";`)],
+            { runtime: "node" },
+            createContext(root)
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("reports symlinked and real entry dependencies w/ symlinked package", () => {
+        const root = createProject({
+            "package.json": MODULE_PACKAGE,
+            "node_modules/.pnpm/objcjs@1.0.0/node_modules/objcjs/package.json": JSON.stringify({ name: "objcjs" }),
+            "node_modules/.pnpm/objcjs@1.0.0/node_modules/objcjs/index.js": `module.exports = Object.assign({}, { a: 1 });`,
+        });
+        const realDir = path.join(root, "node_modules", ".pnpm", "objcjs@1.0.0", "node_modules", "objcjs");
+        fs.symlinkSync(realDir, path.join(root, "node_modules", "objcjs"), "junction");
+        const onDependency = jest.fn();
+
+        checkEsm(
+            [output(path.join(root, "dist", "main.js"), `import { a } from "objcjs";`)],
+            { runtime: "node" },
+            createContext(root, { onDependency })
+        );
+        const actual = onDependency.mock.calls;
+
+        expect(actual).toEqual(
+            expect.arrayContaining([
+                [path.join(root, "node_modules", "objcjs", "index.js"), true],
+                [path.join(realDir, "index.js"), true],
+            ])
+        );
+    });
+
     it("yields 91021 warning w/ check warn", () => {
-        const [actual] = check(`import def from "tscjs";`, { runtime: "node", check: "warn" });
+        const [actual] = check(`import def from "tscjs";\ndef();`, { runtime: "node", check: "warn" });
 
         expect(actual.category).toBe(ts.DiagnosticCategory.Warning);
     });
@@ -239,13 +392,13 @@ describe("checkEsm CommonJS names", () => {
     });
 
     it("yields 91021 located at the default binding with fix hint", () => {
-        const [actual] = check(`import def from "tscjs";`, { runtime: "node" });
+        const [actual] = check(`import def from "tscjs";\ndef();`, { runtime: "node" });
 
         expect([actual.start, actual.length, actual.messageText]).toEqual([
             7,
             3,
-            `ESM91021: default import of CommonJS module "tscjs", which sets "__esModule", binds the whole "module.exports", ` +
-                `not its default export; use \`import pkg from "tscjs"; pkg.default\` or a named import.`,
+            `ESM91021: default import of CommonJS module "tscjs", which sets "__esModule", is its whole "module.exports", ` +
+                `not its default export; read its "default" property (\`def.default\`) or use a named import.`,
         ]);
     });
 
