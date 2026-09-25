@@ -1745,7 +1745,10 @@ describe("watch w/ esm profile", () => {
         );
 
     it("reports ESM diagnostic w/ rebuild introducing require", () => {
-        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
         const reporter = new ReporterMock(fileSystem);
         const target = jest.spyOn(reporter, "reportDiagnostic");
         const testObj = createWatchCompiler(fileSystem, reporter).watch();
@@ -1758,7 +1761,10 @@ describe("watch w/ esm profile", () => {
     });
 
     it("keeps watching w/ rebuild reporting ESM diagnostic", () => {
-        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
         const testObj = createWatchCompiler(fileSystem, new ReporterMock(fileSystem)).watch();
         fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
 
@@ -1770,7 +1776,10 @@ describe("watch w/ esm profile", () => {
     });
 
     it("reports one config error and no ESM diagnostic w/ CommonJS module and rebuild introducing require", () => {
-        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
         const reporter = new ReporterMock(fileSystem);
         const target = jest.spyOn(reporter, "reportDiagnostic");
         const testObj = createWatchCompiler(fileSystem, reporter, { module: ts.ModuleKind.CommonJS }).watch();
@@ -2495,7 +2504,9 @@ describe("addonEmitOnly mode", () => {
         );
         const changeService: ts.TransformerFactory<ts.SourceFile> = context => sourceFile => {
             const visitor = (node: ts.Node): ts.Node =>
-                ts.isStringLiteral(node) && node.text === "service" ? context.factory.createStringLiteral("changed") : ts.visitEachChild(node, visitor, context);
+                ts.isStringLiteral(node) && node.text === "service"
+                    ? context.factory.createStringLiteral("changed")
+                    : ts.visitEachChild(node, visitor, context);
             return ts.visitEachChild(sourceFile, visitor, context);
         };
         const testObj = new CompilerTestClass(
@@ -2512,7 +2523,9 @@ describe("addonEmitOnly mode", () => {
         ctx.activateAddon({ getName: () => "identity-addon", activate: () => ctx.registerTransformer({ before: [() => sf => sf] }) } as never);
         ctx.activateAddon({ getName: () => "changing-addon", activate: () => ctx.registerTransformer({ before: [changeService] }) } as never);
 
-        const actual = ["/src/service.ts", "/src/helper.ts"].map(cur => testObj.emitSourceFile(cur, undefined, true).writtenFiles.map(file => file.name));
+        const actual = ["/src/service.ts", "/src/helper.ts"].map(cur =>
+            testObj.emitSourceFile(cur, undefined, true).writtenFiles.map(file => file.name)
+        );
 
         expect(actual).toEqual([["/src/service.js", "/src/service.d.ts"], []]);
     });
@@ -3226,7 +3239,10 @@ describe("compile w/ esm profile", () => {
     });
 
     it("names only changing processor addon in ESM diagnostic w/ two processor addons", () => {
-        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
         const reporter = new ReporterMock(fileSystem);
         const addons = createAddons(fileSystem, reporter, {
             "keeping-addon": ctx => ctx.registerProcessor((_fileName, content) => content),
@@ -3364,6 +3380,89 @@ describe("compile w/ esm profile", () => {
             `Profile 'client' sets 'esm', but 'module' is unset and 'target' is 'ES5', so TypeScript emits CommonJS. ` +
                 `Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'. The ESM check skips this profile.`,
         ]);
+    });
+
+    it("yields ESM diagnostic for JavaScript file w/ result processor writing CommonJS", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => {
+                    processorCtx.getSystem().writeFile("/src/meta.js", "module.exports = {};");
+                    processorCtx.getSystem().writeFile("/src/meta.json", "module.exports = {};");
+                }),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["writing-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.code]);
+
+        expect(actual).toEqual([["/src/meta.js", 91002]]);
+    });
+
+    it("names result processor addon in ESM diagnostic w/ result processor writing CommonJS", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => processorCtx.getSystem().writeFile("/src/meta.js", "module.exports = {};")),
+            "other-addon": () => undefined,
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["writing-addon", "other-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics[0].messageText;
+
+        expect(actual).toMatch(/\(profile "client", addons: writing-addon\)\.$/);
+    });
+
+    it("yields no ESM diagnostic w/ result processor writing CommonJS matching esm ignore", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => processorCtx.getSystem().writeFile("/src/meta.js", "module.exports = {};")),
+        });
+        const testObj = createEsmCompiler(
+            fileSystem,
+            { client: { esm: { runtime: "node", ignore: ["src/meta.js"] }, addons: ["writing-addon"] } },
+            "client",
+            { reporter }
+        ).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("writes file w/ result processor writing through system", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx => ctx.registerResultProcessor((_files, processorCtx) => processorCtx.getSystem().writeFile("/src/meta.json", "{}")),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["writing-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+        const actual = fileSystem.readFile("/src/meta.json");
+
+        expect(actual).toBe("{}");
     });
 
     it("reports ignored file w/ esm ignore and debug", () => {

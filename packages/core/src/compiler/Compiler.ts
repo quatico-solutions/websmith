@@ -12,6 +12,7 @@ import {
     type CompilerOptions,
     type EsmProfileOptions,
     type Reporter,
+    type ResultProcessor,
     type WebpackLoaderOptions,
 } from "@quatico/websmith-api";
 import deepmerge from "deepmerge";
@@ -677,13 +678,35 @@ export class Compiler {
         // Pass all output files to result processors, including files skipped in addonEmitOnly mode
         // and declaration/map files; the files actually written are in each fragment's writtenFiles
         const emittedFiles = result.emittedFiles ?? [];
-        ctx.getResultProcessors().forEach(cur => {
-            try {
-                cur(emittedFiles, ctx);
-            } catch (err) {
-                this.reporter.reportDiagnostic(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
-            }
-        });
+        // Collect what result processors write through the context's system, so the ESM check sees it; files they
+        // write with fs directly are invisible here
+        const system = ctx.getSystem();
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- restored unchanged and called with system as this
+        const writeFile = system.writeFile;
+        const resultProcessorFiles = new Map<string, AttributedOutput>();
+        let currentResultProcessor: ResultProcessor | undefined;
+        if (esm) {
+            system.writeFile = (name: string, text: string, writeByteOrderMark?: boolean) => {
+                const addons = currentResultProcessor ? [ctx.getAddonName(currentResultProcessor)] : [];
+                resultProcessorFiles.set(name, { files: [{ name, text, writeByteOrderMark: !!writeByteOrderMark }], addons });
+                writeFile.call(system, name, text, writeByteOrderMark);
+            };
+        }
+        try {
+            ctx.getResultProcessors().forEach(cur => {
+                try {
+                    currentResultProcessor = cur;
+                    cur(emittedFiles, ctx);
+                } catch (err) {
+                    this.reporter.reportDiagnostic(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
+                }
+            });
+        } finally {
+            system.writeFile = writeFile;
+        }
+        if (esm && resultProcessorFiles.size) {
+            result.diagnostics = [...result.diagnostics, ...this.checkEsmOutput(esm, profile, ctx, [...resultProcessorFiles.values()])];
+        }
 
         return result;
     }
@@ -731,7 +754,12 @@ export class Compiler {
     }
 
     /** Checks output files once per set of addons that changed them, so each diagnostic names the addons of its file. */
-    private checkEsmOutput(esm: EsmProfileOptions, profile: string | undefined, ctx: CompilationContext, outputs: AttributedOutput[]): ts.Diagnostic[] {
+    private checkEsmOutput(
+        esm: EsmProfileOptions,
+        profile: string | undefined,
+        ctx: CompilationContext,
+        outputs: AttributedOutput[]
+    ): ts.Diagnostic[] {
         const groups = new Map<string, { files: ts.OutputFile[]; addons: string[] }>();
         outputs.forEach(({ files, addons }) => {
             const key = addons.join("\n");
