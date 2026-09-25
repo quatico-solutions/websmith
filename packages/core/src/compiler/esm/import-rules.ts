@@ -50,7 +50,7 @@ type RelativeImport = {
 /** What an ES module import names: an existing file, a file without its extension, a directory or nothing. */
 type ImportTarget = "file" | "missing-extension" | "directory" | "unresolved";
 
-// Extensions Node and webpack load without further configuration; any other extension is part of the file name
+// Extensions Node and webpack load without further configuration; any other extension may be part of the file name
 const KNOWN_EXTENSIONS: ReadonlySet<string> = new Set([".js", ".mjs", ".cjs", ".json", ".node", ".wasm"]);
 
 /** Extensionless relative import in an ES module (Node, webpack `fullySpecified`). */
@@ -137,8 +137,8 @@ const targets = new WeakMap<ImportRuleContext, Map<string, ImportTarget>>();
 
 /**
  * Tells what an import of an ES module names, once per path and context. Existing files are recognized without
- * probing for a directory; a missing name counts as extensionless when adding `.js` finds a file or its extension is
- * not one the runtime loads (e.g. `./user.service`).
+ * probing for a directory. A missing name counts as extensionless when it has no extension, or when its extension is
+ * not one the runtime loads and adding `.js` finds a file (e.g. `./user.service`); otherwise it is unresolved.
  */
 const getTarget = ({ specifier, resolved }: RelativeImport, context: ImportRuleContext): ImportTarget => {
     // `./utils/`, `.` and `..` name a directory even when a file of the same name exists
@@ -151,12 +151,12 @@ const getTarget = ({ specifier, resolved }: RelativeImport, context: ImportRuleC
             result = isDirectory(resolved, context) ? "directory" : "unresolved";
         } else if (isFile(resolved, context)) {
             result = "file";
-        } else if (isFile(`${resolved}.js`, context)) {
+        } else if (!KNOWN_EXTENSIONS.has(path.extname(resolved).toLowerCase()) && isFile(`${resolved}.js`, context)) {
             result = "missing-extension";
         } else if (isDirectory(resolved, context)) {
             result = "directory";
         } else {
-            result = KNOWN_EXTENSIONS.has(path.extname(resolved).toLowerCase()) ? "unresolved" : "missing-extension";
+            result = path.extname(resolved) === "" ? "missing-extension" : "unresolved";
         }
         cached.set(key, result);
     }

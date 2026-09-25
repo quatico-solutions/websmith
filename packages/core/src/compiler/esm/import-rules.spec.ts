@@ -121,10 +121,22 @@ describe("checkMissingExtension w/ ambiguous names", () => {
         ]);
     });
 
-    it("yields 91010 w/ dotted extensionless name of missing file in ESM file", () => {
-        const actual = checkMissingExtension(scan(`import "./app.module";`), ESM, createContext()).map(cur => cur.code);
+    it("yields only 91012 w/ dotted name of missing file in ESM file", () => {
+        const actual = checkImports(scan(`import "./app.module";`), ESM, createContext()).map(cur => cur.code);
 
-        expect(actual).toEqual([91010]);
+        expect(actual).toEqual([91012]);
+    });
+
+    it("yields only 91012 w/ import of missing stylesheet in ESM file", () => {
+        const actual = checkImports(scan(`import "./styles.css";`), ESM, createContext()).map(cur => cur.code);
+
+        expect(actual).toEqual([91012]);
+    });
+
+    it("yields nothing w/ import of existing stylesheet in ESM file", () => {
+        const actual = checkImports(scan(`import "./styles.css";`), ESM, createContext({ "/dist/styles.css": "" }));
+
+        expect(actual).toEqual([]);
     });
 
     it("yields 91010 with hint w/ file and directory of the same name in ESM file", () => {

@@ -188,12 +188,13 @@ checked: ESM syntax in them is left to the package-type rules of a later release
 91010–91013 check the relative specifiers (`./`, `../`) of static imports, re-exports and `import()` with a string
 literal. `import()` with a computed specifier is skipped, and bare specifiers such as `"pkg"` are not checked. The
 check sees the specifier in the emitted file, not the one in the TypeScript source. A specifier counts as
-extensionless when adding `.js` names an existing file, or when its extension is none of `.js`, `.mjs`, `.cjs`,
-`.json`, `.node` and `.wasm` (e.g. `./user.service`); a JSON import with `assert` instead of `with` also gets 91013.
-91012 resolves a specifier against the files the build writes and the files on disk, so under `addonEmitOnly` a file
-left by an earlier build counts. In `javascript/auto` files it also tries the extensions `.js`, `.mjs`, `.cjs` and
-`.json` and accepts directories, like webpack does. On the Program path, TypeScript may report the same import on the
-source file as well (TS2834, TS2835, TS1543).
+extensionless when it has no extension, or when its extension is none of `.js`, `.mjs`, `.cjs`, `.json`, `.node` and
+`.wasm` and adding `.js` names an existing file (e.g. `./user.service`); any other specifier that names no file gets
+91012; a JSON import with `assert` instead of `with` also gets 91013. 91012 resolves a specifier against the files the
+build writes and the files on disk, so under `addonEmitOnly` a file left by an earlier build counts. In
+`javascript/auto` files it also tries the extensions `.js`, `.mjs`, `.cjs` and `.json` and accepts directories, like
+webpack does. On the Program path, TypeScript may report the same import on the source file as well (TS2834, TS2835,
+TS1543).
 
 Diagnostics point at the construct in the emitted file and name the profile and its active addons, e.g.
 `Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output; ...`. The check runs in
