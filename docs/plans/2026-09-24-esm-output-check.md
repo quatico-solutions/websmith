@@ -164,8 +164,13 @@ the `transpileModule` fast path (`Compiler.ts:597-604`), only syntax on the lang
   addons changed the file, the diagnostic names it; otherwise it lists the profile's active addons. Today the
   context only records *that* a file was changed (`addonProcessedFiles` is a set of paths,
   `CompilationContext.ts:50`), so attribution needs **per-addon tracking**: which addon changed each file —
-  processors by content comparison, transformers by output comparison, generators through `addInputFile` /
-  `addVirtualFile`. Each rule has a **stable numeric code in the range 91000–91099** (all websmith diagnostics
+  processors by comparing content per processor, generators through `addInputFile` / `addVirtualFile`, and
+  transformers by wrapping each `TransformerFactory` at registration with its addon name: the wrapper records the
+  file when the returned `SourceFile` is not the input node (TypeScript returns the same node when a transformer
+  changed nothing). That needs no extra emit; a transformer that rebuilds nodes without a real change is
+  over-attributed, but no changing transformer is missed. Rejected: re-emitting once per transformer addon when
+  a diagnostic is found (exact, but N emits per failing file), and attributing every transformer addon
+  (imprecise). Each rule has a **stable numeric code in the range 91000–91099** (all websmith diagnostics
   use `code: 0` today; `ts.Diagnostic.code` is a number, and 91xxx stays clear of TypeScript's own codes),
   documented in the README.
 - **Performance budget:** the check may add at most **10% wall time** to a webpack watch rebuild, measured on
