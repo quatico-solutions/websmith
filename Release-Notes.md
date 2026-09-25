@@ -51,6 +51,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   every `.ts` file as CommonJS. They now pick CommonJS or ESM per file from its extension and the nearest
   `package.json` `"type"`, like `tsc`, and keep dynamic `import()` in CommonJS files and `import x = require()` in
   ES module files.
+- With `"module": "node16"` or `"nodenext"`, builds without type-checking addons that emit declarations gave the
+  compiled file and the files it imports the wrong module format: ES modules under `"type": "commonjs"`, and
+  declarations without `resolution-mode` for imports from `.cts` files. They now use each file's format, like `tsc`.
 
 ### Removed
 

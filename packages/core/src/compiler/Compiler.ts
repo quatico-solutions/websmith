@@ -1069,19 +1069,15 @@ export class Compiler {
                 transformers: ts.CustomTransformers
             ): { outputFiles: ts.OutputFile[]; diagnostics: readonly ts.Diagnostic[] } => {
                 // Create a simple program with just this file
+                const baseHost = ts.createCompilerHost(ctx.getCompilerOptions());
                 const program = ts.createProgram({
                     rootNames: [fileName],
                     options: ctx.getCompilerOptions(),
                     host: {
-                        ...ts.createCompilerHost(ctx.getCompilerOptions()),
-                        getSourceFile: (name: string) => {
-                            if (name === fileName) {
-                                return sourceFile;
-                            }
-                            return ts
-                                .createCompilerHost(ctx.getCompilerOptions())
-                                .getSourceFile(name, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest);
-                        },
+                        ...baseHost,
+                        // Passes TypeScript's source file options on, so that imported files get their module format
+                        getSourceFile: (name, languageVersionOrOptions, ...rest) =>
+                            name === fileName ? sourceFile : baseHost.getSourceFile(name, languageVersionOrOptions, ...rest),
                         writeFile: () => {}, // We'll collect the output ourselves
                     },
                 });

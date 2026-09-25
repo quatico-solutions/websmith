@@ -517,6 +517,12 @@ describe("bin.ts e2e tests", () => {
         { module: "nodenext", type: "module", declaration: false },
         { module: "nodenext", type: "commonjs", declaration: false },
         { module: "nodenext", type: undefined, declaration: false },
+        { module: "node16", type: "module", declaration: true },
+        { module: "node16", type: "commonjs", declaration: true },
+        { module: "node16", type: undefined, declaration: true },
+        { module: "nodenext", type: "module", declaration: true },
+        { module: "nodenext", type: "commonjs", declaration: true },
+        { module: "nodenext", type: undefined, declaration: true },
     ] as const)(
         "should yield tsc output w/ module $module, package.json type $type and declaration $declaration",
         ({ module, type, declaration }) => {
