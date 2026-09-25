@@ -130,7 +130,15 @@ the `transpileModule` fast path (`Compiler.ts:597-604`), only syntax on the lang
 
   The default-import rule targets the most likely silent breakage in generated code: the same
   `import def from "pkg"` yields an object under Node and strict webpack and a function under webpack's auto
-  mode (measured by the panel).
+  mode (measured by the panel). It lives in `esm-check-cjs-names` with the named-import rule, because both need
+  the same bare-specifier resolution and CommonJS export detection (`cjs-module-lexer` also reports
+  `__esModule`); one slice builds that machinery instead of two parallel ones.
+
+  The relative-import rules inspect static imports, re-exports (`export … from`) and dynamic `import()` with a
+  string literal; a non-literal `import()` cannot be resolved statically and is skipped. A relative import of a
+  **directory** (`./utils` for `utils/index.js`) gets its own code and fix hint, separate from a missing
+  extension: Node fails it with `ERR_UNSUPPORTED_DIR_IMPORT`, and the fix is `./utils/index.js`, not
+  `./utils.js`.
 
   **In the webpack loader the resolution rule does not run.** The loader is synchronous (`loader.ts:21-35`) and
   webpack resolves every import itself, failing the build for one it cannot resolve; a second resolver in the
@@ -198,8 +206,8 @@ slices add.
 ### Wave 3
 
 - `feature/esm-check-coverage` — `watch()` and `ResultProcessor` write coverage, per-addon attribution (which addon changed each file, transformer registrations tagged) <!-- builds: ESM check coverage for watch and ResultProcessor writes, per-addon attribution -->
-- `feature/esm-check-imports` — relative-import extension and resolution rules (CLI), JSON import attributes, default import from `__esModule` CommonJS <!-- builds: ESM import rules -->
-- `feature/esm-check-cjs-names` — named imports checked against the CommonJS package's real exports via `cjs-module-lexer` <!-- builds: cjs-module-lexer named-export check -->
+- `feature/esm-check-imports` — relative-import rules (missing extension, directory import, unresolved; static imports, re-exports and literal `import()`; CLI only for resolution), JSON import attributes <!-- builds: ESM relative-import and JSON-attribute rules -->
+- `feature/esm-check-cjs-names` — bare-specifier resolution to a package's CommonJS entry and `cjs-module-lexer`, for two rules: named imports the package does not export, and default imports from a module that sets `__esModule` <!-- builds: cjs-module-lexer named-export and default-import checks -->
 - `feature/esm-check-package-type` — output format and `.cjs`/`.mjs` naming vs `package.json` `"type"`, best-effort TypeScript `nodenext` diagnostics <!-- builds: package type consistency rules -->
 
 ### Wave 4
