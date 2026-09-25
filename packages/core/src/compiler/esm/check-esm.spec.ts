@@ -409,6 +409,54 @@ describe("checkEsm", () => {
         expect(actual).toEqual([91032]);
     });
 
+    it("yields nothing w/ typeof exports guarded CommonJS export in node ESM output", () => {
+        const actual = codesOf(
+            [
+                output(
+                    "/dist/target.js",
+                    `if (typeof exports === "object") { Object.defineProperty(exports, "__esModule", { value: true }); exports.a = 1; }`
+                ),
+            ],
+            { runtime: "node" }
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ exports parameter with __esModule marker in node ESM output", () => {
+        const actual = codesOf(
+            [
+                output(
+                    "/dist/target.js",
+                    `function f(exports) { Object.defineProperty(exports, "__esModule", { value: true }); exports.x = 1; return exports; }`
+                ),
+            ],
+            { runtime: "node" }
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ esbuild bundle wrapping CommonJS dependency in node ESM output", () => {
+        const actual = codesOf(
+            [
+                output(
+                    "/dist/target.js",
+                    `var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);\n` +
+                        `var require_dep = __commonJS((exports, module) => {\n` +
+                        `  Object.defineProperty(exports, "__esModule", { value: true });\n` +
+                        `  exports.a = 1;\n` +
+                        `  module.exports.b = 2;\n` +
+                        `});\n` +
+                        `console.log(require_dep().a);`
+                ),
+            ],
+            { runtime: "node" }
+        );
+
+        expect(actual).toEqual([]);
+    });
+
     it("yields 91032 w/ CommonJS output in bundler .mjs output", () => {
         const actual = codesOf([output("/dist/target.mjs", `exports.x = require("x");`)], { runtime: "bundler" });
 

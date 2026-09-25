@@ -45,7 +45,7 @@ export const scanModule: ModuleScanner = (fileName, content) => {
     const references: ts.Identifier[] = [];
     let esmSyntax: Span | undefined;
     let topLevelAwait: Span | undefined;
-    let esModuleMarker: Span | undefined;
+    const markers: { node: ts.Node; root: ts.Identifier }[] = [];
     const spanOf = (node: ts.Node): Span => ({ start: node.getStart(file), length: node.getWidth(file) });
 
     const declare = (scope: ts.Node, name: ts.BindingName | ts.Identifier | undefined): void => {
@@ -70,8 +70,9 @@ export const scanModule: ModuleScanner = (fileName, content) => {
         if (awaitNode) {
             topLevelAwait = spanOf(awaitNode);
         }
-        if (!esModuleMarker && isEsModuleMarker(node)) {
-            esModuleMarker = spanOf(node);
+        const markerRoot = findEsModuleMarkerRoot(node);
+        if (markerRoot) {
+            markers.push({ node, root: markerRoot });
         }
         if (ts.isVariableDeclaration(node)) {
             if (ts.isVariableDeclarationList(node.parent)) {
@@ -104,20 +105,22 @@ export const scanModule: ModuleScanner = (fileName, content) => {
         return false;
     };
 
+    const isFree = (node: ts.Identifier): boolean => !isDeclared(node) && !isTypeofGuarded(node);
+    const marker = markers.find(cur => isFree(cur.root));
+    const esModuleMarker = marker && spanOf(marker.node);
+
     return {
         file,
         hasEsmSyntax: !!esmSyntax || !!topLevelAwait,
         ...(esmSyntax && { esmSyntax }),
         ...(topLevelAwait && { topLevelAwait }),
         ...(esModuleMarker && { esModuleMarker }),
-        freeReferences: references
-            .filter(cur => !isDeclared(cur) && !isTypeofGuarded(cur))
-            .map(cur => ({
-                name: cur.text as CommonJsName,
-                start: cur.getStart(file),
-                length: cur.getWidth(file),
-                commonJsExport: isCommonJsExport(cur),
-            })),
+        freeReferences: references.filter(isFree).map(cur => ({
+            name: cur.text as CommonJsName,
+            start: cur.getStart(file),
+            length: cur.getWidth(file),
+            commonJsExport: isCommonJsExport(cur),
+        })),
     };
 };
 
@@ -138,32 +141,44 @@ const findTopLevelAwait = (node: ts.Node): ts.Node | undefined => {
     return keyword && ts.isSourceFile(findFunctionScope(node.parent)) ? keyword : undefined;
 };
 
-/** True for `Object.defineProperty(exports, "__esModule", …)` and `exports.__esModule = …`. */
-const isEsModuleMarker = (node: ts.Node): boolean => {
+/**
+ * Returns the `exports` or `module` identifier that `Object.defineProperty(exports, "__esModule", …)` or
+ * `exports.__esModule = …` (also on `module.exports`) marks, undefined when `node` is no such marker.
+ */
+const findEsModuleMarkerRoot = (node: ts.Node): ts.Identifier | undefined => {
     if (ts.isCallExpression(node)) {
+        const callee = node.expression;
         const [target, property] = node.arguments;
-        return (
-            ts.isPropertyAccessExpression(node.expression) &&
-            node.expression.getText() === "Object.defineProperty" &&
-            !!target &&
-            isExportsObject(target) &&
-            !!property &&
-            ts.isStringLiteralLike(property) &&
-            property.text === "__esModule"
-        );
+        const isDefineProperty =
+            ts.isPropertyAccessExpression(callee) &&
+            ts.isIdentifier(callee.expression) &&
+            callee.expression.text === "Object" &&
+            callee.name.text === "defineProperty";
+        return isDefineProperty && !!property && ts.isStringLiteralLike(property) && property.text === "__esModule"
+            ? findExportsRoot(target)
+            : undefined;
     }
-    return (
-        ts.isBinaryExpression(node) &&
+    return ts.isBinaryExpression(node) &&
         node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
         ts.isPropertyAccessExpression(node.left) &&
-        node.left.name.text === "__esModule" &&
-        isExportsObject(node.left.expression)
-    );
+        node.left.name.text === "__esModule"
+        ? findExportsRoot(node.left.expression)
+        : undefined;
 };
 
-const isExportsObject = (node: ts.Node): boolean =>
-    (ts.isIdentifier(node) && node.text === "exports") ||
-    (ts.isPropertyAccessExpression(node) && node.name.text === "exports" && ts.isIdentifier(node.expression) && node.expression.text === "module");
+/** Returns the root identifier of `exports` or `module.exports`, undefined for other expressions. */
+const findExportsRoot = (node: ts.Node | undefined): ts.Identifier | undefined => {
+    if (node && ts.isIdentifier(node) && node.text === "exports") {
+        return node;
+    }
+    return node &&
+        ts.isPropertyAccessExpression(node) &&
+        node.name.text === "exports" &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === "module"
+        ? node.expression
+        : undefined;
+};
 
 const isFunctionScope = (node: ts.Node): boolean => ts.isFunctionLike(node) || ts.isSourceFile(node) || ts.isClassStaticBlockDeclaration(node);
 

@@ -6,6 +6,15 @@
  */
 import { scanModule } from "./scan-module";
 
+const ESBUILD_BUNDLE =
+    `var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);\n` +
+    `var require_dep = __commonJS((exports, module) => {\n` +
+    `  Object.defineProperty(exports, "__esModule", { value: true });\n` +
+    `  exports.a = 1;\n` +
+    `  module.exports.b = 2;\n` +
+    `});\n` +
+    `console.log(require_dep().a);`;
+
 const freeNames = (content: string): string[] => scanModule("/dist/target.js", content).freeReferences.map(cur => cur.name);
 
 describe("scanModule", () => {
@@ -285,5 +294,35 @@ describe("scanModule", () => {
         const actual = scanModule("/dist/target.js", `use(x.__esModule);`).esModuleMarker;
 
         expect(actual).toBeUndefined();
+    });
+
+    it("yields no ES module marker w/ marker in typeof exports guard", () => {
+        const actual = scanModule(
+            "/dist/target.js",
+            `if (typeof exports === "object") { Object.defineProperty(exports, "__esModule", { value: true }); exports.a = 1; }`
+        ).esModuleMarker;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("yields no ES module marker w/ exports as function parameter", () => {
+        const actual = scanModule(
+            "/dist/target.js",
+            `function f(exports) { Object.defineProperty(exports, "__esModule", { value: true }); exports.x = 1; return exports; }`
+        ).esModuleMarker;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("yields no ES module marker w/ esbuild __commonJS wrapper", () => {
+        const actual = scanModule("/dist/target.js", ESBUILD_BUNDLE).esModuleMarker;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("yields ES module marker w/ module.exports.__esModule assignment", () => {
+        const actual = scanModule("/dist/target.js", `module.exports.__esModule = true;`).esModuleMarker;
+
+        expect(actual).toEqual({ start: 0, length: 32 });
     });
 });
