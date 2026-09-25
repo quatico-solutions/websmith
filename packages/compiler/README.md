@@ -177,7 +177,7 @@ the name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`
 | 91004 | ESM syntax mixed with `module.exports =` / `exports.x =` | error | error | error | error |
 | 91005 | no `"type"` in the nearest `package.json`, file classified by its syntax | warning | — | — | — |
 | 91010 | relative import without a file extension (`./b`); add the extension: `./b.js` | error | error | allowed | allowed |
-| 91011 | relative import of a directory (`./utils`); import the file: `./utils/index.js` | error | error | allowed | allowed |
+| 91011 | relative import of a directory (`./utils`); import a file inside it, e.g. `./utils/index.js` | error | error | allowed | allowed |
 | 91012 | relative import that resolves to no file written by the build or on disk | error | error | error | allowed |
 | 91013 | JSON import without an import attribute; add `with { type: "json" }` | error | allowed | allowed | allowed |
 
@@ -187,11 +187,13 @@ checked: ESM syntax in them is left to the package-type rules of a later release
 
 91010–91013 check the relative specifiers (`./`, `../`) of static imports, re-exports and `import()` with a string
 literal. `import()` with a computed specifier is skipped, and bare specifiers such as `"pkg"` are not checked. The
-check sees the specifier in the emitted file, not the one in the TypeScript source. 91012 resolves a specifier against
-the files the build writes and the files on disk, so under `addonEmitOnly` a file left by an earlier build counts. In
-`javascript/auto` files it also tries the extensions `.js`, `.mjs`, `.cjs` and `.json` and accepts directories, like
-webpack does. On the Program path, TypeScript may report the same import on the source file as well (TS2834, TS2835,
-TS1543).
+check sees the specifier in the emitted file, not the one in the TypeScript source. A specifier counts as
+extensionless when adding `.js` names an existing file, or when its extension is none of `.js`, `.mjs`, `.cjs`,
+`.json`, `.node` and `.wasm` (e.g. `./user.service`); a JSON import with `assert` instead of `with` also gets 91013.
+91012 resolves a specifier against the files the build writes and the files on disk, so under `addonEmitOnly` a file
+left by an earlier build counts. In `javascript/auto` files it also tries the extensions `.js`, `.mjs`, `.cjs` and
+`.json` and accepts directories, like webpack does. On the Program path, TypeScript may report the same import on the
+source file as well (TS2834, TS2835, TS1543).
 
 Diagnostics point at the construct in the emitted file and name the profile and its active addons, e.g.
 `Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output; ...`. The check runs in
