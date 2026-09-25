@@ -359,3 +359,157 @@ describe("markFileAsAddonProcessed", () => {
         expect(testObj.getAddonProcessedFiles()).toContain("/path/file.ts");
     });
 });
+
+describe("addon attribution", () => {
+    const createContext = (system = createSystem({}, { virtual: true })) =>
+        new CompilationContextTestClass({
+            tsConfig: {},
+            projectDir: system.getCurrentDirectory(),
+            reporter: new ReporterMock(system),
+            rootFiles: [],
+            system,
+            cliArgs: { options: {}, fileNames: [], errors: [] },
+            profile: "test",
+        });
+
+    const createAddon = (name: string, activate: (ctx: CompilationContext) => void) => ({ getName: () => name, activate }) as never;
+
+    const transpile = (ctx: CompilationContext, fileName: string, content: string): string =>
+        ts.transpileModule(content, { fileName, compilerOptions: { module: ts.ModuleKind.ESNext }, transformers: ctx.getTransformers() }).outputText;
+
+    const renaming: ts.TransformerFactory<ts.SourceFile> = context => sourceFile => {
+        const visitor = (node: ts.Node): ts.Node =>
+            ts.isNumericLiteral(node) ? context.factory.createNumericLiteral(2) : ts.visitEachChild(node, visitor, context);
+        return ts.visitEachChild(sourceFile, visitor, context);
+    };
+
+    const identity: ts.TransformerFactory<ts.SourceFile> = () => sourceFile => sourceFile;
+
+    it("yields no addon w/o change by addon", () => {
+        const testObj = createContext();
+
+        const actual = testObj.getAddonsChangingFile("/src/target.ts");
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields addons in order w/ files changed by two addons", () => {
+        const testObj = createContext();
+        testObj.markFileAsChangedByAddon("/src/target.ts", "one-addon");
+        testObj.markFileAsChangedByAddon("/src/target.ts", "two-addon");
+        testObj.markFileAsChangedByAddon("/src/target.ts", "one-addon");
+
+        const actual = testObj.getAddonsChangingFile("/src/target.ts");
+
+        expect(actual).toEqual(["one-addon", "two-addon"]);
+    });
+
+    it("yields result of function w/ runAsAddon", () => {
+        const testObj = createContext();
+
+        const actual = testObj.runAsAddon("one-addon", () => "expected");
+
+        expect(actual).toBe("expected");
+    });
+
+    it("registers processor for addon w/ runAsAddon", () => {
+        const testObj = createContext();
+        const target = jest.fn();
+
+        testObj.runAsAddon("one-addon", () => testObj.registerProcessor(target));
+
+        expect(testObj.getAddonName(target)).toBe("one-addon");
+    });
+
+    it("registers processor for outer addon w/ nested runAsAddon", () => {
+        const testObj = createContext();
+        const target = jest.fn();
+
+        testObj.runAsAddon("one-addon", () => {
+            testObj.runAsAddon("two-addon", () => undefined);
+            testObj.registerProcessor(target);
+        });
+
+        expect(testObj.getAddonName(target)).toBe("one-addon");
+    });
+
+    it("registers processor for addon w/ activateAddon", () => {
+        const testObj = createContext();
+        const target = jest.fn();
+
+        testObj.activateAddon(createAddon("one-addon", ctx => ctx.registerProcessor(target)));
+
+        expect(testObj.getAddonName(target)).toBe("one-addon");
+    });
+
+    it("yields generator addon w/ addVirtualFile during generator of addon", () => {
+        const testObj = createContext();
+        testObj.setCurrentSourceFile("/src/target.ts");
+
+        testObj.runAsAddon("gen-addon", () => testObj.addVirtualFile("/src/generated.ts", "export const a = 1;"));
+
+        expect(testObj.getAddonsChangingFile("/src/generated.ts")).toEqual(["gen-addon"]);
+        expect(testObj.getAddonsChangingFile("/src/target.ts")).toEqual(["gen-addon"]);
+    });
+
+    it("yields generator addon w/ addInputFile during generator of addon", () => {
+        const system = createSystem({ "/src/added.ts": "export const a = 1;" }, { virtual: true });
+        const testObj = createContext(system);
+        testObj.setCurrentSourceFile("/src/target.ts");
+
+        testObj.runAsAddon("gen-addon", () => testObj.addInputFile("/src/added.ts"));
+
+        expect(testObj.getAddonsChangingFile("/src/added.ts")).toEqual(["gen-addon"]);
+        expect(testObj.getAddonsChangingFile("/src/target.ts")).toEqual(["gen-addon"]);
+    });
+
+    it("yields only changing addon w/ two transformer addons and one returning its input", () => {
+        const testObj = createContext();
+        testObj.activateAddon(createAddon("identity-addon", ctx => ctx.registerTransformer({ before: [identity] })));
+        testObj.activateAddon(createAddon("changing-addon", ctx => ctx.registerTransformer({ before: [renaming] })));
+
+        transpile(testObj, "/src/target.ts", "export const a = 1;");
+        const actual = testObj.getAddonsChangingFile("/src/target.ts");
+
+        expect(actual).toEqual(["changing-addon"]);
+    });
+
+    it("yields transformer addon w/ after and afterDeclarations transformers", () => {
+        const testObj = createContext();
+        testObj.activateAddon(createAddon("after-addon", ctx => ctx.registerTransformer({ after: [renaming], afterDeclarations: [identity] })));
+
+        transpile(testObj, "/src/target.ts", "export const a = 1;");
+        const actual = testObj.getAddonsChangingFile("/src/target.ts");
+
+        expect(actual).toEqual(["after-addon"]);
+    });
+
+    it("yields transformer addon w/ custom transformer factory", () => {
+        const testObj = createContext();
+        const custom: ts.CustomTransformerFactory = context => ({
+            transformSourceFile: sourceFile => renaming(context)(sourceFile),
+            transformBundle: bundle => bundle,
+        });
+        testObj.activateAddon(createAddon("custom-addon", ctx => ctx.registerTransformer({ before: [custom] })));
+
+        transpile(testObj, "/src/target.ts", "export const a = 1;");
+        const actual = testObj.getAddonsChangingFile("/src/target.ts");
+
+        expect(actual).toEqual(["custom-addon"]);
+    });
+
+    it("yields same output w/ wrapped transformers", () => {
+        const testObj = createContext();
+        testObj.activateAddon(createAddon("changing-addon", ctx => ctx.registerTransformer({ before: [renaming, identity] })));
+
+        const actual = transpile(testObj, "/src/target.ts", "export const a = 1;");
+
+        expect(actual).toBe(
+            ts.transpileModule("export const a = 1;", {
+                fileName: "/src/target.ts",
+                compilerOptions: { module: ts.ModuleKind.ESNext },
+                transformers: { before: [renaming, identity] },
+            }).outputText
+        );
+    });
+});
