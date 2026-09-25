@@ -176,10 +176,23 @@ the name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`
 | 91003 | free `__dirname` / `__filename` in ESM output | error | error | allowed | allowed |
 | 91004 | ESM syntax mixed with `module.exports =` / `exports.x =` | error | error | error | error |
 | 91005 | no `"type"` in the nearest `package.json`, file classified by its syntax | warning | — | — | — |
+| 91020 | named import that the CommonJS package does not export (`import { a } from "pkg"`) | error | allowed | allowed | — |
+| 91021 | default import from a CommonJS module that sets `__esModule` (`import def from "pkg"`) | error | error | allowed | — |
 
 91001–91004 apply to files the runtime loads as ES modules, plus 91004 in `javascript/auto` and `javascript/dynamic`
 files for `bundler`. Under `node`, `.cjs` files and files under `"type": "commonjs"` load as CommonJS and are not
 checked: ESM syntax in them is left to the package-type rules of a later release.
+
+91020 and 91021 check `import` and `export … from` declarations with a bare specifier (`"pkg"`, `"pkg/sub"`) that
+resolves to a CommonJS entry. The package resolves the way Node's ESM loader does: `node_modules` upwards from the
+emitted file, then `package.json` `"exports"` with the conditions `node`, `import` and `default`, or without
+`"exports"`, `main` and `index.js`. An entry the runtime loads as ES module is not checked. The export names are
+those Node's `cjs-module-lexer` detects, following re-exports such as `__exportStar(require("./inner"))`, so
+TypeScript-compiled packages import by name as they do under Node, while `module.exports = Object.assign(...)` does
+not. A default import from a module that sets `__esModule` binds the whole `module.exports` under Node and strict
+webpack, not its default export; use `import pkg from "pkg"; pkg.default` or a named import. When the check cannot
+decide, for example for a package that is not installed or a re-export it cannot resolve, it reports nothing and
+`--debug` lists the import.
 
 Diagnostics point at the construct in the emitted file and name the profile and its active addons, e.g.
 `Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output; ...`. The check runs in
