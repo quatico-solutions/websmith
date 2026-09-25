@@ -20,9 +20,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   `__dirname` or `__filename`, and ESM syntax mixed with `module.exports`. Profiles without `esm` are not checked.
   See "ESM check" in `packages/compiler/README.md`.
 - ESM check codes 91030–91033 for module formats that contradict how the file loads: ESM syntax in a `.cjs` file
-  (91030) or in a `.js` file under `"type": "commonjs"` (91031), CommonJS output in a file loaded as ESM (91032, which
-  replaces that file's per-identifier 91001–91004 findings), and top-level `await` in a file loaded as CommonJS
-  (91033). With `esm`, TypeScript's TS2835, TS2834, TS1543, TS1470, TS1309 and TS1203 are labelled with the ESM check
+  (91030) or in a `.js` file under `"type": "commonjs"` (91031), CommonJS output in a file loaded as ESM (91032), and
+  top-level `await` in a file loaded as CommonJS (91033). 91030–91032 replace the file's per-identifier 91001–91004
+  findings. With `esm`, TypeScript's TS2835, TS2834, TS1543, TS1470, TS1309 and TS1203 are labelled with the ESM check
   and the profile.
 
 ### Changed

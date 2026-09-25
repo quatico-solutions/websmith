@@ -38,6 +38,13 @@ export const EsmDiagnosticCode = {
     ...PackageTypeCode,
 } as const;
 
+/** File-level findings that suppress the file's 91001–91004 findings. */
+const FORMAT_MISMATCH_CODES: ReadonlySet<number> = new Set([
+    EsmDiagnosticCode.EsmSyntaxInCjsFile,
+    EsmDiagnosticCode.EsmSyntaxInCommonJsPackage,
+    EsmDiagnosticCode.CommonJsOutputLoadedAsEsm,
+]);
+
 const JS_FILE = /\.[cm]?js$/i;
 
 // ts.ModuleKind None, CommonJS, AMD, UMD, System: formats that cannot be loaded as ES modules
@@ -100,9 +107,9 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
             }
             const packageTypeFindings = checkPackageType(cur.name, classification, scan);
             packageTypeFindings.forEach(({ code, message, start, length }) => report(code, message, category, start, length));
-            // Whole-file CommonJS output has one cause: its per-identifier findings would repeat it
-            const isCommonJsOutput = packageTypeFindings.some(({ code }) => code === EsmDiagnosticCode.CommonJsOutputLoadedAsEsm);
-            (isCommonJsOutput ? [] : freeReferences).forEach(ref => {
+            // A module format that contradicts how the file loads is one cause: per-identifier findings would repeat it
+            const hasFormatMismatch = packageTypeFindings.some(({ code }) => FORMAT_MISMATCH_CODES.has(code));
+            (hasFormatMismatch ? [] : freeReferences).forEach(ref => {
                 if (ref.commonJsExport && hasEsmSyntax && kind !== "commonjs") {
                     report(EsmDiagnosticCode.MixedCommonJsExport, describeMixedExport(ref), category, ref.start, ref.length);
                 } else if (kind === "esm") {

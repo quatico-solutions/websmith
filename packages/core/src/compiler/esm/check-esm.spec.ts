@@ -109,20 +109,20 @@ describe("checkEsm", () => {
         expect(actual).toEqual([]);
     });
 
-    it("yields 91030 and 91004 w/ ESM syntax mixed with module.exports in bundler .cjs output", () => {
+    it("yields only 91030 w/ ESM syntax mixed with module.exports in bundler .cjs output", () => {
         const actual = codesOf([output("/dist/target.cjs", `import x from "y";\nmodule.exports = x;`)], { runtime: "bundler" });
 
-        expect(actual).toEqual([91030, 91004]);
+        expect(actual).toEqual([91030]);
     });
 
-    it("yields 91031 and 91004 w/ ESM syntax mixed with module.exports in bundler output under commonjs package", () => {
+    it("yields only 91031 w/ ESM syntax mixed with module.exports in bundler output under commonjs package", () => {
         const actual = codesOf(
             [output("/dist/target.js", `import x from "y";\nrequire("z");\nmodule.exports = x;`)],
             { runtime: "bundler" },
             createContext({ "/package.json": JSON.stringify({ type: "commonjs" }) })
         );
 
-        expect(actual).toEqual([91031, 91004]);
+        expect(actual).toEqual([91031]);
     });
 
     it("yields 91001 w/ free require in bundler .mjs output", () => {
