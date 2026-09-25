@@ -76,9 +76,11 @@ pnpm license:add                 # Add missing license headers
 - **Story index:** docs/stories/README.md
 - **Definition of Done:** lint, test, build, test:e2e
 - **Git host:** github
+- **Main branch:** develop
 - **Tracker:** github
 - **CI:** github-actions
 - **Worktree root:** .worktrees
+- **Worker command:** none
 - **Commit style:** arlo-no-colon — e.g. `R Fixes …`; see the `commit-notation` skill
 
 <!-- Written by /plot-init.

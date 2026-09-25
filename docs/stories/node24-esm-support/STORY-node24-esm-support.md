@@ -79,6 +79,10 @@ not ESM compatible reports a diagnostic at compile time.
 - ⏸️ Config shape: the profile key(s) for the runtime and the severity
 - ⏸️ Candidate e2e fixtures: an addon that generates `require(...)`, one that generates an extensionless
   relative import, one that emits CJS into a `"type": "module"` package
+- 🔄 Planned as `esm-output-check` ([PR #112](https://github.com/quatico-solutions/websmith/pull/112)): panel
+  round (unanimous amend) and six interrogation rounds; 4 waves, 6 slices
+- ⏸️ Not in v1 of the check, tracked here: bare-specifier subpaths a package's `exports` map does not allow,
+  directory and extensionless subpaths without one, tsconfig `paths` aliases left in emitted specifiers
 
 ### Phase 3: Implement ⏸️
 
@@ -102,6 +106,12 @@ not ESM compatible reports a diagnostic at compile time.
   loader package would load (analysis B.4).
 - ✅ "ESM compatible" is configured per profile (Node ESM or bundler ESM) → See Decisions
 - ✅ A failed check is an error with a per-profile opt-out → See Decisions
+- ⏸️ Invalid `tsconfig.json` options probably still exit 0 after `esm-output-check` wave 1: their errors are carried
+  in `cliArgs.errors` (`parsed-command-line.ts:140`, `ResolvedCompilerOptions.ts:131`) and never reach the
+  reporter, so the exit code cannot see them (review of `feature/cli-exit-and-written-set`, low confidence)
+- ⏸️ Errors without a file ("Cannot find type definition file", other global diagnostics) are filtered out before
+  the reporter unless the project uses project references (`Compiler.ts:603`), so they neither print nor fail the
+  build; behaviour predates wave 1 (same review, low confidence)
 - ⏸️ Watch mode: ESM addons do not reload after `delete require.cache` — document, or reload via `import()`?
 - ✅ The `.ts`-addon failure in `"type": "module"` projects is filed as
   [#111](https://github.com/quatico-solutions/websmith/issues/111), to be fixed ahead of this story as its own plan
@@ -214,3 +224,22 @@ default with a per-profile opt-out; all three check sources. Filed the `.ts`-add
 
 - Phase 2b scope settled; open: config shape, and interaction with `addonEmitOnly` / `ResultProcessor`s
 - #111 becomes the first plan, ahead of this story
+
+### 2026-09-24 — `esm-output-check` panel and interrogation
+
+Panel of four jurors (addon author, compiler pipeline, webpack loader, ESM semantics), unanimous `amend`;
+moderation in `.plot/panels/2026-09-24-esm-output-check/panel.md`. Six `/challenge-the-plan` rounds with
+Jan Wloka settled module classification, parser (`ts.createSourceFile` plus a websmith scope walk, TS 7 cost
+recorded), failure semantics (non-zero CLI exit, webpack `emitError`), the rule table per runtime, coverage,
+attribution, the performance budget and the slices.
+
+**Key outcomes:**
+
+- Plan ready for review in PR #112; the CLI exit-code change ships as its own first slice
+- Three Node ESM failure classes deferred beyond v1 (listed in Phase 2b)
+
+### 2026-09-25 — Follow-ups from the wave 1 review
+
+The code review of `feature/cli-exit-and-written-set` (APPROVE, no blockers) found two error paths that the new
+exit code cannot see because the errors never reach the reporter: invalid `tsconfig.json` options and diagnostics
+without a file. Both predate the change; recorded as open points.
