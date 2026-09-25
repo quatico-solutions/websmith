@@ -285,3 +285,9 @@ Accepted for v1; each is a real Node failure that the rules do not report:
 - **Plan vs. brief on attribution fallback.** The plan (§ Diagnostics) says a diagnostic lists the profile's active
   addons when attribution is unclear. The brief and the implementation list the addons that changed the file, or
   none. The implementation follows the brief.
+- **Duplicate watch diagnostics for generator-added files.** `registerWatch` (`Compiler.ts`) adds another watcher each
+  time a generator re-adds a file with `addInputFile`, so every change is reported once per watcher. This predates
+  the ESM check: without `esm`, the file is written twice. Separately, the first watch build does not emit a file
+  that a generator added this way.
+- **Nested compiles through the context's system are checked twice.** A result processor that runs a nested
+  websmith compile through `ctx.getSystem()` has that compile's output checked by both compiles.
