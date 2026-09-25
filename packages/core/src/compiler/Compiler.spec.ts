@@ -3545,7 +3545,7 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.code]);
 
-        expect(actual).toEqual([["/src/meta.js", 91002]]);
+        expect(actual).toEqual([["/src/meta.js", 91032]]);
     });
 
     it("names result processor addon in ESM diagnostic w/ result processor writing CommonJS", () => {

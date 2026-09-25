@@ -378,7 +378,7 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (2,26): ESM91001`);
     }, 60000);
 
-    it("should exit with status 1 and report 91002 naming addon w/ result processor writing CommonJS into node ESM profile output", () => {
+    it("should exit with status 1 and report 91032 naming addon w/ result processor writing CommonJS into node ESM profile output", () => {
         createEsmProject("error", []);
         const metaFile = path.join(testDirs.OUTPUT_DIR, "meta.js");
         createAddon(
@@ -402,7 +402,7 @@ describe("bin.ts e2e tests", () => {
         const actual2 = target.output;
 
         expect(actual1).toBe(1);
-        expect(actual2).toContain(`${metaFile} (1,1): ESM91002`);
+        expect(actual2).toContain(`${metaFile} (1,1): ESM91032`);
         expect(actual2).toContain(`(profile "client", addons: meta-writer).`);
     }, 60000);
 
