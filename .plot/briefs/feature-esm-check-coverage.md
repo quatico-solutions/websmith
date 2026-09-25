@@ -76,6 +76,11 @@ exactly like `emitResult`:
   - For `watch()` that is correct: only the rebuilt fragment is checked.
   - A second `compile()` on the same `Compiler` instance therefore re-checks nothing. Leave that alone and do not
     work around it here; wave 4 has to decide it for the loader.
+- **Wave 4 needs an activation API.** `WebpackAddonService.applyAddonsToContext` activates addons without setting the
+  current addon (`WebpackAddonService.ts:113-122`), so attribution recorded through `currentAddonName`
+  (`CompilationContext.ts:278-285`) would read "unknown" in the loader. Expose the attribution entry point as a small
+  public method on `CompilationContext` (e.g. `runAsAddon(name, fn)`), and make `activateAddon` use it, so wave 4 can
+  call it from the loader. Wave 4 does the loader side.
 - **Overlap with `esm-check-package-type`.** That slice changes `Compiler.report()` and its call. This slice owns
   the processor loop, the `ResultProcessor` loop and `watch()`. The second to merge resolves any conflict.
 
