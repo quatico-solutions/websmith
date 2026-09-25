@@ -176,7 +176,7 @@ slices add.
 
 ### Wave 1
 
-- `feature/cli-exit-and-written-set` — non-zero CLI exit on error-level diagnostics, and an explicit written set returned by `processOutput` (`ResultProcessor`s keep today's list) <!-- builds: CLI exit code on errors and the processOutput written set -->
+- `feature/cli-exit-and-written-set` — non-zero CLI exit on error-level diagnostics, and an explicit written set returned by `processOutput` (`ResultProcessor`s keep today's list) → #115 <!-- builds: CLI exit code on errors and the processOutput written set -->
 
 ### Wave 2
 
