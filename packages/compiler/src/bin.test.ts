@@ -510,6 +510,74 @@ describe("bin.ts e2e tests", () => {
         expect(actual).not.toContain("require(");
     }, 60000);
 
+    it.each([
+        { module: "node16", type: "module", declaration: false },
+        { module: "node16", type: "commonjs", declaration: false },
+        { module: "node16", type: undefined, declaration: false },
+        { module: "nodenext", type: "module", declaration: false },
+        { module: "nodenext", type: "commonjs", declaration: false },
+        { module: "nodenext", type: undefined, declaration: false },
+    ] as const)(
+        "should yield tsc output w/ module $module, package.json type $type and declaration $declaration",
+        ({ module, type, declaration }) => {
+            createPackageJson({ name: "project", ...(type && { type }) });
+            createTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
+                noEmit: false,
+                declaration,
+                module,
+                target: module === "node16" ? "es2022" : "esnext",
+                esModuleInterop: true,
+                strict: true,
+                skipLibCheck: true,
+                types: [],
+            });
+            createModuleFormatSources();
+
+            executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+
+            const actual = readOutputFiles();
+            expect(actual).toEqual(emitWithTsc());
+        },
+        60000
+    );
+
+    const createModuleFormatSources = () => {
+        createSourceFile(`export const x = 1;\nexport default 2;\n`, "dep.ts");
+        createSourceFile(
+            `import * as dep from "./dep.js";\nimport fsx = require("fs");\nexport const v = dep.x + fsx.sep;\nexport async function f() { return import("./dep.js"); }\nexport default class C { y = 1 }\n`,
+            "a.ts"
+        );
+        createSourceFile(
+            `import def from "./dep.js";\nimport fsx = require("fs");\nexport const u = def;\nexport const url = import.meta.url;\n`,
+            "b.mts"
+        );
+        createSourceFile(
+            `import * as dep from "./dep.js";\nimport fsx = require("fs");\nasync function h() { return import("./dep.js"); }\nexport = { dep, fsx, h };\n`,
+            "c.cts"
+        );
+        createSourceFile(`const z = 1;\nexport = z;\n`, "e.ts");
+    };
+
+    const emitWithTsc = (): Record<string, string> => {
+        const { config } = ts.readConfigFile(path.join(testDirs.PROJECT_DIR, "tsconfig.json"), ts.sys.readFile);
+        const { options, fileNames } = ts.parseJsonConfigFileContent(config, ts.sys, testDirs.PROJECT_DIR);
+        const result: Record<string, string> = {};
+        ts.createProgram(fileNames, options).emit(undefined, (fileName, text) => {
+            result[path.relative(testDirs.OUTPUT_DIR, fileName)] = text;
+        });
+        return result;
+    };
+
+    const readOutputFiles = (): Record<string, string> =>
+        Object.fromEntries(
+            fs
+                .readdirSync(testDirs.OUTPUT_DIR, { recursive: true, encoding: "utf-8" })
+                .filter(cur => fs.statSync(path.join(testDirs.OUTPUT_DIR, cur)).isFile())
+                .map(cur => [cur, fs.readFileSync(path.join(testDirs.OUTPUT_DIR, cur), "utf-8")])
+        );
+
     const executeCompiler = (args = ""): string => {
         process.chdir(testDirs.PROJECT_DIR);
 

@@ -57,6 +57,23 @@ const TARGET_MAP: Record<number, ts.ScriptTarget> = {
 // This error occurs when numeric enum values are used in CLI args that TypeScript's command-line parser rejects
 const TS_ERROR_CODE_INVALID_CLI_OPTION = 6046;
 
+// Options ts.transpileModule removes before it emits, see transpileOptionValueCompilerOptions in TypeScript
+const TRANSPILE_REMOVED_OPTIONS = [
+    "allowImportingTsExtensions",
+    "composite",
+    "declarationDir",
+    "emitDeclarationOnly",
+    "incremental",
+    "lib",
+    "noEmit",
+    "noEmitOnError",
+    "outFile",
+    "paths",
+    "rootDirs",
+    "tsBuildInfoFile",
+    "types",
+] as const;
+
 export class Compiler {
     private system: ts.System;
     private options!: ResolvedCompilerOptions;
@@ -82,6 +99,8 @@ export class Compiler {
     private baselineEmitCache = new Map<string, string | undefined>();
     // Track file modification times to detect when files change and invalidate stale cache entries
     private baselineEmitCacheFileTimes = new Map<string, Date>();
+    // Parsed package.json files for the module format of files under node16/nodenext, cleared with the options
+    private packageJsonInfoCache?: ts.PackageJsonInfoCache;
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -106,6 +125,7 @@ export class Compiler {
     compile(): ts.EmitResult {
         const { profile, buildDir } = this.options;
         const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
+        this.packageJsonInfoCache = undefined;
 
         if (this.options.debug) {
             this.reporter.reportDiagnostic(new InfoMessage(`Starting compilation with debug mode enabled.`));
@@ -255,6 +275,7 @@ export class Compiler {
         this.baselineTranspileCache.clear(); // Clear baseline transpile cache when options change
         this.baselineEmitCache.clear(); // Clear baseline emit cache when options change
         this.baselineEmitCacheFileTimes.clear(); // Clear file modification time tracking when options change
+        this.packageJsonInfoCache = undefined;
         // Don't invalidate cachedProgram - keep it for incremental compilation
         // The createProgram() method will detect option changes and create a new program
         // while still passing the old program for incremental type checking
@@ -686,6 +707,9 @@ export class Compiler {
             this.system.watchFile(
                 filePath,
                 fileName => {
+                    if (path.basename(fileName) === "package.json") {
+                        this.packageJsonInfoCache = undefined;
+                    }
                     if (!profileNames?.length) {
                         return fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
                             ? this.emitSourceFile(fileName, undefined, true, true)
@@ -1035,7 +1059,7 @@ export class Compiler {
                 content,
                 {
                     languageVersion: ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest,
-                    impliedNodeFormat: ts.getImpliedNodeFormatForFile(fileName, undefined, this.system, ctx.getCompilerOptions()),
+                    impliedNodeFormat: this.getImpliedNodeFormat(fileName, ctx.getCompilerOptions()),
                 },
                 true
             );
@@ -1140,11 +1164,11 @@ export class Compiler {
             };
         }
 
-        const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
-            compilerOptions: this.getTranspileModuleOptions(fileName, ctx.getCompilerOptions()),
-            fileName,
-            transformers: ctx.getTransformers(),
-        });
+        const compilerOptions = ctx.getCompilerOptions();
+        const { outputText, sourceMapText, diagnostics } =
+            compilerOptions.module === ts.ModuleKind.Node16 || compilerOptions.module === ts.ModuleKind.NodeNext
+                ? this.transpileNodeModule(content, fileName, compilerOptions, ctx.getTransformers())
+                : ts.transpileModule(content, { compilerOptions, fileName, transformers: ctx.getTransformers() });
 
         // Use ts.getOutputFileNames to get correct output paths
         // Note: We filter TS_ERROR_CODE_INVALID_CLI_OPTION below, so numeric enum values won't cause issues
@@ -1165,24 +1189,73 @@ export class Compiler {
     }
 
     /**
-     * Pins the module format for ts.transpileModule, which cannot read package.json and so emits every .ts file as
-     * CommonJS under node16/nodenext. Keeps the defaults that node16/nodenext imply for target, esModuleInterop and
-     * moduleDetection.
+     * Emits one file like ts.transpileModule, but with the module format that node16/nodenext give the file through its
+     * extension and the nearest package.json. ts.transpileModule cannot read package.json and emits every .ts file as
+     * CommonJS under node16/nodenext.
      */
-    private getTranspileModuleOptions(fileName: string, options: ts.CompilerOptions): ts.CompilerOptions {
-        const { module } = options;
-        if (module !== ts.ModuleKind.Node16 && module !== ts.ModuleKind.NodeNext) {
-            return options;
-        }
-        const format = ts.getImpliedNodeFormatForFile(fileName, undefined, this.system, options);
-        return {
+    private transpileNodeModule(
+        content: string,
+        fileName: string,
+        options: ts.CompilerOptions,
+        transformers: ts.CustomTransformers
+    ): ts.TranspileOutput {
+        // The options ts.transpileModule forces, see transpileOptionValueCompilerOptions in TypeScript
+        const compilerOptions: ts.CompilerOptions = {
             ...options,
-            module: format === ts.ModuleKind.ESNext ? ts.ModuleKind.ESNext : ts.ModuleKind.CommonJS,
-            moduleResolution: undefined,
-            target: options.target ?? (module === ts.ModuleKind.Node16 ? ts.ScriptTarget.ES2022 : ts.ScriptTarget.ESNext),
-            esModuleInterop: options.esModuleInterop ?? true,
-            moduleDetection: options.moduleDetection ?? ts.ModuleDetectionKind.Force,
+            ...(!options.verbatimModuleSyntax && { isolatedModules: true }),
+            noCheck: true,
+            noLib: true,
+            noResolve: true,
+            suppressOutputPathCheck: true,
+            allowNonTsExtensions: true,
+            declaration: false,
+            declarationMap: false,
         };
+        for (const key of TRANSPILE_REMOVED_OPTIONS) {
+            delete compilerOptions[key];
+        }
+
+        const impliedNodeFormat = this.getImpliedNodeFormat(fileName, options);
+        let outputText = "";
+        let sourceMapText: string | undefined;
+        const host: ts.CompilerHost = {
+            getSourceFile: (name, languageVersionOrOptions) =>
+                name === fileName
+                    ? ts.createSourceFile(name, content, {
+                          ...(typeof languageVersionOrOptions === "object"
+                              ? languageVersionOrOptions
+                              : { languageVersion: languageVersionOrOptions }),
+                          impliedNodeFormat,
+                      })
+                    : undefined,
+            writeFile: (name, text) => {
+                if (name.endsWith(".map")) {
+                    sourceMapText = text;
+                } else {
+                    outputText = text;
+                }
+            },
+            getDefaultLibFileName: () => "lib.d.ts",
+            useCaseSensitiveFileNames: () => false,
+            getCanonicalFileName: name => name,
+            getCurrentDirectory: () => "",
+            getNewLine: () => (options.newLine === ts.NewLineKind.CarriageReturnLineFeed ? "\r\n" : "\n"),
+            fileExists: name => name === fileName,
+            readFile: () => "",
+            directoryExists: () => true,
+            getDirectories: () => [],
+        };
+        const { diagnostics } = ts.createProgram([fileName], compilerOptions, host).emit(undefined, undefined, undefined, false, transformers);
+
+        return { outputText, sourceMapText, diagnostics: [...diagnostics] };
+    }
+
+    /** Returns the module format TypeScript gives a file from its extension and the nearest package.json. */
+    private getImpliedNodeFormat(fileName: string, options: ts.CompilerOptions): ts.ResolutionMode {
+        this.packageJsonInfoCache ??= ts
+            .createModuleResolutionCache(this.system.getCurrentDirectory(), name => name, options)
+            .getPackageJsonInfoCache();
+        return ts.getImpliedNodeFormatForFile(fileName, this.packageJsonInfoCache, this.system, options);
     }
 
     private transpileJson({ ctx, fileName, content }: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {

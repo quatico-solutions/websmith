@@ -46,9 +46,11 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - Diagnostics located at the first character of a file now show their file name and position (`(1,1)`) instead of
   only their message.
 - `"module": "nodenext"` in `tsconfig.json` was treated as `"preserve"`, so `websmith` emitted ES modules where `tsc`
-  emits CommonJS, for example under `package.json` `"type": "commonjs"`. With `"module": "node16"` or `"nodenext"`,
-  `websmith` now picks CommonJS or ESM per file from the extension and the nearest `package.json` `"type"`, as `tsc`
-  does, also in builds without type-checking addons and in builds that emit declarations.
+  emits CommonJS, for example under `package.json` `"type": "commonjs"`.
+- With `"module": "node16"` or `"nodenext"`, builds without type-checking addons and without declarations emitted
+  every `.ts` file as CommonJS. They now pick CommonJS or ESM per file from its extension and the nearest
+  `package.json` `"type"`, like `tsc`, and keep dynamic `import()` in CommonJS files and `import x = require()` in
+  ES module files.
 
 ### Removed
 

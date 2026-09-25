@@ -1020,6 +1020,48 @@ describe("emitSourceFile", () => {
         expect(getText("target.js", actual)).toContain(expected);
     });
 
+    it("yields dynamic import w/ module Node16 and package.json type commonjs on fast path", () => {
+        const fileSystem = createSystem(
+            {
+                "package.json": JSON.stringify({ type: "commonjs" }),
+                "src/target.ts": `export async function load() { return import("./dep.js"); }`,
+            },
+            { virtual: true }
+        );
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.Node16 },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(getText("target.js", actual)).toContain(`return import("./dep.js");`);
+    });
+
+    it("yields createRequire for import require w/ module NodeNext and package.json type module on fast path", () => {
+        const fileSystem = createSystem(
+            {
+                "package.json": JSON.stringify({ type: "module" }),
+                "src/target.ts": `import fs = require("fs");\nexport const sep = fs.sep;`,
+            },
+            { virtual: true }
+        );
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(getText("target.js", actual)).toContain(`const fs = __require("fs");`);
+    });
+
     it("yields modified client function w/ annotated arrow function", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
         const target = {
