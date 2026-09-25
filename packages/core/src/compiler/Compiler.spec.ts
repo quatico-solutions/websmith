@@ -1899,6 +1899,20 @@ describe("watch w/ esm profile", () => {
         testObj.closeAllWatchers();
     });
 
+    it("reports ESM diagnostic w/ module NodeNext and package.json type changed from commonjs to module", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "commonjs" }), "src/target.ts": REQUIRE_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = createWatchCompiler(fileSystem, reporter, { module: ts.ModuleKind.NodeNext }).watch();
+        target.mockClear();
+
+        fileSystem.writeFile("/package.json", JSON.stringify({ type: "module" }));
+        const actual = target.mock.calls.map(([cur]) => cur.code);
+
+        expect(actual).toEqual([91001]);
+        testObj.closeAllWatchers();
+    });
+
     it("reports ESM diagnostic w/ initial watch build of file with require", () => {
         const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": REQUIRE_SOURCE }, { virtual: true });
         const reporter = new ReporterMock(fileSystem);

@@ -902,7 +902,13 @@ export class Compiler {
                     packageJson,
                     () => {
                         this.packageJsonInfoCache = undefined;
-                        packageFiles.forEach(curFile => profiles.forEach(profile => this.emitSourceFile(curFile, profile, true, true)));
+                        packageFiles.forEach(curFile =>
+                            profiles.forEach(profile =>
+                                profile
+                                    ? this.checkWatchedFragment(curFile, profile, this.emitSourceFile(curFile, profile, true, true))
+                                    : this.emitSourceFile(curFile, profile, true, true)
+                            )
+                        );
                     },
                     50,
                     WATCH_OPTIONS
