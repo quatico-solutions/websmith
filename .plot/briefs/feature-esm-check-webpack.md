@@ -53,7 +53,7 @@ Pieces:
    - **Target profile** (`:97`): check the JavaScript in `fragment.files`, **not** `writtenFiles`. webpack bundles
      `files`, and under `addonEmitOnly` `writtenFiles` is empty for a file no addon touched.
 3. **Classification of the target under `runtime: "bundler"`: webpack's own module type.**
-   - Map `this._module.type`: `javascript/esm` → esm, `javascript/dynamic` → commonjs, `javascript/auto` → auto.
+   - Map `this._module.type`: `javascript/esm` → esm, `javascript/dynamic` → `dynamic`, `javascript/auto` → auto.
    - When `_module` is missing (thread-loader), fall back to wave 2's classification; `instance-cache.ts:10-12`
      guards the same case.
    - Under `runtime: "node"` the target is honoured as declared: the loader also writes it to `outDir`, where Node

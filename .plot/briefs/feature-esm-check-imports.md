@@ -51,7 +51,7 @@ literal. Fix hints: 91010 "add the extension: `./b.js`", 91011 "import the file:
 ### Carried over from the wave 2 review and the wave 3/4 briefs (amended 2026-09-25)
 
 - **Three module kinds under `bundler`.** Wave 2 now classifies `.cjs` files, and `.js` files under
-  `"type": "commonjs"`, as **CommonJS** (webpack's `javascript/dynamic`), not `auto`. The table's rules apply to
+  `"type": "commonjs"`, as kind **`dynamic`** (webpack's `javascript/dynamic`), not `auto`. The table's rules apply to
   ESM-classified files only.
   - Add a row to the tests: a `.cjs` output with `require("./b")` under `bundler` → nothing.
 - **Read the file system only through `context.system`.** Never use `fs`. The 91011 directory check and the 91012

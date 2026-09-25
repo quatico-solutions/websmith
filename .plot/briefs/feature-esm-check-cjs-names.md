@@ -82,7 +82,7 @@ Pieces:
 - **Node's conditions, not webpack's.** The resolver keeps `["node", "import", "default"]` in the loader too. Wave 4
   documents the possible mismatch; do not add webpack conditions here.
 - **Three module kinds under `bundler`.** Wave 2 now classifies `.cjs` files, and `.js` files under
-  `"type": "commonjs"`, as CommonJS. Only ESM-classified importing files are checked. When classifying the
+  `"type": "commonjs"`, as kind `dynamic` (webpack's `javascript/dynamic`). Only ESM-classified importing files are checked. When classifying the
   resolved entry, use the node-runtime classification (it is loaded by Node's rules) or the bundler one, matching
   the profile's runtime.
 - **Wave 2's non-ESM guard** skips profiles whose effective `module` is not ESM before any rule runs; add no second

@@ -53,7 +53,7 @@ Pieces:
 
 1. **Rules.**
 
-   | Code | Rule | `node` | `bundler` esm | `bundler` auto | `bundler` commonjs (`.cjs`, `.js` under `"type":"commonjs"`) |
+   | Code | Rule | `node` | `bundler` esm | `bundler` auto | `bundler` dynamic (`.cjs`, `.js` under `"type":"commonjs"`) |
    |------|------|--------|---------------|----------------|------|
    | 91030 | `.cjs` contains ESM syntax (`import`/`export`/`import.meta`) | error | — | — | error |
    | 91031 | `.js` with ESM syntax under `"type": "commonjs"`; the message names the `package.json` | error | — | — | error |
@@ -100,7 +100,7 @@ Pieces:
 - **Duplicates across source and output stay.** TS2835 on `src/a.ts` and 91010 on `out/a.js` point at different
   files, and the output-side rule is the only one that holds on every path. Cross-suppression would be fragile.
 - **Classification comes from wave 2, never from `tsConfig.module`.** Wave 2 already classifies bundler `.cjs` and
-  `.js` under `"type": "commonjs"` as CommonJS (webpack's `javascript/dynamic`). It also reports every
+  `.js` under `"type": "commonjs"` as kind `dynamic` (webpack's `javascript/dynamic`). It also reports every
   `package.json` it probes through `EsmCheckContext.onDependency` and returns the path; 91031 uses that path.
 - **Dynamic `import()` is legal in CommonJS.** It never triggers 91030/91031; wave 2's `isEsmSyntax` already
   excludes it (`scan-module.ts:101-106`).
