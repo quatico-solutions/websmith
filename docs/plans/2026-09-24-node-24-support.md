@@ -11,7 +11,7 @@
 
 ## Status
 
-- **State:** Draft
+- **State:** Approved
 - **Type:** feature
 - **Story:** node24-esm-support
 - **Review:** in-session
@@ -20,6 +20,11 @@
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
 -->
+- **Approved:** 2026-09-25, Jan Wloka, in-session
+
+## Approval
+
+- **Assignee:** Jan Wloka
 
 ## Changelog
 
@@ -41,23 +46,23 @@ which Node can `require()` ES modules, which the story's ESM addon support relie
 Configuration only; no source changes expected.
 
 - `.nvmrc`: `20` → `24`.
-- `node-version: 20` → `24` in `.github/workflows/pull-request.yml:20`, `protect-stable.yml:23`,
-  `release-and-publish.yml:21`.
+- `node-version: 20` → `24` in `protect-stable.yml:23` and `release-and-publish.yml:21`. `pull-request.yml`
+  runs a matrix `node-version: [22, 24]`, so every PR exercises the declared `>=22.12` floor as well as the
+  development version; Node 22 is supported until 2027-04-30. The stable-branch and release workflows run on
+  Node 24 only.
 - `@types/node` `20.19.9` → `24.x` in the root `package.json` and in `compiler`, `core`, `example-addons`,
   `node`, `webpack`, `compiler-test`, `webpack-test`; refresh `pnpm-lock.yaml`.
 - `"engines": { "node": ">=22.12" }` in the published packages: `api`, `compiler`, `core`, `example-addons`,
   `node`, `testing`, `webpack` (the first `engines` fields in the repo).
-- `Release-Notes.md`: entry under `[Unreleased]` for the new minimum Node version.
+- `Release-Notes.md`: a **breaking** entry under `[Unreleased]` for the new minimum Node version. It ships in
+  **0.10.0** — under pre-1.0 semver a minor bump signals a breaking change — together with the CLI exit-code
+  change from `esm-output-check`.
+- CI uses pnpm 9 while the local Node 24 run used pnpm 10.34.1; this PR's own CI run (pnpm 9 on Node 22 and
+  24) is the check, so a green PR settles it.
 
-**Decided (in-session, Jan Wloka, 2026-09-24):** support `>=22.12`; CI runs Node 24 only. Rejected:
-`>=20.19` with a `[20, 24]` matrix (Node 20 is EOL); `>=24` only (drops the active Node 22 LTS for consumers).
-
-### Open Points
-
-- [ ] Add an optional Node 22 CI job, so the declared floor is exercised? (The analysis suggests it; the decision
-  was CI on 24.)
-- [ ] CI uses pnpm 9; the local Node 24 run used pnpm 10.34.1. Confirm CI passes with pnpm 9 on Node 24.
-- [ ] Is the minimum-version bump a breaking change for the release version (0.9.0 → 0.10.0 vs 1.0.0)?
+**Decided (in-session, Jan Wloka, 2026-09-24/25):** support `>=22.12`; PR CI tests Node 22 and 24, the other
+workflows Node 24. Rejected: `>=20.19` with a `[20, 24]` matrix (Node 20 is EOL); `>=24` only (drops the active
+Node 22 LTS for consumers); CI on 24 only (would leave the declared floor untested).
 
 ## Slices
 
