@@ -8,6 +8,8 @@ export { Compiler } from "./Compiler";
 export type { CompileFragment } from "./Compiler";
 export * from "./options";
 export { DefaultReporter } from "./DefaultReporter";
+export { checkEsm, EsmDiagnosticCode } from "./esm";
+export type { EsmCheckContext } from "./esm";
 export { NoReporter } from "./NoReporter";
 export * from "./addons";
 export * from "./compilation";

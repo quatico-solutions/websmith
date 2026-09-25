@@ -352,6 +352,78 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toContain("does not exist");
     }, 60000);
 
+    it("should exit with status 1 and report 91001 in emitted file w/ addon generating require in node ESM profile", () => {
+        createEsmProject("error");
+
+        const target = executeCompilerStatus(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (2,26): ESM91001`);
+    }, 60000);
+
+    it("should exit with zero status and report 91001 warning w/ addon generating require in node ESM profile with check warn", () => {
+        createEsmProject("warn");
+
+        const target = executeCompilerStatus(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(0);
+        expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (2,26): ESM91001`);
+    }, 60000);
+
+    it("should exit with status 1 and report only the config error w/ node ESM profile and CommonJS profile module", () => {
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: {
+                client: { esm: { runtime: "node" }, tsConfig: { outDir: testDirs.OUTPUT_DIR, module: "CommonJS" as unknown as ts.ModuleKind } },
+            },
+        });
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = [
+            ...new Set(
+                target.output
+                    .split(/\r?\n/)
+                    .filter(cur => /Error/.test(cur))
+                    .map(cur => cur.replace(/^\[[^\]]*\]\s*/, ""))
+            ),
+        ];
+
+        expect(actual1).toBe(1);
+        expect(actual2).toEqual([expect.stringContaining("sets 'esm', but its 'tsConfig.module' is 'CommonJS'")]);
+    }, 60000);
+
+    const createEsmProject = (check: "error" | "warn") => {
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    addons: ["require-generator"],
+                    esm: { runtime: "node", check },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, module: ts.ModuleKind.ESNext },
+                },
+            },
+        });
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+        createAddon(
+            "require-generator",
+            `exports.activate = ctx => ctx.registerProcessor((_fileName, content) => content + '\\ndeclare const require: (id: string) => unknown;\\nexport const generated = require("node:path");\\n');`
+        );
+    };
+
     const executeCompilerStatus = (args: string): { status: number | null; output: string } => {
         const binPath = path.join(__dirname, "..", "bin", "bin.js");
         if (!fs.existsSync(binPath)) {
