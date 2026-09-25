@@ -677,43 +677,43 @@ export class Compiler {
             }
         }
 
-        const esm = this.getCheckedEsm(profile, ctx);
-        if (esm) {
-            // Diagnostics carry the emitted file as location, so report() keeps them on the Program path too
-            result.diagnostics = [...result.diagnostics, ...this.checkEsmOutput(esm, profile, ctx, writtenFiles)];
-        }
-
         // Pass all output files to result processors, including files skipped in addonEmitOnly mode
         // and declaration/map files; the files actually written are in each fragment's writtenFiles
         const emittedFiles = result.emittedFiles ?? [];
-        // Collect what result processors write through the context's system, so the ESM check sees it; files they
-        // write with fs directly are invisible here
-        const system = ctx.getSystem();
-        // eslint-disable-next-line @typescript-eslint/unbound-method -- restored unchanged and called with system as this
-        const writeFile = system.writeFile;
-        const resultProcessorFiles = new Map<string, AttributedOutput>();
-        let currentResultProcessor: ResultProcessor | undefined;
-        if (esm) {
-            system.writeFile = (name: string, text: string, writeByteOrderMark?: boolean) => {
-                const addons = currentResultProcessor ? [ctx.getAddonName(currentResultProcessor)] : [];
-                resultProcessorFiles.set(name, { files: [{ name, text, writeByteOrderMark: !!writeByteOrderMark }], addons });
-                writeFile.call(system, name, text, writeByteOrderMark);
-            };
-        }
-        try {
+        const runResultProcessors = (onRun: (cur: ResultProcessor) => void = () => undefined) =>
             ctx.getResultProcessors().forEach(cur => {
                 try {
-                    currentResultProcessor = cur;
+                    onRun(cur);
                     cur(emittedFiles, ctx);
                 } catch (err) {
                     this.reporter.reportDiagnostic(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
                 }
             });
-        } finally {
-            system.writeFile = writeFile;
-        }
-        if (esm && resultProcessorFiles.size) {
-            result.diagnostics = [...result.diagnostics, ...this.checkEsmOutput(esm, profile, ctx, [...resultProcessorFiles.values()])];
+
+        const esm = this.getCheckedEsm(profile, ctx);
+        if (esm) {
+            // Check each written file once, in its final content: a result processor that rewrites an emitted file
+            // replaces its earlier content and is named with the addons that changed the file before
+            const outputs = new Map<string, AttributedOutput>();
+            writtenFiles.forEach(({ files: outputFiles, addons }) =>
+                outputFiles.forEach(cur => outputs.set(this.system.resolvePath(cur.name), { files: [cur], addons }))
+            );
+            let resultProcessorAddon: string | undefined;
+            // Result processors write through the context's system; files they write with fs directly are invisible here
+            ctx.observeWrites(
+                (name, text) => {
+                    const key = this.system.resolvePath(name);
+                    const previous = outputs.get(key);
+                    const changed = previous?.files[0].text !== text;
+                    const addons = [...(previous?.addons ?? []), ...(changed && resultProcessorAddon ? [resultProcessorAddon] : [])];
+                    outputs.set(key, { files: [{ name, text, writeByteOrderMark: false }], addons: [...new Set(addons)] });
+                },
+                () => runResultProcessors(cur => (resultProcessorAddon = ctx.findAddonName(cur)))
+            );
+            // Diagnostics carry the emitted file as location, so report() keeps them on the Program path too
+            result.diagnostics = [...result.diagnostics, ...this.checkEsmOutput(esm, profile, ctx, [...outputs.values()])];
+        } else {
+            runResultProcessors();
         }
 
         return result;
@@ -761,7 +761,11 @@ export class Compiler {
         return fragment;
     }
 
-    /** Checks output files once per set of addons that changed them, so each diagnostic names the addons of its file. */
+    /**
+     * Checks output files once per set of addons that changed them, so each diagnostic names the addons of its file.
+     * Each group is a separate checkEsm call: state checkEsm builds per call (e.g. a cache of parsed CommonJS names) is
+     * not shared between groups unless it is passed in here.
+     */
     private checkEsmOutput(
         esm: EsmProfileOptions,
         profile: string | undefined,

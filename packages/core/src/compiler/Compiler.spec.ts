@@ -3569,6 +3569,81 @@ describe("compile w/ esm profile", () => {
         expect(actual).toBe("{}");
     });
 
+    it("yields one ESM diagnostic per file w/ result processor rewriting emitted file", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "banner-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => {
+                    const system = processorCtx.getSystem();
+                    system.writeFile("/src/target.js", `// banner\n${system.readFile("/src/target.js")}`);
+                }),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["banner-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.code, cur.messageText]);
+
+        expect(actual).toEqual([["/src/target.js", 91001, expect.stringMatching(/\(profile "client", addons: banner-addon\)\.$/)]]);
+    });
+
+    it("names no addon w/ result processor rewriting emitted file unchanged", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "copy-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => {
+                    const system = processorCtx.getSystem();
+                    system.writeFile("/src/target.js", system.readFile("/src/target.js")!);
+                }),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["copy-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics.map(cur => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/\(profile "client"\)\.$/)]);
+    });
+
+    it("leaves writeFile of system unchanged w/ result processor running", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const writeFile = fileSystem.writeFile;
+        const target = jest.fn();
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx => ctx.registerResultProcessor(() => target(fileSystem.writeFile === writeFile)),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["writing-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+
+        expect(target).toHaveBeenCalledWith(true);
+    });
+
+    it("restores system of context w/ throwing result processor", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const writeFile = fileSystem.writeFile;
+        const addons = createAddons(fileSystem, reporter, {
+            "throwing-addon": ctx =>
+                ctx.registerResultProcessor(() => {
+                    throw new Error("whatever");
+                }),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["throwing-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+
+        expect(testObj.getContext("client")!.getSystem()).toBe(fileSystem);
+        expect(fileSystem.writeFile).toBe(writeFile);
+    });
+
     it("reports ignored file w/ esm ignore and debug", () => {
         const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
         const reporter = new ReporterMock(fileSystem);
