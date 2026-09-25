@@ -15,9 +15,9 @@
 - **Review of the code:** per repo convention; CI green
 
 Parallel to `esm-check-coverage`, `esm-check-imports` and `esm-check-package-type`. This slice adds rules and a
-resolver to `packages/core/src/compiler/esm/`; it changes no call site. Wave 4 (`esm-check-webpack`) must register
-every `package.json` and entry file this resolver reads with `this.addDependency`, so keep the list of files read
-available from the rule's result.
+resolver to `packages/core/src/compiler/esm/`; it changes no call site. Wave 4 (`esm-check-webpack`) registers every
+`package.json` and entry file this resolver reads with `this.addDependency` / `this.addMissingDependency`; they
+reach it through `EsmCheckContext.onDependency` (see below).
 
 ### What to build
 
@@ -66,6 +66,27 @@ Pieces:
 - **Relative specifiers are not this slice's** (`esm-check-imports`); subpaths blocked by an `"exports"` map and
   tsconfig `paths` aliases are not in v1.
 - **Cache per build** by resolved entry path: many files import the same package.
+
+### Carried over from the wave 2 review and the wave 3/4 briefs (amended 2026-09-25)
+
+- **The loader runs these rules** (settled for wave 4), with a per-compilation memo and every file read registered
+  with webpack. So the resolver must:
+  - read only through `context.system` (never `fs` or `require.resolve`);
+  - report every file it reads, found or not, through wave 2's `EsmCheckContext.onDependency(fileName, exists)`:
+    each `node_modules/<name>/package.json` probed, the resolved entry, and each re-export target;
+  - on a **cache hit, replay** the dependencies recorded for that entry. Otherwise the second importer in a build
+    never registers them, and editing the package does not re-check it in watch mode.
+- **Cache per build, injectable.** Key the resolution memo by (importer directory, specifier) and the lexer cache by
+  resolved entry path. Hold both in an object the caller can pass in and drop, so wave 4 can reset them per
+  compilation. The CLI creates one per `compile()`.
+- **Node's conditions, not webpack's.** The resolver keeps `["node", "import", "default"]` in the loader too. Wave 4
+  documents the possible mismatch; do not add webpack conditions here.
+- **Three module kinds under `bundler`.** Wave 2 now classifies `.cjs` files, and `.js` files under
+  `"type": "commonjs"`, as CommonJS. Only ESM-classified importing files are checked. When classifying the
+  resolved entry, use the node-runtime classification (it is loaded by Node's rules) or the bundler one, matching
+  the profile's runtime.
+- **Wave 2's non-ESM guard** skips profiles whose effective `module` is not ESM before any rule runs; add no second
+  guard. `esm.ignore` and `check: "warn"`/`"off"` are applied by `checkEsm`, so do not reimplement them in the rule.
 
 ### Done when
 
