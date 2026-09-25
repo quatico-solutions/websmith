@@ -549,6 +549,49 @@ describe("bin.ts e2e tests", () => {
         60000
     );
 
+    it.each([
+        { type: "commonjs", path: "fast path", declaration: false, addons: "", expected: `const other_js_1 = require("./other.js");` },
+        { type: "commonjs", path: "declaration path", declaration: true, addons: "", expected: `const other_js_1 = require("./other.js");` },
+        {
+            type: "commonjs",
+            path: "Program path",
+            declaration: false,
+            addons: "type-info-addon",
+            expected: `const other_js_1 = require("./other.js");`,
+        },
+        { type: "module", path: "fast path", declaration: false, addons: "", expected: `import { world } from "./other.js";` },
+        { type: "module", path: "declaration path", declaration: true, addons: "", expected: `import { world } from "./other.js";` },
+        { type: "module", path: "Program path", declaration: false, addons: "type-info-addon", expected: `import { world } from "./other.js";` },
+    ])(
+        "should yield $expected w/ profile tsConfig module NodeNext string, package.json type $type and $path",
+        ({ type, declaration, addons, expected }) => {
+            createPackageJson({ type });
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, declaration, types: [] });
+            createWebsmithConfig({
+                profiles: {
+                    client: {
+                        ...(addons && { addons: [addons] }),
+                        tsConfig: { outDir: testDirs.OUTPUT_DIR, module: "NodeNext", target: "ESNext" } as unknown as ts.CompilerOptions,
+                    },
+                },
+            });
+            createAddon("type-info-addon", `exports.activate = () => {};`);
+            fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "addons", "package.json"), JSON.stringify({ type: "commonjs" }), { encoding: "utf-8" });
+            createSourceFile(`export const world: string = "world";`, "other.ts");
+            createSourceFile(`import { world } from "./other.js";\nexport const hello: string = world;`, "test.ts");
+
+            const target = executeCompilerStatus(
+                `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+            );
+            const actual1 = target.status;
+            const actual2 = getOutput("test.js");
+
+            expect(actual1).toBe(0);
+            expect(actual2).toContain(expected);
+        },
+        60000
+    );
+
     const createModuleFormatSources = () => {
         createSourceFile(`export const x = 1;\nexport default 2;\n`, "dep.ts");
         createSourceFile(

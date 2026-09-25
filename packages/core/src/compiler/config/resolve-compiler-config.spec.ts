@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { ErrorMessage } from "@quatico/websmith-api";
+import ts from "typescript";
 import { createSystem } from "../../environment";
 import { NoReporter } from "../NoReporter";
 import { resolveCompilationConfig, resolvePath } from "./resolve-compiler-config";
@@ -288,6 +289,43 @@ describe("resolveCompilationConfig", () => {
         resolveCompilationConfig("./target-config.json", new NoReporter(), target);
 
         expect(targetFn).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        { key: "module", value: "NodeNext", expected: ts.ModuleKind.NodeNext },
+        { key: "module", value: "Node16", expected: ts.ModuleKind.Node16 },
+        { key: "module", value: "ESNext", expected: ts.ModuleKind.ESNext },
+        { key: "module", value: "CommonJS", expected: ts.ModuleKind.CommonJS },
+        { key: "moduleResolution", value: "NodeNext", expected: ts.ModuleResolutionKind.NodeNext },
+        { key: "target", value: "ES2022", expected: ts.ScriptTarget.ES2022 },
+    ])("should return enum value $expected w/ tsConfig $key $value in profile", ({ key, value, expected }) => {
+        const target = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { client: { tsConfig: { [key]: value, outDir: "./dist" } } } }) },
+            { virtual: true }
+        );
+
+        const actual = resolveCompilationConfig("./target-config.json", new NoReporter(), target).profiles?.client.tsConfig;
+
+        expect(actual).toEqual({ [key]: expected, outDir: target.resolvePath("./dist") });
+    });
+
+    it("should report one error and drop the value w/ invalid tsConfig module in profile", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { client: { tsConfig: { module: "NodeLatest", target: "ES2022" } } } }) },
+            { virtual: true }
+        );
+
+        const actual = resolveCompilationConfig("./target-config.json", new NoReporter(), target).profiles?.client.tsConfig;
+
+        expect(actual).toEqual({ target: ts.ScriptTarget.ES2022 });
+        expect(targetFn.mock.calls).toEqual([
+            [
+                new ErrorMessage(
+                    `Invalid 'tsConfig.module' value 'NodeLatest' in profile 'client' of './target-config.json'. Argument for '--module' option must be: 'none', 'commonjs', 'amd', 'system', 'umd', 'es6', 'es2015', 'es2020', 'es2022', 'esnext', 'node16', 'nodenext', 'preserve'.`
+                ),
+            ],
+        ]);
     });
 });
 

@@ -54,6 +54,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - With `"module": "node16"` or `"nodenext"`, builds without type-checking addons that emit declarations gave the
   compiled file and the files it imports the wrong module format: ES modules under `"type": "commonjs"`, and
   declarations without `resolution-mode` for imports from `.cts` files. They now use each file's format, like `tsc`.
+- Option names in a profile's `tsConfig` in `websmith.config.json`, such as `"module": "NodeNext"` or
+  `"target": "ES2022"`, are now converted to TypeScript's values like names in `tsconfig.json`. Before, `"NodeNext"`
+  emitted every `.ts` file as CommonJS in builds without type-checking addons, and builds with type-checking addons
+  or declarations failed. An unknown name is reported as a configuration error.
 
 ### Removed
 
