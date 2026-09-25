@@ -1813,6 +1813,57 @@ describe("watch", () => {
 
         expect(target).toHaveBeenCalledWith("/src/target.ts", "target1", true, true);
     });
+
+    it("should re-emit CommonJS w/ module NodeNext and package.json type changed from module to commonjs", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": `export const hello = "world";` },
+            { virtual: true }
+        );
+        const testObj = new Compiler(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { outDir: "/build", target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: { outDir: "/build" }, errors: [] },
+                watch: true,
+            },
+            undefined,
+            fileSystem
+        );
+        testObj.watch();
+
+        fileSystem.writeFile("/package.json", JSON.stringify({ type: "commonjs" }));
+
+        const actual = fileSystem.readFile("/build/target.js");
+        expect(actual).toContain(`exports.hello = "world";`);
+
+        testObj.closeAllWatchers();
+    });
+
+    it("should keep CommonJS w/ module NodeNext, package.json type changed to commonjs and later source edit", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": `export const hello = "world";` },
+            { virtual: true }
+        );
+        const testObj = new Compiler(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { outDir: "/build", target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: { outDir: "/build" }, errors: [] },
+                watch: true,
+            },
+            undefined,
+            fileSystem
+        );
+        testObj.watch();
+        fileSystem.writeFile("/package.json", JSON.stringify({ type: "commonjs" }));
+
+        fileSystem.writeFile("/src/target.ts", `export const hello = "again";`);
+
+        const actual = fileSystem.readFile("/build/target.js");
+        expect(actual).toContain(`exports.hello = "again";`);
+
+        testObj.closeAllWatchers();
+    });
 });
 
 describe("addon error reporting", () => {

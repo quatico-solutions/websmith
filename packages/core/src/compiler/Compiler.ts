@@ -57,6 +57,13 @@ const TARGET_MAP: Record<number, ts.ScriptTarget> = {
 // This error occurs when numeric enum values are used in CLI args that TypeScript's command-line parser rejects
 const TS_ERROR_CODE_INVALID_CLI_OPTION = 6046;
 
+const WATCH_OPTIONS: ts.WatchOptions = {
+    // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
+    // In addition, the ts.System.getModifiedTime will report incorrect timeStamps, making it impossible to prevent the double firing.
+    watchFile: ts.WatchFileKind.PriorityPollingInterval,
+    fallbackPolling: ts.PollingWatchKind.FixedInterval,
+};
+
 // Options ts.transpileModule removes before it emits, see transpileOptionValueCompilerOptions in TypeScript
 const TRANSPILE_REMOVED_OPTIONS = [
     "allowImportingTsExtensions",
@@ -221,6 +228,7 @@ export class Compiler {
                     this.registerWatch(curFile);
                 });
             }
+            this.registerPackageJsonWatches(files, profiles);
         } else {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by "${this.system.constructor.name}".`));
         }
@@ -707,9 +715,7 @@ export class Compiler {
             this.system.watchFile(
                 filePath,
                 fileName => {
-                    if (path.basename(fileName) === "package.json") {
-                        this.packageJsonInfoCache = undefined;
-                    }
+                    this.packageJsonInfoCache = undefined;
                     if (!profileNames?.length) {
                         return fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
                             ? this.emitSourceFile(fileName, undefined, true, true)
@@ -728,16 +734,47 @@ export class Compiler {
                     }
                 },
                 50,
-                {
-                    // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
-                    // In addition, the ts.System.getModifiedTime will report incorrect timeStamps, making it impossible to prevent the double firing.
-                    watchFile: ts.WatchFileKind.PriorityPollingInterval,
-                    fallbackPolling: ts.PollingWatchKind.FixedInterval,
-                }
+                WATCH_OPTIONS
             )
         );
 
         return this;
+    }
+
+    /**
+     * Under node16/nodenext, watches the nearest package.json of each root file, because its "type" decides the module
+     * format of the file. A change re-emits the root files under that package.json.
+     */
+    private registerPackageJsonWatches(files: string[], profileNames: string[]): void {
+        const profiles = profileNames.length ? profileNames : [undefined];
+        const isNodeModuleKind = profiles.some(profile => {
+            const { module } = this.getContext(profile)?.getCompilerOptions() ?? {};
+            return module === ts.ModuleKind.Node16 || module === ts.ModuleKind.NodeNext;
+        });
+        if (!isNodeModuleKind) {
+            return;
+        }
+
+        const filesByPackageJson = new Map<string, string[]>();
+        files.forEach(curFile => {
+            const packageJson = ts.findConfigFile(path.dirname(curFile), name => this.system.fileExists(name), "package.json");
+            if (packageJson) {
+                filesByPackageJson.set(packageJson, [...(filesByPackageJson.get(packageJson) ?? []), curFile]);
+            }
+        });
+        filesByPackageJson.forEach((packageFiles, packageJson) => {
+            this.fileWatchers.push(
+                this.system.watchFile!(
+                    packageJson,
+                    () => {
+                        this.packageJsonInfoCache = undefined;
+                        packageFiles.forEach(curFile => profiles.forEach(profile => this.emitSourceFile(curFile, profile, true, true)));
+                    },
+                    50,
+                    WATCH_OPTIONS
+                )
+            );
+        });
     }
 
     private getConfigSummary(): string {
