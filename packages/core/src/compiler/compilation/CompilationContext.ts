@@ -22,6 +22,8 @@ import { concat } from "../collections";
 import { CompilationHost } from "./CompilationHost";
 import { createSharedHost } from "./shared-host";
 
+type TransformerFactory = ts.TransformerFactory<ts.SourceFile | ts.Bundle> | ts.CustomTransformerFactory;
+
 export type CompilationContextOptions = {
     config?: unknown;
     tsConfig: ts.CompilerOptions;
@@ -48,6 +50,15 @@ export class CompilationContext implements AddonContext {
 
     // Track files that have been processed by addons
     private addonProcessedFiles: Set<string> = new Set();
+
+    // Track which addons changed each file, so diagnostics can name the addon that introduced a construct
+    private addonChangedFiles: Map<string, Set<string>> = new Map();
+
+    // Track which generator addons added each file, per source file being processed when they added it
+    private addonAddedFiles: Map<string, Map<string, Set<string>>> = new Map();
+
+    // Replaces the system that getSystem() returns while writes are observed
+    private observedSystem?: ts.System;
 
     // Track the current source file being processed (used to mark source file when generators interact with compilation)
     private currentSourceFile?: string;
@@ -91,7 +102,29 @@ export class CompilationContext implements AddonContext {
     }
 
     public getSystem(): ts.System {
-        return this.system;
+        return this.observedSystem ?? this.system;
+    }
+
+    /**
+     * Runs a function while getSystem() returns a system that reports every writeFile to `onWrite` before writing.
+     * The original system object is not changed.
+     */
+    public observeWrites<T>(onWrite: (fileName: string, text: string) => void, fn: () => T): T {
+        const system = this.system;
+        const previous = this.observedSystem;
+        try {
+            this.observedSystem = Object.create(system, {
+                writeFile: {
+                    value: (fileName: string, text: string, writeByteOrderMark?: boolean) => {
+                        onWrite(fileName, text);
+                        system.writeFile(fileName, text, writeByteOrderMark);
+                    },
+                },
+            }) as ts.System;
+            return fn();
+        } finally {
+            this.observedSystem = previous;
+        }
     }
 
     public getCliArgs(): ts.ParsedCommandLine {
@@ -141,12 +174,7 @@ export class CompilationContext implements AddonContext {
             this.reporter.reportDiagnostic(new InfoMessage(`Adding ${filePath} to watch.`));
             this.watchCallback(filePath);
         }
-        // Mark file as addon-processed since it was explicitly added by an addon
-        this.markFileAsAddonProcessed(filePath);
-        // Also mark the current source file as processed if generators are interacting with compilation
-        if (this.currentSourceFile) {
-            this.markFileAsAddonProcessed(this.currentSourceFile);
-        }
+        this.markFileAsAddedByAddon(filePath);
     }
 
     // TODO: Extract to an DependencyCache interface that can be implemented as InMemory and Webpack
@@ -196,12 +224,7 @@ export class CompilationContext implements AddonContext {
             this.rootFiles.push(filePath);
         }
         this.cache.updateSource(filePath, fileContent);
-        // Mark file as addon-processed since it was explicitly added by an addon
-        this.markFileAsAddonProcessed(filePath);
-        // Also mark the current source file as processed if generators are interacting with compilation
-        if (this.currentSourceFile) {
-            this.markFileAsAddonProcessed(this.currentSourceFile);
-        }
+        this.markFileAsAddedByAddon(filePath);
     }
 
     public removeOutputFile(filePath: string) {
@@ -228,9 +251,13 @@ export class CompilationContext implements AddonContext {
     }
 
     public registerTransformer(transformers: ts.CustomTransformers): this {
+        const addonName = this.currentAddonName;
         Object.keys(transformers).forEach(kind => {
-            // @ts-expect-error ts.CustomTransformers defines too many implicit any
-            this.transformers[kind] = concat(this.transformers[kind], transformers[kind]);
+            const key = kind as keyof ts.CustomTransformers;
+            const factories = transformers[key] as TransformerFactory[] | undefined;
+            const added = addonName ? factories?.map(cur => this.attributeTransformer(cur, addonName)) : factories;
+            const registered = this.transformers[key] as TransformerFactory[] | undefined;
+            (this.transformers as Record<string, TransformerFactory[]>)[key] = concat(registered, added);
         });
         return this;
     }
@@ -276,16 +303,30 @@ export class CompilationContext implements AddonContext {
     }
 
     public activateAddon(addon: CompilerAddon): void {
+        this.runAsAddon(addon.getName(), () => addon.activate(this));
+    }
+
+    /**
+     * Runs a function on behalf of an addon: functions and transformers it registers are recorded for the addon, and
+     * files it adds through `addInputFile` / `addVirtualFile` are attributed to it.
+     */
+    public runAsAddon<T>(addonName: string, fn: () => T): T {
+        const previous = this.currentAddonName;
         try {
-            this.currentAddonName = addon.getName();
-            addon.activate(this);
+            this.currentAddonName = addonName;
+            return fn();
         } finally {
-            this.currentAddonName = undefined;
+            this.currentAddonName = previous;
         }
     }
 
     public getAddonName(func: Function): string {
-        return this.addonFunctions.get(func) || "unknown addon function";
+        return this.findAddonName(func) || "unknown addon function";
+    }
+
+    /** Returns the addon that registered a function, undefined when it was registered outside an addon. */
+    public findAddonName(func: Function): string | undefined {
+        return this.addonFunctions.get(func);
     }
 
     /**
@@ -315,12 +356,93 @@ export class CompilationContext implements AddonContext {
     }
 
     /**
+     * Record that an addon changed a file, for diagnostics that name the addon.
+     * Unlike markFileAsAddonProcessed, this records which addon changed the file.
+     */
+    public markFileAsChangedByAddon(fileName: string, addonName: string): void {
+        const resolvedPath = this.system.resolvePath(fileName);
+        const addons = this.addonChangedFiles.get(resolvedPath) ?? new Set();
+        this.addonChangedFiles.set(resolvedPath, addons.add(addonName));
+    }
+
+    /**
+     * Get the addons that changed a file, in the order they changed it; empty when no addon changed it.
+     */
+    public getAddonsChangingFile(fileName: string): string[] {
+        const resolvedPath = this.system.resolvePath(fileName);
+        const addedBy = [...this.addonAddedFiles.values()].flatMap(cur => [...(cur.get(resolvedPath) ?? [])]);
+        return [...new Set([...addedBy, ...(this.addonChangedFiles.get(resolvedPath) ?? [])])];
+    }
+
+    /**
+     * Forget which addons changed a file and which files generators added while processing it, before the file is
+     * processed again. Generators that added the file itself while processing another file stay recorded.
+     */
+    public resetAddonChanges(fileName: string): void {
+        const resolvedPath = this.system.resolvePath(fileName);
+        this.addonChangedFiles.delete(resolvedPath);
+        this.addonAddedFiles.delete(resolvedPath);
+    }
+
+    /**
      * Set the current source file being processed.
      * Used to mark the source file when generators interact with compilation via addInputFile/addVirtualFile.
      * @internal
      */
     public setCurrentSourceFile(fileName: string | undefined): void {
         this.currentSourceFile = fileName;
+    }
+
+    private markFileAsAddedByAddon(filePath: string): void {
+        // Mark file as addon-processed since it was explicitly added by an addon
+        this.markFileAsAddonProcessed(filePath);
+        // Also mark the current source file as processed if generators are interacting with compilation
+        if (this.currentSourceFile) {
+            this.markFileAsAddonProcessed(this.currentSourceFile);
+        }
+        // Only the added file is attributed to the generator's addon: the generator does not change the source file
+        if (this.currentAddonName) {
+            const source = this.system.resolvePath(this.currentSourceFile ?? "");
+            const added = this.addonAddedFiles.get(source) ?? new Map<string, Set<string>>();
+            const resolvedPath = this.system.resolvePath(filePath);
+            added.set(resolvedPath, (added.get(resolvedPath) ?? new Set()).add(this.currentAddonName));
+            this.addonAddedFiles.set(source, added);
+        }
+    }
+
+    /**
+     * Wraps a transformer factory to record the files its transformer changes for the addon. TypeScript returns the
+     * input node when a transformer changes nothing, so a returned node other than the input marks a change.
+     * The wrapper returns exactly what the wrapped transformer returns.
+     */
+    private attributeTransformer(factory: TransformerFactory, addonName: string): TransformerFactory {
+        const record = (input: ts.SourceFile | ts.Bundle, output: ts.SourceFile | ts.Bundle): void => {
+            if (output !== input) {
+                (ts.isBundle(input) ? input.sourceFiles : [input]).forEach(cur => this.markFileAsChangedByAddon(cur.fileName, addonName));
+            }
+        };
+        return ((context: ts.TransformationContext): ts.Transformer<ts.SourceFile | ts.Bundle> | ts.CustomTransformer => {
+            const transformer = factory(context);
+            if (typeof transformer === "function") {
+                return (node: ts.SourceFile | ts.Bundle) => {
+                    const result = transformer(node);
+                    record(node, result);
+                    return result;
+                };
+            }
+            return {
+                transformSourceFile: (node: ts.SourceFile) => {
+                    const result = transformer.transformSourceFile(node);
+                    record(node, result);
+                    return result;
+                },
+                transformBundle: (node: ts.Bundle) => {
+                    const result = transformer.transformBundle(node);
+                    record(node, result);
+                    return result;
+                },
+            };
+        }) as TransformerFactory;
     }
 
     private createLanguageServiceHost({

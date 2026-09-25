@@ -235,9 +235,21 @@ through property access: called, passed as argument, spread, returned, compared 
 When the check cannot decide, for example for a package that is not installed or a re-export it cannot resolve, it
 reports nothing and `--debug` lists the import.
 
-Diagnostics point at the construct in the emitted file and name the profile and its active addons, e.g.
-`Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output; ...`. The check runs in
-`websmith` builds; watch mode, JavaScript written by result processors and the webpack loader are not checked yet.
+Diagnostics point at the construct in the emitted file and name the profile and the addons that changed the file, e.g.
+`Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output (profile "client", addons: my-addon).`
+An addon counts as having changed a file when one of its processors returned different content, one of its generators
+added the file through `addInputFile` or `addVirtualFile`, or one of its transformers returned a node other than the one
+it received. A generator is named on the file it adds, not on the file it was processing. Only the latest build of a
+file counts, so a watch rebuild no longer names an addon that changed an earlier version. A diagnostic that names no
+addon points at a construct from your own source. A transformer that rebuilds nodes without a real change is named
+too; one that only mutates nodes in place is not.
+
+The check runs in `websmith` builds and in watch mode, where every rebuilt file is checked and reported without
+stopping the watcher. It also checks the JavaScript files that result processors write through
+`ctx.getSystem().writeFile` and names the result processor's addon. A result processor that rewrites an emitted file
+is checked once, on the final content, and is named only if it changed the content. Files that addons write with `fs`
+or another file system API directly are not visible to websmith and are not checked. The webpack loader is not checked
+yet.
 
 ## Websmith configuration file
 

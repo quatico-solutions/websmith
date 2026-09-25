@@ -32,6 +32,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   top-level `await` in a file loaded as CommonJS (91033). 91030–91032 replace the file's per-identifier 91001–91004
   findings. With `esm`, TypeScript's TS2835, TS2834, TS1543, TS1470, TS1309 and TS1203 are labelled with the ESM check
   and the profile.
+- The ESM check also runs in watch mode and on JavaScript that result processors write through
+  `ctx.getSystem().writeFile`; files addons write with `fs` directly are not checked. Its diagnostics name the addons
+  that changed the file in its latest build (processors and transformers are tracked per addon, generators on the
+  files they add), and no addon when the construct comes from the project's own source.
 
 ### Changed
 

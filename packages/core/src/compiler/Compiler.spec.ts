@@ -1727,6 +1727,140 @@ describe("watch", () => {
     });
 });
 
+describe("watch w/ esm profile", () => {
+    const REQUIRE_SOURCE = `declare const require: (id: string) => unknown;\nexport const x = require("x");`;
+
+    const createWatchCompiler = (fileSystem: ts.System, reporter: Reporter, tsConfig: ts.CompilerOptions = { module: ts.ModuleKind.ESNext }) =>
+        new CompilerTestClass(
+            {
+                reporter,
+                config: { profiles: { client: { esm: { runtime: "node" } } } },
+                profile: "client",
+                watch: true,
+                tsConfig: { target: ts.ScriptTarget.ESNext, sourceMap: false, ...tsConfig },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+    it("reports ESM diagnostic w/ rebuild introducing require", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = createWatchCompiler(fileSystem, reporter).watch();
+
+        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+        const actual = target.mock.calls.map(([cur]) => cur.code);
+
+        expect(actual).toEqual([91001]);
+        testObj.closeAllWatchers();
+    });
+
+    it("reports ESM diagnostic w/ initial watch build of file with require", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": REQUIRE_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+
+        const testObj = createWatchCompiler(fileSystem, reporter).watch();
+        const actual = target.mock.calls.map(([cur]) => cur.code);
+
+        expect(actual).toEqual([91001]);
+        testObj.closeAllWatchers();
+    });
+
+    it("reports ESM diagnostic w/ rebuild of dependent file after asset change", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;", "src/style.css": ".a {}" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const testObj = createWatchCompiler(fileSystem, reporter).watch();
+        testObj.getContext("client")!.addAssetDependency("/src/style.css", "/src/target.ts");
+        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+
+        fileSystem.writeFile("/src/style.css", ".a { display: none; }");
+        const actual = target.mock.calls.map(([cur]) => cur.code);
+
+        expect(actual).toEqual([91001]);
+        testObj.closeAllWatchers();
+    });
+
+    it("names no addon w/ rebuild from content changed by addon to own require", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "// @marker\nexport const x = 1;" },
+            { virtual: true }
+        );
+        fileSystem.createDirectory("./addons");
+        const reporter = new ReporterMock(fileSystem);
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter, system: fileSystem });
+        const markerAddon = {
+            getName: () => "marker-addon",
+            needsTypeInfo: false,
+            activate: (ctx: CompilationContext) =>
+                ctx.registerProcessor((_fileName, content) => (content.includes("@marker") ? content.replace("@marker", "@marked") : content)),
+        };
+        addons.getAvailableAddons = jest.fn().mockReturnValue([markerAddon]);
+        addons.getAddonByName = jest.fn().mockReturnValue(markerAddon);
+        const testObj = new CompilerTestClass(
+            {
+                reporter,
+                config: { profiles: { client: { esm: { runtime: "node" }, addons: ["marker-addon"] } } },
+                profile: "client",
+                watch: true,
+                tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, sourceMap: false },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addons)
+            .watch();
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+
+        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+        const actual = target.mock.calls.map(([cur]) => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/\(profile "client"\)\.$/)]);
+        testObj.closeAllWatchers();
+    });
+
+    it("keeps watching w/ rebuild reporting ESM diagnostic", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const testObj = createWatchCompiler(fileSystem, new ReporterMock(fileSystem)).watch();
+        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+
+        fileSystem.writeFile("/src/target.ts", "export const x = 2;");
+        const actual = fileSystem.readFile("/src/target.js");
+
+        expect(actual).toBe("export const x = 2;\n");
+        testObj.closeAllWatchers();
+    });
+
+    it("reports one config error and no ESM diagnostic w/ CommonJS module and rebuild introducing require", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = createWatchCompiler(fileSystem, reporter, { module: ts.ModuleKind.CommonJS }).watch();
+
+        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+        const actual = target.mock.calls.map(([cur]) => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/^Profile 'client' sets 'esm', but its effective 'module' is 'CommonJS'/)]);
+        testObj.closeAllWatchers();
+    });
+});
+
 describe("addon error reporting", () => {
     it("should report generator errors and continue processing", () => {
         const mockAddon = {
@@ -2432,6 +2566,39 @@ describe("addonEmitOnly mode", () => {
         expect(helperCalls.length).toBe(0); // Helper was NOT written
     });
 
+    it("yields written files of transformed file only w/ addonEmitOnly and two transformer addons", () => {
+        const fileSystem = createSystem(
+            { "src/service.ts": `export const value = "service";`, "src/helper.ts": `export const value = "helper";` },
+            { virtual: true }
+        );
+        const changeService: ts.TransformerFactory<ts.SourceFile> = context => sourceFile => {
+            const visitor = (node: ts.Node): ts.Node =>
+                ts.isStringLiteral(node) && node.text === "service"
+                    ? context.factory.createStringLiteral("changed")
+                    : ts.visitEachChild(node, visitor, context);
+            return ts.visitEachChild(sourceFile, visitor, context);
+        };
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext, declaration: true },
+                cliArgs: { fileNames: ["/src/service.ts", "/src/helper.ts"], options: {}, errors: [] },
+                config: { addonEmitOnly: true },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+        const ctx = testObj.getContext()!;
+        ctx.activateAddon({ getName: () => "identity-addon", activate: () => ctx.registerTransformer({ before: [() => sf => sf] }) } as never);
+        ctx.activateAddon({ getName: () => "changing-addon", activate: () => ctx.registerTransformer({ before: [changeService] }) } as never);
+
+        const actual = ["/src/service.ts", "/src/helper.ts"].map(cur =>
+            testObj.emitSourceFile(cur, undefined, true).writtenFiles.map(file => file.name)
+        );
+
+        expect(actual).toEqual([["/src/service.js", "/src/service.d.ts"], []]);
+    });
+
     it("yields empty written files w/ addonEmitOnly and file not processed by addons", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
         const testObj = new CompilerTestClass(
@@ -3077,6 +3244,21 @@ describe("compile w/ esm profile", () => {
         return addons;
     };
 
+    const createAddons = (fileSystem: ts.System, reporter: Reporter, activators: Record<string, (ctx: CompilationContext) => void>) => {
+        fileSystem.createDirectory("./addons");
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter, system: fileSystem });
+        const available = Object.entries(activators).map(([name, activate]) => ({ getName: () => name, activate, needsTypeInfo: false }));
+        addons.getAvailableAddons = jest.fn().mockReturnValue(available);
+        addons.getAddonByName = jest.fn((name: string) => available.find(cur => cur.getName() === name)) as never;
+        return addons;
+    };
+
+    const changeLiteral: ts.TransformerFactory<ts.SourceFile> = context => sourceFile => {
+        const visitor = (node: ts.Node): ts.Node =>
+            ts.isStringLiteral(node) && node.text === "x" ? context.factory.createStringLiteral("y") : ts.visitEachChild(node, visitor, context);
+        return ts.visitEachChild(sourceFile, visitor, context);
+    };
+
     it("yields ESM diagnostic in result w/ file with output", () => {
         const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
         const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } });
@@ -3117,7 +3299,7 @@ describe("compile w/ esm profile", () => {
         expect(actual).toMatch(/Error: \/src\/target\.js \(1,18\): ESM91001: /);
     });
 
-    it("names profile and active addons in ESM diagnostic", () => {
+    it("names profile and no addon in ESM diagnostic w/ file no addon changed", () => {
         const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
         const reporter = new ReporterMock(fileSystem);
         const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", { reporter }).setAddonRegistry(
@@ -3126,7 +3308,136 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics[0].messageText;
 
-        expect(actual).toContain(`(profile "client", addons: type-info-addon).`);
+        expect(actual).toMatch(/\(profile "client"\)\.$/);
+    });
+
+    it("names only changing processor addon in ESM diagnostic w/ two processor addons", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "keeping-addon": ctx => ctx.registerProcessor((_fileName, content) => content),
+            "changing-addon": ctx => ctx.registerProcessor(() => ESM_SOURCE),
+        });
+        const testObj = createEsmCompiler(
+            fileSystem,
+            { client: { esm: { runtime: "node" }, addons: ["changing-addon", "keeping-addon"] } },
+            "client",
+            { reporter }
+        ).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics[0].messageText;
+
+        expect(actual).toMatch(/\(profile "client", addons: changing-addon\)\.$/);
+    });
+
+    it("reads a CommonJS package once across addon groups w/ two processor addons changing different files importing it", () => {
+        const fileSystem = createSystem(
+            {
+                "package.json": JSON.stringify({ type: "module" }),
+                "src/a.ts": "export const a = 1;",
+                "src/b.ts": "export const b = 1;",
+                "node_modules/cjspkg/package.json": JSON.stringify({ name: "cjspkg" }),
+                "node_modules/cjspkg/index.js": "exports.a = 1;",
+            },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "addon-a": ctx =>
+                ctx.registerProcessor((fileName, content) =>
+                    fileName.endsWith("a.ts") ? `import { a } from "cjspkg";\nexport const usedA = a;` : content
+                ),
+            "addon-b": ctx =>
+                ctx.registerProcessor((fileName, content) =>
+                    fileName.endsWith("b.ts") ? `import { a } from "cjspkg";\nexport const usedB = a;` : content
+                ),
+        });
+        const testObj = createEsmCompiler(
+            fileSystem,
+            { client: { esm: { runtime: "node" }, addons: ["addon-a", "addon-b"] } },
+            "client",
+            { reporter, cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] } }
+        ).setAddonRegistry(addons);
+        const target = jest.spyOn(fileSystem, "readFile");
+
+        testObj.compile();
+        const actual = target.mock.calls.filter(([cur]) => cur === "/node_modules/cjspkg/index.js");
+
+        expect(actual).toHaveLength(1);
+    });
+
+    it("names only changing transformer addon in ESM diagnostic w/ two transformer addons", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "identity-addon": ctx => ctx.registerTransformer({ before: [() => sourceFile => sourceFile] }),
+            "changing-addon": ctx => ctx.registerTransformer({ before: [changeLiteral] }),
+        });
+        const testObj = createEsmCompiler(
+            fileSystem,
+            { client: { esm: { runtime: "node" }, addons: ["identity-addon", "changing-addon"] } },
+            "client",
+            { reporter }
+        ).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics[0].messageText;
+
+        expect(actual).toMatch(/\(profile "client", addons: changing-addon\)\.$/);
+    });
+
+    it("names no addon in ESM diagnostic w/ require in source of generator adding virtual file", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "gen-addon": ctx =>
+                ctx.registerGenerator(fileName => fileName.endsWith("target.ts") && ctx.addVirtualFile("/src/generated.ts", "export const a = 1;")),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["gen-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
+
+        expect(actual).toEqual([["/src/target.js", expect.stringMatching(/\(profile "client"\)\.$/)]]);
+    });
+
+    it("names generator addon in ESM diagnostic w/ require in virtual file added by generator", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "gen-addon": ctx =>
+                ctx.registerGenerator(fileName => fileName.endsWith("target.ts") && ctx.addVirtualFile("/src/generated.ts", ESM_SOURCE)),
+            "other-addon": () => undefined,
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["gen-addon", "other-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
+
+        expect(actual).toEqual([["/src/generated.js", expect.stringMatching(/\(profile "client", addons: gen-addon\)\.$/)]]);
+    });
+
+    it("names no addon in ESM diagnostic w/ processor registered outside addon", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } });
+        testObj
+            .createProfileContextsIfNecessary()
+            .getContext("client")!
+            .registerProcessor(() => ESM_SOURCE);
+
+        const actual = testObj.compile().diagnostics[0].messageText;
+
+        expect(actual).toMatch(/\(profile "client"\)\.$/);
     });
 
     it("yields no ESM diagnostic w/ esm and CommonJS module of profile", () => {
@@ -3213,6 +3524,164 @@ describe("compile w/ esm profile", () => {
             `Profile 'client' sets 'esm', but 'module' is unset and 'target' is 'ES5', so TypeScript emits CommonJS. ` +
                 `Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'. The ESM check skips this profile.`,
         ]);
+    });
+
+    it("yields ESM diagnostic for JavaScript file w/ result processor writing CommonJS", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => {
+                    processorCtx.getSystem().writeFile("/src/meta.js", "module.exports = {};");
+                    processorCtx.getSystem().writeFile("/src/meta.json", "module.exports = {};");
+                }),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["writing-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.code]);
+
+        expect(actual).toEqual([["/src/meta.js", 91032]]);
+    });
+
+    it("names result processor addon in ESM diagnostic w/ result processor writing CommonJS", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => processorCtx.getSystem().writeFile("/src/meta.js", "module.exports = {};")),
+            "other-addon": () => undefined,
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["writing-addon", "other-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics[0].messageText;
+
+        expect(actual).toMatch(/\(profile "client", addons: writing-addon\)\.$/);
+    });
+
+    it("yields no ESM diagnostic w/ result processor writing CommonJS matching esm ignore", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => processorCtx.getSystem().writeFile("/src/meta.js", "module.exports = {};")),
+        });
+        const testObj = createEsmCompiler(
+            fileSystem,
+            { client: { esm: { runtime: "node", ignore: ["src/meta.js"] }, addons: ["writing-addon"] } },
+            "client",
+            { reporter }
+        ).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("writes file w/ result processor writing through system", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx => ctx.registerResultProcessor((_files, processorCtx) => processorCtx.getSystem().writeFile("/src/meta.json", "{}")),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["writing-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+        const actual = fileSystem.readFile("/src/meta.json");
+
+        expect(actual).toBe("{}");
+    });
+
+    it("yields one ESM diagnostic per file w/ result processor rewriting emitted file", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "banner-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => {
+                    const system = processorCtx.getSystem();
+                    system.writeFile("/src/target.js", `// banner\n${system.readFile("/src/target.js")}`);
+                }),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["banner-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.code, cur.messageText]);
+
+        expect(actual).toEqual([["/src/target.js", 91001, expect.stringMatching(/\(profile "client", addons: banner-addon\)\.$/)]]);
+    });
+
+    it("names no addon w/ result processor rewriting emitted file unchanged", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "copy-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => {
+                    const system = processorCtx.getSystem();
+                    system.writeFile("/src/target.js", system.readFile("/src/target.js")!);
+                }),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["copy-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics.map(cur => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/\(profile "client"\)\.$/)]);
+    });
+
+    it("leaves writeFile of system unchanged w/ result processor running", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const writeFile = fileSystem.writeFile;
+        const target = jest.fn();
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx => ctx.registerResultProcessor(() => target(fileSystem.writeFile === writeFile)),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["writing-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+
+        expect(target).toHaveBeenCalledWith(true);
+    });
+
+    it("restores system of context w/ throwing result processor", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const writeFile = fileSystem.writeFile;
+        const addons = createAddons(fileSystem, reporter, {
+            "throwing-addon": ctx =>
+                ctx.registerResultProcessor(() => {
+                    throw new Error("whatever");
+                }),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["throwing-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+
+        expect(testObj.getContext("client")!.getSystem()).toBe(fileSystem);
+        expect(fileSystem.writeFile).toBe(writeFile);
     });
 
     it("reports ignored file w/ esm ignore and debug", () => {
