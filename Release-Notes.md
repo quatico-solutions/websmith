@@ -18,6 +18,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
+- **Breaking:** websmith requires Node.js 22.12 or newer (`engines.node: ">=22.12"` in all published packages).
+  Node.js 20 reached end of life on 2026-04-30 and is no longer supported. Development and CI use Node.js 24;
+  pull requests are tested on Node.js 22 and 24.
 - **Breaking:** `websmith` now exits with code `1` when a compilation reports an error-level diagnostic, for example
   a failing generator, processor or result processor, a configuration error, or a TypeScript error. Before, these
   errors were printed and the command still exited with `0`. Warnings and messages do not change the exit code, and
