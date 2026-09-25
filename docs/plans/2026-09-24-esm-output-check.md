@@ -21,6 +21,7 @@
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
 - **Approved:** 2026-09-25, Jan Wloka, plan-PR #112 merged
+- **Started:** 2026-09-25, Jan Wloka, `feature/cli-exit-and-written-set`
 -->
 
 ## Changelog
