@@ -6,4 +6,5 @@
  */
 export * from "./check-esm";
 export * from "./classify-module";
+export * from "./package-type-rules";
 export * from "./scan-module";

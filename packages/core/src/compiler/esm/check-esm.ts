@@ -8,6 +8,7 @@ import { InfoMessage, type EsmProfileOptions, type Reporter } from "@quatico/web
 import path from "node:path";
 import ts from "typescript";
 import { classifyModule, createPackageTypeLookup, type DependencyCallback } from "./classify-module";
+import { checkPackageType, PackageTypeCode } from "./package-type-rules";
 import { scanModule, type FreeReference } from "./scan-module";
 
 export type EsmCheckContext = {
@@ -34,6 +35,7 @@ export const EsmDiagnosticCode = {
     FreeDirnameOrFilename: 91003,
     MixedCommonJsExport: 91004,
     MissingPackageType: 91005,
+    ...PackageTypeCode,
 } as const;
 
 const JS_FILE = /\.[cm]?js$/i;
@@ -80,8 +82,10 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
     return files
         .filter(cur => JS_FILE.test(cur.name) && !isIgnored(cur.name))
         .flatMap(cur => {
-            const { file, hasEsmSyntax, freeReferences } = scanModule(cur.name, cur.text);
-            const { kind, typeMissing } = classifyModule(cur.name, esm.runtime, hasEsmSyntax, lookupPackageType);
+            const scan = scanModule(cur.name, cur.text);
+            const { file, hasEsmSyntax, freeReferences } = scan;
+            const classification = classifyModule(cur.name, esm.runtime, hasEsmSyntax, lookupPackageType);
+            const { kind, typeMissing } = classification;
             const diagnostics: ts.Diagnostic[] = [];
             const report = (code: number, message: string, cat: ts.DiagnosticCategory, start = 0, length = 0) =>
                 diagnostics.push({ category: cat, code, file, start, length, messageText: `ESM${code}: ${message}${suffix}.` });
@@ -94,7 +98,11 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
                     ts.DiagnosticCategory.Warning
                 );
             }
-            freeReferences.forEach(ref => {
+            const packageTypeFindings = checkPackageType(cur.name, classification, scan);
+            packageTypeFindings.forEach(({ code, message, start, length }) => report(code, message, category, start, length));
+            // Whole-file CommonJS output has one cause: its per-identifier findings would repeat it
+            const isCommonJsOutput = packageTypeFindings.some(({ code }) => code === EsmDiagnosticCode.CommonJsOutputLoadedAsEsm);
+            (isCommonJsOutput ? [] : freeReferences).forEach(ref => {
                 if (ref.commonJsExport && hasEsmSyntax && kind !== "commonjs") {
                     report(EsmDiagnosticCode.MixedCommonJsExport, describeMixedExport(ref), category, ref.start, ref.length);
                 } else if (kind === "esm") {
