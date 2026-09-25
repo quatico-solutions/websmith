@@ -19,6 +19,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   would fail to load as an ES module, including code that addons generate: free `require`, `module`, `exports`,
   `__dirname` or `__filename`, and ESM syntax mixed with `module.exports`. Profiles without `esm` are not checked.
   See "ESM check" in `packages/compiler/README.md`.
+- The ESM check reports relative imports in emitted JavaScript that fail to load as ES modules: a missing file
+  extension (91010), a directory import (91011), a specifier that resolves to no file (91012) and, under
+  `runtime: "node"`, a JSON import without `with { type: "json" }` (91013).
 - The ESM check reports imports of CommonJS packages that fail as ES module: a named import the package does not
   export as Node's `cjs-module-lexer` detects it (91020, `node` runtime), and a default import from a module that
   exports `__esModule` and `default` and is used other than through property access, which binds the whole
