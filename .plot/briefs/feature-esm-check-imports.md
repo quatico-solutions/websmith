@@ -48,6 +48,29 @@ literal. Fix hints: 91010 "add the extension: `./b.js`", 91011 "import the file:
   (`rewriteRelativeImportExtensions`) or leave it; the rule sees only the output.
 - **Classification comes from wave 2**; never re-derive ESM/CommonJS from `tsConfig.module` here.
 
+### Carried over from the wave 2 review and the wave 3/4 briefs (amended 2026-09-25)
+
+- **Three module kinds under `bundler`.** Wave 2 now classifies `.cjs` files, and `.js` files under
+  `"type": "commonjs"`, as **CommonJS** (webpack's `javascript/dynamic`), not `auto`. The table's rules apply to
+  ESM-classified files only.
+  - Add a row to the tests: a `.cjs` output with `require("./b")` under `bundler` → nothing.
+- **Read the file system only through `context.system`.** Never use `fs`. The 91011 directory check and the 91012
+  existence check must go through it too, because wave 4 wraps the lookup to register dependencies.
+  - Report every `package.json` through wave 2's `EsmCheckContext.onDependency`.
+  - Keep the rules pure over `(classification, scan, context)`. Wave 4 feeds webpack's own module type and a
+    call-site mode.
+- **Wave 4 decides which of these rules run in the loader, not this slice.** The settled table for the loader:
+  - 91010, 91011 and 91013 run only under `runtime: "node"`;
+  - 91012 never runs there.
+
+  Here, keep each rule a separately callable unit, so a mode switch can skip one without touching the others.
+- **Duplicates with TypeScript stay** (settled for `esm-check-package-type`). On the Program path, TS2835, TS2834
+  and TS1543 on the source and 91010, 91011 and 91013 on the output both report. Do not cross-suppress them.
+- **Whole-file CommonJS output** is `esm-check-package-type`'s 91032, which suppresses 91001–91004 for that file.
+  It does not suppress import rules: a CommonJS file has no ESM specifiers to check.
+- **Wave 2's non-ESM guard.** A profile whose effective `module` is not ESM is skipped before any rule runs.
+  Nothing to do here, but do not add a second guard.
+
 ### Done when
 
 Assertions that exist because a naive implementation would pass without them:
