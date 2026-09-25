@@ -272,3 +272,16 @@ Accepted for v1; each is a real Node failure that the rules do not report:
   way under Node. The rules check ESM-classified files only.
 - **Lenient `auto` resolution under `bundler`.** It accepts any directory and `.js`/`.mjs`/`.cjs`/`.json`, so
   `./dir` without an index file is not reported.
+
+### 2026-09-25 — Wave 3 verification follow-ups
+
+- **UMD free references in ESM files.** A typeof-guarded UMD wrapper in an ESM-classified file still lists free
+  `require`/`exports` inside it, which gives 91001/91002. This is carried over from wave 2.
+- **Shadowing in 91021.** A local variable that shadows the default binding, or a use such as `typeof pkg`, still
+  counts as a value use. That can give a false 91021; it never misses a real one.
+- **In-place transformer edits.** Transformers that edit nodes in place (`addSyntheticLeadingComment`,
+  `setEmitFlags`) are not attributed. The plan's claim that "no changing transformer is missed" does not hold for
+  them.
+- **Plan vs. brief on attribution fallback.** The plan (§ Diagnostics) says a diagnostic lists the profile's active
+  addons when attribution is unclear. The brief and the implementation list the addons that changed the file, or
+  none. The implementation follows the brief.
