@@ -106,6 +106,12 @@ not ESM compatible reports a diagnostic at compile time.
   loader package would load (analysis B.4).
 - ✅ "ESM compatible" is configured per profile (Node ESM or bundler ESM) → See Decisions
 - ✅ A failed check is an error with a per-profile opt-out → See Decisions
+- ⏸️ Invalid `tsconfig.json` options probably still exit 0 after `esm-output-check` wave 1: their errors are carried
+  in `cliArgs.errors` (`parsed-command-line.ts:140`, `ResolvedCompilerOptions.ts:131`) and never reach the
+  reporter, so the exit code cannot see them (review of `feature/cli-exit-and-written-set`, low confidence)
+- ⏸️ Errors without a file ("Cannot find type definition file", other global diagnostics) are filtered out before
+  the reporter unless the project uses project references (`Compiler.ts:603`), so they neither print nor fail the
+  build; behaviour predates wave 1 (same review, low confidence)
 - ⏸️ Watch mode: ESM addons do not reload after `delete require.cache` — document, or reload via `import()`?
 - ✅ The `.ts`-addon failure in `"type": "module"` projects is filed as
   [#111](https://github.com/quatico-solutions/websmith/issues/111), to be fixed ahead of this story as its own plan
@@ -231,3 +237,9 @@ attribution, the performance budget and the slices.
 
 - Plan ready for review in PR #112; the CLI exit-code change ships as its own first slice
 - Three Node ESM failure classes deferred beyond v1 (listed in Phase 2b)
+
+### 2026-09-25 — Follow-ups from the wave 1 review
+
+The code review of `feature/cli-exit-and-written-set` (APPROVE, no blockers) found two error paths that the new
+exit code cannot see because the errors never reach the reporter: invalid `tsconfig.json` options and diagnostics
+without a file. Both predate the change; recorded as open points.
