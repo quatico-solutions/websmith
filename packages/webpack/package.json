@@ -4,6 +4,9 @@
     "description": "A webpack loader for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
+    "engines": {
+        "node": ">=22.12"
+    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/quatico-solutions/websmith.git"
@@ -43,7 +46,7 @@
         "@eslint/js": "^9.19.0",
         "@nx/eslint-plugin": "^18.3.4",
         "@types/jest": "^29.5.14",
-        "@types/node": "20.19.9",
+        "@types/node": "24.13.6",
         "@types/webpack": "^5.28.5",
         "@typescript-eslint/eslint-plugin": "^8.22.0",
         "@typescript-eslint/parser": "^8.22.0",

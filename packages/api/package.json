@@ -4,6 +4,9 @@
     "description": "Addon API library for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
+    "engines": {
+        "node": ">=22.12"
+    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/quatico-solutions/websmith.git"

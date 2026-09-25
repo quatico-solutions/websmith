@@ -4,6 +4,9 @@
     "description": "Node library for running websmith with CLI and webpack in Node.js",
     "author": "Quatico Solutions AG",
     "license": "MIT",
+    "engines": {
+        "node": ">=22.12"
+    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/quatico-solutions/websmith.git"
@@ -53,7 +56,7 @@
         "@types/cross-spawn": "^6.0.6",
         "@types/jest": "^29.5.14",
         "@types/lodash": "^4.17.15",
-        "@types/node": "20.19.9",
+        "@types/node": "24.13.6",
         "@typescript-eslint/eslint-plugin": "^8.22.0",
         "@typescript-eslint/parser": "^8.22.0",
         "@typescript-eslint/utils": "^8.22.0",
