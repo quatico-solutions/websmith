@@ -77,7 +77,9 @@ the `transpileModule` fast path (`Compiler.ts:597-604`), only syntax on the lang
 - **Parsing:** each JavaScript output is parsed once with `ts.createSourceFile`, and a websmith-owned scope walk
   decides whether `require`, `module`, `exports`, `__dirname` and `__filename` are *free* identifiers. The
   walk is what keeps the standard ESM migration pattern (`const require = createRequire(import.meta.url)`)
-  from being flagged. This reuses the TypeScript dependency websmith already has and keeps the cost to one
+  from being flagged. References guarded by `typeof` — the UMD pattern
+  `typeof require !== "undefined" ? require(…) : …` — are exempt too: under ESM the guard is false, so the code
+  runs. This reuses the TypeScript dependency websmith already has and keeps the cost to one
   parse per file; the price is coupling to the TypeScript 5 API, which the `ts7-rearchitecture` story has to
   port with everything else (`analysis-ts7-api-gap.md`). The scope walk is kept behind a small interface so a
   JS parser can replace `ts.createSourceFile` without touching the rules. Rejected: a TypeScript Program over
@@ -159,7 +161,13 @@ the `transpileModule` fast path (`Compiler.ts:597-604`), only syntax on the lang
   *"use `import.meta.url` with `fileURLToPath` instead of `__dirname`"*). They name the addon that introduced
   the construct: `registerTransformer` is extended to record the registering addon, as processors, generators
   and result processors already are (`CompilationContext.ts:229-259`). When exactly one of the profile's
-  addons changed the file, the diagnostic names it; otherwise it lists the profile's active addons.
+  addons changed the file, the diagnostic names it; otherwise it lists the profile's active addons. Today the
+  context only records *that* a file was changed (`addonProcessedFiles` is a set of paths,
+  `CompilationContext.ts:50`), so attribution needs **per-addon tracking**: which addon changed each file —
+  processors by content comparison, transformers by output comparison, generators through `addInputFile` /
+  `addVirtualFile`. Each rule has a **stable numeric code in the range 91000–91099** (all websmith diagnostics
+  use `code: 0` today; `ts.Diagnostic.code` is a number, and 91xxx stays clear of TypeScript's own codes),
+  documented in the README.
 - **Performance budget:** the check may add at most **10% wall time** to a webpack watch rebuild, measured on
   a large fixture before the webpack slice merges. It stays inside that by parsing each output once, caching
   results by fragment version plus a hash of the output, memoizing `package.json` lookups per build, and
@@ -180,10 +188,11 @@ slices add.
 
 ### Wave 2
 
-- `feature/esm-check-core` — `esm` profile option and validation (incl. `esm` vs `tsConfig.module`, no `depends` inheritance, `ignore`), module classification, shared `checkEsm` with located diagnostics, `watch()` and `ResultProcessor` write coverage, transformer attribution, free-identifier CommonJS rules and the ESM/`module.exports` mixing rule <!-- builds: esm profile option and the shared checkEsm function -->
+- `feature/esm-check-core` — `esm` profile option and validation (incl. `esm` vs `tsConfig.module`, no `depends` inheritance, `ignore`), module classification, shared `checkEsm` with located diagnostics and codes 91000–91099, free-identifier CommonJS rules (typeof-guarded uses exempt) and the ESM/`module.exports` mixing rule, wired into `compile()` <!-- builds: esm profile option and the shared checkEsm function -->
 
 ### Wave 3
 
+- `feature/esm-check-coverage` — `watch()` and `ResultProcessor` write coverage, per-addon attribution (which addon changed each file, transformer registrations tagged) <!-- builds: ESM check coverage for watch and ResultProcessor writes, per-addon attribution -->
 - `feature/esm-check-imports` — relative-import extension and resolution rules (CLI), JSON import attributes, default import from `__esModule` CommonJS <!-- builds: ESM import rules -->
 - `feature/esm-check-cjs-names` — named imports checked against the CommonJS package's real exports via `cjs-module-lexer` <!-- builds: cjs-module-lexer named-export check -->
 - `feature/esm-check-package-type` — output format and `.cjs`/`.mjs` naming vs `package.json` `"type"`, best-effort TypeScript `nodenext` diagnostics <!-- builds: package type consistency rules -->
