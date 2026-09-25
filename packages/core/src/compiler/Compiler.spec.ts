@@ -491,6 +491,24 @@ describe("constructor", () => {
             module: ts.ModuleKind.ES2022,
         });
     });
+
+    it.each(Object.values(ts.ModuleKind).filter((cur): cur is ts.ModuleKind => typeof cur === "number"))(
+        "yields tsConfig module %s from profile unchanged in compilation context",
+        module => {
+            const target = createSystem(
+                { "./websmith.config.json": JSON.stringify({ profiles: { "target-profile": { tsConfig: { module } } } }) },
+                { virtual: true }
+            );
+
+            const testObj = new CompilerTestClass(
+                { reporter: new ReporterMock(target), configFile: "./websmith.config.json", profile: "target-profile" },
+                undefined,
+                target
+            ).createProfileContextsIfNecessary();
+
+            expect(testObj.getContext("target-profile")!.getCompilerOptions().module).toBe(module);
+        }
+    );
 });
 
 describe("getSystem", () => {
@@ -974,6 +992,76 @@ describe("compile", () => {
 });
 
 describe("emitSourceFile", () => {
+    it.each([
+        { type: "module", declaration: false, expected: "export const hello" },
+        { type: "commonjs", declaration: false, expected: "exports.hello" },
+        { type: "module", declaration: true, expected: "export const hello" },
+        { type: "commonjs", declaration: true, expected: "exports.hello" },
+    ])("yields $expected w/ module NodeNext, package.json type $type and declaration $declaration", ({ type, declaration, expected }) => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type }), "src/target.ts": `export const hello: string = "world";` },
+            { virtual: true }
+        );
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: {
+                declaration,
+                target: ts.ScriptTarget.ESNext,
+                module: ts.ModuleKind.NodeNext,
+                moduleResolution: ts.ModuleResolutionKind.NodeNext,
+            },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(getText("target.js", actual)).toContain(expected);
+    });
+
+    it("yields dynamic import w/ module Node16 and package.json type commonjs on fast path", () => {
+        const fileSystem = createSystem(
+            {
+                "package.json": JSON.stringify({ type: "commonjs" }),
+                "src/target.ts": `export async function load() { return import("./dep.js"); }`,
+            },
+            { virtual: true }
+        );
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.Node16 },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(getText("target.js", actual)).toContain(`return import("./dep.js");`);
+    });
+
+    it("yields createRequire for import require w/ module NodeNext and package.json type module on fast path", () => {
+        const fileSystem = createSystem(
+            {
+                "package.json": JSON.stringify({ type: "module" }),
+                "src/target.ts": `import fs = require("fs");\nexport const sep = fs.sep;`,
+            },
+            { virtual: true }
+        );
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(getText("target.js", actual)).toContain(`const fs = __require("fs");`);
+    });
+
     it("yields modified client function w/ annotated arrow function", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
         const target = {
@@ -1725,6 +1813,57 @@ describe("watch", () => {
 
         expect(target).toHaveBeenCalledWith("/src/target.ts", "target1", true, true);
     });
+
+    it("should re-emit CommonJS w/ module NodeNext and package.json type changed from module to commonjs", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": `export const hello = "world";` },
+            { virtual: true }
+        );
+        const testObj = new Compiler(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { outDir: "/build", target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: { outDir: "/build" }, errors: [] },
+                watch: true,
+            },
+            undefined,
+            fileSystem
+        );
+        testObj.watch();
+
+        fileSystem.writeFile("/package.json", JSON.stringify({ type: "commonjs" }));
+
+        const actual = fileSystem.readFile("/build/target.js");
+        expect(actual).toContain(`exports.hello = "world";`);
+
+        testObj.closeAllWatchers();
+    });
+
+    it("should keep CommonJS w/ module NodeNext, package.json type changed to commonjs and later source edit", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": `export const hello = "world";` },
+            { virtual: true }
+        );
+        const testObj = new Compiler(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { outDir: "/build", target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: { outDir: "/build" }, errors: [] },
+                watch: true,
+            },
+            undefined,
+            fileSystem
+        );
+        testObj.watch();
+        fileSystem.writeFile("/package.json", JSON.stringify({ type: "commonjs" }));
+
+        fileSystem.writeFile("/src/target.ts", `export const hello = "again";`);
+
+        const actual = fileSystem.readFile("/build/target.js");
+        expect(actual).toContain(`exports.hello = "again";`);
+
+        testObj.closeAllWatchers();
+    });
 });
 
 describe("watch w/ esm profile", () => {
@@ -1754,6 +1893,20 @@ describe("watch w/ esm profile", () => {
         const testObj = createWatchCompiler(fileSystem, reporter).watch();
 
         fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+        const actual = target.mock.calls.map(([cur]) => cur.code);
+
+        expect(actual).toEqual([91001]);
+        testObj.closeAllWatchers();
+    });
+
+    it("reports ESM diagnostic w/ module NodeNext and package.json type changed from commonjs to module", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "commonjs" }), "src/target.ts": REQUIRE_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = createWatchCompiler(fileSystem, reporter, { module: ts.ModuleKind.NodeNext }).watch();
+        target.mockClear();
+
+        fileSystem.writeFile("/package.json", JSON.stringify({ type: "module" }));
         const actual = target.mock.calls.map(([cur]) => cur.code);
 
         expect(actual).toEqual([91001]);
@@ -3215,9 +3368,7 @@ describe("Declaration generation for client proxy addons", () => {
     });
 });
 
-// Module names as tsconfig.json gives them: MODULE_MAP in Compiler.ts, applied by normalizeCompilerOptions, turns a
-// numeric ModuleKind.NodeNext (199) into Preserve
-const NODENEXT_NAMES = { module: "NodeNext", moduleResolution: "NodeNext" } as unknown as ts.CompilerOptions;
+const NODENEXT: ts.CompilerOptions = { module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext };
 
 describe("compile w/ esm profile", () => {
     const ESM_SOURCE = `declare const require: (id: string) => unknown;\nexport const x = require("x");`;
@@ -3697,7 +3848,7 @@ describe("compile w/ esm profile", () => {
 
         expect(actual).toContain(`ESM check skipped "/src/target.js": matches esm.ignore pattern "src/*.js".`);
     });
-    it("yields one 91032 per file w/o 91001 or 91002 w/ fast path and nodenext module under module package", () => {
+    it("yields nothing w/ fast path and nodenext module under module package", () => {
         const fileSystem = createSystem(
             {
                 "package.json": JSON.stringify({ type: "module" }),
@@ -3707,22 +3858,13 @@ describe("compile w/ esm profile", () => {
             { virtual: true }
         );
         const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
-            tsConfig: { ...NODENEXT_NAMES, target: ts.ScriptTarget.ESNext, sourceMap: false },
+            tsConfig: { ...NODENEXT, target: ts.ScriptTarget.ESNext, sourceMap: false },
             cliArgs: { fileNames: ["/src/target.ts", "/src/dep.ts"], options: {}, errors: [] },
         });
 
-        const actual = testObj
-            .compile()
-            .diagnostics.map(cur => [
-                cur.code,
-                cur.file?.fileName,
-                /transpileModule ignores "type"/.test(ts.flattenDiagnosticMessageText(cur.messageText, "\n")),
-            ]);
+        const actual = testObj.compile().diagnostics.map(cur => [cur.code, cur.file?.fileName]);
 
-        expect(actual).toEqual([
-            [91032, "/src/target.js", true],
-            [91032, "/src/dep.js", true],
-        ]);
+        expect(actual).toEqual([]);
     });
 
     it("yields 91030 w/ .cts file and preserve module", () => {
@@ -3899,7 +4041,7 @@ describe("report w/ TypeScript ESM diagnostics", () => {
                 reporter,
                 config: { profiles: { client: { esm: { runtime: "node" } } } },
                 profile: "client",
-                tsConfig: { ...NODENEXT_NAMES, target: ts.ScriptTarget.ESNext, sourceMap: false },
+                tsConfig: { ...NODENEXT, target: ts.ScriptTarget.ESNext, sourceMap: false },
                 cliArgs: { fileNames: ["/src/target.ts", "/src/dep.ts"], options: {}, errors: [] },
             },
             undefined,

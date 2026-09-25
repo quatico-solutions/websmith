@@ -68,24 +68,33 @@ const TARGET_MAP: Record<number, ts.ScriptTarget> = {
     100: ts.ScriptTarget.JSON,
 };
 
-const MODULE_MAP: Record<number, ts.ModuleKind> = {
-    0: ts.ModuleKind.None,
-    1: ts.ModuleKind.CommonJS,
-    2: ts.ModuleKind.AMD,
-    3: ts.ModuleKind.UMD,
-    4: ts.ModuleKind.System,
-    5: ts.ModuleKind.ES2015,
-    6: ts.ModuleKind.ES2020,
-    7: ts.ModuleKind.ES2022,
-    99: ts.ModuleKind.ESNext,
-    100: ts.ModuleKind.Node16,
-    101: ts.ModuleKind.NodeNext,
-    199: ts.ModuleKind.Preserve,
-};
-
 // TypeScript error code for invalid CLI option arguments
 // This error occurs when numeric enum values are used in CLI args that TypeScript's command-line parser rejects
 const TS_ERROR_CODE_INVALID_CLI_OPTION = 6046;
+
+const WATCH_OPTIONS: ts.WatchOptions = {
+    // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
+    // In addition, the ts.System.getModifiedTime will report incorrect timeStamps, making it impossible to prevent the double firing.
+    watchFile: ts.WatchFileKind.PriorityPollingInterval,
+    fallbackPolling: ts.PollingWatchKind.FixedInterval,
+};
+
+// Options ts.transpileModule removes before it emits, see transpileOptionValueCompilerOptions in TypeScript
+const TRANSPILE_REMOVED_OPTIONS = [
+    "allowImportingTsExtensions",
+    "composite",
+    "declarationDir",
+    "emitDeclarationOnly",
+    "incremental",
+    "lib",
+    "noEmit",
+    "noEmitOnError",
+    "outFile",
+    "paths",
+    "rootDirs",
+    "tsBuildInfoFile",
+    "types",
+] as const;
 
 /**
  * TypeScript codes for imports and syntax that fail when the output loads as ESM: TS2835 (relative import without
@@ -120,6 +129,8 @@ export class Compiler {
     private baselineEmitCache = new Map<string, string | undefined>();
     // Track file modification times to detect when files change and invalidate stale cache entries
     private baselineEmitCacheFileTimes = new Map<string, Date>();
+    // Parsed package.json files for the module format of files under node16/nodenext, cleared with the options
+    private packageJsonInfoCache?: ts.PackageJsonInfoCache;
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -144,6 +155,7 @@ export class Compiler {
     compile(): ts.EmitResult {
         const { profile, buildDir } = this.options;
         const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
+        this.packageJsonInfoCache = undefined;
 
         if (this.options.debug) {
             this.reporter.reportDiagnostic(new InfoMessage(`Starting compilation with debug mode enabled.`));
@@ -246,6 +258,7 @@ export class Compiler {
                     this.registerWatch(curFile);
                 });
             }
+            this.registerPackageJsonWatches(files, profiles);
         } else {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by "${this.system.constructor.name}".`));
         }
@@ -300,6 +313,7 @@ export class Compiler {
         this.baselineTranspileCache.clear(); // Clear baseline transpile cache when options change
         this.baselineEmitCache.clear(); // Clear baseline emit cache when options change
         this.baselineEmitCacheFileTimes.clear(); // Clear file modification time tracking when options change
+        this.packageJsonInfoCache = undefined;
         // Don't invalidate cachedProgram - keep it for incremental compilation
         // The createProgram() method will detect option changes and create a new program
         // while still passing the old program for incremental type checking
@@ -835,6 +849,7 @@ export class Compiler {
             this.system.watchFile(
                 filePath,
                 fileName => {
+                    this.packageJsonInfoCache = undefined;
                     if (!profileNames?.length) {
                         return fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
                             ? this.emitSourceFile(fileName, undefined, true, true)
@@ -853,16 +868,53 @@ export class Compiler {
                     }
                 },
                 50,
-                {
-                    // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
-                    // In addition, the ts.System.getModifiedTime will report incorrect timeStamps, making it impossible to prevent the double firing.
-                    watchFile: ts.WatchFileKind.PriorityPollingInterval,
-                    fallbackPolling: ts.PollingWatchKind.FixedInterval,
-                }
+                WATCH_OPTIONS
             )
         );
 
         return this;
+    }
+
+    /**
+     * Under node16/nodenext, watches the nearest package.json of each root file, because its "type" decides the module
+     * format of the file. A change re-emits the root files under that package.json.
+     */
+    private registerPackageJsonWatches(files: string[], profileNames: string[]): void {
+        const profiles = profileNames.length ? profileNames : [undefined];
+        const isNodeModuleKind = profiles.some(profile => {
+            const { module } = this.getContext(profile)?.getCompilerOptions() ?? {};
+            return module === ts.ModuleKind.Node16 || module === ts.ModuleKind.NodeNext;
+        });
+        if (!isNodeModuleKind) {
+            return;
+        }
+
+        const filesByPackageJson = new Map<string, string[]>();
+        files.forEach(curFile => {
+            const packageJson = ts.findConfigFile(path.dirname(curFile), name => this.system.fileExists(name), "package.json");
+            if (packageJson) {
+                filesByPackageJson.set(packageJson, [...(filesByPackageJson.get(packageJson) ?? []), curFile]);
+            }
+        });
+        filesByPackageJson.forEach((packageFiles, packageJson) => {
+            this.fileWatchers.push(
+                this.system.watchFile!(
+                    packageJson,
+                    () => {
+                        this.packageJsonInfoCache = undefined;
+                        packageFiles.forEach(curFile =>
+                            profiles.forEach(profile =>
+                                profile
+                                    ? this.checkWatchedFragment(curFile, profile, this.emitSourceFile(curFile, profile, true, true))
+                                    : this.emitSourceFile(curFile, profile, true, true)
+                            )
+                        );
+                    },
+                    50,
+                    WATCH_OPTIONS
+                )
+            );
+        });
     }
 
     private getConfigSummary(): string {
@@ -910,12 +962,6 @@ export class Compiler {
         if (typeof normalized.target === "number") {
             // Keep the numeric value - TypeScript accepts it internally
             normalized.target = TARGET_MAP[normalized.target] ?? normalized.target;
-        }
-
-        // Normalize module if it's a number
-        if (typeof normalized.module === "number") {
-            // Keep the numeric value - TypeScript accepts it internally
-            normalized.module = MODULE_MAP[normalized.module] ?? normalized.module;
         }
 
         return normalized;
@@ -1185,26 +1231,30 @@ export class Compiler {
         // so creating per-file Programs for declaration generation would be wasted work.
         if (ctx.getCompilerOptions().declaration && !this.transpileOnly) {
             // Create a temporary source file with the processed content
-            const sourceFile = ts.createSourceFile(fileName, content, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest, true);
+            const sourceFile = ts.createSourceFile(
+                fileName,
+                content,
+                {
+                    languageVersion: ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest,
+                    impliedNodeFormat: this.getImpliedNodeFormat(fileName, ctx.getCompilerOptions()),
+                },
+                true
+            );
 
             // Helper function to emit with given transformers
             const emitWithTransformers = (
                 transformers: ts.CustomTransformers
             ): { outputFiles: ts.OutputFile[]; diagnostics: readonly ts.Diagnostic[] } => {
                 // Create a simple program with just this file
+                const baseHost = ts.createCompilerHost(ctx.getCompilerOptions());
                 const program = ts.createProgram({
                     rootNames: [fileName],
                     options: ctx.getCompilerOptions(),
                     host: {
-                        ...ts.createCompilerHost(ctx.getCompilerOptions()),
-                        getSourceFile: (name: string) => {
-                            if (name === fileName) {
-                                return sourceFile;
-                            }
-                            return ts
-                                .createCompilerHost(ctx.getCompilerOptions())
-                                .getSourceFile(name, ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest);
-                        },
+                        ...baseHost,
+                        // Passes TypeScript's source file options on, so that imported files get their module format
+                        getSourceFile: (name, languageVersionOrOptions, ...rest) =>
+                            name === fileName ? sourceFile : baseHost.getSourceFile(name, languageVersionOrOptions, ...rest),
                         writeFile: () => {}, // We'll collect the output ourselves
                     },
                 });
@@ -1287,11 +1337,11 @@ export class Compiler {
             };
         }
 
-        const { outputText, sourceMapText, diagnostics } = ts.transpileModule(content, {
-            compilerOptions: ctx.getCompilerOptions(),
-            fileName,
-            transformers: ctx.getTransformers(),
-        });
+        const compilerOptions = ctx.getCompilerOptions();
+        const { outputText, sourceMapText, diagnostics } =
+            compilerOptions.module === ts.ModuleKind.Node16 || compilerOptions.module === ts.ModuleKind.NodeNext
+                ? this.transpileNodeModule(content, fileName, compilerOptions, ctx.getTransformers())
+                : ts.transpileModule(content, { compilerOptions, fileName, transformers: ctx.getTransformers() });
 
         // Use ts.getOutputFileNames to get correct output paths
         // Note: We filter TS_ERROR_CODE_INVALID_CLI_OPTION below, so numeric enum values won't cause issues
@@ -1309,6 +1359,76 @@ export class Compiler {
             diagnostics: filteredDiagnostics,
             emitSkipped: filteredDiagnostics.length > 0,
         };
+    }
+
+    /**
+     * Emits one file like ts.transpileModule, but with the module format that node16/nodenext give the file through its
+     * extension and the nearest package.json. ts.transpileModule cannot read package.json and emits every .ts file as
+     * CommonJS under node16/nodenext.
+     */
+    private transpileNodeModule(
+        content: string,
+        fileName: string,
+        options: ts.CompilerOptions,
+        transformers: ts.CustomTransformers
+    ): ts.TranspileOutput {
+        // The options ts.transpileModule forces, see transpileOptionValueCompilerOptions in TypeScript
+        const compilerOptions: ts.CompilerOptions = {
+            ...options,
+            ...(!options.verbatimModuleSyntax && { isolatedModules: true }),
+            noCheck: true,
+            noLib: true,
+            noResolve: true,
+            suppressOutputPathCheck: true,
+            allowNonTsExtensions: true,
+            declaration: false,
+            declarationMap: false,
+        };
+        for (const key of TRANSPILE_REMOVED_OPTIONS) {
+            delete compilerOptions[key];
+        }
+
+        const impliedNodeFormat = this.getImpliedNodeFormat(fileName, options);
+        let outputText = "";
+        let sourceMapText: string | undefined;
+        const host: ts.CompilerHost = {
+            getSourceFile: (name, languageVersionOrOptions) =>
+                name === fileName
+                    ? ts.createSourceFile(name, content, {
+                          ...(typeof languageVersionOrOptions === "object"
+                              ? languageVersionOrOptions
+                              : { languageVersion: languageVersionOrOptions }),
+                          impliedNodeFormat,
+                      })
+                    : undefined,
+            writeFile: (name, text) => {
+                if (name.endsWith(".map")) {
+                    sourceMapText = text;
+                } else {
+                    outputText = text;
+                }
+            },
+            getDefaultLibFileName: () => "lib.d.ts",
+            useCaseSensitiveFileNames: () => false,
+            getCanonicalFileName: name => name,
+            getCurrentDirectory: () => "",
+            getNewLine: () => (options.newLine === ts.NewLineKind.CarriageReturnLineFeed ? "\r\n" : "\n"),
+            fileExists: name => name === fileName,
+            readFile: () => "",
+            directoryExists: () => true,
+            getDirectories: () => [],
+        };
+        const { diagnostics } = ts.createProgram([fileName], compilerOptions, host).emit(undefined, undefined, undefined, false, transformers);
+
+        return { outputText, sourceMapText, diagnostics: [...diagnostics] };
+    }
+
+    /** Returns the module format TypeScript gives a file from its extension and the nearest package.json. */
+    private getImpliedNodeFormat(fileName: string, options: ts.CompilerOptions): ts.ResolutionMode {
+        this.packageJsonInfoCache ??= ts
+            .createModuleResolutionCache(this.system.getCurrentDirectory(), name => name, options)
+            .getPackageJsonInfoCache();
+        return ts.getImpliedNodeFormatForFile(fileName, this.packageJsonInfoCache, this.system, options);
     }
 
     private transpileJson({ ctx, fileName, content }: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {

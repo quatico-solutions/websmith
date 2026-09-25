@@ -63,7 +63,7 @@ export const checkPackageType = (
             code: PackageTypeCode.CommonJsOutputLoadedAsEsm,
             message:
                 `file loaded as ES module whose output is CommonJS; set "module" to an ES module format, ` +
-                `and note that under the fast path transpileModule ignores "type"`,
+                `or to "NodeNext" to follow "type"`,
             start: commonJsExport.start,
             length: commonJsExport.length,
         });

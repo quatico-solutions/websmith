@@ -191,8 +191,8 @@ the name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`
 files for `bundler`. Under `node`, `.cjs` files and files under `"type": "commonjs"` load as CommonJS: 91030, 91031
 and 91033 report ESM syntax and top-level `await` in them. Dynamic `import()` is valid CommonJS and never counts as
 ESM syntax. When 91030, 91031 or 91032 reports a file, its 91001–91004 findings are left out: they share one cause,
-a module format that contradicts how the file loads, often a `module` that emits CommonJS. The `transpileModule` fast path ignores `"type"` and can emit CommonJS into files loaded
-as ESM, for example with `module: "Node16"`.
+a module format that contradicts how the file loads, for example CommonJS that a transformer or result processor
+writes into a file loaded as ESM.
 
 With `esm` and a `check` other than `"off"`, TypeScript diagnostics for imports and syntax that fail to load as ESM
 get the label `(ESM check, profile "<name>")` appended to the printed message; code and category stay the same, and

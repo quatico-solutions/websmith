@@ -62,6 +62,19 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - TypeScript addons now load in projects whose `package.json` declares `"type": "module"`, in the CLI and the webpack loader ([#111](https://github.com/quatico-solutions/websmith/issues/111)).
 - Diagnostics located at the first character of a file now show their file name and position (`(1,1)`) instead of
   only their message.
+- `"module": "nodenext"` in `tsconfig.json` was treated as `"preserve"`, so `websmith` emitted ES modules where `tsc`
+  emits CommonJS, for example under `package.json` `"type": "commonjs"`.
+- With `"module": "node16"` or `"nodenext"`, builds without type-checking addons and without declarations emitted
+  every `.ts` file as CommonJS. They now pick CommonJS or ESM per file from its extension and the nearest
+  `package.json` `"type"`, like `tsc`, and keep dynamic `import()` in CommonJS files and `import x = require()` in
+  ES module files.
+- With `"module": "node16"` or `"nodenext"`, builds without type-checking addons that emit declarations gave the
+  compiled file and the files it imports the wrong module format: ES modules under `"type": "commonjs"`, and
+  declarations without `resolution-mode` for imports from `.cts` files. They now use each file's format, like `tsc`.
+- Option names in a profile's `tsConfig` in `websmith.config.json`, such as `"module": "NodeNext"` or
+  `"target": "ES2022"`, are now converted to TypeScript's values like names in `tsconfig.json`. Before, `"NodeNext"`
+  emitted every `.ts` file as CommonJS in builds without type-checking addons, and builds with type-checking addons
+  or declarations failed. An unknown name is reported as a configuration error.
 
 ### Removed
 

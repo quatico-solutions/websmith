@@ -728,6 +728,15 @@ describe("createArgs", () => {
         expect(actual).toEqual(["--target", "es2020"]);
     });
 
+    it.each(Object.values(ts.ModuleKind).filter((cur): cur is ts.ModuleKind => typeof cur === "number"))(
+        "returns array with lower-case name of numeric module %s",
+        module => {
+            const actual = createArgs({ module: module as any });
+
+            expect(actual).toEqual(["--module", ts.ModuleKind[module].toLowerCase()]);
+        }
+    );
+
     it("returns array with empty array value", () => {
         const actual = createArgs({ lib: [] });
 

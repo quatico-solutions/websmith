@@ -631,16 +631,16 @@ describe("createOptions", () => {
                 profiles: {
                     development: {
                         tsConfig: {
-                            target: "ES2020",
-                            module: "ESNext",
+                            target: ts.ScriptTarget.ES2020,
+                            module: ts.ModuleKind.ESNext,
                             sourceMap: true,
                             declaration: false,
                         },
                     },
                     production: {
                         tsConfig: {
-                            target: "ES2019",
-                            module: "CommonJS",
+                            target: ts.ScriptTarget.ES2019,
+                            module: ts.ModuleKind.CommonJS,
                             sourceMap: false,
                             declaration: true,
                             minify: true,
@@ -687,8 +687,8 @@ describe("createOptions", () => {
                         addons: ["transformer-addon", "generator-addon"],
                         addonsDir: "./build-addons",
                         tsConfig: {
-                            target: "ES2021",
-                            module: "ESNext",
+                            target: ts.ScriptTarget.ES2021,
+                            module: ts.ModuleKind.ESNext,
                             declaration: true,
                             declarationMap: true,
                             sourceMap: true,
@@ -737,7 +737,7 @@ describe("createOptions", () => {
             // Profile config should still be available
             expect(actual.config?.profiles?.test).toMatchObject({
                 tsConfig: {
-                    target: "ES5",
+                    target: ts.ScriptTarget.ES5,
                     strict: false,
                     sourceMap: false,
                 },

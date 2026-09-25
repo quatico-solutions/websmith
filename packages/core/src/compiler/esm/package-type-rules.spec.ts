@@ -161,7 +161,7 @@ describe("checkPackageType", () => {
             13,
             7,
             `file loaded as ES module whose output is CommonJS; set "module" to an ES module format, ` +
-                `and note that under the fast path transpileModule ignores "type"`,
+                `or to "NodeNext" to follow "type"`,
         ]);
     });
 
