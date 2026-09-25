@@ -216,7 +216,7 @@ slices add.
 
 ### Wave 3
 
-- `feature/esm-check-coverage` — `watch()` and `ResultProcessor` write coverage, per-addon attribution (which addon changed each file, transformer registrations tagged) <!-- builds: ESM check coverage for watch and ResultProcessor writes, per-addon attribution -->
+- `feature/esm-check-coverage` — `watch()` and `ResultProcessor` write coverage, per-addon attribution (which addon changed each file, transformer registrations tagged) → #123 <!-- builds: ESM check coverage for watch and ResultProcessor writes, per-addon attribution -->
 - `feature/esm-check-imports` — relative-import rules (missing extension, directory import, unresolved; static imports, re-exports and literal `import()`; CLI only for resolution), JSON import attributes → #120 <!-- builds: ESM relative-import and JSON-attribute rules -->
 - `feature/esm-check-cjs-names` — bare-specifier resolution to a package's CommonJS entry and `cjs-module-lexer`, for two rules: named imports the package does not export, and default imports from a module that sets `__esModule` → #121 <!-- builds: cjs-module-lexer named-export and default-import checks -->
 - `feature/esm-check-package-type` — output format and `.cjs`/`.mjs` naming vs `package.json` `"type"`, best-effort TypeScript `nodenext` diagnostics → #122 <!-- builds: package type consistency rules -->
