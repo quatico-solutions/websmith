@@ -11,7 +11,7 @@
 
 ## Status
 
-- **State:** Draft
+- **State:** Approved
 - **Type:** feature
 - **Story:** node24-esm-support
 - **Issue:** #111
@@ -21,11 +21,17 @@
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
 -->
+- **Approved:** 2026-09-25, Jan Wloka, in-session
+
+## Approval
+
+- **Assignee:** Jan Wloka
 
 ## Changelog
 
 - TypeScript addons now load in projects whose `package.json` declares `"type": "module"` (#111).
-- Compiled addons are written to `.websmith-cache/addons` instead of `lib/` next to the addons directory.
+- The CLI writes compiled addons to `.websmith-cache/addons-cli` next to `tsconfig.json` instead of `lib/` next to
+  the addons directory. Compiled addons left in that `lib/` by earlier versions are no longer used and can be deleted.
 
 ## Motivation
 
@@ -47,38 +53,50 @@ consumer's `"type"` is. Two compile sites need the same change:
   (`packages/webpack/src/WebpackAddonService.ts:288-304`, `TsCompiler.ts:133`).
 
 Tests first: an e2e case in `compiler-test` with a `"type": "module"` consumer and a `.ts` addon (fails today),
-the same for the webpack loader in `webpack-test`, and unit tests for the marker/rename logic.
+the same for the webpack loader in `webpack-test`, and unit tests for the marker logic. The webpack case also
+answers whether the loader fails today: #111 infers it from `WebpackAddonService` compiling to CommonJS `.js`,
+but nobody has run it; whichever way it goes, the test pins the fixed behaviour.
 
 **Decided (in-session, Jan Wloka, 2026-09-24): compile into a websmith-owned directory with one CommonJS
 marker at its root.**
 
 - `AddonRegistry` stops writing to `<addonsDir>/../lib` by default and compiles into
-  `<project root>/.websmith-cache/addons`, as the webpack loader already does. `addonLibDir` (internal
-  `AddonRegistry` config, not part of `packages/api`) keeps working as an explicit override.
+  `<tsconfig.json directory>/.websmith-cache/addons-cli`. The **tsconfig directory**, not the working
+  directory, is the project root here, so running `websmith -p packages/x` from a monorepo root uses the same
+  cache as running it inside `packages/x`. `addonLibDir` (internal `AddonRegistry` config, not part of
+  `packages/api`) keeps working as an explicit override.
+- **The CLI and the webpack loader keep separate directories** (`addons-cli` and the loader's existing
+  `addons`), each with its own marker. They compile with different options — the CLI with `Classic`
+  resolution and `noResolve` (`AddonRegistry.ts:553-563`), the loader with `NodeNext`
+  (`WebpackAddonService.ts:288-304`) — and the registry skips recompiling when the output is newer than the
+  source, so a shared directory would let one silently load the other's build. Rejected: aligning both option
+  sets to share one directory, a larger change to the loader than #111 needs.
 - Both compile sites write `{"type": "commonjs"}` as `package.json` at the root of that directory, so every
   compiled file — including cross-addon imports such as `foobar-replace-processor` →
   `../foobar-replace-transformer` — loads as CommonJS.
 - Never overwrite an existing `package.json`: with an explicit `addonLibDir` that already holds one, report a
   warning instead of writing.
+- **Old output is left alone.** Compiled addons from earlier versions stay in `<addonsDir>/../lib`; websmith no
+  longer loads them, and the release note says they can be deleted. websmith deletes nothing there, because that
+  `lib/` may be the client's own. Rejected: a one-time warning when old output is found (noise on every run
+  until someone deletes it, for files that do no harm).
 - Why not `lib/`: the default can be the client's own `lib/`. In this repo it already is —
   `packages/example-addons` publishes `main: lib/index.js` and the registry compiles addons into the same
   `lib/`. A marker there would turn the client's own ESM output into CommonJS.
 - Rejected: `.cjs` output (breaks `require("./helper")` in multi-file and cross-addon addons); a marker per
   addon directory (leaves root-level addon files unmarked and still writes into the client's `lib/`).
 
-### Open Points
+### Tests and fixtures
 
-- [ ] Tests and fixtures that expect compiled addons in `example-addons/lib`
-  (`compiler-test/tests/compile-websmith.test.ts:34`, `webpack-test/tests/webpack-websmith.test.ts:55`) move to
-  the cache directory.
-- [ ] Is `<project root>` the working directory (as in `TsCompiler.ts:133`) or the directory of
-  `websmith.config.json` / `tsconfig.json` for the CLI?
-- [ ] Does the failure reproduce through the webpack loader today? (Inferred from code in #111.) The e2e case
-  answers it.
-- [ ] Release note and `README.md`: compiled addons move out of `lib/`; `.websmith-cache/` belongs in the
-  client's `.gitignore`.
+Five test files clean up `example-addons/lib` because the registry compiled addons there; they move to the new
+directories: `compiler-test/tests/compile-websmith.test.ts:34`, `webpack-test/tests/webpack-websmith.test.ts:55`,
+`webpack-test/tests/compile-module-date.test.ts:64`, `webpack-test/tests/websmith-loader.test.ts:29`,
+`webpack/src/webpack.test.ts:35`. `README.md` and `packages/compiler/README.md` tell clients to add
+`.websmith-cache/` to their `.gitignore`; this repo's `.gitignore` already has it.
 
 ## Slices
+
+### Fix TypeScript addons in "type": "module" projects
 
 - `feature/fix-ts-addons-esm-projects` — CommonJS-safe addon output in `AddonRegistry` and `WebpackAddonService`, with e2e cases for `"type": "module"` consumers <!-- builds: websmith-owned addon output dir with a CommonJS package.json marker -->
 
