@@ -23,6 +23,7 @@
 -->
 - **Approved:** 2026-09-25, Jan Wloka, plan-PR #112 merged
 - **Started:** 2026-09-25, Jan Wloka, `feature/cli-exit-and-written-set`
+- **Started:** 2026-09-25, Jan Wloka, `feature/esm-check-core`
 
 ## Changelog
 

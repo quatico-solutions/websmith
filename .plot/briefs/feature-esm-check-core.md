@@ -9,9 +9,9 @@
 
 - **Plan (canonical):** `docs/plans/2026-09-24-esm-output-check.md` on `develop`
 - **Approved:** 2026-09-25, Jan Wloka, plan-PR #112 merged (wave split amended 2026-09-25, in-session)
-- **Branch:** `feature/esm-check-core` (base: `develop`) — **prepared ahead, not yet claimed.** Wave 2 becomes
-  eligible when wave 1 (`feature/cli-exit-and-written-set`, PR #115) merges; claim it then with
-  `/plot-implement esm-output-check`, which finds this brief and treats the start as a resume.
+- **Branch:** `feature/esm-check-core` (base: `develop`), claimed 2026-09-25 after wave 1 (#115) merged; worktree
+  `.worktrees/feature-esm-check-core`. Line numbers below were taken before #115/#116 merged and may be off by a
+  few lines (e.g. `emitResult` is now at `Compiler.ts:624`); `CompileFragment.writtenFiles` is now required.
 - **Ends as:** one PR to `develop`, opened with `plot-open-pr.sh`; do not merge
 - **Review of the code:** per repo convention; CI green
 
