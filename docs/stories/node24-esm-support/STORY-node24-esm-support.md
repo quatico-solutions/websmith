@@ -243,3 +243,10 @@ attribution, the performance budget and the slices.
 The code review of `feature/cli-exit-and-written-set` (APPROVE, no blockers) found two error paths that the new
 exit code cannot see because the errors never reach the reporter: invalid `tsconfig.json` options and diagnostics
 without a file. Both predate the change; recorded as open points.
+
+### 2026-09-25 — Fast path ignores `"type"` under `nodenext`
+
+Research for `esm-check-package-type` measured that `ts.transpileModule` (the fast path and `transpileOnly`) never
+reads `package.json`: with `module: nodenext`/`node16` every `.ts` file emits CommonJS, including files under
+`"type": "module"` (TypeScript 5.7.3). websmith passes no format hint (`Compiler.ts:1111`, `:823`/`:835`). The ESM
+check reports it (91032); fixing the emit itself is open.
