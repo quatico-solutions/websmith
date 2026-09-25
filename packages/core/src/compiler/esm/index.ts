@@ -5,5 +5,6 @@
  * ---------------------------------------------------------------------------------------------
  */
 export * from "./check-esm";
+export * from "./cjs-names";
 export * from "./classify-module";
 export * from "./scan-module";
