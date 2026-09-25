@@ -18,6 +18,9 @@ Runs in parallel with the other wave 3 slices (`esm-check-imports`, `esm-check-c
 `esm-check-package-type`), which add rules to `checkEsm`; this slice adds *call sites* and *attribution* and
 touches no rule. Wave 4 (`esm-check-webpack`) reuses the attribution.
 
+Line numbers were taken before wave 2 merged. Wave 2 rewrote `emitResult` around the `checkEsm` call, so re-find
+the loops by name. Amended 2026-09-25 after wave 2's review, see "Carried over from wave 2" below.
+
 ### What to build
 
 After wave 2, the ESM check runs only in the CLI's `compile()` (`Compiler.emitResult`) and names the profile's
@@ -57,6 +60,25 @@ active addons rather than the one that produced the construct. This slice closes
 - **Watch reports, never exits.** Wave 1 made `compile()` set the exit code; `watch()` keeps running.
 - **Direct `fs` writes stay out of scope** (documented, not detected).
 
+### Carried over from wave 2 — the same rules apply at the new call sites
+
+Wave 2's review settled the following. Each new call site (`watch()` and the `ResultProcessor` writes) must behave
+exactly like `emitResult`:
+
+- **Skip non-ESM profiles.** A profile whose effective `module` is not ESM gets one config error and no per-file
+  check. Reuse wave 2's helper; do not re-derive it from `tsConfig.module`.
+- **Read `esm` from the profile's own config, never through `depends`.**
+- **Go through `checkEsm` itself.** It filters `esm.ignore` and handles `check: "warn"`/`"off"`. Do not reimplement
+  either around it.
+- **Pass through `EsmCheckContext.onDependency`, which wave 2 added.** The CLI does not need it; wave 4 does, so no
+  call site may drop it.
+- **Cached, unchanged fragments return an empty written list** (`Compiler.ts:430`, `:443`).
+  - For `watch()` that is correct: only the rebuilt fragment is checked.
+  - A second `compile()` on the same `Compiler` instance therefore re-checks nothing. Leave that alone and do not
+    work around it here; wave 4 has to decide it for the loader.
+- **Overlap with `esm-check-package-type`.** That slice changes `Compiler.report()` and its call. This slice owns
+  the processor loop, the `ResultProcessor` loop and `watch()`. The second to merge resolves any conflict.
+
 ### Done when
 
 Assertions that exist because a naive implementation would pass without them:
@@ -73,6 +95,10 @@ Assertions that exist because a naive implementation would pass without them:
   watcher (use the in-memory system's `watchFile` from the existing watch tests).
 - A `ResultProcessor` that writes a `.js` file with `module.exports` into an ESM profile's output → 91002/91004
   reported for that file; a `.json` it writes is not parsed.
+- `watch()` on a profile with `esm` and `module: CommonJS` → the config error and **no** per-file 9100x on
+  rebuild. This catches a call site that skips wave 2's non-ESM guard.
+- A `ResultProcessor` write that matches `esm.ignore` → no diagnostic. This catches filtering reimplemented before
+  `checkEsm`.
 - Repo gates: `pnpm lint`, `pnpm test`, `pnpm build`, `pnpm test:e2e`; tests per `docs/rules/testing.md`.
 
 ### Bookkeeping
