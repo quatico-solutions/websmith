@@ -10,6 +10,7 @@ import ts from "typescript";
 import { CjsNamesDiagnosticCode, createCjsNamesCheck, type CjsNamesCache } from "./cjs-names";
 import { classifyModule, createPackageTypeLookup, type DependencyCallback } from "./classify-module";
 import { checkImports } from "./import-rules";
+import { checkPackageType, PackageTypeCode } from "./package-type-rules";
 import { scanModule, type FreeReference } from "./scan-module";
 
 export type EsmCheckContext = {
@@ -39,7 +40,15 @@ export const EsmDiagnosticCode = {
     MixedCommonJsExport: 91004,
     MissingPackageType: 91005,
     ...CjsNamesDiagnosticCode,
+    ...PackageTypeCode,
 } as const;
+
+/** File-level findings that suppress the file's 91001–91004 findings. */
+const FORMAT_MISMATCH_CODES: ReadonlySet<number> = new Set([
+    EsmDiagnosticCode.EsmSyntaxInCjsFile,
+    EsmDiagnosticCode.EsmSyntaxInCommonJsPackage,
+    EsmDiagnosticCode.CommonJsOutputLoadedAsEsm,
+]);
 
 const JS_FILE = /\.[cm]?js$/i;
 
@@ -87,8 +96,10 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
     return files
         .filter(cur => JS_FILE.test(cur.name) && !isIgnored(cur.name))
         .flatMap(cur => {
-            const { file, hasEsmSyntax, freeReferences } = scanModule(cur.name, cur.text);
-            const { kind, typeMissing } = classifyModule(cur.name, esm.runtime, hasEsmSyntax, lookupPackageType);
+            const scan = scanModule(cur.name, cur.text);
+            const { file, hasEsmSyntax, freeReferences } = scan;
+            const classification = classifyModule(cur.name, esm.runtime, hasEsmSyntax, lookupPackageType);
+            const { kind, typeMissing } = classification;
             const diagnostics: ts.Diagnostic[] = [];
             const report = (code: number, message: string, cat: ts.DiagnosticCategory, start = 0, length = 0) =>
                 diagnostics.push({ category: cat, code, file, start, length, messageText: `ESM${code}: ${message}${suffix}.` });
@@ -101,7 +112,11 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
                     ts.DiagnosticCategory.Warning
                 );
             }
-            freeReferences.forEach(ref => {
+            const packageTypeFindings = checkPackageType(cur.name, classification, scan);
+            packageTypeFindings.forEach(({ code, message, start, length }) => report(code, message, category, start, length));
+            // A module format that contradicts how the file loads is one cause: per-identifier findings would repeat it
+            const hasFormatMismatch = packageTypeFindings.some(({ code }) => FORMAT_MISMATCH_CODES.has(code));
+            (hasFormatMismatch ? [] : freeReferences).forEach(ref => {
                 if (ref.commonJsExport && hasEsmSyntax && kind !== "commonjs") {
                     report(EsmDiagnosticCode.MixedCommonJsExport, describeMixedExport(ref), category, ref.start, ref.length);
                 } else if (kind === "esm") {

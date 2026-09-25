@@ -182,10 +182,27 @@ the name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`
 | 91013 | JSON import without an import attribute; add `with { type: "json" }` | error | allowed | allowed | allowed |
 | 91020 | named import that the CommonJS package does not export (`import { a } from "pkg"`) | error | allowed | allowed | — |
 | 91021 | default import from a CommonJS module that sets `__esModule` (`import def from "pkg"`) | error | error | allowed | — |
+| 91030 | `.cjs` file with ESM syntax (`import`, `export` or `import.meta`) | error | — | — | error |
+| 91031 | `.js` file with ESM syntax under `"type": "commonjs"`; names the `package.json` | error | — | — | error |
+| 91032 | file loaded as ESM whose output is CommonJS: no ESM syntax, but `exports.x =`, `module.exports =` or `__esModule` | error | error | — | — |
+| 91033 | top-level `await` in a file loaded as CommonJS | error | — | — | error |
 
 91001–91004 apply to files the runtime loads as ES modules, plus 91004 in `javascript/auto` and `javascript/dynamic`
-files for `bundler`. Under `node`, `.cjs` files and files under `"type": "commonjs"` load as CommonJS and are not
-checked: ESM syntax in them is left to the package-type rules of a later release.
+files for `bundler`. Under `node`, `.cjs` files and files under `"type": "commonjs"` load as CommonJS: 91030, 91031
+and 91033 report ESM syntax and top-level `await` in them. Dynamic `import()` is valid CommonJS and never counts as
+ESM syntax. When 91030, 91031 or 91032 reports a file, its 91001–91004 findings are left out: they share one cause,
+a module format that contradicts how the file loads, often a `module` that emits CommonJS. The `transpileModule` fast path ignores `"type"` and can emit CommonJS into files loaded
+as ESM, for example with `module: "Node16"`.
+
+With `esm` and a `check` other than `"off"`, TypeScript diagnostics for imports and syntax that fail to load as ESM
+get the label `(ESM check, profile "<name>")` appended to the printed message; code and category stay the same, and
+the diagnostics in a programmatic `EmitResult` stay unlabelled. The labelled codes are TS2835 (relative
+import without extension), TS2834 (directory import), TS1543 (JSON import without `with { type: "json" }`), TS1470
+(`import.meta` in CommonJS output), TS1309 (top-level `await` in CommonJS output) and TS1203 (`export =` in an ES
+module). TypeScript reports them only when it type checks, which is when an active addon needs type information; the
+fast path and per-file declaration programs do not report them, while the ESM check of the emitted files runs on every
+path. TS1479 and TS1471 (CommonJS importing an ES module) are not labelled: `require()` of ES modules works on the
+supported Node versions.
 
 91010–91013 check the relative specifiers (`./`, `../`) of static imports, re-exports and `import()` with a string
 literal. `import()` with a computed specifier is skipped, and bare specifiers such as `"pkg"` are not checked. The

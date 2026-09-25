@@ -23,13 +23,13 @@ describe("classifyModule", () => {
     it("yields esm w/ node runtime and .js file under module package", () => {
         const actual = classifyModule("/dist/target.js", "node", false, () => ({ packageJson: "/package.json", type: "module" }));
 
-        expect(actual).toEqual({ kind: "esm", typeMissing: false });
+        expect(actual).toEqual({ kind: "esm", typeMissing: false, packageJson: "/package.json" });
     });
 
     it("yields commonjs w/ node runtime and .js file with ESM syntax under commonjs package", () => {
         const actual = classifyModule("/dist/target.js", "node", true, () => ({ packageJson: "/package.json", type: "commonjs" }));
 
-        expect(actual).toEqual({ kind: "commonjs", typeMissing: false });
+        expect(actual).toEqual({ kind: "commonjs", typeMissing: false, packageJson: "/package.json" });
     });
 
     it("yields esm and missing type w/ node runtime and .js file with ESM syntax without package type", () => {
@@ -53,7 +53,7 @@ describe("classifyModule", () => {
     it("yields esm w/ bundler runtime and .js file under module package", () => {
         const actual = classifyModule("/dist/target.js", "bundler", false, () => ({ packageJson: "/package.json", type: "module" }));
 
-        expect(actual).toEqual({ kind: "esm", typeMissing: false });
+        expect(actual).toEqual({ kind: "esm", typeMissing: false, packageJson: "/package.json" });
     });
 
     it("yields auto w/ bundler runtime and .js file with ESM syntax without package type", () => {
@@ -71,7 +71,7 @@ describe("classifyModule", () => {
     it("yields dynamic w/ bundler runtime and .js file under commonjs package", () => {
         const actual = classifyModule("/dist/target.js", "bundler", true, () => ({ packageJson: "/package.json", type: "commonjs" }));
 
-        expect(actual).toEqual({ kind: "dynamic", typeMissing: false });
+        expect(actual).toEqual({ kind: "dynamic", typeMissing: false, packageJson: "/package.json" });
     });
 
     it("yields auto w/ bundler runtime and .js file under package without type", () => {

@@ -16,11 +16,20 @@ export type FreeReference = {
     commonJsExport: boolean;
 };
 
+/** Location of a construct in the scanned file. */
+export type Span = { start: number; length: number };
+
 export type ModuleScan = {
     /** The parsed file; diagnostics use it as their location. */
     file: ts.SourceFile;
     /** True when the file contains `import`/`export` declarations, `import.meta` or top-level `await`. */
     hasEsmSyntax: boolean;
+    /** The first `import`/`export` keyword or `import.meta`, undefined when there is none; dynamic `import()` is not one. */
+    esmSyntax?: Span;
+    /** The first top-level `await` keyword, including the one of `for await`, undefined when there is none. */
+    topLevelAwait?: Span;
+    /** The first `__esModule` marker CommonJS output sets on `exports`, undefined when there is none. */
+    esModuleMarker?: Span;
     /** References to CommonJS names that no enclosing scope declares, excluding `typeof`-guarded uses. */
     freeReferences: FreeReference[];
 };
@@ -34,7 +43,10 @@ export const scanModule: ModuleScanner = (fileName, content) => {
     const file = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
     const declarations = new Map<ts.Node, Set<string>>();
     const references: ts.Identifier[] = [];
-    let hasEsmSyntax = false;
+    let esmSyntax: Span | undefined;
+    let topLevelAwait: Span | undefined;
+    const markers: { node: ts.Node; root: ts.Identifier }[] = [];
+    const spanOf = (node: ts.Node): Span => ({ start: node.getStart(file), length: node.getWidth(file) });
 
     const declare = (scope: ts.Node, name: ts.BindingName | ts.Identifier | undefined): void => {
         if (!name) {
@@ -50,8 +62,17 @@ export const scanModule: ModuleScanner = (fileName, content) => {
     };
 
     const visit = (node: ts.Node): void => {
-        if (isEsmSyntax(node)) {
-            hasEsmSyntax = true;
+        const esmNode = esmSyntax ? undefined : findEsmSyntax(node);
+        if (esmNode) {
+            esmSyntax = spanOf(esmNode);
+        }
+        const awaitNode = topLevelAwait ? undefined : findTopLevelAwait(node);
+        if (awaitNode) {
+            topLevelAwait = spanOf(awaitNode);
+        }
+        const markerRoot = findEsModuleMarkerRoot(node);
+        if (markerRoot) {
+            markers.push({ node, root: markerRoot });
         }
         if (ts.isVariableDeclaration(node)) {
             if (ts.isVariableDeclarationList(node.parent)) {
@@ -84,27 +105,80 @@ export const scanModule: ModuleScanner = (fileName, content) => {
         return false;
     };
 
+    const isFree = (node: ts.Identifier): boolean => !isDeclared(node) && !isTypeofGuarded(node);
+    const marker = markers.find(cur => isFree(cur.root));
+    const esModuleMarker = marker && spanOf(marker.node);
+
     return {
         file,
-        hasEsmSyntax,
-        freeReferences: references
-            .filter(cur => !isDeclared(cur) && !isTypeofGuarded(cur))
-            .map(cur => ({
-                name: cur.text as CommonJsName,
-                start: cur.getStart(file),
-                length: cur.getWidth(file),
-                commonJsExport: isCommonJsExport(cur),
-            })),
+        hasEsmSyntax: !!esmSyntax || !!topLevelAwait,
+        ...(esmSyntax && { esmSyntax }),
+        ...(topLevelAwait && { topLevelAwait }),
+        ...(esModuleMarker && { esModuleMarker }),
+        freeReferences: references.filter(isFree).map(cur => ({
+            name: cur.text as CommonJsName,
+            start: cur.getStart(file),
+            length: cur.getWidth(file),
+            commonJsExport: isCommonJsExport(cur),
+        })),
     };
 };
 
-const isEsmSyntax = (node: ts.Node): boolean =>
-    ts.isImportDeclaration(node) ||
-    ts.isExportDeclaration(node) ||
-    ts.isExportAssignment(node) ||
-    (ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword) ||
-    (ts.canHaveModifiers(node) && !!ts.getModifiers(node)?.some(cur => cur.kind === ts.SyntaxKind.ExportKeyword)) ||
-    ((ts.isAwaitExpression(node) || (ts.isForOfStatement(node) && !!node.awaitModifier)) && ts.isSourceFile(findFunctionScope(node.parent)));
+/** Returns the node to locate when `node` is ESM syntax: its `import`/`export` keyword, or `import.meta` itself. */
+const findEsmSyntax = (node: ts.Node): ts.Node | undefined => {
+    if (ts.isMetaProperty(node) && node.keywordToken === ts.SyntaxKind.ImportKeyword) {
+        return node;
+    }
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isExportAssignment(node)) {
+        return node.getFirstToken();
+    }
+    return ts.canHaveModifiers(node) ? ts.getModifiers(node)?.find(cur => cur.kind === ts.SyntaxKind.ExportKeyword) : undefined;
+};
+
+/** Returns the `await` keyword when `node` is an `await` or `for await` outside any function. */
+const findTopLevelAwait = (node: ts.Node): ts.Node | undefined => {
+    const keyword = ts.isAwaitExpression(node) ? node.getFirstToken() : ts.isForOfStatement(node) ? node.awaitModifier : undefined;
+    return keyword && ts.isSourceFile(findFunctionScope(node.parent)) ? keyword : undefined;
+};
+
+/**
+ * Returns the `exports` or `module` identifier that `Object.defineProperty(exports, "__esModule", …)` or
+ * `exports.__esModule = …` (also on `module.exports`) marks, undefined when `node` is no such marker.
+ */
+const findEsModuleMarkerRoot = (node: ts.Node): ts.Identifier | undefined => {
+    if (ts.isCallExpression(node)) {
+        const callee = node.expression;
+        const [target, property] = node.arguments;
+        const isDefineProperty =
+            ts.isPropertyAccessExpression(callee) &&
+            ts.isIdentifier(callee.expression) &&
+            callee.expression.text === "Object" &&
+            callee.name.text === "defineProperty";
+        return isDefineProperty && !!property && ts.isStringLiteralLike(property) && property.text === "__esModule"
+            ? findExportsRoot(target)
+            : undefined;
+    }
+    return ts.isBinaryExpression(node) &&
+        node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+        ts.isPropertyAccessExpression(node.left) &&
+        node.left.name.text === "__esModule"
+        ? findExportsRoot(node.left.expression)
+        : undefined;
+};
+
+/** Returns the root identifier of `exports` or `module.exports`, undefined for other expressions. */
+const findExportsRoot = (node: ts.Node | undefined): ts.Identifier | undefined => {
+    if (node && ts.isIdentifier(node) && node.text === "exports") {
+        return node;
+    }
+    return node &&
+        ts.isPropertyAccessExpression(node) &&
+        node.name.text === "exports" &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === "module"
+        ? node.expression
+        : undefined;
+};
 
 const isFunctionScope = (node: ts.Node): boolean => ts.isFunctionLike(node) || ts.isSourceFile(node) || ts.isClassStaticBlockDeclaration(node);
 
