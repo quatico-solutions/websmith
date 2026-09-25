@@ -250,3 +250,12 @@ Research for `esm-check-package-type` measured that `ts.transpileModule` (the fa
 reads `package.json`: with `module: nodenext`/`node16` every `.ts` file emits CommonJS, including files under
 `"type": "module"` (TypeScript 5.7.3). websmith passes no format hint (`Compiler.ts:1111`, `:823`/`:835`). The ESM
 check reports it (91032); fixing the emit itself is open.
+
+### 2026-09-25 — Config errors print twice on the CLI
+
+Found by wave 2's end-to-end test. The CLI resolves `websmith.config.json` twice: once in `createOptions`
+(`packages/core/src/compiler/options/options.ts:34`), and again in `new Compiler` (`setOptions` →
+`ResolvedCompilerOptions` → `loadCompilationConfig`, `ResolvedCompilerOptions.ts:106`, `:416`). Every config error
+therefore prints twice. That covers the new `esm`/`module` error and, already today, the `depends` error. The
+webpack loader does the same (`packages/webpack/src/options.ts:54`). Decided 2026-09-25 to fix this separately; wave
+2's test asserts one distinct message.
