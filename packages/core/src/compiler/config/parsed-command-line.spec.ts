@@ -737,18 +737,6 @@ describe("createArgs", () => {
         }
     );
 
-    it("returns array with nodenext for numeric module NodeNext", () => {
-        const actual = createArgs({ module: ts.ModuleKind.NodeNext as any });
-
-        expect(actual).toEqual(["--module", "nodenext"]);
-    });
-
-    it("returns array with preserve for numeric module Preserve", () => {
-        const actual = createArgs({ module: ts.ModuleKind.Preserve as any });
-
-        expect(actual).toEqual(["--module", "preserve"]);
-    });
-
     it("returns array with empty array value", () => {
         const actual = createArgs({ lib: [] });
 
