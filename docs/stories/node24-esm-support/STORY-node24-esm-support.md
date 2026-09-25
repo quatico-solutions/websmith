@@ -259,3 +259,16 @@ Found by wave 2's end-to-end test. The CLI resolves `websmith.config.json` twice
 therefore prints twice. That covers the new `esm`/`module` error and, already today, the `depends` error. The
 webpack loader does the same (`packages/webpack/src/options.ts:54`). Decided 2026-09-25 to fix this separately; wave
 2's test asserts one distinct message.
+
+### 2026-09-25 — Known gaps in the relative-import rules (esm-check-imports review)
+
+Accepted for v1; each is a real Node failure that the rules do not report:
+
+- **Query or encoded specifiers.** `./b.js?v=1` and `./my%20file.js` report 91012 although Node 24 loads them; the
+  specifier is resolved as a plain path.
+- **Bare JSON imports.** `import d from "pkg/d.json"` gets no 91013, because the rule covers relative specifiers
+  only.
+- **`import()` in CommonJS files.** A dynamic `import("./b")` in a `.cjs` file uses ESM resolution and fails the same
+  way under Node. The rules check ESM-classified files only.
+- **Lenient `auto` resolution under `bundler`.** It accepts any directory and `.js`/`.mjs`/`.cjs`/`.json`, so
+  `./dir` without an index file is not reported.
