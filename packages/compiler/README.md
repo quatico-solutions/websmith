@@ -185,14 +185,23 @@ checked: ESM syntax in them is left to the package-type rules of a later release
 
 91020 and 91021 check `import` and `export … from` declarations with a bare specifier (`"pkg"`, `"pkg/sub"`) that
 resolves to a CommonJS entry. The package resolves the way Node's ESM loader does: `node_modules` upwards from the
-emitted file, then `package.json` `"exports"` with the conditions `node`, `import` and `default`, or without
-`"exports"`, `main` and `index.js`. An entry the runtime loads as ES module is not checked. The export names are
-those Node's `cjs-module-lexer` detects, following re-exports such as `__exportStar(require("./inner"))`, so
-TypeScript-compiled packages import by name as they do under Node, while `module.exports = Object.assign(...)` does
-not. A default import from a module that sets `__esModule` binds the whole `module.exports` under Node and strict
-webpack, not its default export; use `import pkg from "pkg"; pkg.default` or a named import. When the check cannot
-decide, for example for a package that is not installed or a re-export it cannot resolve, it reports nothing and
-`--debug` lists the import.
+emitted file, following symlinks such as pnpm's, then `package.json` `"exports"` with the conditions `node`, `import`,
+`module-sync` and `default`, or without `"exports"`, `main` and `index.js`. An entry the runtime loads as ES module is
+not checked. Under `bundler`, a package with a `"module"` or `"browser"` field and no `"exports"` is not checked,
+because the bundler may load another entry than `main`.
+
+The export names are those Node's `cjs-module-lexer` detects, following re-exports such as
+`__exportStar(require("./inner"))`, so TypeScript-compiled packages import by name as they do under Node, while
+`module.exports = Object.assign(...)` does not. websmith uses `cjs-module-lexer` 2.x; Node 22 bundles 2.1.0, and
+Node 24 does not report its version, so rare differences from the runtime are possible.
+
+A default import from a module that exports both `__esModule` and `default` is its whole `module.exports` under
+Node and strict webpack, not its default export. 91021 reports it only when the default binding is used other than
+through property access: called, passed as argument, spread, returned, compared or exported, and always for
+`export { default } from "pkg"`. `import pkg from "pkg"; pkg.default()` and `pkg.named` are accepted.
+
+When the check cannot decide, for example for a package that is not installed or a re-export it cannot resolve, it
+reports nothing and `--debug` lists the import.
 
 Diagnostics point at the construct in the emitted file and name the profile and its active addons, e.g.
 `Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output; ...`. The check runs in
