@@ -80,6 +80,7 @@ pnpm license:add                 # Add missing license headers
 - **Tracker:** github
 - **CI:** github-actions
 - **Worktree root:** .worktrees
+- **Worker command:** none
 - **Commit style:** arlo-no-colon — e.g. `R Fixes …`; see the `commit-notation` skill
 
 <!-- Written by /plot-init.
