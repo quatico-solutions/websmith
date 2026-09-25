@@ -208,7 +208,7 @@ slices add.
 
 ### Wave 2
 
-- `feature/esm-check-core` — `esm` profile option and validation (incl. `esm` vs `tsConfig.module`, no `depends` inheritance, `ignore`), module classification, shared `checkEsm` with located diagnostics and codes 91000–91099, free-identifier CommonJS rules (typeof-guarded uses exempt) and the ESM/`module.exports` mixing rule, wired into `compile()` <!-- builds: esm profile option and the shared checkEsm function -->
+- `feature/esm-check-core` — `esm` profile option and validation (incl. `esm` vs `tsConfig.module`, no `depends` inheritance, `ignore`), module classification, shared `checkEsm` with located diagnostics and codes 91000–91099, free-identifier CommonJS rules (typeof-guarded uses exempt) and the ESM/`module.exports` mixing rule, wired into `compile()` → #119 <!-- builds: esm profile option and the shared checkEsm function -->
 
 ### Wave 3
 
