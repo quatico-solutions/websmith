@@ -176,10 +176,26 @@ the name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`
 | 91003 | free `__dirname` / `__filename` in ESM output | error | error | allowed | allowed |
 | 91004 | ESM syntax mixed with `module.exports =` / `exports.x =` | error | error | error | error |
 | 91005 | no `"type"` in the nearest `package.json`, file classified by its syntax | warning | — | — | — |
+| 91030 | `.cjs` file with ESM syntax (`import`, `export` or `import.meta`) | error | — | — | error |
+| 91031 | `.js` file with ESM syntax under `"type": "commonjs"`; names the `package.json` | error | — | — | error |
+| 91032 | file loaded as ESM whose output is CommonJS: no ESM syntax, but `exports.x =`, `module.exports =` or `__esModule` | error | error | — | — |
+| 91033 | top-level `await` in a file loaded as CommonJS | error | — | — | error |
 
 91001–91004 apply to files the runtime loads as ES modules, plus 91004 in `javascript/auto` and `javascript/dynamic`
-files for `bundler`. Under `node`, `.cjs` files and files under `"type": "commonjs"` load as CommonJS and are not
-checked: ESM syntax in them is left to the package-type rules of a later release.
+files for `bundler`. Under `node`, `.cjs` files and files under `"type": "commonjs"` load as CommonJS: 91030, 91031
+and 91033 report ESM syntax and top-level `await` in them. Dynamic `import()` is valid CommonJS and never counts as
+ESM syntax. When 91032 reports a file, its 91001–91004 findings are left out: they share one cause, usually a
+`module` that emits CommonJS. The `transpileModule` fast path ignores `"type"` and can emit CommonJS into files loaded
+as ESM, for example with `module: "Node16"`.
+
+With `esm`, TypeScript diagnostics for imports and syntax that fail to load as ESM get the label
+`(ESM check, profile "<name>")` appended; code and category stay the same. The labelled codes are TS2835 (relative
+import without extension), TS2834 (directory import), TS1543 (JSON import without `with { type: "json" }`), TS1470
+(`import.meta` in CommonJS output), TS1309 (top-level `await` in CommonJS output) and TS1203 (`export =` in an ES
+module). TypeScript reports them only when it type checks, which is when an active addon needs type information; the
+fast path and per-file declaration programs do not report them, while the ESM check of the emitted files runs on every
+path. TS1479 and TS1471 (CommonJS importing an ES module) are not labelled: `require()` of ES modules works on the
+supported Node versions.
 
 Diagnostics point at the construct in the emitted file and name the profile and its active addons, e.g.
 `Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output; ...`. The check runs in
