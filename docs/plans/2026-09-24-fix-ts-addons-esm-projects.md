@@ -72,6 +72,16 @@ marker at its root.**
   (`WebpackAddonService.ts:288-304`) — and the registry skips recompiling when the output is newer than the
   source, so a shared directory would let one silently load the other's build. Rejected: aligning both option
   sets to share one directory, a larger change to the loader than #111 needs.
+- **The loader switches to `moduleResolution: Node10`** (amended during implementation, Jan Wloka, 2026-09-25).
+  Its `module: CommonJS` + `moduleResolution: NodeNext` pairing is invalid (TS5110), so TypeScript 5.7.3 takes the
+  output format from the consumer's `package.json`: in a `"type": "module"` project the loader emits **ESM**, not
+  CommonJS. Measured on Node 20.19.4: a single-file addon happens to load (Node can `require()` ESM), but an addon
+  with a relative or cross-addon import fails with `Cannot find module '…/esm-processor/addon'` (ESM needs
+  extensions), and since the loader compiles every addon in `addonsDir`, one such addon breaks all requests. The
+  marker alone makes it worse — it breaks the single-file case too (`Unexpected token 'export'`). With `Node10`,
+  `module: CommonJS` is honoured and the marker applies as in the CLI. The CLI still uses `Classic` +
+  `noResolve`, so the two option sets stay different and the directories stay separate. Rejected: leaving the
+  loader to a separate issue.
 - Both compile sites write `{"type": "commonjs"}` as `package.json` at the root of that directory, so every
   compiled file — including cross-addon imports such as `foobar-replace-processor` →
   `../foobar-replace-transformer` — loads as CommonJS.

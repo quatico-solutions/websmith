@@ -31,7 +31,11 @@ Keep compiling to CommonJS. Write compiled addons into a websmith-owned director
   back to `<system.getCurrentDirectory()>/.websmith-cache/addons-cli`. An explicit `addonLibDir` keeps its old
   meaning and wins.
 - **Loader (`WebpackAddonService`):** keeps its directory `<cwd>/.websmith-cache/addons` (`WebpackAddonService.ts:46`,
-  `TsCompiler.ts:133`); add the same marker there.
+  `TsCompiler.ts:133`); switch its `moduleResolution` from `NodeNext` to `Node10` (`WebpackAddonService.ts:288-304`)
+  so `module: CommonJS` is honoured, and add the same marker there. **Amended 2026-09-25:** the original brief assumed
+  the loader already emits CommonJS; with `CommonJS` + `NodeNext` (invalid, TS5110) it emits ESM in `"type": "module"`
+  projects, so single-file addons load and multi-file/cross-addon ones fail, and the marker alone breaks both. See
+  the plan's Decided section.
 
 ### Settled decisions — do not re-derive them
 
@@ -56,8 +60,9 @@ Keep compiling to CommonJS. Write compiled addons into a websmith-owned director
 - e2e (`packages/compiler-test` or `bin.test.ts`): a consumer with `"type": "module"` and a `.ts` addon compiles and
   applies the addon, exit 0 — fails today with `ADDON_STRUCTURE_ERROR`. With the wave 1 exit code not yet merged,
   assert the addon's effect on the output, not only the status.
-- The same for the webpack loader in `packages/webpack-test`. Whether it fails before the fix is unverified (#111
-  infers it); record what you observe in the red phase.
+- The same for the webpack loader in `packages/webpack-test`, run in a separate Node process (Jest's `require`
+  ignores `"type": "module"`). Before the fix the single-file case passes and the cross-addon case fails with
+  `Cannot find module`; both pass after it.
 - A multi-file addon with a cross-addon import still loads (guards against a per-directory or `.cjs` shortcut).
 - Unit tests: the marker is written once, an existing `package.json` is not overwritten (warning reported), and
   the default output directory is derived from the tsconfig directory.
