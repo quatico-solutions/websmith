@@ -5,7 +5,15 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { ErrorMessage, InfoMessage, type AddonContext, type CompilerOptions, type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
+import {
+    ErrorMessage,
+    InfoMessage,
+    type AddonContext,
+    type CompilerOptions,
+    type EsmProfileOptions,
+    type Reporter,
+    type WebpackLoaderOptions,
+} from "@quatico/websmith-api";
 import deepmerge from "deepmerge";
 import path from "node:path";
 import ts from "typescript";
@@ -25,6 +33,12 @@ export type CompileFragment = {
     /** Output files actually written to disk by this emit (respects addonEmitOnly); empty when nothing was written. */
     writtenFiles: ts.OutputFile[];
     diagnostics?: ts.Diagnostic[];
+};
+
+/** Output files and the addons that changed their source, empty when the files come from the client's own source. */
+type AttributedOutput = {
+    files: readonly ts.OutputFile[];
+    addons: string[];
 };
 
 type CompilationFragment = {
@@ -443,7 +457,7 @@ export class Compiler {
                 // if generators actually perform actions (e.g., via addInputFile/addVirtualFile)
                 generators.forEach(cur => {
                     try {
-                        cur(fileName, content);
+                        ctx.runAsAddon(ctx.getAddonName(cur), () => cur(fileName, content));
                     } catch (err) {
                         this.reporter.reportDiagnostic(new ErrorMessage(`Error in generator "${ctx.getAddonName(cur)}": ${err}`));
                     }
@@ -457,7 +471,12 @@ export class Compiler {
                 const originalContent = content;
                 for (const cur of processors) {
                     try {
+                        const previousContent = content;
                         content = cur(fileName, content);
+                        // Compare per processor, so only the addons that changed the file are named in diagnostics
+                        if (content !== previousContent) {
+                            ctx.markFileAsChangedByAddon(fileName, ctx.getAddonName(cur));
+                        }
                     } catch (err) {
                         this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
                         break; // Stop processing further processors on error
@@ -628,11 +647,11 @@ export class Compiler {
 
         // Cache getRootFiles() result to avoid redundant calls
         const files = this.getRootFiles();
-        const writtenFiles: ts.OutputFile[] = [];
+        const writtenFiles: AttributedOutput[] = [];
 
         for (const fileName of files) {
             const fragment = this.emitSourceFile(fileName, profile);
-            writtenFiles.push(...fragment.writtenFiles);
+            writtenFiles.push({ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName) });
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
             } else {
@@ -642,39 +661,10 @@ export class Compiler {
             }
         }
 
-        // esm is read from the profile itself, not from its dependencies: it is not inherited through depends
-        const profileConfig = profile ? this.options.config?.profiles?.[profile] : undefined;
-        const esm = profileConfig?.esm;
-        const { module, target } = ctx.getCompilerOptions();
-        if (esm && !isEsmModuleKind(getEmittedModuleKind({ module, target }))) {
-            // The config validation reports a module set by the profile itself; name one set elsewhere once here
-            if (isEsmModuleKind(profileConfig?.tsConfig?.module)) {
-                const targetName = typeof target === "number" ? ts.ScriptTarget[target] : (target ?? "ES5");
-                const moduleName = typeof module === "number" ? ts.ModuleKind[module] : module;
-                const cause =
-                    module === undefined
-                        ? `'module' is unset and 'target' is '${targetName}', so TypeScript emits CommonJS`
-                        : `its effective 'module' is '${moduleName}' from tsconfig.json, a dependent profile or the command line`;
-                this.reporter.reportDiagnostic(
-                    new ErrorMessage(
-                        `Profile '${profile}' sets 'esm', but ${cause}. Use an ES module format such as "ESNext" or "NodeNext", ` +
-                            `or remove 'esm'. The ESM check skips this profile.`
-                    )
-                );
-            }
-        } else if (esm) {
+        const esm = this.getCheckedEsm(profile, ctx);
+        if (esm) {
             // Diagnostics carry the emitted file as location, so report() keeps them on the Program path too
-            result.diagnostics = [
-                ...result.diagnostics,
-                ...checkEsm(writtenFiles, esm, {
-                    system: this.system,
-                    reporter: this.reporter,
-                    projectDir: ctx.resolvePath("."),
-                    debug: this.options.debug,
-                    profile,
-                    addons: this.addons?.getAvailableAddons(profile).map(cur => cur.getName()) ?? [],
-                }),
-            ];
+            result.diagnostics = [...result.diagnostics, ...this.checkEsmOutput(esm, profile, ctx, writtenFiles)];
         }
 
         // Pass all output files to result processors, including files skipped in addonEmitOnly mode
@@ -689,6 +679,57 @@ export class Compiler {
         });
 
         return result;
+    }
+
+    /**
+     * Returns the profile's `esm` options when its output is checked. A profile whose effective module format is not
+     * ESM is not checked; it is reported when `reportNonEsm` is set.
+     */
+    private getCheckedEsm(profile: string | undefined, ctx: CompilationContext, reportNonEsm = true): EsmProfileOptions | undefined {
+        // esm is read from the profile itself, not from its dependencies: it is not inherited through depends
+        const profileConfig = profile ? this.options.config?.profiles?.[profile] : undefined;
+        const esm = profileConfig?.esm;
+        const { module, target } = ctx.getCompilerOptions();
+        if (esm && !isEsmModuleKind(getEmittedModuleKind({ module, target }))) {
+            // The config validation reports a module set by the profile itself; name one set elsewhere once here
+            if (reportNonEsm && isEsmModuleKind(profileConfig?.tsConfig?.module)) {
+                const targetName = typeof target === "number" ? ts.ScriptTarget[target] : (target ?? "ES5");
+                const moduleName = typeof module === "number" ? ts.ModuleKind[module] : module;
+                const cause =
+                    module === undefined
+                        ? `'module' is unset and 'target' is '${targetName}', so TypeScript emits CommonJS`
+                        : `its effective 'module' is '${moduleName}' from tsconfig.json, a dependent profile or the command line`;
+                this.reporter.reportDiagnostic(
+                    new ErrorMessage(
+                        `Profile '${profile}' sets 'esm', but ${cause}. Use an ES module format such as "ESNext" or "NodeNext", ` +
+                            `or remove 'esm'. The ESM check skips this profile.`
+                    )
+                );
+            }
+            return undefined;
+        }
+        return esm;
+    }
+
+    /** Checks output files once per set of addons that changed them, so each diagnostic names the addons of its file. */
+    private checkEsmOutput(esm: EsmProfileOptions, profile: string | undefined, ctx: CompilationContext, outputs: AttributedOutput[]): ts.Diagnostic[] {
+        const groups = new Map<string, { files: ts.OutputFile[]; addons: string[] }>();
+        outputs.forEach(({ files, addons }) => {
+            const key = addons.join("\n");
+            const group = groups.get(key) ?? { files: [], addons };
+            group.files.push(...files);
+            groups.set(key, group);
+        });
+        return [...groups.values()].flatMap(({ files, addons }) =>
+            checkEsm(files, esm, {
+                system: this.system,
+                reporter: this.reporter,
+                projectDir: ctx.resolvePath("."),
+                debug: this.options.debug,
+                profile,
+                addons,
+            })
+        );
     }
 
     registerWatch(filePath: string, profileNames?: string[]): this {
