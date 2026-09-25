@@ -5,12 +5,15 @@
  * ---------------------------------------------------------------------------------------------
  */
 import type { EsmProfileOptions } from "@quatico/websmith-api";
-import type ts from "typescript";
+import ts from "typescript";
 import { createSystem } from "../../environment";
 import { NoReporter } from "../NoReporter";
 import { checkEsm } from "./check-esm";
 
 const MODULE_PACKAGE = { "/package.json": JSON.stringify({ type: "module" }) };
+
+const IMPORT_VIOLATIONS = `import "./b";\nimport "./utils";\nimport "./gone.js";\nimport data from "./d.json";`;
+const UTILS_ON_DISK = { ...MODULE_PACKAGE, "/dist/utils/index.js": "", "/dist/d.json": "{}" };
 
 const output = (name: string, text = ""): ts.OutputFile => ({ name, text, writeByteOrderMark: false });
 
@@ -92,6 +95,46 @@ describe("checkEsm w/ relative imports", () => {
         const actual = codesOf([output("/dist/target.cjs", `require("./b");`)], { runtime: "bundler" });
 
         expect(actual).toEqual([]);
+    });
+
+    it("yields warnings w/ check warn and every import rule violated in node ESM output", () => {
+        const actual = checkEsm(
+            [
+                output("/dist/target.js", `import "./b";\nimport "./utils";\nimport "./gone.js";\nimport data from "./d.json";`),
+                output("/dist/d.json", `{}`),
+            ],
+            { runtime: "node", check: "warn" },
+            {
+                system: createSystem({ ...MODULE_PACKAGE, "/dist/utils/index.js": "" }, { virtual: true }),
+                reporter: new NoReporter(),
+                projectDir: "/",
+            }
+        ).map(cur => [cur.code, cur.category]);
+
+        expect(actual).toEqual([
+            [91010, ts.DiagnosticCategory.Warning],
+            [91011, ts.DiagnosticCategory.Warning],
+            [91012, ts.DiagnosticCategory.Warning],
+            [91013, ts.DiagnosticCategory.Warning],
+        ]);
+    });
+
+    it("yields nothing w/ check off and every import rule violated in node ESM output", () => {
+        const actual = codesOf([output("/dist/target.js", IMPORT_VIOLATIONS)], { runtime: "node", check: "off" }, UTILS_ON_DISK);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ file matching ignore pattern and every import rule violated in node ESM output", () => {
+        const actual = codesOf([output("/dist/target.js", IMPORT_VIOLATIONS)], { runtime: "node", ignore: ["dist/*.js"] }, UTILS_ON_DISK);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields every import rule w/ file not matching ignore pattern in node ESM output", () => {
+        const actual = codesOf([output("/dist/target.js", IMPORT_VIOLATIONS)], { runtime: "node", ignore: ["dist/legacy/*.js"] }, UTILS_ON_DISK);
+
+        expect(actual).toEqual([91010, 91011, 91012, 91013]);
     });
 
     it("yields nothing w/ extensionless import in node .cjs output", () => {
