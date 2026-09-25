@@ -54,6 +54,12 @@ export class CompilationContext implements AddonContext {
     // Track which addons changed each file, so diagnostics can name the addon that introduced a construct
     private addonChangedFiles: Map<string, Set<string>> = new Map();
 
+    // Track which generator addons added each file, per source file being processed when they added it
+    private addonAddedFiles: Map<string, Map<string, Set<string>>> = new Map();
+
+    // Replaces the system that getSystem() returns while writes are observed
+    private observedSystem?: ts.System;
+
     // Track the current source file being processed (used to mark source file when generators interact with compilation)
     private currentSourceFile?: string;
 
@@ -96,7 +102,29 @@ export class CompilationContext implements AddonContext {
     }
 
     public getSystem(): ts.System {
-        return this.system;
+        return this.observedSystem ?? this.system;
+    }
+
+    /**
+     * Runs a function while getSystem() returns a system that reports every writeFile to `onWrite` before writing.
+     * The original system object is not changed.
+     */
+    public observeWrites<T>(onWrite: (fileName: string, text: string) => void, fn: () => T): T {
+        const system = this.system;
+        const previous = this.observedSystem;
+        try {
+            this.observedSystem = Object.create(system, {
+                writeFile: {
+                    value: (fileName: string, text: string, writeByteOrderMark?: boolean) => {
+                        onWrite(fileName, text);
+                        system.writeFile(fileName, text, writeByteOrderMark);
+                    },
+                },
+            }) as ts.System;
+            return fn();
+        } finally {
+            this.observedSystem = previous;
+        }
     }
 
     public getCliArgs(): ts.ParsedCommandLine {
@@ -225,10 +253,11 @@ export class CompilationContext implements AddonContext {
     public registerTransformer(transformers: ts.CustomTransformers): this {
         const addonName = this.currentAddonName;
         Object.keys(transformers).forEach(kind => {
-            const factories = transformers[kind as keyof ts.CustomTransformers] as TransformerFactory[] | undefined;
+            const key = kind as keyof ts.CustomTransformers;
+            const factories = transformers[key] as TransformerFactory[] | undefined;
             const added = addonName ? factories?.map(cur => this.attributeTransformer(cur, addonName)) : factories;
-            // @ts-expect-error ts.CustomTransformers defines too many implicit any
-            this.transformers[kind] = concat(this.transformers[kind], added);
+            const registered = this.transformers[key] as TransformerFactory[] | undefined;
+            (this.transformers as Record<string, TransformerFactory[]>)[key] = concat(registered, added);
         });
         return this;
     }
@@ -292,7 +321,12 @@ export class CompilationContext implements AddonContext {
     }
 
     public getAddonName(func: Function): string {
-        return this.addonFunctions.get(func) || "unknown addon function";
+        return this.findAddonName(func) || "unknown addon function";
+    }
+
+    /** Returns the addon that registered a function, undefined when it was registered outside an addon. */
+    public findAddonName(func: Function): string | undefined {
+        return this.addonFunctions.get(func);
     }
 
     /**
@@ -335,7 +369,19 @@ export class CompilationContext implements AddonContext {
      * Get the addons that changed a file, in the order they changed it; empty when no addon changed it.
      */
     public getAddonsChangingFile(fileName: string): string[] {
-        return [...(this.addonChangedFiles.get(this.system.resolvePath(fileName)) ?? [])];
+        const resolvedPath = this.system.resolvePath(fileName);
+        const addedBy = [...this.addonAddedFiles.values()].flatMap(cur => [...(cur.get(resolvedPath) ?? [])]);
+        return [...new Set([...addedBy, ...(this.addonChangedFiles.get(resolvedPath) ?? [])])];
+    }
+
+    /**
+     * Forget which addons changed a file and which files generators added while processing it, before the file is
+     * processed again. Generators that added the file itself while processing another file stay recorded.
+     */
+    public resetAddonChanges(fileName: string): void {
+        const resolvedPath = this.system.resolvePath(fileName);
+        this.addonChangedFiles.delete(resolvedPath);
+        this.addonAddedFiles.delete(resolvedPath);
     }
 
     /**
@@ -348,14 +394,20 @@ export class CompilationContext implements AddonContext {
     }
 
     private markFileAsAddedByAddon(filePath: string): void {
-        // Mark file as addon-processed since it was explicitly added by an addon, and also the current source file
-        // if generators are interacting with compilation
-        [filePath, ...(this.currentSourceFile ? [this.currentSourceFile] : [])].forEach(cur => {
-            this.markFileAsAddonProcessed(cur);
-            if (this.currentAddonName) {
-                this.markFileAsChangedByAddon(cur, this.currentAddonName);
-            }
-        });
+        // Mark file as addon-processed since it was explicitly added by an addon
+        this.markFileAsAddonProcessed(filePath);
+        // Also mark the current source file as processed if generators are interacting with compilation
+        if (this.currentSourceFile) {
+            this.markFileAsAddonProcessed(this.currentSourceFile);
+        }
+        // Only the added file is attributed to the generator's addon: the generator does not change the source file
+        if (this.currentAddonName) {
+            const source = this.system.resolvePath(this.currentSourceFile ?? "");
+            const added = this.addonAddedFiles.get(source) ?? new Map<string, Set<string>>();
+            const resolvedPath = this.system.resolvePath(filePath);
+            added.set(resolvedPath, (added.get(resolvedPath) ?? new Set()).add(this.currentAddonName));
+            this.addonAddedFiles.set(source, added);
+        }
     }
 
     /**

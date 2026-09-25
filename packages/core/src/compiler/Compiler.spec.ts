@@ -1760,6 +1760,75 @@ describe("watch w/ esm profile", () => {
         testObj.closeAllWatchers();
     });
 
+    it("reports ESM diagnostic w/ initial watch build of file with require", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": REQUIRE_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+
+        const testObj = createWatchCompiler(fileSystem, reporter).watch();
+        const actual = target.mock.calls.map(([cur]) => cur.code);
+
+        expect(actual).toEqual([91001]);
+        testObj.closeAllWatchers();
+    });
+
+    it("reports ESM diagnostic w/ rebuild of dependent file after asset change", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;", "src/style.css": ".a {}" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const testObj = createWatchCompiler(fileSystem, reporter).watch();
+        testObj.getContext("client")!.addAssetDependency("/src/style.css", "/src/target.ts");
+        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+
+        fileSystem.writeFile("/src/style.css", ".a { display: none; }");
+        const actual = target.mock.calls.map(([cur]) => cur.code);
+
+        expect(actual).toEqual([91001]);
+        testObj.closeAllWatchers();
+    });
+
+    it("names no addon w/ rebuild from content changed by addon to own require", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "// @marker\nexport const x = 1;" },
+            { virtual: true }
+        );
+        fileSystem.createDirectory("./addons");
+        const reporter = new ReporterMock(fileSystem);
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter, system: fileSystem });
+        const markerAddon = {
+            getName: () => "marker-addon",
+            needsTypeInfo: false,
+            activate: (ctx: CompilationContext) =>
+                ctx.registerProcessor((_fileName, content) => (content.includes("@marker") ? content.replace("@marker", "@marked") : content)),
+        };
+        addons.getAvailableAddons = jest.fn().mockReturnValue([markerAddon]);
+        addons.getAddonByName = jest.fn().mockReturnValue(markerAddon);
+        const testObj = new CompilerTestClass(
+            {
+                reporter,
+                config: { profiles: { client: { esm: { runtime: "node" }, addons: ["marker-addon"] } } },
+                profile: "client",
+                watch: true,
+                tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, sourceMap: false },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addons)
+            .watch();
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+
+        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+        const actual = target.mock.calls.map(([cur]) => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/\(profile "client"\)\.$/)]);
+        testObj.closeAllWatchers();
+    });
+
     it("keeps watching w/ rebuild reporting ESM diagnostic", () => {
         const fileSystem = createSystem(
             { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
@@ -3279,21 +3348,56 @@ describe("compile w/ esm profile", () => {
         expect(actual).toMatch(/\(profile "client", addons: changing-addon\)\.$/);
     });
 
-    it("names generator addon in ESM diagnostic w/ generator adding virtual file for source", () => {
+    it("names no addon in ESM diagnostic w/ require in source of generator adding virtual file", () => {
         const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
         const reporter = new ReporterMock(fileSystem);
         const addons = createAddons(fileSystem, reporter, {
             "gen-addon": ctx =>
                 ctx.registerGenerator(fileName => fileName.endsWith("target.ts") && ctx.addVirtualFile("/src/generated.ts", "export const a = 1;")),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["gen-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
+
+        expect(actual).toEqual([["/src/target.js", expect.stringMatching(/\(profile "client"\)\.$/)]]);
+    });
+
+    it("names generator addon in ESM diagnostic w/ require in virtual file added by generator", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "gen-addon": ctx =>
+                ctx.registerGenerator(fileName => fileName.endsWith("target.ts") && ctx.addVirtualFile("/src/generated.ts", ESM_SOURCE)),
             "other-addon": () => undefined,
         });
         const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["gen-addon", "other-addon"] } }, "client", {
             reporter,
         }).setAddonRegistry(addons);
 
+        const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
+
+        expect(actual).toEqual([["/src/generated.js", expect.stringMatching(/\(profile "client", addons: gen-addon\)\.$/)]]);
+    });
+
+    it("names no addon in ESM diagnostic w/ processor registered outside addon", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } });
+        testObj
+            .createProfileContextsIfNecessary()
+            .getContext("client")!
+            .registerProcessor(() => ESM_SOURCE);
+
         const actual = testObj.compile().diagnostics[0].messageText;
 
-        expect(actual).toMatch(/\(profile "client", addons: gen-addon\)\.$/);
+        expect(actual).toMatch(/\(profile "client"\)\.$/);
     });
 
     it("yields no ESM diagnostic w/ esm and CommonJS module of profile", () => {

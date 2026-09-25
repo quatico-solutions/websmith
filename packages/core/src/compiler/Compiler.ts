@@ -455,6 +455,8 @@ export class Compiler {
             }
 
             let content = this.system.readFile(fileName) ?? cache.getCachedFile(fileName)?.content ?? "";
+            // Attribution describes this build of the file only, so a rebuild does not name addons of an earlier one
+            ctx.resetAddonChanges(fileName);
 
             const generators = ctx.getGenerators();
             if (generators.length > 0) {
@@ -465,7 +467,12 @@ export class Compiler {
                 // if generators actually perform actions (e.g., via addInputFile/addVirtualFile)
                 generators.forEach(cur => {
                     try {
-                        ctx.runAsAddon(ctx.getAddonName(cur), () => cur(fileName, content));
+                        const addonName = ctx.findAddonName(cur);
+                        if (addonName) {
+                            ctx.runAsAddon(addonName, () => cur(fileName, content));
+                        } else {
+                            cur(fileName, content);
+                        }
                     } catch (err) {
                         this.reporter.reportDiagnostic(new ErrorMessage(`Error in generator "${ctx.getAddonName(cur)}": ${err}`));
                     }
@@ -482,8 +489,9 @@ export class Compiler {
                         const previousContent = content;
                         content = cur(fileName, content);
                         // Compare per processor, so only the addons that changed the file are named in diagnostics
-                        if (content !== previousContent) {
-                            ctx.markFileAsChangedByAddon(fileName, ctx.getAddonName(cur));
+                        const addonName = ctx.findAddonName(cur);
+                        if (addonName && content !== previousContent) {
+                            ctx.markFileAsChangedByAddon(fileName, addonName);
                         }
                     } catch (err) {
                         this.reporter.reportDiagnostic(new ErrorMessage(`Error in processor "${ctx.getAddonName(cur)}": ${err}`));
