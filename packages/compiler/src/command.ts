@@ -11,6 +11,7 @@ import { type Command, program } from "commander";
 import parseArgs from "minimist";
 import path from "node:path";
 import ts from "typescript";
+import { ErrorTrackingReporter } from "./ErrorTrackingReporter";
 import { getVersion } from "./get-version";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {
@@ -85,7 +86,8 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             };
 
             const system = compiler?.getSystem() ?? ts.sys;
-            const reporter = compiler?.getReporter() ?? new DefaultReporter(system);
+            // An injected Compiler keeps its own reporter, so errors reported during its compile() are not tracked here.
+            const reporter = new ErrorTrackingReporter(compiler?.getReporter() ?? new DefaultReporter(system));
             const tsConfigFile = args.project ?? "./tsconfig.json";
 
             // Extract file arguments from command line
@@ -168,6 +170,9 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 compiler.watch();
             } else {
                 compiler.compile();
+                if (reporter.hasErrors()) {
+                    process.exitCode = 1;
+                }
             }
         });
     return parent;

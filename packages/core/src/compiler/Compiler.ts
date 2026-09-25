@@ -21,6 +21,8 @@ import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from
 export type CompileFragment = {
     version: number;
     files: ts.OutputFile[];
+    /** Output files actually written to disk by this emit (respects addonEmitOnly); empty when nothing was written. */
+    writtenFiles: ts.OutputFile[];
     diagnostics?: ts.Diagnostic[];
 };
 
@@ -416,19 +418,20 @@ export class Compiler {
         // Files are marked as processed later by generators/processors/transformers
         if (ctx && this.shouldSkipFile(fileName, ctx, activeAddons)) {
             if (cache && !skipCache && !cache.hasChanged(filePath)) {
-                return { files: [], content: "", ...cache.getCachedFile(filePath) };
+                return { files: [], content: "", ...cache.getCachedFile(filePath), writtenFiles: [] };
             }
             // File not needed - return empty result
             return {
                 version: cache?.getVersion(fileName) ?? 1,
                 files: [],
+                writtenFiles: [],
                 diagnostics: [],
             };
         }
 
         if (ctx && cache) {
             if (!skipCache && !cache.hasChanged(filePath)) {
-                return { files: [], content: "", ...cache.getCachedFile(filePath) };
+                return { files: [], content: "", ...cache.getCachedFile(filePath), writtenFiles: [] };
             }
 
             let content = this.system.readFile(fileName) ?? cache.getCachedFile(fileName)?.content ?? "";
@@ -482,6 +485,7 @@ export class Compiler {
                 return {
                     version: cache.getVersion(fileName),
                     files: [],
+                    writtenFiles: [],
                     diagnostics: [
                         {
                             category: ts.DiagnosticCategory.Error,
@@ -634,8 +638,8 @@ export class Compiler {
             }
         }
 
-        // Pass the actually emitted files to result processors
-        // This respects addonEmitOnly mode - only emitted files are passed
+        // Pass all output files to result processors, including files skipped in addonEmitOnly mode
+        // and declaration/map files; the files actually written are in each fragment's writtenFiles
         const emittedFiles = result.emittedFiles ?? [];
         ctx.getResultProcessors().forEach(cur => {
             try {
@@ -788,16 +792,18 @@ export class Compiler {
             // Files are marked as processed through automatic detection in both transpileOnly and full compilation modes
             const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName));
 
-            if (writeFile && output.outputFiles && shouldEmitFile) {
-                this.writeOutputFiles(output.outputFiles);
+            const writtenFiles = writeFile && output.outputFiles && shouldEmitFile ? output.outputFiles : [];
+            if (writtenFiles.length) {
+                this.writeOutputFiles(writtenFiles);
             }
             return {
                 version: cache.getVersion(fileName),
                 files: output.outputFiles,
+                writtenFiles,
                 diagnostics: output.diagnostics,
             };
         } else {
-            return { version: cache.getVersion(fileName), files: [], diagnostics: output?.diagnostics };
+            return { version: cache.getVersion(fileName), files: [], writtenFiles: [], diagnostics: output?.diagnostics };
         }
     }
 

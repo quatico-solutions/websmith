@@ -18,6 +18,20 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
+- **Breaking:** websmith requires Node.js 22.12 or newer (`engines.node: ">=22.12"` in all published packages).
+  Node.js 20 reached end of life on 2026-04-30 and is no longer supported. Development and CI use Node.js 24;
+  pull requests are tested on Node.js 22 and 24.
+- **Breaking:** `websmith` now exits with code `1` when a compilation reports an error-level diagnostic, for example
+  a failing generator, processor or result processor, a configuration error, or a TypeScript error. Before, these
+  errors were printed and the command still exited with `0`. Warnings and messages do not change the exit code, and
+  watch mode keeps running after errors.
+  - TypeScript type errors fail the build only when type checking runs, which is when an active addon needs type
+    information and `transpileOnly` is off. Other builds are not type checked, so a type error there still exits
+    with `0`. This includes builds without addons, builds on the fast `transpileModule` path, and builds that emit
+    declarations through per-file programs.
+  - When type checking runs, errors in declaration files count too, including those under `node_modules/@types`. A
+    project that picks up incompatible `@types` packages (for example through the default `types` inclusion) now
+    fails; restrict them with the `types` compiler option.
 - The CLI writes compiled TypeScript addons to `.websmith-cache/addons-cli` next to `tsconfig.json` instead of `lib/` next to the addons directory. Compiled addons left in that `lib/` by earlier versions are no longer used and can be deleted. Add `.websmith-cache/` to your `.gitignore`.
 - Addons compiled by the CLI resolve imports from `.websmith-cache/addons-cli` instead of the addons directory's parent. Addons should import only files inside the addons directory or packages installed in the project; relative imports that leave the addons directory and packages installed only next to the addons no longer resolve.
 - The webpack loader compiles addons with `Node10` module resolution instead of `NodeNext`, so its output is CommonJS whatever the project's `"type"` is. Addons compiled by earlier versions are recompiled once. Unresolved imports in addons (e.g. packages whose types exist only under `package.json` `"exports"`) are reported as warnings; the build continues and Node resolves them at runtime.
