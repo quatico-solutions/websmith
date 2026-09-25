@@ -8,6 +8,7 @@ import { type CompilationConfig, type CompilationProfile, ErrorMessage, type Rep
 import { parse } from "comment-json";
 import path from "node:path";
 import type ts from "typescript";
+import { isEsmModuleKind } from "../esm";
 
 const updatePaths = (config: CompilationConfig, basePath: string, system: ts.System): CompilationConfig => {
     return {
@@ -70,6 +71,41 @@ const removeOverlappingSegments = (basePath: string, relativePath: string) => {
     return path.join(basePathSegments.join(path.sep), relativePathSegments.join(path.sep));
 };
 
+const ESM_RUNTIMES = ["node", "bundler"];
+const ESM_CHECK_LEVELS = ["error", "warn", "off"];
+
+const validateEsm = (name: string, profile: CompilationProfile, configFilePath: string, reporter: Reporter): void => {
+    const { runtime, check, ignore } = profile.esm ?? {};
+    if (runtime === undefined) {
+        reporter.reportDiagnostic(
+            new ErrorMessage(`Missing 'esm.runtime' in profile '${name}' of '${configFilePath}'. Expected "node" or "bundler".`)
+        );
+    } else if (!ESM_RUNTIMES.includes(runtime)) {
+        reporter.reportDiagnostic(
+            new ErrorMessage(`Unknown 'esm.runtime' value '${runtime}' in profile '${name}' of '${configFilePath}'. Expected "node" or "bundler".`)
+        );
+    }
+    if (check !== undefined && !ESM_CHECK_LEVELS.includes(check)) {
+        reporter.reportDiagnostic(
+            new ErrorMessage(`Unknown 'esm.check' value '${check}' in profile '${name}' of '${configFilePath}'. Expected "error", "warn" or "off".`)
+        );
+    }
+    if (ignore !== undefined && !(Array.isArray(ignore) && ignore.every(cur => typeof cur === "string"))) {
+        reporter.reportDiagnostic(
+            new ErrorMessage(`Invalid 'esm.ignore' in profile '${name}' of '${configFilePath}'. Expected an array of glob pattern strings.`)
+        );
+    }
+    const module = profile.tsConfig?.module;
+    if (!isEsmModuleKind(module)) {
+        reporter.reportDiagnostic(
+            new ErrorMessage(
+                `Profile '${name}' of '${configFilePath}' sets 'esm', but its 'tsConfig.module' is '${module}'. ` +
+                    `Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'.`
+            )
+        );
+    }
+};
+
 export const resolveCompilationConfig = (configFilePath: string | undefined, reporter: Reporter, system: ts.System): CompilationConfig => {
     if (!configFilePath) {
         return {};
@@ -84,7 +120,7 @@ export const resolveCompilationConfig = (configFilePath: string | undefined, rep
             const config = parse(content ?? "{}") as CompilationConfig;
             const result = { ...updatePaths(config, path.dirname(resolvedPath), system) };
             if (result.profiles) {
-                Object.entries(result.profiles).forEach(([_name, profile]) => {
+                Object.entries(result.profiles).forEach(([name, profile]) => {
                     if (profile.addons?.length) {
                         profile.addons = [...(profile.addons ?? []), ...(result.addons ?? [])];
                     }
@@ -94,6 +130,9 @@ export const resolveCompilationConfig = (configFilePath: string | undefined, rep
                                 reporter.reportDiagnostic(new ErrorMessage(`Unknown profile '${dep}' in 'depends' of '${configFilePath}'.`));
                             }
                         });
+                    }
+                    if (profile.esm) {
+                        validateEsm(name, profile, configFilePath, reporter);
                     }
                 });
             }

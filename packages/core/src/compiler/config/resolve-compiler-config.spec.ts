@@ -128,6 +128,167 @@ describe("resolveCompilationConfig", () => {
 
         expect(targetFn).toHaveBeenCalledWith(new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'."));
     });
+
+    it("should report error w/ unknown esm runtime", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { client: { esm: { runtime: "deno" } } } }) },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+
+        expect(targetFn).toHaveBeenCalledWith(
+            new ErrorMessage(`Unknown 'esm.runtime' value 'deno' in profile 'client' of './target-config.json'. Expected "node" or "bundler".`)
+        );
+    });
+
+    it("should report error w/ unknown esm check level", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { client: { esm: { runtime: "node", check: "fail" } } } }) },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+
+        expect(targetFn).toHaveBeenCalledWith(
+            new ErrorMessage(`Unknown 'esm.check' value 'fail' in profile 'client' of './target-config.json'. Expected "error", "warn" or "off".`)
+        );
+    });
+
+    it("should report exactly one error w/ esm and CommonJS tsConfig module", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: { client: { esm: { runtime: "node" }, tsConfig: { module: "CommonJS", outDir: "./dist" } } },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        const actual = targetFn.mock.calls;
+
+        expect(actual).toEqual([
+            [
+                new ErrorMessage(
+                    `Profile 'client' of './target-config.json' sets 'esm', but its 'tsConfig.module' is 'CommonJS'. Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'.`
+                ),
+            ],
+        ]);
+    });
+
+    it("should report error w/ esm and numeric CommonJS tsConfig module", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { client: { esm: { runtime: "bundler" }, tsConfig: { module: 1 } } } }) },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+
+        expect(targetFn).toHaveBeenCalledWith(
+            new ErrorMessage(
+                `Profile 'client' of './target-config.json' sets 'esm', but its 'tsConfig.module' is '1'. Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'.`
+            )
+        );
+    });
+
+    it("should report missing esm runtime w/ esm true", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem({ "./target-config.json": JSON.stringify({ profiles: { client: { esm: true } } }) }, { virtual: true });
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        const actual = targetFn.mock.calls;
+
+        expect(actual).toEqual([
+            [new ErrorMessage(`Missing 'esm.runtime' in profile 'client' of './target-config.json'. Expected "node" or "bundler".`)],
+        ]);
+    });
+
+    it("should report error w/ non-string esm ignore entry", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { client: { esm: { runtime: "node", ignore: [1] } } } }) },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        const actual = targetFn.mock.calls;
+
+        expect(actual).toEqual([
+            [new ErrorMessage(`Invalid 'esm.ignore' in profile 'client' of './target-config.json'. Expected an array of glob pattern strings.`)],
+        ]);
+    });
+
+    it("should report error w/ string esm ignore", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { client: { esm: { runtime: "node", ignore: "dist/*.js" } } } }) },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        const actual = targetFn.mock.calls;
+
+        expect(actual).toEqual([
+            [new ErrorMessage(`Invalid 'esm.ignore' in profile 'client' of './target-config.json'. Expected an array of glob pattern strings.`)],
+        ]);
+    });
+
+    it("should report nothing w/ esm ignore of glob strings", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { client: { esm: { runtime: "node", ignore: ["dist/*.js"] } } } }) },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        const actual = targetFn.mock.calls;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("should report error w/ esm check off and CommonJS tsConfig module", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: { client: { esm: { runtime: "node", check: "off" }, tsConfig: { module: "CommonJS" } } },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        const actual = targetFn.mock.calls;
+
+        expect(actual).toEqual([
+            [
+                new ErrorMessage(
+                    `Profile 'client' of './target-config.json' sets 'esm', but its 'tsConfig.module' is 'CommonJS'. Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'.`
+                ),
+            ],
+        ]);
+    });
+
+    it("should report nothing w/ esm and ES module tsConfig module", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: { client: { esm: { runtime: "node", check: "warn" }, tsConfig: { module: "NodeNext" } } },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+
+        expect(targetFn).not.toHaveBeenCalled();
+    });
 });
 
 describe("resolvePath", () => {

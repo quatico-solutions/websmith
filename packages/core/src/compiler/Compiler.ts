@@ -16,6 +16,7 @@ import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
 import { DefaultReporter } from "./DefaultReporter";
+import { checkEsm, getEmittedModuleKind, isEsmModuleKind } from "./esm";
 import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
@@ -148,16 +149,13 @@ export class Compiler {
 
             if (this.options.debug) {
                 if (useFastPath) {
-                    const reason = this.transpileOnly && declarationsNeeded
-                        ? "no addons require type information, declarations ignored in transpileOnly mode"
-                        : "no addons require type information, no declarations";
-                    this.reporter.reportDiagnostic(
-                        new InfoMessage(`Using fast transpileModule path (${reason}).`)
-                    );
+                    const reason =
+                        this.transpileOnly && declarationsNeeded
+                            ? "no addons require type information, declarations ignored in transpileOnly mode"
+                            : "no addons require type information, no declarations";
+                    this.reporter.reportDiagnostic(new InfoMessage(`Using fast transpileModule path (${reason}).`));
                 } else if (addonNeedsBigProgram) {
-                    this.reporter.reportDiagnostic(
-                        new InfoMessage(`Creating TypeScript Program (addon requires type information).`)
-                    );
+                    this.reporter.reportDiagnostic(new InfoMessage(`Creating TypeScript Program (addon requires type information).`));
                 } else if (declarationsNeeded) {
                     this.reporter.reportDiagnostic(
                         new InfoMessage(`Using per-file Programs for declaration generation (no addon requires type information).`)
@@ -478,7 +476,13 @@ export class Compiler {
             const addonNeedsBigProgram = this.anyAddonNeedsTypeInfo(profile);
 
             try {
-                return this.processOutput(cache, this.transpile({ fileName, ctx, content, profile, useFastPath, addonNeedsBigProgram }), writeFile, fileName, ctx);
+                return this.processOutput(
+                    cache,
+                    this.transpile({ fileName, ctx, content, profile, useFastPath, addonNeedsBigProgram }),
+                    writeFile,
+                    fileName,
+                    ctx
+                );
             } catch (err) {
                 this.reporter.reportDiagnostic(new ErrorMessage(`Error during transpilation of "${fileName}": ${err}`));
                 // Return a minimal result to allow compilation to continue
@@ -537,9 +541,7 @@ export class Compiler {
                 }
             } catch (err) {
                 // Buggy addon — treat file as wanted (safe default) and report error
-                this.reporter.reportDiagnostic(
-                    new ErrorMessage(`Error in shouldProcessFile for addon "${addon.getName()}": ${err}`)
-                );
+                this.reporter.reportDiagnostic(new ErrorMessage(`Error in shouldProcessFile for addon "${addon.getName()}": ${err}`));
                 return false;
             }
         }
@@ -626,9 +628,11 @@ export class Compiler {
 
         // Cache getRootFiles() result to avoid redundant calls
         const files = this.getRootFiles();
+        const writtenFiles: ts.OutputFile[] = [];
 
         for (const fileName of files) {
             const fragment = this.emitSourceFile(fileName, profile);
+            writtenFiles.push(...fragment.writtenFiles);
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
             } else {
@@ -636,6 +640,41 @@ export class Compiler {
                 result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
                 result.emitSkipped = !!fragment.diagnostics && fragment.diagnostics.length > 0 ? true : false;
             }
+        }
+
+        // esm is read from the profile itself, not from its dependencies: it is not inherited through depends
+        const profileConfig = profile ? this.options.config?.profiles?.[profile] : undefined;
+        const esm = profileConfig?.esm;
+        const { module, target } = ctx.getCompilerOptions();
+        if (esm && !isEsmModuleKind(getEmittedModuleKind({ module, target }))) {
+            // The config validation reports a module set by the profile itself; name one set elsewhere once here
+            if (isEsmModuleKind(profileConfig?.tsConfig?.module)) {
+                const targetName = typeof target === "number" ? ts.ScriptTarget[target] : (target ?? "ES5");
+                const moduleName = typeof module === "number" ? ts.ModuleKind[module] : module;
+                const cause =
+                    module === undefined
+                        ? `'module' is unset and 'target' is '${targetName}', so TypeScript emits CommonJS`
+                        : `its effective 'module' is '${moduleName}' from tsconfig.json, a dependent profile or the command line`;
+                this.reporter.reportDiagnostic(
+                    new ErrorMessage(
+                        `Profile '${profile}' sets 'esm', but ${cause}. Use an ES module format such as "ESNext" or "NodeNext", ` +
+                            `or remove 'esm'. The ESM check skips this profile.`
+                    )
+                );
+            }
+        } else if (esm) {
+            // Diagnostics carry the emitted file as location, so report() keeps them on the Program path too
+            result.diagnostics = [
+                ...result.diagnostics,
+                ...checkEsm(writtenFiles, esm, {
+                    system: this.system,
+                    reporter: this.reporter,
+                    projectDir: ctx.resolvePath("."),
+                    debug: this.options.debug,
+                    profile,
+                    addons: this.addons?.getAvailableAddons(profile).map(cur => cur.getName()) ?? [],
+                }),
+            ];
         }
 
         // Pass all output files to result processors, including files skipped in addonEmitOnly mode
@@ -954,9 +993,15 @@ export class Compiler {
                 const emitPerFile = (transformers: ts.CustomTransformers): string | undefined => {
                     const program = ts.createProgram({ rootNames: [fileName], options: compilerOptions, host: perFileHost });
                     const outputFiles: ts.OutputFile[] = [];
-                    program.emit(sourceFile, (name: string, text: string) => {
-                        outputFiles.push({ name, text, writeByteOrderMark: false });
-                    }, undefined, false, transformers);
+                    program.emit(
+                        sourceFile,
+                        (name: string, text: string) => {
+                            outputFiles.push({ name, text, writeByteOrderMark: false });
+                        },
+                        undefined,
+                        false,
+                        transformers
+                    );
                     const isJS = (name: string) => !!name.match(/\.([cm]?js|jsx)$/i) && !name.match(/\.map$/i);
                     return outputFiles.find(f => isJS(f.name))?.text;
                 };

@@ -14,7 +14,11 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Added
 
-- TBA
+- New per-profile `esm` option in `websmith.config.json`: `{ "runtime": "node" | "bundler", "check": "error" | "warn" | "off", "ignore": string[] }`.
+  A profile with `esm` gets compile-time diagnostics (codes 91001–91005) when the JavaScript that `websmith` writes
+  would fail to load as an ES module, including code that addons generate: free `require`, `module`, `exports`,
+  `__dirname` or `__filename`, and ESM syntax mixed with `module.exports`. Profiles without `esm` are not checked.
+  See "ESM check" in `packages/compiler/README.md`.
 
 ### Changed
 
@@ -39,6 +43,8 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 ### Fixed
 
 - TypeScript addons now load in projects whose `package.json` declares `"type": "module"`, in the CLI and the webpack loader ([#111](https://github.com/quatico-solutions/websmith/issues/111)).
+- Diagnostics located at the first character of a file now show their file name and position (`(1,1)`) instead of
+  only their message.
 
 ### Removed
 

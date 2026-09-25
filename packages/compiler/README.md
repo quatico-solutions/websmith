@@ -100,6 +100,7 @@ You can define a compilation profile by adding a `profiles` section to the `webs
 * `tsConfig`: The TypeScript compiler options for this profile
 * `config`: Profile specific properties provided to profile addons
 * `depends`: The list of profiles to be applied before this profile
+* `esm`: Checks that the JavaScript this profile emits loads as ES modules, see [ESM check](#esm-check)
 
 Register your addon by adding a config file `websmith.config.json` to your project folder. Add a `profiles` definition for your project with an `addons` property mentioning your addon:
 
@@ -129,6 +130,60 @@ You can apply a compilation profile by using the `--profile` command line parame
     }
 }
 ```
+
+### <a name="esm-check"></a>ESM check
+
+A profile with an `esm` section gets compile-time diagnostics when its emitted JavaScript would fail to load as an
+ES module, including code that addons generate. Profiles without `esm` are not checked. `esm` is not inherited
+through `depends`: each profile declares its own.
+
+```json
+// ./websmith.config.json
+{
+    "profiles": {
+        "client": {
+            "addons": ["client-generator"],
+            "esm": { "runtime": "node", "check": "error", "ignore": ["dist/legacy/*.cjs"] },
+            "tsConfig": { "module": "ESNext", "outDir": "./dist" }
+        }
+    }
+}
+```
+
+* `runtime` (required): The runtime that loads the output and decides whether a file is an ES module.
+  * `node`: `.mjs` is ESM and `.cjs` is CommonJS; other files follow the `"type"` of the nearest `package.json`. Without
+    a `"type"`, the file is classified by its syntax, like Node does, and websmith warns (91005).
+  * `bundler`: webpack's module types. `.mjs` files and `.js` files under `"type": "module"` are `javascript/esm`;
+    `.cjs` files and `.js` files under `"type": "commonjs"` are `javascript/dynamic` (CommonJS, where ESM syntax fails);
+    all others are `javascript/auto`, where webpack accepts `require` and `__dirname` inside ES modules.
+* `check`: `error` (default) fails the build, `warn` reports warnings, `off` disables the check.
+* `ignore`: Glob patterns of emitted files to skip, relative to the directory of `websmith.config.json` unless
+  absolute. Supported syntax: `*` (any characters except `/`), `**` (any number of directories) and `?` (one character
+  except `/`); braces and brackets match literally. `\` counts as `/`, and on Windows patterns match case-insensitively.
+  `--debug` lists every skipped file.
+
+The check parses the `.js`, `.mjs` and `.cjs` files that the CLI writes. It classifies each file by the runtime,
+never by `tsConfig.module`. A profile with `esm` whose `module` is not an ES module format (e.g. `CommonJS`) is a
+configuration error, also with `check: "off"`, and the check skips the profile; this holds whether the profile's
+`tsConfig`, `tsconfig.json`, a dependent profile or the command line sets `module`. Only free identifiers count:
+`const require = createRequire(import.meta.url)` is accepted, and so are uses that run only when a `typeof` test says
+the name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`).
+
+| Code | Finding | `node` | `bundler`, `javascript/esm` | `bundler`, `javascript/auto` | `bundler`, `javascript/dynamic` |
+|------|---------|--------|-----------------------------|------------------------------|---------------------------------|
+| 91001 | free `require` in ESM output | error | error | allowed | allowed |
+| 91002 | free `module` / `exports` in ESM output | error | error | allowed | allowed |
+| 91003 | free `__dirname` / `__filename` in ESM output | error | error | allowed | allowed |
+| 91004 | ESM syntax mixed with `module.exports =` / `exports.x =` | error | error | error | error |
+| 91005 | no `"type"` in the nearest `package.json`, file classified by its syntax | warning | — | — | — |
+
+91001–91004 apply to files the runtime loads as ES modules, plus 91004 in `javascript/auto` and `javascript/dynamic`
+files for `bundler`. Under `node`, `.cjs` files and files under `"type": "commonjs"` load as CommonJS and are not
+checked: ESM syntax in them is left to the package-type rules of a later release.
+
+Diagnostics point at the construct in the emitted file and name the profile and its active addons, e.g.
+`Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output; ...`. The check runs in
+`websmith` builds; watch mode, JavaScript written by result processors and the webpack loader are not checked yet.
 
 ## Websmith configuration file
 
