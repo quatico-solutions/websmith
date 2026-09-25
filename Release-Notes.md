@@ -18,7 +18,17 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
-- TBA
+- **Breaking:** `websmith` now exits with code `1` when a compilation reports an error-level diagnostic, for example
+  a failing generator, processor or result processor, a configuration error, or a TypeScript error. Before, these
+  errors were printed and the command still exited with `0`. Warnings and messages do not change the exit code, and
+  watch mode keeps running after errors.
+  - TypeScript type errors fail the build only when type checking runs, which is when an active addon needs type
+    information and `transpileOnly` is off. Other builds are not type checked, so a type error there still exits
+    with `0`. This includes builds without addons, builds on the fast `transpileModule` path, and builds that emit
+    declarations through per-file programs.
+  - When type checking runs, errors in declaration files count too, including those under `node_modules/@types`. A
+    project that picks up incompatible `@types` packages (for example through the default `types` inclusion) now
+    fails; restrict them with the `types` compiler option.
 
 ### Fixed
 

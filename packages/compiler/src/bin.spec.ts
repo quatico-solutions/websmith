@@ -71,6 +71,7 @@ describe("bin.ts", () => {
     afterEach(() => {
         // Restore all mocks
         jest.restoreAllMocks();
+        process.exitCode = undefined;
 
         // Restore working directory safely
         try {

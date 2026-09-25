@@ -2431,6 +2431,190 @@ describe("addonEmitOnly mode", () => {
         expect(serviceCalls.length).toBeGreaterThan(0); // Service was written
         expect(helperCalls.length).toBe(0); // Helper was NOT written
     });
+
+    it("yields empty written files w/ addonEmitOnly and file not processed by addons", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                config: { addonEmitOnly: true },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, true).writtenFiles;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields all output files w/ addonEmitOnly and file not processed by addons", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                config: { addonEmitOnly: true },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, true).files.map(cur => cur.name);
+
+        expect(actual).toEqual(["/src/target.js"]);
+    });
+
+    it("yields written script, declaration and map files w/ addonEmitOnly and file processed by addon", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const writeFileSpy = jest.spyOn(fileSystem, "writeFile");
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext, declaration: true, declarationMap: true, sourceMap: true },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                config: { addonEmitOnly: true },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+        testObj.getContext()?.registerProcessor((_fileName: string, content: string) => content.replace("original", "modified"));
+
+        const target = testObj.emitSourceFile("/src/target.ts", undefined, true);
+        const actual1 = target.writtenFiles.map(cur => cur.name).sort();
+        const actual2 = writeFileSpy.mock.calls.map(cur => cur[0]).sort();
+
+        expect(actual1).toEqual(["/src/target.d.ts", "/src/target.d.ts.map", "/src/target.js", "/src/target.js.map"]);
+        expect(actual2).toEqual(["/src/target.d.ts", "/src/target.d.ts.map", "/src/target.js", "/src/target.js.map"]);
+    });
+
+    it("yields empty written files w/o writing output files", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, false).writtenFiles;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("passes all output files to result processors w/ addonEmitOnly and file not processed by addons", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const target = jest.fn<void, [string[], unknown]>();
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                config: { addonEmitOnly: true },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+        testObj.getContext()?.registerResultProcessor(target);
+
+        testObj.compile();
+        const actual = target.mock.calls[0][0];
+
+        expect(actual).toEqual(["/src/target.js"]);
+    });
+});
+
+describe("emitSourceFile writtenFiles", () => {
+    it("yields empty written files w/ unchanged file from cache", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+        testObj.emitSourceFile("/src/target.ts", undefined, true);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, true).writtenFiles;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields empty written files w/ file skipped by addon filter", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter: new ReporterMock(fileSystem), system: fileSystem });
+        addons.getAvailableAddons = jest.fn().mockReturnValue([{ getName: () => "whatever", activate: jest.fn(), shouldProcessFile: () => false }]);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem,
+            addons
+        ).createProfileContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, true).writtenFiles;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields empty written files w/ unchanged file skipped by addon filter from cache", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter: new ReporterMock(fileSystem), system: fileSystem });
+        const shouldProcessFile = jest.fn().mockReturnValueOnce(true).mockReturnValue(false);
+        addons.getAvailableAddons = jest.fn().mockReturnValue([{ getName: () => "whatever", activate: jest.fn(), shouldProcessFile }]);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem,
+            addons
+        ).createProfileContextsIfNecessary();
+        testObj.emitSourceFile("/src/target.ts", undefined, true);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, true).writtenFiles;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields empty written files w/ failing transpilation", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                config: { transpileOnly: true },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+        testObj.getContext()?.registerTransformer({
+            before: [
+                () => () => {
+                    throw new Error("whatever");
+                },
+            ],
+        });
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, true).writtenFiles;
+
+        expect(actual).toEqual([]);
+    });
 });
 
 const complexFileExtension = (name: string): string => {

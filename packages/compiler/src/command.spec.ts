@@ -20,6 +20,10 @@ beforeEach(() => {
     jest.spyOn(console, "time").mockImplementation(() => {});
 });
 
+afterEach(() => {
+    process.exitCode = undefined;
+});
+
 describe("addCompileCommand", () => {
     it("should yield additionalArguments w/ unknown argument", () => {
         const testSystem = createSystem({}, { virtual: true });
@@ -230,6 +234,41 @@ describe("addCompileCommand", () => {
         addCompileCommand(new Command(), target).parse(["--watch", "--allowJs"], { from: "user" });
 
         expect(target.watch).toHaveBeenCalled();
+    });
+});
+
+describe("addCompileCommand#exitCode", () => {
+    it("should set exit code 1 w/ reported error and w/o --watch cli argument", () => {
+        const compiler = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}, { virtual: true }));
+        compiler.compile = jest.fn();
+        const testObj = addCompileCommand(new Command(), compiler);
+
+        testObj.parse(["--configFile", "./does-not-exist/websmith.config.json"], { from: "user" });
+        const actual = process.exitCode;
+
+        expect(actual).toBe(1);
+    });
+
+    it("should not set exit code w/ reported error and --watch cli argument", () => {
+        const compiler = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}, { virtual: true }));
+        compiler.watch = jest.fn();
+        const testObj = addCompileCommand(new Command(), compiler);
+
+        testObj.parse(["--watch", "--configFile", "./does-not-exist/websmith.config.json"], { from: "user" });
+        const actual = process.exitCode;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("should not set exit code w/ reported warning only", () => {
+        const compiler = new Compiler({ reporter: new NoReporter() }, {}, createSystem({}, { virtual: true }));
+        compiler.compile = jest.fn();
+        const testObj = addCompileCommand(new Command(), compiler);
+
+        testObj.parse(["--tsconfig"], { from: "user" });
+        const actual = process.exitCode;
+
+        expect(actual).toBeUndefined();
     });
 });
 

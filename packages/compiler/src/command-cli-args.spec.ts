@@ -17,6 +17,10 @@ beforeEach(() => {
     jest.spyOn(console, "time").mockImplementation(() => {});
 });
 
+afterEach(() => {
+    process.exitCode = undefined;
+});
+
 describe("addCompileCommand", () => {
     describe("Command Structure", () => {
         it("should create compile command with proper basic setup", () => {
