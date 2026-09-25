@@ -18,11 +18,13 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
-- TBA
+- The CLI writes compiled TypeScript addons to `.websmith-cache/addons-cli` next to `tsconfig.json` instead of `lib/` next to the addons directory. Compiled addons left in that `lib/` by earlier versions are no longer used and can be deleted. Add `.websmith-cache/` to your `.gitignore`.
+- Addons compiled by the CLI resolve imports from `.websmith-cache/addons-cli` instead of the addons directory's parent. Addons should import only files inside the addons directory or packages installed in the project; relative imports that leave the addons directory and packages installed only next to the addons no longer resolve.
+- The webpack loader compiles addons with `Node10` module resolution instead of `NodeNext`, so its output is CommonJS whatever the project's `"type"` is. Addons compiled by earlier versions are recompiled once. Unresolved imports in addons (e.g. packages whose types exist only under `package.json` `"exports"`) are reported as warnings; the build continues and Node resolves them at runtime.
 
 ### Fixed
 
-- TBA
+- TypeScript addons now load in projects whose `package.json` declares `"type": "module"`, in the CLI and the webpack loader ([#111](https://github.com/quatico-solutions/websmith/issues/111)).
 
 ### Removed
 

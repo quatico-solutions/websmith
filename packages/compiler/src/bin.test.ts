@@ -309,6 +309,46 @@ describe("bin.ts e2e tests", () => {
         expect(getOutput("named-functions.json")).toMatchInlineSnapshot(`"{"foobar-function":["getFoobar","foobar"]}"`);
     }, 60000);
 
+    it("should apply .ts addon w/ consumer package.json type module", () => {
+        createPackageJson({ type: "module" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
+        createEsmAddons();
+        copySourceFile("foobar-function.ts");
+
+        executeCompiler(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons esm-processor --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`
+        );
+
+        expect(getOutput("foobar-function.js")).toContain("function esmProcessed(date)");
+    }, 60000);
+
+    it("should apply multi-file .ts addon with cross-addon import w/ consumer package.json type module", () => {
+        createPackageJson({ type: "module" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
+        createEsmAddons();
+        copySourceFile("foobar-function.ts");
+
+        executeCompiler(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons esm-cross-processor --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`
+        );
+
+        expect(getOutput("foobar-function.js")).toContain("function crossAddonProcessed(date)");
+    }, 60000);
+
+    it("should apply .ts addon importing package from project node_modules w/ consumer package.json type module", () => {
+        createPackageJson({ type: "module" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
+        createEsmAddons();
+        createProjectPackage();
+        copySourceFile("foobar-function.ts");
+
+        executeCompiler(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons project-package-processor --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`
+        );
+
+        expect(getOutput("foobar-function.js")).toContain("function projectPackageProcessed(date)");
+    }, 60000);
+
     const executeCompiler = (args = ""): string => {
         process.chdir(testDirs.PROJECT_DIR);
 
@@ -360,6 +400,47 @@ describe("bin.ts e2e tests", () => {
 
     const getOutput = (filePath: string): string | undefined =>
         fs.existsSync(path.join(testDirs.OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(testDirs.OUTPUT_DIR, filePath), "utf-8") : undefined;
+
+    const createPackageJson = (packageJson: Record<string, unknown>) => {
+        fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "package.json"), JSON.stringify(packageJson), { encoding: "utf-8" });
+    };
+
+    const createEsmAddons = () => {
+        const addonsDir = path.join(testDirs.PROJECT_DIR, "addons");
+        const addonFiles: Record<string, string> = {
+            "esm-processor/addon.ts": `
+                export const replaceFoobar = (content: string, replacement: string): string => content.replace(/foobar/g, replacement);
+                export const activate = (ctx: any): void => {
+                    ctx.registerProcessor((_fileName: string, content: string) => replaceFoobar(content, "esmProcessed"));
+                };
+            `,
+            "esm-cross-processor/addon.ts": `
+                import { replaceFoobar } from "../esm-processor/addon";
+                import { REPLACEMENT } from "./replacement";
+                export const activate = (ctx: any): void => {
+                    ctx.registerProcessor((_fileName: string, content: string) => replaceFoobar(content, REPLACEMENT));
+                };
+            `,
+            "esm-cross-processor/replacement.ts": `export const REPLACEMENT = "crossAddonProcessed";`,
+            "project-package-processor/addon.ts": `
+                import { REPLACEMENT } from "project-package";
+                export const activate = (ctx: any): void => {
+                    ctx.registerProcessor((_fileName: string, content: string) => content.replace(/foobar/g, REPLACEMENT));
+                };
+            `,
+        };
+        for (const [fileName, content] of Object.entries(addonFiles)) {
+            fs.mkdirSync(path.dirname(path.join(addonsDir, fileName)), { recursive: true });
+            fs.writeFileSync(path.join(addonsDir, fileName), content, { encoding: "utf-8" });
+        }
+    };
+
+    const createProjectPackage = () => {
+        const packageDir = path.join(testDirs.PROJECT_DIR, "node_modules", "project-package");
+        fs.mkdirSync(packageDir, { recursive: true });
+        fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "project-package", main: "index.js" }), { encoding: "utf-8" });
+        fs.writeFileSync(path.join(packageDir, "index.js"), 'exports.REPLACEMENT = "projectPackageProcessed";', { encoding: "utf-8" });
+    };
 
     const createWebsmithConfig = (config: CompilationConfig) => {
         fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "websmith.config.json"), JSON.stringify(config), { encoding: "utf-8" });

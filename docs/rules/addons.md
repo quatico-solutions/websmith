@@ -78,7 +78,9 @@ recovery (see `packages/example-addons/src/foobar-replace-processor` vs `client-
 1. **Discovery** — `AddonRegistry.loadAddonsSync()` scans `addonsDir` (default `./addons`) for directories with
    `addon.ts`/`addon.js` or `index.ts`/`index.js`. Only explicitly requested addons (CLI `--addons` or profile)
    are loaded.
-2. **Compilation** — TypeScript addons compile to JavaScript in an adjacent `lib` directory, batched and cached by
+2. **Compilation** — TypeScript addons compile to CommonJS in a websmith-owned cache directory with a
+   `{"type": "commonjs"}` `package.json` (CLI: `<tsconfig dir>/.websmith-cache/addons-cli`; webpack loader:
+   `<cwd>/.websmith-cache/addons`), so they load in `"type": "module"` projects too; batched and cached by
    file modification time, with filesystem/permission validation and error reports that include dependency
    analysis.
 3. **Module loading** — via `createRequire()`; needs the `activate` export; supports CommonJS and ES modules;

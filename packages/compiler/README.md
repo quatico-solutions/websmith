@@ -72,6 +72,8 @@ You can use `websmith-loader` as drop-in replacement for the `ts-loader` to appl
 
 Compiler addons can be used to modify the compilation artifacts before, during and after the compiled output is created. Even non-script files can be created and processed in the compilation process. Read more about [compiler addons](https://github.com/quatico-solutions/websmith/tree/develop/packages/api/README.md) in the API package.
 
+Addons written in TypeScript are compiled to CommonJS in `.websmith-cache/addons-cli` next to your `tsconfig.json`, so they also load in projects with `"type": "module"`. Add `.websmith-cache/` to your `.gitignore`. Addons should import only files inside the addons directory or packages installed in your project: compiled addons resolve imports from the cache directory, so relative imports that leave the addons directory and packages installed only next to the addons do not resolve.
+
 ## Command line parameters
 
 The `websmith` command supports the same command line parameters as the `tsc` command. In addition, it supports parameters to customize the compilation output, like:

@@ -32,7 +32,7 @@ let testDirs: ReturnType<typeof getTestDirs>;
 
 beforeAll(() => {
     try {
-        fs.rmSync(path.resolve(path.join(__dirname, "..", "..", "example-addons", "lib")), { recursive: true, force: true });
+        fs.rmSync(path.resolve(__dirname, "..", ".websmith-cache", "addons"), { recursive: true, force: true });
     } catch (_error) {
         // Ignore errors if directory doesn't exist
     }

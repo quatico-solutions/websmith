@@ -701,37 +701,170 @@ describe("Addon Compilation", () => {
             "export const activate = () => {\n    return unterminated string literal\n    console.log('this will cause parsing error');\n};"
         );
         target.reportDiagnostic = jest.fn();
+        const testObj = new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system, addons: ["broken-addon"] });
 
-        new AddonRegistry({ addonsDir: ADDONS_DIR, reporter: target, system, addons: ["broken-addon"] }).getAvailableAddons();
+        testObj.getAvailableAddons();
+        const actual = target.reportDiagnostic;
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+        expect(actual).toHaveBeenCalledWith(
             expect.objectContaining({
                 messageText: expect.stringContaining(
-                    `Failed to load addon "broken-addon" from "${path.resolve(ADDONS_DIR, "..", "lib", "broken-addon", "addon.js")}"`
+                    `Failed to load addon "broken-addon" from "${path.join(system.getCurrentDirectory(), ".websmith-cache", "addons-cli", "broken-addon", "addon.js")}"`
                 ),
             })
         );
     });
 
-    it("uses default lib directory when addonLibDir is not specified", () => {
+    it("compiles into .websmith-cache/addons-cli of current directory w/o addonOutDir and addonLibDir", () => {
+        const system = createSystem({}, { virtual: true });
+        const addonsDir = system.resolvePath("./addons");
+        system.writeFile(`${addonsDir}/default-out-addon/addon.ts`, "export const activate = () => {};");
+        const testObj = new AddonRegistry({ addonsDir, reporter: new ReporterMock(system), system, addons: ["default-out-addon"] });
+
+        testObj.getAvailableAddons();
+        const actual = system.fileExists(path.join(system.getCurrentDirectory(), ".websmith-cache", "addons-cli", "default-out-addon", "addon.js"));
+
+        expect(actual).toBe(true);
+    });
+
+    it("compiles into addonOutDir when specified", () => {
+        const system = createSystem({}, { virtual: true });
+        const addonsDir = system.resolvePath("./addons");
+        system.writeFile(`${addonsDir}/out-dir-addon/addon.ts`, "export const activate = () => {};");
+        const testObj = new AddonRegistry({
+            addonsDir,
+            addonOutDir: "/project/.websmith-cache/addons-cli",
+            reporter: new ReporterMock(system),
+            system,
+            addons: ["out-dir-addon"],
+        });
+
+        testObj.getAvailableAddons();
+        const actual = system.fileExists("/project/.websmith-cache/addons-cli/out-dir-addon/addon.js");
+
+        expect(actual).toBe(true);
+    });
+
+    it("writes into relative addonOutDir resolved against current directory", () => {
+        const system = createSystem({}, { virtual: true });
+        const addonsDir = system.resolvePath("./addons");
+        system.writeFile(`${addonsDir}/relative-out-addon/addon.ts`, "export const activate = () => {};");
+        const target = jest.spyOn(system, "writeFile");
+        const testObj = new AddonRegistry({
+            addonsDir,
+            addonOutDir: "relative-out",
+            reporter: new ReporterMock(system),
+            system,
+            addons: ["relative-out-addon"],
+        });
+
+        testObj.getAvailableAddons();
+        const actual = target.mock.calls.map(([fileName]) => fileName);
+
+        expect(actual).toContain(path.join(system.resolvePath("relative-out"), "package.json"));
+    });
+
+    it("compiles into addonLibDir w/ addonLibDir and addonOutDir", () => {
+        const system = createSystem({}, { virtual: true });
+        const addonsDir = system.resolvePath("./addons");
+        system.writeFile(`${addonsDir}/lib-dir-addon/addon.ts`, "export const activate = () => {};");
+        const testObj = new AddonRegistry({
+            addonsDir,
+            addonLibDir: "dist",
+            addonOutDir: "/project/.websmith-cache/addons-cli",
+            reporter: new ReporterMock(system),
+            system,
+            addons: ["lib-dir-addon"],
+        });
+
+        testObj.getAvailableAddons();
+        const actual = system.fileExists(path.resolve(addonsDir, "..", "dist", "lib-dir-addon", "addon.js"));
+
+        expect(actual).toBe(true);
+    });
+
+    it("creates missing parent directories of output directory one by one", () => {
+        const system = createSystem({}, { virtual: true });
+        const addonsDir = system.resolvePath("./addons");
+        system.writeFile(`${addonsDir}/nested-addon/addon.ts`, "export const activate = () => {};");
+        const target = jest.spyOn(system, "createDirectory");
+        const testObj = new AddonRegistry({
+            addonsDir,
+            addonOutDir: "/project/.websmith-cache/addons-cli",
+            reporter: new ReporterMock(system),
+            system,
+            addons: ["nested-addon"],
+        });
+
+        testObj.getAvailableAddons();
+        const actual = target.mock.calls.map(([dirName]) => dirName).slice(0, 3);
+
+        expect(actual).toEqual(["/project", "/project/.websmith-cache", "/project/.websmith-cache/addons-cli"]);
+    });
+
+    it("writes CommonJS package.json marker into output directory", () => {
+        const system = createSystem({}, { virtual: true });
+        const addonsDir = system.resolvePath("./addons");
+        system.writeFile(`${addonsDir}/marker-addon/addon.ts`, "export const activate = () => {};");
+        const testObj = new AddonRegistry({
+            addonsDir,
+            addonOutDir: "/project/out",
+            reporter: new ReporterMock(system),
+            system,
+            addons: ["marker-addon"],
+        });
+
+        testObj.getAvailableAddons();
+        const actual = JSON.parse(system.readFile("/project/out/package.json") ?? "{}");
+
+        expect(actual).toEqual({ type: "commonjs" });
+    });
+
+    it("writes CommonJS package.json marker once w/ repeated loading", () => {
+        const system = createSystem({}, { virtual: true });
+        const addonsDir = system.resolvePath("./addons");
+        system.writeFile(`${addonsDir}/once-addon/addon.ts`, "export const activate = () => {};");
+        const target = jest.spyOn(system, "writeFile");
+        const config = { addonsDir, addonOutDir: "/project/out", reporter: new ReporterMock(system), system, addons: ["once-addon"] };
+        new AddonRegistry(config);
+        const testObj = new AddonRegistry(config);
+
+        testObj.refresh();
+        const actual = target.mock.calls.filter(([fileName]) => fileName === "/project/out/package.json").length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("does not overwrite existing package.json in addonLibDir", () => {
+        const system = createSystem({}, { virtual: true });
+        const addonsDir = system.resolvePath("./addons");
+        const packageJson = path.resolve(addonsDir, "..", "dist", "package.json");
+        system.writeFile(`${addonsDir}/existing-addon/addon.ts`, "export const activate = () => {};");
+        system.writeFile(packageJson, '{"type":"module"}');
+        const testObj = new AddonRegistry({ addonsDir, addonLibDir: "dist", reporter: new ReporterMock(system), system, addons: ["existing-addon"] });
+
+        testObj.getAvailableAddons();
+        const actual = system.readFile(packageJson);
+
+        expect(actual).toBe('{"type":"module"}');
+    });
+
+    it("reports warning w/ existing non-CommonJS package.json in addonLibDir", () => {
         const system = createSystem({}, { virtual: true });
         const target = new ReporterMock(system);
         const addonsDir = system.resolvePath("./addons");
-        system.createDirectory(addonsDir);
-        system.createDirectory(`${addonsDir}/custom-lib-addon`);
-        system.writeFile(`${addonsDir}/custom-lib-addon/addon.ts`, "export const activate = () => {};");
+        const packageJson = path.resolve(addonsDir, "..", "dist", "package.json");
+        system.writeFile(`${addonsDir}/warn-addon/addon.ts`, "export const activate = () => {};");
+        system.writeFile(packageJson, '{"type":"module"}');
         target.reportDiagnostic = jest.fn();
-
-        const testObj = new AddonRegistry({ addonsDir, reporter: target, system, addons: ["custom-lib-addon"] });
+        const testObj = new AddonRegistry({ addonsDir, addonLibDir: "dist", reporter: target, system, addons: ["warn-addon"] });
 
         testObj.getAvailableAddons();
-        expect(target.reportDiagnostic).not.toHaveBeenCalledWith(
-            expect.objectContaining({
-                messageText: expect.stringContaining("Failed to compile addons"),
-            })
+        const actual = target.reportDiagnostic;
+
+        expect(actual).toHaveBeenCalledWith(
+            expect.objectContaining({ messageText: expect.stringContaining(`"${packageJson}" already exists and was not changed`) })
         );
-        const expectedLibDir = path.resolve(addonsDir, "..", "lib");
-        expect(system.directoryExists(expectedLibDir)).toBe(true);
     });
 
     it("uses custom addonLibDir when specified", () => {

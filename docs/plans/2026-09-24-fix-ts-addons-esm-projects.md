@@ -83,10 +83,12 @@ marker at its root.**
   `noResolve`, so the two option sets stay different and the directories stay separate. Rejected: leaving the
   loader to a separate issue.
 - **In the loader, module-resolution errors become warnings** (review, Jan Wloka, 2026-09-25). `Node10` ignores
-  `package.json` `"exports"`, so an addon importing a package whose types exist only under `"exports"` would fail
-  with TS2307 — and the loader throws on any error, which breaks every addon request. The loader reports the
-  TS2307 family as warnings and still emits; the emitted `require()` resolves at runtime through Node, which does
-  honour `"exports"`. Other type errors still fail. Rejected: `noResolve` as in the CLI (loses all type errors from
+  `package.json` `"exports"`, so an addon importing a package whose types exist only under `"exports"` gets
+  TS2307. The loader reports the "cannot find module" family (2307, 2792, 7016) as warnings and still emits; the
+  emitted `require()` resolves at runtime through Node, which does honour `"exports"`. Other diagnostics behave
+  as before: the loader only checks them when the emit itself fails or reports diagnostics, so ordinary type
+  errors in addons never failed a webpack build and still do not (measured during implementation; the review's
+  premise that the loader throws on any error was wrong). Making them fail is out of scope for #111. Rejected: `noResolve` as in the CLI (loses all type errors from
   imported types) and documenting the failure only.
 - **Loader cache keys include the compile options** (review finding): today the key hashes only addon sources and
   a cache hit returns before the marker is written, so an existing user's ESM build from the old loader would be

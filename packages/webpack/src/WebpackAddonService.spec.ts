@@ -137,6 +137,157 @@ describe("WebpackAddonService", () => {
         });
     });
 
+    describe("CommonJS package.json marker", () => {
+        const writeTsAddon = (addonsDir: string, addonName: string, content: string) => {
+            fs.mkdirSync(path.join(addonsDir, addonName), { recursive: true });
+            fs.writeFileSync(path.join(addonsDir, addonName, "addon.ts"), content);
+        };
+
+        it("should write CommonJS package.json marker into cache directory", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            writeTsAddon(addonsDir, "marker-addon", "export const activate = (ctx: any): void => {};");
+            const testObj = new WebpackAddonService({ addonsDir, system: mockSystem, reporter: mockReporter });
+
+            testObj.getAvailableAddons();
+            const actual = JSON.parse(fs.readFileSync(path.join(tempDir, ".websmith-cache", "addons", "package.json"), "utf8"));
+
+            expect(actual).toEqual({ type: "commonjs" });
+        });
+
+        it("should not overwrite existing package.json in cache directory", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            const cacheDir = path.join(tempDir, "custom-cache");
+            writeTsAddon(addonsDir, "existing-addon", "export const activate = (ctx: any): void => {};");
+            fs.mkdirSync(cacheDir, { recursive: true });
+            fs.writeFileSync(path.join(cacheDir, "package.json"), '{"type":"module"}');
+            const testObj = new WebpackAddonService({ addonsDir, cacheDir, system: mockSystem, reporter: mockReporter });
+
+            testObj.getAvailableAddons();
+            const actual = fs.readFileSync(path.join(cacheDir, "package.json"), "utf8");
+
+            expect(actual).toBe('{"type":"module"}');
+        });
+
+        it("should report warning w/ existing non-CommonJS package.json in cache directory", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            const cacheDir = path.join(tempDir, "custom-cache");
+            writeTsAddon(addonsDir, "warn-addon", "export const activate = (ctx: any): void => {};");
+            fs.mkdirSync(cacheDir, { recursive: true });
+            fs.writeFileSync(path.join(cacheDir, "package.json"), '{"type":"module"}');
+            const target = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({ addonsDir, cacheDir, system: mockSystem, reporter: mockReporter });
+
+            testObj.getAvailableAddons();
+
+            expect(target).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    messageText: expect.stringContaining(`"${path.join(cacheDir, "package.json")}" already exists and was not changed`),
+                })
+            );
+        });
+
+        it("should compile multi-file addon with cross-addon import to CommonJS", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            writeTsAddon(addonsDir, "shared-addon", "export const shared = 'shared';\nexport const activate = (ctx: any): void => {};");
+            fs.writeFileSync(path.join(tempDir, "package.json"), '{"type":"module"}');
+            writeTsAddon(
+                addonsDir,
+                "cross-addon",
+                "import { shared } from '../shared-addon/addon';\nexport const activate = (ctx: any): string => shared;"
+            );
+            const testObj = new WebpackAddonService({ addonsDir, system: mockSystem, reporter: mockReporter });
+
+            testObj.getAvailableAddons();
+            const actual = fs.readFileSync(path.join(tempDir, ".websmith-cache", "addons", "cross-addon", "addon.js"), "utf8");
+
+            expect(actual).toContain('require("../shared-addon/addon")');
+        });
+    });
+
+    describe("cache from earlier compile options", () => {
+        const writeStaleCache = (addonsDir: string, cacheDir: string) => {
+            const sourceFile = path.join(addonsDir, "stale-addon", "index.ts");
+            fs.mkdirSync(path.dirname(sourceFile), { recursive: true });
+            fs.writeFileSync(sourceFile, "export const activate = (ctx: any): void => {};");
+            const hashing = new WebpackAddonService({ addonsDir, cacheDir, system: mockSystem, reporter: mockReporter });
+            // @ts-expect-error - calculateSourceHash is private; without options it yields the hash of earlier versions
+            const sourceHash: string = hashing.calculateSourceHash([sourceFile]);
+            fs.mkdirSync(path.join(cacheDir, "stale-addon"), { recursive: true });
+            fs.writeFileSync(path.join(cacheDir, "stale-addon", "index.js"), "export const activate = (ctx) => {};");
+            fs.writeFileSync(
+                path.join(cacheDir, "index.json"),
+                JSON.stringify({ "all-addons": { compiledPath: "", sourceHash, timestamp: 0, dependencies: [] } })
+            );
+        };
+
+        it("should write CommonJS package.json marker w/ cache from earlier compile options", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            const cacheDir = path.join(tempDir, ".websmith-cache", "addons");
+            writeStaleCache(addonsDir, cacheDir);
+            const testObj = new WebpackAddonService({ addonsDir, cacheDir, system: mockSystem, reporter: mockReporter });
+
+            testObj.getAvailableAddons();
+            const actual = fs.existsSync(path.join(cacheDir, "package.json"));
+
+            expect(actual).toBe(true);
+        });
+
+        it("should recompile addon w/ cache from earlier compile options", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            const cacheDir = path.join(tempDir, ".websmith-cache", "addons");
+            writeStaleCache(addonsDir, cacheDir);
+            const testObj = new WebpackAddonService({ addonsDir, cacheDir, system: mockSystem, reporter: mockReporter });
+
+            testObj.getAvailableAddons();
+            const actual = fs.readFileSync(path.join(cacheDir, "stale-addon", "index.js"), "utf8");
+
+            expect(actual).toContain("exports.activate");
+        });
+    });
+
+    describe("addon compile diagnostics", () => {
+        const writeTsAddon = (addonsDir: string, addonName: string, content: string) => {
+            fs.mkdirSync(path.join(addonsDir, addonName), { recursive: true });
+            fs.writeFileSync(path.join(addonsDir, addonName, "addon.ts"), content);
+        };
+
+        it("should report module resolution error as warning", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            writeTsAddon(
+                addonsDir,
+                "unresolved-addon",
+                "import { whatever } from 'missing-package';\nexport const activate = (ctx: any) => whatever;"
+            );
+            const target = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({ addonsDir, system: mockSystem, reporter: mockReporter });
+
+            testObj.getAvailableAddons();
+
+            expect(target).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    category: ts.DiagnosticCategory.Warning,
+                    messageText: expect.stringContaining("Cannot find module 'missing-package'"),
+                })
+            );
+        });
+
+        it("should skip CommonJS package.json marker w/ cache directory that cannot be created", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            writeTsAddon(addonsDir, "whatever-addon", "export const activate = (ctx: any): void => {};");
+            fs.writeFileSync(path.join(tempDir, "a-file"), "whatever");
+            const testObj = new WebpackAddonService({
+                addonsDir,
+                cacheDir: path.join(tempDir, "a-file", "cache"),
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            const actual = () => testObj.getAvailableAddons();
+
+            expect(actual).toThrow("Addon compilation failed");
+        });
+    });
+
     describe("unknown addon validation", () => {
         it("should report warning for unknown addons in profile", () => {
             const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");

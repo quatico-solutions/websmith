@@ -9,6 +9,7 @@ import { type CompilationConfig, type CompilerArguments, type CompilerOptions, t
 import { type AddonConfig, AddonRegistry, Compiler, createOptions, DefaultReporter } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
+import path from "node:path";
 import ts from "typescript";
 import { getVersion } from "./get-version";
 
@@ -177,6 +178,7 @@ export const addonConfig = (command: Command, system: ts.System, options: Compil
     const addons = command.opts().addons ?? config?.addons?.join(",") ?? "";
     const addonsDir = command.opts().addonsDir ?? config?.addonsDir;
     const resolvedAddonsDir = addonsDir ? system.resolvePath(addonsDir) : undefined;
+    const addonOutDir = path.join(path.dirname(system.resolvePath(options?.tsConfigFile ?? "./tsconfig.json")), ".websmith-cache", "addons-cli");
 
     // Check if addons directory exists and warn if it doesn't
     if (resolvedAddonsDir && !system.directoryExists(resolvedAddonsDir)) {
@@ -191,6 +193,7 @@ export const addonConfig = (command: Command, system: ts.System, options: Compil
                 .filter((it: string) => it.length > 0) ?? [],
 
         ...(resolvedAddonsDir && { addonsDir: resolvedAddonsDir }),
+        addonOutDir,
         ...(options?.profile && { activeProfile: options.profile }),
         system,
         reporter,

@@ -6,7 +6,7 @@
  */
 
 import { type CompilationProfile, ErrorMessage, InfoMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
-import { type CompilationContext, type CompilerAddon, type CompilerAddons, compilerAddons } from "@quatico/websmith-core";
+import { type CompilationContext, type CompilerAddon, type CompilerAddons, compilerAddons, writeCommonJsMarker } from "@quatico/websmith-core";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -23,6 +23,21 @@ export interface WebpackAddonConfig {
     cacheDir?: string;
     debug?: boolean;
 }
+
+/**
+ * TypeScript diagnostics for modules that cannot be resolved: "Cannot find module" (2307, 2792) and
+ * "Could not find a declaration file for module" (7016).
+ */
+const MODULE_RESOLUTION_ERRORS = [2307, 2792, 7016];
+
+const formatDiagnostic = (diagnostic: ts.Diagnostic): string => {
+    const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
+    if (diagnostic.file && diagnostic.start !== undefined) {
+        const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start);
+        return `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`;
+    }
+    return message;
+};
 
 interface AddonCacheEntry {
     compiledPath: string;
@@ -259,8 +274,35 @@ export class WebpackAddonService {
             return compiledPaths;
         }
 
-        // Check cache to see if compilation is needed
-        const sourceHash = this.calculateSourceHash(allSourceFiles);
+        // Compile all addons together
+        const addonsDir = path.dirname(addonsToCompile[0]); // Parent directory of all addon directories
+
+        // Create TypeScript program with all source files
+        const compilerOptions: ts.CompilerOptions = {
+            target: ts.ScriptTarget.ES2020,
+            module: ts.ModuleKind.CommonJS,
+            moduleResolution: ts.ModuleResolutionKind.Node10,
+            esModuleInterop: true,
+            allowSyntheticDefaultImports: true,
+            skipLibCheck: true,
+            outDir: this.cacheDir,
+            rootDir: addonsDir,
+            declaration: false,
+            sourceMap: false,
+            noEmit: false,
+            strict: false,
+            allowJs: true,
+            resolveJsonModule: true,
+            typeRoots: [],
+        };
+
+        // The marker must also reach caches written before it existed
+        if (this.ensureCacheDirectory()) {
+            writeCommonJsMarker(this.cacheDir, this.config.system, this.config.reporter);
+        }
+
+        // Check cache to see if compilation is needed; the options are part of the key, so output of other options is recompiled
+        const sourceHash = this.calculateSourceHash(allSourceFiles, compilerOptions);
         const cacheKey = "all-addons";
         const cachedEntry = this.cache.get(cacheKey);
 
@@ -279,47 +321,20 @@ export class WebpackAddonService {
             }
         }
 
-        // Ensure cache directory exists before compilation
-        this.ensureCacheDirectory();
-
-        // Compile all addons together
-        const addonsDir = path.dirname(addonsToCompile[0]); // Parent directory of all addon directories
-
-        // Create TypeScript program with all source files
-        const compilerOptions: ts.CompilerOptions = {
-            target: ts.ScriptTarget.ES2020,
-            module: ts.ModuleKind.CommonJS,
-            moduleResolution: ts.ModuleResolutionKind.NodeNext,
-            esModuleInterop: true,
-            allowSyntheticDefaultImports: true,
-            skipLibCheck: true,
-            outDir: this.cacheDir,
-            rootDir: addonsDir,
-            declaration: false,
-            sourceMap: false,
-            noEmit: false,
-            strict: false,
-            allowJs: true,
-            resolveJsonModule: true,
-            typeRoots: [],
-        };
-
         const program = ts.createProgram(allSourceFiles, compilerOptions);
         const emitResult = program.emit();
+        const preEmitDiagnostics = ts.getPreEmitDiagnostics(program);
+
+        // Node10 resolution ignores package.json "exports"; Node resolves such imports at runtime, so only warn
+        preEmitDiagnostics
+            .filter(diagnostic => MODULE_RESOLUTION_ERRORS.includes(diagnostic.code))
+            .forEach(diagnostic => this.config.reporter.reportDiagnostic(new WarnMessage(`Addon compilation: ${formatDiagnostic(diagnostic)}`)));
 
         if (emitResult.emitSkipped || emitResult.diagnostics.length > 0) {
-            const diagnostics = ts.getPreEmitDiagnostics(program).concat(emitResult.diagnostics);
-            const errors = diagnostics
-                .filter(diagnostic => diagnostic.category === ts.DiagnosticCategory.Error)
-                .map(diagnostic => {
-                    if (diagnostic.file) {
-                        const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start!);
-                        const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-                        return `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`;
-                    } else {
-                        return ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-                    }
-                });
+            const errors = preEmitDiagnostics
+                .concat(emitResult.diagnostics)
+                .filter(diagnostic => diagnostic.category === ts.DiagnosticCategory.Error && !MODULE_RESOLUTION_ERRORS.includes(diagnostic.code))
+                .map(formatDiagnostic);
 
             if (errors.length > 0) {
                 throw new Error(`Addon compilation failed:\n${errors.join("\n")}`);
@@ -452,12 +467,13 @@ export class WebpackAddonService {
         }
     }
 
-    private calculateSourceHash(sourceFiles: string[]): string {
+    private calculateSourceHash(sourceFiles: string[], compilerOptions?: ts.CompilerOptions): string {
         if (!this.config.system) {
             return "";
         }
 
-        const contents = sourceFiles.map(file => this.config.system.readFile(file) || "").join("");
+        const options = compilerOptions ? JSON.stringify(compilerOptions) : "";
+        const contents = options + sourceFiles.map(file => this.config.system.readFile(file) || "").join("");
 
         // Simple hash function for content
         let hash = 0;
@@ -537,17 +553,19 @@ export class WebpackAddonService {
         return compilerAddons([]);
     }
 
-    private ensureCacheDirectory(): void {
+    private ensureCacheDirectory(): boolean {
         try {
             // Use Node.js fs for directory creation since TypeScript system might not support recursive creation
             if (!fs.existsSync(this.cacheDir)) {
                 fs.mkdirSync(this.cacheDir, { recursive: true });
             }
+            return true;
         } catch (error) {
             // Silently ignore directory creation errors - cache is optional
             this.config.reporter.reportDiagnostic(
                 new ErrorMessage(`Failed to create addon cache directory: ${error instanceof Error ? error.message : String(error)}`)
             );
+            return false;
         }
     }
 
