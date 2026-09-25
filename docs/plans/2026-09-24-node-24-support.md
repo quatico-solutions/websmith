@@ -67,6 +67,8 @@ Node 22 LTS for consumers); CI on 24 only (would leave the declared floor untest
 
 ## Slices
 
+### Node 24 support
+
 - `feature/node-24-support` — Node 24 in `.nvmrc`, CI workflows and `@types/node`; `engines.node` in published packages <!-- builds: engines.node >=22.12 declaration -->
 
 ## Definition of Done
