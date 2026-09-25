@@ -4,14 +4,10 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 
 import type { TscArguments } from "@quatico/websmith-api";
 import type { CompilationConfig } from "@quatico/websmith-core";
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -173,7 +169,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli client-processor and emit", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons client-processor --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
@@ -191,7 +187,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-config client-processor and emit", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
         createWebsmithConfig({
             addons: ["client-processor"],
         });
@@ -237,7 +233,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli export-yaml-generator and emit true", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(`--addonsDir ${ADDONS_DIR} --addons export-yaml-generator --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
@@ -289,7 +285,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should yield transpiled script with single file, addons-cli function-json-result-processor and emit true", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
         copySourceFile("foobar-function.ts");
 
         executeCompiler(
@@ -309,6 +305,73 @@ describe("bin.ts e2e tests", () => {
         expect(getOutput("named-functions.json")).toMatchInlineSnapshot(`"{"foobar-function":["getFoobar","foobar"]}"`);
     }, 60000);
 
+    it("should exit with zero status w/ clean project", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const actual = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`).status;
+
+        expect(actual).toBe(0);
+    }, 60000);
+
+    it("should exit with status 1 w/ type error in project and addon requiring type information", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createSourceFile(`export const hello: number = "world";`, "test.ts");
+        createAddon("type-info-addon", `exports.activate = () => {};`);
+
+        const actual = executeCompilerStatus(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons type-info-addon --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`
+        ).status;
+
+        expect(actual).toBe(1);
+    }, 60000);
+
+    it("should exit with status 1 w/ throwing processor addon", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+        createAddon("throwing-processor", `exports.activate = ctx => ctx.registerProcessor(() => { throw new Error("Processor failure"); });`);
+
+        const actual = executeCompilerStatus(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons throwing-processor --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`
+        ).status;
+
+        expect(actual).toBe(1);
+    }, 60000);
+
+    it("should exit with zero status and report warning w/ warnings only", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "missing-addons")} --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(0);
+        expect(actual2).toContain("does not exist");
+    }, 60000);
+
+    const executeCompilerStatus = (args: string): { status: number | null; output: string } => {
+        const binPath = path.join(__dirname, "..", "bin", "bin.js");
+        if (!fs.existsSync(binPath)) {
+            throw new Error(`Bundled compiler not found at ${binPath}. Please run 'pnpm build' first.`);
+        }
+
+        const { status, stdout, stderr } = spawnSync("node", [binPath, ...args.trim().split(/\s+/)], {
+            encoding: "utf8",
+            timeout: 30000,
+            cwd: testDirs.PROJECT_DIR,
+        });
+        return { status, output: `${stdout}${stderr}` };
+    };
+
+    const createAddon = (name: string, code: string) => {
+        const addonDir = path.join(testDirs.PROJECT_DIR, "addons", name);
+        fs.mkdirSync(addonDir, { recursive: true });
+        fs.writeFileSync(path.join(addonDir, "addon.js"), code, { encoding: "utf-8" });
+    };
+
     const executeCompiler = (args = ""): string => {
         process.chdir(testDirs.PROJECT_DIR);
 
@@ -317,28 +380,25 @@ describe("bin.ts e2e tests", () => {
             throw new Error(`Bundled compiler not found at ${binPath}. Please run 'pnpm build' first.`);
         }
 
-        try {
-            return execSync(`node ${binPath} ${args.trim()}`, {
+        const { status, stdout, stderr } = spawnSync(
+            "node",
+            [
+                binPath,
+                ...args
+                    .trim()
+                    .split(/\s+/)
+                    .filter(it => it !== ""),
+            ],
+            {
                 encoding: "utf8",
-                stdio: "pipe",
-                timeout: 30000, // 30 second timeout
+                timeout: 30000,
                 cwd: testDirs.PROJECT_DIR,
-            });
-        } catch (error: any) {
-            // For testing, we still want to return some output even on errors
-            const stderr = error.stderr?.toString() || "";
-            const stdout = error.stdout?.toString() || "";
-            const output = stdout + stderr;
-
-            // Log the error for debugging
-            console.log("Compiler execution details:");
-            console.log("Command:", `node ${binPath} ${`${args}`.trim()}`);
-            console.log("CWD:", testDirs.PROJECT_DIR);
-            console.log("Exit code:", error.status);
-            console.log("Output:", output);
-
-            return output;
+            }
+        );
+        if (status !== 0) {
+            throw new Error(`Compiler exited with status ${status}:\n${stdout}${stderr}`);
         }
+        return stdout;
     };
 
     const copySourceFile = (fileName: string) => {

@@ -90,7 +90,7 @@ export class TsCompiler extends Compiler {
         }
 
         // Apply addon transformations BEFORE compilation to register transformers
-        this.applyAddonFunctionality(filePath, { version: 0, files: [], diagnostics: [] });
+        this.applyAddonFunctionality(filePath, { version: 0, files: [], writtenFiles: [], diagnostics: [] });
 
         // Transpile source file with webpack target but do not write the file, i.e. file is written by webpack
         this.logDebug(`Emitting source file: ${filePath} with profile: ${this.profile || "default"}`);
