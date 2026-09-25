@@ -126,7 +126,7 @@ directories: `compiler-test/tests/compile-websmith.test.ts:34`, `webpack-test/te
 
 ### Fix TypeScript addons in "type": "module" projects
 
-- `feature/fix-ts-addons-esm-projects` — CommonJS-safe addon output in `AddonRegistry` and `WebpackAddonService`, with e2e cases for `"type": "module"` consumers <!-- builds: websmith-owned addon output dir with a CommonJS package.json marker -->
+- `feature/fix-ts-addons-esm-projects` — CommonJS-safe addon output in `AddonRegistry` and `WebpackAddonService`, with e2e cases for `"type": "module"` consumers → #116 <!-- builds: websmith-owned addon output dir with a CommonJS package.json marker -->
 
 ## Definition of Done
 
