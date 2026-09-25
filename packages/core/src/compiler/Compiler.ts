@@ -216,11 +216,18 @@ export class Compiler {
                 ? [...(this.options.config?.profiles?.[this.options.profile]?.depends ?? []), this.options.profile]
                 : [];
             const files = this.getRootFiles();
+            // Report a profile whose output is not ESM once, not on every rebuild
+            profiles.forEach(curProfile => {
+                const ctx = this.getContext(curProfile);
+                if (ctx) {
+                    this.getCheckedEsm(curProfile, ctx);
+                }
+            });
 
             if (profiles.length) {
                 // Process all profiles for each file before moving to the next file
                 files.forEach(curFile => {
-                    profiles.forEach(curProfile => this.emitSourceFile(curFile, curProfile, true));
+                    profiles.forEach(curProfile => this.checkWatchedFragment(curFile, curProfile, this.emitSourceFile(curFile, curProfile, true)));
                 });
                 // Register watches once per file
                 files.forEach(curFile => this.registerWatch(curFile, profiles));
@@ -711,6 +718,18 @@ export class Compiler {
         return esm;
     }
 
+    /** Reports ESM diagnostics for the files a watch build of one source file wrote; watching goes on regardless. */
+    private checkWatchedFragment(fileName: string, profile: string, fragment: CompileFragment | undefined): CompileFragment | undefined {
+        const ctx = this.getContext(profile);
+        const esm = ctx && this.getCheckedEsm(profile, ctx, false);
+        if (ctx && esm && fragment?.writtenFiles.length) {
+            this.checkEsmOutput(esm, profile, ctx, [{ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName) }]).forEach(cur =>
+                this.reporter.reportDiagnostic(cur)
+            );
+        }
+        return fragment;
+    }
+
     /** Checks output files once per set of addons that changed them, so each diagnostic names the addons of its file. */
     private checkEsmOutput(esm: EsmProfileOptions, profile: string | undefined, ctx: CompilationContext, outputs: AttributedOutput[]): ts.Diagnostic[] {
         const groups = new Map<string, { files: ts.OutputFile[]; addons: string[] }>();
@@ -751,11 +770,11 @@ export class Compiler {
                     } else {
                         return profileNames.forEach(profile =>
                             fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                                ? this.emitSourceFile(fileName, profile, true, true)
+                                ? this.checkWatchedFragment(fileName, profile, this.emitSourceFile(fileName, profile, true, true))
                                 : this.hasContext(profile) &&
                                   this.getContext(profile)!
                                       .resolveDependency(fileName)
-                                      .map(cur => this.emitSourceFile(cur, profile, true, true))
+                                      .map(cur => this.checkWatchedFragment(cur, profile, this.emitSourceFile(cur, profile, true, true)))
                         );
                     }
                 },

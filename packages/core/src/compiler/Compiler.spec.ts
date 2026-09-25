@@ -1727,6 +1727,62 @@ describe("watch", () => {
     });
 });
 
+describe("watch w/ esm profile", () => {
+    const REQUIRE_SOURCE = `declare const require: (id: string) => unknown;\nexport const x = require("x");`;
+
+    const createWatchCompiler = (fileSystem: ts.System, reporter: Reporter, tsConfig: ts.CompilerOptions = { module: ts.ModuleKind.ESNext }) =>
+        new CompilerTestClass(
+            {
+                reporter,
+                config: { profiles: { client: { esm: { runtime: "node" } } } },
+                profile: "client",
+                watch: true,
+                tsConfig: { target: ts.ScriptTarget.ESNext, sourceMap: false, ...tsConfig },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+    it("reports ESM diagnostic w/ rebuild introducing require", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = createWatchCompiler(fileSystem, reporter).watch();
+
+        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+        const actual = target.mock.calls.map(([cur]) => cur.code);
+
+        expect(actual).toEqual([91001]);
+        testObj.closeAllWatchers();
+    });
+
+    it("keeps watching w/ rebuild reporting ESM diagnostic", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const testObj = createWatchCompiler(fileSystem, new ReporterMock(fileSystem)).watch();
+        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+
+        fileSystem.writeFile("/src/target.ts", "export const x = 2;");
+        const actual = fileSystem.readFile("/src/target.js");
+
+        expect(actual).toBe("export const x = 2;\n");
+        testObj.closeAllWatchers();
+    });
+
+    it("reports one config error and no ESM diagnostic w/ CommonJS module and rebuild introducing require", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = createWatchCompiler(fileSystem, reporter, { module: ts.ModuleKind.CommonJS }).watch();
+
+        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
+        const actual = target.mock.calls.map(([cur]) => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/^Profile 'client' sets 'esm', but its effective 'module' is 'CommonJS'/)]);
+        testObj.closeAllWatchers();
+    });
+});
+
 describe("addon error reporting", () => {
     it("should report generator errors and continue processing", () => {
         const mockAddon = {
