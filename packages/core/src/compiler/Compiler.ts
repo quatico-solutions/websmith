@@ -72,6 +72,14 @@ const MODULE_MAP: Record<number, ts.ModuleKind> = {
 // This error occurs when numeric enum values are used in CLI args that TypeScript's command-line parser rejects
 const TS_ERROR_CODE_INVALID_CLI_OPTION = 6046;
 
+/**
+ * TypeScript codes for imports and syntax that fail when the output loads as ESM: TS2835 (relative import without
+ * extension), TS2834 (directory import), TS1543 (JSON import without attribute), TS1470 (`import.meta` in
+ * CommonJS output), TS1309 (top-level `await` in CommonJS output) and TS1203 (`export =` in ESM). TS1479 and
+ * TS1471 are left out: a CommonJS `require()` of ESM runs on the supported Node versions.
+ */
+const ESM_LABELLED_TS_CODES: ReadonlySet<number> = new Set([2835, 2834, 1543, 1470, 1309, 1203]);
+
 export class Compiler {
     private system: ts.System;
     private options!: ResolvedCompilerOptions;
@@ -173,7 +181,7 @@ export class Compiler {
 
             const ctx = this.getContext(curProfile);
             if (ctx) {
-                results.push(this.report(program, this.emitResult(curProfile, ctx)));
+                results.push(this.report(program, this.emitResult(curProfile, ctx), curProfile));
             }
             if (this.options.debug) {
                 this.reporter.unindent();
@@ -598,20 +606,44 @@ export class Compiler {
         return !addonNeedsBigProgram && (!declarationsNeeded || this.transpileOnly);
     }
 
-    protected report(program: ts.Program | undefined, result: ts.EmitResult): ts.EmitResult {
+    protected report(program: ts.Program | undefined, result: ts.EmitResult, profile?: string): ts.EmitResult {
+        const label = this.createEsmLabel(profile);
         // Skip pre-emit diagnostics in transpileOnly mode or when using fast transpileModule path
         // to avoid validation errors with numeric enum values that TypeScript's internal validation rejects
         if (!this.transpileOnly && program) {
             ts.getPreEmitDiagnostics(program)
                 .concat(result.diagnostics)
                 .filter(cur => program?.getProjectReferences?.()?.length || cur.file) // Filter out global diagnostics
-                .forEach(cur => this.reporter.reportDiagnostic(cur));
+                .forEach(cur => this.reporter.reportDiagnostic(label(cur)));
         } else {
             // In transpileOnly mode or fast path (no Program), only report diagnostics from the result
-            result.diagnostics.forEach(cur => this.reporter.reportDiagnostic(cur));
+            result.diagnostics.forEach(cur => this.reporter.reportDiagnostic(label(cur)));
         }
 
         return result;
+    }
+
+    /**
+     * Returns a function that appends the ESM check label and the profile name to TypeScript diagnostics of
+     * failures when the output loads as ESM, if the profile sets `esm`. Code and category stay unchanged.
+     */
+    private createEsmLabel(profile?: string): (diagnostic: ts.Diagnostic) => ts.Diagnostic {
+        if (!profile || !this.options.config?.profiles?.[profile]?.esm) {
+            return diagnostic => diagnostic;
+        }
+        const suffix = ` (ESM check, profile "${profile}")`;
+        return diagnostic => {
+            if (!ESM_LABELLED_TS_CODES.has(diagnostic.code)) {
+                return diagnostic;
+            }
+            const { messageText } = diagnostic;
+            // TypeScript caches its diagnostics per Program, so the label goes on a copy
+            return {
+                ...diagnostic,
+                messageText:
+                    typeof messageText === "string" ? messageText + suffix : { ...messageText, messageText: messageText.messageText + suffix },
+            };
+        };
     }
 
     protected getDefinedProfiles(name?: string): string[] {
