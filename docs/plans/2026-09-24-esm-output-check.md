@@ -149,8 +149,14 @@ the `transpileModule` fast path (`Compiler.ts:597-604`), only syntax on the lang
   **Named-import detection uses Node's own `cjs-module-lexer`** on the resolved CommonJS entry, following
   `__exportStar(require(...))` re-exports the way Node does. Judging by `"type"` or `exports` alone would flag
   nearly every TypeScript-compiled CommonJS dependency, which Node imports by name without trouble (measured
-  by the panel). The lexer becomes a direct dependency of `core` (today it is only transitive); the rule gets
-  its own slice.
+  by the panel). `core` takes `cjs-module-lexer` ^2 as a direct dependency (today only 1.3.1 arrives
+  transitively); major 2 matches what Node 22 — the declared floor — bundles (2.1.0). Node 24 does not report its
+  lexer version, so parity there is unverified. Bare specifiers resolve the way Node's ESM loader does: a
+  `node_modules` lookup, then `package.json` `"exports"` with conditions `["node", "import", "default"]` via
+  `resolve.exports` ^2 (zero dependencies, MIT), then `main` / `index.js`. A resolved entry that is itself ESM is
+  not checked. When the check cannot decide — an unresolvable specifier, a re-export chain it cannot follow — it
+  reports nothing and lists the case in `--debug`: unknown is not a failure, and a missing package is Node's or
+  the bundler's error anyway. The rule gets its own slice.
 
   **Not in v1:** bare-specifier subpaths that a package's `exports` map does not allow, directory and
   extensionless subpaths without one, and tsconfig `paths` aliases left in emitted specifiers. They are real
