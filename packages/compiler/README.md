@@ -176,6 +176,12 @@ the name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`
 | 91003 | free `__dirname` / `__filename` in ESM output | error | error | allowed | allowed |
 | 91004 | ESM syntax mixed with `module.exports =` / `exports.x =` | error | error | error | error |
 | 91005 | no `"type"` in the nearest `package.json`, file classified by its syntax | warning | — | — | — |
+| 91010 | relative import without a file extension (`./b`); add the extension: `./b.js` | error | error | allowed | allowed |
+| 91011 | relative import of a directory (`./utils`); import a file inside it, e.g. `./utils/index.js` | error | error | allowed | allowed |
+| 91012 | relative import that resolves to no file written by the build or on disk | error | error | error | allowed |
+| 91013 | JSON import without an import attribute; add `with { type: "json" }` | error | allowed | allowed | allowed |
+| 91020 | named import that the CommonJS package does not export (`import { a } from "pkg"`) | error | allowed | allowed | — |
+| 91021 | default import from a CommonJS module that sets `__esModule` (`import def from "pkg"`) | error | error | allowed | — |
 | 91030 | `.cjs` file with ESM syntax (`import`, `export` or `import.meta`) | error | — | — | error |
 | 91031 | `.js` file with ESM syntax under `"type": "commonjs"`; names the `package.json` | error | — | — | error |
 | 91032 | file loaded as ESM whose output is CommonJS: no ESM syntax, but `exports.x =`, `module.exports =` or `__esModule` | error | error | — | — |
@@ -197,6 +203,37 @@ module). TypeScript reports them only when it type checks, which is when an acti
 fast path and per-file declaration programs do not report them, while the ESM check of the emitted files runs on every
 path. TS1479 and TS1471 (CommonJS importing an ES module) are not labelled: `require()` of ES modules works on the
 supported Node versions.
+
+91010–91013 check the relative specifiers (`./`, `../`) of static imports, re-exports and `import()` with a string
+literal. `import()` with a computed specifier is skipped, and bare specifiers such as `"pkg"` are not checked. The
+check sees the specifier in the emitted file, not the one in the TypeScript source. A specifier counts as
+extensionless when it has no extension, or when its extension is none of `.js`, `.mjs`, `.cjs`, `.json`, `.node` and
+`.wasm` and adding `.js` names an existing file (e.g. `./user.service`); any other specifier that names no file gets
+91012; a JSON import with `assert` instead of `with` also gets 91013. 91012 resolves a specifier against the files the
+build writes and the files on disk, so under `addonEmitOnly` a file left by an earlier build counts. In
+`javascript/auto` files it also tries the extensions `.js`, `.mjs`, `.cjs` and `.json` and accepts directories, like
+webpack does. On the Program path, TypeScript may report the same import on the source file as well (TS2834, TS2835,
+TS1543).
+
+91020 and 91021 check `import` and `export … from` declarations with a bare specifier (`"pkg"`, `"pkg/sub"`) that
+resolves to a CommonJS entry. The package resolves the way Node's ESM loader does: `node_modules` upwards from the
+emitted file, following symlinks such as pnpm's, then `package.json` `"exports"` with the conditions `node`, `import`,
+`module-sync` and `default`, or without `"exports"`, `main` and `index.js`. An entry the runtime loads as ES module is
+not checked. Under `bundler`, a package with a `"module"` or `"browser"` field and no `"exports"` is not checked,
+because the bundler may load another entry than `main`.
+
+The export names are those Node's `cjs-module-lexer` detects, following re-exports such as
+`__exportStar(require("./inner"))`, so TypeScript-compiled packages import by name as they do under Node, while
+`module.exports = Object.assign(...)` does not. websmith uses `cjs-module-lexer` 2.x; Node 22 bundles 2.1.0, and
+Node 24 does not report its version, so rare differences from the runtime are possible.
+
+A default import from a module that exports both `__esModule` and `default` is its whole `module.exports` under
+Node and strict webpack, not its default export. 91021 reports it only when the default binding is used other than
+through property access: called, passed as argument, spread, returned, compared or exported, and always for
+`export { default } from "pkg"`. `import pkg from "pkg"; pkg.default()` and `pkg.named` are accepted.
+
+When the check cannot decide, for example for a package that is not installed or a re-export it cannot resolve, it
+reports nothing and `--debug` lists the import.
 
 Diagnostics point at the construct in the emitted file and name the profile and its active addons, e.g.
 `Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output; ...`. The check runs in

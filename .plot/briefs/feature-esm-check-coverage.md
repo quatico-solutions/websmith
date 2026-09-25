@@ -9,8 +9,7 @@
 
 - **Plan (canonical):** `docs/plans/2026-09-24-esm-output-check.md` on `develop`
 - **Approved:** 2026-09-25, Jan Wloka, plan-PR #112 merged (slice added 2026-09-25, in-session)
-- **Branch:** `feature/esm-check-coverage` (base: `develop`) — **prepared ahead, not yet claimed.** Wave 3 becomes
-  eligible when wave 2 (`feature/esm-check-core`) merges; claim it then with `/plot-implement esm-output-check`.
+- **Branch:** `feature/esm-check-coverage` (base: `develop`) — claimed 2026-09-25 after wave 2 (#119) merged; worktree `.worktrees/feature-esm-check-coverage`.
 - **Ends as:** one PR to `develop`, opened with `plot-open-pr.sh`; do not merge
 - **Review of the code:** per repo convention; CI green
 

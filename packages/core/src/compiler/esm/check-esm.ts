@@ -7,7 +7,9 @@
 import { InfoMessage, type EsmProfileOptions, type Reporter } from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
+import { CjsNamesDiagnosticCode, createCjsNamesCheck, type CjsNamesCache } from "./cjs-names";
 import { classifyModule, createPackageTypeLookup, type DependencyCallback } from "./classify-module";
+import { checkImports } from "./import-rules";
 import { checkPackageType, PackageTypeCode } from "./package-type-rules";
 import { scanModule, type FreeReference } from "./scan-module";
 
@@ -26,6 +28,8 @@ export type EsmCheckContext = {
     onDependency?: DependencyCallback;
     /** Platform whose file name rules `esm.ignore` follows, defaults to `process.platform`. */
     platform?: NodeJS.Platform;
+    /** Per-build memo of package resolution and CommonJS export detection, created per call when absent. */
+    cjsNamesCache?: CjsNamesCache;
 };
 
 /** Stable diagnostic codes of the ESM check, one per rule (range 91000–91099). */
@@ -35,6 +39,7 @@ export const EsmDiagnosticCode = {
     FreeDirnameOrFilename: 91003,
     MixedCommonJsExport: 91004,
     MissingPackageType: 91005,
+    ...CjsNamesDiagnosticCode,
     ...PackageTypeCode,
 } as const;
 
@@ -85,6 +90,8 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
     const suffix = describeOrigin(context);
     const lookupPackageType = createPackageTypeLookup(context.system, context.onDependency);
     const isIgnored = createIgnoreMatcher(esm.ignore, context);
+    const checkCjsNames = createCjsNamesCheck(esm.runtime, context);
+    const importContext = { runtime: esm.runtime, system: context.system, writtenFiles: new Set(files.map(cur => path.resolve(cur.name))) };
 
     return files
         .filter(cur => JS_FILE.test(cur.name) && !isIgnored(cur.name))
@@ -117,6 +124,8 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
                     report(code, message, category, ref.start, ref.length);
                 }
             });
+            checkCjsNames(file, kind, (code, message, start, length) => report(code, message, category, start, length));
+            checkImports({ file }, { kind }, importContext).forEach(cur => report(cur.code, cur.message, category, cur.start, cur.length));
             return diagnostics;
         });
 };

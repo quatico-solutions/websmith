@@ -112,6 +112,42 @@ Pieces:
     - Changed: loader diagnostics now fail builds.
     - Added: `.mts`/`.cts` support.
 
+### Wave 2 as merged (#119): what exists and what this slice adds
+
+Checked against `develop` after #119 merged.
+
+**What exists:**
+- `EsmCheckContext` (`packages/core/src/compiler/esm/check-esm.ts:14-28`): `system`, `reporter`, `projectDir`, `debug?`,
+  `profile?`, `addons?`, `onDependency?`, `platform?`.
+- The kinds are `esm | commonjs | auto | dynamic`. `.cjs` files and `.js` under `"type": "commonjs"` are `dynamic`
+  under `bundler`.
+- `isEsmModuleKind` and `getEmittedModuleKind` exist.
+- The core index exports `checkEsm`, `EsmDiagnosticCode` and `EsmCheckContext` (`packages/core/src/compiler/index.ts:11-12`).
+  Export anything else the loader needs from there, not by deep import.
+
+**The shared memo needs a per-call callback.** `createPackageTypeLookup(system, onDependency?)`
+(`classify-module.ts:68`) binds `onDependency` **when the lookup is created**. The cache replays the probed paths
+on a hit, but always to that one callback. A per-compilation memo shared across modules would send every module's
+dependencies to the first module's context, which is the same bug as the cached `loaderContext`.
+- Change the lookup to take the callback per call, for example `lookup(fileName, onDependency?)`, keeping the
+  cache inside.
+- `checkEsm` then passes `context.onDependency` on each call, and wave 4 injects one lookup per compilation.
+- Test: two modules sharing one lookup each receive their own full dependency list.
+
+**Additive context fields this slice adds:**
+- the module-kind override for the target;
+- the call-site `mode`;
+- the injectable `lookupPackageType`.
+
+Coordinate the names with whatever wave 3 added to `EsmCheckContext` by the time this slice starts: re-read the
+file, don't trust this list.
+
+**Wave 3 inputs to confirm at claim time**, when the preflight re-validates them:
+- coverage's activation API (`runAsAddon` or its final name);
+- how imports keeps each rule separately callable;
+- cjs-names' injectable caches;
+- package-type's rules taking `(classification, scan)`.
+
 ### Settled decisions — do not re-derive them
 
 - **webpack's module type decides for the bundler target.** webpack's default rules key on the resource path, and
