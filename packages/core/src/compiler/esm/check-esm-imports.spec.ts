@@ -137,9 +137,9 @@ describe("checkEsm w/ relative imports", () => {
         expect(actual).toEqual([91010, 91011, 91012, 91013]);
     });
 
-    it("yields nothing w/ extensionless import in node .cjs output", () => {
+    it("yields only 91030 w/ extensionless import in node .cjs output", () => {
         const actual = codesOf([output("/dist/target.cjs", `import "./b";`)], { runtime: "node" });
 
-        expect(actual).toEqual([]);
+        expect(actual).toEqual([91030]);
     });
 });

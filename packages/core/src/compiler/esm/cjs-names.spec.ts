@@ -200,10 +200,10 @@ describe("checkEsm CommonJS names", () => {
         expect(actual).toEqual([]);
     });
 
-    it("yields nothing w/ named import from CommonJS package in node output under commonjs package", () => {
+    it("yields only 91031 w/ named import from CommonJS package in node output under commonjs package", () => {
         const actual = codesOf(`import { a } from "objcjs";`, { runtime: "node" }, JSON.stringify({ type: "commonjs" }));
 
-        expect(actual).toEqual([]);
+        expect(actual).toEqual([91031]);
     });
 
     it("yields nothing w/ named import from not installed package in node output", () => {
