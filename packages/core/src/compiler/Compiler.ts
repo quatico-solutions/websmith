@@ -25,7 +25,7 @@ import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
 import { DefaultReporter } from "./DefaultReporter";
-import { checkEsm, getEmittedModuleKind, isEsmModuleKind } from "./esm";
+import { checkEsm, createCjsNamesCache, getEmittedModuleKind, isEsmModuleKind } from "./esm";
 import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
@@ -796,8 +796,7 @@ export class Compiler {
 
     /**
      * Checks output files once per set of addons that changed them, so each diagnostic names the addons of its file.
-     * Each group is a separate checkEsm call: state checkEsm builds per call (e.g. a cache of parsed CommonJS names) is
-     * not shared between groups unless it is passed in here.
+     * Each group is a separate checkEsm call; the groups share one cache of resolved CommonJS packages and their names.
      */
     private checkEsmOutput(
         esm: EsmProfileOptions,
@@ -812,6 +811,7 @@ export class Compiler {
             group.files.push(...files);
             groups.set(key, group);
         });
+        const cjsNamesCache = createCjsNamesCache();
         return [...groups.values()].flatMap(({ files, addons }) =>
             checkEsm(files, esm, {
                 system: this.system,
@@ -820,6 +820,7 @@ export class Compiler {
                 debug: this.options.debug,
                 profile,
                 addons,
+                cjsNamesCache,
             })
         );
     }

@@ -3333,6 +3333,42 @@ describe("compile w/ esm profile", () => {
         expect(actual).toMatch(/\(profile "client", addons: changing-addon\)\.$/);
     });
 
+    it("reads a CommonJS package once across addon groups w/ two processor addons changing different files importing it", () => {
+        const fileSystem = createSystem(
+            {
+                "package.json": JSON.stringify({ type: "module" }),
+                "src/a.ts": "export const a = 1;",
+                "src/b.ts": "export const b = 1;",
+                "node_modules/cjspkg/package.json": JSON.stringify({ name: "cjspkg" }),
+                "node_modules/cjspkg/index.js": "exports.a = 1;",
+            },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "addon-a": ctx =>
+                ctx.registerProcessor((fileName, content) =>
+                    fileName.endsWith("a.ts") ? `import { a } from "cjspkg";\nexport const usedA = a;` : content
+                ),
+            "addon-b": ctx =>
+                ctx.registerProcessor((fileName, content) =>
+                    fileName.endsWith("b.ts") ? `import { a } from "cjspkg";\nexport const usedB = a;` : content
+                ),
+        });
+        const testObj = createEsmCompiler(
+            fileSystem,
+            { client: { esm: { runtime: "node" }, addons: ["addon-a", "addon-b"] } },
+            "client",
+            { reporter, cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] } }
+        ).setAddonRegistry(addons);
+        const target = jest.spyOn(fileSystem, "readFile");
+
+        testObj.compile();
+        const actual = target.mock.calls.filter(([cur]) => cur === "/node_modules/cjspkg/index.js");
+
+        expect(actual).toHaveLength(1);
+    });
+
     it("names only changing transformer addon in ESM diagnostic w/ two transformer addons", () => {
         const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
         const reporter = new ReporterMock(fileSystem);
