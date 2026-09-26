@@ -5,8 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type Reporter, type CompilerOptions } from "@quatico/websmith-api";
-import { type CompileFragment, NoReporter } from "@quatico/websmith-core";
+import { type CompilationProfile, type CompilerOptions, type Reporter } from "@quatico/websmith-api";
+import { type CompileFragment, createSystem, NoReporter } from "@quatico/websmith-core";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -83,7 +83,7 @@ describe("TsCompiler", () => {
         const target = jest.fn().mockReturnValue(expected);
         testObj.stubEmitSourceFile(target);
 
-        const actual = testObj.build("expected.ts");
+        const actual = testObj.build("expected.ts").fragment;
 
         expect(actual).toEqual(expected);
         expect(target).toHaveBeenCalledWith(path.resolve("./expected.ts"), undefined, true);
@@ -107,7 +107,7 @@ describe("Transpilation", () => {
                 watch: false,
             },
             { configFile: path.join(PROJECT_DIR, "websmith.config.json") }
-        ).build(expected);
+        ).build(expected).fragment;
 
         expect(actual.files.map(f => f.name)).toEqual([path.resolve(SOURCE_DIR, "one.js"), path.resolve(SOURCE_DIR, "one.d.ts")]);
         expect(actual.files.find(f => f.name.endsWith(".js"))?.text).toBe("export const one = () => 1;\n");
@@ -143,7 +143,7 @@ describe("Transpilation", () => {
             }
         );
 
-        const actual = testObj.build(expected);
+        const actual = testObj.build(expected).fragment;
 
         expect(actual.files.map(f => f.name)).toEqual([
             path.resolve(OUTPUT_DIR, "one.js.map"),
@@ -170,3 +170,164 @@ const createSource = (fileName: string, text: string) => {
 
     fs.writeFileSync(fileName, text);
 };
+
+const MODULE_PACKAGE = { "/package.json": JSON.stringify({ type: "module" }) };
+const TS_CONFIG = { "/tsconfig.json": JSON.stringify({ compilerOptions: { target: "es2020", module: "esnext", outDir: "/dist", rootDir: "/src" } }) };
+const REQUIRE_SOURCE = `declare const require: (id: string) => unknown;\nexport const x = require("x");`;
+
+const createEsmCompiler = (files: Record<string, string>, profiles: Record<string, CompilationProfile>): TsCompiler =>
+    new TsCompiler(
+        {
+            config: { profiles },
+            reporter: new NoReporter(),
+            cliArgs: { options: {}, fileNames: Object.keys(files).filter(cur => cur.endsWith(".ts")), errors: [] },
+        },
+        { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" },
+        undefined,
+        undefined,
+        createSystem({ ...TS_CONFIG, ...files }, { virtual: true })
+    );
+
+const NODE_DEPENDENT: CompilationProfile = { tsConfig: { outDir: "/lib" }, esm: { runtime: "node" } };
+
+describe("TsCompiler ESM check", () => {
+    it("yields 91001 w/ javascript/esm module type and require in bundler target", () => {
+        const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+
+        const actual = testObj.build("/src/a.ts", "javascript/esm").diagnostics.map(cur => cur.code);
+
+        expect(actual).toEqual([91001]);
+    });
+
+    it("yields nothing w/ javascript/auto module type and require in bundler target under module package", () => {
+        const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+
+        const actual = testObj.build("/src/a.ts", "javascript/auto").diagnostics;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91001 w/o module type and require in bundler target under module package", () => {
+        const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+
+        const actual = testObj.build("/src/a.ts").diagnostics.map(cur => cur.code);
+
+        expect(actual).toEqual([91001]);
+    });
+
+    it("yields 91001 located in written file of node dependent profile", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE },
+            { target: { depends: ["node"] }, node: NODE_DEPENDENT }
+        );
+
+        const actual = testObj.build("/src/a.ts", "javascript/auto").diagnostics.map(cur => [cur.code, cur.file?.fileName]);
+
+        expect(actual).toEqual([[91001, "/lib/a.js"]]);
+    });
+
+    it("yields diagnostics of target only w/ esm in target but not in its dependent profile", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE },
+            { target: { depends: ["node"], tsConfig: { outDir: "/dist" }, esm: { runtime: "bundler" } }, node: { tsConfig: { outDir: "/lib" } } }
+        );
+
+        const actual = testObj.build("/src/a.ts", "javascript/esm").diagnostics.map(cur => cur.file?.fileName);
+
+        expect(actual).toEqual(["/dist/a.js"]);
+    });
+
+    it("yields warning category w/ check warn", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE },
+            { target: { esm: { runtime: "bundler", check: "warn" } } }
+        );
+
+        const actual = testObj.build("/src/a.ts", "javascript/esm").diagnostics.map(cur => cur.category);
+
+        expect(actual).toEqual([ts.DiagnosticCategory.Warning]);
+    });
+
+    it("yields 91010 but no 91012 w/ extensionless and unresolved imports in node dependent profile", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": `import "./b";\nimport "./gone.js";\nexport {};`, "/lib/b.js": "" },
+            { target: { depends: ["node"] }, node: NODE_DEPENDENT }
+        );
+
+        const actual = testObj.build("/src/a.ts", "javascript/auto").diagnostics.map(cur => cur.code);
+
+        expect(actual).toEqual([91010]);
+    });
+
+    it("yields nothing w/ extensionless import in bundler target with javascript/esm module type", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": `import "./b";\nexport {};`, "/dist/b.js": "" },
+            { target: { esm: { runtime: "bundler" } } }
+        );
+
+        const actual = testObj.build("/src/a.ts", "javascript/esm").diagnostics;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("reports found and missing package.json of node dependent profile as dependencies", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE },
+            { target: { depends: ["node"] }, node: NODE_DEPENDENT }
+        );
+
+        const actual = testObj.build("/src/a.ts", "javascript/auto").dependencies;
+
+        expect(actual).toEqual({ files: ["/package.json"], missing: ["/lib/package.json"] });
+    });
+
+    it("reports same dependencies for second module in same directory", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE, "/src/b.ts": REQUIRE_SOURCE },
+            { target: { depends: ["node"] }, node: NODE_DEPENDENT }
+        );
+        testObj.build("/src/a.ts", "javascript/auto");
+
+        const actual = testObj.build("/src/b.ts", "javascript/auto").dependencies;
+
+        expect(actual).toEqual({ files: ["/package.json"], missing: ["/lib/package.json"] });
+    });
+
+    it("reads package.json once for two modules in same directory", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE, "/src/b.ts": REQUIRE_SOURCE },
+            { target: { depends: ["node"] }, node: NODE_DEPENDENT }
+        );
+        const target = jest.spyOn(testObj.getSystem(), "readFile");
+        testObj.build("/src/a.ts", "javascript/auto");
+
+        testObj.build("/src/b.ts", "javascript/auto");
+        const actual = target.mock.calls.filter(([fileName]) => fileName === "/package.json").length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("reads package.json again after compilation caches are reset", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE, "/src/b.ts": REQUIRE_SOURCE },
+            { target: { depends: ["node"] }, node: NODE_DEPENDENT }
+        );
+        const target = jest.spyOn(testObj.getSystem(), "readFile");
+        testObj.build("/src/a.ts", "javascript/auto");
+
+        testObj.resetCompilationCaches();
+        testObj.build("/src/b.ts", "javascript/auto");
+        const actual = target.mock.calls.filter(([fileName]) => fileName === "/package.json").length;
+
+        expect(actual).toBe(2);
+    });
+
+    it("reuses parsed output w/ second build of unchanged output", () => {
+        const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+        const [expected] = testObj.build("/src/a.ts", "javascript/esm").diagnostics;
+
+        const [actual] = testObj.build("/src/a.ts", "javascript/esm").diagnostics;
+
+        expect(actual.file).toBe(expected.file);
+    });
+});

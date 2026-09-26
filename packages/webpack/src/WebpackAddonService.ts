@@ -30,7 +30,7 @@ export interface WebpackAddonConfig {
  */
 const MODULE_RESOLUTION_ERRORS = [2307, 2792, 7016];
 
-const formatDiagnostic = (diagnostic: ts.Diagnostic): string => {
+export const formatDiagnostic = (diagnostic: ts.Diagnostic): string => {
     const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
     if (diagnostic.file && diagnostic.start !== undefined) {
         const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start);

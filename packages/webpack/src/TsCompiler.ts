@@ -5,14 +5,44 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type CompilerOptions, type WebpackLoaderOptions } from "@quatico/websmith-api";
-import { type CompileFragment, Compiler, resolvePath } from "@quatico/websmith-core";
+import { type CompilerOptions, InfoMessage, type WebpackLoaderOptions } from "@quatico/websmith-api";
+import {
+    checkDirectoryImport,
+    checkJsonImportAttribute,
+    checkMissingExtension,
+    type CompileFragment,
+    Compiler,
+    createCjsNamesCache,
+    type EsmCheckContext,
+    type ImportRule,
+    type ModuleClassification,
+    resolvePath,
+    type ScanCache,
+} from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
 import { type LoaderContext, WebpackError } from "webpack";
 import { type WebpackAddonContext } from "./WebpackAddonContext";
 import { type WebpackAddonConfig, WebpackAddonService } from "./WebpackAddonService";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
+
+/** What the loader reports for one module: diagnostics to emit and files to register with webpack. */
+export type LoaderBuildResult = {
+    fragment: CompileFragment;
+    diagnostics: ts.Diagnostic[];
+    /** Files the build depends on, and files whose creation would change its result. */
+    dependencies: { files: string[]; missing: string[] };
+};
+
+// How webpack's module types load: webpack decides for the bundler target, since its default rules ignore .ts/.mts/.cts
+const MODULE_KINDS: Readonly<Record<string, ModuleClassification["kind"]>> = {
+    "javascript/esm": "esm",
+    "javascript/dynamic": "dynamic",
+    "javascript/auto": "auto",
+};
+
+// webpack reports unresolved imports itself (91012), and enforces fully specified imports itself under bundler
+const NODE_IMPORT_RULES: readonly ImportRule[] = [checkMissingExtension, checkDirectoryImport, checkJsonImportAttribute];
 
 export class TsCompiler extends Compiler {
     private profile?: string;
@@ -21,6 +51,9 @@ export class TsCompiler extends Compiler {
     private loaderContext?: LoaderContext<WebsmithLoaderConfig>;
     private webpackAddonService?: WebpackAddonService;
     private cachedWebpackContext?: WebpackAddonContext;
+    private compilationCaches: Pick<EsmCheckContext, "packageTypeCache" | "cjsNamesCache"> = TsCompiler.createCompilationCaches();
+    private readonly scanCache: ScanCache = new Map();
+    private esmCheckTime = 0;
 
     constructor(
         options: CompilerOptions,
@@ -54,7 +87,24 @@ export class TsCompiler extends Compiler {
         this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
     }
 
-    public build(resourcePath: string): CompileFragment {
+    /** Drops the package.json and CommonJS package memos of the ESM check; call it once per webpack compilation. */
+    public resetCompilationCaches(): void {
+        this.compilationCaches = TsCompiler.createCompilationCaches();
+    }
+
+    /** Reports the time spent in the ESM check since the last report, with `debug` only. */
+    public reportEsmCheckTime(): void {
+        if (this.getOptions().debug && this.esmCheckTime > 0) {
+            this.getReporter().reportDiagnostic(new InfoMessage(`ESM check took ${this.esmCheckTime.toFixed(1)} ms.`));
+        }
+        this.esmCheckTime = 0;
+    }
+
+    /**
+     * Compiles one module for webpack. `moduleType` is webpack's type of the module, which decides how the ESM check
+     * classifies the target's output under `runtime: "bundler"`; without it the check classifies by package.json.
+     */
+    public build(resourcePath: string, moduleType?: string): LoaderBuildResult {
         // Allow both ts.sys and virtual filesystems for testing
         const system = this.getSystem();
         if (!system) {
@@ -70,6 +120,9 @@ export class TsCompiler extends Compiler {
 
         const { buildDir } = this.getOptions();
         const filePath = resolvePath(this.getSystem(), buildDir, resourcePath);
+        const diagnostics: ts.Diagnostic[] = [];
+        const dependencies = { files: new Set<string>(), missing: new Set<string>() };
+        const onDependency = (fileName: string, exists: boolean) => (exists ? dependencies.files : dependencies.missing).add(fileName);
 
         if (this.profile) {
             const selectedProfiles = this.getOptions().getSelectedProfiles(this.profile);
@@ -79,7 +132,9 @@ export class TsCompiler extends Compiler {
                 .forEach((profile: string) => {
                     // Transpile source file with other profiles (different from webpack target) and write the file
                     this.logDebug(`Emitting source file: ${filePath} with profile: ${profile}`);
-                    this.emitSourceFile(filePath, profile, true);
+                    const fragment = this.emitSourceFile(filePath, profile, true);
+                    // Dependent profiles write files that another runtime loads: checked as written, by their own esm
+                    diagnostics.push(...this.checkLoaderOutput(profile, filePath, fragment.writtenFiles, undefined, onDependency));
 
                     // TODO: We cannot apply the resultProcessors to the resulting fragment, because webpack has not written the file yet.
                     const ctx = this.getContext(profile);
@@ -95,13 +150,9 @@ export class TsCompiler extends Compiler {
         // Transpile source file with webpack target but do not write the file, i.e. file is written by webpack
         this.logDebug(`Emitting source file: ${filePath} with profile: ${this.profile || "default"}`);
         const result = this.emitSourceFile(filePath, this.profile, true);
-
-        if (result.diagnostics?.length) {
-            result.diagnostics.forEach((diagnostic: ts.Diagnostic) => {
-                const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
-                this.error(new WebpackError(message));
-            });
-        }
+        // webpack bundles the target's files, also under addonEmitOnly where none of them may be written
+        const moduleKind = moduleType ? MODULE_KINDS[moduleType] : undefined;
+        diagnostics.push(...(result.diagnostics ?? []), ...this.checkLoaderOutput(this.profile, filePath, result.files, moduleKind, onDependency));
 
         this.logDebug(`Emit result: ${result.files.length} files generated`);
         if (result.files.length > 0) {
@@ -109,7 +160,42 @@ export class TsCompiler extends Compiler {
         }
 
         this.logDebug(`Build completed for: ${resourcePath}`);
-        return result;
+        return { fragment: result, diagnostics, dependencies: { files: [...dependencies.files], missing: [...dependencies.missing] } };
+    }
+
+    /**
+     * Runs the ESM check on a profile's output of one module. `moduleKind` overrides the classification of a bundler
+     * profile; a node profile's files are loaded by Node as written, so they are classified as Node does.
+     */
+    private checkLoaderOutput(
+        profile: string | undefined,
+        fileName: string,
+        files: ts.OutputFile[],
+        moduleKind: ModuleClassification["kind"] | undefined,
+        onDependency: EsmCheckContext["onDependency"]
+    ): ts.Diagnostic[] {
+        const ctx = this.getContext(profile);
+        // updateLoaderConfig runs for every module, so a profile that is not ESM is not reported here again
+        const esm = ctx && files.length > 0 ? this.getCheckedEsm(profile, ctx, false) : undefined;
+        if (!ctx || !esm) {
+            return [];
+        }
+        const start = performance.now();
+        try {
+            return this.checkEsmOutput(esm, profile, ctx, [{ files, addons: ctx.getAddonsChangingFile(fileName) }], {
+                ...this.compilationCaches,
+                scanCache: this.scanCache,
+                onDependency,
+                importRules: esm.runtime === "node" ? NODE_IMPORT_RULES : [],
+                ...(esm.runtime === "bundler" && moduleKind && { moduleKind }),
+            });
+        } finally {
+            this.esmCheckTime += performance.now() - start;
+        }
+    }
+
+    private static createCompilationCaches(): Pick<EsmCheckContext, "packageTypeCache" | "cjsNamesCache"> {
+        return { packageTypeCache: new Map(), cjsNamesCache: createCjsNamesCache() };
     }
 
     protected emitSourceFile(fileName: string, profile: string | undefined, writeFile: boolean): CompileFragment {

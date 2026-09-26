@@ -87,6 +87,12 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
         });
         compiler.hooks.done.tap(LOADER_NAME, () => {
             compilationQueueContributor.done();
+            context.websmithCompiler?.reportEsmCheckTime();
+        });
+
+        // package.json files and packages may change between compilations; child compilations share the parent's memo
+        compiler.hooks.thisCompilation.tap(LOADER_NAME, () => {
+            context.websmithCompiler?.resetCompilationCaches();
         });
 
         compiler.hooks.compilation.tap(LOADER_NAME, compilation => {

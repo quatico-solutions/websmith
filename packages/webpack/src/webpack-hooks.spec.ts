@@ -8,6 +8,7 @@
 import { type Compiler } from "webpack";
 import { CompilationQueue } from "./CompilationQueue";
 import { type WebpackLoaderContext } from "./loader";
+import { type TsCompiler } from "./TsCompiler";
 import { addCompilationHooks, isValidCompilation } from "./webpack-hooks";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
@@ -23,6 +24,7 @@ describe("webpack-hooks", () => {
                 watchRun: { tap: jest.fn() },
                 done: { tap: jest.fn(), tapAsync: jest.fn() },
                 compilation: { tap: jest.fn() },
+                thisCompilation: { tap: jest.fn() },
             },
             options: { watch: false },
         } as any;
@@ -49,6 +51,26 @@ describe("webpack-hooks", () => {
             expect(mockCompiler.hooks.done.tap).toHaveBeenCalledWith("websmith-loader", expect.any(Function));
             expect(mockCompiler.hooks.compilation.tap).toHaveBeenCalledWith("websmith-loader", expect.any(Function));
             expect(mockCompiler.hooks.done.tapAsync).toHaveBeenCalledWith("websmith-loader", expect.any(Function));
+        });
+
+        it("should reset compilation caches of websmith compiler w/ new compilation", () => {
+            const target = { resetCompilationCaches: jest.fn(), reportEsmCheckTime: jest.fn() };
+            addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: target as unknown as TsCompiler });
+            const [[, onThisCompilation]] = jest.mocked(mockCompiler.hooks.thisCompilation.tap).mock.calls as unknown as [[string, () => void]];
+
+            onThisCompilation();
+
+            expect(target.resetCompilationCaches).toHaveBeenCalledTimes(1);
+        });
+
+        it("should report ESM check time of websmith compiler w/ done compilation", () => {
+            const target = { resetCompilationCaches: jest.fn(), reportEsmCheckTime: jest.fn() };
+            addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: target as unknown as TsCompiler });
+            const onDone = jest.mocked(mockCompiler.hooks.done.tap).mock.calls.map(([, cur]) => cur as unknown as () => void);
+
+            onDone.forEach(cur => cur());
+
+            expect(target.reportEsmCheckTime).toHaveBeenCalledTimes(1);
         });
 
         it("should not register hooks when compiler has no hooks", () => {

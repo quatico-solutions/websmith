@@ -124,7 +124,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "test.ts")).fragment;
 
         // Verify TsCompiler succeeded - this is the main purpose of this test
         expect(result.files.length).toBeGreaterThan(0);
@@ -195,7 +195,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts")).fragment;
 
         // Verify core Compiler succeeded (establishes baseline)
         expect(compilerResult.diagnostics).toEqual([]);
@@ -282,7 +282,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foobar-function.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foobar-function.ts")).fragment;
 
         // Verify core Compiler succeeded (establishes baseline)
         expect(compilerResult.diagnostics).toEqual([]);
@@ -361,7 +361,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "modern-syntax.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "modern-syntax.ts")).fragment;
 
         // Verify core Compiler succeeded (establishes baseline)
         expect(compilerResult.diagnostics).toEqual([]);
@@ -462,8 +462,8 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             }
         );
 
-        const resultES5 = tsCompilerES5.build(path.join(testDirs.SOURCE_DIR, "multi-file.ts"));
-        const resultESNext = tsCompilerESNext.build(path.join(testDirs.SOURCE_DIR, "multi-file.ts"));
+        const resultES5 = tsCompilerES5.build(path.join(testDirs.SOURCE_DIR, "multi-file.ts")).fragment;
+        const resultESNext = tsCompilerESNext.build(path.join(testDirs.SOURCE_DIR, "multi-file.ts")).fragment;
 
         // Verify core Compiler succeeded (establishes baseline)
         expect(compilerResult.diagnostics).toEqual([]);
@@ -516,7 +516,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "source-map-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "source-map-test.ts")).fragment;
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("source-map-test.js"));
@@ -548,7 +548,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "minimal.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "minimal.ts")).fragment;
 
         // TsCompiler should work even with minimal configuration
         expect(result.files.length).toBeGreaterThan(0);
@@ -590,7 +590,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "error-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "error-test.ts")).fragment;
 
         // Even with errors, transpileOnly mode should produce some output
         expect(result.files.length).toBeGreaterThan(0);
@@ -634,7 +634,7 @@ describe("addonsDir configuration tests", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foobar-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foobar-test.ts")).fragment;
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("foobar-test.js"));
@@ -680,7 +680,7 @@ describe("addonsDir configuration tests", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "process-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "process-test.ts")).fragment;
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("process-test.js"));
@@ -725,7 +725,7 @@ describe("addonsDir configuration tests", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foo-multi-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "foo-multi-test.ts")).fragment;
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("foo-multi-test.js"));
@@ -784,7 +784,7 @@ describe("addonsDir configuration tests", () => {
             }
         );
 
-        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "default-addon-test.ts"));
+        const result = tsCompiler.build(path.join(testDirs.SOURCE_DIR, "default-addon-test.ts")).fragment;
 
         expect(result.files.length).toBeGreaterThan(0);
         const jsFile = result.files.find(f => f.name.endsWith("default-addon-test.js"));
