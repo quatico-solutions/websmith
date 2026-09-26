@@ -35,11 +35,11 @@ export type LoaderBuildResult = {
 };
 
 // How webpack's module types load: webpack decides for the bundler target, since its default rules ignore .ts/.mts/.cts
-const MODULE_KINDS: Readonly<Record<string, ModuleClassification["kind"]>> = {
-    "javascript/esm": "esm",
-    "javascript/dynamic": "dynamic",
-    "javascript/auto": "auto",
-};
+const MODULE_KINDS: ReadonlyMap<string, ModuleClassification["kind"]> = new Map([
+    ["javascript/esm", "esm"],
+    ["javascript/dynamic", "dynamic"],
+    ["javascript/auto", "auto"],
+]);
 
 // webpack reports unresolved imports itself (91012), and enforces fully specified imports itself under bundler
 const NODE_IMPORT_RULES: readonly ImportRule[] = [checkMissingExtension, checkDirectoryImport, checkJsonImportAttribute];
@@ -151,7 +151,7 @@ export class TsCompiler extends Compiler {
         this.logDebug(`Emitting source file: ${filePath} with profile: ${this.profile || "default"}`);
         const result = this.emitSourceFile(filePath, this.profile, true);
         // webpack bundles the target's files, also under addonEmitOnly where none of them may be written
-        const moduleKind = moduleType ? MODULE_KINDS[moduleType] : undefined;
+        const moduleKind = moduleType ? MODULE_KINDS.get(moduleType) : undefined;
         diagnostics.push(...(result.diagnostics ?? []), ...this.checkLoaderOutput(this.profile, filePath, result.files, moduleKind, onDependency));
 
         this.logDebug(`Emit result: ${result.files.length} files generated`);
