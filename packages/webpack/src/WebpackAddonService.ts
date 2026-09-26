@@ -113,7 +113,8 @@ export class WebpackAddonService {
 
         for (const addon of activeAddons) {
             try {
-                addon.activate(webpackContext);
+                // Functions and transformers the addon registers are attributed to it, so ESM diagnostics name it
+                context.runAsAddon(addon.getName(), () => addon.activate(webpackContext));
             } catch (error) {
                 this.config.reporter.reportDiagnostic(
                     new ErrorMessage(`Failed to activate addon "${addon.getName()}": ${error instanceof Error ? error.message : String(error)}`)
