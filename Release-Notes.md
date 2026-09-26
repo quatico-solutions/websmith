@@ -36,6 +36,13 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   `ctx.getSystem().writeFile`; files addons write with `fs` directly are not checked. Its diagnostics name the addons
   that changed the file in its latest build (processors and transformers are tracked per addon, generators on the
   files they add), and no addon when the construct comes from the project's own source.
+- The ESM check runs in the webpack loader, once per module: on the JavaScript webpack bundles, classified by
+  webpack's module type under `runtime: "bundler"`, and on the files dependent profiles write. It skips 91012, and
+  91010/91011 under `bundler`, which webpack reports itself. The `package.json` files it reads are registered as
+  dependencies, so watch mode rebuilds a module when its `"type"` changes. See "ESM check" in
+  `packages/webpack/README.md`.
+- The webpack loader compiles `.mts` and `.cts` files; before, they failed with "No processed output found". Add the
+  extensions to `resolve.extensions`.
 
 ### Changed
 
@@ -55,6 +62,11 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
     fails; restrict them with the `types` compiler option.
 - The CLI writes compiled TypeScript addons to `.websmith-cache/addons-cli` next to `tsconfig.json` instead of `lib/` next to the addons directory. Compiled addons left in that `lib/` by earlier versions are no longer used and can be deleted. Add `.websmith-cache/` to your `.gitignore`.
 - Addons compiled by the CLI resolve imports from `.websmith-cache/addons-cli` instead of the addons directory's parent. Addons should import only files inside the addons directory or packages installed in the project; relative imports that leave the addons directory and packages installed only next to the addons no longer resolve.
+- **Breaking:** webpack loader diagnostics now fail builds. The loader emits TypeScript and ESM check errors and
+  warnings on the module that produced them, so errors make `stats.hasErrors()` true and webpack-cli exit with `1`.
+  Before, they went only to the `error` and `warn` loader options, which do nothing by default. Those options still
+  receive every error and warning, after webpack does. Under `transpileOnly: false`, TypeScript syntax errors now fail
+  loader builds.
 - The webpack loader compiles addons with `Node10` module resolution instead of `NodeNext`, so its output is CommonJS whatever the project's `"type"` is. Addons compiled by earlier versions are recompiled once. Unresolved imports in addons (e.g. packages whose types exist only under `package.json` `"exports"`) are reported as warnings; the build continues and Node resolves them at runtime.
 
 ### Fixed
