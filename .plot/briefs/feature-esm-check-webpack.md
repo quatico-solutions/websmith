@@ -9,9 +9,7 @@
 
 - **Plan (canonical):** `docs/plans/2026-09-24-esm-output-check.md` on `develop`
 - **Approved:** 2026-09-25, Jan Wloka, plan-PR #112 merged (decisions below settled 2026-09-25, in-session)
-- **Branch:** `feature/esm-check-webpack` (base: `develop`). **Prepared ahead, not yet claimed.** Wave 4 becomes
-  eligible once **all four** wave 3 slices merge (`esm-check-coverage`, `esm-check-imports`, `esm-check-cjs-names`,
-  `esm-check-package-type`); claim it then with `/plot-implement esm-output-check`.
+- **Branch:** `feature/esm-check-webpack` (base: `develop`). claimed 2026-09-26 after wave 3 (#120–#123) and #124 merged; worktree `.worktrees/feature-esm-check-webpack`.
 - **Ends as:** one PR to `develop`, opened with `plot-open-pr.sh`; do not merge
 - **Review of the code:** per repo convention; CI green
 

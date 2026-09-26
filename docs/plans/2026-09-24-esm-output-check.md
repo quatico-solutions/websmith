@@ -28,6 +28,7 @@
 - **Started:** 2026-09-25, Jan Wloka, `feature/esm-check-imports`
 - **Started:** 2026-09-25, Jan Wloka, `feature/esm-check-cjs-names`
 - **Started:** 2026-09-25, Jan Wloka, `feature/esm-check-package-type`
+- **Started:** 2026-09-26, Jan Wloka, `feature/esm-check-webpack`
 
 ## Changelog
 
