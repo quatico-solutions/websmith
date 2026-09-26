@@ -51,4 +51,24 @@ describe("processResultAndFinish", () => {
 
         expect(testObj.callback).toHaveBeenCalledWith(null, "expected-js-output", expected);
     });
+
+    it.each(["mjs", "cjs"])("should yield the output and sourceMap w/ .%s output and source map files", extension => {
+        const expected = { title: "expected", information: "information" };
+        const target = { callback: jest.fn(), emitFile: jest.fn(), resourcePath: "/expected/test.ts" } as unknown as LoaderContext<any>;
+
+        processResultAndFinish(
+            target,
+            {
+                version: 0,
+                files: [
+                    { name: `/expected/test.${extension}`, text: "expected-js-output", writeByteOrderMark: false },
+                    { name: `/expected/test.${extension}.map`, text: JSON.stringify(expected), writeByteOrderMark: false },
+                ],
+                writtenFiles: [],
+            },
+            "expected"
+        );
+
+        expect(target.callback).toHaveBeenCalledWith(null, "expected-js-output", expected);
+    });
 });

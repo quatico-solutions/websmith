@@ -385,9 +385,13 @@ export const makeSourceMap = (outputText: string, sourceMapText?: string) => {
     };
 };
 
+// JavaScript output of .ts, .tsx, .mts and .cts sources and its source map; .d.mts and .d.cts are additional files
+const JS_FILE = /\.(?:[cm]?js|jsx)$/i;
+const JS_MAP_FILE = /\.(?:[cm]?js|jsx)\.map$/i;
+
 export const processResultAndFinish = (context: LoaderContext<WebsmithLoaderConfig>, fragment: CompileFragment, profile?: string) => {
-    const outputText = fragment.files.find((cur: ts.OutputFile) => cur.name.match(/\.jsx?$/i))?.text;
-    const sourceMapText = fragment.files.find((cur: ts.OutputFile) => cur.name.match(/\.jsx?\.map$/i))?.text;
+    const outputText = fragment.files.find((cur: ts.OutputFile) => JS_FILE.test(cur.name))?.text;
+    const sourceMapText = fragment.files.find((cur: ts.OutputFile) => JS_MAP_FILE.test(cur.name))?.text;
 
     if (!outputText) {
         const message = `No processed output found for "${context.resourcePath}"`;
@@ -397,7 +401,7 @@ export const processResultAndFinish = (context: LoaderContext<WebsmithLoaderConf
 
         // Emit additional files (like declaration files) with proper naming to avoid conflicts
         fragment.files.forEach(file => {
-            if (!file.name.match(/\.jsx?$/i) && !file.name.match(/\.jsx?\.map$/i)) {
+            if (!JS_FILE.test(file.name) && !JS_MAP_FILE.test(file.name)) {
                 emitAdditionalFile(context, file);
             }
         });
