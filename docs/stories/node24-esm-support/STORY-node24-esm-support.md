@@ -311,3 +311,13 @@ Accepted for v1; each is a real Node failure that the rules do not report:
   `MODULE_MAP` that caused the nodenext bug; derive it from `ts.ScriptTarget` or drop it (#124 review).
 - **Error code 6046 is defined twice.** `TS_ERROR_CODE_INVALID_CLI_OPTION` (`Compiler.ts`) and
   `TS_ERROR_CODE_INVALID_OPTION_VALUE` (`resolve-compiler-config.ts`) are both 6046; share one constant.
+
+### 2026-09-26 — Loader gaps found at the esm-check-webpack claim (out of scope for wave 4)
+
+- **Loader-option `tsConfig` strings are not converted.** `module: "NodeNext"` in the loader-option `tsConfig` or in
+  an inline `config.profiles` stays a string (`packages/webpack/src/options.ts:51`, `:66`), so the loader falls back
+  to the pre-#124 CommonJS fast path.
+- **No `package.json` dependency under node16/nodenext.** The target's `package.json` is not registered with webpack,
+  so flipping `"type"` in watch mode does not rebuild the module.
+- **Options re-resolved for every module.** `compiler-instances.ts:44` calls `updateLoaderConfig`, which re-reads
+  `websmith.config.json`, reruns `validateEsm` and `getTsConfig`, and clears the baseline caches.

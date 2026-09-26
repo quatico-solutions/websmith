@@ -146,6 +146,73 @@ file, don't trust this list.
 - cjs-names' injectable caches;
 - package-type's rules taking `(classification, scan)`.
 
+### Amended at claim (2026-09-26): read this before the sections above and below
+
+The staleness preflight at claim re-checked every claim against `develop` at `e7d9153`, after wave 3 (#120–#123) and
+#124 merged. Where this section and the rest of the brief disagree, **this section wins**.
+
+**Decisions (user, 2026-09-26):**
+- **Reuse the Compiler's check.** Make `Compiler.getCheckedEsm` (`Compiler.ts:773-797`) and `checkEsmOutput`
+  (`:815-840`, plus the `AttributedOutput` type at `:40`) `protected`. `checkEsmOutput` takes an optional
+  `overrides?: Partial<EsmCheckContext>`; an override's `cjsNamesCache` wins over the per-call one. `TsCompiler`
+  extends `Compiler` and calls both. Call `getCheckedEsm(profile, ctx, false)`: `updateLoaderConfig` runs for every
+  module (`compiler-instances.ts:44`), so reporting the non-ESM error from there would repeat it. This widens the
+  scope guard by these two core methods.
+- **Rules are switched off by list, not by mode.** Add `importRules?: readonly ImportRule[]` to `EsmCheckContext`, so
+  `check-esm.ts:128` runs `(context.importRules ?? IMPORT_RULES)`.
+  - The loader passes `[checkMissingExtension, checkDirectoryImport, checkJsonImportAttribute]` under `node` and
+    `[]` under `bundler`; 91012 never runs in the loader.
+  - Do **not** add a `mode` field.
+  - 91005, 91013 and 91020 already decline under `bundler` by themselves (`classify-module.ts:58-64`,
+    `import-rules.ts:115`, `cjs-names.ts:95`).
+- **Two loader gaps stay out of scope** (recorded in the story):
+  - `module` given as a string in the loader-option `tsConfig` or an inline `config.profiles` is not converted to the
+    enum (`options.ts:51`, `:66`);
+  - under node16/nodenext, the target's `package.json` is not registered with webpack.
+
+  Fixtures therefore set `module` in `tsconfig.json` or a `websmith.config.json` profile, **never** in the
+  loader-option `tsConfig`.
+
+**Replacing earlier sections:**
+- **Additive context fields:**
+  - `moduleKind?: ModuleClassification["kind"]`, applied at `check-esm.ts:101` as
+    `context.moduleKind ? { kind: context.moduleKind, typeMissing: false } : classifyModule(…)`;
+  - `importRules?` (above);
+  - `packageTypeCache?`: a data cache of `{ result, missing }` per directory. `createPackageTypeLookup(system,
+    onDependency, cache?)` accepts it. `checkEsm` still builds the lookup per call with the **current**
+    `onDependency`, the same pattern as `cjsNamesCache` (`cjs-names.ts:25-30`, `:70-83`). Do **not** change the
+    lookup's call signature. The test is unchanged: two modules sharing one cache each receive their full
+    dependency list.
+- **Per-compilation caches:** create `packageTypeCache` and `cjsNamesCache` in a new `compiler.hooks.thisCompilation`
+  tap next to `webpack-hooks.ts:82-94`, not `compilation`, which also fires for child compilations.
+- **Attribution in the loader:**
+  - Wrap `addon.activate(webpackContext)` at `WebpackAddonService.ts:116` in
+    `context.runAsAddon(addon.getName(), …)` (`CompilationContext.ts:313`).
+  - Diagnostics name `ctx.getAddonsChangingFile(file)` from the target's context, as the CLI does
+    (`Compiler.ts:717`).
+  - **Obsolete:** "expose the active addon names" and `getActiveAddons`.
+- **Core exports:** the core index (`packages/core/src/compiler/index.ts:11-12`) exports only `checkEsm`,
+  `EsmDiagnosticCode` and `EsmCheckContext`. Export what the loader imports: at least `createCjsNamesCache`, the
+  import rules and `ModuleClassification`.
+- **Corrected lines:**
+  - `compiler-instances.ts:24-43` (creation) and `:44` (per-module `updateLoaderConfig`);
+  - `WebpackAddonService.ts:114-122` (activation loop, call at `:116`);
+  - the fast path at `Compiler.ts:1340-1361` (nodenext branch `:1342-1344`, `transpileNodeModule` `:1369-1424`);
+  - `check-esm.ts:16-33`;
+  - `classify-module.ts:71`.
+- **Behaviour-change note:** under nodenext the fast path now emits through a one-file Program, but still returns
+  emit diagnostics only. `websmith-loader.test.ts:536-562` stays green.
+
+**Also out of scope (report, don't fix):**
+- per-module option re-resolution at `compiler-instances.ts:44`, which re-reads the config and reprints
+  `validateEsm` output for every module;
+- dependent-profile result-processor writes, which the check does not observe;
+- TS2835 and the other codes, which are not labelled in the loader (`report()` never runs there);
+- import-rule file probes under `runtime: "node"`, which are not registered as dependencies (webpack tracks its own
+  resolution);
+- the override classification carries no `packageJson`, so a `javascript/dynamic` module gets no 91031 (webpack
+  reports that parse error itself).
+
 ### Settled decisions — do not re-derive them
 
 - **webpack's module type decides for the bundler target.** webpack's default rules key on the resource path, and
