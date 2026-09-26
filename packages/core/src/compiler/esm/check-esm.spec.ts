@@ -9,6 +9,8 @@ import ts from "typescript";
 import { createSystem } from "../../environment";
 import { NoReporter } from "../NoReporter";
 import { checkEsm, getEmittedModuleKind, type EsmCheckContext } from "./check-esm";
+import { checkMissingExtension } from "./import-rules";
+import * as scanModuleExports from "./scan-module";
 
 const MODULE_PACKAGE = { "/package.json": JSON.stringify({ type: "module" }) };
 
@@ -507,6 +509,114 @@ describe("checkEsm", () => {
             [91030, "/dist/a.cjs", 13, 6],
             [91032, "/dist/b.js", 13, 7],
         ]);
+    });
+
+    it("yields 91001 w/ esm module kind override for bundler output under commonjs package", () => {
+        const context = createContext({ "/package.json": JSON.stringify({ type: "commonjs" }) }, { moduleKind: "esm" });
+
+        const actual = codesOf([output("/dist/target.js", `const x = require("x");`)], { runtime: "bundler" }, context);
+
+        expect(actual).toEqual([91001]);
+    });
+
+    it("yields nothing w/ auto module kind override for bundler output under module package", () => {
+        const context = createContext(MODULE_PACKAGE, { moduleKind: "auto" });
+
+        const actual = codesOf([output("/dist/target.js", `const x = require("x");`)], { runtime: "bundler" }, context);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("reports no package.json dependencies w/ module kind override", () => {
+        const onDependency = jest.fn();
+
+        checkEsm(
+            [output("/dist/target.js", `export const x = 1;`)],
+            { runtime: "bundler" },
+            createContext(MODULE_PACKAGE, { moduleKind: "esm", onDependency })
+        );
+
+        expect(onDependency).not.toHaveBeenCalled();
+    });
+
+    it("yields only findings of given import rules w/ import rules", () => {
+        const context = createContext(MODULE_PACKAGE, { importRules: [checkMissingExtension] });
+
+        const actual = codesOf(
+            [output("/dist/target.js", `import "./b";\nimport "./gone.js";`), output("/dist/b.js", "")],
+            { runtime: "node" },
+            context
+        );
+
+        expect(actual).toEqual([91010]);
+    });
+
+    it("yields no import findings w/ empty import rules", () => {
+        const context = createContext(MODULE_PACKAGE, { importRules: [] });
+
+        const actual = codesOf(
+            [output("/dist/target.js", `import "./b";\nimport "./gone.js";`), output("/dist/b.js", "")],
+            { runtime: "node" },
+            context
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("reads each package.json once w/ package type cache shared by two checks", () => {
+        const system = createSystem(MODULE_PACKAGE, { virtual: true });
+        const readFile = jest.spyOn(system, "readFile");
+        const context = createContext(MODULE_PACKAGE, { system, packageTypeCache: new Map() });
+        checkEsm([output("/dist/one.js", `export const x = 1;`)], { runtime: "node" }, context);
+
+        checkEsm([output("/dist/two.js", `export const x = 1;`)], { runtime: "node" }, context);
+        const actual = readFile.mock.calls.length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("reports full package.json dependencies to each check w/ package type cache shared by two checks", () => {
+        const packageTypeCache = new Map();
+        const onDependency = jest.fn();
+        checkEsm([output("/dist/one.js", `export const x = 1;`)], { runtime: "node" }, createContext(MODULE_PACKAGE, { packageTypeCache }));
+
+        checkEsm(
+            [output("/dist/two.js", `export const x = 1;`)],
+            { runtime: "node" },
+            createContext(MODULE_PACKAGE, { packageTypeCache, onDependency })
+        );
+        const actual = onDependency.mock.calls;
+
+        expect(actual).toEqual([
+            ["/dist/package.json", false],
+            ["/package.json", true],
+        ]);
+    });
+});
+
+describe("checkEsm w/ scan cache", () => {
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    it("parses unchanged output once w/ scan cache shared by two checks", () => {
+        const target = jest.spyOn(scanModuleExports, "scanModule");
+        const context = createContext(MODULE_PACKAGE, { scanCache: new Map() });
+        checkEsm([output("/dist/target.js", `const x = require("x");`)], { runtime: "node" }, context);
+
+        checkEsm([output("/dist/target.js", `const x = require("x");`)], { runtime: "node" }, context);
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("parses changed output again w/ scan cache shared by two checks", () => {
+        const context = createContext(MODULE_PACKAGE, { scanCache: new Map() });
+        checkEsm([output("/dist/target.js", `const x = require("x");`)], { runtime: "node" }, context);
+
+        const actual = codesOf([output("/dist/target.js", `export const x = __dirname;`)], { runtime: "node" }, context);
+
+        expect(actual).toEqual([91003]);
     });
 });
 

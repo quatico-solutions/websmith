@@ -25,7 +25,7 @@ import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
 import { DefaultReporter } from "./DefaultReporter";
-import { checkEsm, createCjsNamesCache, getEmittedModuleKind, isEsmModuleKind } from "./esm";
+import { checkEsm, createCjsNamesCache, getEmittedModuleKind, isEsmModuleKind, type EsmCheckContext } from "./esm";
 import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
@@ -37,7 +37,7 @@ export type CompileFragment = {
 };
 
 /** Output files and the addons that changed their source, empty when the files come from the client's own source. */
-type AttributedOutput = {
+export type AttributedOutput = {
     files: readonly ts.OutputFile[];
     addons: string[];
 };
@@ -770,7 +770,7 @@ export class Compiler {
      * Returns the profile's `esm` options when its output is checked. A profile whose effective module format is not
      * ESM is not checked; it is reported when `reportNonEsm` is set.
      */
-    private getCheckedEsm(profile: string | undefined, ctx: CompilationContext, reportNonEsm = true): EsmProfileOptions | undefined {
+    protected getCheckedEsm(profile: string | undefined, ctx: CompilationContext, reportNonEsm = true): EsmProfileOptions | undefined {
         // esm is read from the profile itself, not from its dependencies: it is not inherited through depends
         const profileConfig = profile ? this.options.config?.profiles?.[profile] : undefined;
         const esm = profileConfig?.esm;
@@ -810,13 +810,15 @@ export class Compiler {
 
     /**
      * Checks output files once per set of addons that changed them, so each diagnostic names the addons of its file.
-     * Each group is a separate checkEsm call; the groups share one cache of resolved CommonJS packages and their names.
+     * Each group is a separate checkEsm call; the groups share one cache of resolved CommonJS packages and their names,
+     * created per call unless `overrides` provides one. `overrides` replaces any other field of the check's context.
      */
-    private checkEsmOutput(
+    protected checkEsmOutput(
         esm: EsmProfileOptions,
         profile: string | undefined,
         ctx: CompilationContext,
-        outputs: AttributedOutput[]
+        outputs: AttributedOutput[],
+        overrides?: Partial<EsmCheckContext>
     ): ts.Diagnostic[] {
         const groups = new Map<string, { files: ts.OutputFile[]; addons: string[] }>();
         outputs.forEach(({ files, addons }) => {
@@ -825,7 +827,7 @@ export class Compiler {
             group.files.push(...files);
             groups.set(key, group);
         });
-        const cjsNamesCache = createCjsNamesCache();
+        const cjsNamesCache = overrides?.cjsNamesCache ?? createCjsNamesCache();
         return [...groups.values()].flatMap(({ files, addons }) =>
             checkEsm(files, esm, {
                 system: this.system,
@@ -834,6 +836,7 @@ export class Compiler {
                 debug: this.options.debug,
                 profile,
                 addons,
+                ...overrides,
                 cjsNamesCache,
             })
         );

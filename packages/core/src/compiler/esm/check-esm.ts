@@ -8,10 +8,19 @@ import { InfoMessage, type EsmProfileOptions, type Reporter } from "@quatico/web
 import path from "node:path";
 import ts from "typescript";
 import { CjsNamesDiagnosticCode, createCjsNamesCheck, type CjsNamesCache } from "./cjs-names";
-import { classifyModule, createPackageTypeLookup, type DependencyCallback } from "./classify-module";
-import { checkImports } from "./import-rules";
+import {
+    classifyModule,
+    createPackageTypeLookup,
+    type DependencyCallback,
+    type ModuleClassification,
+    type PackageTypeCache,
+} from "./classify-module";
+import { IMPORT_RULES, type ImportRule } from "./import-rules";
 import { checkPackageType, PackageTypeCode } from "./package-type-rules";
-import { scanModule, type FreeReference } from "./scan-module";
+import { scanModule, type FreeReference, type ModuleScan } from "./scan-module";
+
+/** Memo of scanned files keyed by file name, each replaced when the file's text changes. */
+export type ScanCache = Map<string, { hash: string; scan: ModuleScan }>;
 
 export type EsmCheckContext = {
     /** File system used to read package.json files. */
@@ -30,6 +39,14 @@ export type EsmCheckContext = {
     platform?: NodeJS.Platform;
     /** Per-build memo of package resolution and CommonJS export detection, created per call when absent. */
     cjsNamesCache?: CjsNamesCache;
+    /** Per-build memo of package.json lookups, created per call when absent. */
+    packageTypeCache?: PackageTypeCache;
+    /** Memo of scanned files: a file whose text is unchanged is not parsed again. */
+    scanCache?: ScanCache;
+    /** How the runtime loads every checked file, e.g. webpack's module type; classified per file when absent. */
+    moduleKind?: ModuleClassification["kind"];
+    /** Rules on relative imports to run, all rules when absent. */
+    importRules?: readonly ImportRule[];
 };
 
 /** Stable diagnostic codes of the ESM check, one per rule (range 91000–91099). */
@@ -88,7 +105,8 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
     }
     const category = esm.check === "warn" ? ts.DiagnosticCategory.Warning : ts.DiagnosticCategory.Error;
     const suffix = describeOrigin(context);
-    const lookupPackageType = createPackageTypeLookup(context.system, context.onDependency);
+    const lookupPackageType = createPackageTypeLookup(context.system, context.onDependency, context.packageTypeCache);
+    const importRules = context.importRules ?? IMPORT_RULES;
     const isIgnored = createIgnoreMatcher(esm.ignore, context);
     const checkCjsNames = createCjsNamesCheck(esm.runtime, context);
     const importContext = { runtime: esm.runtime, system: context.system, writtenFiles: new Set(files.map(cur => path.resolve(cur.name))) };
@@ -96,9 +114,11 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
     return files
         .filter(cur => JS_FILE.test(cur.name) && !isIgnored(cur.name))
         .flatMap(cur => {
-            const scan = scanModule(cur.name, cur.text);
+            const scan = scanCached(cur, context);
             const { file, hasEsmSyntax, freeReferences } = scan;
-            const classification = classifyModule(cur.name, esm.runtime, hasEsmSyntax, lookupPackageType);
+            const classification: ModuleClassification = context.moduleKind
+                ? { kind: context.moduleKind, typeMissing: false }
+                : classifyModule(cur.name, esm.runtime, hasEsmSyntax, lookupPackageType);
             const { kind, typeMissing } = classification;
             const diagnostics: ts.Diagnostic[] = [];
             const report = (code: number, message: string, cat: ts.DiagnosticCategory, start = 0, length = 0) =>
@@ -125,9 +145,26 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
                 }
             });
             checkCjsNames(file, kind, (code, message, start, length) => report(code, message, category, start, length));
-            checkImports({ file }, { kind }, importContext).forEach(cur => report(cur.code, cur.message, category, cur.start, cur.length));
+            importRules
+                .flatMap(rule => rule({ file }, { kind }, importContext))
+                .forEach(cur => report(cur.code, cur.message, category, cur.start, cur.length));
             return diagnostics;
         });
+};
+
+/** Scans a file, or takes its scan from `context.scanCache` when its text is unchanged. */
+const scanCached = ({ name, text }: ts.OutputFile, { scanCache, system }: EsmCheckContext): ModuleScan => {
+    if (!scanCache) {
+        return scanModule(name, text);
+    }
+    const hash = system.createHash?.(text) ?? text;
+    const cached = scanCache.get(name);
+    if (cached?.hash === hash) {
+        return cached.scan;
+    }
+    const scan = scanModule(name, text);
+    scanCache.set(name, { hash, scan });
+    return scan;
 };
 
 const describeFreeReference = ({ name }: FreeReference): [number, string] => {

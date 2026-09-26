@@ -5,11 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 export { Compiler } from "./Compiler";
-export type { CompileFragment } from "./Compiler";
+export type { AttributedOutput, CompileFragment } from "./Compiler";
 export * from "./options";
 export { DefaultReporter } from "./DefaultReporter";
-export { checkEsm, EsmDiagnosticCode } from "./esm";
-export type { EsmCheckContext } from "./esm";
+export { checkDirectoryImport, checkEsm, checkJsonImportAttribute, checkMissingExtension, createCjsNamesCache, EsmDiagnosticCode } from "./esm";
+export type { CjsNamesCache, EsmCheckContext, ImportRule, ModuleClassification, PackageTypeCache, ScanCache } from "./esm";
 export { NoReporter } from "./NoReporter";
 export * from "./addons";
 export * from "./compilation";

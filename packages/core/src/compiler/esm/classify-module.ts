@@ -65,12 +65,20 @@ export const classifyModule = (
 };
 
 /**
- * Creates a lookup that reads every package.json at most once. Every lookup, cached or not, reports the package.json
- * paths it depends on to `onDependency`.
+ * Memo of package.json lookups per directory: the nearest package.json and the nearer candidates that do not exist.
+ * Drop it when package.json files may have changed, e.g. once per compilation.
  */
-export const createPackageTypeLookup = (system: ts.System, onDependency?: DependencyCallback): PackageTypeLookup => {
-    const cache = new Map<string, { result?: PackageInfo; missing: string[] }>();
+export type PackageTypeCache = Map<string, { result?: PackageInfo; missing: string[] }>;
 
+/**
+ * Creates a lookup that reads every package.json at most once, also across lookups sharing `cache`. Every lookup,
+ * cached or not, reports the package.json paths it depends on to its own `onDependency`.
+ */
+export const createPackageTypeLookup = (
+    system: ts.System,
+    onDependency?: DependencyCallback,
+    cache: PackageTypeCache = new Map()
+): PackageTypeLookup => {
     const lookupDirectory = (dirName: string): { result?: PackageInfo; missing: string[] } => {
         const cached = cache.get(dirName);
         if (cached) {
