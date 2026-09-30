@@ -54,7 +54,7 @@ describe("webpack-hooks", () => {
         });
 
         it("should reset compilation caches of websmith compiler w/ new compilation", () => {
-            const target = { resetCompilationCaches: jest.fn(), reportEsmCheckTime: jest.fn() };
+            const target = { resetCompilationCaches: jest.fn(), reportEsmCheckTime: jest.fn(), keepCachesPerCompilation: jest.fn() };
             addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: target as unknown as TsCompiler });
             const [[, onThisCompilation]] = jest.mocked(mockCompiler.hooks.thisCompilation.tap).mock.calls as unknown as [[string, () => void]];
 
@@ -63,8 +63,16 @@ describe("webpack-hooks", () => {
             expect(target.resetCompilationCaches).toHaveBeenCalledTimes(1);
         });
 
+        it("should keep caches of websmith compiler per compilation w/ compilation hooks", () => {
+            const target = { resetCompilationCaches: jest.fn(), reportEsmCheckTime: jest.fn(), keepCachesPerCompilation: jest.fn() };
+
+            addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: target as unknown as TsCompiler });
+
+            expect(target.keepCachesPerCompilation).toHaveBeenCalledTimes(1);
+        });
+
         it("should report ESM check time of websmith compiler w/ done compilation", () => {
-            const target = { resetCompilationCaches: jest.fn(), reportEsmCheckTime: jest.fn() };
+            const target = { resetCompilationCaches: jest.fn(), reportEsmCheckTime: jest.fn(), keepCachesPerCompilation: jest.fn() };
             addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: target as unknown as TsCompiler });
             const onDone = jest.mocked(mockCompiler.hooks.done.tap).mock.calls.map(([, cur]) => cur as unknown as () => void);
 

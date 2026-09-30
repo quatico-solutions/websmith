@@ -57,6 +57,47 @@ describe("getCompilerInstance", () => {
     });
 });
 
+describe("getCompilerInstance w/o webpack compiler", () => {
+    const fixtureDir = path.join(projectDir, "test-output", "no-compiler");
+
+    beforeEach(() => {
+        const files: Record<string, string> = {
+            "package.json": JSON.stringify({ type: "module" }),
+            "tsconfig.json": JSON.stringify({ compilerOptions: { target: "es2020", module: "esnext", rootDir: "src", outDir: "dist" } }),
+            "websmith.config.json": JSON.stringify({
+                profiles: { target: { depends: ["node"] }, node: { tsConfig: { outDir: path.join(fixtureDir, "lib") }, esm: { runtime: "node" } } },
+            }),
+            "src/a.ts": "export const a = 1;\n",
+        };
+        Object.entries(files).forEach(([fileName, content]) => {
+            fs.mkdirSync(path.dirname(path.join(fixtureDir, fileName)), { recursive: true });
+            fs.writeFileSync(path.join(fixtureDir, fileName), content);
+        });
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    it("reads package.json again in each build, because no compilation resets its caches", () => {
+        const options = {
+            tsConfigFile: path.join(fixtureDir, "tsconfig.json"),
+            configFile: path.join(fixtureDir, "websmith.config.json"),
+            profile: "target",
+            transpileOnly: true,
+            instanceName: "no-compiler-instance",
+        };
+        const testObj = getCompilerInstance(options, {} as LoaderContext<any>);
+        const target = jest.spyOn(testObj.getSystem(), "readFile");
+        testObj.build(path.join(fixtureDir, "src", "a.ts"));
+
+        getCompilerInstance(options, {} as LoaderContext<any>).build(path.join(fixtureDir, "src", "a.ts"));
+        const actual = target.mock.calls.filter(([fileName]) => fileName === path.join(fixtureDir, "package.json")).length;
+
+        expect(actual).toBe(2);
+    });
+});
+
 describe("getInstanceFromCache", () => {
     it("should return the previously cached instance", () => {
         const expected = tsCompiler;

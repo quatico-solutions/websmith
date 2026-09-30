@@ -91,6 +91,7 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
         });
 
         // package.json files and packages may change between compilations; child compilations share the parent's memo
+        context.websmithCompiler?.keepCachesPerCompilation();
         compiler.hooks.thisCompilation.tap(LOADER_NAME, () => {
             context.websmithCompiler?.resetCompilationCaches();
         });

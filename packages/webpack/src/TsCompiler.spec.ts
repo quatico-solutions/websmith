@@ -293,11 +293,12 @@ describe("TsCompiler ESM check", () => {
         expect(actual).toEqual({ files: ["/package.json"], missing: ["/lib/package.json"] });
     });
 
-    it("reads package.json once for two modules in same directory", () => {
+    it("reads package.json once for two modules in same directory w/ caches kept per compilation", () => {
         const testObj = createEsmCompiler(
             { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE, "/src/b.ts": REQUIRE_SOURCE },
             { target: { depends: ["node"] }, node: NODE_DEPENDENT }
         );
+        testObj.keepCachesPerCompilation();
         const target = jest.spyOn(testObj.getSystem(), "readFile");
         testObj.build("/src/a.ts", "javascript/auto");
 
@@ -307,11 +308,12 @@ describe("TsCompiler ESM check", () => {
         expect(actual).toBe(1);
     });
 
-    it("reads package.json again after compilation caches are reset", () => {
+    it("reads package.json again after compilation caches are reset w/ caches kept per compilation", () => {
         const testObj = createEsmCompiler(
             { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE, "/src/b.ts": REQUIRE_SOURCE },
             { target: { depends: ["node"] }, node: NODE_DEPENDENT }
         );
+        testObj.keepCachesPerCompilation();
         const target = jest.spyOn(testObj.getSystem(), "readFile");
         testObj.build("/src/a.ts", "javascript/auto");
 

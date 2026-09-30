@@ -54,6 +54,7 @@ export class TsCompiler extends Compiler {
     private compilationCaches: Pick<EsmCheckContext, "packageTypeCache" | "cjsNamesCache"> = TsCompiler.createCompilationCaches();
     private readonly scanCache: ScanCache = new Map();
     private esmCheckTime = 0;
+    private cachesPerCompilation = false;
 
     constructor(
         options: CompilerOptions,
@@ -85,6 +86,14 @@ export class TsCompiler extends Compiler {
         // Update profile after configuration is updated
         const profileName = this.getOptions().profile || loaderOptions.profile;
         this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
+    }
+
+    /**
+     * Keeps the package.json and CommonJS package memos of the ESM check until `resetCompilationCaches`, which a
+     * compilation hook calls; without hooks, e.g. when a worker loader provides no compiler, each build drops them.
+     */
+    public keepCachesPerCompilation(): void {
+        this.cachesPerCompilation = true;
     }
 
     /** Drops the package.json and CommonJS package memos of the ESM check; call it once per webpack compilation. */
@@ -120,6 +129,9 @@ export class TsCompiler extends Compiler {
 
         const { buildDir } = this.getOptions();
         const filePath = resolvePath(this.getSystem(), buildDir, resourcePath);
+        if (!this.cachesPerCompilation) {
+            this.resetCompilationCaches();
+        }
         const diagnostics: ts.Diagnostic[] = [];
         const dependencies = { files: new Set<string>(), missing: new Set<string>() };
         const onDependency = (fileName: string, exists: boolean) => (exists ? dependencies.files : dependencies.missing).add(fileName);
