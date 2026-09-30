@@ -134,5 +134,21 @@ module.exports = [
             "@typescript-eslint/no-redundant-type-constituents": "off",
         },
     },
+    {
+        // Plain CommonJS scripts run by Node, e.g. benchmarks: no type information
+        files: ["**/perf/*.cjs"],
+        ...ts.configs.disableTypeChecked,
+        languageOptions: {
+            sourceType: "commonjs",
+            globals: {
+                ...globals.node,
+            },
+        },
+        rules: {
+            ...ts.configs.disableTypeChecked.rules,
+            "@typescript-eslint/no-require-imports": "off",
+            "no-console": "off",
+        },
+    },
     { ignores: ["**/dist/*", "**/lib/*", "**/test-temp/*"] },
 ];

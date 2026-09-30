@@ -395,6 +395,7 @@ describe("WebpackAddonService", () => {
                 registerProcessor: jest.fn(),
                 registerTransformer: jest.fn(),
                 registerResultProcessor: jest.fn(),
+                runAsAddon: (_addonName: string, fn: () => unknown) => fn(),
             };
 
             mockLoaderContext = {
@@ -446,6 +447,32 @@ describe("WebpackAddonService", () => {
             expect(webpackContext.getVirtualFiles().size).toBeGreaterThan(0);
             expect(webpackContext.getAssetDependencies().size).toBeGreaterThan(0);
             expect(webpackContext.getFilesToRemove().size).toBeGreaterThan(0);
+        });
+
+        it("should activate each addon on behalf of the addon", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            fs.mkdirSync(path.join(addonsDir, "named-addon"), { recursive: true });
+            fs.writeFileSync(
+                path.join(addonsDir, "named-addon", "addon.ts"),
+                `export const activate = (ctx) => ctx.registerProcessor((_fileName, content) => content);`
+            );
+            const target: string[] = [];
+            let currentAddon: string | undefined;
+            mockCompilationContext.runAsAddon = (addonName: string, fn: () => unknown) => {
+                currentAddon = addonName;
+                try {
+                    return fn();
+                } finally {
+                    currentAddon = undefined;
+                }
+            };
+            mockCompilationContext.registerProcessor = () => target.push(currentAddon ?? "unknown");
+            const testObj = new WebpackAddonService({ addonsDir, addons: ["named-addon"], system: mockSystem, reporter: mockReporter });
+            testObj.getAvailableAddons();
+
+            testObj.applyAddonsToContext(mockCompilationContext, undefined, mockLoaderContext, mockWebpackCompilation);
+
+            expect(target).toEqual(["named-addon"]);
         });
 
         it("should add dependencies to webpack loader context", () => {

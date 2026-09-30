@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { createSystem } from "../../environment";
-import { classifyModule, createPackageTypeLookup } from "./classify-module";
+import { classifyModule, createPackageTypeLookup, type PackageTypeCache } from "./classify-module";
 
 describe("classifyModule", () => {
     it("yields esm w/ node runtime and .mjs file under commonjs package", () => {
@@ -170,6 +170,36 @@ describe("createPackageTypeLookup", () => {
             ["/dist/package.json", false],
             ["/package.json", true],
         ]);
+    });
+
+    it("reports full package.json paths to each lookup w/ cache shared by two lookups", () => {
+        const system = createSystem({ "/package.json": JSON.stringify({ type: "module" }) }, { virtual: true });
+        const cache: PackageTypeCache = new Map();
+        const onDependency = jest.fn();
+        createPackageTypeLookup(system, () => undefined, cache)("/dist/sub/one.js");
+        const testObj = createPackageTypeLookup(system, onDependency, cache);
+
+        testObj("/dist/sub/two.js");
+        const actual = onDependency.mock.calls;
+
+        expect(actual).toEqual([
+            ["/dist/sub/package.json", false],
+            ["/dist/package.json", false],
+            ["/package.json", true],
+        ]);
+    });
+
+    it("reads each package.json once w/ cache shared by two lookups", () => {
+        const target = createSystem({ "/package.json": JSON.stringify({ type: "module" }) }, { virtual: true });
+        const readFile = jest.spyOn(target, "readFile");
+        const cache: PackageTypeCache = new Map();
+        createPackageTypeLookup(target, undefined, cache)("/dist/one.js");
+        const testObj = createPackageTypeLookup(target, undefined, cache);
+
+        testObj("/dist/two.js");
+        const actual = readFile.mock.calls.length;
+
+        expect(actual).toBe(1);
     });
 
     it("reports missing package.json paths w/o package.json", () => {

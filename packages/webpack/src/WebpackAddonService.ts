@@ -30,7 +30,7 @@ export interface WebpackAddonConfig {
  */
 const MODULE_RESOLUTION_ERRORS = [2307, 2792, 7016];
 
-const formatDiagnostic = (diagnostic: ts.Diagnostic): string => {
+export const formatDiagnostic = (diagnostic: ts.Diagnostic): string => {
     const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
     if (diagnostic.file && diagnostic.start !== undefined) {
         const { line, character } = ts.getLineAndCharacterOfPosition(diagnostic.file, diagnostic.start);
@@ -113,7 +113,8 @@ export class WebpackAddonService {
 
         for (const addon of activeAddons) {
             try {
-                addon.activate(webpackContext);
+                // Functions and transformers the addon registers are attributed to it, so ESM diagnostics name it
+                context.runAsAddon(addon.getName(), () => addon.activate(webpackContext));
             } catch (error) {
                 this.config.reporter.reportDiagnostic(
                     new ErrorMessage(`Failed to activate addon "${addon.getName()}": ${error instanceof Error ? error.message : String(error)}`)
