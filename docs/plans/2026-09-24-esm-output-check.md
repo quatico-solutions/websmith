@@ -11,13 +11,13 @@
 
 ## Status
 
-- **State:** Delivered
+- **State:** Approved
 - **Type:** feature
 - **Story:** node24-esm-support
 - **Review:** pr
 - **Impl:** own branches
 - **Rounds:** 7
-- **Delivered:** 2026-09-30
+- **Rejected:** 2026-09-30 (delivery panel refuted: diagnostics do not name the source file, and fast-path syntax errors do not fail the build; fixed in wave 5 before re-delivery)
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
@@ -37,7 +37,9 @@
   profile with `esm` gets compile-time diagnostics when its emitted JavaScript is not ESM compatible,
   including code that addons generate.
 - `websmith` now exits with a non-zero code when a compilation reports an error-level diagnostic, including
-  existing TypeScript errors that previously only printed. The webpack loader fails the build for them.
+  existing TypeScript errors that previously only printed. The webpack loader fails the build for the error-level
+  diagnostics it reports: syntax and declaration-emit errors and ESM check findings, not type errors (see
+  `Release-Notes.md`).
 
 ## Motivation
 
@@ -226,6 +228,16 @@ slices add.
 ### Wave 4
 
 - `feature/esm-check-webpack` — the check for the loader's target and dependent profiles, reporting via `this.emitError`/`this.emitWarning`, `addDependency` for every file a rule reads, `.mjs`/`.cjs` output in `processResultAndFinish`, and the ≤10% watch-rebuild performance gate → #125 <!-- builds: ESM check in websmith-loader -->
+
+### Wave 5
+
+Added 2026-09-30 after the delivery panel (`.plot/panels/2026-09-24-esm-output-check-delivery/`) refuted the first
+delivery. Decided in-session: fix these before re-delivery.
+
+- `feature/esm-check-source-file` — ESM diagnostics name the source file next to the emitted file (plan § Diagnostics) <!-- builds: source file in ESM diagnostics -->
+- `bug/fast-path-syntax-errors` — syntax errors on the transpileModule fast path are reported and fail the build (plan § Failure semantics) <!-- builds: fast-path syntax errors reported -->
+- `bug/validate-selected-profile` — config errors only for the selected profile and its dependencies, printed once <!-- builds: config validation scoped to the selected profile -->
+- `bug/flaky-webpack-watch-tests` — webpack watch e2e tests wait for the rebuild of the edited file → #126 <!-- builds: stable webpack watch e2e tests -->
 
 ## Definition of Done
 
