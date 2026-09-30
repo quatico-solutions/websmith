@@ -50,9 +50,12 @@ type ScanEntry = Parameters<ScanCache["set"]>[1];
  * A scan cache that forgets files a compilation did not check: `nextCompilation` keeps the scans used since the last
  * call as fallbacks for the next compilation and drops the others, e.g. those of deleted or renamed files.
  */
-class CompilationScanCache implements ScanCache {
+export class CompilationScanCache implements ScanCache {
     private current = new Map<string, ScanEntry>();
     private previous = new Map<string, ScanEntry>();
+
+    /** `limit` caps each generation, since without compilation hooks nothing calls `nextCompilation`. */
+    constructor(private readonly limit = 5000) {}
 
     public get(fileName: string): ScanEntry | undefined {
         const current = this.current.get(fileName);
@@ -61,12 +64,16 @@ class CompilationScanCache implements ScanCache {
         }
         const previous = this.previous.get(fileName);
         if (previous) {
-            this.current.set(fileName, previous);
+            this.set(fileName, previous);
         }
         return previous;
     }
 
     public set(fileName: string, entry: ScanEntry): void {
+        // A full generation starts the next, so the cache holds at most two generations, e.g. under thread-loader
+        if (this.current.size >= this.limit && !this.current.has(fileName)) {
+            this.nextCompilation();
+        }
         this.current.set(fileName, entry);
     }
 

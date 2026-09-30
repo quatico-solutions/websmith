@@ -10,7 +10,7 @@ import { type CompileFragment, createSystem, NoReporter } from "@quatico/websmit
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
-import { TsCompiler } from "./TsCompiler";
+import { CompilationScanCache, TsCompiler } from "./TsCompiler";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 // Create unique test directories for each test to prevent cross-test contamination
@@ -368,5 +368,27 @@ describe("TsCompiler ESM check", () => {
         const [actual] = testObj.build("/src/a.ts", "javascript/esm").diagnostics;
 
         expect(actual.file).toBe(expected.file);
+    });
+});
+
+describe("CompilationScanCache", () => {
+    const whatever = { hash: "whatever", scan: {} as never };
+
+    it("keeps an entry w/ one generation of different files beyond the limit", () => {
+        const testObj = new CompilationScanCache(2);
+        ["/a.js", "/b.js", "/c.js"].forEach(cur => testObj.set(cur, whatever));
+
+        const actual = testObj.get("/a.js");
+
+        expect(actual).toBe(whatever);
+    });
+
+    it("drops an entry w/ two generations of different files beyond the limit", () => {
+        const testObj = new CompilationScanCache(2);
+        ["/a.js", "/b.js", "/c.js", "/d.js", "/e.js"].forEach(cur => testObj.set(cur, whatever));
+
+        const actual = testObj.get("/a.js");
+
+        expect(actual).toBeUndefined();
     });
 });
