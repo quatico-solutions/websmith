@@ -711,19 +711,21 @@ export class Compiler {
         // Cache getRootFiles() result to avoid redundant calls
         const files = this.getRootFiles();
         const writtenFiles: AttributedOutput[] = [];
-        // Without a Program, report() sees the syntax errors of the fast path only through the result
-        const fastPath = this.transpileOnly || this.shouldUseTranspileModuleFastPath(profile);
+        // Without a type-checking Program, report() sees syntax and declaration emit errors only through the result
+        const withoutProgram = this.transpileOnly || !this.anyAddonNeedsTypeInfo(profile);
 
         for (const fileName of files) {
             const fragment = this.emitSourceFile(fileName, profile);
             writtenFiles.push({ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName) });
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
-                if (fastPath) {
+                if (withoutProgram) {
                     result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
                 }
             } else {
-                fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
+                if (!withoutProgram) {
+                    fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
+                }
                 result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
                 result.emitSkipped = !!fragment.diagnostics && fragment.diagnostics.length > 0 ? true : false;
             }
@@ -1280,7 +1282,10 @@ export class Compiler {
 
                 return {
                     outputFiles,
-                    diagnostics: emitResult.diagnostics,
+                    // A skipped emit (noEmitOnError) already returns the syntactic diagnostics
+                    diagnostics: emitResult.emitSkipped
+                        ? emitResult.diagnostics
+                        : [...program.getSyntacticDiagnostics(sourceFile), ...emitResult.diagnostics],
                 };
             };
 

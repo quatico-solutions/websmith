@@ -57,8 +57,12 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
     information and `transpileOnly` is off. Other builds are not type checked, so a type error there still exits
     with `0`. This includes builds without addons, builds on the fast `transpileModule` path, and builds that emit
     declarations through per-file programs.
-  - TypeScript syntax errors fail builds on the fast `transpileModule` path too, which runs when no active addon
-    needs type information or with `transpileOnly`.
+  - TypeScript syntax errors fail every build, including builds on the fast `transpileModule` path, which runs when
+    no active addon needs type information or with `transpileOnly`, and builds that emit declarations through
+    per-file programs.
+  - With `declaration: true`, declaration emit errors fail CLI builds too, e.g. TS4094, TS2742 and, under
+    `isolatedDeclarations`, TS9xxx, as they already fail webpack loader builds. Before, builds that emit declarations
+    through per-file programs discarded them.
   - When type checking runs, errors in declaration files count too, including those under `node_modules/@types`. A
     project that picks up incompatible `@types` packages (for example through the default `types` inclusion) now
     fails; restrict them with the `types` compiler option.
@@ -94,9 +98,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   emitted every `.ts` file as CommonJS in builds without type-checking addons, and builds with type-checking addons
   or declarations failed. An unknown name is reported as a configuration error.
 - TypeScript syntax errors are reported in builds on the fast `transpileModule` path, which runs when no active addon
-  needs type information or with `transpileOnly`, including `"module": "node16"` or `"nodenext"`. Before, they were
-  discarded: `export const a = ;` was emitted as broken JavaScript and `websmith` exited with `0`. The file is still
-  emitted, like with `tsc`.
+  needs type information or with `transpileOnly`, including `"module": "node16"` or `"nodenext"`, and in builds that
+  emit declarations through per-file programs. Before, they were discarded: `export const a = ;` was emitted as
+  broken JavaScript and `websmith` exited with `0`. The file is still emitted, like with `tsc`.
 
 ### Removed
 

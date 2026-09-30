@@ -978,6 +978,32 @@ describe("compile", () => {
         expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
     });
 
+    it.each([
+        { name: "syntax error", source: `export const a = ;`, noEmitOnError: false, expected: "Error: /src/target.ts (1,18): Expression expected.\n" },
+        { name: "syntax error", source: `export const a = ;`, noEmitOnError: true, expected: "Error: /src/target.ts (1,18): Expression expected.\n" },
+        {
+            name: "declaration emit error",
+            source: `export const a = class { private x = 1; };`,
+            noEmitOnError: false,
+            expected: "Error: /src/target.ts (1,14): Property 'x' of exported anonymous class type may not be private or protected.\n",
+        },
+    ])("reports $name once w/ declaration, noEmitOnError $noEmitOnError and per-file Program", ({ source, noEmitOnError, expected }) => {
+        const fileSystem = createSystem({ "src/target.ts": source }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { declaration: true, noEmitOnError, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).compile();
+
+        expect(target.message).toBe(expected);
+    });
+
     it("yields output w/ with addons but w/o profiles", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
 
@@ -1099,6 +1125,31 @@ describe("emitSourceFile", () => {
                 code: 1109,
                 category: ts.DiagnosticCategory.Error,
                 start: 17,
+                file: expect.objectContaining({ fileName: "/src/target.ts" }),
+            }),
+        ]);
+    });
+
+    it.each([
+        { name: "syntax error", source: `export const a = ;`, code: 1109, start: 17 },
+        { name: "declaration emit error", source: `export const a = class { private x = 1; };`, code: 4094, start: 13 },
+    ])("yields $name with file and position w/ declaration and per-file Program", ({ source, code, start }) => {
+        const fileSystem = createSystem({ "src/target.ts": source }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.diagnostics).toEqual([
+            expect.objectContaining({
+                code,
+                category: ts.DiagnosticCategory.Error,
+                start,
                 file: expect.objectContaining({ fileName: "/src/target.ts" }),
             }),
         ]);

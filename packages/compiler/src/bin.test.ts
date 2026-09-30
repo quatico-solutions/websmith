@@ -338,6 +338,18 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toContain(`${path.join(testDirs.SOURCE_DIR, "test.ts")} (1,18): Expression expected.`);
     }, 60000);
 
+    it("should exit with status 1 and report the syntax error once w/ syntax error and declaration", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, declaration: true, target: "esnext", types: [] });
+        createSourceFile(`export const a = ;`, "test.ts");
+
+        const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+        const actual1 = target.status;
+        const actual2 = target.output.split(`${path.join(testDirs.SOURCE_DIR, "test.ts")} (1,18): Expression expected.`).length - 1;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toBe(1);
+    }, 60000);
+
     it("should exit with status 1 w/ throwing processor addon", () => {
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
         createSourceFile(`export const hello: string = "world";`, "test.ts");
