@@ -56,10 +56,13 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   - TypeScript type errors fail the build only when type checking runs, which is when an active addon needs type
     information and `transpileOnly` is off. Other builds are not type checked, so a type error there still exits
     with `0`. This includes builds without addons, builds on the fast `transpileModule` path, and builds that emit
-    declarations through per-file programs.
-  - TypeScript syntax errors fail every build, including builds on the fast `transpileModule` path, which runs when
-    no active addon needs type information or with `transpileOnly`, and builds that emit declarations through
-    per-file programs.
+    declarations through per-file programs unless `noEmitOnError` is set.
+  - TypeScript syntax errors in `.ts`, `.tsx`, `.mts` and `.cts` files fail every build, including builds on the
+    fast `transpileModule` path, which runs when no active addon needs type information and `declaration` is off,
+    or with `transpileOnly`, and builds that emit declarations through per-file programs. The fast path does not
+    check declaration files and JavaScript sources.
+  - Invalid code that generators add with `addVirtualFile` or that processors produce fails builds too. It is
+    reported at its position in the processed text.
   - With `declaration: true`, declaration emit errors fail CLI builds too, e.g. TS4094, TS2742 and, under
     `isolatedDeclarations`, TS9xxx, as they already fail webpack loader builds. Before, builds that emit declarations
     through per-file programs discarded them.
@@ -98,9 +101,14 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   emitted every `.ts` file as CommonJS in builds without type-checking addons, and builds with type-checking addons
   or declarations failed. An unknown name is reported as a configuration error.
 - TypeScript syntax errors are reported in builds on the fast `transpileModule` path, which runs when no active addon
-  needs type information or with `transpileOnly`, including `"module": "node16"` or `"nodenext"`, and in builds that
-  emit declarations through per-file programs. Before, they were discarded: `export const a = ;` was emitted as
-  broken JavaScript and `websmith` exited with `0`. The file is still emitted, like with `tsc`.
+  needs type information and `declaration` is off, or with `transpileOnly`, including `"module": "node16"` or
+  `"nodenext"`, and in builds that emit declarations through per-file programs. Before, they were discarded:
+  `export const a = ;` was emitted as broken JavaScript and `websmith` exited with `0`. The file is still emitted,
+  like with `tsc`.
+- Syntax errors in code from processors and in files generators add with `addVirtualFile` are reported when an
+  active addon needs type information. Before, only the files on disk were checked, so they were discarded.
+- A TypeScript error that both the type-checking Program and the emit of a file find is printed once. Before,
+  errors of a file whose emit was skipped, e.g. under `noEmitOnError`, were printed twice or three times.
 - Watch mode reports the syntax errors and declaration emit errors of each rebuilt file. Before, `websmith --watch`
   printed none of them.
 

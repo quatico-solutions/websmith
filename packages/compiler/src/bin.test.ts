@@ -350,6 +350,40 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toBe(1);
     }, 60000);
 
+    it.each([{ noEmitOnError: false }, { noEmitOnError: true }])(
+        "should exit with status 1 and report the syntax error once w/ addon requiring type information and noEmitOnError $noEmitOnError",
+        ({ noEmitOnError }) => {
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, noEmitOnError, target: "esnext", types: [] });
+            createSourceFile(`export const a = ;`, "test.ts");
+            createAddon("type-info-addon", `exports.activate = () => {};`);
+
+            const target = executeCompilerStatus(
+                `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons type-info-addon --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`
+            );
+            const actual1 = target.status;
+            const actual2 = target.output.split(`${path.join(testDirs.SOURCE_DIR, "test.ts")} (1,18): Expression expected.`).length - 1;
+
+            expect(actual1).toBe(1);
+            expect(actual2).toBe(1);
+        },
+        60000
+    );
+
+    it("should exit with status 1 and report the syntax error once w/ processor appending invalid code and addon requiring type information", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createSourceFile(`export const a = 1;`, "test.ts");
+        createAddon("invalid-processor", `exports.activate = ctx => ctx.registerProcessor((_fileName, content) => content + "\\nexport const z = ;");`);
+
+        const target = executeCompilerStatus(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons invalid-processor --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output.split(`${path.join(testDirs.SOURCE_DIR, "test.ts")} (2,18): Expression expected.`).length - 1;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toBe(1);
+    }, 60000);
+
     it("should exit with status 1 w/ throwing processor addon", () => {
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
         createSourceFile(`export const hello: string = "world";`, "test.ts");

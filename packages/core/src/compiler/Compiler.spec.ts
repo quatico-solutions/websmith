@@ -4217,3 +4217,65 @@ describe("report w/ TypeScript ESM diagnostics", () => {
         expect(actual).toEqual([]);
     });
 });
+
+describe("compile w/ syntax error and addon needing type information", () => {
+    const createCompiler = (
+        fileSystem: ts.System,
+        reporter: Reporter,
+        activate: (ctx: CompilationContext) => void,
+        options: { noEmitOnError?: boolean; transpileOnly?: boolean } = {}
+    ) => {
+        fileSystem.createDirectory("./addons");
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter, system: fileSystem });
+        // Legacy addon: needsTypeInfo is undefined, so the compilation creates the big Program
+        const typeInfoAddon = { getName: () => "type-info-addon", activate };
+        addons.getAvailableAddons = jest.fn().mockReturnValue([typeInfoAddon]);
+        return new CompilerTestClass(
+            {
+                reporter,
+                config: { transpileOnly: options.transpileOnly, addons: ["type-info-addon"] },
+                tsConfig: { target: ts.ScriptTarget.ESNext, noEmitOnError: options.noEmitOnError, types: [] },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).setAddonRegistry(addons);
+    };
+
+    it.each([
+        { noEmitOnError: false, transpileOnly: false },
+        { noEmitOnError: true, transpileOnly: false },
+        { noEmitOnError: false, transpileOnly: true },
+    ])("reports syntax error once w/ noEmitOnError $noEmitOnError and transpileOnly $transpileOnly", options => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        createCompiler(fileSystem, target, () => {}, options).compile();
+
+        expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
+    });
+
+    it("reports syntax error once at its position in the processed text w/ processor appending invalid code", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        createCompiler(fileSystem, target, ctx => ctx.registerProcessor((_fileName, content) => `${content}\nexport const z = ;`)).compile();
+
+        expect(target.message).toBe("Error: /src/target.ts (2,18): Expression expected.\n");
+    });
+
+    it("reports syntax error once w/ generator adding virtual file with invalid code", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        createCompiler(fileSystem, target, ctx =>
+            ctx.registerGenerator(fileName => {
+                if (fileName === "/src/target.ts") {
+                    ctx.addVirtualFile("/src/virtual.ts", `export const v = ;`);
+                }
+            })
+        ).compile();
+
+        expect(target.message).toBe("Error: /src/virtual.ts (1,18): Expression expected.\n");
+    });
+});

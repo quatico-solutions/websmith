@@ -658,18 +658,29 @@ export class Compiler {
     protected report(program: ts.Program | undefined, result: ts.EmitResult, profile?: string): ts.EmitResult {
         const label = this.createEsmLabel(profile);
         // Skip pre-emit diagnostics in transpileOnly mode or when using fast transpileModule path
-        // to avoid validation errors with numeric enum values that TypeScript's internal validation rejects
-        if (!this.transpileOnly && program) {
-            ts.getPreEmitDiagnostics(program)
-                .concat(result.diagnostics)
-                .filter(cur => program?.getProjectReferences?.()?.length || cur.file) // Filter out global diagnostics
-                .forEach(cur => this.reporter.reportDiagnostic(label(cur)));
-        } else {
-            // In transpileOnly mode or fast path (no Program), only report diagnostics from the result
-            result.diagnostics.forEach(cur => this.reporter.reportDiagnostic(label(cur)));
-        }
+        // to avoid validation errors with numeric enum values that TypeScript's internal validation rejects.
+        // Global diagnostics of the Program are filtered out.
+        const preEmitDiagnostics =
+            !this.transpileOnly && program
+                ? ts.getPreEmitDiagnostics(program).filter(cur => program.getProjectReferences?.()?.length || cur.file)
+                : [];
+        // The Program and the fragments of the result find the same errors in unprocessed files
+        const reported = new Set<string>();
+        preEmitDiagnostics.concat(result.diagnostics).forEach(cur => {
+            const key = cur.file ? this.getDiagnosticKey(cur, cur.file) : undefined;
+            if (!key || !reported.has(key)) {
+                if (key) {
+                    reported.add(key);
+                }
+                this.reporter.reportDiagnostic(label(cur));
+            }
+        });
 
         return result;
+    }
+
+    private getDiagnosticKey({ start, code, messageText }: ts.Diagnostic, file: ts.SourceFile): string {
+        return [file.fileName, start, code, ts.flattenDiagnosticMessageText(messageText, "\n")].join("\0");
     }
 
     /**
@@ -711,22 +722,16 @@ export class Compiler {
         // Cache getRootFiles() result to avoid redundant calls
         const files = this.getRootFiles();
         const writtenFiles: AttributedOutput[] = [];
-        // Without a type-checking Program, report() sees syntax and declaration emit errors only through the result
-        const withoutProgram = this.transpileOnly || !this.anyAddonNeedsTypeInfo(profile);
 
         for (const fileName of files) {
             const fragment = this.emitSourceFile(fileName, profile);
             writtenFiles.push({ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName) });
+            // report() prints the fragment diagnostics: they cover the processed and virtual content the Program
+            // behind getPreEmitDiagnostics does not see
+            result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
-                if (withoutProgram) {
-                    result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
-                }
             } else {
-                if (!withoutProgram) {
-                    fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
-                }
-                result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
                 result.emitSkipped = !!fragment.diagnostics && fragment.diagnostics.length > 0 ? true : false;
             }
         }
