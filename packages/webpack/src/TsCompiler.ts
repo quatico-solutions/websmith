@@ -243,7 +243,7 @@ export class TsCompiler extends Compiler {
         }
         const start = performance.now();
         try {
-            return this.checkEsmOutput(esm, profile, ctx, [{ files, addons: ctx.getAddonsChangingFile(fileName) }], {
+            return this.checkEsmOutput(esm, profile, ctx, [{ files, addons: ctx.getAddonsChangingFile(fileName), source: fileName }], {
                 ...this.compilationCaches,
                 scanCache: this.scanCache,
                 onDependency,
