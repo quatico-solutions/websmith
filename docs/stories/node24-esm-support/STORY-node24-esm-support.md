@@ -321,3 +321,15 @@ Accepted for v1; each is a real Node failure that the rules do not report:
   so flipping `"type"` in watch mode does not rebuild the module.
 - **Options re-resolved for every module.** `compiler-instances.ts:44` calls `updateLoaderConfig`, which re-reads
   `websmith.config.json`, reruns `validateEsm` and `getTsConfig`, and clears the baseline caches.
+
+### 2026-09-30 — Follow-ups from the esm-check-webpack review
+
+- **The per-module loader cost dominates any mass rebuild.** `updateLoaderConfig` (`compiler-instances.ts:44`) costs
+  about 150–300 ms per module. It makes a 1000-module initial build take about 150 s, and a `"type"` flip under a
+  `runtime: "node"` profile, which correctly rebuilds 701 modules, take about 208 s. The ESM check's share is
+  58 ms. The ≤10% gate was judged on the check's own cost (decided 2026-09-30).
+- **Any `package.json` edit rebuilds every module that depends on it**, because webpack file dependencies ignore
+  content. `npm install` in a node-runtime project therefore triggers a mass rebuild.
+- **Diagnostics of dependent profiles in the loader.** Their ESM findings are routed, but their own TypeScript
+  diagnostics are still dropped.
+- **`packages/webpack-test` lint scope.** The lint glob `{src,test}/**` misses `tests/` and `perf/`.
