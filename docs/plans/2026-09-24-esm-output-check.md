@@ -11,12 +11,13 @@
 
 ## Status
 
-- **State:** Approved
+- **State:** Delivered
 - **Type:** feature
 - **Story:** node24-esm-support
 - **Review:** pr
 - **Impl:** own branches
 - **Rounds:** 7
+- **Delivered:** 2026-09-30
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
