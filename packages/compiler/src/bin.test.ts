@@ -372,7 +372,10 @@ describe("bin.ts e2e tests", () => {
     it("should exit with status 1 and report the syntax error once w/ processor appending invalid code and addon requiring type information", () => {
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
         createSourceFile(`export const a = 1;`, "test.ts");
-        createAddon("invalid-processor", `exports.activate = ctx => ctx.registerProcessor((_fileName, content) => content + "\\nexport const z = ;");`);
+        createAddon(
+            "invalid-processor",
+            `exports.activate = ctx => ctx.registerProcessor((_fileName, content) => content + "\\nexport const z = ;");`
+        );
 
         const target = executeCompilerStatus(
             `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons invalid-processor --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`

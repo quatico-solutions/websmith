@@ -979,7 +979,12 @@ describe("compile", () => {
     });
 
     it.each([
-        { name: "syntax error", source: `export const a = ;`, noEmitOnError: false, expected: "Error: /src/target.ts (1,18): Expression expected.\n" },
+        {
+            name: "syntax error",
+            source: `export const a = ;`,
+            noEmitOnError: false,
+            expected: "Error: /src/target.ts (1,18): Expression expected.\n",
+        },
         { name: "syntax error", source: `export const a = ;`, noEmitOnError: true, expected: "Error: /src/target.ts (1,18): Expression expected.\n" },
         {
             name: "declaration emit error",
