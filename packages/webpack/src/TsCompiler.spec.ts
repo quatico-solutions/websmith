@@ -215,6 +215,14 @@ describe("TsCompiler ESM check", () => {
         expect(actual).toEqual([91001]);
     });
 
+    it("yields 91001 w/ unknown module type and require in bundler target under module package", () => {
+        const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+
+        const actual = testObj.build("/src/a.ts", "asset/source").diagnostics.map(cur => cur.code);
+
+        expect(actual).toEqual([91001]);
+    });
+
     it("yields 91001 located in written file of node dependent profile", () => {
         const testObj = createEsmCompiler(
             { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE },

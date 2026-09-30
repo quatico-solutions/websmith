@@ -71,4 +71,27 @@ describe("processResultAndFinish", () => {
 
         expect(target.callback).toHaveBeenCalledWith(null, "expected-js-output", expected);
     });
+
+    it.each([
+        ["mts", "mjs"],
+        ["cts", "cjs"],
+    ])("should emit .d.%s declaration as additional file", (extension, jsExtension) => {
+        const target = { callback: jest.fn(), emitFile: jest.fn(), resourcePath: "/expected/test.ts" } as unknown as LoaderContext<any>;
+
+        processResultAndFinish(
+            target,
+            {
+                version: 0,
+                files: [
+                    { name: `/expected/test.${jsExtension}`, text: "expected-js-output", writeByteOrderMark: false },
+                    { name: `/expected/test.d.${extension}`, text: "export {};", writeByteOrderMark: false },
+                ],
+                writtenFiles: [],
+            },
+            "expected"
+        );
+        const actual = jest.mocked(target.emitFile).mock.calls.map(([fileName]) => fileName);
+
+        expect(actual).toEqual([`test.d.${extension}`]);
+    });
 });
