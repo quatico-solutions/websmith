@@ -69,7 +69,8 @@ The default configuration uses the `tsconfig.json` file in your project root to 
 - **error** and **warn** (functions): Secondary sinks, called after the loader has emitted a diagnostic on the
   module: `error` receives each error, `warn` each warning, and with `debug` also each message and suggestion. Each
   gets a `WebpackError` whose message starts with the emitted file and position, `file (line,col): `. webpack
-  reports the diagnostics and fails the build on errors whether these options are set or not.
+  reports the diagnostics and fails the build on errors whether these options are set or not. If you relied on
+  `error` receiving every diagnostic, also handle warnings in `warn` and enable `debug` for messages.
 
 TypeScript diagnostics and ESM check diagnostics are emitted on the module that produced them: errors fail the build
 (`stats.hasErrors()`, webpack-cli exits 1), warnings do not. Messages and suggestions are emitted as warnings with
