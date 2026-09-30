@@ -224,7 +224,7 @@ slices add.
 
 ### Wave 4
 
-- `feature/esm-check-webpack` — the check for the loader's target and dependent profiles, reporting via `this.emitError`/`this.emitWarning`, `addDependency` for every file a rule reads, `.mjs`/`.cjs` output in `processResultAndFinish`, and the ≤10% watch-rebuild performance gate <!-- builds: ESM check in websmith-loader -->
+- `feature/esm-check-webpack` — the check for the loader's target and dependent profiles, reporting via `this.emitError`/`this.emitWarning`, `addDependency` for every file a rule reads, `.mjs`/`.cjs` output in `processResultAndFinish`, and the ≤10% watch-rebuild performance gate → #125 <!-- builds: ESM check in websmith-loader -->
 
 ## Definition of Done
 

@@ -333,3 +333,7 @@ Accepted for v1; each is a real Node failure that the rules do not report:
 - **Diagnostics of dependent profiles in the loader.** Their ESM findings are routed, but their own TypeScript
   diagnostics are still dropped.
 - **`packages/webpack-test` lint scope.** The lint glob `{src,test}/**` misses `tests/` and `perf/`.
+- **The parse cache is never evicted without a webpack compiler.** Under thread-loader there is no `thisCompilation`
+  hook, so `scanCache` keeps scans of deleted or renamed files for the worker's lifetime.
+- **Benchmark watchdog race.** If the benchmark's watchdog fires and the rebuild finishes later, two step chains run
+  at once (`perf/esm-watch-bench.cjs`). The scaled timeout makes this unlikely.
