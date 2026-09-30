@@ -248,13 +248,13 @@ export class Compiler {
             if (profiles.length) {
                 // Process all profiles for each file before moving to the next file
                 files.forEach(curFile => {
-                    profiles.forEach(curProfile => this.checkWatchedFragment(curFile, curProfile, this.emitSourceFile(curFile, curProfile, true)));
+                    profiles.forEach(curProfile => this.checkWatchedFragment(curFile, curProfile, this.emitWatchedFile(curFile, curProfile, true)));
                 });
                 // Register watches once per file
                 files.forEach(curFile => this.registerWatch(curFile, profiles));
             } else {
                 files.forEach(curFile => {
-                    this.emitSourceFile(curFile, undefined, true);
+                    this.emitWatchedFile(curFile, undefined, true);
                     this.registerWatch(curFile);
                 });
             }
@@ -803,6 +803,13 @@ export class Compiler {
         return esm;
     }
 
+    /** Emits one source file of a watch build and reports its diagnostics, which no report() call sees in watch mode. */
+    private emitWatchedFile(...args: Parameters<Compiler["emitSourceFile"]>): CompileFragment | undefined {
+        const fragment: CompileFragment | undefined = this.emitSourceFile(...args);
+        fragment?.diagnostics?.forEach(cur => this.reporter.reportDiagnostic(cur));
+        return fragment;
+    }
+
     /** Reports ESM diagnostics for the files a watch build of one source file wrote; watching goes on regardless. */
     private checkWatchedFragment(fileName: string, profile: string, fragment: CompileFragment | undefined): CompileFragment | undefined {
         const ctx = this.getContext(profile);
@@ -862,18 +869,18 @@ export class Compiler {
                     this.packageJsonInfoCache = undefined;
                     if (!profileNames?.length) {
                         return fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                            ? this.emitSourceFile(fileName, undefined, true, true)
+                            ? this.emitWatchedFile(fileName, undefined, true, true)
                             : this.getContext()!
                                   .resolveDependency(fileName)
-                                  .map(cur => this.emitSourceFile(cur, undefined, true, true));
+                                  .map(cur => this.emitWatchedFile(cur, undefined, true, true));
                     } else {
                         return profileNames.forEach(profile =>
                             fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                                ? this.checkWatchedFragment(fileName, profile, this.emitSourceFile(fileName, profile, true, true))
+                                ? this.checkWatchedFragment(fileName, profile, this.emitWatchedFile(fileName, profile, true, true))
                                 : this.hasContext(profile) &&
                                   this.getContext(profile)!
                                       .resolveDependency(fileName)
-                                      .map(cur => this.checkWatchedFragment(cur, profile, this.emitSourceFile(cur, profile, true, true)))
+                                      .map(cur => this.checkWatchedFragment(cur, profile, this.emitWatchedFile(cur, profile, true, true)))
                         );
                     }
                 },
@@ -915,8 +922,8 @@ export class Compiler {
                         packageFiles.forEach(curFile =>
                             profiles.forEach(profile =>
                                 profile
-                                    ? this.checkWatchedFragment(curFile, profile, this.emitSourceFile(curFile, profile, true, true))
-                                    : this.emitSourceFile(curFile, profile, true, true)
+                                    ? this.checkWatchedFragment(curFile, profile, this.emitWatchedFile(curFile, profile, true, true))
+                                    : this.emitWatchedFile(curFile, profile, true, true)
                             )
                         );
                     },

@@ -1596,6 +1596,58 @@ describe("report", () => {
 });
 
 describe("watch", () => {
+    it.each([
+        { name: "no profile", declaration: false, profile: undefined },
+        { name: "no profile", declaration: true, profile: undefined },
+        { name: "profile", declaration: false, profile: "client" },
+        { name: "profile", declaration: true, profile: "client" },
+    ])("reports syntax error once w/ $name, declaration $declaration and rebuild introducing it", ({ declaration, profile }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                config: { profiles: { client: {} } },
+                profile,
+                watch: true,
+                tsConfig: { declaration, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).watch();
+
+        fileSystem.writeFile("/src/target.ts", `export const a = ;`);
+
+        expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
+        testObj.closeAllWatchers();
+    });
+
+    it.each([
+        { name: "no profile", profile: undefined },
+        { name: "profile", profile: "client" },
+    ])("reports syntax error once w/ $name and initial watch build", ({ profile }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                config: { profiles: { client: {} } },
+                profile,
+                watch: true,
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.watch();
+
+        expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
+        testObj.closeAllWatchers();
+    });
+
     it("should output to buildDir w/o outDir override", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
         const options = {

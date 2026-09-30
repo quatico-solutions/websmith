@@ -101,6 +101,8 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   needs type information or with `transpileOnly`, including `"module": "node16"` or `"nodenext"`, and in builds that
   emit declarations through per-file programs. Before, they were discarded: `export const a = ;` was emitted as
   broken JavaScript and `websmith` exited with `0`. The file is still emitted, like with `tsc`.
+- Watch mode reports the syntax errors and declaration emit errors of each rebuilt file. Before, `websmith --watch`
+  printed none of them.
 
 ### Removed
 
