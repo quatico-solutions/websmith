@@ -33,7 +33,7 @@ type RunOptions = {
     /** webpack module type set on the loader rule, webpack decides by the resource path when absent */
     type?: string;
     devtool?: string;
-    /** Files to write after each watch build, relative to the project; runs webpack once when absent */
+    /** Files to write after each watch build, relative to the project; runs webpack once when absent. Every step must trigger a rebuild containing all its files. */
     steps?: Record<string, string>[];
 };
 
@@ -287,6 +287,7 @@ const runWebpack = ({ entry, type, devtool, steps }: RunOptions): (BuildReport &
             let step = 0;
             let watchdog;
             let awaited = null;
+            let lastModified = [];
             const fail = message => {
                 console.error(message);
                 process.exitCode = 2;
@@ -300,7 +301,8 @@ const runWebpack = ({ entry, type, devtool, steps }: RunOptions): (BuildReport &
                 }
                 // Webpack may rebuild spuriously after the initial build; only a rebuild that saw the edited file is the awaited one
                 const modified = compiler.modifiedFiles || new Set();
-                if (awaited && !awaited.some(cur => modified.has(cur))) {
+                lastModified = [...modified];
+                if (awaited && !awaited.every(cur => modified.has(cur))) {
                     return;
                 }
                 report(stats);
@@ -311,7 +313,7 @@ const runWebpack = ({ entry, type, devtool, steps }: RunOptions): (BuildReport &
                 }
                 awaited = Object.keys(files).map(fileName => path.join(projectDir, fileName));
                 watchdog = setTimeout(
-                    () => fail("no rebuild containing " + awaited.join(", ") + " within 25000ms, modified files were: " + [...modified].join(", ")),
+                    () => fail("no rebuild containing " + awaited.join(", ") + " within 25000ms, modified files were: " + lastModified.join(", ")),
                     25000
                 );
                 // Let the watcher settle, so the write is seen as a change after this build
@@ -328,7 +330,7 @@ const runWebpack = ({ entry, type, devtool, steps }: RunOptions): (BuildReport &
     const scriptPath = path.join(testDirs.PROJECT_DIR, "run-webpack.cjs");
     fs.writeFileSync(scriptPath, script, { encoding: "utf-8" });
 
-    const result = spawnSync(process.execPath, [scriptPath], { cwd: testDirs.PROJECT_DIR, encoding: "utf-8", timeout: 50000 });
+    const result = spawnSync(process.execPath, [scriptPath], { cwd: testDirs.PROJECT_DIR, encoding: "utf-8", timeout: (steps?.length ?? 1) * 26000 + 15000 });
     const reports = result.stdout
         .split("\n")
         .filter(cur => cur.startsWith("RESULT "))
