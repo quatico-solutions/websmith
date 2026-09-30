@@ -44,6 +44,33 @@ const MODULE_KINDS: ReadonlyMap<string, ModuleClassification["kind"]> = new Map(
 // webpack reports unresolved imports itself (91012), and enforces fully specified imports itself under bundler
 const NODE_IMPORT_RULES: readonly ImportRule[] = [checkMissingExtension, checkDirectoryImport, checkJsonImportAttribute];
 
+type ScanEntry = ScanCache extends Map<string, infer T> ? T : never;
+
+/**
+ * A scan cache that forgets files a compilation did not check: `nextCompilation` keeps the scans used since the last
+ * call as fallbacks for the next compilation and drops the others, e.g. those of deleted or renamed files.
+ */
+class CompilationScanCache extends Map<string, ScanEntry> {
+    private previous = new Map<string, ScanEntry>();
+
+    public get(fileName: string): ScanEntry | undefined {
+        const current = super.get(fileName);
+        if (current) {
+            return current;
+        }
+        const previous = this.previous.get(fileName);
+        if (previous) {
+            super.set(fileName, previous);
+        }
+        return previous;
+    }
+
+    public nextCompilation(): void {
+        this.previous = new Map(this);
+        this.clear();
+    }
+}
+
 export class TsCompiler extends Compiler {
     private profile?: string;
     public readonly warn: (err: WebpackError) => void;
@@ -52,7 +79,7 @@ export class TsCompiler extends Compiler {
     private webpackAddonService?: WebpackAddonService;
     private cachedWebpackContext?: WebpackAddonContext;
     private compilationCaches: Pick<EsmCheckContext, "packageTypeCache" | "cjsNamesCache"> = TsCompiler.createCompilationCaches();
-    private readonly scanCache: ScanCache = new Map();
+    private readonly scanCache = new CompilationScanCache();
     private esmCheckTime = 0;
     private cachesPerCompilation = false;
 
@@ -96,9 +123,13 @@ export class TsCompiler extends Compiler {
         this.cachesPerCompilation = true;
     }
 
-    /** Drops the package.json and CommonJS package memos of the ESM check; call it once per webpack compilation. */
+    /**
+     * Drops the package.json and CommonJS package memos of the ESM check, and the scans the last compilation did not
+     * use; call it once per webpack compilation.
+     */
     public resetCompilationCaches(): void {
         this.compilationCaches = TsCompiler.createCompilationCaches();
+        this.scanCache.nextCompilation();
     }
 
     /** Reports the time spent in the ESM check since the last report, with `debug` only. */
@@ -130,7 +161,8 @@ export class TsCompiler extends Compiler {
         const { buildDir } = this.getOptions();
         const filePath = resolvePath(this.getSystem(), buildDir, resourcePath);
         if (!this.cachesPerCompilation) {
-            this.resetCompilationCaches();
+            // Scans stay: they are keyed by their text, so only the memos can go stale
+            this.compilationCaches = TsCompiler.createCompilationCaches();
         }
         const diagnostics: ts.Diagnostic[] = [];
         const dependencies = { files: new Set<string>(), missing: new Set<string>() };

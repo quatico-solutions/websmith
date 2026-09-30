@@ -332,4 +332,33 @@ describe("TsCompiler ESM check", () => {
 
         expect(actual.file).toBe(expected.file);
     });
+
+    it("parses output again after a compilation that did not use it", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE, "/src/b.ts": REQUIRE_SOURCE },
+            { target: { esm: { runtime: "bundler" } } }
+        );
+        testObj.keepCachesPerCompilation();
+        const [expected] = testObj.build("/src/a.ts", "javascript/esm").diagnostics;
+        testObj.resetCompilationCaches();
+        testObj.build("/src/b.ts", "javascript/esm");
+        testObj.resetCompilationCaches();
+
+        const [actual] = testObj.build("/src/a.ts", "javascript/esm").diagnostics;
+
+        expect(actual.file).not.toBe(expected.file);
+    });
+
+    it("reuses parsed output across compilations that use it", () => {
+        const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+        testObj.keepCachesPerCompilation();
+        const [expected] = testObj.build("/src/a.ts", "javascript/esm").diagnostics;
+        testObj.resetCompilationCaches();
+        testObj.build("/src/a.ts", "javascript/esm");
+        testObj.resetCompilationCaches();
+
+        const [actual] = testObj.build("/src/a.ts", "javascript/esm").diagnostics;
+
+        expect(actual.file).toBe(expected.file);
+    });
 });
