@@ -69,7 +69,7 @@ export const metadata = {
     timestamp: "${new Date().toISOString()}",
 };
 
-export { ${baseName} } from "./${baseName}";
+export * from "./${baseName}";
 `;
 
         // Add the generated file to the compilation
