@@ -57,6 +57,8 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
     information and `transpileOnly` is off. Other builds are not type checked, so a type error there still exits
     with `0`. This includes builds without addons, builds on the fast `transpileModule` path, and builds that emit
     declarations through per-file programs.
+  - TypeScript syntax errors fail builds on the fast `transpileModule` path too, which runs when no active addon
+    needs type information or with `transpileOnly`.
   - When type checking runs, errors in declaration files count too, including those under `node_modules/@types`. A
     project that picks up incompatible `@types` packages (for example through the default `types` inclusion) now
     fails; restrict them with the `types` compiler option.
@@ -65,9 +67,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - **Breaking:** webpack loader diagnostics now fail builds. The loader emits TypeScript and ESM check errors and
   warnings on the module that produced them, so errors make `stats.hasErrors()` true and webpack-cli exit with `1`.
   Before, every diagnostic went only to the `error` loader option, which does nothing by default.
-  - Errors that now fail loader builds include TypeScript syntax errors under `transpileOnly: false`, and declaration
-    emit errors under `declaration: true` with `transpileOnly: false` and no addon that needs type information, e.g.
-    TS4094, TS2742 and, under `isolatedDeclarations`, TS9xxx.
+  - Errors that now fail loader builds include TypeScript syntax errors, also on the fast `transpileModule` path and
+    under `transpileOnly: true`, and declaration emit errors under `declaration: true` with `transpileOnly: false`
+    and no addon that needs type information, e.g. TS4094, TS2742 and, under `isolatedDeclarations`, TS9xxx.
   - The `error` and `warn` options are called after webpack has the diagnostic: `error` receives errors, `warn`
     receives warnings, and messages and suggestions reach `warn` only with `debug`. Before, `error` received every
     diagnostic, warnings included. The message now starts with the emitted file and position, `file (line,col): `.
@@ -91,6 +93,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   `"target": "ES2022"`, are now converted to TypeScript's values like names in `tsconfig.json`. Before, `"NodeNext"`
   emitted every `.ts` file as CommonJS in builds without type-checking addons, and builds with type-checking addons
   or declarations failed. An unknown name is reported as a configuration error.
+- TypeScript syntax errors are reported in builds on the fast `transpileModule` path, which runs when no active addon
+  needs type information or with `transpileOnly`, including `"module": "node16"` or `"nodenext"`. Before, they were
+  discarded: `export const a = ;` was emitted as broken JavaScript and `websmith` exited with `0`. The file is still
+  emitted, like with `tsc`.
 
 ### Removed
 

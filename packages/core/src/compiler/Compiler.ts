@@ -711,12 +711,17 @@ export class Compiler {
         // Cache getRootFiles() result to avoid redundant calls
         const files = this.getRootFiles();
         const writtenFiles: AttributedOutput[] = [];
+        // Without a Program, report() sees the syntax errors of the fast path only through the result
+        const fastPath = this.transpileOnly || this.shouldUseTranspileModuleFastPath(profile);
 
         for (const fileName of files) {
             const fragment = this.emitSourceFile(fileName, profile);
             writtenFiles.push({ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName) });
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
+                if (fastPath) {
+                    result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
+                }
             } else {
                 fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
                 result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
@@ -1344,7 +1349,7 @@ export class Compiler {
         const { outputText, sourceMapText, diagnostics } =
             compilerOptions.module === ts.ModuleKind.Node16 || compilerOptions.module === ts.ModuleKind.NodeNext
                 ? this.transpileNodeModule(content, fileName, compilerOptions, ctx.getTransformers())
-                : ts.transpileModule(content, { compilerOptions, fileName, transformers: ctx.getTransformers() });
+                : ts.transpileModule(content, { compilerOptions, fileName, reportDiagnostics: true, transformers: ctx.getTransformers() });
 
         // Use ts.getOutputFileNames to get correct output paths
         // Note: We filter TS_ERROR_CODE_INVALID_CLI_OPTION below, so numeric enum values won't cause issues
@@ -1360,7 +1365,8 @@ export class Compiler {
                 this.extractOutputFile(fileNames, isSourceMap, sourceMapText)
             ),
             diagnostics: filteredDiagnostics,
-            emitSkipped: filteredDiagnostics.length > 0,
+            // Errors in the source, such as syntax errors, carry their file and still emit, as tsc does
+            emitSkipped: filteredDiagnostics.some(cur => !cur.file),
         };
     }
 
@@ -1421,9 +1427,10 @@ export class Compiler {
             directoryExists: () => true,
             getDirectories: () => [],
         };
-        const { diagnostics } = ts.createProgram([fileName], compilerOptions, host).emit(undefined, undefined, undefined, false, transformers);
+        const program = ts.createProgram([fileName], compilerOptions, host);
+        const { diagnostics } = program.emit(undefined, undefined, undefined, false, transformers);
 
-        return { outputText, sourceMapText, diagnostics: [...diagnostics] };
+        return { outputText, sourceMapText, diagnostics: [...program.getSyntacticDiagnostics(), ...diagnostics] };
     }
 
     /** Returns the module format TypeScript gives a file from its extension and the nearest package.json. */

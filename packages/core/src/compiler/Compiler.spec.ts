@@ -961,6 +961,23 @@ describe("compile", () => {
         `);
     });
 
+    it("reports syntax error once w/ fast path", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).compile();
+
+        expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
+    });
+
     it("yields output w/ with addons but w/o profiles", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
 
@@ -1060,6 +1077,49 @@ describe("emitSourceFile", () => {
             .emitSourceFile("/src/target.ts", undefined, false);
 
         expect(getText("target.js", actual)).toContain(`const fs = __require("fs");`);
+    });
+
+    it.each([
+        { name: "ESNext", module: ts.ModuleKind.ESNext },
+        { name: "NodeNext", module: ts.ModuleKind.NodeNext },
+    ])("yields syntax error with file and position w/ module $name on fast path", ({ module }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, module },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.diagnostics).toEqual([
+            expect.objectContaining({
+                code: 1109,
+                category: ts.DiagnosticCategory.Error,
+                start: 17,
+                file: expect.objectContaining({ fileName: "/src/target.ts" }),
+            }),
+        ]);
+    });
+
+    it.each([
+        { name: "ESNext", module: ts.ModuleKind.ESNext },
+        { name: "NodeNext", module: ts.ModuleKind.NodeNext },
+    ])("yields output despite syntax error w/ module $name on fast path", ({ module }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, module },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(getText("target.js", actual)).toContain("a =");
     });
 
     it("yields modified client function w/ annotated arrow function", () => {

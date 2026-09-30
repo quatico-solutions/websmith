@@ -533,7 +533,7 @@ describe("webpack w/ websmith", () => {
         expect(getOutput("main.js")).toContain('/src/model/index.ts":');
     }, 60000);
 
-    it("should bundle invalid TypeScript file w/ transpileOnly being used", async () => {
+    it("should fail with syntax error w/ invalid TypeScript file and transpileOnly being used", async () => {
         writeSourceFile("invalid.ts", "this is no valid source code", testDirs.SOURCE_DIR);
         writeWebsmithConfig(
             {
@@ -547,17 +547,16 @@ describe("webpack w/ websmith", () => {
             testDirs.PROJECT_DIR
         );
 
-        const actual = await webpack(undefined, {
-            webpack: { ...webpackDefaults, entry: { main: path.join(testDirs.SOURCE_DIR, "invalid.ts") }, devtool: "source-map" },
-            websmith: {
-                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
-                transpileOnly: true,
-                profile: "noWrite",
-            },
-        });
-
-        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toContain('/src/invalid.ts":');
-        expect(actual).toContain("webpack 5.97.1 compiled");
+        await expect(() =>
+            webpack(undefined, {
+                webpack: { ...webpackDefaults, entry: { main: path.join(testDirs.SOURCE_DIR, "invalid.ts") }, devtool: "source-map" },
+                websmith: {
+                    configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
+                    transpileOnly: true,
+                    profile: "noWrite",
+                },
+            })
+        ).rejects.toThrow(/src\/invalid\.ts \(1,6\): ';' expected\./);
 
         fs.rmSync(path.resolve(testDirs.SOURCE_DIR, "invalid.ts"), { force: true });
     }, 60000);
