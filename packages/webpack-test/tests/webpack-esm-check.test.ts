@@ -73,9 +73,10 @@ describe("webpack w/ websmith-loader and ESM check", () => {
         writeConfig({ target: { esm: { runtime: "bundler" } } });
         writeSources({ "a.ts": `import { x } from "./b";\nexport const y = x;\n`, "b.ts": REQUIRE_SOURCE });
 
-        const [actual] = runWebpack({ entry: { main: "./src/a.ts" }, type: "javascript/esm" });
+        const [{ exitCode, errors }] = runWebpack({ entry: { main: "./src/a.ts" }, type: "javascript/esm" });
+        const actual = { exitCode, errors: errors.map(cur => ({ code: codeOf(cur), resource: cur.resource })) };
 
-        expect(actual).toMatchObject({ exitCode: 1, errors: [{ message: expect.stringContaining("ESM91001"), resource: sourcePath("b.ts") }] });
+        expect(actual).toEqual({ exitCode: 1, errors: [{ code: "ESM91001", resource: sourcePath("b.ts") }] });
     }, 60000);
 
     it("reports 91001 w/ addonEmitOnly and require in file no addon touched under javascript/esm rule", () => {
@@ -100,9 +101,10 @@ describe("webpack w/ websmith-loader and ESM check", () => {
         writeConfig({ target: { esm: { runtime: "bundler", check: "warn" } } });
         writeSources({ "a.ts": REQUIRE_SOURCE });
 
-        const [actual] = runWebpack({ entry: { main: "./src/a.ts" }, type: "javascript/esm" });
+        const [{ exitCode, errors, warnings }] = runWebpack({ entry: { main: "./src/a.ts" }, type: "javascript/esm" });
+        const actual = { exitCode, errors, warnings: warnings.map(codeOf) };
 
-        expect(actual).toMatchObject({ exitCode: 0, errors: [], warnings: [{ message: expect.stringContaining("ESM91001") }] });
+        expect(actual).toEqual({ exitCode: 0, errors: [], warnings: ["ESM91001"] });
     }, 60000);
 
     it("reports only webpack's module not found w/ import of missing file in node dependent profile", () => {
@@ -143,15 +145,10 @@ describe("webpack w/ websmith-loader and ESM check", () => {
             errors,
             tsSourceMapAssets: assets.filter(cur => /\.[cm]js\.map$/.test(cur)),
             // TypeScript's source map names the source relative to its outDir, webpack's own relative to the context
-            sourceMap: fs.readFileSync(path.join(testDirs.OUTPUT_DIR, "m.js.map"), "utf-8"),
+            mapsMtsSource: fs.readFileSync(path.join(testDirs.OUTPUT_DIR, "m.js.map"), "utf-8").includes('"webpack:///../src/m.mts"'),
         };
 
-        expect(actual).toMatchObject({
-            exitCode: 0,
-            errors: [],
-            tsSourceMapAssets: [],
-            sourceMap: expect.stringContaining('"webpack:///../src/m.mts"'),
-        });
+        expect(actual).toEqual({ exitCode: 0, errors: [], tsSourceMapAssets: [], mapsMtsSource: true });
     }, 60000);
 });
 
@@ -176,7 +173,7 @@ describe("webpack watch w/ websmith-loader and ESM check", () => {
         const actual = runWebpack({ entry: { main: "./src/a.ts" }, steps: [{ "lib/package.json": JSON.stringify({ type: "commonjs" }) }] }).map(
             cur => ({
                 built: cur.built.sort(),
-                codes: cur.errors.map(err => err.message.match(/ESM\d+/)?.[0]).sort(),
+                codes: cur.errors.map(codeOf).sort(),
             })
         );
 
@@ -197,6 +194,8 @@ describe("webpack watch w/ websmith-loader and ESM check", () => {
         expect(actual[1]).toEqual([sourcePath("sub/s.ts")]);
     }, 60000);
 });
+
+const codeOf = ({ message }: Problem): string | undefined => message.match(/ESM\d+/)?.[0];
 
 const sourcePath = (fileName: string): string => path.join(testDirs.SOURCE_DIR, fileName);
 

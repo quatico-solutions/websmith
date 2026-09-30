@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-/* eslint-disable no-console */
 /**
  * Manual benchmark of the ESM check's cost on webpack watch rebuilds, not run in CI: timing noise on shared runners
  * exceeds the 10% budget. Build websmith first (`pnpm build`), then run `pnpm perf:esm` in packages/webpack-test.
