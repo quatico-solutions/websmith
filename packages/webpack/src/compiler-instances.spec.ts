@@ -58,7 +58,8 @@ describe("getCompilerInstance", () => {
 });
 
 describe("getCompilerInstance w/o webpack compiler", () => {
-    const fixtureDir = path.join(projectDir, "test-output", "no-compiler");
+    // Own directory: instance-cache.spec.ts removes ./test-output while other spec files run in parallel workers
+    const fixtureDir = path.join(projectDir, `test-output-no-compiler-${process.pid}`);
 
     beforeEach(() => {
         const files: Record<string, string> = {
@@ -77,6 +78,10 @@ describe("getCompilerInstance w/o webpack compiler", () => {
 
     afterEach(() => {
         jest.restoreAllMocks();
+    });
+
+    afterAll(() => {
+        fs.rmSync(fixtureDir, { recursive: true, force: true });
     });
 
     it("reads package.json again in each build, because no compilation resets its caches", () => {
