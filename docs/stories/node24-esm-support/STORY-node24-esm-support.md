@@ -337,3 +337,16 @@ Accepted for v1; each is a real Node failure that the rules do not report:
   hook, so `scanCache` keeps scans of deleted or renamed files for the worker's lifetime.
 - **Benchmark watchdog race.** If the benchmark's watchdog fires and the rebuild finishes later, two step chains run
   at once (`perf/esm-watch-bench.cjs`). The scaled timeout makes this unlikely.
+
+### 2026-09-30 — Found while scoping config validation (bug/validate-selected-profile review)
+
+Pre-existing, out of scope for wave 5:
+- `--addonsDir` with a missing directory prints its warning twice.
+- `hasInvalidProfile` warns "found, but no profile provided" when a profile was given but one of its `depends` is
+  missing.
+- A malformed `websmith.config.json` ends the CLI with an uncaught `SyntaxError` stack trace instead of a reported
+  error.
+- The webpack loader re-resolves the config per module (`compiler-instances.ts:44`), so a selected profile's config
+  errors may repeat per module (not verified).
+- The dependency closure over `depends` exists four times: `getUsedProfiles`, `getDependentProfiles`,
+  `hasInvalidProfile` (direct only) and `WebpackAddonService.getAddonsWithDependencies`.
