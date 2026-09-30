@@ -51,7 +51,7 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
         ...tsConfig,
     };
 
-    const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system) : undefined;
+    const compilationConfig = configFile ? resolveCompilationConfig(configFile, reporter, system, profile) : undefined;
 
     const projectDirectory = (configFile && path.dirname(configFile)) ?? (cliArgs.raw?.configFilePath && path.dirname(cliArgs.raw?.configFilePath));
     cliArgs.options.outDir = system.resolvePath(cliArgs.options.outDir ?? "./lib");
