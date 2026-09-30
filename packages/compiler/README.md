@@ -169,6 +169,9 @@ configuration error, also with `check: "off"`, and the check skips the profile; 
 `const require = createRequire(import.meta.url)` is accepted, and so are uses that run only when a `typeof` test says
 the name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`).
 
+Configuration errors in `websmith.config.json` are reported only for the selected profile (`--profile`, or the
+loader's `profile`) and the profiles it depends on, so a broken profile does not fail builds that select another one.
+
 | Code | Finding | `node` | `bundler`, `javascript/esm` | `bundler`, `javascript/auto` | `bundler`, `javascript/dynamic` |
 |------|---------|--------|-----------------------------|------------------------------|---------------------------------|
 | 91001 | free `require` in ESM output | error | error | allowed | allowed |
