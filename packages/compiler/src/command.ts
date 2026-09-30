@@ -6,7 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type CompilationConfig, type CompilerArguments, type CompilerOptions, type Reporter, WarnMessage } from "@quatico/websmith-api";
-import { type AddonConfig, AddonRegistry, Compiler, createOptions, DefaultReporter } from "@quatico/websmith-core";
+import { type AddonConfig, AddonRegistry, Compiler, createOptions, DefaultReporter, NoReporter } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
 import path from "node:path";
@@ -114,9 +114,12 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                               ? { fileNames: compiler.getOptions().cliArgs.fileNames.join(",") }
                               : {}),
                     } as CompilerArguments,
-                    reporter,
+                    // A new Compiler resolves these options again and reports their errors, so report them only once.
+                    // An injected Compiler reports to its own reporter, so errors reported here set the exit code.
+                    compiler ? reporter : new NoReporter(),
                     system
                 ),
+                reporter,
             };
             if (otherUnknownArgs?.length > 0) {
                 // Check for common typos and warn about them

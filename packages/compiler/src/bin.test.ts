@@ -420,14 +420,7 @@ describe("bin.ts e2e tests", () => {
             `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
         );
         const actual1 = target.status;
-        const actual2 = [
-            ...new Set(
-                target.output
-                    .split(/\r?\n/)
-                    .filter(cur => /Error/.test(cur))
-                    .map(cur => cur.replace(/^\[[^\]]*\]\s*/, ""))
-            ),
-        ];
+        const actual2 = target.output.split(/\r?\n/).filter(cur => /Error/.test(cur));
 
         expect(actual1).toBe(1);
         expect(actual2).toEqual([expect.stringContaining("sets 'esm', but its 'tsConfig.module' is 'CommonJS'")]);
@@ -449,6 +442,24 @@ describe("bin.ts e2e tests", () => {
 
         expect(actual1).toBe(0);
         expect(actual2).not.toContain("Error");
+    }, 60000);
+
+    it("should exit with status 1 and report the config error once w/ broken selected profile and relative config path", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: {
+                broken: { esm: { runtime: "node" }, tsConfig: { outDir: testDirs.OUTPUT_DIR, module: "CommonJS" as unknown as ts.ModuleKind } },
+                valid: { tsConfig: { outDir: testDirs.OUTPUT_DIR } },
+            },
+        });
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const target = executeCompilerStatus(`--profile broken --project tsconfig.json --configFile websmith.config.json`);
+        const actual1 = target.status;
+        const actual2 = target.output.split(/\r?\n/).filter(cur => /Error/.test(cur));
+
+        expect(actual1).toBe(1);
+        expect(actual2).toEqual([expect.stringContaining("Profile 'broken' of")]);
     }, 60000);
 
     it("should exit with status 1 and report 91010 in emitted file w/ extensionless relative import in node ESM profile", () => {
