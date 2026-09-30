@@ -108,7 +108,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - Syntax errors in code from processors and in files generators add with `addVirtualFile` are reported when an
   active addon needs type information. Before, only the files on disk were checked, so they were discarded.
 - A TypeScript error that both the type-checking Program and the emit of a file find is printed once. Before,
-  errors of a file whose emit was skipped, e.g. under `noEmitOnError`, were printed twice or three times.
+  errors of a file whose emit was skipped, e.g. under `noEmitOnError`, were printed twice or three times. When a
+  processor shifts the positions in a file that already has a syntax error, the error is printed at both positions.
+- Configuration errors such as TS5053 (conflicting compiler options) fail fast-path builds and skip their emit.
+  Before, the fast path ignored them and emitted the files.
 - Watch mode reports the syntax errors and declaration emit errors of each rebuilt file. Before, `websmith --watch`
   printed none of them.
 
