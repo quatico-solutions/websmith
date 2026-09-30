@@ -66,13 +66,19 @@ The default configuration uses the `tsconfig.json` file in your project root to 
 - **transpileOnly** (boolean): Enable transpile-only mode for faster builds without type checking
 - **addonEmitOnly** (boolean): Only emit files that are processed by active addons. When enabled, all files are still compiled for dependencies and type checking, but only files processed by addon callbacks (generators, processors, transformers) are written to disk. This is useful for code generation workflows where you want to preserve original source files unchanged while emitting only generated or transformed files.
 - **profile** (string): Name of the compilation profile to use
-- **error** and **warn** (functions): Receive every error and warning the loader reports, as `WebpackError`, after
-  the loader has emitted it on the module. They are secondary sinks: webpack reports the diagnostics and fails the
-  build on errors whether these options are set or not.
+- **error** and **warn** (functions): Secondary sinks, called after the loader has emitted a diagnostic on the
+  module: `error` receives each error, `warn` each warning, and with `debug` also each message and suggestion. Each
+  gets a `WebpackError` whose message starts with the emitted file and position, `file (line,col): `. webpack
+  reports the diagnostics and fails the build on errors whether these options are set or not.
 
 TypeScript diagnostics and ESM check diagnostics are emitted on the module that produced them: errors fail the build
 (`stats.hasErrors()`, webpack-cli exits 1), warnings do not. Messages and suggestions are emitted as warnings with
-`debug` only. Under `transpileOnly: false`, TypeScript's syntax errors therefore fail the build.
+`debug` only. The TypeScript diagnostics are those of the module's emit, so these errors fail the build:
+
+- syntax errors under `transpileOnly: false`;
+- declaration emit errors under `declaration: true` with `transpileOnly: false` and no addon that needs type
+  information, e.g. TS4094 (property of an exported anonymous class type may not be private), TS2742 (inferred
+  type cannot be named without a reference) and, under `isolatedDeclarations`, TS9xxx.
 
 #### `.mts` and `.cts` files
 
@@ -115,10 +121,20 @@ These rules run in the loader:
 
 The `package.json` files the check reads, and the nearer ones it looked for but did not find, are registered as
 dependencies of the module: in watch mode, changing a `"type"` or adding a `package.json` rebuilds the modules whose
-classification depends on it. 91020 and 91021 resolve packages with Node's conditions (`node`, `import`,
+classification depends on it. The `package.json` lookups are memoized per compilation; where the loader gets no
+webpack compiler (e.g. under `thread-loader`), they are repeated for every module. webpack does not look at what changed, so **any** edit of such a `package.json`, e.g.
+by `npm install`, rebuilds every module that depends on it; under `runtime: "node"` that is usually every module
+below the project's `package.json`. Each rebuilt module costs what a changed module costs, which is dominated by the
+loader's per-module option resolution, not by the check: in a benchmark of 1000 modules, a `"type"` flip rebuilt 701
+modules in about 208 s, of which the check took 58 ms. 91020 and 91021 resolve packages with Node's conditions (`node`, `import`,
 `module-sync`, `default`), not webpack's `resolve.conditionNames`, so a package that webpack resolves to another
 entry can be checked against the wrong one. TypeScript codes such as TS2835 are not labelled with the ESM check in
 the loader.
+
+The check's cost on watch rebuilds is measured by `pnpm perf:esm` in `packages/webpack-test`, a manual benchmark
+that is not run in CI. It gates leaf edits on the rebuild time with the check against the rebuild time without it
+(at most 1.10), and `"type"` flips on the check's share of the rebuild time (at most 10%): without the check a flip
+rebuilds nothing, so the rebuild ratio would measure the correct new rebuilds, not the check.
 
 ### Add websmith configuration
 

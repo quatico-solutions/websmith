@@ -64,9 +64,13 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - Addons compiled by the CLI resolve imports from `.websmith-cache/addons-cli` instead of the addons directory's parent. Addons should import only files inside the addons directory or packages installed in the project; relative imports that leave the addons directory and packages installed only next to the addons no longer resolve.
 - **Breaking:** webpack loader diagnostics now fail builds. The loader emits TypeScript and ESM check errors and
   warnings on the module that produced them, so errors make `stats.hasErrors()` true and webpack-cli exit with `1`.
-  Before, they went only to the `error` and `warn` loader options, which do nothing by default. Those options still
-  receive every error and warning, after webpack does. Under `transpileOnly: false`, TypeScript syntax errors now fail
-  loader builds.
+  Before, every diagnostic went only to the `error` loader option, which does nothing by default.
+  - Errors that now fail loader builds include TypeScript syntax errors under `transpileOnly: false`, and declaration
+    emit errors under `declaration: true` with `transpileOnly: false` and no addon that needs type information, e.g.
+    TS4094, TS2742 and, under `isolatedDeclarations`, TS9xxx.
+  - The `error` and `warn` options are called after webpack has the diagnostic: `error` receives errors, `warn`
+    receives warnings, and messages and suggestions reach `warn` only with `debug`. Before, `error` received every
+    diagnostic, warnings included. The message now starts with the emitted file and position, `file (line,col): `.
 - The webpack loader compiles addons with `Node10` module resolution instead of `NodeNext`, so its output is CommonJS whatever the project's `"type"` is. Addons compiled by earlier versions are recompiled once. Unresolved imports in addons (e.g. packages whose types exist only under `package.json` `"exports"`) are reported as warnings; the build continues and Node resolves them at runtime.
 
 ### Fixed
