@@ -157,7 +157,7 @@ const scanCached = ({ name, text }: ts.OutputFile, { scanCache, system }: EsmChe
     if (!scanCache) {
         return scanModule(name, text);
     }
-    const hash = system.createHash?.(text) ?? text;
+    const hash = system.createHash?.(text) ?? hashText(text);
     const cached = scanCache.get(name);
     if (cached?.hash === hash) {
         return cached.scan;
@@ -165,6 +165,15 @@ const scanCached = ({ name, text }: ts.OutputFile, { scanCache, system }: EsmChe
     const scan = scanModule(name, text);
     scanCache.set(name, { hash, scan });
     return scan;
+};
+
+/** 32-bit FNV-1a of a text, prefixed with its length: a cheap cache key for systems without `createHash`. */
+const hashText = (text: string): string => {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < text.length; i++) {
+        hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193);
+    }
+    return `${text.length.toString(36)}:${(hash >>> 0).toString(36)}`;
 };
 
 const describeFreeReference = ({ name }: FreeReference): [number, string] => {

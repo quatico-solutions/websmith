@@ -618,6 +618,27 @@ describe("checkEsm w/ scan cache", () => {
 
         expect(actual).toEqual([91003]);
     });
+
+    it("stores a bounded key w/ system without createHash", () => {
+        const target = new Map();
+        const system = { ...createSystem(MODULE_PACKAGE, { virtual: true }), createHash: undefined };
+        const context = createContext(MODULE_PACKAGE, { system, scanCache: target });
+
+        checkEsm([output("/dist/target.js", `export const x = "${"a".repeat(1000)}";`)], { runtime: "node" }, context);
+        const actual = target.get("/dist/target.js").hash.length;
+
+        expect(actual).toBeLessThanOrEqual(16);
+    });
+
+    it("parses changed output again w/ system without createHash", () => {
+        const system = { ...createSystem(MODULE_PACKAGE, { virtual: true }), createHash: undefined };
+        const context = createContext(MODULE_PACKAGE, { system, scanCache: new Map() });
+        checkEsm([output("/dist/target.js", `const x = require("x");`)], { runtime: "node" }, context);
+
+        const actual = codesOf([output("/dist/target.js", `export const x = __dirname;`)], { runtime: "node" }, context);
+
+        expect(actual).toEqual([91003]);
+    });
 });
 
 describe("getEmittedModuleKind", () => {
