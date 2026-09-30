@@ -371,6 +371,44 @@ describe("TsCompiler ESM check", () => {
     });
 });
 
+describe("TsCompiler w/ unknown module type", () => {
+    const createDebugCompiler = (target: Reporter, debug: boolean): TsCompiler =>
+        new TsCompiler(
+            {
+                config: { profiles: { target: { esm: { runtime: "bundler" } } } },
+                reporter: target,
+                debug,
+                cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] },
+            },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" },
+            undefined,
+            undefined,
+            createSystem({ ...TS_CONFIG, ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { virtual: true })
+        );
+
+    it("reports the module type and package.json classification w/ debug", () => {
+        const target = new NoReporter();
+        const spy = jest.spyOn(target, "reportDiagnostic");
+        const testObj = createDebugCompiler(target, true);
+
+        testObj.build("/src/a.ts", "javascript/unknown");
+        const actual = spy.mock.calls.map(([cur]) => cur.messageText);
+
+        expect(actual).toContainEqual(expect.stringMatching(/"javascript\/unknown".*package\.json/));
+    });
+
+    it("reports nothing about the module type w/o debug", () => {
+        const target = new NoReporter();
+        const spy = jest.spyOn(target, "reportDiagnostic");
+        const testObj = createDebugCompiler(target, false);
+
+        testObj.build("/src/a.ts", "javascript/unknown");
+        const actual = spy.mock.calls.map(([cur]) => cur.messageText);
+
+        expect(actual).not.toContainEqual(expect.stringMatching(/javascript\/unknown/));
+    });
+});
+
 describe("CompilationScanCache", () => {
     const whatever = { hash: "whatever", scan: {} as never };
 

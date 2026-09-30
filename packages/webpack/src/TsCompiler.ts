@@ -208,6 +208,11 @@ export class TsCompiler extends Compiler {
         const result = this.emitSourceFile(filePath, this.profile, true);
         // webpack bundles the target's files, also under addonEmitOnly where none of them may be written
         const moduleKind = moduleType ? MODULE_KINDS.get(moduleType) : undefined;
+        if (moduleType && !moduleKind && this.getOptions().debug) {
+            this.getReporter().reportDiagnostic(
+                new InfoMessage(`Unknown webpack module type "${moduleType}", the ESM check classifies ${filePath} by package.json.`)
+            );
+        }
         diagnostics.push(...(result.diagnostics ?? []), ...this.checkLoaderOutput(this.profile, filePath, result.files, moduleKind, onDependency));
 
         this.logDebug(`Emit result: ${result.files.length} files generated`);
