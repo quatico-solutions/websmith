@@ -19,8 +19,11 @@ import { IMPORT_RULES, type ImportRule } from "./import-rules";
 import { checkPackageType, PackageTypeCode } from "./package-type-rules";
 import { scanModule, type FreeReference, type ModuleScan } from "./scan-module";
 
-/** Memo of scanned files keyed by file name, each replaced when the file's text changes. */
-export type ScanCache = Map<string, { hash: string; scan: ModuleScan }>;
+/** Memo of scanned files keyed by file name, each replaced when the file's text changes, e.g. a `Map`. */
+export type ScanCache = {
+    get(fileName: string): { hash: string; scan: ModuleScan } | undefined;
+    set(fileName: string, entry: { hash: string; scan: ModuleScan }): unknown;
+};
 
 export type EsmCheckContext = {
     /** File system used to read package.json files. */

@@ -44,30 +44,35 @@ const MODULE_KINDS: ReadonlyMap<string, ModuleClassification["kind"]> = new Map(
 // webpack reports unresolved imports itself (91012), and enforces fully specified imports itself under bundler
 const NODE_IMPORT_RULES: readonly ImportRule[] = [checkMissingExtension, checkDirectoryImport, checkJsonImportAttribute];
 
-type ScanEntry = ScanCache extends Map<string, infer T> ? T : never;
+type ScanEntry = Parameters<ScanCache["set"]>[1];
 
 /**
  * A scan cache that forgets files a compilation did not check: `nextCompilation` keeps the scans used since the last
  * call as fallbacks for the next compilation and drops the others, e.g. those of deleted or renamed files.
  */
-class CompilationScanCache extends Map<string, ScanEntry> {
+class CompilationScanCache implements ScanCache {
+    private current = new Map<string, ScanEntry>();
     private previous = new Map<string, ScanEntry>();
 
     public get(fileName: string): ScanEntry | undefined {
-        const current = super.get(fileName);
+        const current = this.current.get(fileName);
         if (current) {
             return current;
         }
         const previous = this.previous.get(fileName);
         if (previous) {
-            super.set(fileName, previous);
+            this.current.set(fileName, previous);
         }
         return previous;
     }
 
+    public set(fileName: string, entry: ScanEntry): void {
+        this.current.set(fileName, entry);
+    }
+
     public nextCompilation(): void {
-        this.previous = new Map(this);
-        this.clear();
+        this.previous = this.current;
+        this.current = new Map();
     }
 }
 
