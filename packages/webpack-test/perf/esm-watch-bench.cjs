@@ -16,8 +16,14 @@
  *   C  `esm: { runtime: "node" }` on the dependent profile
  * Each process watches one variant and times, from the write to webpack's `done`, `--edits` edits of different leaf
  * modules and `--flips` flips of `"type"` in the project's package.json. Variants run interleaved in `--processes`
- * processes each. The gate is median(B or C) / median(A) <= 1.10 per scenario, on the medians of each process.
- * The time spent in the loader's ESM check is measured in-process and printed per scenario.
+ * processes each. The time spent in the loader's ESM check is measured in-process.
+ *
+ * Gates, on the median of each process's median:
+ *   edit  median(B or C) / median(A) <= 1.10: every variant rebuilds the one edited module.
+ *   flip  ESM check time / rebuild time <= 10% for B and C. The rebuild ratio cannot gate a flip: A and B rebuild no
+ *         module, because nothing registers the package.json, while C correctly rebuilds every module whose
+ *         classification depends on it, each at the loader's existing per-module cost (compiler-instances.ts). The
+ *         raw medians, ratios and modules rebuilt are printed for every scenario.
  *
  * Options: --processes 5 --modules 1000 --edits 30 --flips 5 --settle 300 --keep
  */
@@ -28,6 +34,7 @@ const path = require("node:path");
 
 const VARIANTS = ["A", "B", "C"];
 const BUDGET = 1.1;
+const CHECK_SHARE_BUDGET = 0.1;
 const ADDON_MARKER = "bench-addon";
 
 const parseOptions = argv => {
@@ -163,6 +170,9 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
     // Accumulates the time spent in the loader's ESM check, in-process
     let checkTime = 0;
     const checkLoaderOutput = TsCompiler.prototype.checkLoaderOutput;
+    if (typeof checkLoaderOutput !== "function") {
+        throw new Error("TsCompiler.prototype.checkLoaderOutput not found: update the benchmark to time the loader's ESM check");
+    }
     TsCompiler.prototype.checkLoaderOutput = function (...args) {
         const start = process.hrtime.bigint();
         try {
@@ -215,6 +225,8 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
         })),
     ];
     const results = { variant, initial: undefined, edit: [], flip: [], unchanged: { edit: 0, flip: 0 } };
+    // A flip may rebuild most modules, which takes about as long as the initial build
+    const watchdogMs = () => Math.max(30000, 3 * results.initial.ms);
     let step = 0;
     let pending;
     let watchdog;
@@ -254,7 +266,7 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
                 results.unchanged[action.scenario]++;
                 pending = undefined;
                 next();
-            }, 300000);
+            }, watchdogMs());
         }, settle);
     };
 };
@@ -270,7 +282,19 @@ const summarize = (runs, scenario) => {
             const processMedians = processRuns.map(cur => median(cur[scenario].map(sample => sample.ms)));
             const checkMedians = processRuns.map(cur => median(cur[scenario].map(sample => sample.checkMs)));
             const builtMedians = processRuns.map(cur => median(cur[scenario].map(sample => sample.built)));
-            return [variant, { median: median(processMedians), processMedians, checkMs: median(checkMedians), built: median(builtMedians) }];
+            const shareMedians = processRuns.map(cur => median(cur[scenario].map(sample => (sample.ms > 0 ? sample.checkMs / sample.ms : 0))));
+            const unchanged = processRuns.reduce((sum, cur) => sum + cur.unchanged[scenario], 0);
+            return [
+                variant,
+                {
+                    median: median(processMedians),
+                    processMedians,
+                    checkMs: median(checkMedians),
+                    checkShare: median(shareMedians),
+                    built: median(builtMedians),
+                    unchanged,
+                },
+            ];
         })
     );
     return byVariant;
@@ -318,19 +342,26 @@ const main = () => {
     let passed = true;
     ["edit", "flip"].forEach(scenario => {
         const summary = summarize(runs, scenario);
-        console.log(`\nScenario ${scenario} (${scenario === "edit" ? options.edits : options.flips} per process, ${options.processes} processes per variant)`);
+        console.log(
+            `\nScenario ${scenario} (${scenario === "edit" ? options.edits : options.flips} per process, ${options.processes} processes per variant)`
+        );
         VARIANTS.forEach(variant => {
-            const { median: value, processMedians, checkMs, built } = summary[variant];
+            const { median: value, processMedians, checkMs, checkShare, built, unchanged } = summary[variant];
             const ratio = value / summary.A.median;
             const gated = variant !== "A";
-            passed = passed && (!gated || ratio <= BUDGET);
+            const ok = scenario === "edit" ? ratio <= BUDGET : checkShare <= CHECK_SHARE_BUDGET;
+            passed = passed && (!gated || ok);
             console.log(
-                `  ${variant}: median ${value.toFixed(1)} ms, ratio ${ratio.toFixed(3)}${gated ? (ratio <= BUDGET ? " ok" : " OVER BUDGET") : ""}, ` +
-                    `ESM check ${checkMs.toFixed(1)} ms, modules built ${built}, per process [${processMedians.map(cur => cur.toFixed(1)).join(", ")}]`
+                `  ${variant}: median ${value.toFixed(1)} ms, ratio ${ratio.toFixed(3)}, ESM check ${checkMs.toFixed(1)} ms ` +
+                    `(${(checkShare * 100).toFixed(2)}% of rebuild)${gated ? (ok ? " ok" : " OVER BUDGET") : ""}, modules built ${built}, ` +
+                    `unchanged ${unchanged}, per process [${processMedians.map(cur => cur.toFixed(1)).join(", ")}]`
             );
         });
     });
-    console.log(`\nGate median(B or C) / median(A) <= ${BUDGET}: ${passed ? "passed" : "FAILED"}`);
+    console.log(
+        `\nGates: edit median(B or C) / median(A) <= ${BUDGET}, flip ESM check share of rebuild (B, C) <= ${CHECK_SHARE_BUDGET * 100}%: ` +
+            `${passed ? "passed" : "FAILED"}`
+    );
     process.exitCode = passed ? 0 : 1;
 };
 
