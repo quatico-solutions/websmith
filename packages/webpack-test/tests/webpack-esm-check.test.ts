@@ -286,11 +286,22 @@ const runWebpack = ({ entry, type, devtool, steps }: RunOptions): (BuildReport &
         } else {
             let step = 0;
             let watchdog;
+            let awaited = null;
+            const fail = message => {
+                console.error(message);
+                process.exitCode = 2;
+                watching.close(() => undefined);
+            };
             const watching = compiler.watch({ aggregateTimeout: 100 }, (err, stats) => {
                 if (err) {
                     console.error(err);
                     process.exitCode = 2;
                     return watching.close(() => undefined);
+                }
+                // Webpack may rebuild spuriously after the initial build; only a rebuild that saw the edited file is the awaited one
+                const modified = compiler.modifiedFiles || new Set();
+                if (awaited && !awaited.some(cur => modified.has(cur))) {
+                    return;
                 }
                 report(stats);
                 clearTimeout(watchdog);
@@ -298,9 +309,12 @@ const runWebpack = ({ entry, type, devtool, steps }: RunOptions): (BuildReport &
                 if (!files) {
                     return watching.close(() => undefined);
                 }
-                // Let the watcher settle, so the write is seen as a change after this build; stop when it triggers none
-                clearTimeout(watchdog);
-                watchdog = setTimeout(() => watching.close(() => undefined), 10000);
+                awaited = Object.keys(files).map(fileName => path.join(projectDir, fileName));
+                watchdog = setTimeout(
+                    () => fail("no rebuild containing " + awaited.join(", ") + " within 25000ms, modified files were: " + [...modified].join(", ")),
+                    25000
+                );
+                // Let the watcher settle, so the write is seen as a change after this build
                 setTimeout(() => {
                     Object.entries(files).forEach(([fileName, content]) => {
                         const filePath = path.join(projectDir, fileName);
@@ -319,8 +333,8 @@ const runWebpack = ({ entry, type, devtool, steps }: RunOptions): (BuildReport &
         .split("\n")
         .filter(cur => cur.startsWith("RESULT "))
         .map(cur => ({ ...(JSON.parse(cur.slice("RESULT ".length)) as BuildReport), exitCode: result.status }));
-    if (reports.length === 0) {
-        throw new Error(`webpack reported no build: ${result.stdout}${result.stderr}`);
+    if (reports.length === 0 || (steps && reports.length !== steps.length + 1)) {
+        throw new Error(`webpack reported ${reports.length} builds, expected ${steps ? steps.length + 1 : 1}: ${result.stdout}${result.stderr}`);
     }
     return reports;
 };
