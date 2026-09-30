@@ -236,7 +236,7 @@ delivery. Decided in-session: fix these before re-delivery.
 
 - `feature/esm-check-source-file` — ESM diagnostics name the source file next to the emitted file (plan § Diagnostics) → #127 <!-- builds: source file in ESM diagnostics -->
 - `bug/fast-path-syntax-errors` — syntax errors on the transpileModule fast path are reported and fail the build (plan § Failure semantics) <!-- builds: fast-path syntax errors reported -->
-- `bug/validate-selected-profile` — config errors only for the selected profile and its dependencies, printed once <!-- builds: config validation scoped to the selected profile -->
+- `bug/validate-selected-profile` — config errors only for the selected profile and its dependencies, printed once → #128 <!-- builds: config validation scoped to the selected profile -->
 - `bug/flaky-webpack-watch-tests` — webpack watch e2e tests wait for the rebuild of the edited file → #126 <!-- builds: stable webpack watch e2e tests -->
 
 ## Definition of Done
