@@ -92,9 +92,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   emitted every `.ts` file as CommonJS in builds without type-checking addons, and builds with type-checking addons
   or declarations failed. An unknown name is reported as a configuration error.
 - Configuration errors in `websmith.config.json` are now reported only for the selected profile and the profiles it
-  depends on, in the CLI and the webpack loader. Before, one broken profile, e.g. an `esm` profile with
-  `"module": "CommonJS"`, failed every build, even one that selected another profile. Without a selected profile, no
-  profile is checked. The CLI now prints each configuration error once instead of twice.
+  depends on, in the CLI and the webpack loader. Before, one broken profile, e.g. one whose `depends` names an unknown
+  profile, failed every build, even one that selected another profile. Without a selected profile, no profile is
+  checked. The CLI now prints each configuration error once instead of twice.
 
 ### Removed
 

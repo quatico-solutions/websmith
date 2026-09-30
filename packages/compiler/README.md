@@ -131,6 +131,10 @@ You can apply a compilation profile by using the `--profile` command line parame
 }
 ```
 
+Configuration errors in `websmith.config.json` are reported only for the selected profile (`--profile`, or the
+loader's `profile`) and the profiles it depends on, so a broken profile does not fail builds that select another one.
+Without `--profile`, no profile is checked.
+
 ### <a name="esm-check"></a>ESM check
 
 A profile with an `esm` section gets compile-time diagnostics when its emitted JavaScript would fail to load as an
@@ -168,9 +172,6 @@ configuration error, also with `check: "off"`, and the check skips the profile; 
 `tsConfig`, `tsconfig.json`, a dependent profile or the command line sets `module`. Only free identifiers count:
 `const require = createRequire(import.meta.url)` is accepted, and so are uses that run only when a `typeof` test says
 the name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`).
-
-Configuration errors in `websmith.config.json` are reported only for the selected profile (`--profile`, or the
-loader's `profile`) and the profiles it depends on, so a broken profile does not fail builds that select another one.
 
 | Code | Finding | `node` | `bundler`, `javascript/esm` | `bundler`, `javascript/auto` | `bundler`, `javascript/dynamic` |
 |------|---------|--------|-----------------------------|------------------------------|---------------------------------|
