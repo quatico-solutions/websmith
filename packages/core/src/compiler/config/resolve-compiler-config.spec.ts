@@ -327,6 +327,7 @@ describe("resolveCompilationConfig", () => {
             ],
         ]);
     });
+
     it("should report nothing w/ invalid unselected profile", () => {
         const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
         const target = createSystem(

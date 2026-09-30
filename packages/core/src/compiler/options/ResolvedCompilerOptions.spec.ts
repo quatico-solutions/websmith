@@ -330,6 +330,7 @@ describe("config", () => {
             transpileOnly: true,
         });
     });
+
     it("should report nothing w/ invalid unselected profile in config file", () => {
         const fileSystem = createSystem(
             { "./websmith.config.json": JSON.stringify({ profiles: { broken: { esm: { runtime: "deno" } }, valid: {} } }) },
