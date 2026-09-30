@@ -831,7 +831,9 @@ export class Compiler {
             const group = groups.get(key) ?? { files: [], addons, sources: new Map<string, string>() };
             group.files.push(...files);
             if (source) {
-                files.forEach(cur => group.sources.set(cur.name, source));
+                // Resolved by the compiler's system, so a relative name is not made relative from the process's directory
+                const resolvedSource = this.system.resolvePath(source);
+                files.forEach(cur => group.sources.set(cur.name, resolvedSource));
             }
             groups.set(key, group);
         });

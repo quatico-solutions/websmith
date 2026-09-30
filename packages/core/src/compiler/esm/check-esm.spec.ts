@@ -385,6 +385,7 @@ describe("checkEsm", () => {
 
         expect([actual.file?.fileName, actual.start, actual.length]).toEqual(["/dist/target.js", 10, 7]);
     });
+
     it("yields 91031 naming package.json w/ export in .js output under commonjs package", () => {
         const actual = checkEsm(
             [output("/dist/target.js", `export const x = 1;`)],

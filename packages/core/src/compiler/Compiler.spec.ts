@@ -1925,22 +1925,6 @@ describe("watch w/ esm profile", () => {
         testObj.closeAllWatchers();
     });
 
-    it("names source file in ESM diagnostic w/ rebuild introducing require", () => {
-        const fileSystem = createSystem(
-            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
-            { virtual: true }
-        );
-        const reporter = new ReporterMock(fileSystem);
-        const target = jest.spyOn(reporter, "reportDiagnostic");
-        const testObj = createWatchCompiler(fileSystem, reporter).watch();
-
-        fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
-        const actual = target.mock.calls.map(([cur]) => [cur.file?.fileName, cur.messageText]);
-
-        expect(actual).toEqual([["/src/target.js", expect.stringMatching(/ \(source "src\/target\.ts", profile "client"\)\.$/)]]);
-        testObj.closeAllWatchers();
-    });
-
     it("reports ESM diagnostic w/ rebuild of dependent file after asset change", () => {
         const fileSystem = createSystem(
             { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;", "src/style.css": ".a {}" },
@@ -3473,6 +3457,17 @@ describe("compile w/ esm profile", () => {
         const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
 
         expect(actual).toEqual([["/src/target.js", expect.stringMatching(/ \(source "src\/target\.ts", profile "client"\)\.$/)]]);
+    });
+
+    it("names source file relative to project directory w/ relative root file name", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
+            cliArgs: { fileNames: ["src/target.ts"], options: {}, errors: [] },
+        });
+
+        const actual = testObj.compile().diagnostics.map(cur => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/ \(source "src\/target\.ts", profile "client"\)\.$/)]);
     });
 
     it("reports ESM diagnostic naming emitted and source file w/ addon requiring type information", () => {
