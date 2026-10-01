@@ -235,8 +235,12 @@ through property access: called, passed as argument, spread, returned, compared 
 When the check cannot decide, for example for a package that is not installed or a re-export it cannot resolve, it
 reports nothing and `--debug` lists the import.
 
-Diagnostics point at the construct in the emitted file and name the profile and the addons that changed the file, e.g.
-`Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output (profile "client", addons: my-addon).`
+Diagnostics point at the construct in the emitted file and name the source file it was emitted from, relative to the
+project directory, the profile and the addons that changed the file, e.g.
+`Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output (source "src/client.ts", profile "client", addons: my-addon).`
+A file that a generator adds with `addVirtualFile` names itself as source file, and a file that a
+result processor creates names no source file. This applies to the ESM9xxxx codes; the TypeScript diagnostics labelled
+`(ESM check, profile "…")` already point at the source file.
 An addon counts as having changed a file when one of its processors returned different content, one of its generators
 added the file through `addInputFile` or `addVirtualFile`, or one of its transformers returned a node other than the one
 it received. A generator is named on the file it adds, not on the file it was processing. Only the latest build of a

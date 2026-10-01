@@ -36,6 +36,8 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   `ctx.getSystem().writeFile`; files addons write with `fs` directly are not checked. Its diagnostics name the addons
   that changed the file in its latest build (processors and transformers are tracked per addon, generators on the
   files they add), and no addon when the construct comes from the project's own source.
+- ESM check diagnostics name the source file next to the emitted file, e.g. `(source "src/a.ts", profile "client")`,
+  in `websmith` builds, watch mode and the webpack loader. Files that result processors create name no source file.
 - The ESM check runs in the webpack loader, once per module: on the JavaScript webpack bundles, classified by
   webpack's module type under `runtime: "bundler"`, and on the files dependent profiles write. It skips 91012, and
   91010/91011 under `bundler`, which webpack reports itself. The `package.json` files it reads are registered as

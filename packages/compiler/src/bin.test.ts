@@ -426,6 +426,16 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (2,26): ESM91001`);
     }, 60000);
 
+    it("should report 91001 naming source file w/ addon generating require in node ESM profile", () => {
+        createEsmProject("error");
+
+        const actual = executeCompilerStatus(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        ).output;
+
+        expect(actual).toContain(`(source "src/test.ts", profile "client", addons: require-generator).`);
+    }, 60000);
+
     it("should exit with zero status and report 91001 warning w/ addon generating require in node ESM profile with check warn", () => {
         createEsmProject("warn");
 

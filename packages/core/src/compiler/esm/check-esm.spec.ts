@@ -337,6 +337,55 @@ describe("checkEsm", () => {
             `ESM91001: "require" is not defined in ES module output; use "import" or "createRequire(import.meta.url)" instead (profile "client", addons: one-addon, two-addon).`
         );
     });
+
+    it("yields message naming source file relative to project directory w/ source of file", () => {
+        const [actual] = checkEsm(
+            [output("/project/dist/target.js", `const x = require("x");`)],
+            { runtime: "node" },
+            createContext(
+                { "/project/package.json": JSON.stringify({ type: "module" }) },
+                { projectDir: "/project", profile: "client", addons: ["one-addon"], sources: new Map([["/project/dist/target.js", "/project/src/target.ts"]]) }
+            )
+        );
+
+        expect(actual.messageText).toMatch(/ \(source "src\/target\.ts", profile "client", addons: one-addon\)\.$/);
+    });
+
+    it("names each file's own source w/ sources of two files", () => {
+        const actual = checkEsm(
+            [output("/dist/a.js", `const x = require("x");`), output("/dist/b.js", `const y = require("y");`)],
+            { runtime: "node" },
+            createContext(MODULE_PACKAGE, {
+                sources: new Map([
+                    ["/dist/a.js", "/src/a.ts"],
+                    ["/dist/b.js", "/src/b.ts"],
+                ]),
+            })
+        ).map(cur => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/ \(source "src\/a\.ts"\)\.$/), expect.stringMatching(/ \(source "src\/b\.ts"\)\.$/)]);
+    });
+
+    it("names no source w/ file without source", () => {
+        const [actual] = checkEsm(
+            [output("/dist/target.js", `const x = require("x");`)],
+            { runtime: "node" },
+            createContext(MODULE_PACKAGE, { profile: "client", sources: new Map([["/dist/other.js", "/src/other.ts"]]) })
+        );
+
+        expect(actual.messageText).toMatch(/ \(profile "client"\)\.$/);
+    });
+
+    it("keeps diagnostic located in emitted file w/ source of file", () => {
+        const [actual] = checkEsm(
+            [output("/dist/target.js", `const x = require("x");`)],
+            { runtime: "node" },
+            createContext(MODULE_PACKAGE, { sources: new Map([["/dist/target.js", "/src/target.ts"]]) })
+        );
+
+        expect([actual.file?.fileName, actual.start, actual.length]).toEqual(["/dist/target.js", 10, 7]);
+    });
+
     it("yields 91031 naming package.json w/ export in .js output under commonjs package", () => {
         const actual = checkEsm(
             [output("/dist/target.js", `export const x = 1;`)],
