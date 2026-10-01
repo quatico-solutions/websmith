@@ -135,6 +135,8 @@ export class Compiler {
     private baselineEmitCacheFileTimes = new Map<string, Date>();
     // Parsed package.json files for the module format of files under node16/nodenext, cleared with the options
     private packageJsonInfoCache?: ts.PackageJsonInfoCache;
+    // TypeScript diagnostics without a file a watch build reported, such as option errors that every fast path file returns
+    private reportedWatchDiagnostics = new Set<string>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -318,6 +320,7 @@ export class Compiler {
         this.baselineEmitCache.clear(); // Clear baseline emit cache when options change
         this.baselineEmitCacheFileTimes.clear(); // Clear file modification time tracking when options change
         this.packageJsonInfoCache = undefined;
+        this.reportedWatchDiagnostics.clear();
         // Don't invalidate cachedProgram - keep it for incremental compilation
         // The createProgram() method will detect option changes and create a new program
         // while still passing the old program for incremental type checking
@@ -668,10 +671,11 @@ export class Compiler {
             !this.transpileOnly && program
                 ? ts.getPreEmitDiagnostics(program).filter(cur => program.getProjectReferences?.()?.length || cur.file)
                 : [];
-        // The Program and the fragments of the result find the same errors in unprocessed files
+        // The Program and the fragments of the result find the same errors in unprocessed files, and every fragment
+        // of the fast path returns the same option errors. websmith's own diagnostics without a file (code 0) stay per file.
         const reported = new Set<string>();
         preEmitDiagnostics.concat(result.diagnostics).forEach(cur => {
-            const key = cur.file ? this.getDiagnosticKey(cur, cur.file) : undefined;
+            const key = cur.file || cur.code > 0 ? this.getDiagnosticKey(cur) : undefined;
             if (!key || !reported.has(key)) {
                 if (key) {
                     reported.add(key);
@@ -683,8 +687,8 @@ export class Compiler {
         return result;
     }
 
-    private getDiagnosticKey({ start, code, messageText }: ts.Diagnostic, file: ts.SourceFile): string {
-        return [file.fileName, start, code, ts.flattenDiagnosticMessageText(messageText, "\n")].join("\0");
+    private getDiagnosticKey({ file, start, code, messageText }: ts.Diagnostic): string {
+        return [file?.fileName, start, code, ts.flattenDiagnosticMessageText(messageText, "\n")].join("\0");
     }
 
     /**
@@ -816,7 +820,17 @@ export class Compiler {
     /** Emits one source file of a watch build and reports its diagnostics, which no report() call sees in watch mode. */
     private emitWatchedFile(...args: Parameters<Compiler["emitSourceFile"]>): CompileFragment | undefined {
         const fragment: CompileFragment | undefined = this.emitSourceFile(...args);
-        fragment?.diagnostics?.forEach(cur => this.reporter.reportDiagnostic(cur));
+        fragment?.diagnostics?.forEach(cur => {
+            // Every file of the fast path returns the option errors, which a rebuild does not change; websmith's own
+            // diagnostics without a file (code 0) belong to the file that returned them
+            const key = !cur.file && cur.code > 0 ? this.getDiagnosticKey(cur) : undefined;
+            if (!key || !this.reportedWatchDiagnostics.has(key)) {
+                if (key) {
+                    this.reportedWatchDiagnostics.add(key);
+                }
+                this.reporter.reportDiagnostic(cur);
+            }
+        });
         return fragment;
     }
 
@@ -1303,12 +1317,15 @@ export class Compiler {
                     transformers
                 );
 
+                // The emit is also skipped for declaration emit errors and then returns only those. Under noEmitOnError
+                // it returns the syntactic diagnostics itself, so these are added only once.
+                const emitted = new Set(emitResult.diagnostics.map(cur => this.getDiagnosticKey(cur)));
                 return {
                     outputFiles,
-                    // A skipped emit (noEmitOnError) already returns the syntactic diagnostics
-                    diagnostics: emitResult.emitSkipped
-                        ? emitResult.diagnostics
-                        : [...program.getSyntacticDiagnostics(sourceFile), ...emitResult.diagnostics],
+                    diagnostics: [
+                        ...program.getSyntacticDiagnostics(sourceFile).filter(cur => !emitted.has(this.getDiagnosticKey(cur))),
+                        ...emitResult.diagnostics,
+                    ],
                 };
             };
 

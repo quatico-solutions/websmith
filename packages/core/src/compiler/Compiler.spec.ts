@@ -1009,6 +1009,95 @@ describe("compile", () => {
         expect(target.message).toBe(expected);
     });
 
+    it.each([
+        {
+            name: "declaration emit error",
+            source: `export const a = class { private x = 1; };\nexport const b = ;`,
+            isolatedDeclarations: false,
+            noEmitOnError: false,
+            expected:
+                "Error: /src/target.ts (2,18): Expression expected.\n" +
+                "Error: /src/target.ts (1,14): Property 'x' of exported anonymous class type may not be private or protected.\n",
+        },
+        {
+            name: "declaration emit error",
+            source: `export const a = class { private x = 1; };\nexport const b = ;`,
+            isolatedDeclarations: false,
+            noEmitOnError: true,
+            expected: "Error: /src/target.ts (2,18): Expression expected.\n",
+        },
+        {
+            name: "isolatedDeclarations error",
+            source: `export const b = ;`,
+            isolatedDeclarations: true,
+            noEmitOnError: false,
+            expected:
+                "Error: /src/target.ts (1,18): Expression expected.\n" +
+                "Error: /src/target.ts (1,14): Variable must have an explicit type annotation with --isolatedDeclarations.\n",
+        },
+    ])(
+        "reports syntax error first and $name only w/o noEmitOnError w/ declaration, noEmitOnError $noEmitOnError and per-file Program",
+        ({ source, isolatedDeclarations, noEmitOnError, expected }) => {
+            const fileSystem = createSystem({ "src/target.ts": source }, { virtual: true });
+            const target = new ReporterMock(fileSystem);
+            const testObj = new CompilerTestClass(
+                {
+                    reporter: target,
+                    tsConfig: { declaration: true, isolatedDeclarations, noEmitOnError, target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["src/target.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem
+            );
+
+            testObj.compile();
+            const actual = target.message;
+
+            expect(actual).toBe(expected);
+        }
+    );
+
+    it("reports websmith diagnostic without file once per file w/ several JSON files and no outDir", () => {
+        const fileSystem = createSystem({ "src/a.json": `{}`, "src/b.json": `{}` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { resolveJsonModule: true, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["src/a.json", "src/b.json"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = target.message.split("JSON files are only emitted if an outDir is provided.").length - 1;
+
+        expect(actual).toBe(2);
+    });
+
+    it("reports TypeScript option error once w/ several files on fast path", () => {
+        const fileSystem = createSystem(
+            { "src/a.ts": `export const a = 1;`, "src/b.ts": `export const b = 1;`, "src/c.ts": `export const c = 1;` },
+            { virtual: true }
+        );
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { resolveJsonModule: true, moduleResolution: ts.ModuleResolutionKind.Classic, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["src/a.ts", "src/b.ts", "src/c.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = target.message.split("Option '--resolveJsonModule' cannot be specified").length - 1;
+
+        expect(actual).toBe(1);
+    });
+
     it("yields output w/ with addons but w/o profiles", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
 
@@ -1159,6 +1248,35 @@ describe("emitSourceFile", () => {
             }),
         ]);
     });
+
+    it.each([
+        {
+            noEmitOnError: false,
+            expected: [
+                [1109, 60],
+                [4094, 13],
+            ],
+        },
+        { noEmitOnError: true, expected: [[1109, 60]] },
+    ])(
+        "yields syntax error first and declaration emit error only w/o noEmitOnError w/ declaration, noEmitOnError $noEmitOnError and per-file Program",
+        ({ noEmitOnError, expected }) => {
+            const fileSystem = createSystem({ "src/target.ts": `export const a = class { private x = 1; };\nexport const b = ;` }, { virtual: true });
+            const testObj = new CompilerTestClass(
+                {
+                    reporter: new ReporterMock(fileSystem),
+                    tsConfig: { declaration: true, noEmitOnError, target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem
+            ).createProfileContextsIfNecessary();
+
+            const actual = testObj.emitSourceFile("/src/target.ts", undefined, false);
+
+            expect(actual.diagnostics?.map(cur => [cur.code, cur.start])).toEqual(expected);
+        }
+    );
 
     it.each([
         { name: "ESNext", module: ts.ModuleKind.ESNext },
@@ -1650,6 +1768,81 @@ describe("watch", () => {
         testObj.watch();
 
         expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
+        testObj.closeAllWatchers();
+    });
+
+    it.each([
+        { name: "no profile", profile: undefined },
+        { name: "profile", profile: "client" },
+    ])("reports syntax error and declaration emit error once each w/ $name, declaration and rebuild introducing them", ({ profile }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                config: { profiles: { client: {} } },
+                profile,
+                watch: true,
+                tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).watch();
+
+        fileSystem.writeFile("/src/target.ts", `export const a = class { private x = 1; };\nexport const b = ;`);
+        const actual = target.message;
+
+        expect(actual).toBe(
+            "Error: /src/target.ts (2,18): Expression expected.\n" +
+                "Error: /src/target.ts (1,14): Property 'x' of exported anonymous class type may not be private or protected.\n"
+        );
+        testObj.closeAllWatchers();
+    });
+
+    it("reports websmith diagnostic without file once per file w/ several JSON files, no outDir and initial watch build", () => {
+        const fileSystem = createSystem({ "src/a.json": `{}`, "src/b.json": `{}` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                watch: true,
+                tsConfig: { resolveJsonModule: true, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/a.json", "/src/b.json"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).watch();
+
+        const actual = target.message.split("JSON files are only emitted if an outDir is provided.").length - 1;
+
+        expect(actual).toBe(2);
+        testObj.closeAllWatchers();
+    });
+
+    it.each([
+        { name: "no profile", profile: undefined },
+        { name: "profile", profile: "client" },
+    ])("reports TypeScript option error once w/ $name, several files, initial watch build and rebuild", ({ profile }) => {
+        const fileSystem = createSystem({ "src/a.ts": `export const a = 1;`, "src/b.ts": `export const b = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                config: { profiles: { client: {} } },
+                profile,
+                watch: true,
+                tsConfig: { resolveJsonModule: true, moduleResolution: ts.ModuleResolutionKind.Classic, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).watch();
+
+        fileSystem.writeFile("/src/a.ts", `export const a = 2;`);
+        const actual = target.message.split("Option '--resolveJsonModule' cannot be specified").length - 1;
+
+        expect(actual).toBe(1);
         testObj.closeAllWatchers();
     });
 

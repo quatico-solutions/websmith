@@ -106,20 +106,28 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   needs type information and `declaration` is off, or with `transpileOnly`, including `"module": "node16"` or
   `"nodenext"`, and in builds that emit declarations through per-file programs. Before, they were discarded:
   `export const a = ;` was emitted as broken JavaScript and `websmith` exited with `0`. The file is still emitted,
-  like with `tsc`.
+  like with `tsc`. On per-file programs the syntax error is printed next to a declaration emit error of the same
+  file, e.g. TS4094 or, under `isolatedDeclarations`, TS9010, also in watch mode and the webpack loader; under
+  `noEmitOnError` only the syntax error is printed, like with `tsc`.
 - Syntax errors in code from processors and in files generators add with `addVirtualFile` are reported when an
   active addon needs type information. Before, only the files on disk were checked, so they were discarded.
 - A TypeScript error that both the type-checking Program and the emit of a file find is printed once. Before,
   errors of a file whose emit was skipped, e.g. under `noEmitOnError`, were printed twice or three times. When a
   processor shifts the positions in a file that already has a syntax error, the error is printed at both positions.
 - Configuration errors such as TS5053 (conflicting compiler options) fail fast-path builds and skip their emit.
-  Before, the fast path ignored them and emitted the files.
+  Before, the fast path ignored them and emitted the files. The CLI prints each of them once per profile, and
+  `websmith --watch` once per session, not once per emitted file. The webpack loader still reports them on each
+  module it compiles.
 - Watch mode reports the syntax errors and declaration emit errors of each rebuilt file. Before, `websmith --watch`
   printed none of them.
 - Configuration errors in `websmith.config.json` are now reported only for the selected profile and the profiles it
   depends on, in the CLI and the webpack loader. Before, one broken profile, e.g. one whose `depends` names an unknown
   profile, failed every build, even one that selected another profile. Without a selected profile, no profile is
   checked. The CLI now prints each configuration error once instead of twice.
+- `websmith --profile <name>` no longer warns `Custom profile configuration "<name>" found, but no profile
+  provided.` The warning appeared whenever the profile or one of its `depends` was not configured, cases that already
+  get an accurate message: `Missing profile: The following profile is passed but not configured "<name>".` and the
+  configuration error for an unknown profile in `depends`.
 - Configuration errors of the selected profile and the profiles it depends on fail webpack loader builds, e.g. an
   unknown profile in `depends`, an unknown `esm.runtime`, `esm` together with `tsConfig.module: "CommonJS"`, or a
   `configFile` that does not exist. The loader reports each one once per compilation as a webpack error, also on

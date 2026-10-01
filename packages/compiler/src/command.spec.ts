@@ -14,7 +14,7 @@ import { AddonRegistry, Compiler, NoReporter, createSystem } from "@quatico/webs
 import { Command } from "commander";
 import path from "node:path";
 import ts from "typescript";
-import { addCompileCommand, addonConfig, hasInvalidProfile } from "./command";
+import { addCompileCommand, addonConfig } from "./command";
 
 beforeEach(() => {
     jest.spyOn(console, "time").mockImplementation(() => {});
@@ -453,7 +453,7 @@ describe("addCompileCommand#profile", () => {
         expect(target.getOptions().profile).toEqual("expected");
     });
 
-    it("should yield warning w/ --profile cli argument and unknown name", () => {
+    it("should yield missing profile warning w/ --profile cli argument and unknown name", () => {
         const target = new NoReporter();
         jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {});
         const testSystem = createSystem({}, { virtual: true });
@@ -469,10 +469,22 @@ describe("addCompileCommand#profile", () => {
         });
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
-            new WarnMessage(
-                'Custom profile configuration "unknown" found, but no profile provided.\n\tSome custom addons may not be applied during compilation.'
-            )
+            new WarnMessage('Missing profile: The following profile is passed but not configured "unknown".')
         );
+    });
+
+    it("should not yield no profile provided warning w/ --profile cli argument and known name depending on unknown profile", () => {
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const testSystem = createSystem({ "./websmith.config.json": '{ "profiles": {"known": { "depends": ["unknown"] }} }' }, { virtual: true });
+        testSystem.createDirectory("./addons");
+        const addons = new AddonRegistry({ system: testSystem, addons: [], addonsDir: "./addons", reporter: new NoReporter() });
+        const testObj = addCompileCommand(new Command(), new Compiler({ reporter: target }, {}, testSystem, addons));
+
+        testObj.parse(["--profile", "known", "--configFile", "./websmith.config.json"], { from: "user" });
+        const actual = (target.reportDiagnostic as jest.Mock).mock.calls.map(([cur]) => cur.messageText);
+
+        expect(actual).not.toContainEqual(expect.stringContaining("no profile provided"));
     });
 
     it("should not yield any warning w/ --profile cli argument and known name", () => {
@@ -521,28 +533,6 @@ describe("addCompileCommand#profile", () => {
             1,
             new WarnMessage('Missing profile: The following profile is passed but not configured "known".')
         );
-        expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
-            2,
-            new WarnMessage(
-                'Custom profile configuration "known" found, but no profile provided.\n\tSome custom addons may not be applied during compilation.'
-            )
-        );
-    });
-});
-
-describe("hasInvalidProfile", () => {
-    it("should return true w/o CompilationConfig", () => {
-        expect(hasInvalidProfile("whatever")).toBe(true);
-    });
-
-    it("should return false w/ valid profile and CompilationConfig", () => {
-        expect(
-            hasInvalidProfile("valid", {
-                profiles: {
-                    valid: {},
-                },
-            } as any)
-        ).toBe(false);
     });
 });
 

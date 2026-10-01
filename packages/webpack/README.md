@@ -76,7 +76,8 @@ TypeScript diagnostics and ESM check diagnostics are emitted on the module that 
 (`stats.hasErrors()`, webpack-cli exits 1), warnings do not. Messages and suggestions are emitted as warnings with
 `debug` only. The TypeScript diagnostics are those of the module's emit, so these errors fail the build:
 
-- syntax errors under `transpileOnly: false`;
+- syntax errors in `.ts`, `.tsx`, `.mts` and `.cts` files, under `transpileOnly: true` and `false`, also on the fast
+  path without an addon that needs type information;
 - declaration emit errors under `declaration: true` with `transpileOnly: false` and no addon that needs type
   information, e.g. TS4094 (property of an exported anonymous class type may not be private), TS2742 (inferred
   type cannot be named without a reference) and, under `isolatedDeclarations`, TS9xxx.
