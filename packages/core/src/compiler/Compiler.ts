@@ -135,7 +135,7 @@ export class Compiler {
     private baselineEmitCacheFileTimes = new Map<string, Date>();
     // Parsed package.json files for the module format of files under node16/nodenext, cleared with the options
     private packageJsonInfoCache?: ts.PackageJsonInfoCache;
-    // Diagnostics without a file a watch build reported, such as option errors that every fast path file returns
+    // TypeScript diagnostics without a file a watch build reported, such as option errors that every fast path file returns
     private reportedWatchDiagnostics = new Set<string>();
 
     constructor(
@@ -672,12 +672,14 @@ export class Compiler {
                 ? ts.getPreEmitDiagnostics(program).filter(cur => program.getProjectReferences?.()?.length || cur.file)
                 : [];
         // The Program and the fragments of the result find the same errors in unprocessed files, and every fragment
-        // of the fast path returns the same option errors
+        // of the fast path returns the same option errors. websmith's own diagnostics without a file (code 0) stay per file.
         const reported = new Set<string>();
         preEmitDiagnostics.concat(result.diagnostics).forEach(cur => {
-            const key = this.getDiagnosticKey(cur);
-            if (!reported.has(key)) {
-                reported.add(key);
+            const key = cur.file || cur.code > 0 ? this.getDiagnosticKey(cur) : undefined;
+            if (!key || !reported.has(key)) {
+                if (key) {
+                    reported.add(key);
+                }
                 this.reporter.reportDiagnostic(label(cur));
             }
         });
@@ -819,8 +821,9 @@ export class Compiler {
     private emitWatchedFile(...args: Parameters<Compiler["emitSourceFile"]>): CompileFragment | undefined {
         const fragment: CompileFragment | undefined = this.emitSourceFile(...args);
         fragment?.diagnostics?.forEach(cur => {
-            // Every file of the fast path returns the option errors, which a rebuild does not change
-            const key = cur.file ? undefined : this.getDiagnosticKey(cur);
+            // Every file of the fast path returns the option errors, which a rebuild does not change; websmith's own
+            // diagnostics without a file (code 0) belong to the file that returned them
+            const key = !cur.file && cur.code > 0 ? this.getDiagnosticKey(cur) : undefined;
             if (!key || !this.reportedWatchDiagnostics.has(key)) {
                 if (key) {
                     this.reportedWatchDiagnostics.add(key);

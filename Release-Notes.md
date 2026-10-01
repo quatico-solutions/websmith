@@ -115,8 +115,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   errors of a file whose emit was skipped, e.g. under `noEmitOnError`, were printed twice or three times. When a
   processor shifts the positions in a file that already has a syntax error, the error is printed at both positions.
 - Configuration errors such as TS5053 (conflicting compiler options) fail fast-path builds and skip their emit.
-  Before, the fast path ignored them and emitted the files. `websmith` prints each of them once per profile, and
-  watch mode once per session, not once per emitted file.
+  Before, the fast path ignored them and emitted the files. The CLI prints each of them once per profile, and
+  `websmith --watch` once per session, not once per emitted file. The webpack loader still reports them on each
+  module it compiles.
 - Watch mode reports the syntax errors and declaration emit errors of each rebuilt file. Before, `websmith --watch`
   printed none of them.
 - Configuration errors in `websmith.config.json` are now reported only for the selected profile and the profiles it

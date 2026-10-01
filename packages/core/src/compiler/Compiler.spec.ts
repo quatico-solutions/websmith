@@ -1036,7 +1036,7 @@ describe("compile", () => {
                 "Error: /src/target.ts (1,14): Variable must have an explicit type annotation with --isolatedDeclarations.\n",
         },
     ])(
-        "reports syntax error and $name as tsc does w/ declaration, noEmitOnError $noEmitOnError and per-file Program",
+        "reports syntax error first and $name only w/o noEmitOnError w/ declaration, noEmitOnError $noEmitOnError and per-file Program",
         ({ source, isolatedDeclarations, noEmitOnError, expected }) => {
             const fileSystem = createSystem({ "src/target.ts": source }, { virtual: true });
             const target = new ReporterMock(fileSystem);
@@ -1056,6 +1056,25 @@ describe("compile", () => {
             expect(actual).toBe(expected);
         }
     );
+
+    it("reports websmith diagnostic without file once per file w/ several JSON files and no outDir", () => {
+        const fileSystem = createSystem({ "src/a.json": `{}`, "src/b.json": `{}` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { resolveJsonModule: true, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["src/a.json", "src/b.json"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = target.message.split("JSON files are only emitted if an outDir is provided.").length - 1;
+
+        expect(actual).toBe(2);
+    });
 
     it("reports TypeScript option error once w/ several files on fast path", () => {
         const fileSystem = createSystem(
@@ -1240,7 +1259,7 @@ describe("emitSourceFile", () => {
         },
         { noEmitOnError: true, expected: [[1109, 60]] },
     ])(
-        "yields syntax error and declaration emit error as tsc does w/ declaration, noEmitOnError $noEmitOnError and per-file Program",
+        "yields syntax error first and declaration emit error only w/o noEmitOnError w/ declaration, noEmitOnError $noEmitOnError and per-file Program",
         ({ noEmitOnError, expected }) => {
             const fileSystem = createSystem({ "src/target.ts": `export const a = class { private x = 1; };\nexport const b = ;` }, { virtual: true });
             const testObj = new CompilerTestClass(
@@ -1778,6 +1797,26 @@ describe("watch", () => {
             "Error: /src/target.ts (2,18): Expression expected.\n" +
                 "Error: /src/target.ts (1,14): Property 'x' of exported anonymous class type may not be private or protected.\n"
         );
+        testObj.closeAllWatchers();
+    });
+
+    it("reports websmith diagnostic without file once per file w/ several JSON files, no outDir and initial watch build", () => {
+        const fileSystem = createSystem({ "src/a.json": `{}`, "src/b.json": `{}` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                watch: true,
+                tsConfig: { resolveJsonModule: true, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/a.json", "/src/b.json"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).watch();
+
+        const actual = target.message.split("JSON files are only emitted if an outDir is provided.").length - 1;
+
+        expect(actual).toBe(2);
         testObj.closeAllWatchers();
     });
 
