@@ -360,3 +360,15 @@ Pre-existing, out of scope for wave 5:
 - `.d.ts` and `allowJs` sources are not syntax-checked on the fast path.
 - With a type-info addon, `declaration` and a TS4094 error (without `noEmitOnError`), the language-service emit writes
   no `.js`, unlike the per-file path and `tsc`. Not yet confirmed.
+
+### 2026-10-01 — Follow-ups from the third delivery panel
+
+Not counted against the plan (`.plot/panels/2026-09-24-esm-output-check-delivery-3/panel.md`):
+- The "option errors print once per root file" item above is fixed by #130 for the CLI and watch; the webpack loader
+  still reports them on each module.
+- An unconfigured profile name in the loader fails with a raw `Module build failed … No profile with name` stack
+  trace instead of the config-error format.
+- `websmith -c websmith.config.json -p .` with relative paths ended silently with exit 0 in one panel run; not
+  investigated.
+- With `declaration: true`, a TypeScript option error is not reported at all; `tsc` reports it.
+- A build restored entirely from webpack's persistent cache runs no loader and reports no configuration errors.
