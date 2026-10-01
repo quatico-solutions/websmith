@@ -36,6 +36,8 @@ export type EsmCheckContext = {
     /** Profile and active addons, named in every diagnostic. */
     profile?: string;
     addons?: string[];
+    /** Source file of each checked file, keyed by its name, named relative to `projectDir` in the file's diagnostics. */
+    sources?: ReadonlyMap<string, string>;
     /** Receives every package.json path the classification depends on, `exists` false for missing candidates. */
     onDependency?: DependencyCallback;
     /** Platform whose file name rules `esm.ignore` follows, defaults to `process.platform`. */
@@ -107,7 +109,6 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
         return [];
     }
     const category = esm.check === "warn" ? ts.DiagnosticCategory.Warning : ts.DiagnosticCategory.Error;
-    const suffix = describeOrigin(context);
     const lookupPackageType = createPackageTypeLookup(context.system, context.onDependency, context.packageTypeCache);
     const importRules = context.importRules ?? IMPORT_RULES;
     const isIgnored = createIgnoreMatcher(esm.ignore, context);
@@ -124,6 +125,7 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
                 : classifyModule(cur.name, esm.runtime, hasEsmSyntax, lookupPackageType);
             const { kind, typeMissing } = classification;
             const diagnostics: ts.Diagnostic[] = [];
+            const suffix = describeOrigin(context, context.sources?.get(cur.name));
             const report = (code: number, message: string, cat: ts.DiagnosticCategory, start = 0, length = 0) =>
                 diagnostics.push({ category: cat, code, file, start, length, messageText: `ESM${code}: ${message}${suffix}.` });
 
@@ -202,8 +204,12 @@ const describeMixedExport = ({ name }: FreeReference): string => {
     return `ES module syntax mixed with a CommonJS "${construct} =" assignment, which fails at runtime; use "export" instead`;
 };
 
-const describeOrigin = ({ profile, addons = [] }: EsmCheckContext): string => {
-    const parts = [...(profile ? [`profile "${profile}"`] : []), ...(addons.length ? [`addons: ${addons.join(", ")}`] : [])];
+const describeOrigin = ({ profile, addons = [], projectDir }: EsmCheckContext, source: string | undefined): string => {
+    const parts = [
+        ...(source ? [`source "${path.relative(projectDir, source).replace(/\\/g, "/")}"`] : []),
+        ...(profile ? [`profile "${profile}"`] : []),
+        ...(addons.length ? [`addons: ${addons.join(", ")}`] : []),
+    ];
     return parts.length ? ` (${parts.join(", ")})` : "";
 };
 

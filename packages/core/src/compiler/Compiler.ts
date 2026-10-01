@@ -36,10 +36,14 @@ export type CompileFragment = {
     diagnostics?: ts.Diagnostic[];
 };
 
-/** Output files and the addons that changed their source, empty when the files come from the client's own source. */
+/**
+ * Output files, the addons that changed their source, empty when the files come from the client's own source, and the
+ * source file they were emitted from, absent for files a result processor creates.
+ */
 export type AttributedOutput = {
     files: readonly ts.OutputFile[];
     addons: string[];
+    source?: string;
 };
 
 type CompilationFragment = {
@@ -714,7 +718,7 @@ export class Compiler {
 
         for (const fileName of files) {
             const fragment = this.emitSourceFile(fileName, profile);
-            writtenFiles.push({ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName) });
+            writtenFiles.push({ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName), source: fileName });
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
             } else {
@@ -742,8 +746,8 @@ export class Compiler {
             // Check each written file once, in its final content: a result processor that rewrites an emitted file
             // replaces its earlier content and is named with the addons that changed the file before
             const outputs = new Map<string, AttributedOutput>();
-            writtenFiles.forEach(({ files: outputFiles, addons }) =>
-                outputFiles.forEach(cur => outputs.set(this.system.resolvePath(cur.name), { files: [cur], addons }))
+            writtenFiles.forEach(({ files: outputFiles, addons, source }) =>
+                outputFiles.forEach(cur => outputs.set(this.system.resolvePath(cur.name), { files: [cur], addons, source }))
             );
             let resultProcessorAddon: string | undefined;
             // Result processors write through the context's system; files they write with fs directly are invisible here
@@ -753,7 +757,8 @@ export class Compiler {
                     const previous = outputs.get(key);
                     const changed = previous?.files[0].text !== text;
                     const addons = [...(previous?.addons ?? []), ...(changed && resultProcessorAddon ? [resultProcessorAddon] : [])];
-                    outputs.set(key, { files: [{ name, text, writeByteOrderMark: false }], addons: [...new Set(addons)] });
+                    // A file the result processor creates has no source; one it rewrites keeps the source it was emitted from
+                    outputs.set(key, { files: [{ name, text, writeByteOrderMark: false }], addons: [...new Set(addons)], source: previous?.source });
                 },
                 () => runResultProcessors(cur => (resultProcessorAddon = ctx.findAddonName(cur)))
             );
@@ -801,15 +806,15 @@ export class Compiler {
         const ctx = this.getContext(profile);
         const esm = ctx && this.getCheckedEsm(profile, ctx, false);
         if (ctx && esm && fragment?.writtenFiles.length) {
-            this.checkEsmOutput(esm, profile, ctx, [{ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName) }]).forEach(cur =>
-                this.reporter.reportDiagnostic(cur)
-            );
+            this.checkEsmOutput(esm, profile, ctx, [
+                { files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName), source: fileName },
+            ]).forEach(cur => this.reporter.reportDiagnostic(cur));
         }
         return fragment;
     }
 
     /**
-     * Checks output files once per set of addons that changed them, so each diagnostic names the addons of its file.
+     * Checks output files once per set of addons that changed them, so each diagnostic names the addons and the source of its file.
      * Each group is a separate checkEsm call; the groups share one cache of resolved CommonJS packages and their names,
      * created per call unless `overrides` provides one. `overrides` replaces any other field of the check's context.
      */
@@ -820,15 +825,20 @@ export class Compiler {
         outputs: AttributedOutput[],
         overrides?: Partial<EsmCheckContext>
     ): ts.Diagnostic[] {
-        const groups = new Map<string, { files: ts.OutputFile[]; addons: string[] }>();
-        outputs.forEach(({ files, addons }) => {
+        const groups = new Map<string, { files: ts.OutputFile[]; addons: string[]; sources: Map<string, string> }>();
+        outputs.forEach(({ files, addons, source }) => {
             const key = addons.join("\n");
-            const group = groups.get(key) ?? { files: [], addons };
+            const group = groups.get(key) ?? { files: [], addons, sources: new Map<string, string>() };
             group.files.push(...files);
+            if (source) {
+                // Resolved by the compiler's system, so a relative name is not made relative from the process's directory
+                const resolvedSource = this.system.resolvePath(source);
+                files.forEach(cur => group.sources.set(cur.name, resolvedSource));
+            }
             groups.set(key, group);
         });
         const cjsNamesCache = overrides?.cjsNamesCache ?? createCjsNamesCache();
-        return [...groups.values()].flatMap(({ files, addons }) =>
+        return [...groups.values()].flatMap(({ files, addons, sources }) =>
             checkEsm(files, esm, {
                 system: this.system,
                 reporter: this.reporter,
@@ -836,6 +846,7 @@ export class Compiler {
                 debug: this.options.debug,
                 profile,
                 addons,
+                sources,
                 ...overrides,
                 cjsNamesCache,
             })

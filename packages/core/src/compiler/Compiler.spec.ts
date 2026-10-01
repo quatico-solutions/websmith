@@ -1978,7 +1978,7 @@ describe("watch w/ esm profile", () => {
         fileSystem.writeFile("/src/target.ts", REQUIRE_SOURCE);
         const actual = target.mock.calls.map(([cur]) => cur.messageText);
 
-        expect(actual).toEqual([expect.stringMatching(/\(profile "client"\)\.$/)]);
+        expect(actual).toEqual([expect.stringMatching(/\(source "src\/target\.ts", profile "client"\)\.$/)]);
         testObj.closeAllWatchers();
     });
 
@@ -3450,6 +3450,39 @@ describe("compile w/ esm profile", () => {
         expect(actual).toMatch(/Error: \/src\/target\.js \(1,18\): ESM91001: /);
     });
 
+    it("names source file in ESM diagnostic w/ file with output", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } });
+
+        const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
+
+        expect(actual).toEqual([["/src/target.js", expect.stringMatching(/ \(source "src\/target\.ts", profile "client"\)\.$/)]]);
+    });
+
+    it("names source file relative to project directory w/ relative root file name", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
+            cliArgs: { fileNames: ["src/target.ts"], options: {}, errors: [] },
+        });
+
+        const actual = testObj.compile().diagnostics.map(cur => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/ \(source "src\/target\.ts", profile "client"\)\.$/)]);
+    });
+
+    it("reports ESM diagnostic naming emitted and source file w/ addon requiring type information", () => {
+        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
+        const reporter = new ReporterMock(fileSystem);
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", { reporter }).setAddonRegistry(
+            createTypeInfoAddons(fileSystem, reporter)
+        );
+
+        testObj.compile();
+        const actual = reporter.message;
+
+        expect(actual).toMatch(/Error: \/src\/target\.js \(1,18\): ESM91001: .* \(source "src\/target\.ts", profile "client"\)\./);
+    });
+
     it("names profile and no addon in ESM diagnostic w/ file no addon changed", () => {
         const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": ESM_SOURCE }, { virtual: true });
         const reporter = new ReporterMock(fileSystem);
@@ -3459,7 +3492,7 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics[0].messageText;
 
-        expect(actual).toMatch(/\(profile "client"\)\.$/);
+        expect(actual).toMatch(/\(source "src\/target\.ts", profile "client"\)\.$/);
     });
 
     it("names only changing processor addon in ESM diagnostic w/ two processor addons", () => {
@@ -3481,7 +3514,7 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics[0].messageText;
 
-        expect(actual).toMatch(/\(profile "client", addons: changing-addon\)\.$/);
+        expect(actual).toMatch(/\(source "src\/target\.ts", profile "client", addons: changing-addon\)\.$/);
     });
 
     it("reads a CommonJS package once across addon groups w/ two processor addons changing different files importing it", () => {
@@ -3536,7 +3569,7 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics[0].messageText;
 
-        expect(actual).toMatch(/\(profile "client", addons: changing-addon\)\.$/);
+        expect(actual).toMatch(/\(source "src\/target\.ts", profile "client", addons: changing-addon\)\.$/);
     });
 
     it("names no addon in ESM diagnostic w/ require in source of generator adding virtual file", () => {
@@ -3552,7 +3585,7 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
 
-        expect(actual).toEqual([["/src/target.js", expect.stringMatching(/\(profile "client"\)\.$/)]]);
+        expect(actual).toEqual([["/src/target.js", expect.stringMatching(/\(source "src\/target\.ts", profile "client"\)\.$/)]]);
     });
 
     it("names generator addon in ESM diagnostic w/ require in virtual file added by generator", () => {
@@ -3572,7 +3605,7 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
 
-        expect(actual).toEqual([["/src/generated.js", expect.stringMatching(/\(profile "client", addons: gen-addon\)\.$/)]]);
+        expect(actual).toEqual([["/src/generated.js", expect.stringMatching(/\(source "src\/generated\.ts", profile "client", addons: gen-addon\)\.$/)]]);
     });
 
     it("names no addon in ESM diagnostic w/ processor registered outside addon", () => {
@@ -3588,7 +3621,7 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics[0].messageText;
 
-        expect(actual).toMatch(/\(profile "client"\)\.$/);
+        expect(actual).toMatch(/\(source "src\/target\.ts", profile "client"\)\.$/);
     });
 
     it("yields no ESM diagnostic w/ esm and CommonJS module of profile", () => {
@@ -3719,6 +3752,25 @@ describe("compile w/ esm profile", () => {
         expect(actual).toMatch(/\(profile "client", addons: writing-addon\)\.$/);
     });
 
+    it("names no source in ESM diagnostic w/ result processor creating file", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const addons = createAddons(fileSystem, reporter, {
+            "writing-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => processorCtx.getSystem().writeFile("/src/meta.js", "module.exports = {};")),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["writing-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        const actual = testObj.compile().diagnostics.map(cur => cur.messageText);
+
+        expect(actual).toEqual([expect.not.stringContaining("source")]);
+    });
+
     it("yields no ESM diagnostic w/ result processor writing CommonJS matching esm ignore", () => {
         const fileSystem = createSystem(
             { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
@@ -3776,7 +3828,7 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.code, cur.messageText]);
 
-        expect(actual).toEqual([["/src/target.js", 91001, expect.stringMatching(/\(profile "client", addons: banner-addon\)\.$/)]]);
+        expect(actual).toEqual([["/src/target.js", 91001, expect.stringMatching(/\(source "src\/target\.ts", profile "client", addons: banner-addon\)\.$/)]]);
     });
 
     it("names no addon w/ result processor rewriting emitted file unchanged", () => {
@@ -3795,7 +3847,7 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics.map(cur => cur.messageText);
 
-        expect(actual).toEqual([expect.stringMatching(/\(profile "client"\)\.$/)]);
+        expect(actual).toEqual([expect.stringMatching(/\(source "src\/target\.ts", profile "client"\)\.$/)]);
     });
 
     it("leaves writeFile of system unchanged w/ result processor running", () => {

@@ -132,7 +132,9 @@ describe("webpack w/ websmith-loader and ESM check", () => {
 
         const [actual] = runWebpack({ entry: { main: "./src/a.ts" }, type: "javascript/esm" });
 
-        expect(actual.errors.map(cur => cur.message)).toEqual([expect.stringMatching(/ESM91001: .*addons: require-injector/)]);
+        expect(actual.errors.map(cur => cur.message)).toEqual([
+            expect.stringMatching(/ESM91001: .*\(source "src\/a\.ts", profile "target", addons: require-injector\)/),
+        ]);
     }, 60000);
 
     it("builds .mts and .cts entries with attached source map and no .mjs.map asset", () => {
