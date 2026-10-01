@@ -561,6 +561,32 @@ describe("webpack w/ websmith", () => {
         fs.rmSync(path.resolve(testDirs.SOURCE_DIR, "invalid.ts"), { force: true });
     }, 60000);
 
+    it("should fail with syntax error and declaration emit error once each w/ declaration and per-file Program", async () => {
+        writeTsConfig(
+            {
+                moduleResolution: ts.ModuleResolutionKind.Node10,
+                outDir: testDirs.OUTPUT_DIR,
+                target: ts.ScriptTarget.ESNext,
+                module: ts.ModuleKind.CommonJS,
+                declaration: true,
+                noEmit: false,
+            },
+            testDirs.PROJECT_DIR
+        );
+        writeSourceFile("invalid.ts", "export const a = class { private x = 1; };\nexport const b = ;", testDirs.SOURCE_DIR);
+        writeWebsmithConfig({ addonsDir: ADDONS_DIR }, testDirs.PROJECT_DIR);
+
+        const target = await webpack(undefined, {
+            webpack: { ...webpackDefaults, entry: { main: path.join(testDirs.SOURCE_DIR, "invalid.ts") } },
+            websmith: { configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"), transpileOnly: false },
+        }).catch((err: Error) => err.message);
+        const actual1 = target.split("src/invalid.ts (2,18): Expression expected.").length - 1;
+        const actual2 = target.split("src/invalid.ts (1,14): Property 'x' of exported anonymous class type may not be private").length - 1;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toBe(1);
+    }, 60000);
+
     it("should bundle the file w/ fork-ts-checker-webpack-plugin being used", async () => {
         writeWebsmithConfig(
             {

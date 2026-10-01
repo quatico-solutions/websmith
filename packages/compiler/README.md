@@ -256,8 +256,9 @@ The check runs in `websmith` builds and in watch mode, where every rebuilt file 
 stopping the watcher. It also checks the JavaScript files that result processors write through
 `ctx.getSystem().writeFile` and names the result processor's addon. A result processor that rewrites an emitted file
 is checked once, on the final content, and is named only if it changed the content. Files that addons write with `fs`
-or another file system API directly are not visible to websmith and are not checked. The webpack loader is not checked
-yet.
+or another file system API directly are not visible to websmith and are not checked. The webpack loader runs the check
+on the modules it compiles, see
+[ESM check in websmith-loader](https://github.com/quatico-solutions/websmith/tree/develop/packages/webpack/README.md#esm-check).
 
 ## Websmith configuration file
 

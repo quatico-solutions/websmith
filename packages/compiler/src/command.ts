@@ -5,7 +5,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilationConfig, type CompilerArguments, type CompilerOptions, type Reporter, WarnMessage } from "@quatico/websmith-api";
+import { type CompilerArguments, type CompilerOptions, type Reporter, WarnMessage } from "@quatico/websmith-api";
 import { type AddonConfig, AddonRegistry, Compiler, createOptions, DefaultReporter, NoReporter } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
@@ -138,15 +138,6 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                 }
                 options.additionalArguments = parseUnknownArguments(otherUnknownArgs);
             }
-            if (options.profile && hasInvalidProfile(options.profile, options.config)) {
-                reporter.reportDiagnostic(
-                    new WarnMessage(
-                        `Custom profile configuration "${options.profile}" found, but no profile provided.\n` +
-                            `\tSome custom addons may not be applied during compilation.`
-                    )
-                );
-            }
-
             if (compiler) {
                 compiler.setOptions(options);
             } else {
@@ -207,19 +198,6 @@ export const addonConfig = (command: Command, system: ts.System, options: Compil
         reporter,
         ...(!!options?.config?.profiles && { profiles: options?.config?.profiles }),
     };
-};
-
-export const hasInvalidProfile = (profile?: string, config?: CompilationConfig) => {
-    if (profile === undefined) {
-        return false;
-    }
-    if (config === undefined) {
-        return true;
-    }
-    const definedProfiles = Object.keys(config?.profiles ?? []);
-    const selectedProfiles = [...(config?.profiles?.[profile]?.depends ?? []), profile];
-
-    return !selectedProfiles.every(it => definedProfiles.includes(it));
 };
 
 const parseUnknownArguments = (unknownArgs: string[]): Record<string, unknown> => {
