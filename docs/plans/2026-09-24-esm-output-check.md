@@ -240,10 +240,11 @@ delivery. Decided in-session: fix these before re-delivery.
 - `bug/validate-selected-profile` — config errors only for the selected profile and its dependencies, printed once → #128 <!-- builds: config validation scoped to the selected profile -->
 - `bug/flaky-webpack-watch-tests` — webpack watch e2e tests wait for the rebuild of the edited file → #126 <!-- builds: stable webpack watch e2e tests -->
 
-Added 2026-10-01 after the second delivery panel (`.plot/panels/2026-09-24-esm-output-check-delivery-2/`) found two
-gaps in what #129 and its release notes claim. Decided in-session: fix these before delivery.
+Added 2026-10-01 after the second delivery panel (`.plot/panels/2026-09-24-esm-output-check-delivery-2/`) found gaps in
+#128, #129 and their documentation. Decided in-session: fix these before delivery.
 
-- `bug/declaration-emit-hides-syntax-errors` — a syntax error is reported on the per-file declaration path also when the same file has a declaration emit error, and `packages/webpack/README.md` names the fast path and `transpileOnly: true` among the syntax errors that fail the build <!-- builds: syntax errors next to declaration emit errors -->
+- `bug/declaration-emit-hides-syntax-errors` — a syntax error is reported on the per-file declaration path also when the same file has a declaration emit error; a TypeScript option error prints once, not once per file; `--profile` no longer warns that no profile was provided; `packages/webpack/README.md` names the fast path and `transpileOnly: true` among the syntax errors that fail the build, and `packages/compiler/README.md` no longer says the loader is not checked <!-- builds: syntax errors next to declaration emit errors -->
+- `bug/loader-config-errors-fail-build` — the webpack loader reports configuration errors of the selected profile once, through `this.emitError`, so they fail the build (plan § Failure semantics) <!-- builds: loader config errors fail the build -->
 
 ## Definition of Done
 
