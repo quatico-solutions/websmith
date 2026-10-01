@@ -135,6 +135,8 @@ export class Compiler {
     private baselineEmitCacheFileTimes = new Map<string, Date>();
     // Parsed package.json files for the module format of files under node16/nodenext, cleared with the options
     private packageJsonInfoCache?: ts.PackageJsonInfoCache;
+    // Diagnostics without a file a watch build reported, such as option errors that every fast path file returns
+    private reportedWatchDiagnostics = new Set<string>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -318,6 +320,7 @@ export class Compiler {
         this.baselineEmitCache.clear(); // Clear baseline emit cache when options change
         this.baselineEmitCacheFileTimes.clear(); // Clear file modification time tracking when options change
         this.packageJsonInfoCache = undefined;
+        this.reportedWatchDiagnostics.clear();
         // Don't invalidate cachedProgram - keep it for incremental compilation
         // The createProgram() method will detect option changes and create a new program
         // while still passing the old program for incremental type checking
@@ -668,14 +671,13 @@ export class Compiler {
             !this.transpileOnly && program
                 ? ts.getPreEmitDiagnostics(program).filter(cur => program.getProjectReferences?.()?.length || cur.file)
                 : [];
-        // The Program and the fragments of the result find the same errors in unprocessed files
+        // The Program and the fragments of the result find the same errors in unprocessed files, and every fragment
+        // of the fast path returns the same option errors
         const reported = new Set<string>();
         preEmitDiagnostics.concat(result.diagnostics).forEach(cur => {
-            const key = cur.file ? this.getDiagnosticKey(cur) : undefined;
-            if (!key || !reported.has(key)) {
-                if (key) {
-                    reported.add(key);
-                }
+            const key = this.getDiagnosticKey(cur);
+            if (!reported.has(key)) {
+                reported.add(key);
                 this.reporter.reportDiagnostic(label(cur));
             }
         });
@@ -816,7 +818,16 @@ export class Compiler {
     /** Emits one source file of a watch build and reports its diagnostics, which no report() call sees in watch mode. */
     private emitWatchedFile(...args: Parameters<Compiler["emitSourceFile"]>): CompileFragment | undefined {
         const fragment: CompileFragment | undefined = this.emitSourceFile(...args);
-        fragment?.diagnostics?.forEach(cur => this.reporter.reportDiagnostic(cur));
+        fragment?.diagnostics?.forEach(cur => {
+            // Every file of the fast path returns the option errors, which a rebuild does not change
+            const key = cur.file ? undefined : this.getDiagnosticKey(cur);
+            if (!key || !this.reportedWatchDiagnostics.has(key)) {
+                if (key) {
+                    this.reportedWatchDiagnostics.add(key);
+                }
+                this.reporter.reportDiagnostic(cur);
+            }
+        });
         return fragment;
     }
 

@@ -381,6 +381,28 @@ describe("bin.ts e2e tests", () => {
         60000
     );
 
+    it("should exit with status 1 and report the TypeScript option error once w/ several files on fast path", () => {
+        createTsConfig({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            resolveJsonModule: true,
+            moduleResolution: "classic",
+            target: "esnext",
+            module: "esnext",
+            types: [],
+        } as TscArguments);
+        createSourceFile(`export const a = 1;`, "a.ts");
+        createSourceFile(`export const b = 1;`, "b.ts");
+        createSourceFile(`export const c = 1;`, "c.ts");
+
+        const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+        const actual1 = target.status;
+        const actual2 = target.output.split("Option '--resolveJsonModule' cannot be specified").length - 1;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toBe(1);
+    }, 60000);
+
     it.each([{ noEmitOnError: false }, { noEmitOnError: true }])(
         "should exit with status 1 and report the syntax error once w/ addon requiring type information and noEmitOnError $noEmitOnError",
         ({ noEmitOnError }) => {
