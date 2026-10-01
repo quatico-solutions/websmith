@@ -136,6 +136,7 @@ export class TsCompiler extends Compiler {
     private readonly scanCache = new CompilationScanCache();
     private esmCheckTime = 0;
     private cachesPerCompilation = false;
+    private compilationHooks = false;
 
     constructor(
         options: CompilerOptions,
@@ -182,6 +183,15 @@ export class TsCompiler extends Compiler {
         // Update profile after configuration is updated
         const profileName = this.getOptions().profile || loaderOptions.profile;
         this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
+    }
+
+    /** Marks that compilation hooks report the config errors once per compilation, so the loader does not. */
+    public useCompilationHooks(): void {
+        this.compilationHooks = true;
+    }
+
+    public hasCompilationHooks(): boolean {
+        return this.compilationHooks;
     }
 
     /**

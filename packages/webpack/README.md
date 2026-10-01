@@ -83,10 +83,13 @@ TypeScript diagnostics and ESM check diagnostics are emitted on the module that 
 
 Configuration errors in `websmith.config.json` of the selected `profile` and the profiles it depends on fail the
 build too, e.g. an unknown profile in `depends`, an unknown `esm.runtime`, or `esm` together with
-`tsConfig.module: "CommonJS"`. They belong to no module: the loader adds each one once per compilation to webpack's
-errors, and passes it to `error`. A watch rebuild reports them again while they remain. Errors of profiles the build
-does not use are not reported. Without a webpack compiler, e.g. under `thread-loader`, the first module that the
-loader builds reports them.
+`tsConfig.module: "CommonJS"`. A `configFile` that does not exist is a configuration error as well. Errors of
+profiles the build does not use are not reported. Configuration errors belong to no module: the loader adds each one
+once per compilation to webpack's errors and passes it to `error`, also when several loader rules use the same
+configuration. A watch rebuild reports them again while they remain. Editing `websmith.config.json` triggers a
+rebuild that reports its current errors, but modules whose sources did not change are not compiled again with the
+new configuration. Without compiler hooks, e.g. under `thread-loader`, the loader emits the configuration errors on
+every module it builds instead, so they appear once per module.
 
 #### `.mts` and `.cts` files
 

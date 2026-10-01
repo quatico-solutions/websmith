@@ -121,9 +121,11 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   profile, failed every build, even one that selected another profile. Without a selected profile, no profile is
   checked. The CLI now prints each configuration error once instead of twice.
 - Configuration errors of the selected profile and the profiles it depends on fail webpack loader builds, e.g. an
-  unknown profile in `depends`, an unknown `esm.runtime`, or `esm` together with `tsConfig.module: "CommonJS"`. The
-  loader reports each one once per compilation, also on every watch rebuild while it remains, as a webpack error.
-  Before, the loader printed each one to the console once per module, and webpack still compiled successfully.
+  unknown profile in `depends`, an unknown `esm.runtime`, `esm` together with `tsConfig.module: "CommonJS"`, or a
+  `configFile` that does not exist. The loader reports each one once per compilation as a webpack error, also on
+  every watch rebuild while it remains; editing `websmith.config.json` triggers a rebuild. Without compiler hooks,
+  e.g. under `thread-loader`, it reports them on every module instead. Before, the loader printed each one to the
+  console once per module, and webpack still compiled successfully.
 
 ### Removed
 

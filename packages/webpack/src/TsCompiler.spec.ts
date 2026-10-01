@@ -479,6 +479,37 @@ describe("TsCompiler config errors", () => {
         expect(actual).toBe(2);
     });
 
+    it("yields missing config file as config error", () => {
+        const testObj = new TsCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
+            { tsConfigFile: "/tsconfig.json", configFile: "/missing.config.json", transpileOnly: true },
+            undefined,
+            undefined,
+            createSystem({ ...TS_CONFIG, "/src/a.ts": "export const a = 1;" }, { virtual: true })
+        );
+
+        const actual = testObj.getConfigErrors().map(cur => cur.messageText);
+
+        expect(actual).toEqual(['No configuration file found at "/missing.config.json".']);
+    });
+
+    it("has no compilation hooks w/o use of compilation hooks", () => {
+        const testObj = createConfigCompiler("valid");
+
+        const actual = testObj.hasCompilationHooks();
+
+        expect(actual).toBe(false);
+    });
+
+    it("has compilation hooks w/ use of compilation hooks", () => {
+        const testObj = createConfigCompiler("valid");
+
+        testObj.useCompilationHooks();
+        const actual = testObj.hasCompilationHooks();
+
+        expect(actual).toBe(true);
+    });
+
     it("yields no config errors w/ valid selected profile next to broken profile", () => {
         const testObj = createConfigCompiler("valid");
 
