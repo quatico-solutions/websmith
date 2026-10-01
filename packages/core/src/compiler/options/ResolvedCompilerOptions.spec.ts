@@ -330,6 +330,36 @@ describe("config", () => {
             transpileOnly: true,
         });
     });
+
+    it("should report nothing w/ invalid unselected profile in config file", () => {
+        const fileSystem = createSystem(
+            { "./websmith.config.json": JSON.stringify({ profiles: { broken: { esm: { runtime: "deno" } }, valid: {} } }) },
+            { virtual: true }
+        );
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { configFile: "./websmith.config.json", profile: "valid", reporter: target });
+
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
+    });
+
+    it("should report error w/ invalid profile in config file selected by loader options", () => {
+        const fileSystem = createSystem(
+            { "./websmith.config.json": JSON.stringify({ profiles: { broken: { esm: { runtime: "deno" } }, valid: {} } }) },
+            { virtual: true }
+        );
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { configFile: "./websmith.config.json", profile: "valid", reporter: target }, {
+            profile: "broken",
+        } as any);
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({ messageText: expect.stringContaining("Unknown 'esm.runtime' value 'deno' in profile 'broken'") })
+        );
+    });
 });
 
 describe("debug", () => {
