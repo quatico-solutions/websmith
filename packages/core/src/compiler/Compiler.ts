@@ -252,13 +252,13 @@ export class Compiler {
             if (profiles.length) {
                 // Process all profiles for each file before moving to the next file
                 files.forEach(curFile => {
-                    profiles.forEach(curProfile => this.checkWatchedFragment(curFile, curProfile, this.emitSourceFile(curFile, curProfile, true)));
+                    profiles.forEach(curProfile => this.checkWatchedFragment(curFile, curProfile, this.emitWatchedFile(curFile, curProfile, true)));
                 });
                 // Register watches once per file
                 files.forEach(curFile => this.registerWatch(curFile, profiles));
             } else {
                 files.forEach(curFile => {
-                    this.emitSourceFile(curFile, undefined, true);
+                    this.emitWatchedFile(curFile, undefined, true);
                     this.registerWatch(curFile);
                 });
             }
@@ -662,18 +662,29 @@ export class Compiler {
     protected report(program: ts.Program | undefined, result: ts.EmitResult, profile?: string): ts.EmitResult {
         const label = this.createEsmLabel(profile);
         // Skip pre-emit diagnostics in transpileOnly mode or when using fast transpileModule path
-        // to avoid validation errors with numeric enum values that TypeScript's internal validation rejects
-        if (!this.transpileOnly && program) {
-            ts.getPreEmitDiagnostics(program)
-                .concat(result.diagnostics)
-                .filter(cur => program?.getProjectReferences?.()?.length || cur.file) // Filter out global diagnostics
-                .forEach(cur => this.reporter.reportDiagnostic(label(cur)));
-        } else {
-            // In transpileOnly mode or fast path (no Program), only report diagnostics from the result
-            result.diagnostics.forEach(cur => this.reporter.reportDiagnostic(label(cur)));
-        }
+        // to avoid validation errors with numeric enum values that TypeScript's internal validation rejects.
+        // Global diagnostics of the Program are filtered out.
+        const preEmitDiagnostics =
+            !this.transpileOnly && program
+                ? ts.getPreEmitDiagnostics(program).filter(cur => program.getProjectReferences?.()?.length || cur.file)
+                : [];
+        // The Program and the fragments of the result find the same errors in unprocessed files
+        const reported = new Set<string>();
+        preEmitDiagnostics.concat(result.diagnostics).forEach(cur => {
+            const key = cur.file ? this.getDiagnosticKey(cur, cur.file) : undefined;
+            if (!key || !reported.has(key)) {
+                if (key) {
+                    reported.add(key);
+                }
+                this.reporter.reportDiagnostic(label(cur));
+            }
+        });
 
         return result;
+    }
+
+    private getDiagnosticKey({ start, code, messageText }: ts.Diagnostic, file: ts.SourceFile): string {
+        return [file.fileName, start, code, ts.flattenDiagnosticMessageText(messageText, "\n")].join("\0");
     }
 
     /**
@@ -719,11 +730,12 @@ export class Compiler {
         for (const fileName of files) {
             const fragment = this.emitSourceFile(fileName, profile);
             writtenFiles.push({ files: fragment.writtenFiles, addons: ctx.getAddonsChangingFile(fileName), source: fileName });
+            // report() prints the fragment diagnostics: they cover the processed and virtual content the Program
+            // behind getPreEmitDiagnostics does not see
+            result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
             if (fragment?.files.length > 0) {
                 result.emittedFiles?.push(...fragment.files.map(cur => cur.name));
             } else {
-                fragment.diagnostics?.forEach(diagnostic => this.reporter.reportDiagnostic(diagnostic));
-                result.diagnostics = [...result.diagnostics, ...(fragment.diagnostics ?? [])];
                 result.emitSkipped = !!fragment.diagnostics && fragment.diagnostics.length > 0 ? true : false;
             }
         }
@@ -801,6 +813,13 @@ export class Compiler {
         return esm;
     }
 
+    /** Emits one source file of a watch build and reports its diagnostics, which no report() call sees in watch mode. */
+    private emitWatchedFile(...args: Parameters<Compiler["emitSourceFile"]>): CompileFragment | undefined {
+        const fragment: CompileFragment | undefined = this.emitSourceFile(...args);
+        fragment?.diagnostics?.forEach(cur => this.reporter.reportDiagnostic(cur));
+        return fragment;
+    }
+
     /** Reports ESM diagnostics for the files a watch build of one source file wrote; watching goes on regardless. */
     private checkWatchedFragment(fileName: string, profile: string, fragment: CompileFragment | undefined): CompileFragment | undefined {
         const ctx = this.getContext(profile);
@@ -866,18 +885,18 @@ export class Compiler {
                     this.packageJsonInfoCache = undefined;
                     if (!profileNames?.length) {
                         return fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                            ? this.emitSourceFile(fileName, undefined, true, true)
+                            ? this.emitWatchedFile(fileName, undefined, true, true)
                             : this.getContext()!
                                   .resolveDependency(fileName)
-                                  .map(cur => this.emitSourceFile(cur, undefined, true, true));
+                                  .map(cur => this.emitWatchedFile(cur, undefined, true, true));
                     } else {
                         return profileNames.forEach(profile =>
                             fileName.match(/.*\.([tj]|m[tj]|c[tj])?sx?$/)
-                                ? this.checkWatchedFragment(fileName, profile, this.emitSourceFile(fileName, profile, true, true))
+                                ? this.checkWatchedFragment(fileName, profile, this.emitWatchedFile(fileName, profile, true, true))
                                 : this.hasContext(profile) &&
                                   this.getContext(profile)!
                                       .resolveDependency(fileName)
-                                      .map(cur => this.checkWatchedFragment(cur, profile, this.emitSourceFile(cur, profile, true, true)))
+                                      .map(cur => this.checkWatchedFragment(cur, profile, this.emitWatchedFile(cur, profile, true, true)))
                         );
                     }
                 },
@@ -919,8 +938,8 @@ export class Compiler {
                         packageFiles.forEach(curFile =>
                             profiles.forEach(profile =>
                                 profile
-                                    ? this.checkWatchedFragment(curFile, profile, this.emitSourceFile(curFile, profile, true, true))
-                                    : this.emitSourceFile(curFile, profile, true, true)
+                                    ? this.checkWatchedFragment(curFile, profile, this.emitWatchedFile(curFile, profile, true, true))
+                                    : this.emitWatchedFile(curFile, profile, true, true)
                             )
                         );
                     },
@@ -1286,7 +1305,10 @@ export class Compiler {
 
                 return {
                     outputFiles,
-                    diagnostics: emitResult.diagnostics,
+                    // A skipped emit (noEmitOnError) already returns the syntactic diagnostics
+                    diagnostics: emitResult.emitSkipped
+                        ? emitResult.diagnostics
+                        : [...program.getSyntacticDiagnostics(sourceFile), ...emitResult.diagnostics],
                 };
             };
 
@@ -1355,7 +1377,7 @@ export class Compiler {
         const { outputText, sourceMapText, diagnostics } =
             compilerOptions.module === ts.ModuleKind.Node16 || compilerOptions.module === ts.ModuleKind.NodeNext
                 ? this.transpileNodeModule(content, fileName, compilerOptions, ctx.getTransformers())
-                : ts.transpileModule(content, { compilerOptions, fileName, transformers: ctx.getTransformers() });
+                : ts.transpileModule(content, { compilerOptions, fileName, reportDiagnostics: true, transformers: ctx.getTransformers() });
 
         // Use ts.getOutputFileNames to get correct output paths
         // Note: We filter TS_ERROR_CODE_INVALID_CLI_OPTION below, so numeric enum values won't cause issues
@@ -1371,7 +1393,8 @@ export class Compiler {
                 this.extractOutputFile(fileNames, isSourceMap, sourceMapText)
             ),
             diagnostics: filteredDiagnostics,
-            emitSkipped: filteredDiagnostics.length > 0,
+            // Errors in the source, such as syntax errors, carry their file and still emit, as tsc does
+            emitSkipped: filteredDiagnostics.some(cur => !cur.file),
         };
     }
 
@@ -1432,9 +1455,10 @@ export class Compiler {
             directoryExists: () => true,
             getDirectories: () => [],
         };
-        const { diagnostics } = ts.createProgram([fileName], compilerOptions, host).emit(undefined, undefined, undefined, false, transformers);
+        const program = ts.createProgram([fileName], compilerOptions, host);
+        const { diagnostics } = program.emit(undefined, undefined, undefined, false, transformers);
 
-        return { outputText, sourceMapText, diagnostics: [...diagnostics] };
+        return { outputText, sourceMapText, diagnostics: [...program.getSyntacticDiagnostics(), ...diagnostics] };
     }
 
     /** Returns the module format TypeScript gives a file from its extension and the nearest package.json. */

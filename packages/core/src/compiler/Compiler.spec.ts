@@ -961,6 +961,54 @@ describe("compile", () => {
         `);
     });
 
+    it("reports syntax error once w/ fast path", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).compile();
+
+        expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
+    });
+
+    it.each([
+        {
+            name: "syntax error",
+            source: `export const a = ;`,
+            noEmitOnError: false,
+            expected: "Error: /src/target.ts (1,18): Expression expected.\n",
+        },
+        { name: "syntax error", source: `export const a = ;`, noEmitOnError: true, expected: "Error: /src/target.ts (1,18): Expression expected.\n" },
+        {
+            name: "declaration emit error",
+            source: `export const a = class { private x = 1; };`,
+            noEmitOnError: false,
+            expected: "Error: /src/target.ts (1,14): Property 'x' of exported anonymous class type may not be private or protected.\n",
+        },
+    ])("reports $name once w/ declaration, noEmitOnError $noEmitOnError and per-file Program", ({ source, noEmitOnError, expected }) => {
+        const fileSystem = createSystem({ "src/target.ts": source }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { declaration: true, noEmitOnError, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).compile();
+
+        expect(target.message).toBe(expected);
+    });
+
     it("yields output w/ with addons but w/o profiles", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
 
@@ -1060,6 +1108,74 @@ describe("emitSourceFile", () => {
             .emitSourceFile("/src/target.ts", undefined, false);
 
         expect(getText("target.js", actual)).toContain(`const fs = __require("fs");`);
+    });
+
+    it.each([
+        { name: "ESNext", module: ts.ModuleKind.ESNext },
+        { name: "NodeNext", module: ts.ModuleKind.NodeNext },
+    ])("yields syntax error with file and position w/ module $name on fast path", ({ module }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, module },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.diagnostics).toEqual([
+            expect.objectContaining({
+                code: 1109,
+                category: ts.DiagnosticCategory.Error,
+                start: 17,
+                file: expect.objectContaining({ fileName: "/src/target.ts" }),
+            }),
+        ]);
+    });
+
+    it.each([
+        { name: "syntax error", source: `export const a = ;`, code: 1109, start: 17 },
+        { name: "declaration emit error", source: `export const a = class { private x = 1; };`, code: 4094, start: 13 },
+    ])("yields $name with file and position w/ declaration and per-file Program", ({ source, code, start }) => {
+        const fileSystem = createSystem({ "src/target.ts": source }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.diagnostics).toEqual([
+            expect.objectContaining({
+                code,
+                category: ts.DiagnosticCategory.Error,
+                start,
+                file: expect.objectContaining({ fileName: "/src/target.ts" }),
+            }),
+        ]);
+    });
+
+    it.each([
+        { name: "ESNext", module: ts.ModuleKind.ESNext },
+        { name: "NodeNext", module: ts.ModuleKind.NodeNext },
+    ])("yields output despite syntax error w/ module $name on fast path", ({ module }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, module },
+            cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(getText("target.js", actual)).toContain("a =");
     });
 
     it("yields modified client function w/ annotated arrow function", () => {
@@ -1485,6 +1601,58 @@ describe("report", () => {
 });
 
 describe("watch", () => {
+    it.each([
+        { name: "no profile", declaration: false, profile: undefined },
+        { name: "no profile", declaration: true, profile: undefined },
+        { name: "profile", declaration: false, profile: "client" },
+        { name: "profile", declaration: true, profile: "client" },
+    ])("reports syntax error once w/ $name, declaration $declaration and rebuild introducing it", ({ declaration, profile }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                config: { profiles: { client: {} } },
+                profile,
+                watch: true,
+                tsConfig: { declaration, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).watch();
+
+        fileSystem.writeFile("/src/target.ts", `export const a = ;`);
+
+        expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
+        testObj.closeAllWatchers();
+    });
+
+    it.each([
+        { name: "no profile", profile: undefined },
+        { name: "profile", profile: "client" },
+    ])("reports syntax error once w/ $name and initial watch build", ({ profile }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                config: { profiles: { client: {} } },
+                profile,
+                watch: true,
+                tsConfig: { target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.watch();
+
+        expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
+        testObj.closeAllWatchers();
+    });
+
     it("should output to buildDir w/o outDir override", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
         const options = {
@@ -4104,5 +4272,67 @@ describe("report w/ TypeScript ESM diagnostics", () => {
         const actual = target.mock.calls.map(([cur]) => cur.code).filter(cur => cur === 2835);
 
         expect(actual).toEqual([]);
+    });
+});
+
+describe("compile w/ syntax error and addon needing type information", () => {
+    const createCompiler = (
+        fileSystem: ts.System,
+        reporter: Reporter,
+        activate: (ctx: CompilationContext) => void,
+        options: { noEmitOnError?: boolean; transpileOnly?: boolean } = {}
+    ) => {
+        fileSystem.createDirectory("./addons");
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter, system: fileSystem });
+        // Legacy addon: needsTypeInfo is undefined, so the compilation creates the big Program
+        const typeInfoAddon = { getName: () => "type-info-addon", activate };
+        addons.getAvailableAddons = jest.fn().mockReturnValue([typeInfoAddon]);
+        return new CompilerTestClass(
+            {
+                reporter,
+                config: { transpileOnly: options.transpileOnly, addons: ["type-info-addon"] },
+                tsConfig: { target: ts.ScriptTarget.ESNext, noEmitOnError: options.noEmitOnError, types: [] },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).setAddonRegistry(addons);
+    };
+
+    it.each([
+        { noEmitOnError: false, transpileOnly: false },
+        { noEmitOnError: true, transpileOnly: false },
+        { noEmitOnError: false, transpileOnly: true },
+    ])("reports syntax error once w/ noEmitOnError $noEmitOnError and transpileOnly $transpileOnly", options => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        createCompiler(fileSystem, target, () => {}, options).compile();
+
+        expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
+    });
+
+    it("reports syntax error once at its position in the processed text w/ processor appending invalid code", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        createCompiler(fileSystem, target, ctx => ctx.registerProcessor((_fileName, content) => `${content}\nexport const z = ;`)).compile();
+
+        expect(target.message).toBe("Error: /src/target.ts (2,18): Expression expected.\n");
+    });
+
+    it("reports syntax error once w/ generator adding virtual file with invalid code", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        createCompiler(fileSystem, target, ctx =>
+            ctx.registerGenerator(fileName => {
+                if (fileName === "/src/target.ts") {
+                    ctx.addVirtualFile("/src/virtual.ts", `export const v = ;`);
+                }
+            })
+        ).compile();
+
+        expect(target.message).toBe("Error: /src/virtual.ts (1,18): Expression expected.\n");
     });
 });

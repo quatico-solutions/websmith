@@ -58,7 +58,16 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   - TypeScript type errors fail the build only when type checking runs, which is when an active addon needs type
     information and `transpileOnly` is off. Other builds are not type checked, so a type error there still exits
     with `0`. This includes builds without addons, builds on the fast `transpileModule` path, and builds that emit
-    declarations through per-file programs.
+    declarations through per-file programs unless `noEmitOnError` is set.
+  - TypeScript syntax errors in `.ts`, `.tsx`, `.mts` and `.cts` files fail every build, including builds on the
+    fast `transpileModule` path, which runs when no active addon needs type information and `declaration` is off,
+    or with `transpileOnly`, and builds that emit declarations through per-file programs. The fast path does not
+    check declaration files and JavaScript sources.
+  - Invalid code that generators add with `addVirtualFile` or that processors produce fails builds too. It is
+    reported at its position in the processed text.
+  - With `declaration: true`, declaration emit errors fail CLI builds too, e.g. TS4094, TS2742 and, under
+    `isolatedDeclarations`, TS9xxx, as they already fail webpack loader builds. Before, builds that emit declarations
+    through per-file programs discarded them.
   - When type checking runs, errors in declaration files count too, including those under `node_modules/@types`. A
     project that picks up incompatible `@types` packages (for example through the default `types` inclusion) now
     fails; restrict them with the `types` compiler option.
@@ -67,9 +76,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 - **Breaking:** webpack loader diagnostics now fail builds. The loader emits TypeScript and ESM check errors and
   warnings on the module that produced them, so errors make `stats.hasErrors()` true and webpack-cli exit with `1`.
   Before, every diagnostic went only to the `error` loader option, which does nothing by default.
-  - Errors that now fail loader builds include TypeScript syntax errors under `transpileOnly: false`, and declaration
-    emit errors under `declaration: true` with `transpileOnly: false` and no addon that needs type information, e.g.
-    TS4094, TS2742 and, under `isolatedDeclarations`, TS9xxx.
+  - Errors that now fail loader builds include TypeScript syntax errors, also on the fast `transpileModule` path and
+    under `transpileOnly: true`, and declaration emit errors under `declaration: true` with `transpileOnly: false`
+    and no addon that needs type information, e.g. TS4094, TS2742 and, under `isolatedDeclarations`, TS9xxx.
   - The `error` and `warn` options are called after webpack has the diagnostic: `error` receives errors, `warn`
     receives warnings, and messages and suggestions reach `warn` only with `debug`. Before, `error` received every
     diagnostic, warnings included. The message now starts with the emitted file and position, `file (line,col): `.
@@ -93,6 +102,20 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   `"target": "ES2022"`, are now converted to TypeScript's values like names in `tsconfig.json`. Before, `"NodeNext"`
   emitted every `.ts` file as CommonJS in builds without type-checking addons, and builds with type-checking addons
   or declarations failed. An unknown name is reported as a configuration error.
+- TypeScript syntax errors are reported in builds on the fast `transpileModule` path, which runs when no active addon
+  needs type information and `declaration` is off, or with `transpileOnly`, including `"module": "node16"` or
+  `"nodenext"`, and in builds that emit declarations through per-file programs. Before, they were discarded:
+  `export const a = ;` was emitted as broken JavaScript and `websmith` exited with `0`. The file is still emitted,
+  like with `tsc`.
+- Syntax errors in code from processors and in files generators add with `addVirtualFile` are reported when an
+  active addon needs type information. Before, only the files on disk were checked, so they were discarded.
+- A TypeScript error that both the type-checking Program and the emit of a file find is printed once. Before,
+  errors of a file whose emit was skipped, e.g. under `noEmitOnError`, were printed twice or three times. When a
+  processor shifts the positions in a file that already has a syntax error, the error is printed at both positions.
+- Configuration errors such as TS5053 (conflicting compiler options) fail fast-path builds and skip their emit.
+  Before, the fast path ignored them and emitted the files.
+- Watch mode reports the syntax errors and declaration emit errors of each rebuilt file. Before, `websmith --watch`
+  printed none of them.
 - Configuration errors in `websmith.config.json` are now reported only for the selected profile and the profiles it
   depends on, in the CLI and the webpack loader. Before, one broken profile, e.g. one whose `depends` names an unknown
   profile, failed every build, even one that selected another profile. Without a selected profile, no profile is
