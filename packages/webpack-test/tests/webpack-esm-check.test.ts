@@ -33,7 +33,7 @@ type RunOptions = {
     /** webpack module type set on the loader rule, webpack decides by the resource path when absent */
     type?: string;
     devtool?: string;
-    /** Files to write after each watch build, relative to the project; runs webpack once when absent */
+    /** Files to write after each watch build, relative to the project; runs webpack once when absent. Every step must trigger a rebuild containing all its files. */
     steps?: Record<string, string>[];
 };
 
@@ -286,11 +286,24 @@ const runWebpack = ({ entry, type, devtool, steps }: RunOptions): (BuildReport &
         } else {
             let step = 0;
             let watchdog;
+            let awaited = null;
+            let lastModified = [];
+            const fail = message => {
+                console.error(message);
+                process.exitCode = 2;
+                watching.close(() => undefined);
+            };
             const watching = compiler.watch({ aggregateTimeout: 100 }, (err, stats) => {
                 if (err) {
                     console.error(err);
                     process.exitCode = 2;
                     return watching.close(() => undefined);
+                }
+                // Webpack may rebuild spuriously after the initial build; only a rebuild that saw the edited file is the awaited one
+                const modified = compiler.modifiedFiles || new Set();
+                lastModified = [...modified];
+                if (awaited && !awaited.every(cur => modified.has(cur))) {
+                    return;
                 }
                 report(stats);
                 clearTimeout(watchdog);
@@ -298,9 +311,12 @@ const runWebpack = ({ entry, type, devtool, steps }: RunOptions): (BuildReport &
                 if (!files) {
                     return watching.close(() => undefined);
                 }
-                // Let the watcher settle, so the write is seen as a change after this build; stop when it triggers none
-                clearTimeout(watchdog);
-                watchdog = setTimeout(() => watching.close(() => undefined), 10000);
+                awaited = Object.keys(files).map(fileName => path.join(projectDir, fileName));
+                watchdog = setTimeout(
+                    () => fail("no rebuild containing " + awaited.join(", ") + " within 25000ms, modified files were: " + lastModified.join(", ")),
+                    25000
+                );
+                // Let the watcher settle, so the write is seen as a change after this build
                 setTimeout(() => {
                     Object.entries(files).forEach(([fileName, content]) => {
                         const filePath = path.join(projectDir, fileName);
@@ -314,13 +330,13 @@ const runWebpack = ({ entry, type, devtool, steps }: RunOptions): (BuildReport &
     const scriptPath = path.join(testDirs.PROJECT_DIR, "run-webpack.cjs");
     fs.writeFileSync(scriptPath, script, { encoding: "utf-8" });
 
-    const result = spawnSync(process.execPath, [scriptPath], { cwd: testDirs.PROJECT_DIR, encoding: "utf-8", timeout: 50000 });
+    const result = spawnSync(process.execPath, [scriptPath], { cwd: testDirs.PROJECT_DIR, encoding: "utf-8", timeout: (steps?.length ?? 1) * 26000 + 15000 });
     const reports = result.stdout
         .split("\n")
         .filter(cur => cur.startsWith("RESULT "))
         .map(cur => ({ ...(JSON.parse(cur.slice("RESULT ".length)) as BuildReport), exitCode: result.status }));
-    if (reports.length === 0) {
-        throw new Error(`webpack reported no build: ${result.stdout}${result.stderr}`);
+    if (reports.length === 0 || (steps && reports.length !== steps.length + 1)) {
+        throw new Error(`webpack reported ${reports.length} builds, expected ${steps ? steps.length + 1 : 1}: ${result.stdout}${result.stderr}`);
     }
     return reports;
 };
