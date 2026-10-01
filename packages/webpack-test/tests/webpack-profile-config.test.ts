@@ -22,12 +22,18 @@ let testDirs: ReturnType<typeof getTestDirs>;
 beforeEach(() => {
     testDirs = getTestDirs();
 
-    writeSourceFile("index.ts", `export const hello: string = "world";\n`, testDirs.SOURCE_DIR);
+    writeSourceFile("index.ts", `export { hello } from "./hello";\n`, testDirs.SOURCE_DIR);
+    writeSourceFile("hello.ts", `export const hello: string = "world";\n`, testDirs.SOURCE_DIR);
     writeTsConfig({ target: ts.ScriptTarget.ES2020, outDir: testDirs.OUTPUT_DIR }, testDirs.PROJECT_DIR);
     writeWebsmithConfig(
         {
             profiles: {
-                broken: { depends: ["unknown-profile"] },
+                broken: {
+                    depends: ["unknown-profile"],
+                    esm: { runtime: "unknown-runtime" as "node" },
+                    tsConfig: { module: "ESNext" as unknown as ts.ModuleKind, outDir: testDirs.OUTPUT_DIR },
+                },
+                commonjs: { esm: { runtime: "bundler" }, tsConfig: { module: "CommonJS" as unknown as ts.ModuleKind, outDir: testDirs.OUTPUT_DIR } },
                 valid: { tsConfig: { outDir: testDirs.OUTPUT_DIR } },
             },
         },
@@ -43,17 +49,40 @@ describe("webpack w/ websmith-loader and a broken profile in websmith.config.jso
     it("should build w/o errors w/ valid selected profile", () => {
         const actual = runWebpack("valid");
 
-        expect(actual).toEqual({ exitCode: 0, output: expect.not.stringContaining("unknown-profile") });
+        expect(actual).toEqual({ exitCode: 0, output: expect.not.stringMatching(/unknown-profile|unknown-runtime|Profile 'commonjs'/) });
     }, 60000);
 
-    it("should report the config error w/ broken selected profile", () => {
+    it("should fail w/ each config error once w/ broken selected profile", () => {
         const actual = runWebpack("broken");
 
-        expect(actual.output).toContain("Unknown profile 'unknown-profile' in 'depends'");
+        expect(actual.exitCode).toBe(1);
+        expect(countOf(actual.output, "Unknown profile 'unknown-profile' in 'depends'")).toBe(1);
+        expect(countOf(actual.output, "Unknown 'esm.runtime' value 'unknown-runtime' in profile 'broken'")).toBe(1);
+    }, 60000);
+
+    it("should fail w/ config error once w/ esm and CommonJS module in selected profile", () => {
+        const actual = runWebpack("commonjs");
+
+        expect(actual.exitCode).toBe(1);
+        expect(countOf(actual.output, "Profile 'commonjs' of")).toBe(1);
+        expect(actual.output).toContain("sets 'esm', but its 'tsConfig.module' is 'CommonJS'");
+    }, 60000);
+
+    it("should fail w/ config error per module w/ thread-loader and broken selected profile", () => {
+        const actual = runWebpack("broken", true);
+
+        expect(actual.exitCode).toBe(1);
+        expect(countOf(actual.output, "Unknown profile 'unknown-profile' in 'depends'")).toBe(2);
+    }, 60000);
+
+    it("should build w/o errors w/ thread-loader and valid selected profile", () => {
+        const actual = runWebpack("valid", true);
+
+        expect(actual).toEqual({ exitCode: 0, output: expect.not.stringMatching(/unknown-profile|unknown-runtime|Profile 'commonjs'/) });
     }, 60000);
 });
 
-const runWebpack = (profile: string): { exitCode: number | null; output: string } => {
+const runWebpack = (profile: string, threadLoader = false): { exitCode: number | null; output: string } => {
     const script = `
         const webpack = require(${JSON.stringify(require.resolve("webpack"))});
         webpack(
@@ -69,6 +98,7 @@ const runWebpack = (profile: string): { exitCode: number | null; output: string 
                         {
                             test: /\\.ts$/,
                             use: [
+                                ${threadLoader ? `${JSON.stringify(require.resolve("thread-loader"))},` : ""}
                                 {
                                     loader: ${JSON.stringify(require.resolve("websmith-loader"))},
                                     options: {
@@ -97,3 +127,5 @@ const runWebpack = (profile: string): { exitCode: number | null; output: string 
     const result = spawnSync(process.execPath, [scriptPath], { cwd: testDirs.PROJECT_DIR, encoding: "utf-8", timeout: 50000 });
     return { exitCode: result.status, output: `${result.stdout}${result.stderr}` };
 };
+
+const countOf = (text: string, part: string): number => text.split(part).length - 1;

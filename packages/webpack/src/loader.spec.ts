@@ -4,6 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { ErrorMessage } from "@quatico/websmith-api";
 import { Compiler, NoReporter, createSystem } from "@quatico/websmith-core";
 import fs from "node:fs";
 import path from "node:path";
@@ -355,16 +356,29 @@ const createBuildResult = (result: Partial<LoaderBuildResult> = {}): LoaderBuild
     ...result,
 });
 
-const setUpLoader = (result: LoaderBuildResult, options: WebsmithLoaderConfig = {}, debug = false) => {
+const setUpLoader = (
+    result: LoaderBuildResult,
+    options: WebsmithLoaderConfig = {},
+    debug = false,
+    configErrors: ts.Diagnostic[] = [],
+    compilationHooks = false
+) => {
     const build = jest.fn().mockReturnValue(result);
-    const instance = { build, getProfile: () => undefined, getOptions: () => ({ debug }) };
+    const instance = {
+        build,
+        getProfile: () => undefined,
+        getOptions: () => ({ debug }),
+        getConfigErrors: () => configErrors,
+        hasCompilationHooks: () => compilationHooks,
+    };
     jest.mocked(getCompilerInstance).mockReturnValue(instance as unknown as TsCompiler);
     jest.mocked(getLoaderOptions).mockReturnValue(options);
     return build;
 };
 
-const createLoaderContext = (module?: { type: string }) =>
+const createLoaderContext = (module?: { type: string }, compiler?: object) =>
     ({
+        ...(compiler && { _compiler: compiler }),
         resourcePath: "/src/a.ts",
         cacheable: jest.fn(),
         callback: jest.fn(),
@@ -472,5 +486,36 @@ describe("loader", () => {
         loader.call(target);
 
         expect(target.callback).toHaveBeenCalledWith(null, OUTPUT.text, undefined);
+    });
+
+    it("emits config errors through loader context w/o compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")]);
+        const target = createLoaderContext(undefined, {});
+
+        loader.call(target);
+        const actual = jest.mocked(target.emitError).mock.calls.map(([cur]) => cur.message);
+
+        expect(actual).toEqual(["Unknown profile 'whatever' in 'depends'."]);
+    });
+
+    it("emits config errors on every module w/o compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")]);
+        const target = createLoaderContext(undefined, {});
+        loader.call(createLoaderContext(undefined, {}));
+
+        loader.call(target);
+        const actual = jest.mocked(target.emitError).mock.calls.length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("emits no config errors through loader context w/ compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")], true);
+        const target = createLoaderContext(undefined, {});
+
+        loader.call(target);
+        const actual = jest.mocked(target.emitError).mock.calls;
+
+        expect(actual).toEqual([]);
     });
 });

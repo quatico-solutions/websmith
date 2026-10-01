@@ -428,6 +428,97 @@ describe("TsCompiler w/ unknown module type", () => {
     });
 });
 
+const CONFIG_FILE = {
+    "/websmith.config.json": JSON.stringify({
+        profiles: {
+            broken: { depends: ["unknown-profile"], esm: { runtime: "unknown-runtime" }, tsConfig: { module: "ESNext" } },
+            valid: {},
+        },
+    }),
+};
+
+const createConfigCompiler = (profile: string, target: Reporter = new NoReporter()): TsCompiler =>
+    new TsCompiler(
+        { reporter: target, cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
+        { tsConfigFile: "/tsconfig.json", configFile: "/websmith.config.json", transpileOnly: true, profile },
+        undefined,
+        undefined,
+        createSystem({ ...TS_CONFIG, ...CONFIG_FILE, "/src/a.ts": "export const a = 1;" }, { virtual: true })
+    );
+
+describe("TsCompiler config errors", () => {
+    it("yields config errors of selected profile", () => {
+        const testObj = createConfigCompiler("broken");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.messageText);
+
+        expect(actual).toEqual([
+            "Unknown profile 'unknown-profile' in 'depends' of '/websmith.config.json'.",
+            "Unknown 'esm.runtime' value 'unknown-runtime' in profile 'broken' of '/websmith.config.json'. Expected \"node\" or \"bundler\".",
+        ]);
+    });
+
+    it("reports no config error to reporter w/ broken selected profile", () => {
+        const target = new NoReporter();
+        const spy = jest.spyOn(target, "reportDiagnostic");
+        const testObj = createConfigCompiler("broken", target);
+
+        testObj.updateLoaderConfig({ profile: "broken" });
+        const actual = spy.mock.calls.filter(([cur]) => cur.category === ts.DiagnosticCategory.Error);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields each config error once w/ updated loader config", () => {
+        const testObj = createConfigCompiler("broken");
+
+        testObj.updateLoaderConfig({ profile: "broken" });
+        testObj.updateLoaderConfig({ profile: "broken" });
+        const actual = testObj.getConfigErrors().length;
+
+        expect(actual).toBe(2);
+    });
+
+    it("yields missing config file as config error", () => {
+        const testObj = new TsCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
+            { tsConfigFile: "/tsconfig.json", configFile: "/missing.config.json", transpileOnly: true },
+            undefined,
+            undefined,
+            createSystem({ ...TS_CONFIG, "/src/a.ts": "export const a = 1;" }, { virtual: true })
+        );
+
+        const actual = testObj.getConfigErrors().map(cur => cur.messageText);
+
+        expect(actual).toEqual(['No configuration file found at "/missing.config.json".']);
+    });
+
+    it("has no compilation hooks w/o use of compilation hooks", () => {
+        const testObj = createConfigCompiler("valid");
+
+        const actual = testObj.hasCompilationHooks();
+
+        expect(actual).toBe(false);
+    });
+
+    it("has compilation hooks w/ use of compilation hooks", () => {
+        const testObj = createConfigCompiler("valid");
+
+        testObj.useCompilationHooks();
+        const actual = testObj.hasCompilationHooks();
+
+        expect(actual).toBe(true);
+    });
+
+    it("yields no config errors w/ valid selected profile next to broken profile", () => {
+        const testObj = createConfigCompiler("valid");
+
+        const actual = testObj.getConfigErrors();
+
+        expect(actual).toEqual([]);
+    });
+});
+
 describe("CompilationScanCache", () => {
     const whatever = { hash: "whatever", scan: {} as never };
 

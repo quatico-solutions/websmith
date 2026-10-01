@@ -7,7 +7,7 @@
 import type webpack from "webpack";
 import { type TsCompiler } from "./TsCompiler";
 
-// Some loaders (e.g. thread-loader) will set the _compiler property to undefined.
+// Some loaders leave the _compiler property undefined; thread-loader passes a stub without hooks instead.
 // We can't use undefined as a WeakMap key as it will throw an error at runtime,
 // thus we keep a dummy "marker" object to use as key in those situations.
 const marker: webpack.Compiler = {} as webpack.Compiler;

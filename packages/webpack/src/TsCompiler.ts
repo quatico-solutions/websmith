@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type CompilerOptions, InfoMessage, type WebpackLoaderOptions } from "@quatico/websmith-api";
+import { type CompilerOptions, InfoMessage, type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
 import {
     checkDirectoryImport,
     checkJsonImportAttribute,
@@ -13,6 +13,7 @@ import {
     type CompileFragment,
     Compiler,
     createCjsNamesCache,
+    DefaultReporter,
     type EsmCheckContext,
     type ImportRule,
     type ModuleClassification,
@@ -83,6 +84,47 @@ export class CompilationScanCache implements ScanCache {
     }
 }
 
+/**
+ * Keeps the errors that option resolution reports, i.e. the configuration errors of the selected profile, instead of
+ * printing them: the loader resolves options for every module, and fails the compilation with them once.
+ */
+class ConfigErrorReporter implements Reporter {
+    public errors: ts.Diagnostic[] = [];
+    private collecting = false;
+
+    constructor(private readonly target: Reporter) {}
+
+    public collect<T>(resolve: () => T): T {
+        this.errors = [];
+        this.collecting = true;
+        try {
+            return resolve();
+        } finally {
+            this.collecting = false;
+        }
+    }
+
+    public reportDiagnostic(diagnostic: ts.Diagnostic): void {
+        if (this.collecting && diagnostic.category === ts.DiagnosticCategory.Error) {
+            this.errors.push(diagnostic);
+        } else {
+            this.target.reportDiagnostic(diagnostic);
+        }
+    }
+
+    public reportWatchStatus(...args: Parameters<Reporter["reportWatchStatus"]>): void {
+        this.target.reportWatchStatus(...args);
+    }
+
+    public indent(): void {
+        this.target.indent();
+    }
+
+    public unindent(): void {
+        this.target.unindent();
+    }
+}
+
 export class TsCompiler extends Compiler {
     private profile?: string;
     public readonly warn: (err: WebpackError) => void;
@@ -94,6 +136,7 @@ export class TsCompiler extends Compiler {
     private readonly scanCache = new CompilationScanCache();
     private esmCheckTime = 0;
     private cachesPerCompilation = false;
+    private compilationHooks = false;
 
     constructor(
         options: CompilerOptions,
@@ -102,7 +145,8 @@ export class TsCompiler extends Compiler {
         loaderContext?: LoaderContext<WebsmithLoaderConfig>,
         system?: ts.System
     ) {
-        super(options, loaderOptions, system || ts.sys, undefined, dependencyCallback);
+        const reporter = new ConfigErrorReporter(options.reporter ?? new DefaultReporter(system || ts.sys));
+        super({ ...options, reporter }, loaderOptions, system || ts.sys, undefined, dependencyCallback);
         this.warn = loaderOptions.warn ?? (() => {});
         this.error = loaderOptions.error ?? (() => {});
         this.loaderContext = loaderContext;
@@ -116,8 +160,22 @@ export class TsCompiler extends Compiler {
         return this.profile;
     }
 
+    /** Resolves the options and keeps their configuration errors for `getConfigErrors` instead of reporting them. */
+    public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
+        const reporter = this.getReporter();
+        return reporter instanceof ConfigErrorReporter
+            ? reporter.collect(() => super.setOptions(options, loaderOptions))
+            : super.setOptions(options, loaderOptions);
+    }
+
+    /** Returns the configuration errors of the last option resolution: of the selected profile and its dependencies. */
+    public getConfigErrors(): ts.Diagnostic[] {
+        const reporter = this.getReporter();
+        return reporter instanceof ConfigErrorReporter ? reporter.errors : [];
+    }
+
     public updateLoaderConfig(loaderOptions: WebpackLoaderOptions): void {
-        super.setOptions(super.getOptions(), loaderOptions);
+        this.setOptions(this.getOptions(), loaderOptions);
 
         // Initialize or re-initialize the webpack addon service now that we have the full configuration
         this.setupWebpackAddonService();
@@ -125,6 +183,15 @@ export class TsCompiler extends Compiler {
         // Update profile after configuration is updated
         const profileName = this.getOptions().profile || loaderOptions.profile;
         this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
+    }
+
+    /** Marks that compilation hooks report the config errors once per compilation, so the loader does not. */
+    public useCompilationHooks(): void {
+        this.compilationHooks = true;
+    }
+
+    public hasCompilationHooks(): boolean {
+        return this.compilationHooks;
     }
 
     /**

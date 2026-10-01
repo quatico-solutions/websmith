@@ -6,12 +6,17 @@
  * ---------------------------------------------------------------------------------------------
  */
 import fs from "node:fs";
+import path from "node:path";
 import { parse } from "comment-json";
-import { type Compilation, type Compiler, type LoaderContext, NormalModule, type Stats } from "webpack";
+import { type Compilation, type Compiler, type LoaderContext, NormalModule, type Stats, WebpackError } from "webpack";
 import { type WebpackLoaderContext } from "./loader";
+import { formatDiagnostic } from "./WebpackAddonService";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 const LOADER_NAME = "websmith-loader";
+
+// Config errors already pushed per compilation: instances of several loader rules may share a config file and profile
+const reportedConfigErrors = new WeakMap<Compilation, Set<string>>();
 
 /**
  * Validates if a parsed object conforms to the WebsmithLoaderConfig structure.
@@ -84,6 +89,11 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
         });
         compiler.hooks.watchRun.tap(LOADER_NAME, () => {
             compilationQueueContributor.inProgress();
+            // Modules that do not depend on the config file are not rebuilt, so their resolution would keep stale errors
+            const configFile = context.websmithCompiler?.getOptions().configFile;
+            if (configFile && compiler.modifiedFiles?.has(path.resolve(configFile))) {
+                context.websmithCompiler?.updateLoaderConfig(options);
+            }
         });
         compiler.hooks.done.tap(LOADER_NAME, () => {
             compilationQueueContributor.done();
@@ -98,6 +108,32 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
 
         compiler.hooks.compilation.tap(LOADER_NAME, compilation => {
             return registerCompilationHooks(compilation, options, context);
+        });
+
+        // Once per compilation, also when no module is rebuilt; child compilers inherit this tap, their compilations skip it
+        context.websmithCompiler?.useCompilationHooks();
+        compiler.hooks.afterCompile.tap(LOADER_NAME, compilation => {
+            const websmithCompiler = context.websmithCompiler;
+            if (compilation.compiler !== compiler || !websmithCompiler) {
+                return;
+            }
+            const configFile = websmithCompiler.getOptions().configFile;
+            if (configFile) {
+                // webpack compares native paths; a missing file is watched until it appears
+                const nativeConfigFile = path.resolve(configFile);
+                (fs.existsSync(nativeConfigFile) ? compilation.fileDependencies : compilation.missingDependencies).add(nativeConfigFile);
+            }
+            const reported = reportedConfigErrors.get(compilation) ?? new Set<string>();
+            reportedConfigErrors.set(compilation, reported);
+            websmithCompiler.getConfigErrors().forEach(diagnostic => {
+                const message = formatDiagnostic(diagnostic);
+                if (!reported.has(message)) {
+                    reported.add(message);
+                    const webpackError = new WebpackError(message);
+                    compilation.errors.push(webpackError);
+                    options.error?.(webpackError);
+                }
+            });
         });
 
         compiler.hooks.done.tapAsync(LOADER_NAME, (stats, callback) => {

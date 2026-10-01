@@ -32,6 +32,10 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     dependencies.files.forEach(cur => this.addDependency(cur));
     dependencies.missing.forEach(cur => this.addMissingDependency(cur));
     reportDiagnostics(this, diagnostics, options, instance.getOptions().debug ?? false);
+    // Without compilation hooks, e.g. under thread-loader, which passes a compiler stub, every module reports them
+    if (!instance.hasCompilationHooks()) {
+        reportDiagnostics(this, instance.getConfigErrors(), options, false);
+    }
 
     // Set loader version based on the file's cache version to enable proper cache invalidation
     // This ensures webpack knows when to recompile based on source file changes

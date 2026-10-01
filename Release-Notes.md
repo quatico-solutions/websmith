@@ -79,6 +79,8 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   - Errors that now fail loader builds include TypeScript syntax errors, also on the fast `transpileModule` path and
     under `transpileOnly: true`, and declaration emit errors under `declaration: true` with `transpileOnly: false`
     and no addon that needs type information, e.g. TS4094, TS2742 and, under `isolatedDeclarations`, TS9xxx.
+  - Configuration errors in `websmith.config.json` of the selected profile and the profiles it depends on fail
+    loader builds too, e.g. an unknown profile in `depends` (see Fixed).
   - The `error` and `warn` options are called after webpack has the diagnostic: `error` receives errors, `warn`
     receives warnings, and messages and suggestions reach `warn` only with `debug`. Before, `error` received every
     diagnostic, warnings included. The message now starts with the emitted file and position, `file (line,col): `.
@@ -128,6 +130,13 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   provided.` The warning appeared whenever the profile or one of its `depends` was not configured, cases that already
   get an accurate message: `Missing profile: The following profile is passed but not configured "<name>".` and the
   configuration error for an unknown profile in `depends`.
+- Configuration errors of the selected profile and the profiles it depends on fail webpack loader builds, e.g. an
+  unknown profile in `depends`, an unknown `esm.runtime`, `esm` together with `tsConfig.module: "CommonJS"`, or a
+  `configFile` that does not exist. The loader reports each one once per compilation as a webpack error, also on
+  every watch rebuild while it remains; editing `websmith.config.json` triggers a rebuild. Without compiler hooks,
+  e.g. under `thread-loader`, it reports them on every module instead. A build that restores every module from
+  webpack's persistent cache reports none. Before, the loader printed each one to the console once per module, and
+  webpack still compiled successfully.
 
 ### Removed
 
