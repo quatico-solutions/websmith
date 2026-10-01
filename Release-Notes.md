@@ -79,6 +79,8 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   - Errors that now fail loader builds include TypeScript syntax errors, also on the fast `transpileModule` path and
     under `transpileOnly: true`, and declaration emit errors under `declaration: true` with `transpileOnly: false`
     and no addon that needs type information, e.g. TS4094, TS2742 and, under `isolatedDeclarations`, TS9xxx.
+  - Configuration errors in `websmith.config.json` of the selected profile and the profiles it depends on fail
+    loader builds too, e.g. an unknown profile in `depends` (see Fixed).
   - The `error` and `warn` options are called after webpack has the diagnostic: `error` receives errors, `warn`
     receives warnings, and messages and suggestions reach `warn` only with `debug`. Before, `error` received every
     diagnostic, warnings included. The message now starts with the emitted file and position, `file (line,col): `.

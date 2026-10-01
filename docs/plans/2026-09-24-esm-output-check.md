@@ -39,8 +39,8 @@
   including code that addons generate.
 - `websmith` now exits with a non-zero code when a compilation reports an error-level diagnostic, including
   existing TypeScript errors that previously only printed. The webpack loader fails the build for the error-level
-  diagnostics it reports: syntax and declaration-emit errors and ESM check findings, not type errors (see
-  `Release-Notes.md`).
+  diagnostics it reports: syntax and declaration-emit errors, configuration errors of the selected profile and ESM
+  check findings, not type errors (see `Release-Notes.md`).
 
 ## Motivation
 
