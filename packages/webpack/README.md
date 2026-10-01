@@ -110,6 +110,9 @@ through `depends`: the webpack profile and its dependent profiles are checked by
   them to `outDir`.
 - **Dependent profiles** (`depends`): the check reads the files they write, classified by their own `runtime`.
 
+Each diagnostic points at the emitted file and names the module's source file, e.g.
+`dist/a.js (1,18): ESM91001: "require" is not defined in ES module output (source "src/a.ts", profile "client").`
+
 These rules run in the loader:
 
 | Code | Loader |

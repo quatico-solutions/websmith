@@ -234,6 +234,25 @@ describe("TsCompiler ESM check", () => {
         expect(actual).toEqual([[91001, "/lib/a.js"]]);
     });
 
+    it("names source file in 91001 of bundler target", () => {
+        const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+
+        const actual = testObj.build("/src/a.ts", "javascript/esm").diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
+
+        expect(actual).toEqual([["/dist/a.js", expect.stringMatching(/ \(source "src\/a\.ts", profile "target"\)\.$/)]]);
+    });
+
+    it("names source file in 91001 of node dependent profile", () => {
+        const testObj = createEsmCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE },
+            { target: { depends: ["node"] }, node: NODE_DEPENDENT }
+        );
+
+        const actual = testObj.build("/src/a.ts", "javascript/auto").diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
+
+        expect(actual).toEqual([["/lib/a.js", expect.stringMatching(/ \(source "src\/a\.ts", profile "node"\)\.$/)]]);
+    });
+
     it("yields diagnostics of target only w/ esm in target but not in its dependent profile", () => {
         const testObj = createEsmCompiler(
             { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE },

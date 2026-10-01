@@ -350,3 +350,13 @@ Pre-existing, out of scope for wave 5:
   errors may repeat per module (not verified).
 - The dependency closure over `depends` exists four times: `getUsedProfiles`, `getDependentProfiles`,
   `hasInvalidProfile` (direct only) and `WebpackAddonService.getAddonsWithDependencies`.
+
+### 2026-10-01 — Found while reviewing bug/fast-path-syntax-errors
+
+Pre-existing, out of scope for wave 5:
+- Option errors (e.g. TS5053) print once per root file, and on every watch rebuild.
+- The webpack loader drops fragment diagnostics of dependent profiles (`TsCompiler.ts:191-193`), so a
+  declaration-emit error that only occurs in a dependent profile never reaches webpack.
+- `.d.ts` and `allowJs` sources are not syntax-checked on the fast path.
+- With a type-info addon, `declaration` and a TS4094 error (without `noEmitOnError`), the language-service emit writes
+  no `.js`, unlike the per-file path and `tsc`. Not yet confirmed.
