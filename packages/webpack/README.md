@@ -81,6 +81,13 @@ TypeScript diagnostics and ESM check diagnostics are emitted on the module that 
   information, e.g. TS4094 (property of an exported anonymous class type may not be private), TS2742 (inferred
   type cannot be named without a reference) and, under `isolatedDeclarations`, TS9xxx.
 
+Configuration errors in `websmith.config.json` of the selected `profile` and the profiles it depends on fail the
+build too, e.g. an unknown profile in `depends`, an unknown `esm.runtime`, or `esm` together with
+`tsConfig.module: "CommonJS"`. They belong to no module: the loader adds each one once per compilation to webpack's
+errors, and passes it to `error`. A watch rebuild reports them again while they remain. Errors of profiles the build
+does not use are not reported. Without a webpack compiler, e.g. under `thread-loader`, the first module that the
+loader builds reports them.
+
 #### `.mts` and `.cts` files
 
 The loader compiles `.mts` and `.cts` files to `.mjs` and `.cjs` output and attaches their source maps. Add the

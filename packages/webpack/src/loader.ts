@@ -20,6 +20,9 @@ export type WebpackLoaderContext = {
     queue: CompilationQueue;
 };
 
+// Without a compiler, e.g. under thread-loader, no compilation hook reports the config errors: the first module does
+const reportedConfigErrors = new WeakSet<TsCompiler>();
+
 export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     this.cacheable?.();
     const options = getLoaderOptions(this);
@@ -32,6 +35,10 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     dependencies.files.forEach(cur => this.addDependency(cur));
     dependencies.missing.forEach(cur => this.addMissingDependency(cur));
     reportDiagnostics(this, diagnostics, options, instance.getOptions().debug ?? false);
+    if (!this._compiler && !reportedConfigErrors.has(instance)) {
+        reportedConfigErrors.add(instance);
+        reportDiagnostics(this, instance.getConfigErrors(), options, false);
+    }
 
     // Set loader version based on the file's cache version to enable proper cache invalidation
     // This ensures webpack knows when to recompile based on source file changes

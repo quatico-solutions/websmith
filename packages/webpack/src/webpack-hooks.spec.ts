@@ -5,7 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type Compiler } from "webpack";
+import { ErrorMessage } from "@quatico/websmith-api";
+import { type Compilation, type Compiler } from "webpack";
 import { CompilationQueue } from "./CompilationQueue";
 import { type WebpackLoaderContext } from "./loader";
 import { type TsCompiler } from "./TsCompiler";
@@ -25,6 +26,7 @@ describe("webpack-hooks", () => {
                 done: { tap: jest.fn(), tapAsync: jest.fn() },
                 compilation: { tap: jest.fn() },
                 thisCompilation: { tap: jest.fn() },
+                afterCompile: { tap: jest.fn() },
             },
             options: { watch: false },
         } as any;
@@ -79,6 +81,40 @@ describe("webpack-hooks", () => {
             onDone.forEach(cur => cur());
 
             expect(target.reportEsmCheckTime).toHaveBeenCalledTimes(1);
+        });
+
+        it("should push config errors of websmith compiler to compilation errors after compile", () => {
+            const target = { compiler: mockCompiler, errors: [] } as unknown as Compilation;
+            addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: createConfigErrorCompiler() });
+            const [[, onAfterCompile]] = jest.mocked(mockCompiler.hooks.afterCompile.tap).mock.calls as unknown as [[string, (cur: Compilation) => void]];
+
+            onAfterCompile(target);
+            const actual = target.errors.map(cur => cur.message);
+
+            expect(actual).toEqual(["Unknown profile 'whatever' in 'depends'."]);
+        });
+
+        it("should call error option w/ config errors after compile", () => {
+            const target = jest.fn();
+            const compilation = { compiler: mockCompiler, errors: [] } as unknown as Compilation;
+            addCompilationHooks(mockCompiler, { ...mockOptions, error: target }, { ...mockContext, websmithCompiler: createConfigErrorCompiler() });
+            const [[, onAfterCompile]] = jest.mocked(mockCompiler.hooks.afterCompile.tap).mock.calls as unknown as [[string, (cur: Compilation) => void]];
+
+            onAfterCompile(compilation);
+            const actual = target.mock.calls.map(([cur]) => cur);
+
+            expect(actual).toEqual(compilation.errors);
+        });
+
+        it("should push no config errors to child compilation after compile", () => {
+            const target = { compiler: {}, errors: [] } as unknown as Compilation;
+            addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: createConfigErrorCompiler() });
+            const [[, onAfterCompile]] = jest.mocked(mockCompiler.hooks.afterCompile.tap).mock.calls as unknown as [[string, (cur: Compilation) => void]];
+
+            onAfterCompile(target);
+            const actual = target.errors;
+
+            expect(actual).toEqual([]);
         });
 
         it("should not register hooks when compiler has no hooks", () => {
@@ -194,3 +230,11 @@ describe("webpack-hooks", () => {
         });
     });
 });
+
+const createConfigErrorCompiler = (): TsCompiler =>
+    ({
+        resetCompilationCaches: jest.fn(),
+        reportEsmCheckTime: jest.fn(),
+        keepCachesPerCompilation: jest.fn(),
+        getConfigErrors: () => [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")],
+    }) as unknown as TsCompiler;

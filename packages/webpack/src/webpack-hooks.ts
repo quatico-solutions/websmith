@@ -7,8 +7,9 @@
  */
 import fs from "node:fs";
 import { parse } from "comment-json";
-import { type Compilation, type Compiler, type LoaderContext, NormalModule, type Stats } from "webpack";
+import { type Compilation, type Compiler, type LoaderContext, NormalModule, type Stats, WebpackError } from "webpack";
 import { type WebpackLoaderContext } from "./loader";
+import { formatDiagnostic } from "./WebpackAddonService";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 const LOADER_NAME = "websmith-loader";
@@ -98,6 +99,17 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
 
         compiler.hooks.compilation.tap(LOADER_NAME, compilation => {
             return registerCompilationHooks(compilation, options, context);
+        });
+
+        // Once per compilation, also when no module is rebuilt; child compilers inherit this tap, their compilations skip it
+        compiler.hooks.afterCompile.tap(LOADER_NAME, compilation => {
+            if (compilation.compiler === compiler) {
+                context.websmithCompiler?.getConfigErrors().forEach(diagnostic => {
+                    const webpackError = new WebpackError(formatDiagnostic(diagnostic));
+                    compilation.errors.push(webpackError);
+                    options.error?.(webpackError);
+                });
+            }
         });
 
         compiler.hooks.done.tapAsync(LOADER_NAME, (stats, callback) => {

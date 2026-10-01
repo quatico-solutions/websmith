@@ -120,6 +120,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   depends on, in the CLI and the webpack loader. Before, one broken profile, e.g. one whose `depends` names an unknown
   profile, failed every build, even one that selected another profile. Without a selected profile, no profile is
   checked. The CLI now prints each configuration error once instead of twice.
+- Configuration errors of the selected profile and the profiles it depends on fail webpack loader builds, e.g. an
+  unknown profile in `depends`, an unknown `esm.runtime`, or `esm` together with `tsConfig.module: "CommonJS"`. The
+  loader reports each one once per compilation, also on every watch rebuild while it remains, as a webpack error.
+  Before, the loader printed each one to the console once per module, and webpack still compiled successfully.
 
 ### Removed
 
