@@ -76,9 +76,9 @@ const TS_ERROR_CODE_INVALID_OPTION_VALUE = 6046;
 
 /**
  * Converts option names in a profile's tsConfig, e.g. module "NodeNext", to the enum values TypeScript expects, as
- * tsconfig.json parsing does. Reports names TypeScript doesn't know and drops them.
+ * tsconfig.json parsing does. Drops names TypeScript doesn't know and reports them if a reporter is given.
  */
-const convertEnumOptions = (name: string, tsConfig: ts.CompilerOptions, configFilePath: string, reporter: Reporter): ts.CompilerOptions =>
+const convertEnumOptions = (name: string, tsConfig: ts.CompilerOptions, configFilePath: string, reporter?: Reporter): ts.CompilerOptions =>
     Object.fromEntries(
         Object.entries(tsConfig).flatMap(([key, value]): [string, ts.CompilerOptionsValue][] => {
             if (typeof value !== "string") {
@@ -87,7 +87,7 @@ const convertEnumOptions = (name: string, tsConfig: ts.CompilerOptions, configFi
             const { options, errors } = ts.convertCompilerOptionsFromJson({ [key]: value }, "");
             const error = errors.find(cur => cur.code === TS_ERROR_CODE_INVALID_OPTION_VALUE);
             if (error) {
-                reporter.reportDiagnostic(
+                reporter?.reportDiagnostic(
                     new ErrorMessage(
                         `Invalid 'tsConfig.${key}' value '${value}' in profile '${name}' of '${configFilePath}'. ` +
                             ts.flattenDiagnosticMessageText(error.messageText, " ")
@@ -134,7 +134,25 @@ const validateEsm = (name: string, profile: CompilationProfile, configFilePath: 
     }
 };
 
-export const resolveCompilationConfig = (configFilePath: string | undefined, reporter: Reporter, system: ts.System): CompilationConfig => {
+/** Returns the given profile and the profiles it depends on, directly or transitively. */
+const getUsedProfiles = (profile: string | undefined, config: CompilationConfig, result = new Set<string>()): Set<string> => {
+    if (profile && !result.has(profile) && config.profiles?.[profile]) {
+        result.add(profile);
+        config.profiles[profile].depends?.forEach(dep => getUsedProfiles(dep, config, result));
+    }
+    return result;
+};
+
+/**
+ * Reads the websmith configuration file. Reports configuration errors only for the selected profile and the profiles
+ * it depends on, as other profiles don't take part in the compilation.
+ */
+export const resolveCompilationConfig = (
+    configFilePath: string | undefined,
+    reporter: Reporter,
+    system: ts.System,
+    profileName?: string
+): CompilationConfig => {
     if (!configFilePath) {
         return {};
     }
@@ -148,22 +166,24 @@ export const resolveCompilationConfig = (configFilePath: string | undefined, rep
             const config = parse(content ?? "{}") as CompilationConfig;
             const result = { ...updatePaths(config, path.dirname(resolvedPath), system) };
             if (result.profiles) {
+                const usedProfiles = getUsedProfiles(profileName, result);
                 Object.entries(result.profiles).forEach(([name, profile]) => {
+                    const isUsed = usedProfiles.has(name);
                     if (profile.addons?.length) {
                         profile.addons = [...(profile.addons ?? []), ...(result.addons ?? [])];
                     }
-                    if (profile.depends?.length) {
+                    if (isUsed && profile.depends?.length) {
                         profile.depends.forEach(dep => {
                             if (!result.profiles?.[dep]) {
                                 reporter.reportDiagnostic(new ErrorMessage(`Unknown profile '${dep}' in 'depends' of '${configFilePath}'.`));
                             }
                         });
                     }
-                    if (profile.esm) {
+                    if (isUsed && profile.esm) {
                         validateEsm(name, profile, configFilePath, reporter);
                     }
                     if (profile.tsConfig) {
-                        profile.tsConfig = convertEnumOptions(name, profile.tsConfig, configFilePath, reporter);
+                        profile.tsConfig = convertEnumOptions(name, profile.tsConfig, configFilePath, isUsed ? reporter : undefined);
                     }
                 });
             }

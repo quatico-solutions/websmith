@@ -131,6 +131,10 @@ You can apply a compilation profile by using the `--profile` command line parame
 }
 ```
 
+Configuration errors in `websmith.config.json` are reported only for the selected profile (`--profile`, or the
+loader's `profile`) and the profiles it depends on, so a broken profile does not fail builds that select another one.
+Without `--profile`, no profile is checked.
+
 ### <a name="esm-check"></a>ESM check
 
 A profile with an `esm` section gets compile-time diagnostics when its emitted JavaScript would fail to load as an

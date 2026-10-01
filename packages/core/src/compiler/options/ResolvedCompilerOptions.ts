@@ -404,7 +404,7 @@ const loadCompilationConfig = (
     system: ts.System
 ): CompilationConfig => {
     // Prefer config values from webpack loaderConfig, but fallback to values from websmith.config.json
-    const { configFile = loaderOptions.configFile ?? options.configFile, transpileOnly } = loaderOptions;
+    const { configFile = loaderOptions.configFile ?? options.configFile, profile = options.profile, transpileOnly } = loaderOptions;
     const addons = loaderOptions.config?.addons ?? options.config?.addons ?? [];
     const addonsDir = loaderOptions.config?.addonsDir ?? options.config?.addonsDir;
     let results: CompilationConfig = {
@@ -413,7 +413,7 @@ const loadCompilationConfig = (
         ...(!!transpileOnly && { transpileOnly }),
     };
     if (configFile) {
-        results = { ...resolveCompilationConfig(configFile, reporter, system), ...results };
+        results = { ...resolveCompilationConfig(configFile, reporter, system, profile), ...results };
     }
     return results;
 };

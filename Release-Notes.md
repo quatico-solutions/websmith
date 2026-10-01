@@ -116,6 +116,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   Before, the fast path ignored them and emitted the files.
 - Watch mode reports the syntax errors and declaration emit errors of each rebuilt file. Before, `websmith --watch`
   printed none of them.
+- Configuration errors in `websmith.config.json` are now reported only for the selected profile and the profiles it
+  depends on, in the CLI and the webpack loader. Before, one broken profile, e.g. one whose `depends` names an unknown
+  profile, failed every build, even one that selected another profile. Without a selected profile, no profile is
+  checked. The CLI now prints each configuration error once instead of twice.
 
 ### Removed
 

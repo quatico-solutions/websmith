@@ -96,7 +96,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "profile1");
 
         expect(targetFn).toHaveBeenCalledWith(new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'."));
     });
@@ -125,7 +125,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "profile1");
 
         expect(targetFn).toHaveBeenCalledWith(new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'."));
     });
@@ -137,7 +137,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client");
 
         expect(targetFn).toHaveBeenCalledWith(
             new ErrorMessage(`Unknown 'esm.runtime' value 'deno' in profile 'client' of './target-config.json'. Expected "node" or "bundler".`)
@@ -151,7 +151,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client");
 
         expect(targetFn).toHaveBeenCalledWith(
             new ErrorMessage(`Unknown 'esm.check' value 'fail' in profile 'client' of './target-config.json'. Expected "error", "warn" or "off".`)
@@ -169,7 +169,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client");
         const actual = targetFn.mock.calls;
 
         expect(actual).toEqual([
@@ -188,7 +188,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client");
 
         expect(targetFn).toHaveBeenCalledWith(
             new ErrorMessage(
@@ -201,7 +201,7 @@ describe("resolveCompilationConfig", () => {
         const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
         const target = createSystem({ "./target-config.json": JSON.stringify({ profiles: { client: { esm: true } } }) }, { virtual: true });
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client");
         const actual = targetFn.mock.calls;
 
         expect(actual).toEqual([
@@ -216,7 +216,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client");
         const actual = targetFn.mock.calls;
 
         expect(actual).toEqual([
@@ -231,7 +231,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client");
         const actual = targetFn.mock.calls;
 
         expect(actual).toEqual([
@@ -246,7 +246,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client");
         const actual = targetFn.mock.calls;
 
         expect(actual).toEqual([]);
@@ -263,7 +263,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client");
         const actual = targetFn.mock.calls;
 
         expect(actual).toEqual([
@@ -286,7 +286,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client");
 
         expect(targetFn).not.toHaveBeenCalled();
     });
@@ -316,7 +316,7 @@ describe("resolveCompilationConfig", () => {
             { virtual: true }
         );
 
-        const actual = resolveCompilationConfig("./target-config.json", new NoReporter(), target).profiles?.client.tsConfig;
+        const actual = resolveCompilationConfig("./target-config.json", new NoReporter(), target, "client").profiles?.client.tsConfig;
 
         expect(actual).toEqual({ target: ts.ScriptTarget.ES2022 });
         expect(targetFn.mock.calls).toEqual([
@@ -326,6 +326,91 @@ describe("resolveCompilationConfig", () => {
                 ),
             ],
         ]);
+    });
+
+    it("should report nothing w/ invalid unselected profile", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: {
+                        broken: { depends: ["unknown-profile"], esm: { runtime: "deno" }, tsConfig: { module: "NodeLatest" } },
+                        valid: { tsConfig: { module: "CommonJS" } },
+                    },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "valid");
+
+        expect(targetFn).not.toHaveBeenCalled();
+    });
+
+    it("should report nothing w/ invalid profile and no selected profile", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { broken: { esm: { runtime: "deno" }, tsConfig: { module: "CommonJS" } } } }) },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target);
+
+        expect(targetFn).not.toHaveBeenCalled();
+    });
+
+    it("should report one error w/ invalid selected profile and invalid unselected profile", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: { broken: { esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } }, other: { esm: { runtime: "deno" } } },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "broken");
+        const actual = targetFn.mock.calls;
+
+        expect(actual).toEqual([
+            [new ErrorMessage(`Unknown 'esm.runtime' value 'deno' in profile 'broken' of './target-config.json'. Expected "node" or "bundler".`)],
+        ]);
+    });
+
+    it("should report errors w/ invalid profiles reached through depends of selected profile", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const target = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: {
+                        selected: { depends: ["middle"] },
+                        middle: { depends: ["base"], esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } },
+                        base: { depends: ["unknown-profile", "selected"] },
+                    },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), target, "selected");
+        const actual = targetFn.mock.calls;
+
+        expect(actual).toEqual([
+            [new ErrorMessage(`Unknown 'esm.runtime' value 'deno' in profile 'middle' of './target-config.json'. Expected "node" or "bundler".`)],
+            [new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'.")],
+        ]);
+    });
+
+    it("should return enum value w/ tsConfig module in unselected profile", () => {
+        const target = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { valid: {}, other: { tsConfig: { module: "NodeNext" } } } }) },
+            { virtual: true }
+        );
+
+        const actual = resolveCompilationConfig("./target-config.json", new NoReporter(), target, "valid").profiles?.other.tsConfig;
+
+        expect(actual).toEqual({ module: ts.ModuleKind.NodeNext });
     });
 });
 
