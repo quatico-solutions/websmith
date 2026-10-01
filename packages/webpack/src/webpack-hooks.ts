@@ -6,6 +6,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import fs from "node:fs";
+import path from "node:path";
 import { parse } from "comment-json";
 import { type Compilation, type Compiler, type LoaderContext, NormalModule, type Stats, WebpackError } from "webpack";
 import { type WebpackLoaderContext } from "./loader";
@@ -90,7 +91,7 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
             compilationQueueContributor.inProgress();
             // Modules that do not depend on the config file are not rebuilt, so their resolution would keep stale errors
             const configFile = context.websmithCompiler?.getOptions().configFile;
-            if (configFile && compiler.modifiedFiles?.has(configFile)) {
+            if (configFile && compiler.modifiedFiles?.has(path.resolve(configFile))) {
                 context.websmithCompiler?.updateLoaderConfig(options);
             }
         });
@@ -118,7 +119,9 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
             }
             const configFile = websmithCompiler.getOptions().configFile;
             if (configFile) {
-                compilation.fileDependencies.add(configFile);
+                // webpack compares native paths; a missing file is watched until it appears
+                const nativeConfigFile = path.resolve(configFile);
+                (fs.existsSync(nativeConfigFile) ? compilation.fileDependencies : compilation.missingDependencies).add(nativeConfigFile);
             }
             const reported = reportedConfigErrors.get(compilation) ?? new Set<string>();
             reportedConfigErrors.set(compilation, reported);

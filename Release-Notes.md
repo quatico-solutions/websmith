@@ -124,8 +124,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   unknown profile in `depends`, an unknown `esm.runtime`, `esm` together with `tsConfig.module: "CommonJS"`, or a
   `configFile` that does not exist. The loader reports each one once per compilation as a webpack error, also on
   every watch rebuild while it remains; editing `websmith.config.json` triggers a rebuild. Without compiler hooks,
-  e.g. under `thread-loader`, it reports them on every module instead. Before, the loader printed each one to the
-  console once per module, and webpack still compiled successfully.
+  e.g. under `thread-loader`, it reports them on every module instead. A build that restores every module from
+  webpack's persistent cache reports none. Before, the loader printed each one to the console once per module, and
+  webpack still compiled successfully.
 
 ### Removed
 

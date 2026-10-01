@@ -5,6 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import { ErrorMessage } from "@quatico/websmith-api";
 import { type Compilation, type Compiler } from "webpack";
 import { CompilationQueue } from "./CompilationQueue";
@@ -17,6 +19,10 @@ describe("webpack-hooks", () => {
     let mockCompiler: jest.Mocked<Compiler>;
     let mockContext: WebpackLoaderContext;
     let mockOptions: WebsmithLoaderConfig;
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
 
     beforeEach(() => {
         mockCompiler = {
@@ -56,7 +62,12 @@ describe("webpack-hooks", () => {
         });
 
         it("should reset compilation caches of websmith compiler w/ new compilation", () => {
-            const target = { resetCompilationCaches: jest.fn(), reportEsmCheckTime: jest.fn(), keepCachesPerCompilation: jest.fn(), useCompilationHooks: jest.fn() };
+            const target = {
+                resetCompilationCaches: jest.fn(),
+                reportEsmCheckTime: jest.fn(),
+                keepCachesPerCompilation: jest.fn(),
+                useCompilationHooks: jest.fn(),
+            };
             addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: target as unknown as TsCompiler });
             const [[, onThisCompilation]] = jest.mocked(mockCompiler.hooks.thisCompilation.tap).mock.calls as unknown as [[string, () => void]];
 
@@ -66,7 +77,12 @@ describe("webpack-hooks", () => {
         });
 
         it("should keep caches of websmith compiler per compilation w/ compilation hooks", () => {
-            const target = { resetCompilationCaches: jest.fn(), reportEsmCheckTime: jest.fn(), keepCachesPerCompilation: jest.fn(), useCompilationHooks: jest.fn() };
+            const target = {
+                resetCompilationCaches: jest.fn(),
+                reportEsmCheckTime: jest.fn(),
+                keepCachesPerCompilation: jest.fn(),
+                useCompilationHooks: jest.fn(),
+            };
 
             addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: target as unknown as TsCompiler });
 
@@ -74,7 +90,12 @@ describe("webpack-hooks", () => {
         });
 
         it("should report ESM check time of websmith compiler w/ done compilation", () => {
-            const target = { resetCompilationCaches: jest.fn(), reportEsmCheckTime: jest.fn(), keepCachesPerCompilation: jest.fn(), useCompilationHooks: jest.fn() };
+            const target = {
+                resetCompilationCaches: jest.fn(),
+                reportEsmCheckTime: jest.fn(),
+                keepCachesPerCompilation: jest.fn(),
+                useCompilationHooks: jest.fn(),
+            };
             addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: target as unknown as TsCompiler });
             const onDone = jest.mocked(mockCompiler.hooks.done.tap).mock.calls.map(([, cur]) => cur as unknown as () => void);
 
@@ -83,7 +104,7 @@ describe("webpack-hooks", () => {
             expect(target.reportEsmCheckTime).toHaveBeenCalledTimes(1);
         });
 
-        it("should report config errors of websmith compiler per compilation w/ compilation hooks", () => {
+        it("should mark websmith compiler as using compilation hooks w/ compilation hooks", () => {
             const target = createConfigErrorCompiler();
 
             addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: target });
@@ -137,6 +158,7 @@ describe("webpack-hooks", () => {
         });
 
         it("should add config file of websmith compiler to file dependencies after compile", () => {
+            jest.spyOn(fs, "existsSync").mockReturnValue(true);
             const target = createCompilation(mockCompiler);
             addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: createConfigErrorCompiler() });
             const [onAfterCompile] = getAfterCompileTaps(mockCompiler);
@@ -144,7 +166,19 @@ describe("webpack-hooks", () => {
             onAfterCompile(target);
             const actual = [...target.fileDependencies];
 
-            expect(actual).toEqual(["/websmith.config.json"]);
+            expect(actual).toEqual([path.resolve("/websmith.config.json")]);
+        });
+
+        it("should add missing config file of websmith compiler to missing dependencies after compile", () => {
+            jest.spyOn(fs, "existsSync").mockReturnValue(false);
+            const target = createCompilation(mockCompiler);
+            addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: createConfigErrorCompiler() });
+            const [onAfterCompile] = getAfterCompileTaps(mockCompiler);
+
+            onAfterCompile(target);
+            const actual = { file: [...target.fileDependencies], missing: [...target.missingDependencies] };
+
+            expect(actual).toEqual({ file: [], missing: [path.resolve("/websmith.config.json")] });
         });
 
         it("should resolve loader config of websmith compiler again w/ modified config file in watch run", () => {
@@ -294,7 +328,8 @@ const createConfigErrorCompiler = () =>
         getConfigErrors: () => [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")],
     }) as unknown as jest.Mocked<TsCompiler>;
 
-const createCompilation = (compiler: Compiler) => ({ compiler, errors: [], fileDependencies: new Set<string>() }) as unknown as Compilation;
+const createCompilation = (compiler: Compiler) =>
+    ({ compiler, errors: [], fileDependencies: new Set<string>(), missingDependencies: new Set<string>() }) as unknown as Compilation;
 
 const getAfterCompileTaps = (compiler: jest.Mocked<Compiler>) =>
     jest.mocked(compiler.hooks.afterCompile.tap).mock.calls.map(([, cur]) => cur as unknown as (compilation: Compilation) => void);

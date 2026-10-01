@@ -89,7 +89,9 @@ once per compilation to webpack's errors and passes it to `error`, also when sev
 configuration. A watch rebuild reports them again while they remain. Editing `websmith.config.json` triggers a
 rebuild that reports its current errors, but modules whose sources did not change are not compiled again with the
 new configuration. Without compiler hooks, e.g. under `thread-loader`, the loader emits the configuration errors on
-every module it builds instead, so they appear once per module.
+every module it builds instead, so they appear once per module. With webpack's persistent cache
+(`cache: { type: "filesystem" }`), a build that restores every module from the cache runs no loader and reports
+no configuration errors.
 
 #### `.mts` and `.cts` files
 
