@@ -350,6 +350,37 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toBe(1);
     }, 60000);
 
+    it.each([
+        {
+            name: "declaration emit error",
+            isolatedDeclarations: false,
+            source: `export const a = class { private x = 1; };\nexport const b = ;`,
+            expected: "(1,14): Property 'x' of exported anonymous class type may not be private or protected.",
+        },
+        {
+            name: "isolatedDeclarations error",
+            isolatedDeclarations: true,
+            source: `export const a = 1;\nexport const b = ;`,
+            expected: "(2,14): Variable must have an explicit type annotation with --isolatedDeclarations.",
+        },
+    ])(
+        "should exit with status 1 and report the syntax error and the $name once each w/ declaration",
+        ({ isolatedDeclarations, source, expected }) => {
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, declaration: true, isolatedDeclarations, target: "esnext", types: [] });
+            createSourceFile(source, "test.ts");
+
+            const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+            const actual1 = target.status;
+            const actual2 = target.output.split(`${path.join(testDirs.SOURCE_DIR, "test.ts")} (2,18): Expression expected.`).length - 1;
+            const actual3 = target.output.split(`${path.join(testDirs.SOURCE_DIR, "test.ts")} ${expected}`).length - 1;
+
+            expect(actual1).toBe(1);
+            expect(actual2).toBe(1);
+            expect(actual3).toBe(1);
+        },
+        60000
+    );
+
     it.each([{ noEmitOnError: false }, { noEmitOnError: true }])(
         "should exit with status 1 and report the syntax error once w/ addon requiring type information and noEmitOnError $noEmitOnError",
         ({ noEmitOnError }) => {

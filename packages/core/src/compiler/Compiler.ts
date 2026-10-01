@@ -671,7 +671,7 @@ export class Compiler {
         // The Program and the fragments of the result find the same errors in unprocessed files
         const reported = new Set<string>();
         preEmitDiagnostics.concat(result.diagnostics).forEach(cur => {
-            const key = cur.file ? this.getDiagnosticKey(cur, cur.file) : undefined;
+            const key = cur.file ? this.getDiagnosticKey(cur) : undefined;
             if (!key || !reported.has(key)) {
                 if (key) {
                     reported.add(key);
@@ -683,8 +683,8 @@ export class Compiler {
         return result;
     }
 
-    private getDiagnosticKey({ start, code, messageText }: ts.Diagnostic, file: ts.SourceFile): string {
-        return [file.fileName, start, code, ts.flattenDiagnosticMessageText(messageText, "\n")].join("\0");
+    private getDiagnosticKey({ file, start, code, messageText }: ts.Diagnostic): string {
+        return [file?.fileName, start, code, ts.flattenDiagnosticMessageText(messageText, "\n")].join("\0");
     }
 
     /**
@@ -1303,12 +1303,15 @@ export class Compiler {
                     transformers
                 );
 
+                // The emit is also skipped for declaration emit errors and then returns only those. Under noEmitOnError
+                // it returns the syntactic diagnostics itself, so these are added only once.
+                const emitted = new Set(emitResult.diagnostics.map(cur => this.getDiagnosticKey(cur)));
                 return {
                     outputFiles,
-                    // A skipped emit (noEmitOnError) already returns the syntactic diagnostics
-                    diagnostics: emitResult.emitSkipped
-                        ? emitResult.diagnostics
-                        : [...program.getSyntacticDiagnostics(sourceFile), ...emitResult.diagnostics],
+                    diagnostics: [
+                        ...program.getSyntacticDiagnostics(sourceFile).filter(cur => !emitted.has(this.getDiagnosticKey(cur))),
+                        ...emitResult.diagnostics,
+                    ],
                 };
             };
 

@@ -1009,6 +1009,54 @@ describe("compile", () => {
         expect(target.message).toBe(expected);
     });
 
+    it.each([
+        {
+            name: "declaration emit error",
+            source: `export const a = class { private x = 1; };\nexport const b = ;`,
+            isolatedDeclarations: false,
+            noEmitOnError: false,
+            expected:
+                "Error: /src/target.ts (2,18): Expression expected.\n" +
+                "Error: /src/target.ts (1,14): Property 'x' of exported anonymous class type may not be private or protected.\n",
+        },
+        {
+            name: "declaration emit error",
+            source: `export const a = class { private x = 1; };\nexport const b = ;`,
+            isolatedDeclarations: false,
+            noEmitOnError: true,
+            expected: "Error: /src/target.ts (2,18): Expression expected.\n",
+        },
+        {
+            name: "isolatedDeclarations error",
+            source: `export const b = ;`,
+            isolatedDeclarations: true,
+            noEmitOnError: false,
+            expected:
+                "Error: /src/target.ts (1,18): Expression expected.\n" +
+                "Error: /src/target.ts (1,14): Variable must have an explicit type annotation with --isolatedDeclarations.\n",
+        },
+    ])(
+        "reports syntax error and $name as tsc does w/ declaration, noEmitOnError $noEmitOnError and per-file Program",
+        ({ source, isolatedDeclarations, noEmitOnError, expected }) => {
+            const fileSystem = createSystem({ "src/target.ts": source }, { virtual: true });
+            const target = new ReporterMock(fileSystem);
+            const testObj = new CompilerTestClass(
+                {
+                    reporter: target,
+                    tsConfig: { declaration: true, isolatedDeclarations, noEmitOnError, target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["src/target.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem
+            );
+
+            testObj.compile();
+            const actual = target.message;
+
+            expect(actual).toBe(expected);
+        }
+    );
+
     it("yields output w/ with addons but w/o profiles", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const computeDate = async (): Promise<Date> => new Date();` }, { virtual: true });
 
@@ -1159,6 +1207,35 @@ describe("emitSourceFile", () => {
             }),
         ]);
     });
+
+    it.each([
+        {
+            noEmitOnError: false,
+            expected: [
+                [1109, 60],
+                [4094, 13],
+            ],
+        },
+        { noEmitOnError: true, expected: [[1109, 60]] },
+    ])(
+        "yields syntax error and declaration emit error as tsc does w/ declaration, noEmitOnError $noEmitOnError and per-file Program",
+        ({ noEmitOnError, expected }) => {
+            const fileSystem = createSystem({ "src/target.ts": `export const a = class { private x = 1; };\nexport const b = ;` }, { virtual: true });
+            const testObj = new CompilerTestClass(
+                {
+                    reporter: new ReporterMock(fileSystem),
+                    tsConfig: { declaration: true, noEmitOnError, target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem
+            ).createProfileContextsIfNecessary();
+
+            const actual = testObj.emitSourceFile("/src/target.ts", undefined, false);
+
+            expect(actual.diagnostics?.map(cur => [cur.code, cur.start])).toEqual(expected);
+        }
+    );
 
     it.each([
         { name: "ESNext", module: ts.ModuleKind.ESNext },
@@ -1650,6 +1727,35 @@ describe("watch", () => {
         testObj.watch();
 
         expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
+        testObj.closeAllWatchers();
+    });
+
+    it.each([
+        { name: "no profile", profile: undefined },
+        { name: "profile", profile: "client" },
+    ])("reports syntax error and declaration emit error once each w/ $name, declaration and rebuild introducing them", ({ profile }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                config: { profiles: { client: {} } },
+                profile,
+                watch: true,
+                tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).watch();
+
+        fileSystem.writeFile("/src/target.ts", `export const a = class { private x = 1; };\nexport const b = ;`);
+        const actual = target.message;
+
+        expect(actual).toBe(
+            "Error: /src/target.ts (2,18): Expression expected.\n" +
+                "Error: /src/target.ts (1,14): Property 'x' of exported anonymous class type may not be private or protected.\n"
+        );
         testObj.closeAllWatchers();
     });
 

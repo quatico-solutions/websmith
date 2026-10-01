@@ -106,7 +106,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   needs type information and `declaration` is off, or with `transpileOnly`, including `"module": "node16"` or
   `"nodenext"`, and in builds that emit declarations through per-file programs. Before, they were discarded:
   `export const a = ;` was emitted as broken JavaScript and `websmith` exited with `0`. The file is still emitted,
-  like with `tsc`.
+  like with `tsc`. On per-file programs the syntax error is printed next to a declaration emit error of the same
+  file, e.g. TS4094 or, under `isolatedDeclarations`, TS9010, also in watch mode and the webpack loader; under
+  `noEmitOnError` only the syntax error is printed, like with `tsc`.
 - Syntax errors in code from processors and in files generators add with `addVirtualFile` are reported when an
   active addon needs type information. Before, only the files on disk were checked, so they were discarded.
 - A TypeScript error that both the type-checking Program and the emit of a file find is printed once. Before,
