@@ -586,6 +586,24 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toEqual([expect.stringContaining("Profile 'broken' of")]);
     }, 60000);
 
+    it.each([
+        { name: "valid profile", profile: "valid" },
+        { name: "profile depending on unknown profile", profile: "broken" },
+        { name: "unknown profile", profile: "unknown" },
+    ])(
+        "should not warn that no profile was provided w/ --profile and $name",
+        ({ profile }) => {
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+            createWebsmithConfig({ profiles: { broken: { depends: ["missing"] }, valid: {} } });
+            createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+            const actual = executeCompilerStatus(`--profile ${profile} --project tsconfig.json --configFile websmith.config.json`).output;
+
+            expect(actual).not.toContain("no profile provided");
+        },
+        60000
+    );
+
     it("should exit with status 1 and report 91010 in emitted file w/ extensionless relative import in node ESM profile", () => {
         fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });

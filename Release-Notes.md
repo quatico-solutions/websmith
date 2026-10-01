@@ -123,6 +123,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   depends on, in the CLI and the webpack loader. Before, one broken profile, e.g. one whose `depends` names an unknown
   profile, failed every build, even one that selected another profile. Without a selected profile, no profile is
   checked. The CLI now prints each configuration error once instead of twice.
+- `websmith --profile <name>` no longer warns `Custom profile configuration "<name>" found, but no profile
+  provided.` The warning appeared whenever the profile or one of its `depends` was not configured, cases that already
+  get an accurate message: `Missing profile: The following profile is passed but not configured "<name>".` and the
+  configuration error for an unknown profile in `depends`.
 
 ### Removed
 
