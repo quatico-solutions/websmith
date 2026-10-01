@@ -11,14 +11,14 @@
 
 ## Status
 
-- **State:** Delivered
+- **State:** Approved
 - **Type:** feature
 - **Story:** node24-esm-support
 - **Review:** pr
 - **Impl:** own branches
 - **Rounds:** 7
 - **Rejected:** 2026-09-30 (delivery panel refuted: diagnostics do not name the source file, and fast-path syntax errors do not fail the build; fixed in wave 5 before re-delivery)
-- **Delivered:** 2026-10-01
+- **Rejected:** 2026-10-01 (the board auto-delivered after #129 merged, before the second delivery panel; that panel found gaps to fix before delivery)
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
