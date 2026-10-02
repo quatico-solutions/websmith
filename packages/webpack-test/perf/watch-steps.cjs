@@ -10,15 +10,15 @@
  * The first `done` is the initial build. Samples go to `results.initial` and `results[action.scenario]`, steps that time
  * out are counted in `results.unchanged[action.scenario]`. `finish` runs once, after the last step.
  *
- * Call `done(measure, changedFiles)` from the watcher's callback: `measure(start)` returns the sample, `start` is the
- * `performance.now()` of the step's write or undefined for the initial build. `changedFiles` are the files that
- * triggered the rebuild, e.g. webpack's `compiler.modifiedFiles`.
+ * Call `done(measure, startedGeneration)` from the watcher's callback: `measure(start)` returns the sample, `start` is the
+ * `performance.now()` of the step's write or undefined for the initial build. `startedGeneration` is `generation()` as
+ * read when the rebuild started, e.g. in webpack's `watchRun` hook.
  *
- * Each step gets a generation, and only the first of its watchdog and `done` ends it and advances the generation. A
- * `done` that arrives after its step ended, e.g. a rebuild slower than the watchdog, is late: it is counted in
- * `results.late[scenario]` of the step it belongs to, records nothing and starts no step. A late `done` that arrives
- * after the next step's write is told apart from that step's own `done` by `action.file`: a rebuild whose
- * `changedFiles` lack the file is late. Without `action.file` or `changedFiles` such a rebuild is credited to the step.
+ * Every step write and every step end advances the generation, and a `done` is credited only to the step whose write
+ * carries the generation the rebuild started with. A `done` of a rebuild that started before the step's write or after
+ * its end, e.g. a rebuild slower than the watchdog, is late: it is counted in `results.late[scenario]` of the step it
+ * belongs to if that scenario has an entry in `results.late`, records nothing and starts no step. This holds for steps
+ * writing the same file too, such as the flips of package.json, because the rebuild's start is compared, not its files.
  */
 const createWatchSteps = ({ actions, results, settle, watchdogMs, finish }) => {
     let index = 0;
@@ -41,11 +41,11 @@ const createWatchSteps = ({ actions, results, settle, watchdogMs, finish }) => {
         if (!action) {
             return finish();
         }
-        const own = generation;
         setTimeout(() => {
-            current = { generation: own, action, start: performance.now() };
+            current = { generation: ++generation, action, start: performance.now() };
             action.run();
             // A change that triggers no compilation is counted, not timed
+            const own = current.generation;
             watchdog = setTimeout(() => {
                 if (current && current.generation === own) {
                     results.unchanged[action.scenario]++;
@@ -55,10 +55,11 @@ const createWatchSteps = ({ actions, results, settle, watchdogMs, finish }) => {
         }, settle);
     };
 
-    const done = (measure, changedFiles) => {
-        const file = current && current.action && current.action.file;
-        if (!current || (file && changedFiles && !changedFiles.has(file))) {
-            results.late[previous] = (results.late[previous] || 0) + 1;
+    const done = (measure, startedGeneration) => {
+        if (!current || current.generation !== startedGeneration) {
+            if (previous in results.late) {
+                results.late[previous]++;
+            }
             return;
         }
         const sample = measure(current.start);
@@ -70,7 +71,7 @@ const createWatchSteps = ({ actions, results, settle, watchdogMs, finish }) => {
         end();
     };
 
-    return { done };
+    return { done, generation: () => generation };
 };
 
 module.exports = { createWatchSteps };

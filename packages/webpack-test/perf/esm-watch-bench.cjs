@@ -232,12 +232,10 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
     const actions = [
         ...leaves.map((leaf, i) => ({
             scenario: "edit",
-            file: path.join(projectDir, "src", moduleFile(leaf)),
             run: () => fs.writeFileSync(path.join(projectDir, "src", moduleFile(leaf)), createModuleSource(leaf, count, i + 1)),
         })),
         ...Array.from({ length: flips }, (_, i) => ({
             scenario: "flip",
-            file: packageJson,
             run: () => fs.writeFileSync(packageJson, JSON.stringify({ name: "esm-bench", type: i % 2 === 0 ? "commonjs" : "module" })),
         })),
     ];
@@ -257,6 +255,11 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
             }),
     });
 
+    // The generation a rebuild started in tells a late rebuild from the current step's, also when steps write one file
+    let startedGeneration = 0;
+    compiler.hooks.watchRun.tap("esm-watch-bench", () => {
+        startedGeneration = steps.generation();
+    });
     watching = compiler.watch({ aggregateTimeout: 20 }, (err, stats) => {
         if (err) {
             console.error(err);
@@ -266,7 +269,7 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
         const built = [...stats.compilation.modules].filter(cur => stats.compilation.builtModules.has(cur)).length;
         const checkMs = checkTime;
         checkTime = 0;
-        steps.done(start => ({ ms: start !== undefined ? now - start : stats.endTime - stats.startTime, checkMs, built }), compiler.modifiedFiles);
+        steps.done(start => ({ ms: start !== undefined ? now - start : stats.endTime - stats.startTime, checkMs, built }), startedGeneration);
     });
 };
 
