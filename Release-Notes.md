@@ -85,6 +85,13 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 
 - TBA
 
+### Security
+
+- `@quatico/websmith-core` no longer depends on `create-hash` and `path`; it hashes with `node:crypto`. Users no
+  longer install `sha.js` and `cipher-base` (two critical advisories) through websmith.
+- `@quatico/websmith-core` and `@quatico/websmith-node` require `lodash ^4.18.1` (was `^4.17.21`, which admits
+  versions with a high advisory).
+
 ## [0.10.0] - 2026-10-02
 
 This release runs websmith on Node.js 24 (Node.js 22.12 or newer is required), loads TypeScript addons in ES module
