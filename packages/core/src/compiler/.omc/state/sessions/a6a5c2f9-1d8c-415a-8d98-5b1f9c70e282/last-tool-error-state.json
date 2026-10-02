@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd packages/core/src; grep -n \\\"directoryExists\\\" -r environment/*.ts | head; grep -n \\\"reportDiagnostic\\\" ../../api/src/*.ts | head -5; sed -n 50,70p compiler/DefaultReporter.ts\"}",
-  "error": "Exit code 1\n(eval):cd:1: no such file or directory: packages/core/src\n(eval):1: no matches found: environment/*.ts\n(eval):1: no matches found: ../../api/src/*.ts\nsed: compiler/DefaultReporter.ts: No such file or directory",
-  "timestamp": "2026-10-02T13:58:31.957Z",
-  "retry_count": 1
-}
