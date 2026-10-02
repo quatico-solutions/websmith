@@ -54,6 +54,18 @@ describe("createOptions", () => {
         });
     });
 
+    it("should return tsconfig.json files w/ project directory", () => {
+        const target = createSystem(
+            { "/project/tsconfig.json": JSON.stringify({ include: ["src/**/*"] }), "/project/src/index.ts": "export {};" },
+            { virtual: true }
+        );
+
+        const actual = createOptions({ project: "./project" }, new NoReporter(), target);
+
+        expect(actual.tsConfigFile).toBe("/project/tsconfig.json");
+        expect(actual.cliArgs?.fileNames).toEqual(["/project/src/index.ts"]);
+    });
+
     it("should return no target and esModuleInterop w/ tsconfig.json without them", () => {
         const target = createSystem({ "./tsconfig.json": JSON.stringify({ compilerOptions: { module: "nodenext" } }) }, { virtual: true });
 

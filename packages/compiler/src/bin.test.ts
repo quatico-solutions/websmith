@@ -314,6 +314,111 @@ describe("bin.ts e2e tests", () => {
         expect(actual).toBe(0);
     }, 60000);
 
+    it("should exit with zero status and write output w/ --project current directory", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const actual = executeCompilerStatus("--project .").status;
+
+        expect(actual).toBe(0);
+        expect(getOutput("test.js")).toContain(`export const hello = "world";`);
+    }, 60000);
+
+    it("should exit with status 1 and report the syntax error w/ --project current directory", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createSourceFile(`export const a = ;`, "test.ts");
+
+        const target = executeCompilerStatus("--project .");
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`${path.join(testDirs.SOURCE_DIR, "test.ts")} (1,18): Expression expected.`);
+    }, 60000);
+
+    it("should write output to relative outDir w/ --project absolute directory", () => {
+        createTsConfig({ outDir: "./dist", noEmit: false, target: "esnext", types: [] });
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const actual = executeCompilerStatus(`--project ${testDirs.PROJECT_DIR}`).status;
+
+        expect(actual).toBe(0);
+        expect(getOutput("test.js")).toContain(`export const hello = "world";`);
+    }, 60000);
+
+    it("should exit with status 1 and report 5058 with absolute path w/ --project missing file", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const target = executeCompilerStatus("--project missing.json");
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`5058: The specified path does not exist: '${path.join(testDirs.PROJECT_DIR, "missing.json")}'.`);
+    }, 60000);
+
+    it("should exit with status 1 and report 5057 once with absolute path w/ --project directory without tsconfig.json", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        fs.mkdirSync(path.join(testDirs.PROJECT_DIR, "emptydir"));
+
+        const target = executeCompilerStatus("--project emptydir");
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`5057: Cannot find a tsconfig.json file at the specified directory: '${path.join(testDirs.PROJECT_DIR, "emptydir")}'.`);
+        expect(actual2).not.toContain("5058");
+        expect(actual2.split("\n").filter(line => line.includes("Error:"))).toHaveLength(1);
+    }, 60000);
+
+    it("should exit with status 1 and report 5057 w/ --project current directory without tsconfig.json", () => {
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const target = executeCompilerStatus("--project .");
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`5057: Cannot find a tsconfig.json file at the specified directory: '${testDirs.PROJECT_DIR}'.`);
+    }, 60000);
+
+    it("should exit with status 1 and report 5058 w/ --project tsconfig.json and w/o tsconfig.json", () => {
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const actual1 = executeCompilerStatus("--project tsconfig.json");
+        const actual2 = executeCompilerStatus("--project ./tsconfig.json");
+
+        expect(actual1.status).toBe(1);
+        expect(actual1.output).toContain(`5058: The specified path does not exist: '${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}'.`);
+        expect(actual2.status).toBe(1);
+        expect(actual2.output).toContain(`5058: The specified path does not exist: '${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}'.`);
+    }, 60000);
+
+    it("should exit with status 1 and report 5058 w/ --project tsconfig.json in existing directory without tsconfig.json", () => {
+        fs.mkdirSync(path.join(testDirs.PROJECT_DIR, "emptydir"));
+
+        const target = executeCompilerStatus("--project emptydir/tsconfig.json");
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`5058: The specified path does not exist: '${path.join(testDirs.PROJECT_DIR, "emptydir", "tsconfig.json")}'.`);
+        expect(actual2).not.toContain("5057");
+    }, 60000);
+
+    it("should exit with status 0 and report nothing w/o --project and w/o tsconfig.json", () => {
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const target = executeCompilerStatus("--noEmit");
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(0);
+        expect(actual2).not.toContain("5057");
+        expect(actual2).not.toContain("5058");
+    }, 60000);
+
     it("should exit with status 1 w/ type error in project and addon requiring type information", () => {
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
         createSourceFile(`export const hello: number = "world";`, "test.ts");

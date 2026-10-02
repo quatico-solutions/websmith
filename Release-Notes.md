@@ -18,18 +18,28 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
+Builds that passed before can now fail: the `websmith` command reports errors it used to ignore and exits with code 1.
+
+- `websmith --project <directory>` compiles `<directory>/tsconfig.json` with its options, as `tsc` does. An explicit
+  `--project` that names no tsconfig file is an error that names the absolute path: a path that does not exist, such as
+  `-p missing.json` or `-p tsconfig.json` without that file (error 5058), or a directory without `tsconfig.json`, such
+  as `-p .` (error 5057). Before, all of them compiled nothing and exited with code 0. Without `--project`, a missing
+  `./tsconfig.json` is still not an error.
+- `tsConfig.project` and `cliArgs.options.project` are now absolute paths to the tsconfig file, also for a relative
+  `--project`. Addons that read them see this absolute path.
 - **Breaking:** websmith no longer sets `target: "ES5"` and `esModuleInterop: false` when a project leaves them out.
-  For these two options it uses the same defaults as `tsc` 5.x. Affected are projects whose `module` implies a newer
-  target or interop — `node16`, `nodenext` and `preserve` — and that leave `target` or `esModuleInterop` unset:
+  For these two options it uses the same defaults as `tsc` 5.x. Output changes for projects that set `module` to
+  `node16` or `nodenext` and leave `target` or `esModuleInterop` unset:
   - with `node16` or `nodenext`, output targets ES2022 or ESNext (`const`, native `async`) instead of ES5 (`var`,
     `__awaiter`), and the newer target changes the default `lib` and turns on `useDefineForClassFields`, so class
     fields are emitted as own properties with `[[Define]]` semantics, which can change the runtime behaviour of
     classes that rely on setters or on fields declared without an initializer;
-  - with `node16`, `nodenext` and `preserve`, default imports of CommonJS modules use the `__importDefault` /
+  - with `node16` or `nodenext`, default imports of CommonJS modules use the `__importDefault` /
     `__importStar` helpers and `allowSyntheticDefaultImports` is on, so some type errors about missing default
     exports disappear; `.d.mts` declarations of dynamic imports from CommonJS files now match `tsc`.
 
-  Projects with other `module` values are unaffected. To keep the old output, set `"target": "ES5"`,
+  With `module: preserve` websmith now derives target and interop like `tsc`, with no output change. Projects with
+  other `module` values are unaffected. To keep the old output, set `"target": "ES5"`,
   `"esModuleInterop": false` and, if class-field semantics matter, `"useDefineForClassFields": false` in
   `tsconfig.json`, or in a profile's `tsConfig` in `websmith.config.json` when the `tsconfig.json` is shared. Options
   a project leaves unset now follow the installed TypeScript's defaults, so upgrading TypeScript (for example to 6.x)
