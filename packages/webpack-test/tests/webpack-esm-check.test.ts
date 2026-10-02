@@ -212,6 +212,32 @@ describe("webpack w/ websmith-loader and ESM check", () => {
 
         expect(actual).toEqual({ exitCode: 1, errors: ["ESM91013"] });
     }, 60000);
+
+    it("reports 91013 w/ bare JSON import in node dependent profile", () => {
+        writeConfig(NODE_DEPENDENT());
+        writeSourceFile("node_modules/jpkg/package.json", JSON.stringify({ name: "jpkg" }), testDirs.PROJECT_DIR);
+        writeSourceFile("node_modules/jpkg/d.json", JSON.stringify({ d: 1 }), testDirs.PROJECT_DIR);
+        writeSources({ "a.ts": `// @ts-nocheck\nimport d from "jpkg/d.json";\nexport const value = d;\n` });
+
+        const [{ exitCode, errors }] = runWebpack({ entry: { main: "./src/a.ts" } });
+        const actual = { exitCode, errors: errors.map(codeOf) };
+
+        expect(actual).toEqual({ exitCode: 1, errors: ["ESM91013"] });
+    }, 60000);
+
+    it("reports 91010 w/ extensionless dynamic import in .cts module in node dependent profile", () => {
+        const profiles = NODE_DEPENDENT();
+        writeConfig({
+            ...profiles,
+            node: { ...profiles.node, tsConfig: { ...profiles.node.tsConfig, module: "nodenext", moduleResolution: "nodenext" } },
+        });
+        writeSources({ "c.cts": `// @ts-nocheck\nexport const load = () => import("./b");\n`, "b.ts": `export const b = 1;\n` });
+
+        const [{ exitCode, errors }] = runWebpack({ entry: { main: "./src/c.cts" } });
+        const actual = { exitCode, errors: errors.map(codeOf) };
+
+        expect(actual).toEqual({ exitCode: 1, errors: ["ESM91010"] });
+    }, 60000);
 });
 
 describe("webpack watch w/ websmith-loader and ESM check", () => {
