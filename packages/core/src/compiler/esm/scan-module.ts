@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
+import { createScopeDeclarations, findFunctionScope } from "./scopes";
 
 export type CommonJsName = "require" | "module" | "exports" | "__dirname" | "__filename";
 
@@ -41,25 +42,12 @@ const COMMONJS_NAMES: ReadonlySet<string> = new Set<CommonJsName>(["require", "m
 
 export const scanModule: ModuleScanner = (fileName, content) => {
     const file = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
-    const declarations = new Map<ts.Node, Set<string>>();
+    const scopes = createScopeDeclarations(file, name => COMMONJS_NAMES.has(name));
     const references: ts.Identifier[] = [];
     let esmSyntax: Span | undefined;
     let topLevelAwait: Span | undefined;
     const markers: { node: ts.Node; root: ts.Identifier }[] = [];
     const spanOf = (node: ts.Node): Span => ({ start: node.getStart(file), length: node.getWidth(file) });
-
-    const declare = (scope: ts.Node, name: ts.BindingName | ts.Identifier | undefined): void => {
-        if (!name) {
-            return;
-        }
-        if (ts.isIdentifier(name)) {
-            if (COMMONJS_NAMES.has(name.text)) {
-                declarations.set(scope, (declarations.get(scope) ?? new Set()).add(name.text));
-            }
-        } else {
-            name.elements.forEach(cur => !ts.isOmittedExpression(cur) && declare(scope, cur.name));
-        }
-    };
 
     const visit = (node: ts.Node): void => {
         const esmNode = esmSyntax ? undefined : findEsmSyntax(node);
@@ -74,38 +62,15 @@ export const scanModule: ModuleScanner = (fileName, content) => {
         if (markerRoot) {
             markers.push({ node, root: markerRoot });
         }
-        if (ts.isVariableDeclaration(node)) {
-            if (ts.isVariableDeclarationList(node.parent)) {
-                const isBlockScoped = (node.parent.flags & ts.NodeFlags.BlockScoped) !== 0;
-                declare(isBlockScoped ? findBlockScope(node.parent) : findFunctionScope(node.parent), node.name);
-            } else {
-                declare(node.parent, node.name);
-            }
-        } else if (ts.isParameter(node)) {
-            declare(node.parent, node.name);
-        } else if (ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) {
-            declare(findBlockScope(node.parent), node.name);
-        } else if (ts.isFunctionExpression(node) || ts.isClassExpression(node)) {
-            declare(node, node.name);
-        } else if (ts.isImportClause(node) || ts.isNamespaceImport(node) || ts.isImportSpecifier(node) || ts.isImportEqualsDeclaration(node)) {
-            declare(file, node.name);
-        } else if (ts.isIdentifier(node) && COMMONJS_NAMES.has(node.text) && isReference(node)) {
+        scopes.visit(node);
+        if (ts.isIdentifier(node) && COMMONJS_NAMES.has(node.text) && isReference(node)) {
             references.push(node);
         }
         ts.forEachChild(node, visit);
     };
     visit(file);
 
-    const isDeclared = (node: ts.Identifier): boolean => {
-        for (let cur: ts.Node | undefined = node.parent; cur; cur = cur.parent) {
-            if (declarations.get(cur)?.has(node.text)) {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    const isFree = (node: ts.Identifier): boolean => !isDeclared(node) && !isTypeofGuarded(node);
+    const isFree = (node: ts.Identifier): boolean => !scopes.findDeclaringScope(node) && !isTypeofGuarded(node);
     const marker = markers.find(cur => isFree(cur.root));
     const esModuleMarker = marker && spanOf(marker.node);
 
@@ -180,23 +145,6 @@ const findExportsRoot = (node: ts.Node | undefined): ts.Identifier | undefined =
         : undefined;
 };
 
-const isFunctionScope = (node: ts.Node): boolean => ts.isFunctionLike(node) || ts.isSourceFile(node) || ts.isClassStaticBlockDeclaration(node);
-
-const isBlockScope = (node: ts.Node): boolean =>
-    isFunctionScope(node) || ts.isBlock(node) || ts.isCaseBlock(node) || ts.isIterationStatement(node, false) || ts.isCatchClause(node);
-
-const findFunctionScope = (node: ts.Node): ts.Node => findAncestor(node, isFunctionScope);
-
-const findBlockScope = (node: ts.Node): ts.Node => findAncestor(node, isBlockScope);
-
-const findAncestor = (node: ts.Node, predicate: (node: ts.Node) => boolean): ts.Node => {
-    let cur = node;
-    while (!predicate(cur) && cur.parent) {
-        cur = cur.parent;
-    }
-    return cur;
-};
-
 /** False for identifiers that name a property, a declaration or a label instead of referencing a binding. */
 const isReference = (node: ts.Identifier): boolean => {
     const parent = node.parent;
@@ -213,8 +161,9 @@ const isReference = (node: ts.Identifier): boolean => {
 };
 
 /**
- * True for `typeof name`, and for uses in a branch or operand that runs only when a `typeof name` test says `name`
- * is defined. Tests whose direction cannot be read (e.g. compound conditions) guard every branch and operand.
+ * True for `typeof name`, and for uses in a branch or operand that runs only when a `typeof` test of a CommonJS name
+ * says it is defined: in an ES module all five are undefined together, so a test of any of them guards every one.
+ * Tests whose direction cannot be read (e.g. compound conditions) guard every branch and operand.
  */
 const isTypeofGuarded = (node: ts.Identifier): boolean => {
     let child: ts.Node = node;
@@ -222,21 +171,21 @@ const isTypeofGuarded = (node: ts.Identifier): boolean => {
         if (ts.isTypeOfExpression(parent)) {
             return true;
         }
-        if (ts.isConditionalExpression(parent) && child !== parent.condition && testsTypeof(parent.condition, node.text)) {
-            const defined = readsDefined(parent.condition, node.text);
+        if (ts.isConditionalExpression(parent) && child !== parent.condition && testsTypeof(parent.condition, COMMONJS_NAMES)) {
+            const defined = readsDefined(parent.condition, COMMONJS_NAMES);
             if (defined === undefined || defined === (child === parent.whenTrue)) {
                 return true;
             }
         }
-        if (ts.isIfStatement(parent) && child !== parent.expression && testsTypeof(parent.expression, node.text)) {
-            const defined = readsDefined(parent.expression, node.text);
+        if (ts.isIfStatement(parent) && child !== parent.expression && testsTypeof(parent.expression, COMMONJS_NAMES)) {
+            const defined = readsDefined(parent.expression, COMMONJS_NAMES);
             if (defined === undefined || defined === (child === parent.thenStatement)) {
                 return true;
             }
         }
-        if (ts.isBinaryExpression(parent) && child === parent.right && testsTypeof(parent.left, node.text)) {
+        if (ts.isBinaryExpression(parent) && child === parent.right && testsTypeof(parent.left, COMMONJS_NAMES)) {
             const operator = parent.operatorToken.kind;
-            const defined = operator === ts.SyntaxKind.QuestionQuestionToken ? undefined : readsDefined(parent.left, node.text);
+            const defined = operator === ts.SyntaxKind.QuestionQuestionToken ? undefined : readsDefined(parent.left, COMMONJS_NAMES);
             if (isLogicalOperator(operator) && (defined === undefined || defined === (operator === ts.SyntaxKind.AmpersandAmpersandToken))) {
                 return true;
             }
@@ -248,9 +197,9 @@ const isTypeofGuarded = (node: ts.Identifier): boolean => {
 const isLogicalOperator = (kind: ts.SyntaxKind): boolean =>
     kind === ts.SyntaxKind.AmpersandAmpersandToken || kind === ts.SyntaxKind.BarBarToken || kind === ts.SyntaxKind.QuestionQuestionToken;
 
-const testsTypeof = (node: ts.Node, name: string): boolean =>
-    (ts.isTypeOfExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === name) ||
-    !!ts.forEachChild(node, cur => testsTypeof(cur, name) || undefined);
+const testsTypeof = (node: ts.Node, names: ReadonlySet<string>): boolean =>
+    (ts.isTypeOfExpression(node) && ts.isIdentifier(node.expression) && names.has(node.expression.text)) ||
+    !!ts.forEachChild(node, cur => testsTypeof(cur, names) || undefined);
 
 const EQUALITY_OPERATORS: ReadonlySet<ts.SyntaxKind> = new Set([
     ts.SyntaxKind.EqualsEqualsEqualsToken,
@@ -260,13 +209,13 @@ const EQUALITY_OPERATORS: ReadonlySet<ts.SyntaxKind> = new Set([
 ]);
 
 /**
- * Reads a `typeof name` comparison with a string literal, optionally negated by `!`: true when the test holds if
- * `name` is defined, false when it holds if `name` is undefined, undefined when the test has another shape.
+ * Reads a `typeof name` comparison of one of `names` with a string literal, optionally negated by `!`: true when the
+ * test holds if `name` is defined, false when it holds if `name` is undefined, undefined when the test has another shape.
  */
-const readsDefined = (test: ts.Expression, name: string): boolean | undefined => {
+const readsDefined = (test: ts.Expression, names: ReadonlySet<string>): boolean | undefined => {
     const node = skipParentheses(test);
     if (ts.isPrefixUnaryExpression(node) && node.operator === ts.SyntaxKind.ExclamationToken) {
-        const operand = readsDefined(node.operand, name);
+        const operand = readsDefined(node.operand, names);
         return operand === undefined ? undefined : !operand;
     }
     if (!ts.isBinaryExpression(node) || !EQUALITY_OPERATORS.has(node.operatorToken.kind)) {
@@ -278,7 +227,7 @@ const readsDefined = (test: ts.Expression, name: string): boolean | undefined =>
     if (
         !ts.isTypeOfExpression(typeofExpression) ||
         !ts.isIdentifier(typeofExpression.expression) ||
-        typeofExpression.expression.text !== name ||
+        !names.has(typeofExpression.expression.text) ||
         !ts.isStringLiteralLike(literal)
     ) {
         return undefined;

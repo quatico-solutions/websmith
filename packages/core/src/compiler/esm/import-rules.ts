@@ -6,6 +6,7 @@
  */
 import type { EsmRuntime } from "@quatico/websmith-api";
 import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
 import type { ModuleClassification } from "./classify-module";
 import type { ModuleScan } from "./scan-module";
@@ -37,8 +38,6 @@ export type ImportRule = (
 
 type RelativeImport = {
     specifier: string;
-    /** Absolute path the specifier names, relative to the importing file. */
-    resolved: string;
     start: number;
     length: number;
     /** True when the import carries `with { type: "json" }`. */
@@ -46,6 +45,18 @@ type RelativeImport = {
     /** True when the import carries an `assert` clause instead of `with`. */
     usesAssert: boolean;
 };
+
+/** A relative import with the file path the runtime derives from its specifier. */
+type ResolvedImport = RelativeImport & {
+    /** Absolute path the specifier names, undefined when the runtime rejects the specifier. */
+    resolved?: string;
+    /** The part of the specifier that names the path, without the query or fragment the runtime ignores. */
+    specifierPath: string;
+    /** The query and fragment the runtime ignores, kept by fix hints, empty when there are none. */
+    specifierSuffix: string;
+};
+
+type SpecifierResolution = Omit<ResolvedImport, keyof RelativeImport>;
 
 /** What an ES module import names: an existing file, a file without its extension, a directory or nothing. */
 type ImportTarget = "file" | "missing-extension" | "directory" | "unresolved";
@@ -57,12 +68,13 @@ const KNOWN_EXTENSIONS: ReadonlySet<string> = new Set([".js", ".mjs", ".cjs", ".
 export const checkMissingExtension: ImportRule = ({ file }, { kind }, context) =>
     kind !== "esm"
         ? []
-        : collectRelativeImports(file)
+        : resolveImports(file, kind, context)
               .filter(cur => getTarget(cur, context) === "missing-extension")
               .map(cur =>
                   finding(
                       ImportDiagnosticCode.MissingExtension,
-                      `relative import "${cur.specifier}" has no file extension, which ES modules require; add the extension: "${cur.specifier}.js"`,
+                      `relative import "${cur.specifier}" has no file extension, which ES modules require; ` +
+                          `add the extension: "${cur.specifierPath}.js${cur.specifierSuffix}"`,
                       cur
                   )
               );
@@ -71,14 +83,14 @@ export const checkMissingExtension: ImportRule = ({ file }, { kind }, context) =
 export const checkDirectoryImport: ImportRule = ({ file }, { kind }, context) =>
     kind !== "esm"
         ? []
-        : collectRelativeImports(file)
+        : resolveImports(file, kind, context)
               .filter(cur => getTarget(cur, context) === "directory")
               .map(cur =>
                   finding(
                       ImportDiagnosticCode.DirectoryImport,
                       `relative import "${cur.specifier}" names a directory, which ES modules cannot import; ` +
-                          (isFile(path.join(cur.resolved, "index.js"), context)
-                              ? `import the file: "${cur.specifier.replace(/\/+$/, "")}/index.js"`
+                          (cur.resolved !== undefined && isFile(path.join(cur.resolved, "index.js"), context)
+                              ? `import the file: "${cur.specifierPath.replace(/\/+$/, "")}/index.js${cur.specifierSuffix}"`
                               : "import a file inside the directory"),
                       cur
                   )
@@ -86,6 +98,8 @@ export const checkDirectoryImport: ImportRule = ({ file }, { kind }, context) =>
 
 // Candidates webpack tries for `javascript/auto`, where specifiers need not be fully specified
 const AUTO_EXTENSIONS = [".js", ".mjs", ".cjs", ".json"];
+
+const hasAutoExtension = (fileName: string, context: ImportRuleContext): boolean => AUTO_EXTENSIONS.some(ext => isFile(fileName + ext, context));
 
 /**
  * Relative import that resolves to no file written in this run or on disk. Extensionless and directory imports of
@@ -95,11 +109,12 @@ export const checkUnresolvedImport: ImportRule = ({ file }, { kind }, context) =
     if (kind !== "esm" && kind !== "auto") {
         return [];
     }
-    const resolves = (cur: RelativeImport): boolean =>
+    const resolves = (cur: ResolvedImport): boolean =>
         kind === "esm"
             ? getTarget(cur, context) !== "unresolved"
-            : isFile(cur.resolved, context) || AUTO_EXTENSIONS.some(ext => isFile(cur.resolved + ext, context)) || isDirectory(cur.resolved, context);
-    return collectRelativeImports(file)
+            : cur.resolved !== undefined &&
+              (isFile(cur.resolved, context) || hasAutoExtension(cur.resolved, context) || isDirectory(cur.resolved, context));
+    return resolveImports(file, kind, context)
         .filter(cur => !resolves(cur))
         .map(cur =>
             finding(
@@ -114,8 +129,8 @@ export const checkUnresolvedImport: ImportRule = ({ file }, { kind }, context) =
 export const checkJsonImportAttribute: ImportRule = ({ file }, { kind }, context) =>
     kind !== "esm" || context.runtime !== "node"
         ? []
-        : collectRelativeImports(file)
-              .filter(cur => /\.json$/i.test(cur.specifier) && !cur.hasJsonAttribute)
+        : resolveImports(file, kind, context)
+              .filter(cur => cur.resolved !== undefined && /\.json$/i.test(cur.resolved) && !cur.hasJsonAttribute)
               .map(cur =>
                   finding(
                       ImportDiagnosticCode.MissingJsonAttribute,
@@ -140,9 +155,12 @@ const targets = new WeakMap<ImportRuleContext, Map<string, ImportTarget>>();
  * probing for a directory. A missing name counts as extensionless when it has no extension, or when its extension is
  * not one the runtime loads and adding `.js` finds a file (e.g. `./user.service`); otherwise it is unresolved.
  */
-const getTarget = ({ specifier, resolved }: RelativeImport, context: ImportRuleContext): ImportTarget => {
+const getTarget = ({ specifierPath, resolved }: ResolvedImport, context: ImportRuleContext): ImportTarget => {
+    if (resolved === undefined) {
+        return "unresolved";
+    }
     // `./utils/`, `.` and `..` name a directory even when a file of the same name exists
-    const namesDirectory = /(?:^|\/)\.{0,2}$/.test(specifier);
+    const namesDirectory = /(?:^|\/)\.{0,2}$/.test(specifierPath);
     const key = namesDirectory ? `${resolved}${path.sep}` : resolved;
     const cached = memo(targets, context);
     let result = cached.get(key);
@@ -220,7 +238,6 @@ const collectRelativeImports = (file: ts.SourceFile): RelativeImport[] => {
         if (ts.isStringLiteralLike(literal) && isRelative(literal.text)) {
             result.push({
                 specifier: literal.text,
-                resolved: path.resolve(path.dirname(file.fileName), literal.text),
                 start: literal.getStart(file),
                 length: literal.getWidth(file),
                 hasJsonAttribute,
@@ -244,6 +261,67 @@ const collectRelativeImports = (file: ts.SourceFile): RelativeImport[] => {
     visit(file);
     cache.set(file, result);
     return result;
+};
+
+const resolutions = new WeakMap<ImportRuleContext, Map<string, SpecifierResolution>>();
+
+/** The relative imports of a file with the paths the context's runtime derives from them, resolved once per context. */
+const resolveImports = (file: ts.SourceFile, kind: ModuleClassification["kind"], context: ImportRuleContext): ResolvedImport[] => {
+    const cached = memo(resolutions, context);
+    return collectRelativeImports(file).map(cur => {
+        const key = `${kind}\0${file.fileName}\0${cur.specifier}`;
+        let result = cached.get(key);
+        if (!result) {
+            result =
+                context.runtime === "node"
+                    ? resolveNodeSpecifier(cur.specifier, file.fileName)
+                    : resolveBundlerSpecifier(cur.specifier, file.fileName, kind, context);
+            cached.set(key, result);
+        }
+        return { ...cur, ...result };
+    });
+};
+
+const splitSpecifier = (specifier: string): { specifierPath: string; specifierSuffix: string } => {
+    const index = specifier.search(/[?#]/);
+    return index < 0
+        ? { specifierPath: specifier, specifierSuffix: "" }
+        : { specifierPath: specifier.slice(0, index), specifierSuffix: specifier.slice(index) };
+};
+
+/**
+ * Derives the path like Node: the specifier is a URL relative to the importing file, so the query and fragment are
+ * dropped, percent-encoding is decoded and dot segments are normalized. Node rejects an encoded `/` or `\`.
+ */
+const resolveNodeSpecifier = (specifier: string, importer: string): SpecifierResolution => {
+    const parts = splitSpecifier(specifier);
+    if (/%2f|%5c/i.test(parts.specifierPath)) {
+        return parts;
+    }
+    try {
+        return { ...parts, resolved: path.resolve(fileURLToPath(new URL(specifier, pathToFileURL(importer)))) };
+    } catch {
+        return parts;
+    }
+};
+
+/**
+ * Derives the path like webpack: the specifier as written when it names an existing file or directory (in
+ * `javascript/auto` also with an added extension), otherwise without query and fragment. Nothing is decoded.
+ */
+const resolveBundlerSpecifier = (
+    specifier: string,
+    importer: string,
+    kind: ModuleClassification["kind"],
+    context: ImportRuleContext
+): SpecifierResolution => {
+    const asWritten = path.resolve(path.dirname(importer), specifier);
+    const parts = splitSpecifier(specifier);
+    const exists = (): boolean =>
+        isFile(asWritten, context) || isDirectory(asWritten, context) || (kind === "auto" && hasAutoExtension(asWritten, context));
+    return parts.specifierSuffix === "" || exists()
+        ? { resolved: asWritten, specifierPath: specifier, specifierSuffix: "" }
+        : { ...parts, resolved: path.resolve(path.dirname(importer), parts.specifierPath) };
 };
 
 const hasStaticJsonAttribute = (attributes: ts.ImportAttributes | undefined): boolean =>

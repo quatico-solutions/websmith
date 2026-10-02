@@ -278,6 +278,48 @@ describe("checkEsm CommonJS names", () => {
         expect(actual).toEqual([91021]);
     });
 
+    it("yields nothing w/ default import of __esModule package and called local const of the same name in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";\nfunction f() { const pkg = () => 1; return pkg(); }\nconsole.log(pkg.named, f());`, {
+            runtime: "node",
+        });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ default import of __esModule package and parameter of the same name passed as argument in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";\nfunction f(pkg) { return fn(pkg); }\nconsole.log(pkg.named, f(1));`, { runtime: "node" });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ default import of __esModule package and var of the same name hoisted in function in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";\nfunction f() { if (x) { var pkg = load; } return pkg(); }\nconsole.log(pkg.named, f());`, {
+            runtime: "node",
+        });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91021 w/ default import of __esModule package called in function beside sibling function shadowing it in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";\nfunction g() { const pkg = () => 1; return pkg(); }\nfunction f() { return pkg(); }`, {
+            runtime: "node",
+        });
+
+        expect(actual).toEqual([91021]);
+    });
+
+    it("yields 91021 w/ default import of __esModule package called after block with let of the same name in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";\nfunction f() { { let pkg = () => 1; pkg(); } return pkg(); }`, { runtime: "node" });
+
+        expect(actual).toEqual([91021]);
+    });
+
+    it("yields 91021 w/ typeof of default import of __esModule package in node output", () => {
+        const actual = codesOf(`import pkg from "tscjs";\nconsole.log(typeof pkg);`, { runtime: "node" });
+
+        expect(actual).toEqual([91021]);
+    });
+
     it("yields nothing w/ module.exports name imported from CommonJS package in node output", () => {
         const actual = codesOf(`import { "module.exports" as m } from "objcjs";\nm();`, { runtime: "node" });
 
