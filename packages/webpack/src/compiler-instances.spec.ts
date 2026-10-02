@@ -11,6 +11,8 @@ import webpack, { type Compiler, type LoaderContext } from "webpack";
 import { TsCompiler } from "./TsCompiler";
 import { getCompilerInstance } from "./compiler-instances";
 import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
+import { WebpackAddonService } from "./WebpackAddonService";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 let compiler: Compiler;
 let tsCompiler: TsCompiler;
@@ -152,5 +154,152 @@ describe("setInstanceInCache", () => {
         const secondInstance = getInstanceFromCache(undefined, "target-instance");
         expect(secondInstance).not.toBe(firstInstance);
         expect(secondInstance).toBe(target);
+    });
+});
+
+describe("getCompilerInstance option resolution", () => {
+    // Own directory per test: tests change the files and their modification times
+    const getFixtureDir = () => path.join(projectDir, `test-output-resolution-${process.pid}-${expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_")}`);
+    let fixtureDir: string;
+
+    beforeEach(() => {
+        fixtureDir = getFixtureDir();
+        const files: Record<string, string> = {
+            "tsconfig.json": JSON.stringify({ extends: "./tsconfig.base.json", compilerOptions: { rootDir: "src", outDir: "dist" } }),
+            "tsconfig.base.json": JSON.stringify({ compilerOptions: { target: "es2020", module: "esnext", removeComments: false } }),
+            "websmith.config.json": JSON.stringify({ addonsDir: "./addons", profiles: { target: { addons: ["counter"] } } }),
+            "addons/counter/addon.js": "exports.activate = () => undefined;\n",
+            "src/a.ts": "/* note */\nexport const a = 1;\n",
+            "src/b.ts": "export const b = 1;\n",
+        };
+        Object.entries(files).forEach(([fileName, content]) => writeFixture(fileName, content));
+        jest.spyOn(process.stderr, "write").mockImplementation(() => true);
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+        fs.rmSync(fixtureDir, { recursive: true, force: true });
+    });
+
+    const writeFixture = (fileName: string, content: string) => {
+        fs.mkdirSync(path.dirname(path.join(fixtureDir, fileName)), { recursive: true });
+        fs.writeFileSync(path.join(fixtureDir, fileName), content);
+    };
+
+    const touchFixture = (fileName: string) => {
+        const time = new Date(Date.now() + 10000);
+        fs.utimesSync(path.join(fixtureDir, fileName), time, time);
+    };
+
+    const createOptions = (instanceName: string): WebsmithLoaderConfig => ({
+        tsConfigFile: path.join(fixtureDir, "tsconfig.json"),
+        configFile: path.join(fixtureDir, "websmith.config.json"),
+        profile: "target",
+        transpileOnly: true,
+        instanceName: `${instanceName}-${process.pid}-${expect.getState().currentTestName}`,
+    });
+
+    const createContext = (options: WebsmithLoaderConfig, compiler?: Compiler) =>
+        ({ ...(compiler && { _compiler: compiler }), getOptions: () => options }) as unknown as LoaderContext<WebsmithLoaderConfig>;
+
+    it("resolves options once w/ three modules of one compilation", () => {
+        const target = jest.spyOn(TsCompiler.prototype, "setOptions");
+        const options = createOptions("once");
+        const context = createContext(options, webpack({}));
+
+        [1, 2, 3].forEach(() => getCompilerInstance(options, context));
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("resolves options once w/ three modules w/o webpack compiler and unchanged files", () => {
+        const target = jest.spyOn(TsCompiler.prototype, "setOptions");
+        const options = createOptions("once-without-compiler");
+        const context = createContext(options);
+
+        [1, 2, 3].forEach(() => getCompilerInstance(options, context));
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("resolves options again w/o webpack compiler w/ changed modification time of tsconfig.json", () => {
+        const target = jest.spyOn(TsCompiler.prototype, "setOptions");
+        const options = createOptions("tsconfig-changed");
+        const context = createContext(options);
+        getCompilerInstance(options, context);
+        touchFixture("tsconfig.json");
+
+        getCompilerInstance(options, context);
+        getCompilerInstance(options, context);
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(2);
+    });
+
+    it("resolves options again w/o webpack compiler w/ changed modification time of extends target", () => {
+        const target = jest.spyOn(TsCompiler.prototype, "setOptions");
+        const options = createOptions("extends-changed");
+        const context = createContext(options);
+        getCompilerInstance(options, context);
+        touchFixture("tsconfig.base.json");
+
+        getCompilerInstance(options, context);
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(2);
+    });
+
+    it("yields output of changed extends target w/o webpack compiler", () => {
+        const options = createOptions("extends-output");
+        const context = createContext(options);
+        getCompilerInstance(options, context).build(path.join(fixtureDir, "src", "a.ts"));
+        writeFixture("tsconfig.base.json", JSON.stringify({ compilerOptions: { target: "es2020", module: "esnext", removeComments: true } }));
+        touchFixture("tsconfig.base.json");
+
+        const actual = getCompilerInstance(options, context).build(path.join(fixtureDir, "src", "a.ts")).fragment.files[0].text;
+
+        expect(actual).not.toContain("note");
+    });
+
+    it("loads addons once w/ three modules of one compilation", () => {
+        const target = jest.spyOn(WebpackAddonService.prototype, "getAvailableAddons");
+        const options = createOptions("addons-once");
+        const context = createContext(options, webpack({}));
+
+        ["a.ts", "b.ts", "a.ts"].forEach(cur => getCompilerInstance(options, context).build(path.join(fixtureDir, "src", cur)));
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("keeps loaded addons w/ next compilation and unchanged addons", () => {
+        const target = jest.spyOn(WebpackAddonService.prototype, "getAvailableAddons");
+        const options = createOptions("addons-kept");
+        const context = createContext(options, webpack({}));
+        const testObj = getCompilerInstance(options, context);
+        testObj.build(path.join(fixtureDir, "src", "a.ts"));
+
+        testObj.refreshAddons();
+        testObj.build(path.join(fixtureDir, "src", "a.ts"));
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("loads addons again w/ next compilation and changed addon file", () => {
+        const target = jest.spyOn(WebpackAddonService.prototype, "getAvailableAddons");
+        const options = createOptions("addons-changed");
+        const context = createContext(options, webpack({}));
+        const testObj = getCompilerInstance(options, context);
+        testObj.build(path.join(fixtureDir, "src", "a.ts"));
+        touchFixture("addons/counter/addon.js");
+
+        testObj.refreshAddons();
+        testObj.build(path.join(fixtureDir, "src", "a.ts"));
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(2);
     });
 });

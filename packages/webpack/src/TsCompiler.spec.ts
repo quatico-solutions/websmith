@@ -437,10 +437,17 @@ const CONFIG_FILE = {
     }),
 };
 
+const createConfigOptions = (profile: string): WebsmithLoaderConfig => ({
+    tsConfigFile: "/tsconfig.json",
+    configFile: "/websmith.config.json",
+    transpileOnly: true,
+    profile,
+});
+
 const createConfigCompiler = (profile: string, target: Reporter = new NoReporter()): TsCompiler =>
     new TsCompiler(
         { reporter: target, cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
-        { tsConfigFile: "/tsconfig.json", configFile: "/websmith.config.json", transpileOnly: true, profile },
+        createConfigOptions(profile),
         undefined,
         undefined,
         createSystem({ ...TS_CONFIG, ...CONFIG_FILE, "/src/a.ts": "export const a = 1;" }, { virtual: true })
@@ -463,7 +470,7 @@ describe("TsCompiler config errors", () => {
         const spy = jest.spyOn(target, "reportDiagnostic");
         const testObj = createConfigCompiler("broken", target);
 
-        testObj.updateLoaderConfig({ profile: "broken" });
+        testObj.updateLoaderConfig(createConfigOptions("broken"));
         const actual = spy.mock.calls.filter(([cur]) => cur.category === ts.DiagnosticCategory.Error);
 
         expect(actual).toEqual([]);
@@ -472,8 +479,8 @@ describe("TsCompiler config errors", () => {
     it("yields each config error once w/ updated loader config", () => {
         const testObj = createConfigCompiler("broken");
 
-        testObj.updateLoaderConfig({ profile: "broken" });
-        testObj.updateLoaderConfig({ profile: "broken" });
+        testObj.updateLoaderConfig(createConfigOptions("broken"));
+        testObj.updateLoaderConfig(createConfigOptions("broken"));
         const actual = testObj.getConfigErrors().length;
 
         expect(actual).toBe(2);
@@ -514,6 +521,80 @@ describe("TsCompiler config errors", () => {
         const testObj = createConfigCompiler("valid");
 
         const actual = testObj.getConfigErrors();
+
+        expect(actual).toEqual([]);
+    });
+});
+
+describe("TsCompiler options files", () => {
+    const createOptionsCompiler = (files: Record<string, string>, configFile: string): TsCompiler =>
+        new TsCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
+            { tsConfigFile: "/tsconfig.json", configFile, transpileOnly: true },
+            undefined,
+            undefined,
+            createSystem({ "/src/a.ts": "export const a = 1;", ...files }, { virtual: true })
+        );
+
+    it("yields config file, tsconfig.json and extends target as files", () => {
+        const testObj = createOptionsCompiler(
+            {
+                "/tsconfig.json": JSON.stringify({ extends: "./tsconfig.base.json" }),
+                "/tsconfig.base.json": JSON.stringify({ compilerOptions: { target: "es2020" } }),
+                "/websmith.config.json": JSON.stringify({}),
+            },
+            "/websmith.config.json"
+        );
+
+        const actual = testObj.getOptionsFiles();
+
+        expect(actual).toEqual({
+            files: [path.resolve("/websmith.config.json"), path.resolve("/tsconfig.json"), path.resolve("/tsconfig.base.json")],
+            missing: [],
+        });
+    });
+
+    it("yields missing config file and extends target as missing", () => {
+        const testObj = createOptionsCompiler({ "/tsconfig.json": JSON.stringify({ extends: "./tsconfig.base.json" }) }, "/websmith.config.json");
+
+        const actual = testObj.getOptionsFiles();
+
+        expect(actual).toEqual({ files: [path.resolve("/tsconfig.json")], missing: [path.resolve("/websmith.config.json"), path.resolve("/tsconfig.base.json")] });
+    });
+});
+
+describe("TsCompiler not ESM profile", () => {
+    const createNotEsmCompiler = (): TsCompiler =>
+        new TsCompiler(
+            {
+                config: { profiles: { target: { esm: { runtime: "bundler" }, tsConfig: { module: "ESNext" as never } } } },
+                reporter: new NoReporter(),
+                cliArgs: { options: { module: ts.ModuleKind.CommonJS }, fileNames: ["/src/a.ts", "/src/b.ts", "/src/c.ts"], errors: [] },
+            },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" },
+            undefined,
+            undefined,
+            createSystem(
+                { ...TS_CONFIG, ...MODULE_PACKAGE, "/src/a.ts": "export const a = 1;", "/src/b.ts": "export const b = 1;", "/src/c.ts": "export const c = 1;" },
+                { virtual: true }
+            )
+        );
+
+    it("yields not ESM error once w/ several modules", () => {
+        const testObj = createNotEsmCompiler();
+
+        ["/src/a.ts", "/src/b.ts", "/src/c.ts"].forEach(cur => testObj.build(cur));
+        const actual = testObj.getConfigErrors().filter(cur => String(cur.messageText).includes("sets 'esm', but")).length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("reports no not ESM error to reporter w/ several modules", () => {
+        const testObj = createNotEsmCompiler();
+        const target = jest.spyOn(testObj.getReporter(), "reportDiagnostic");
+
+        ["/src/a.ts", "/src/b.ts", "/src/c.ts"].forEach(cur => testObj.build(cur));
+        const actual = target.mock.calls.filter(([cur]) => String(cur.messageText).includes("sets 'esm', but"));
 
         expect(actual).toEqual([]);
     });
