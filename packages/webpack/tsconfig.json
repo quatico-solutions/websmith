@@ -5,8 +5,7 @@
         "rootDir": "./src",
         "tsBuildInfoFile": "./lib/tsconfig.tsbuildinfo",
         "noEmit": false,
-        "module": "CommonJS",
-        "moduleResolution": null
+        "module": "CommonJS"
     },
     "include": ["src/**/*.ts"],
     "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.test.ts"]

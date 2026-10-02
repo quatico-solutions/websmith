@@ -5,8 +5,7 @@
         "rootDir": "./src",
         "incremental": false,
         "noEmit": false,
-        "module": "CommonJS",
-        "moduleResolution": null
+        "module": "CommonJS"
     },
     "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.test.ts", "test/**/*.ts"],
     "include": ["src/**/*.ts"]
