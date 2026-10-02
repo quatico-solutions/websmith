@@ -45,15 +45,34 @@ describe("createOptions", () => {
             declaration: false,
             declarationMap: false,
             emitDecorationOnly: false,
-            esModuleInterop: false,
             jsx: ts.JsxEmit.Preserve,
             noEmit: false,
             pretty: true,
             project: "./expected/tsconfig.json",
             removeComments: false,
             strict: false,
-            target: ts.ScriptTarget.ES5,
         });
+    });
+
+    it("should return no target and esModuleInterop w/ tsconfig.json without them", () => {
+        const target = createSystem({ "./tsconfig.json": JSON.stringify({ compilerOptions: { module: "nodenext" } }) }, { virtual: true });
+
+        const actual = createOptions({ project: "./tsconfig.json" }, new NoReporter(), target).tsConfig;
+
+        expect(actual).not.toHaveProperty("target");
+        expect(actual).not.toHaveProperty("esModuleInterop");
+        expect(actual.jsx).toBe(ts.JsxEmit.Preserve);
+    });
+
+    it("should return target and esModuleInterop w/ tsconfig.json setting them", () => {
+        const target = createSystem(
+            { "./tsconfig.json": JSON.stringify({ compilerOptions: { module: "nodenext", target: "es5", esModuleInterop: false } }) },
+            { virtual: true }
+        );
+
+        const actual = createOptions({ project: "./tsconfig.json" }, new NoReporter(), target).tsConfig;
+
+        expect(actual).toMatchObject({ target: ts.ScriptTarget.ES5, esModuleInterop: false });
     });
 
     it("should return debug path w/ debug true", () => {
@@ -155,7 +174,6 @@ describe("createOptions", () => {
                         declaration: false,
                         declarationMap: false,
                         emitDecorationOnly: false,
-                        esModuleInterop: false,
                         jsx: ts.JsxEmit.Preserve,
                         listFiles: true,
                         noEmit: false,
@@ -163,7 +181,6 @@ describe("createOptions", () => {
                         project: "./tsconfig.json",
                         removeComments: false,
                         strict: false,
-                        target: ts.ScriptTarget.ES5,
                         watch: true,
                     },
                 },
@@ -184,7 +201,6 @@ describe("createOptions", () => {
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
                     listFiles: true,
                     noEmit: false,
@@ -192,7 +208,6 @@ describe("createOptions", () => {
                     project: "./tsconfig.json",
                     removeComments: false,
                     strict: false,
-                    target: ts.ScriptTarget.ES5,
                     watch: true,
                 },
                 tsConfigFile: "/tsconfig.json",
@@ -226,7 +241,6 @@ describe("createOptions", () => {
                     declaration: true,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
                     module: ts.ModuleKind.ESNext,
                     noEmit: false,
@@ -337,13 +351,11 @@ describe("createOptions", () => {
                         declaration: false,
                         declarationMap: false,
                         emitDecorationOnly: false,
-                        esModuleInterop: false,
                         jsx: ts.JsxEmit.Preserve,
                         noEmit: false,
                         pretty: true,
                         removeComments: false,
                         strict: false,
-                        target: ts.ScriptTarget.ES5,
                     },
                 },
                 config: {},
@@ -357,13 +369,11 @@ describe("createOptions", () => {
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
                     noEmit: false,
                     pretty: true,
                     removeComments: false,
                     strict: false,
-                    target: ts.ScriptTarget.ES5,
                 },
                 tsConfigFile: "/tsconfig.json",
                 watch: false,
@@ -436,7 +446,6 @@ describe("createOptions", () => {
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
                     noEmit: false,
                     pretty: true,
@@ -461,7 +470,6 @@ describe("createOptions", () => {
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
                     noEmit: false,
                     pretty: true,

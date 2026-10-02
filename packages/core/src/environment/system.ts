@@ -6,6 +6,7 @@
  */
 import ts from "typescript";
 import { tsDefaults, tsLibDefaults } from "../compiler";
+import { getEffectiveTarget } from "../compiler/config";
 import { createBrowserSystem } from "./browser-system";
 import { type BrowserSystemOptions } from "./BrowserSystemOptions";
 import type { VersionedFile } from "./VersionedFile";
@@ -70,7 +71,7 @@ export const getVersionedFile = (filePath: string, system: ts.System): ts.Source
 export const createVersionedFile = (name: string, content: string, tsConfig: ts.CompilerOptions): VersionedFile => {
     const scriptKind = name.endsWith(".ts") ? undefined : ts.ScriptKind.Deferred;
     return {
-        ...ts.createSourceFile(name, content, tsConfig.target || ts.ScriptTarget.Latest, true, scriptKind),
+        ...ts.createSourceFile(name, content, getEffectiveTarget(tsConfig), true, scriptKind),
         version: 0,
     };
 };
