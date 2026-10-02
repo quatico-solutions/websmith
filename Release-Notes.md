@@ -27,6 +27,23 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   `./tsconfig.json` is still not an error.
 - `tsConfig.project` and `cliArgs.options.project` are now absolute paths to the tsconfig file, also for a relative
   `--project`. Addons that read them see this absolute path.
+- **Breaking:** websmith no longer sets `target: "ES5"` and `esModuleInterop: false` when a project leaves them out.
+  For these two options it uses the same defaults as `tsc` 5.x. Output changes for projects that set `module` to
+  `node16` or `nodenext` and leave `target` or `esModuleInterop` unset:
+  - with `node16` or `nodenext`, output targets ES2022 or ESNext (`const`, native `async`) instead of ES5 (`var`,
+    `__awaiter`), and the newer target changes the default `lib` and turns on `useDefineForClassFields`, so class
+    fields are emitted as own properties with `[[Define]]` semantics, which can change the runtime behaviour of
+    classes that rely on setters or on fields declared without an initializer;
+  - with `node16` or `nodenext`, default imports of CommonJS modules use the `__importDefault` /
+    `__importStar` helpers and `allowSyntheticDefaultImports` is on, so some type errors about missing default
+    exports disappear; `.d.mts` declarations of dynamic imports from CommonJS files now match `tsc`.
+
+  With `module: preserve` websmith now derives target and interop like `tsc`, with no output change. Projects with
+  other `module` values are unaffected. To keep the old output, set `"target": "ES5"`,
+  `"esModuleInterop": false` and, if class-field semantics matter, `"useDefineForClassFields": false` in
+  `tsconfig.json`, or in a profile's `tsConfig` in `websmith.config.json` when the `tsconfig.json` is shared. Options
+  a project leaves unset now follow the installed TypeScript's defaults, so upgrading TypeScript (for example to 6.x)
+  can change websmith's output the same way it changes `tsc`'s.
 - Builds that passed 0.10.x may now fail: under `esm: { runtime: "node" }`, the ESM check tests the path that Node
   derives from a relative specifier, so a JSON import with a query or fragment (`import d from "./d.json?v=1"`)
   without `with { type: "json" }` now gets 91013, in the CLI and in the webpack loader. Node 24 rejects that import
