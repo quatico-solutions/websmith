@@ -21,6 +21,7 @@
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #133 merged
 - **Started:** 2026-10-02, Jan Wloka, `infra/dependabot-config`
 - **Started:** 2026-10-02, Jan Wloka, `infra/upgrade-nx`
+- **Started:** 2026-10-02, Jan Wloka, `bug/trim-runtime-dependencies`
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
