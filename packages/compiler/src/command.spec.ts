@@ -16,10 +16,6 @@ import path from "node:path";
 import ts from "typescript";
 import { addCompileCommand, addonConfig } from "./command";
 
-beforeEach(() => {
-    jest.spyOn(console, "time").mockImplementation(() => {});
-});
-
 afterEach(() => {
     process.exitCode = undefined;
 });

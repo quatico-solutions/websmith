@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /*
  * ---------------------------------------------------------------------------------------------
  *   Copyright (c) Quatico Solutions AG. All rights reserved.
@@ -69,16 +68,6 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         )
         .allowExcessArguments()
         .allowUnknownOption(true) // Allow unknown options to be passed to the compiler
-        .hook("preAction", (_thisCommand, actionCommand) => {
-            if (actionCommand.opts().profile) {
-                console.time("command duration");
-            }
-        })
-        .hook("postAction", (_thisCommand, actionCommand) => {
-            if (actionCommand.opts().profile) {
-                console.timeEnd("command duration");
-            }
-        })
         .action((source: string[] | undefined, cmdOptions, command: Command) => {
             const args: CompilerArguments = {
                 ...cmdOptions,
