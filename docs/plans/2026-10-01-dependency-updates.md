@@ -142,7 +142,7 @@ seven months.
 
 ### Dependabot config
 
-- `infra/dependabot-config` — `.github/dependabot.yml` with `directories: ["/", "/packages/*"]`, a security group, dev and production version groups, cooldown, labels, PR limit, `E` prefix and `typescript` majors ignored; `claude-review` skipped for `dependabot[bot]`. Test: `pnpm lint` and the Definition of Done green; after merge, the Dependabot run log shows both directories parsed and no `typescript` major proposed <!-- builds: .github/dependabot.yml and the claude-review skip -->
+- `infra/dependabot-config` — `.github/dependabot.yml` with `directories: ["/", "/packages/*"]`, a security group, dev and production version groups, cooldown, labels, PR limit, `E` prefix and `typescript` majors ignored; `claude-review` skipped for `dependabot[bot]`. Test: `pnpm lint` and the Definition of Done green; after merge, the Dependabot run log shows both directories parsed and no `typescript` major proposed → #146 <!-- builds: .github/dependabot.yml and the claude-review skip -->
 
 ### nx
 

@@ -1,0 +1,44 @@
+# Dependency updates for the pnpm workspace and the GitHub Actions workflows.
+# See docs/plans/2026-10-01-dependency-updates.md for the decisions behind this configuration.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directories:
+      - "/"
+      - "/packages/*"
+    schedule:
+      interval: "weekly"
+    groups:
+      security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      production:
+        dependency-type: "production"
+        patterns:
+          - "*"
+      development:
+        dependency-type: "development"
+        patterns:
+          - "*"
+    cooldown:
+      default-days: 7
+    ignore:
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "E"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "E"
