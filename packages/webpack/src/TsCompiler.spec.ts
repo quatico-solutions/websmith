@@ -564,6 +564,22 @@ describe("TsCompiler options files", () => {
             missing: [path.resolve("/websmith.config.json"), path.resolve("/tsconfig.base.json")],
         });
     });
+    it("yields error of failed resolution as config error w/ modified options file", () => {
+        const testObj = createOptionsCompiler(
+            { "/tsconfig.json": JSON.stringify({}), "/websmith.config.json": JSON.stringify({}) },
+            "/websmith.config.json"
+        );
+
+        testObj.refreshOptions(
+            () => {
+                throw new Error("Unexpected end of JSON input");
+            },
+            new Set([path.resolve("/websmith.config.json")])
+        );
+        const actual = testObj.getConfigErrors().map(cur => cur.messageText);
+
+        expect(actual).toEqual(["Cannot resolve the loader options: Unexpected end of JSON input"]);
+    });
 });
 
 describe("TsCompiler not ESM profile", () => {

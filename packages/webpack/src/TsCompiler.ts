@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type CompilerOptions, InfoMessage, type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
+import { type CompilerOptions, ErrorMessage, InfoMessage, type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
 import {
     checkDirectoryImport,
     checkJsonImportAttribute,
@@ -205,6 +205,8 @@ export class TsCompiler extends Compiler {
     /**
      * Resolves the options again with `loadOptions` when one of their files changed: is one of `modifiedFiles`, or,
      * without them, has another modification time than at the last resolution. Returns whether it resolved them.
+     * When they cannot be resolved, e.g. from a config file that is no JSON, the previous options stay and the error
+     * is the configuration error until the next change.
      */
     public refreshOptions(loadOptions: () => WebpackLoaderOptions, modifiedFiles?: ReadonlySet<string>): boolean {
         const files = [...this.optionsFiles.files, ...this.optionsFiles.missing];
@@ -212,7 +214,15 @@ export class TsCompiler extends Compiler {
             ? files.some(cur => modifiedFiles.has(cur))
             : files.some(cur => this.getModifiedTime(cur) !== this.optionsFileTimes.get(cur));
         if (changed) {
-            this.updateLoaderConfig(loadOptions());
+            try {
+                this.updateLoaderConfig(loadOptions());
+            } catch (error) {
+                this.recordOptionsFiles();
+                const message = error instanceof Error ? error.message : String(error);
+                this.collectConfigErrors(() =>
+                    this.getReporter().reportDiagnostic(new ErrorMessage(`Cannot resolve the loader options: ${message}`))
+                );
+            }
         }
         return changed;
     }
@@ -369,6 +379,22 @@ export class TsCompiler extends Compiler {
 
     /** Records the files of the resolved options and their modification times, and reports profiles that are not ESM. */
     private completeResolution(): void {
+        this.recordOptionsFiles();
+        this.collectConfigErrors(
+            () =>
+                this.getOptions()
+                    .getSelectedProfiles()
+                    .forEach(profile => {
+                        const ctx = this.getContext(profile);
+                        if (ctx) {
+                            this.getCheckedEsm(profile, ctx);
+                        }
+                    }),
+            true
+        );
+    }
+
+    private recordOptionsFiles(): void {
         const { configFile, tsConfigFile, tsConfigExtends = [] } = this.getOptions();
         // webpack compares native paths
         const files = [...new Set([configFile, tsConfigFile, ...tsConfigExtends].filter(cur => !!cur).map(cur => path.resolve(cur as string)))];
@@ -377,21 +403,15 @@ export class TsCompiler extends Compiler {
         this.optionsFiles = { files: files.filter(cur => system.fileExists(cur)), missing: files.filter(cur => !system.fileExists(cur)) };
         this.optionsFileTimes.clear();
         files.forEach(cur => this.optionsFileTimes.set(cur, this.getModifiedTime(cur)));
+    }
 
-        const reportNotEsm = () =>
-            this.getOptions()
-                .getSelectedProfiles()
-                .forEach(profile => {
-                    const ctx = this.getContext(profile);
-                    if (ctx) {
-                        this.getCheckedEsm(profile, ctx);
-                    }
-                });
+    /** Collects the errors `report` reports as configuration errors, after the previous ones with `keep`. */
+    private collectConfigErrors(report: () => void, keep = false): void {
         const reporter = this.getReporter();
         if (reporter instanceof ConfigErrorReporter) {
-            reporter.collect(reportNotEsm, true);
+            reporter.collect(report, keep);
         } else {
-            reportNotEsm();
+            report();
         }
     }
 
