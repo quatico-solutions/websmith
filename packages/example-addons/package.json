@@ -26,7 +26,7 @@
         "lint": "eslint \"{addons,tests}/**/*.ts\" --color",
         "lint:fix": "eslint \"{addons,tests}/**/*.ts\" --color --fix",
         "execute": "websmith --addons foo-added-generator,foobar-export-processor,foobar-replace-transformer,function-json-result-processor -p tsconfig.execute.json",
-        "build": "tsc",
+        "build": "tsc --project tsconfig.build.json",
         "typecheck": "tsc --project tsconfig.test.json",
         "watch": "pnpm build --watch",
         "watch:test": "jest --watch --runInBand",
