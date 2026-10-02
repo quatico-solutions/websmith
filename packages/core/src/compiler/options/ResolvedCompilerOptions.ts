@@ -93,7 +93,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly tsConfigFile?: string;
     /** The TSC configuration. */
     public readonly tsConfig?: ts.CompilerOptions;
-    /** The files `tsConfigFile` extends, directly or through other extended files, also missing ones. */
+    /** The files `tsConfigFile` extends, directly or through other extended files, also missing relative `.json` paths. */
     public readonly tsConfigExtends: string[];
     public readonly profile?: string;
     public readonly buildDir: string;
@@ -386,7 +386,10 @@ const getTsConfig = (system: ts.System, projectDir: string, options: CompilerOpt
     };
 };
 
-/** Returns the files a tsconfig.json extends, in the order TypeScript reads them, also missing ones; no file discovery. */
+/**
+ * Returns the files a tsconfig.json extends, in the order TypeScript reads them; no file discovery. A missing target is
+ * listed only when TypeScript can name it, e.g. a relative path ending in `.json`, not a missing package.
+ */
 const getExtendedConfigFiles = (system: ts.System, tsConfigFile?: string): string[] => {
     if (!tsConfigFile || !system.fileExists(tsConfigFile)) {
         return [];
