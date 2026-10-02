@@ -3,9 +3,10 @@
     "compilerOptions": {
         "module": "CommonJS",
         "outDir": "./lib",
+        "rootDir": "./src",
         "typeRoots": ["@types", "./node_modules/@types", "../../node_modules/@types"] /* List of folders to include type definitions from. */,
         "noEmit": false,
-        "moduleResolution": "node"
+        "moduleResolution": null
     },
     "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.test.ts", "test/**/*.ts"],
     "include": ["src/**/*.ts"]

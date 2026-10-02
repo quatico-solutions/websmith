@@ -7,6 +7,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable unicorn/prefer-node-protocol */
 const path = require("path");
+const ts = require("typescript");
 const webpack = require("webpack");
 
 module.exports = {
@@ -36,6 +37,12 @@ module.exports = {
                     options: {
                         configFile: path.resolve(__dirname, "tsconfig.json"),
                         transpileOnly: true,
+                        compilerOptions: {
+                            rootDir: path.resolve(__dirname, ".."),
+                            // tsconfig.json resets moduleResolution with null, which transpileModule rejects (TS6046),
+                            // so name the default that null stands for under module CommonJS in each TypeScript major
+                            moduleResolution: ts.versionMajorMinor.startsWith("5.") ? "node10" : "bundler",
+                        },
                     },
                 },
                 exclude: /node_modules/,

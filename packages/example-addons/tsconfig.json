@@ -4,8 +4,10 @@
         "types": ["node"],
         "lib": ["ES2020"],
         "module": "CommonJS",
+        "moduleResolution": null,
         "target": "ES2020",
         "outDir": "./lib",
+        "rootDir": "./src",
         "noEmit": false
     },
     "include": ["src/**/*.ts"],

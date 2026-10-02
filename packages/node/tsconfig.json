@@ -2,9 +2,11 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "outDir": "./lib",
+        "rootDir": "./src",
         "incremental": false,
         "noEmit": false,
-        "module": "CommonJS"
+        "module": "CommonJS",
+        "moduleResolution": null
     },
     "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.test.ts", "test/**/*.ts"],
     "include": ["src/**/*.ts"]

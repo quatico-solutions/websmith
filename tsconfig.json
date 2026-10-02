@@ -16,7 +16,6 @@
         "removeComments": false /* Do not emit comments to output. */,
         "noEmit": true /* Do not emit outputs. */,
         "importHelpers": true /* Import emit helpers from 'tslib'. */,
-        "downlevelIteration": true /* Provide full support for iterables in 'for-of', spread, and destructuring when targeting 'ES5' or 'ES3'. */,
         // "isolatedModules": true,               /* Transpile each file as a separate module (similar to 'ts.transpileModule'). */
         "allowJs": true,
         /* Strict Type-Checking Options */
@@ -45,7 +44,7 @@
         // "noFallthroughCasesInSwitch": true,    /* Report errors for fallthrough cases in switch statement. */
 
         /* Module Resolution Options */
-        "moduleResolution": "node" /* Specify module resolution strategy: 'node' (Node.js) or 'classic' (TypeScript pre-1.6). */,
+        "moduleResolution": "bundler" /* Specify module resolution strategy: 'node10', 'node16', 'nodenext' or 'bundler'. */,
         // "baseUrl": "./",                       /* Base directory to resolve non-absolute module names. */
         // "paths": {},                           /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */
         // "rootDirs": [],                        /* List of root folders whose combined content represents the structure of the project at runtime. */
