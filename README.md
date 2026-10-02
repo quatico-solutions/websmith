@@ -45,7 +45,7 @@ In your package.json, add the `websmith` command as your build target to the `sc
  }
  ```
 
-The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation output with CLI arguments (e.g., `--addons`) or in the `websmith.config.json` file:
+The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation output with CLI arguments (e.g., `--addons`) or in a `websmith.config.json` file that you pass with `--configFile`:
 
 ```json
 // ./websmith.config.json
@@ -54,7 +54,7 @@ The default configuration uses the `tsconfig.json` file in your project root to 
 }
 ```
 
-Place your `websmith.config.json` file in the root of your project and add your addons to the `addons` directory next to it. Read more about addons in the [Customizing the compilation output](#customizing-the-compilation-output) section.
+Pass the file to the compiler with `websmith --configFile ./websmith.config.json`; websmith does not look for it on its own. Add `"addonsDir": "./addons"` to the file or pass `--addonsDir`, there is no default addons directory. Read more about addons in the [Customizing the compilation output](#customizing-the-compilation-output) section.
 
 ### Use websmith with webpack
 
@@ -77,7 +77,7 @@ module.exports = {
 };
 ```
 
-Add the `websmith-loader` to the `rules` section of your webpack configuration. The `websmith-loader` is configured with the `websmith.config.json` file in the root of your project or with the `config` option in the `websmith-loader` section:
+Add the `websmith-loader` to the `rules` section of your webpack configuration. The `websmith-loader` is configured with a `websmith.config.json` file that you name in the `configFile` option, or with the `config` option in the `websmith-loader` section. There is no automatic lookup of the file:
 
 ```javascript
 module.exports = {

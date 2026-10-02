@@ -30,7 +30,7 @@ Run the compiler as binary via NodeJS with the following command:
 websmith
 ```
 
-The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation output with CLI arguments (e.g., `--addons`) or in the `websmith.config.json`.
+The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Customize the compilation output with CLI arguments (e.g., `--addons`) or in a `websmith.config.json` that you pass with `--configFile`. websmith does not look for the file on its own.
 
 Websmith provides a high performance watch mode options, similar to the `ts-loader` for webpack:
 
@@ -38,15 +38,9 @@ Websmith provides a high performance watch mode options, similar to the `ts-load
 websmith --transpileOnly --watch
 ```
 
-### Bundled Version
+### Bundled binary
 
-For environments where ES module resolution issues occur, websmith provides a bundled version that includes all dependencies in a single executable file:
-
-```bash
-websmith-bundled
-```
-
-The bundled version is built using webpack and provides the same functionality as the regular websmith command while avoiding module resolution conflicts. This is particularly useful in complex monorepo setups or when dealing with mixed ES module/CommonJS environments.
+The `websmith` command runs `bin/bin.js`, a single file that webpack builds from the compiler and its dependencies (`@quatico/websmith-core` and `@quatico/websmith-api`). It avoids module resolution conflicts with ES module or CommonJS setups of the project, e.g. in monorepos. There is no separate command for it: `websmith` is the bundled binary.
 
 ### Use websmith in your package.json
 
@@ -80,8 +74,8 @@ The `websmith` command supports the same command line parameters as the `tsc` co
 
 * `--addons <addons>`: Comma-separated list of addons to apply. No addons are applied by default.
 * `--addonEmitOnly`: Only emit files that are processed by active addons. All files are still compiled for type checking and dependencies, but only addon-processed files are written to disk. This is useful for code generation workflows where you want to preserve original source files unchanged while emitting only generated or transformed files. Can be combined with `--transpileOnly` for fast builds without type checking.
-* `--addonsDir <directoryPath>`: Directory path to the "addons" folder. Defaults to `./addons`.
-* `--configFile <filePath>`: File path to the "websmith.config.json". Defaults to `./websmith.config.json`.
+* `--addonsDir <directoryPath>`: Directory path to the "addons" folder, resolved against the current working directory. There is no default: without this parameter and without `addonsDir` in the `websmith.config.json` passed with `--configFile`, no addons directory is set and `--addons` loads nothing.
+* `--configFile <filePath>`: File path to the "websmith.config.json". There is no default and no automatic lookup: the file is only read when you pass this parameter. Without it, only the command line parameters apply.
 * `--debug`: Enable the output of debug information.
 * `--profile <profileName>`: Name of the profile to use with a specific compiler configuration and list of addons. No profile is applied by default.
 * `--transpileOnly`: Enable the transpile only mode.
@@ -239,9 +233,9 @@ through property access: called, passed as argument, spread, returned, compared 
 When the check cannot decide, for example for a package that is not installed or a re-export it cannot resolve, it
 reports nothing and `--debug` lists the import.
 
-Diagnostics point at the construct in the emitted file and name the source file it was emitted from, relative to the
+Diagnostics point at the construct in the emitted file, printed as an absolute path, and name the source file it was emitted from, relative to the
 project directory, the profile and the addons that changed the file, e.g.
-`Error: dist/client.js (2,26): ESM91001: "require" is not defined in ES module output (source "src/client.ts", profile "client", addons: my-addon).`
+`Error: /path/to/project/dist/client.js (2,26): ESM91001: "require" is not defined in ES module output (source "src/client.ts", profile "client", addons: my-addon).`
 A file that a generator adds with `addVirtualFile` names itself as source file, and a file that a
 result processor creates names no source file. This applies to the ESM9xxxx codes; the TypeScript diagnostics labelled
 `(ESM check, profile "…")` already point at the source file.
@@ -262,14 +256,14 @@ on the modules it compiles, see
 
 ## Websmith configuration file
 
-The `websmith.config.json` file is used to configure the compilation output. It's placed in your project root and may contain the following sections:
+The `websmith.config.json` file is used to configure the compilation output. It is read only when you pass it with `--configFile` and may contain the following sections:
 
 * `addons`: A list of compiler addons
 * `addonEmitOnly`: Whether to only emit files processed by active addons (boolean)
-* `addonsDir`: Relative path to the directory containing the addons.
+* `addonsDir`: Path to the directory containing the addons, relative to the directory of the `tsconfig.json` in use. Without a `websmith.config.json` and without `--addonsDir`, there is no addons directory.
 * `profiles`: A list of compilation profiles
 * `transpileOnly`: Whether the compiler should emit any output.
 
 The `profiles` section contains a record of compilation profiles. See above for more details on configuring profiles.
 
-You can place your `websmith.config.json` file in the root of your project or use the `--configFile` parameter to specify a different path.
+The file is only read when you pass its path with the `--configFile` parameter, e.g. `websmith --configFile ./websmith.config.json`. There is no automatic lookup, not even for a file in the project root. The `tsconfig.json` is then looked up next to the configuration file, unless you pass `--project`.

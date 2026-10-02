@@ -57,15 +57,24 @@ module.exports = {
 };
 ```
 
-The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Add a custom compilation config to the loader options or use the `websmith.config.json` file to configure the compilation output.
+The default configuration uses the `tsconfig.json` file in your project root to compile the TypeScript files. Add a custom compilation config to the loader options or name a `websmith.config.json` file in the `configFile` option to configure the compilation output. The loader does not look for the file on its own.
 
 #### Loader Options
 
-- **tsConfigFile** (string): Path to the TypeScript configuration file
-- **config** (object): Websmith configuration (can also be loaded from `websmith.config.json`)
-- **transpileOnly** (boolean): Enable transpile-only mode for faster builds without type checking
+- **tsConfigFile** (string): Path to the TypeScript configuration file. Defaults to `./tsconfig.json`.
+- **tsConfig** (object): TypeScript compiler options. They override the options from the `tsconfig.json`.
+- **configFile** (string): Path to a `websmith.config.json`. Required to use the file: there is no automatic lookup.
+  A `configFile` that does not exist is a configuration error. Without it, only the loader options apply.
+- **config** (object): Websmith configuration (`addons`, `addonsDir`, `profiles`, `transpileOnly`, `addonEmitOnly`).
+  It overrides the same keys of the file named in `configFile`.
+- **profiles** (object): Compilation profiles by name, merged with the profiles from `configFile`.
+- **debug** (boolean): Report messages and suggestions as warnings, in addition to errors and warnings. Defaults to
+  `false`.
+- **instanceName** (string): Name of the compiler instance. The loader derives it from a hash of the options.
+- **transpileOnly** (boolean): Enable transpile-only mode for faster builds without type checking. Defaults to
+  `false`, or to `true` when the webpack configuration contains a `ForkTsCheckerWebpackPlugin`.
 - **addonEmitOnly** (boolean): Only emit files that are processed by active addons. When enabled, all files are still compiled for dependencies and type checking, but only files processed by addon callbacks (generators, processors, transformers) are written to disk. This is useful for code generation workflows where you want to preserve original source files unchanged while emitting only generated or transformed files.
-- **profile** (string): Name of the compilation profile to use
+- **profile** (string): Name of the compilation profile to use. Without a profile, no profile addons are applied.
 - **error** and **warn** (functions): Secondary sinks, called after the loader has emitted a diagnostic on the
   module: `error` receives each error, `warn` each warning, and with `debug` also each message and suggestion. Each
   gets a `WebpackError` whose message starts with the emitted file and position, `file (line,col): `. webpack
@@ -155,19 +164,28 @@ rebuilds nothing, so the rebuild ratio would measure the correct new rebuilds, n
 
 ### Add websmith configuration
 
-You can use a `websmith.config.json` file to configure which addons should be used for what profile by websmith during the webpack compilation process:
+You can use a `websmith.config.json` file to configure which addons websmith uses for which profile during the webpack compilation process. Name the file in the `configFile` loader option and select a profile with the `profile` option:
 
 ```json
 // websmith.config.json
 {
+    "addonsDir": "./addons",
     "profiles": {
-        "executeAddons": {
-            "addons": ["my-addon"],
-        },
+        "client": {
+            "addons": ["my-addon"]
+        }
     }
 }
 ```
 
-**Note:** The webpack loader will expect a profile called `executeAddons` which we need to configure in the webpack configuration.
+```javascript
+// ./webpack.config.js
+options: {
+    configFile: join(__dirname, "websmith.config.json"),
+    profile: "client",
+},
+```
+
+A profile may contain `depends`, `addons`, `config`, `tsConfig` and `esm`. The profile name is free; the loader expects no particular name.
 
 Read more about compilation profiles in the [websmith compiler documentation](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md#compilation-profiles). Or check out more details on the configuration file in the [compiler documentation](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler/README.md#websmith-configuration-file).
