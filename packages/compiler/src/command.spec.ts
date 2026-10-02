@@ -122,6 +122,7 @@ describe("addCompileCommand", () => {
                 strict: false,
                 target: ts.ScriptTarget.ES5,
             },
+            tsConfigExtends: [],
             tsConfigFile: "/tsconfig.json",
             watch: false,
         });
