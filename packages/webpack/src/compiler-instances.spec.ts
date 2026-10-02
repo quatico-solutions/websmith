@@ -159,7 +159,8 @@ describe("setInstanceInCache", () => {
 
 describe("getCompilerInstance option resolution", () => {
     // Own directory per test: tests change the files and their modification times
-    const getFixtureDir = () => path.join(projectDir, `test-output-resolution-${process.pid}-${expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_")}`);
+    const getFixtureDir = () =>
+        path.join(projectDir, `test-output-resolution-${process.pid}-${expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_")}`);
     let fixtureDir: string;
 
     beforeEach(() => {

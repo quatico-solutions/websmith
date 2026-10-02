@@ -805,7 +805,14 @@ describe("resetCompilationCaches", () => {
             rootFilesCacheInvalidated: testObj.getCompilationCaches().rootFilesCacheInvalidated,
         };
 
-        expect(actual).toEqual({ transpile: 1, emit: 0, fileTimes: 0, watchDiagnostics: 0, packageJsonInfoCache: undefined, rootFilesCacheInvalidated: true });
+        expect(actual).toEqual({
+            transpile: 1,
+            emit: 0,
+            fileTimes: 0,
+            watchDiagnostics: 0,
+            packageJsonInfoCache: undefined,
+            rootFilesCacheInvalidated: true,
+        });
     });
 
     it("keeps the compilation contexts", () => {
@@ -827,7 +834,12 @@ describe("recreateCompilationContexts", () => {
             { virtual: true }
         );
         const testObj = new CompilerTestClass(
-            { reporter: new ReporterMock(target), configFile: "/websmith.config.json", profile: "target-profile", tsConfig: { target: ts.ScriptTarget.ES2015 } },
+            {
+                reporter: new ReporterMock(target),
+                configFile: "/websmith.config.json",
+                profile: "target-profile",
+                tsConfig: { target: ts.ScriptTarget.ES2015 },
+            },
             undefined,
             target
         ).createProfileContextsIfNecessary();
@@ -4001,12 +4013,10 @@ describe("compile w/ esm profile", () => {
                     fileName.endsWith("b.ts") ? `import { a } from "cjspkg";\nexport const usedB = a;` : content
                 ),
         });
-        const testObj = createEsmCompiler(
-            fileSystem,
-            { client: { esm: { runtime: "node" }, addons: ["addon-a", "addon-b"] } },
-            "client",
-            { reporter, cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] } }
-        ).setAddonRegistry(addons);
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["addon-a", "addon-b"] } }, "client", {
+            reporter,
+            cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] },
+        }).setAddonRegistry(addons);
         const target = jest.spyOn(fileSystem, "readFile");
 
         testObj.compile();
@@ -4067,7 +4077,9 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
 
-        expect(actual).toEqual([["/src/generated.js", expect.stringMatching(/\(source "src\/generated\.ts", profile "client", addons: gen-addon\)\.$/)]]);
+        expect(actual).toEqual([
+            ["/src/generated.js", expect.stringMatching(/\(source "src\/generated\.ts", profile "client", addons: gen-addon\)\.$/)],
+        ]);
     });
 
     it("names no addon in ESM diagnostic w/ processor registered outside addon", () => {
@@ -4290,7 +4302,9 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.code, cur.messageText]);
 
-        expect(actual).toEqual([["/src/target.js", 91001, expect.stringMatching(/\(source "src\/target\.ts", profile "client", addons: banner-addon\)\.$/)]]);
+        expect(actual).toEqual([
+            ["/src/target.js", 91001, expect.stringMatching(/\(source "src\/target\.ts", profile "client", addons: banner-addon\)\.$/)],
+        ]);
     });
 
     it("names no addon w/ result processor rewriting emitted file unchanged", () => {
@@ -4313,7 +4327,10 @@ describe("compile w/ esm profile", () => {
     });
 
     it("leaves writeFile of system unchanged w/ result processor running", () => {
-        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
         const reporter = new ReporterMock(fileSystem);
         const writeFile = fileSystem.writeFile;
         const target = jest.fn();
@@ -4330,7 +4347,10 @@ describe("compile w/ esm profile", () => {
     });
 
     it("restores system of context w/ throwing result processor", () => {
-        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
         const reporter = new ReporterMock(fileSystem);
         const writeFile = fileSystem.writeFile;
         const addons = createAddons(fileSystem, reporter, {

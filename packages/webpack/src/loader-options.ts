@@ -7,7 +7,7 @@
 
 import { type WebpackLoaderOptions } from "@quatico/websmith-api";
 import { createHash } from "node:crypto";
-import { type LoaderContext } from "webpack";
+import { type Compiler, type LoaderContext } from "webpack";
 import { createOptions } from "./options";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
@@ -39,19 +39,26 @@ export const getLoaderOptions = (context: LoaderContext<WebsmithLoaderConfig>): 
         }
     }
 
-    const resolvedOptions = resolveLoaderOptions(instanceName, options, context);
+    const resolvedOptions = resolveLoaderOptions(instanceName, options, context._compiler);
 
     cache.set(options, resolvedOptions);
 
     return resolvedOptions;
 };
 
-const resolveLoaderOptions = (
-    instanceName: string,
-    options: WebsmithLoaderConfig,
-    context: LoaderContext<WebsmithLoaderConfig>
-): WebsmithLoaderConfig => {
-    const hasForkTsCheckerWebpackPlugin = context._compiler?.options.plugins.some(
+/**
+ * Returns a function that resolves the loader options of `context` again, bypassing the cache: their tsconfig.json and
+ * websmith.config.json are read when they are resolved.
+ */
+export const createLoaderOptionsLoader = (context: LoaderContext<WebsmithLoaderConfig>): (() => WebsmithLoaderConfig) => {
+    const options = context.getOptions();
+    const instanceName = getOptionsHash(options);
+    const compiler = context._compiler;
+    return () => resolveLoaderOptions(instanceName, options, compiler);
+};
+
+const resolveLoaderOptions = (instanceName: string, options: WebsmithLoaderConfig, compiler?: Compiler): WebsmithLoaderConfig => {
+    const hasForkTsCheckerWebpackPlugin = compiler?.options?.plugins?.some(
         plugin => plugin && typeof plugin === "object" && plugin.constructor?.name === "ForkTsCheckerWebpackPlugin"
     );
 

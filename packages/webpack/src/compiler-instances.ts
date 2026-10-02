@@ -8,6 +8,7 @@ import { DefaultReporter } from "@quatico/websmith-core";
 import { type LoaderContext } from "webpack";
 import { CompilationQueue } from "./CompilationQueue";
 import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
+import { createLoaderOptionsLoader } from "./loader-options";
 import { TsCompiler } from "./TsCompiler";
 import { addCompilationHooks } from "./webpack-hooks";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
@@ -18,10 +19,14 @@ export const getCompilerInstance = (
     context: LoaderContext<WebsmithLoaderConfig>,
     dependencyCallback?: (filePath: string) => void
 ): TsCompiler => {
-    // Logic to manage and cache compiler instances
     const compiler = context._compiler;
     let instance = getInstanceFromCache(compiler, options.instanceName);
-    if (!instance) {
+    // The constructor resolves the options; afterwards only a change of their files does, once per compilation with hooks
+    if (instance) {
+        if (!instance.hasCompilationHooks()) {
+            instance.refreshOptions(() => loadOptions(options, context)());
+        }
+    } else {
         const system = ts.sys;
         instance = new TsCompiler(
             {
@@ -37,10 +42,14 @@ export const getCompilerInstance = (
                 websmithCompiler: instance,
                 dependencyCallback,
                 queue: new CompilationQueue(),
+                loadOptions: loadOptions(options, context),
             });
         }
         setInstanceInCache(compiler, options.instanceName, instance);
     }
-    instance.updateLoaderConfig(options);
     return instance;
 };
+
+// Without the raw loader options, e.g. from a loader context stub, the resolved ones are resolved again
+const loadOptions = (options: WebsmithLoaderConfig, context: LoaderContext<WebsmithLoaderConfig>): (() => WebsmithLoaderConfig) =>
+    typeof context.getOptions === "function" ? createLoaderOptionsLoader(context) : () => options;

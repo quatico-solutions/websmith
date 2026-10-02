@@ -230,7 +230,6 @@ describe("webpack-hooks", () => {
             expect(true).toBe(true); // Test passes if no error is thrown
         });
     });
-
 });
 
 const createConfigErrorCompiler = () =>

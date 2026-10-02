@@ -17,7 +17,15 @@ import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
 import ts from "typescript";
 import type { CompilerOptionsValue } from "typescript";
-import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, resolveProjectFile, PROJECT_FILE_NAME } from "../config";
+import {
+    parsedCommandLine,
+    resolveCompilationConfig,
+    resolvePath,
+    resolvePaths,
+    resolveProfile,
+    resolveProjectFile,
+    PROJECT_FILE_NAME,
+} from "../config";
 import { DefaultReporter } from "../DefaultReporter";
 import { tsDefaults } from "../defaults";
 

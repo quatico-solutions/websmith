@@ -5,10 +5,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import fs from "node:fs";
-import path from "node:path";
-import { parse } from "comment-json";
-import { type Compilation, type Compiler, type LoaderContext, NormalModule, type Stats, WebpackError } from "webpack";
+import { type Compilation, type Compiler, type Stats, WebpackError } from "webpack";
 import { type WebpackLoaderContext } from "./loader";
 import { formatDiagnostic } from "./WebpackAddonService";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
@@ -18,69 +15,6 @@ const LOADER_NAME = "websmith-loader";
 // Config errors already pushed per compilation: instances of several loader rules may share a config file and profile
 const reportedConfigErrors = new WeakMap<Compilation, Set<string>>();
 
-/**
- * Validates if a parsed object conforms to the WebsmithLoaderConfig structure.
- * This provides runtime type safety for configuration loaded from JSON files.
- */
-const isValidWebsmithLoaderConfig = (config: unknown): config is WebsmithLoaderConfig => {
-    if (!config || typeof config !== "object") {
-        return false;
-    }
-
-    const cfg = config as Record<string, unknown>;
-
-    // Validate optional properties with correct types
-    return (
-        // BaseOptions properties
-        (cfg.configFile === undefined || typeof cfg.configFile === "string") &&
-        (cfg.config === undefined || (typeof cfg.config === "object" && cfg.config !== null)) &&
-        (cfg.debug === undefined || typeof cfg.debug === "boolean") &&
-        (cfg.tsConfigFile === undefined || typeof cfg.tsConfigFile === "string") &&
-        (cfg.tsConfig === undefined || (typeof cfg.tsConfig === "object" && cfg.tsConfig !== null)) &&
-        (cfg.profile === undefined || typeof cfg.profile === "string") &&
-        // WebpackLoaderOptions properties
-        (cfg.transpileOnly === undefined || typeof cfg.transpileOnly === "boolean") &&
-        (cfg.instanceName === undefined || typeof cfg.instanceName === "string") &&
-        (cfg.profiles === undefined || (typeof cfg.profiles === "object" && cfg.profiles !== null)) &&
-        // WebsmithLoaderConfig properties
-        (cfg.warn === undefined || typeof cfg.warn === "function") &&
-        (cfg.error === undefined || typeof cfg.error === "function")
-    );
-};
-
-// Type guard interface for compilation validation
-interface CompilationLike {
-    hooks: {
-        processAssets: unknown;
-        [key: string]: unknown;
-    };
-    compiler: unknown;
-    emitAsset: unknown;
-}
-
-/**
- * Validates if an object is a valid webpack Compilation using duck typing.
- * This approach avoids instanceof issues with multiple webpack versions or different module contexts.
- * @internal - Exported for testing purposes
- */
-export const isValidCompilation = (compilation: unknown): compilation is CompilationLike => {
-    if (!compilation || typeof compilation !== "object" || compilation === null) {
-        return false;
-    }
-
-    const comp = compilation as Record<string, unknown>;
-
-    return (
-        "hooks" in comp &&
-        typeof comp.hooks === "object" &&
-        comp.hooks !== null &&
-        "processAssets" in (comp.hooks as Record<string, unknown>) &&
-        "compiler" in comp &&
-        "emitAsset" in comp &&
-        typeof comp.emitAsset === "function"
-    );
-};
-
 export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderConfig, context: WebpackLoaderContext) => {
     if (compiler.hooks) {
         const compilationQueueContributor = context.queue.contribute();
@@ -89,10 +23,11 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
         });
         compiler.hooks.watchRun.tap(LOADER_NAME, () => {
             compilationQueueContributor.inProgress();
-            // Modules that do not depend on the config file are not rebuilt, so their resolution would keep stale errors
-            const configFile = context.websmithCompiler?.getOptions().configFile;
-            if (configFile && compiler.modifiedFiles?.has(path.resolve(configFile))) {
-                context.websmithCompiler?.updateLoaderConfig(options);
+            // Once per compilation, before any module is built: the options files are module dependencies, so every module
+            // they affect is rebuilt with the options resolved again
+            const { modifiedFiles, removedFiles } = compiler;
+            if (modifiedFiles || removedFiles) {
+                context.websmithCompiler?.refreshOptions(context.loadOptions, new Set([...(modifiedFiles ?? []), ...(removedFiles ?? [])]));
             }
         });
         compiler.hooks.done.tap(LOADER_NAME, () => {
@@ -104,10 +39,7 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
         context.websmithCompiler?.keepCachesPerCompilation();
         compiler.hooks.thisCompilation.tap(LOADER_NAME, () => {
             context.websmithCompiler?.resetCompilationCaches();
-        });
-
-        compiler.hooks.compilation.tap(LOADER_NAME, compilation => {
-            return registerCompilationHooks(compilation, options, context);
+            context.websmithCompiler?.refreshAddons();
         });
 
         // Once per compilation, also when no module is rebuilt; child compilers inherit this tap, their compilations skip it
@@ -117,12 +49,10 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
             if (compilation.compiler !== compiler || !websmithCompiler) {
                 return;
             }
-            const configFile = websmithCompiler.getOptions().configFile;
-            if (configFile) {
-                // webpack compares native paths; a missing file is watched until it appears
-                const nativeConfigFile = path.resolve(configFile);
-                (fs.existsSync(nativeConfigFile) ? compilation.fileDependencies : compilation.missingDependencies).add(nativeConfigFile);
-            }
+            // A missing file is watched until it appears
+            const { files, missing } = websmithCompiler.getOptionsFiles();
+            files.forEach(cur => compilation.fileDependencies.add(cur));
+            missing.forEach(cur => compilation.missingDependencies.add(cur));
             const reported = reportedConfigErrors.get(compilation) ?? new Set<string>();
             reportedConfigErrors.set(compilation, reported);
             websmithCompiler.getConfigErrors().forEach(diagnostic => {
@@ -143,86 +73,6 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
             }
         });
     }
-};
-
-const registerCompilationHooks = (compilation: Compilation, loaderOptions: WebsmithLoaderConfig, context: WebpackLoaderContext) => {
-    const compilationHandler = createCompilationHandler(context);
-
-    // Register hooks immediately on compilation, not during processAssets
-    compilationHandler(compilation, loaderOptions);
-};
-
-const createCompilationHandler = (loaderContext: WebpackLoaderContext) => {
-    return (compilation: Compilation, options: WebsmithLoaderConfig): void => {
-        // Register loader hooks for configuration updates
-
-        // Validate that compilation has required properties using duck typing
-        if (isValidCompilation(compilation)) {
-            try {
-                const hooks = NormalModule.getCompilationHooks(compilation);
-                hooks?.loader?.tap(LOADER_NAME, (ctx: object) => {
-                    const configContext: LoaderContext<WebsmithLoaderConfig> = ctx as LoaderContext<WebsmithLoaderConfig>;
-
-                    if (configContext) {
-                        // TODO: Do we need to cache the compiler instance here?
-                        // const instance = getCompilerInstance(options, context, dependencyCallback);
-                        if (options.configFile && loaderContext.websmithCompiler) {
-                            try {
-                                const configContent = fs.readFileSync(options.configFile, "utf8");
-                                const parsedConfig = parse(configContent);
-
-                                // Validate the parsed config structure
-                                if (!isValidWebsmithLoaderConfig(parsedConfig)) {
-                                    console.warn(
-                                        `${LOADER_NAME}: Invalid configuration structure in config file "${options.configFile}". Expected WebsmithLoaderConfig format.`
-                                    );
-                                    return;
-                                }
-
-                                loaderContext.websmithCompiler.updateLoaderConfig(parsedConfig);
-                            } catch (error) {
-                                const errorMessage = error instanceof Error ? error.message : String(error);
-
-                                if (error instanceof Error) {
-                                    // Handle specific Node.js file system errors
-                                    if ("code" in error) {
-                                        const fsError = error as NodeJS.ErrnoException;
-                                        switch (fsError.code) {
-                                            case "ENOENT":
-                                                console.warn(`${LOADER_NAME}: Config file not found: "${options.configFile}"`);
-                                                break;
-                                            case "EACCES":
-                                                console.warn(`${LOADER_NAME}: Permission denied reading config file: "${options.configFile}"`);
-                                                break;
-                                            case "EISDIR":
-                                                console.warn(`${LOADER_NAME}: Config file path is a directory, not a file: "${options.configFile}"`);
-                                                break;
-                                            default:
-                                                console.warn(
-                                                    `${LOADER_NAME}: File system error reading config file "${options.configFile}": ${errorMessage}`
-                                                );
-                                        }
-                                    } else if (error instanceof SyntaxError) {
-                                        // Handle JSON parsing errors (SyntaxError is thrown by JSON.parse and comment-json parse)
-                                        console.warn(`${LOADER_NAME}: Invalid JSON in config file "${options.configFile}": ${errorMessage}`);
-                                    } else {
-                                        // Handle other processing errors
-                                        console.warn(`${LOADER_NAME}: Error processing config file "${options.configFile}": ${errorMessage}`);
-                                    }
-                                } else {
-                                    console.warn(`${LOADER_NAME}: Unknown error reading config file "${options.configFile}": ${errorMessage}`);
-                                }
-                            }
-                        }
-                    }
-                });
-            } catch (error) {
-                console.warn(`${LOADER_NAME}: Failed to register compilation hooks:`, error);
-            }
-        } else {
-            console.warn(`${LOADER_NAME}: Invalid compilation object received (missing required properties), skipping hook registration`);
-        }
-    };
 };
 
 const displayDone = (stats: Stats) => {

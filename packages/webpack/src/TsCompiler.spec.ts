@@ -559,7 +559,10 @@ describe("TsCompiler options files", () => {
 
         const actual = testObj.getOptionsFiles();
 
-        expect(actual).toEqual({ files: [path.resolve("/tsconfig.json")], missing: [path.resolve("/websmith.config.json"), path.resolve("/tsconfig.base.json")] });
+        expect(actual).toEqual({
+            files: [path.resolve("/tsconfig.json")],
+            missing: [path.resolve("/websmith.config.json"), path.resolve("/tsconfig.base.json")],
+        });
     });
 });
 
@@ -567,15 +570,20 @@ describe("TsCompiler not ESM profile", () => {
     const createNotEsmCompiler = (): TsCompiler =>
         new TsCompiler(
             {
-                config: { profiles: { target: { esm: { runtime: "bundler" }, tsConfig: { module: "ESNext" as never } } } },
+                config: { profiles: { target: { esm: { runtime: "bundler" } } } },
                 reporter: new NoReporter(),
-                cliArgs: { options: { module: ts.ModuleKind.CommonJS }, fileNames: ["/src/a.ts", "/src/b.ts", "/src/c.ts"], errors: [] },
+                cliArgs: { options: {}, fileNames: ["/src/a.ts", "/src/b.ts", "/src/c.ts"], errors: [] },
             },
             { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" },
             undefined,
             undefined,
             createSystem(
-                { ...TS_CONFIG, ...MODULE_PACKAGE, "/src/a.ts": "export const a = 1;", "/src/b.ts": "export const b = 1;", "/src/c.ts": "export const c = 1;" },
+                {
+                    "/tsconfig.json": JSON.stringify({ compilerOptions: { target: "es2020", module: "commonjs", outDir: "/dist", rootDir: "/src" } }),
+                    "/src/a.ts": "export const a = 1;",
+                    "/src/b.ts": "export const b = 1;",
+                    "/src/c.ts": "export const c = 1;",
+                },
                 { virtual: true }
             )
         );
@@ -584,7 +592,9 @@ describe("TsCompiler not ESM profile", () => {
         const testObj = createNotEsmCompiler();
 
         ["/src/a.ts", "/src/b.ts", "/src/c.ts"].forEach(cur => testObj.build(cur));
-        const actual = testObj.getConfigErrors().filter(cur => String(cur.messageText).includes("sets 'esm', but")).length;
+        const actual = testObj
+            .getConfigErrors()
+            .filter(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n").includes("sets 'esm', but")).length;
 
         expect(actual).toBe(1);
     });
@@ -594,7 +604,7 @@ describe("TsCompiler not ESM profile", () => {
         const target = jest.spyOn(testObj.getReporter(), "reportDiagnostic");
 
         ["/src/a.ts", "/src/b.ts", "/src/c.ts"].forEach(cur => testObj.build(cur));
-        const actual = target.mock.calls.filter(([cur]) => String(cur.messageText).includes("sets 'esm', but"));
+        const actual = target.mock.calls.filter(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").includes("sets 'esm', but"));
 
         expect(actual).toEqual([]);
     });
