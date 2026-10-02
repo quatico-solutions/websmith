@@ -95,11 +95,25 @@ build too, e.g. an unknown profile in `depends`, an unknown `esm.runtime`, or `e
 profiles the build does not use are not reported. Configuration errors belong to no module: the loader adds each one
 once per compilation to webpack's errors and passes it to `error`, also when several loader rules use the same
 configuration. A watch rebuild reports them again while they remain. Editing `websmith.config.json` triggers a
-rebuild that reports its current errors, but modules whose sources did not change are not compiled again with the
-new configuration. Without compiler hooks, e.g. under `thread-loader`, the loader emits the configuration errors on
+rebuild that reports its current errors and compiles the loader's modules again with the new configuration. Without
+compiler hooks, e.g. under `thread-loader`, the loader emits the configuration errors on
 every module it builds instead, so they appear once per module. With webpack's persistent cache
 (`cache: { type: "filesystem" }`), a build that restores every module from the cache runs no loader and reports
 no configuration errors.
+
+#### Option resolution and addon lifetime
+
+Each loader instance, i.e. each loader rule with its own options in each webpack compiler, resolves its options once:
+it reads `websmith.config.json`, the `tsconfig.json` and the files the `tsconfig.json` extends when it compiles its
+first module, and again only when one of these files changes. They are dependencies of every module the loader
+compiles, so in watch mode an edit of any of them rebuilds these modules with the new options, and webpack's
+persistent cache does not restore modules compiled with other versions of them. Without compiler hooks, e.g. under
+`thread-loader`, each worker compares the modification times of these files before each module instead.
+
+Addons are loaded and activated once per loader instance, not per module: an addon stays active for every module of
+a compilation and across watch rebuilds while its files and the options are unchanged. After an edit of a file in
+`addonsDir` or of the files above, the next rebuild loads and activates the addons again. Under `thread-loader`, an
+addon edit takes effect when the workers restart. Addons must not rely on being activated again for each module.
 
 #### `.mts` and `.cts` files
 
@@ -157,8 +171,9 @@ the loader.
 
 The check's cost on watch rebuilds is measured by `pnpm perf:esm` in `packages/webpack-test`, a manual benchmark
 that is not run in CI. It gates leaf edits on the rebuild time with the check against the rebuild time without it
-(at most 1.10), and `"type"` flips on the check's share of the rebuild time (at most 10%): without the check a flip
-rebuilds nothing, so the rebuild ratio would measure the correct new rebuilds, not the check.
+(at most 1.10), and `"type"` flips on the check's time per rebuilt module against the same number of a `develop` run
+(`--flip-budget`): without the check a flip rebuilds nothing, so the rebuild ratio would measure the correct new
+rebuilds, not the check.
 
 ### Add websmith configuration
 

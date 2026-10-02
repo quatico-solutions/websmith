@@ -14,6 +14,11 @@ import { type ResultProcessor } from "./ResultProcessor";
  * This type represents the context for the current compilation in which this addon is being used.
  * The context is created for a compilation profile and provides access to the specific profile
  * configuration.
+ *
+ * An addon is activated once per context, not per file. In the webpack loader, an addon stays active for every module
+ * of a compilation and across watch rebuilds while its files and the loader options are unchanged; it is loaded and
+ * activated again on the next rebuild after an edit of its files, of `websmith.config.json`, of `tsconfig.json` or of
+ * a file that `tsconfig.json` extends. Addons must not rely on being activated again for each module.
  */
 export interface AddonContext<O = unknown> {
     /**

@@ -20,10 +20,13 @@
  *
  * Gates, on the median of each process's median:
  *   edit  median(B or C) / median(A) <= 1.10: every variant rebuilds the one edited module.
- *   flip  ESM check time / rebuild time <= 10% for B and C. The rebuild ratio cannot gate a flip: A and B rebuild no
- *         module, because nothing registers the package.json, while C correctly rebuilds every module whose
- *         classification depends on it, each at the loader's existing per-module cost (compiler-instances.ts). The
- *         raw medians, ratios and modules rebuilt are printed for every scenario.
+ *   flip  ESM check ms per rebuilt module <= --flip-budget for B and C, the same number of a `develop` run. The
+ *         rebuild ratio cannot gate a flip: A and B rebuild no module, because nothing registers the package.json,
+ *         while C correctly rebuilds every module whose classification depends on it. Neither can the check's share
+ *         of the rebuild time: it rises when the rest of a rebuild gets faster. Without --flip-budget the flip is
+ *         printed but not gated. `develop` before loader-options-once prints no per-module number; compute it from
+ *         its flip line as "ESM check ... ms" divided by "modules built". The raw medians, ratios and modules rebuilt
+ *         are printed for every scenario.
  *
  * A step that triggers no rebuild within its watchdog, max(30 s, 3 × initial build), is counted as `unchanged`. A
  * rebuild that finishes after its step ended is counted as `late` and records nothing (watch-steps.cjs).
@@ -39,7 +42,7 @@
  *   5. Compare the two numbers and put both, and the command, in the PR. The gate of loader-options-once
  *      (docs/plans/2026-10-02-loader-options-once.md): the 1000-module initial build drops by at least 80%.
  *
- * Options: --processes 5 --modules 1000 --edits 30 --flips 5 --settle 300 --keep
+ * Options: --processes 5 --modules 1000 --edits 30 --flips 5 --settle 300 --flip-budget <ms> --keep
  */
 const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -49,11 +52,10 @@ const { createWatchSteps } = require("./watch-steps.cjs");
 
 const VARIANTS = ["A", "B", "C"];
 const BUDGET = 1.1;
-const CHECK_SHARE_BUDGET = 0.1;
 const ADDON_MARKER = "bench-addon";
 
 const parseOptions = argv => {
-    const options = { processes: 5, modules: 1000, edits: 30, flips: 5, settle: 300, keep: false };
+    const options = { processes: 5, modules: 1000, edits: 30, flips: 5, settle: 300, "flip-budget": undefined, keep: false };
     for (let i = 0; i < argv.length; i++) {
         const name = argv[i].replace(/^--/, "");
         if (name === "keep") {
@@ -352,12 +354,15 @@ const main = () => {
         VARIANTS.forEach(variant => {
             const { median: value, processMedians, checkMs, checkShare, built, unchanged, late } = summary[variant];
             const ratio = value / summary.A.median;
-            const gated = variant !== "A";
-            const ok = scenario === "edit" ? ratio <= BUDGET : checkShare <= CHECK_SHARE_BUDGET;
+            const checkPerModule = built > 0 ? checkMs / built : 0;
+            const flipBudget = options["flip-budget"];
+            const gated = variant !== "A" && (scenario === "edit" || flipBudget !== undefined);
+            const ok = scenario === "edit" ? ratio <= BUDGET : checkPerModule <= flipBudget;
             passed = passed && (!gated || ok);
             console.log(
                 `  ${variant}: median ${value.toFixed(1)} ms, ratio ${ratio.toFixed(3)}, ESM check ${checkMs.toFixed(1)} ms ` +
-                    `(${(checkShare * 100).toFixed(2)}% of rebuild)${gated ? (ok ? " ok" : " OVER BUDGET") : ""}, modules built ${built}, ` +
+                    `(${(checkShare * 100).toFixed(2)}% of rebuild, ${checkPerModule.toFixed(3)} ms per built module)` +
+                    `${gated ? (ok ? " ok" : " OVER BUDGET") : ""}, modules built ${built}, ` +
                     `unchanged ${unchanged}, late ${late}, per process [${processMedians.map(cur => cur.toFixed(1)).join(", ")}]`
             );
         });
@@ -370,7 +375,8 @@ const main = () => {
         );
     });
     console.log(
-        `\nGates: edit median(B or C) / median(A) <= ${BUDGET}, flip ESM check share of rebuild (B, C) <= ${CHECK_SHARE_BUDGET * 100}%: ` +
+        `\nGates: edit median(B or C) / median(A) <= ${BUDGET}, flip ESM check ms per built module (B, C) <= ` +
+            `${options["flip-budget"] ?? "not gated without --flip-budget"}: ` +
             `${passed ? "passed" : "FAILED"}`
     );
     process.exitCode = passed ? 0 : 1;

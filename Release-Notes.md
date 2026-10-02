@@ -32,9 +32,21 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   without `with { type: "json" }` now gets 91013, in the CLI and in the webpack loader. Node 24 rejects that import
   with `ERR_IMPORT_ATTRIBUTE_MISSING`. To keep such a build passing, add the attribute, skip the file with
   `esm.ignore`, or set `check: "warn"`.
+- The webpack loader resolves its options, `websmith.config.json` and `tsconfig.json` once per compilation and loader
+  instance instead of once per module, and again only when one of these files changes. The gain shows in large builds,
+  not in builds of a few dozen modules.
+- The webpack loader loads and activates addons once per loader instance: an addon instance is reused for every module
+  of a compilation and across watch rebuilds, and an edited addon is loaded again on the next rebuild. Addons must not
+  rely on being activated again for each module; see "Option resolution and addon lifetime" in
+  `packages/webpack/README.md`.
 
 ### Fixed
 
+- Under watch, the webpack loader picks up edits of `tsconfig.json` and of the files it extends, and webpack's
+  persistent cache no longer restores modules compiled with an older `websmith.config.json`, `tsconfig.json` or
+  extended file. Before, edits of these files were not watched or did not change the compiled modules.
+- Under watch, a `websmith.config.json` that is no valid JSON is reported as a configuration error, and the build
+  passes again once the file is fixed. Before, it aborted the watch compilation.
 - The ESM check no longer reports `require`, `module` and `exports` in a UMD wrapper (91001, 91002): a `typeof` test of
   any CommonJS name now guards all five, so `factory(require, exports)` inside
   `if (typeof module === "object" && typeof module.exports === "object")` passes, as in TypeScript's own `module: umd`
