@@ -845,4 +845,28 @@ describe("createHash", () => {
 
         expect(actual).toEqual(testObj.createHash!("hello"));
     });
+
+    it("returns sha256 hex digest with text", () => {
+        const testObj = createBrowserSystem();
+
+        const actual = testObj.createHash!("hello");
+
+        expect(actual).toBe("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824");
+    });
+
+    it("returns sha256 hex digest with empty string", () => {
+        const testObj = createBrowserSystem();
+
+        const actual = testObj.createHash!("");
+
+        expect(actual).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    });
+
+    it("returns sha256 hex digest of UTF-8 bytes with non-ASCII text", () => {
+        const testObj = createBrowserSystem();
+
+        const actual = testObj.createHash!("€");
+
+        expect(actual).toBe("c4cc90ed3d26f12d4b08a75140970a7904035c31cbb4515a83f19b9003c00d1d");
+    });
 });
