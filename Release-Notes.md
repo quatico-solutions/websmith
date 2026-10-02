@@ -14,6 +14,28 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Added
 
+- TBA
+
+### Changed
+
+- TBA
+
+### Fixed
+
+- TBA
+
+### Removed
+
+- TBA
+
+## [0.10.0] - 2026-10-02
+
+This release runs websmith on Node.js 24 (Node.js 22.12 or newer is required), loads TypeScript addons in ES module
+projects, and adds a per-profile ESM check for the JavaScript that websmith and its addons emit. The CLI and the webpack
+loader now fail builds on the errors they report.
+
+### Added
+
 - `@quatico/websmith-core` exports `ErrorTrackingReporter`, the reporter wrapper the `websmith` command uses to exit
   with code 1 on error-level diagnostics. Hosts that build their own command can use it the same way; see
   "Embedding websmith" in `packages/core/README.md`.
