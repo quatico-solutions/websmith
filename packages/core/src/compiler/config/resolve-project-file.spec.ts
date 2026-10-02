@@ -24,6 +24,14 @@ describe("resolveProjectFile", () => {
         expect(actual).toBe("/project/tsconfig.json");
     });
 
+    it("yields tsconfig.json in current directory w/ current directory path", () => {
+        const target = createSystem({ "/tsconfig.json": "{}" }, { virtual: true });
+
+        const actual = resolveProjectFile(target, "./");
+
+        expect(actual).toBe("/tsconfig.json");
+    });
+
     it("yields tsconfig.json in directory w/ directory without tsconfig.json", () => {
         const target = createSystem({ "/project/src/index.ts": "export {};" }, { virtual: true });
 

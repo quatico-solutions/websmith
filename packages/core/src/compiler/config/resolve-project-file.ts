@@ -18,7 +18,11 @@ export const PROJECT_FILE_NAME = "tsconfig.json";
  * @returns The absolute path of the tsconfig file, which may not exist
  */
 export const resolveProjectFile = (system: ts.System, projectPath: string): string => {
-    const resolved = system.resolvePath(projectPath);
+    let resolved = system.resolvePath(projectPath);
+    if (!path.isAbsolute(resolved)) {
+        // The virtual system resolves the current directory to "."
+        resolved = system.resolvePath(path.join(system.getCurrentDirectory(), projectPath));
+    }
     if (!system.fileExists(resolved) && system.directoryExists(resolved)) {
         return path.join(resolved, PROJECT_FILE_NAME);
     }

@@ -5,7 +5,16 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type CompilerArguments, type CompilerOptions, type Reporter, WarnMessage } from "@quatico/websmith-api";
-import { type AddonConfig, AddonRegistry, Compiler, createOptions, DefaultReporter, ErrorTrackingReporter, NoReporter } from "@quatico/websmith-core";
+import {
+    type AddonConfig,
+    AddonRegistry,
+    Compiler,
+    createOptions,
+    DefaultReporter,
+    ErrorTrackingReporter,
+    NoReporter,
+    resolveProjectFile,
+} from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
 import path from "node:path";
@@ -76,7 +85,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             const system = compiler?.getSystem() ?? ts.sys;
             // An injected Compiler keeps its own reporter, so errors reported during its compile() are not tracked here.
             const reporter = new ErrorTrackingReporter(compiler?.getReporter() ?? new DefaultReporter(system));
-            const tsConfigFile = args.project ?? "./tsconfig.json";
+            const tsConfigFile = resolveProjectFile(system, args.project ?? "./tsconfig.json");
 
             // Extract file arguments from command line
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));

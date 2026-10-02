@@ -88,7 +88,7 @@ describe("addCompileCommand", () => {
                     jsx: ts.JsxEmit.Preserve,
                     noEmit: false,
                     pretty: true,
-                    project: "./tsconfig.json",
+                    project: "/tsconfig.json",
                     removeComments: false,
                     strict: false,
                     target: ts.ScriptTarget.ES5,
@@ -117,7 +117,7 @@ describe("addCompileCommand", () => {
                 jsx: ts.JsxEmit.Preserve,
                 noEmit: false,
                 pretty: true,
-                project: "./tsconfig.json",
+                project: "/tsconfig.json",
                 removeComments: false,
                 strict: false,
                 target: ts.ScriptTarget.ES5,
@@ -158,6 +158,55 @@ describe("addCompileCommand", () => {
         addCompileCommand(new Command(), target).parse(["--project", "expected/tsconfig.json"], { from: "user" });
 
         expect(target.getOptions().tsConfig!.configFilePath).toEqual(expect.stringContaining("/expected/tsconfig.json"));
+    });
+
+    it("should yield normalised project w/ --project directory cli argument", () => {
+        const testSystem = createSystem(
+            { "/expected/tsconfig.json": JSON.stringify({ include: ["src/**/*"] }), "/expected/src/index.ts": "export {};" },
+            { virtual: true }
+        );
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+
+        addCompileCommand(new Command(), target).parse(["--project", "expected"], { from: "user" });
+
+        expect(target.getOptions().tsConfigFile).toBe("/expected/tsconfig.json");
+        expect(target.getOptions().tsConfig!.project).toBe("/expected/tsconfig.json");
+        expect(target.getOptions().buildDir).toBe("/expected");
+        expect(target.getOptions().cliArgs.fileNames).toEqual(["/expected/src/index.ts"]);
+    });
+
+    it("should report 5057 w/ --project directory without tsconfig.json", () => {
+        const testSystem = createSystem({ "/emptydir/src/index.ts": "export {};" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--project", "emptydir"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5058 }));
+    });
+
+    it("should report 5058 w/ missing --project file", () => {
+        const testSystem = createSystem({}, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--project", "missing.json"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({ code: 5058, messageText: "The specified path does not exist: '/missing.json'." })
+        );
+    });
+
+    it("should report nothing w/o --project and w/o tsconfig.json", () => {
+        const testSystem = createSystem({ "/src/index.ts": "export {};" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse([], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5058 }));
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
     });
 
     it("should yield sourceMap option w/ --sourceMap cli argument", () => {
