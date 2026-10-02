@@ -204,6 +204,7 @@ describe("addCompileCommand", () => {
                 executeCompiler("--profile development", compiler);
 
                 const actual = [time, timeEnd, log].flatMap(spy => spy.mock.calls);
+                log.mockRestore();
                 expect(actual).toEqual([]);
             });
         });
