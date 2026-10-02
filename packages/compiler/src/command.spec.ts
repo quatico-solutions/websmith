@@ -395,6 +395,19 @@ describe("addCompileCommand#addons", () => {
         );
     });
 
+    it("should show warning once w/ --addonsDir cli argument and non-existing path", () => {
+        const testSystem = createSystem({ "./websmith.config.json": "{}" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--addonsDir", "./unknown"], { from: "user" });
+        const actual = jest
+            .mocked(target.getReporter().reportDiagnostic)
+            .mock.calls.filter(([cur]) => cur.messageText === `Addons directory "${testSystem.resolvePath("./unknown")}" does not exist.`);
+
+        expect(actual).toHaveLength(1);
+    });
+
     it("should yield options addons w/ --addons cli argument and existing addon", () => {
         const testSystem = createSystem({}, { virtual: true });
         const addons = new AddonRegistry({
