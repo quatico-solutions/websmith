@@ -372,3 +372,14 @@ Not counted against the plan (`.plot/panels/2026-09-24-esm-output-check-delivery
   investigated.
 - With `declaration: true`, a TypeScript option error is not reported at all; `tsc` reports it.
 - A build restored entirely from webpack's persistent cache runs no loader and reports no configuration errors.
+
+### 2026-10-02 — esm-check-precision, slice 1 (bug/esm-check-false-positives)
+
+Three false positives from the follow-ups above are fixed: the typeof-guarded UMD wrapper (91001/91002), a local that
+shadows a default import (91021), and query or percent-encoded relative specifiers (91012).
+
+- **`typeof pkg` in 91021 is closed as not a false positive.** The default import of a package that sets
+  `__esModule` and `exports.default = fn` is its whole `module.exports`, so `typeof pkg` is `"object"` where the
+  source expects `"function"` (measured on Node 24). For `module.exports = fn` it is `"function"`, and 91021 does not
+  fire there because the package has no `default` export. Under `bundler`, 91021 runs only for `javascript/esm`
+  importers, where webpack's strict interop also yields `module.exports`. The use stays reported under both runtimes.

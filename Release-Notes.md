@@ -18,11 +18,25 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
-- TBA
+- Builds that passed 0.10.x may now fail: under `esm: { runtime: "node" }`, the ESM check tests the path that Node
+  derives from a relative specifier, so a JSON import with a query or fragment (`import d from "./d.json?v=1"`)
+  without `with { type: "json" }` now gets 91013, in the CLI and in the webpack loader. Node 24 rejects that import
+  with `ERR_IMPORT_ATTRIBUTE_MISSING`. To keep such a build passing, add the attribute, skip the file with
+  `esm.ignore`, or set `check: "warn"`.
 
 ### Fixed
 
-- TBA
+- The ESM check no longer reports `require`, `module` and `exports` in a UMD wrapper (91001, 91002): a `typeof` test of
+  any CommonJS name now guards all five, so `factory(require, exports)` inside
+  `if (typeof module === "object" && typeof module.exports === "object")` passes, as in TypeScript's own `module: umd`
+  output.
+- 91021 no longer reports a local variable, parameter, function or class that shadows a default import of an
+  `__esModule` package (`import pkg from "pkg"; function f() { const pkg = () => 1; return pkg(); }`).
+- The relative import rules (91010–91013) derive the file path from the specifier the way the runtime does. Under
+  `node`, a query or fragment is dropped and percent-encoding is decoded, so `./b.js?v=1` and `./my%20file.js` no
+  longer get 91012; an encoded `/` or `\` (`%2F`, `%5C`) still does. Under `bundler`, the specifier as written wins
+  when it names an existing file, otherwise the query and fragment are dropped, and nothing is decoded. The fix hints
+  of 91010 and 91011 keep the query after the path (`./b.js?v=1`).
 
 ### Removed
 
