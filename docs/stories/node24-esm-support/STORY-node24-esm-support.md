@@ -383,3 +383,28 @@ shadows a default import (91021), and query or percent-encoded relative specifie
   source expects `"function"` (measured on Node 24). For `module.exports = fn` it is `"function"`, and 91021 does not
   fire there because the package has no `default` export. Under `bundler`, 91021 runs only for `javascript/esm`
   importers, where webpack's strict interop also yields `module.exports`. The use stays reported under both runtimes.
+
+### 2026-10-02 — esm-check-precision, slice 3 (bug/esm-check-attribution)
+
+Closes three of the 2026-09-25 "Wave 3 verification follow-ups".
+
+- **Plan vs. brief on attribution fallback: closed, the implementation stays.** A finding names the addons that
+  changed its file, or none. Rejected: listing every active addon of the profile when attribution is unclear, as the
+  delivered `esm-output-check` plan said. It would name addons on findings in hand-written code and break the README
+  rule that a diagnostic naming no addon points at your own source.
+- **In-place transformer edits: closed as a documented gap.** A transformer that only edits nodes in place
+  (`addSyntheticLeadingComment`, `addSyntheticTrailingComment`, `setEmitFlags`, `setTextRange`) is still not named.
+  Unit tests in `CompilationContext.spec.ts` show that none of these edits adds `require`, `module`, `exports`,
+  `__dirname`, `__filename`, a specifier or a default import; adding such code builds new nodes, which is attributed.
+  Rejected: comparing emit nodes per visited node (build cost and a new misattribution class, no finding fixed) and
+  naming every transformer that ran.
+- **Nested compiles checked twice: fixed.** Each ESM check records the files it received (resolved path and text) in
+  every window open on a registry held on `globalThis` under `Symbol.for("@quatico/websmith-core/esm-check")`. The
+  outer compile opens a window around its result processors and skips a file whose final path and text a nested
+  check recorded. Rejected: a marker on the system object, which an addon copying `ctx.getSystem()` loses, and a
+  module-held registry, which the CLI's bundled core and the addon's `@quatico/websmith-core` would not share.
+- **Found: spreading `ctx.getSystem()` in a result processor copies only `writeFile`.** While result processors run,
+  `getSystem()` returns `Object.create(system, { writeFile })`, so `{ ...ctx.getSystem() }` has no other member and a
+  nested `Compiler` built on it fails with `system.resolvePath is not a function`. The tests copy the system with
+  `for…in`. Not changed here: `observeWrites` needs no hook for the fix, and changing the observing system's shape is
+  outside this slice.
