@@ -162,9 +162,9 @@ dependencies of the module: in watch mode, changing a `"type"` or adding a `pack
 classification depends on it. The `package.json` lookups are memoized per compilation; where the loader gets no
 webpack compiler (e.g. under `thread-loader`), they are repeated for every module. webpack does not look at what changed, so **any** edit of such a `package.json`, e.g.
 by `npm install`, rebuilds every module that depends on it; under `runtime: "node"` that is usually every module
-below the project's `package.json`. Each rebuilt module costs what a changed module costs, which is dominated by the
-loader's per-module option resolution, not by the check: in a benchmark of 1000 modules, a `"type"` flip rebuilt 701
-modules in about 208 s, of which the check took 58 ms. 91020 and 91021 resolve packages with Node's conditions (`node`, `import`,
+below the project's `package.json`. Each rebuilt module costs what a changed module costs, which is dominated by
+compiling the module, not by the check: in a benchmark of 1000 modules, a `"type"` flip rebuilt 701 modules in about
+9.5 s, of which the check took about 110 ms. 91020 and 91021 resolve packages with Node's conditions (`node`, `import`,
 `module-sync`, `default`), not webpack's `resolve.conditionNames`, so a package that webpack resolves to another
 entry can be checked against the wrong one. TypeScript codes such as TS2835 are not labelled with the ESM check in
 the loader.
