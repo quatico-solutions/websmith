@@ -663,7 +663,12 @@ describe("bin.ts e2e tests", () => {
         fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
         createWebsmithConfig({
-            profiles: { client: { esm: { runtime: "node" }, tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext } } },
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                },
+            },
         });
         createSourceFile(
             [
@@ -703,7 +708,12 @@ describe("bin.ts e2e tests", () => {
         );
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
         createWebsmithConfig({
-            profiles: { client: { esm: { runtime: "node" }, tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext } } },
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                },
+            },
         });
         createSourceFile(
             `// @ts-nocheck\nimport pkg from "esmodule-package";\nfunction f() { const pkg = () => 1; return pkg(); }\nexport const value = [pkg.named, f()];`,
@@ -725,7 +735,12 @@ describe("bin.ts e2e tests", () => {
         fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "my file.js"), `export const c = "c";`, { encoding: "utf-8" });
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
         createWebsmithConfig({
-            profiles: { client: { esm: { runtime: "node" }, tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext } } },
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                },
+            },
         });
         createSourceFile(`export const b = "b";`, "b.ts");
         createSourceFile(`// @ts-nocheck\nimport { b } from "./b.js?v=1";\nimport { c } from "./my%20file.js";\nexport const a = [b, c];`, "test.ts");
@@ -745,7 +760,12 @@ describe("bin.ts e2e tests", () => {
         fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "d.json"), JSON.stringify({ d: 1 }), { encoding: "utf-8" });
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
         createWebsmithConfig({
-            profiles: { client: { esm: { runtime: "node" }, tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext } } },
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                },
+            },
         });
         createSourceFile(`// @ts-nocheck\nimport d from "./d.json?v=1";\nexport const value = d;`, "test.ts");
 
