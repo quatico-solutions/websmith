@@ -462,7 +462,7 @@ describe("tsConfigFile", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
 
-        new ResolvedCompilerOptions(fileSystem, { tsConfig: { project: "./missing.json" }, reporter: target });
+        new ResolvedCompilerOptions(fileSystem, { cliArgs: { options: { project: "./missing.json" }, fileNames: [], errors: [] }, reporter: target });
 
         expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
@@ -480,7 +480,7 @@ describe("tsConfigFile", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
 
-        new ResolvedCompilerOptions(fileSystem, { tsConfig: { project: "./emptydir" }, reporter: target });
+        new ResolvedCompilerOptions(fileSystem, { cliArgs: { options: { project: "./emptydir" }, fileNames: [], errors: [] }, reporter: target });
 
         expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
@@ -500,7 +500,7 @@ describe("tsConfigFile", () => {
 
         new ResolvedCompilerOptions(fileSystem, {
             tsConfigFile: "/emptydir/tsconfig.json",
-            tsConfig: { project: "/emptydir/tsconfig.json" },
+            cliArgs: { options: { project: "/emptydir/tsconfig.json" }, fileNames: [], errors: [] },
             reporter: target,
         });
 
@@ -514,6 +514,20 @@ describe("tsConfigFile", () => {
         target.reportDiagnostic = jest.fn();
 
         new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "/project/tsconfig.json", reporter: target });
+
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
+    });
+
+    it("should report nothing w/ missing tsConfig project and w/o project argument", () => {
+        const fileSystem = createSystem({ "/project/src/index.ts": "export {};" }, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, {
+            tsConfigFile: "/project/tsconfig.json",
+            tsConfig: { project: "/project/tsconfig.json" },
+            reporter: target,
+        });
 
         expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
@@ -533,7 +547,10 @@ describe("tsConfigFile", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
 
-        new ResolvedCompilerOptions(fileSystem, { tsConfig: { project: "./tsconfig.json" }, reporter: target });
+        new ResolvedCompilerOptions(fileSystem, {
+            cliArgs: { options: { project: "./tsconfig.json" }, fileNames: [], errors: [] },
+            reporter: target,
+        });
 
         expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
