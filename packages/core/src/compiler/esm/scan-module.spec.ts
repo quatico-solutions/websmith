@@ -4,6 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import ts from "typescript";
 import { scanModule } from "./scan-module";
 
 const ESBUILD_BUNDLE =
@@ -114,6 +115,47 @@ describe("scanModule", () => {
         const actual = freeNames(`const x = typeof module === "object" && module.exports ? module.exports : factory();`);
 
         expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ require and exports in UMD branch guarded by typeof module test", () => {
+        const actual = freeNames(
+            `(function (factory) {\n` +
+                `    if (typeof module === "object" && typeof module.exports === "object") {\n` +
+                `        var v = factory(require, exports);\n` +
+                `        if (v !== undefined) module.exports = v;\n` +
+                `    }\n` +
+                `})(function (require, exports) { exports.x = require("dep"); });`
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ require and module in branch guarded by typeof exports test", () => {
+        const actual = freeNames(`if (typeof exports === "object") module.exports = factory(require("dep"));`);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ TypeScript UMD output", () => {
+        const { outputText } = ts.transpileModule(`import { x } from "./dep";\nexport const y = x;`, {
+            compilerOptions: { module: ts.ModuleKind.UMD, target: ts.ScriptTarget.ES2020 },
+        });
+
+        const actual = freeNames(outputText);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields free require w/ require outside UMD branch and typeof module test elsewhere", () => {
+        const actual = freeNames(`if (typeof module === "object") { module.exports = factory(); }\nrequire("x");`);
+
+        expect(actual).toEqual(["require"]);
+    });
+
+    it("yields free require w/ require in true branch of typeof module undefined conditional", () => {
+        const actual = freeNames(`const x = typeof module === "undefined" ? require("x") : null;`);
+
+        expect(actual).toEqual(["require"]);
     });
 
     it("yields nothing w/ exports as property name", () => {

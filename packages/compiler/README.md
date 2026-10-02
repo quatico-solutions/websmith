@@ -165,7 +165,11 @@ never by `tsConfig.module`. A profile with `esm` whose `module` is not an ES mod
 configuration error, also with `check: "off"`, and the check skips the profile; this holds whether the profile's
 `tsConfig`, `tsconfig.json`, a dependent profile or the command line sets `module`. Only free identifiers count:
 `const require = createRequire(import.meta.url)` is accepted, and so are uses that run only when a `typeof` test says
-the name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`).
+a CommonJS name is defined (e.g. `typeof require !== "undefined" ? require("x") : null`). A `typeof` test of any of
+`require`, `module`, `exports`, `__dirname` and `__filename` guards all five, because in an ES module they are
+undefined together: in a UMD wrapper, `factory(require, exports)` inside
+`if (typeof module === "object" && typeof module.exports === "object")` is accepted. Uses that run when the test says
+the name is undefined stay reported, and so do uses outside the guarded branch.
 
 | Code | Finding | `node` | `bundler`, `javascript/esm` | `bundler`, `javascript/auto` | `bundler`, `javascript/dynamic` |
 |------|---------|--------|-----------------------------|------------------------------|---------------------------------|
@@ -213,6 +217,20 @@ build writes and the files on disk, so under `addonEmitOnly` a file left by an e
 webpack does. On the Program path, TypeScript may report the same import on the source file as well (TS2834, TS2835,
 TS1543).
 
+The rules derive the file path from the specifier the way the runtime does, and every rule tests that path:
+
+* `node` reads the specifier as a URL relative to the importing file: a query (`?v=1`) and a fragment (`#h`) are
+  dropped, percent-encoding is decoded (`./my%20file.js` names `my file.js`) and dot segments are normalized. A file
+  whose name contains `#` is reachable only as `%23`. An encoded `/` or `\` (`%2F`, `%5C`) gets 91012, because Node
+  rejects the specifier.
+* `bundler` uses the specifier as written when it names an existing file or directory (in `javascript/auto` also
+  with one of the extensions above), otherwise the specifier without query and fragment. Nothing is decoded, so
+  `./my%20file.js` gets 91012.
+
+91010 and 91013 test the extension of that path, so `import d from "./d.json?v=1"` gets 91013 under `node`. Fix hints
+keep the query and fragment after the path: `./b.js?v=1`, `./utils/index.js?v=1`. Diagnostics quote the specifier as
+written.
+
 91020 and 91021 check `import` and `export … from` declarations with a bare specifier (`"pkg"`, `"pkg/sub"`) that
 resolves to a CommonJS entry. The package resolves the way Node's ESM loader does: `node_modules` upwards from the
 emitted file, following symlinks such as pnpm's, then `package.json` `"exports"` with the conditions `node`, `import`,
@@ -228,7 +246,10 @@ Node 24 does not report its version, so rare differences from the runtime are po
 A default import from a module that exports both `__esModule` and `default` is its whole `module.exports` under
 Node and strict webpack, not its default export. 91021 reports it only when the default binding is used other than
 through property access: called, passed as argument, spread, returned, compared or exported, and always for
-`export { default } from "pkg"`. `import pkg from "pkg"; pkg.default()` and `pkg.named` are accepted.
+`export { default } from "pkg"`. `import pkg from "pkg"; pkg.default()` and `pkg.named` are accepted. Only references
+to the import binding count: a parameter, variable, function or class of the same name that shadows it does not.
+`typeof pkg` is reported: it yields `"object"`, the type of `module.exports`, where the source expects the type of the
+default export.
 
 When the check cannot decide, for example for a package that is not installed or a re-export it cannot resolve, it
 reports nothing and `--debug` lists the import.

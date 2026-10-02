@@ -106,6 +106,12 @@ describe("checkMissingExtension", () => {
             },
         ]);
     });
+
+    it("yields 91010 with hint before query w/ extensionless import with query in node ESM file", () => {
+        const actual = checkMissingExtension(scan(`import "./b?v=1";`), ESM, createContext({ "/dist/b.js": "" })).map(cur => cur.message);
+
+        expect(actual).toEqual([`relative import "./b?v=1" has no file extension, which ES modules require; add the extension: "./b.js?v=1"`]);
+    });
 });
 
 describe("checkMissingExtension w/ ambiguous names", () => {
@@ -183,6 +189,16 @@ describe("checkDirectoryImport", () => {
         const actual = checkDirectoryImport(scan(`import "./utils/";`), ESM, createContext({ "/dist/utils/index.js": "" })).map(cur => cur.message);
 
         expect(actual).toEqual([`relative import "./utils/" names a directory, which ES modules cannot import; import the file: "./utils/index.js"`]);
+    });
+
+    it("yields 91011 with hint before query w/ directory import with query in node ESM file", () => {
+        const actual = checkDirectoryImport(scan(`import "./utils?v=1";`), ESM, createContext({ "/dist/utils/index.js": "" })).map(
+            cur => cur.message
+        );
+
+        expect(actual).toEqual([
+            `relative import "./utils?v=1" names a directory, which ES modules cannot import; import the file: "./utils/index.js?v=1"`,
+        ]);
     });
 });
 
@@ -274,6 +290,70 @@ describe("checkUnresolvedImport", () => {
 
         expect(actual).toEqual([]);
     });
+
+    it("yields nothing w/ query on import of existing file in node ESM file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./b.js?v=1";`), ESM, createContext({ "/dist/b.js": "" }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ fragment on import of existing file in node ESM file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./b.js#h";`), ESM, createContext({ "/dist/b.js": "" }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ percent-encoded space in import of existing file in node ESM file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./my%20file.js";`), ESM, createContext({ "/dist/my file.js": "" }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ percent-encoded hash naming file with hash in node ESM file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./a%23b.js";`), ESM, createContext({ "/dist/a#b.js": "" }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ query on import of existing file in bundler ESM file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./b.js?v=1";`), ESM, createContext({ "/dist/b.js": "" }, { runtime: "bundler" }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ extensionless import with query in bundler auto file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./b?v=1";`), AUTO, createContext({ "/dist/b.js": "" }, { runtime: "bundler" }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91012 w/ percent-encoded slash in node ESM file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./a%2Fb.js";`), ESM, createContext({ "/dist/a/b.js": "" })).map(cur => cur.code);
+
+        expect(actual).toEqual([91012]);
+    });
+
+    it("yields 91012 w/ percent-encoded backslash in node ESM file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./a%5Cb.js";`), ESM, createContext({ "/dist/a\\b.js": "" })).map(cur => cur.code);
+
+        expect(actual).toEqual([91012]);
+    });
+
+    it("yields 91012 w/ percent-encoded space in import of existing file in bundler ESM file", () => {
+        const actual = checkUnresolvedImport(
+            scan(`import "./my%20file.js";`),
+            ESM,
+            createContext({ "/dist/my file.js": "" }, { runtime: "bundler" })
+        ).map(cur => cur.code);
+
+        expect(actual).toEqual([91012]);
+    });
+
+    it("yields nothing w/ import of file named with hash in bundler ESM file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./a#b.js";`), ESM, createContext({ "/dist/a#b.js": "" }, { runtime: "bundler" }));
+
+        expect(actual).toEqual([]);
+    });
 });
 
 describe("checkJsonImportAttribute", () => {
@@ -327,6 +407,24 @@ describe("checkJsonImportAttribute", () => {
 
         expect(actual).toEqual([]);
     });
+
+    it("yields 91013 w/ JSON import with query in node ESM file", () => {
+        const actual = checkJsonImportAttribute(scan(`import data from "./d.json?v=1";`), ESM, createContext()).map(cur => cur.code);
+
+        expect(actual).toEqual([91013]);
+    });
+
+    it("yields nothing w/ JSON import with query and type json attribute in node ESM file", () => {
+        const actual = checkJsonImportAttribute(scan(`import data from "./d.json?v=1" with { type: "json" };`), ESM, createContext());
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ JSON import with query in bundler ESM file", () => {
+        const actual = checkJsonImportAttribute(scan(`import data from "./d.json?v=1";`), ESM, createContext({}, { runtime: "bundler" }));
+
+        expect(actual).toEqual([]);
+    });
 });
 
 describe("checkImports", () => {
@@ -373,5 +471,22 @@ describe("checkImports", () => {
         const actual = checkImports(scan(`import x from "pkg";\nexport * from "pkg/sub";\nawait import("pkg");`), ESM, createContext());
 
         expect(actual).toEqual([]);
+    });
+
+    it("yields 91010 w/ import of file named with hash in node ESM file", () => {
+        const actual = checkImports(scan(`import "./a#b.js";`), ESM, createContext({ "/dist/a#b.js": "" })).map(cur => cur.code);
+
+        expect(actual).toEqual([91010]);
+    });
+
+    it("yields findings per runtime w/ same scanned file checked under node and bundler", () => {
+        const scanned = scan(`import "./my%20file.js";`);
+        const files = { "/dist/my file.js": "" };
+
+        const actual = [createContext(files), createContext(files, { runtime: "bundler" })].map(cur =>
+            checkImports(scanned, ESM, cur).map(it => it.code)
+        );
+
+        expect(actual).toEqual([[], [91012]]);
     });
 });

@@ -13,6 +13,7 @@ import ts from "typescript";
 import type { EsmCheckContext } from "./check-esm";
 import { classifyModule, createPackageTypeLookup, type ModuleClassification } from "./classify-module";
 import { scanModule } from "./scan-module";
+import { createScopeDeclarations } from "./scopes";
 
 /** Diagnostic codes of the rules on names imported from CommonJS packages. */
 export const CjsNamesDiagnosticCode = {
@@ -171,21 +172,27 @@ const readImportedNames = (statement: ts.Statement): { defaults: DefaultImport[]
 };
 
 /**
- * True when a file references a binding other than as the object of a property access (`pkg.x`, `pkg["x"]`):
- * called, passed, spread, returned, compared or exported. Shadowing declarations are not told apart.
+ * True when a file references an import binding other than as the object of a property access (`pkg.x`, `pkg["x"]`):
+ * called, passed, spread, returned, compared or exported. References to a local declaration that shadows the binding
+ * do not count.
  */
 const isUsedAsValue = (binding: ts.Identifier, file: ts.SourceFile): boolean => {
-    const visit = (node: ts.Node): boolean => {
+    const scopes = createScopeDeclarations(file, name => name === binding.text);
+    const references: ts.Identifier[] = [];
+    const visit = (node: ts.Node): void => {
+        scopes.visit(node);
         if (ts.isIdentifier(node) && node !== binding && node.text === binding.text && isValueReference(node)) {
             const parent = node.parent;
             const isPropertyAccess = (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) && parent.expression === node;
             if (!isPropertyAccess) {
-                return true;
+                references.push(node);
             }
         }
-        return !!ts.forEachChild(node, cur => visit(cur) || undefined);
+        ts.forEachChild(node, visit);
     };
-    return visit(file);
+    visit(file);
+    // The import clause declares in the file, so a reference resolves to the binding when no nearer scope declares it
+    return references.some(cur => scopes.findDeclaringScope(cur) === file);
 };
 
 /** False for identifiers that name a property, a declaration, an import binding or a label instead of a value. */
