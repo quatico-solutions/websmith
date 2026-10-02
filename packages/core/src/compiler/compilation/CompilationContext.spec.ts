@@ -605,4 +605,83 @@ describe("addon attribution", () => {
             }).outputText
         );
     });
+
+    const editingInPlace =
+        (edit: (statement: ts.Statement) => void): ts.TransformerFactory<ts.SourceFile> =>
+        () =>
+        sourceFile => {
+            sourceFile.statements.forEach(edit);
+            return sourceFile;
+        };
+
+    const inPlaceEdits: Array<[string, ts.TransformerFactory<ts.SourceFile>]> = [
+        [
+            "addSyntheticLeadingComment",
+            editingInPlace(cur => ts.addSyntheticLeadingComment(cur, ts.SyntaxKind.MultiLineCommentTrivia, " banner ", true)),
+        ],
+        [
+            "addSyntheticTrailingComment",
+            editingInPlace(cur => ts.addSyntheticTrailingComment(cur, ts.SyntaxKind.SingleLineCommentTrivia, " trailer")),
+        ],
+        ["setEmitFlags", editingInPlace(cur => ts.setEmitFlags(cur, ts.EmitFlags.NoComments | ts.EmitFlags.SingleLine))],
+        ["setTextRange", editingInPlace(cur => ts.setTextRange(cur, { pos: -1, end: -1 }))],
+    ];
+
+    const getInPlaceEdit = (name: string) => inPlaceEdits.find(([cur]) => cur === name)![1];
+
+    it("yields no addon w/ transformer adding synthetic leading comment in place", () => {
+        const testObj = createContext();
+        testObj.activateAddon(
+            createAddon("comment-addon", ctx => ctx.registerTransformer({ before: [getInPlaceEdit("addSyntheticLeadingComment")] }))
+        );
+
+        transpile(testObj, "/src/target.ts", "export const a = 1;");
+        const actual = testObj.getAddonsChangingFile("/src/target.ts");
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields no addon w/ transformer adding synthetic trailing comment in place", () => {
+        const testObj = createContext();
+        testObj.activateAddon(
+            createAddon("comment-addon", ctx => ctx.registerTransformer({ before: [getInPlaceEdit("addSyntheticTrailingComment")] }))
+        );
+
+        transpile(testObj, "/src/target.ts", "export const a = 1;");
+        const actual = testObj.getAddonsChangingFile("/src/target.ts");
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields no addon w/ transformer setting emit flags in place", () => {
+        const testObj = createContext();
+        testObj.activateAddon(createAddon("flags-addon", ctx => ctx.registerTransformer({ before: [getInPlaceEdit("setEmitFlags")] })));
+
+        transpile(testObj, "/src/target.ts", "export const a = 1;");
+        const actual = testObj.getAddonsChangingFile("/src/target.ts");
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields no addon w/ transformer setting text range in place", () => {
+        const testObj = createContext();
+        testObj.activateAddon(createAddon("range-addon", ctx => ctx.registerTransformer({ before: [getInPlaceEdit("setTextRange")] })));
+
+        transpile(testObj, "/src/target.ts", "export const a = 1;");
+        const actual = testObj.getAddonsChangingFile("/src/target.ts");
+
+        expect(actual).toEqual([]);
+    });
+
+    it.each(inPlaceEdits)("yields no ESM construct in output w/ transformer editing nodes in place by %s", (_name, transformer) => {
+        const source = `import { b } from "./b";\nimport * as c from "./c";\nexport const a = b + c.d;\n`;
+        const testObj = createContext();
+        testObj.activateAddon(createAddon("editing-addon", ctx => ctx.registerTransformer({ before: [transformer] })));
+
+        const actual = transpile(testObj, "/src/target.ts", source);
+
+        expect(actual).not.toMatch(/\b(require|module|exports|__dirname|__filename)\b/);
+        expect([...actual.matchAll(/from\s+"([^"]+)"/g)].map(([, cur]) => cur)).toEqual(["./b", "./c"]);
+        expect(actual).not.toMatch(/import\s+\w+\s+from/);
+    });
 });
