@@ -31,6 +31,7 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { createWatchSteps } = require("./watch-steps.cjs");
 
 const VARIANTS = ["A", "B", "C"];
 const BUDGET = 1.1;
@@ -227,48 +228,30 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
     const results = { variant, initial: undefined, edit: [], flip: [], unchanged: { edit: 0, flip: 0 } };
     // A flip may rebuild most modules, which takes about as long as the initial build
     const watchdogMs = () => Math.max(30000, 3 * results.initial.ms);
-    let step = 0;
-    let pending;
-    let watchdog;
-    let next;
+    let watching;
+    const steps = createWatchSteps({
+        actions,
+        results,
+        settle,
+        watchdogMs,
+        finish: () =>
+            watching.close(() => {
+                fs.writeFileSync(packageJson, JSON.stringify({ name: "esm-bench", type: "module" }));
+                console.log(`BENCH ${JSON.stringify(results)}`);
+            }),
+    });
 
-    const watching = compiler.watch({ aggregateTimeout: 20 }, (err, stats) => {
+    watching = compiler.watch({ aggregateTimeout: 20 }, (err, stats) => {
         if (err) {
             console.error(err);
             process.exit(2);
         }
-        clearTimeout(watchdog);
         const now = performance.now();
         const built = [...stats.compilation.modules].filter(cur => stats.compilation.builtModules.has(cur)).length;
-        const sample = { ms: pending ? now - pending.start : stats.endTime - stats.startTime, checkMs: checkTime, built };
+        const checkMs = checkTime;
         checkTime = 0;
-        if (pending) {
-            results[pending.scenario].push(sample);
-        } else {
-            results.initial = sample;
-        }
-        next();
+        steps.done(start => ({ ms: start !== undefined ? now - start : stats.endTime - stats.startTime, checkMs, built }));
     });
-
-    next = () => {
-        const action = actions[step++];
-        if (!action) {
-            return watching.close(() => {
-                fs.writeFileSync(packageJson, JSON.stringify({ name: "esm-bench", type: "module" }));
-                console.log(`BENCH ${JSON.stringify(results)}`);
-            });
-        }
-        setTimeout(() => {
-            pending = { scenario: action.scenario, start: performance.now() };
-            action.run();
-            // A change that triggers no compilation is counted, not timed
-            watchdog = setTimeout(() => {
-                results.unchanged[action.scenario]++;
-                pending = undefined;
-                next();
-            }, watchdogMs());
-        }, settle);
-    };
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
