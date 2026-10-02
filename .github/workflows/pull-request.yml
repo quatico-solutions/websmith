@@ -16,7 +16,7 @@ jobs:
                 node-version: [22, 24]
         steps:
             - name: checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
 
             - name: setup
               uses: actions/setup-node@v4
