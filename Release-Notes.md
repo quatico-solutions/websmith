@@ -88,6 +88,7 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Fixed
 
+- `websmith --profile <name>` no longer prints `command duration: NNNms` after the build.
 - TypeScript addons now load in projects whose `package.json` declares `"type": "module"`, in the CLI and the webpack loader ([#111](https://github.com/quatico-solutions/websmith/issues/111)).
 - Diagnostics located at the first character of a file now show their file name and position (`(1,1)`) instead of
   only their message.
