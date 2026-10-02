@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { ErrorMessage } from "@quatico/websmith-api";
+import { ErrorMessage, type Reporter } from "@quatico/websmith-api";
 import ts from "typescript";
 import { createSystem } from "../../environment";
 import { NoReporter } from "../NoReporter";
@@ -33,6 +33,52 @@ describe("resolveCompilationConfig", () => {
         const actual = resolveCompilationConfig("./invalid-config.json", new NoReporter(), target);
 
         expect(actual).toEqual({});
+    });
+
+    it("should report nothing w/ existing path and empty content", () => {
+        const system = createSystem({ "./invalid-config.json": "" }, { virtual: true });
+        const target = { reportDiagnostic: jest.fn() } as unknown as Reporter;
+
+        const actual = resolveCompilationConfig("./invalid-config.json", target, system);
+
+        expect(actual).toEqual({});
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
+    });
+
+    it("should report one error and return defaults w/ malformed config file", () => {
+        const system = createSystem({ "./websmith.config.json": "{" }, { virtual: true });
+        const target = { reportDiagnostic: jest.fn() } as unknown as Reporter;
+
+        const actual = resolveCompilationConfig("./websmith.config.json", target, system);
+
+        expect(actual).toEqual({});
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                category: ts.DiagnosticCategory.Error,
+                messageText: expect.stringMatching(/"\/websmith\.config\.json".*line 1.*Unexpected end of JSON input/),
+            })
+        );
+    });
+
+    it("should report 1-based column w/ malformed config file", () => {
+        const system = createSystem({ "./websmith.config.json": '{"a": 1,,}' }, { virtual: true });
+        const target = { reportDiagnostic: jest.fn() } as unknown as Reporter;
+
+        resolveCompilationConfig("./websmith.config.json", target, system);
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ messageText: expect.stringContaining("line 1, column 9") }));
+    });
+
+    it("should report only the parse error w/ malformed config file and profile name", () => {
+        const system = createSystem({ "./websmith.config.json": '{"profiles": {"broken": {"depends": ["unknown"]},,}}' }, { virtual: true });
+        const target = { reportDiagnostic: jest.fn() } as unknown as Reporter;
+
+        const actual = resolveCompilationConfig("./websmith.config.json", target, system, "broken");
+
+        expect(actual).toEqual({});
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ messageText: expect.stringContaining("Invalid JSON") }));
     });
 
     it("should return defaults w/ existing path and empty config file", () => {
