@@ -569,6 +569,24 @@ describe("bin.ts e2e tests", () => {
 
         expect(actual1).toBe(0);
         expect(actual2).toContain("does not exist");
+        expect(actual2.split(`Addons directory "${path.join(testDirs.PROJECT_DIR, "missing-addons")}" does not exist.`).length - 1).toBe(1);
+    }, 60000);
+
+    it("should exit with status 1 and report the config error once w/ malformed websmith.config.json", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "websmith.config.json"), "{");
+        createSourceFile(`export const hello: string = "world";`, "test.ts");
+
+        const target = executeCompilerStatus(`--project tsconfig.json --configFile websmith.config.json`);
+        const actual1 = target.status;
+        const actual2 = target.output;
+        const actual3 = actual2.split(/\r?\n/).filter(cur => /Error/.test(cur));
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(path.join(testDirs.PROJECT_DIR, "websmith.config.json"));
+        expect(actual2).not.toContain("SyntaxError");
+        expect(actual2).not.toMatch(/^\s+at /m);
+        expect(actual3).toEqual([expect.stringContaining(path.join(testDirs.PROJECT_DIR, "websmith.config.json"))]);
     }, 60000);
 
     it("should exit with status 1 and report 91001 in emitted file w/ addon generating require in node ESM profile", () => {
