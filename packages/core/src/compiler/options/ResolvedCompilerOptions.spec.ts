@@ -681,6 +681,47 @@ describe("profile", () => {
     });
 });
 
+describe("tsConfigExtends", () => {
+    it("yields extends chain of tsconfig.json", () => {
+        const fileSystem = createSystem(
+            {
+                "/tsconfig.json": JSON.stringify({ extends: "./config/base.json" }),
+                "/config/base.json": JSON.stringify({ extends: "./root.json", compilerOptions: { strict: true } }),
+                "/config/root.json": JSON.stringify({ compilerOptions: { target: "es2020" } }),
+            },
+            { virtual: true }
+        );
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new NoReporter(), tsConfigFile: "/tsconfig.json" });
+
+        expect(testObj.tsConfigExtends).toEqual(["/config/base.json", "/config/root.json"]);
+    });
+
+    it("yields empty list w/o extends in tsconfig.json", () => {
+        const fileSystem = createSystem({ "/tsconfig.json": JSON.stringify({ compilerOptions: { strict: true } }) }, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new NoReporter(), tsConfigFile: "/tsconfig.json" });
+
+        expect(testObj.tsConfigExtends).toEqual([]);
+    });
+
+    it("yields empty list w/o tsconfig.json", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new NoReporter(), tsConfigFile: "/tsconfig.json" });
+
+        expect(testObj.tsConfigExtends).toEqual([]);
+    });
+
+    it("yields missing extends target", () => {
+        const fileSystem = createSystem({ "/tsconfig.json": JSON.stringify({ extends: "./gone.json" }) }, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new NoReporter(), tsConfigFile: "/tsconfig.json" });
+
+        expect(testObj.tsConfigExtends).toEqual(["/gone.json"]);
+    });
+});
+
 describe("buildDir", () => {
     it("should yield project directory w/ project directory", () => {
         const fileSystem = createSystem({ "/project/tsconfig.json": "{}", "/project/src/index.ts": "export {};" }, { virtual: true });

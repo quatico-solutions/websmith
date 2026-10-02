@@ -341,6 +341,25 @@ export class Compiler {
         return this;
     }
 
+    /**
+     * Drops what one compilation of a long-lived compiler may leave stale, without resolving the options again: parsed
+     * package.json files, the root files, the baseline emit output, which may depend on imported files, and the
+     * reported file-less watch diagnostics. The baseline transpile output depends only on the file text and the options.
+     */
+    protected resetCompilationCaches(): void {
+        this.packageJsonInfoCache = undefined;
+        this.rootFilesCacheInvalidated = true;
+        this.baselineEmitCache.clear();
+        this.baselineEmitCacheFileTimes.clear();
+        this.reportedWatchDiagnostics.clear();
+    }
+
+    /** Creates the compilation contexts again, so they use the current options and activate the addons again. */
+    protected recreateCompilationContexts(): this {
+        this.contextMap.clear();
+        return this.createProfileContextsIfNecessary();
+    }
+
     getReporter(): Reporter {
         return this.reporter;
     }
