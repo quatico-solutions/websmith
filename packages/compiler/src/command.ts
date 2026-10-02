@@ -13,6 +13,7 @@ import {
     DefaultReporter,
     ErrorTrackingReporter,
     NoReporter,
+    projectFileDiagnostic,
     resolveProjectFile,
 } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
@@ -86,6 +87,11 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
             // An injected Compiler keeps its own reporter, so errors reported during its compile() are not tracked here.
             const reporter = new ErrorTrackingReporter(compiler?.getReporter() ?? new DefaultReporter(system));
             const tsConfigFile = resolveProjectFile(system, args.project ?? "./tsconfig.json");
+            // Only an explicit --project can fail: without it, a missing ./tsconfig.json compiles nothing without error.
+            const projectError = args.project !== undefined ? projectFileDiagnostic(system, args.project) : undefined;
+            if (projectError) {
+                reporter.reportDiagnostic(projectError);
+            }
 
             // Extract file arguments from command line
             const unknownArgs = (command?.args ?? []).filter(arg => !command.getOptionValueSource(arg));

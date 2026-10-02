@@ -198,6 +198,39 @@ describe("addCompileCommand", () => {
         );
     });
 
+    it("should report 5057 w/ --project current directory without tsconfig.json", () => {
+        const testSystem = createSystem({ "/src/index.ts": "export {};" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--project", "."], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5058 }));
+    });
+
+    it("should report 5058 w/ --project tsconfig.json and w/o tsconfig.json", () => {
+        const testSystem = createSystem({ "/src/index.ts": "export {};" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--project", "./tsconfig.json"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ code: 5058 }));
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
+    });
+
+    it("should report 5058 w/ --project tsconfig.json in existing directory without tsconfig.json", () => {
+        const testSystem = createSystem({ "/emptydir/src/index.ts": "export {};" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--project", "emptydir/tsconfig.json"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ code: 5058 }));
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
+    });
+
     it("should report nothing w/o --project and w/o tsconfig.json", () => {
         const testSystem = createSystem({ "/src/index.ts": "export {};" }, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);

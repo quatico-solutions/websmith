@@ -15,14 +15,13 @@ import {
 } from "@quatico/websmith-api";
 import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
-import ts from "typescript";
+import type ts from "typescript";
 import type { CompilerOptionsValue } from "typescript";
-import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, resolveProjectFile } from "../config";
+import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, resolveProjectFile, PROJECT_FILE_NAME } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
 import { tsDefaults } from "../defaults";
 
 const DEFAULT_BUILD_DIR = "./";
-const DEFAULT_TSCONFIG_FILE = "tsconfig.json";
 
 type ResolvedPaths = {
     tsConfigFile?: string;
@@ -44,7 +43,7 @@ const resolvePathsWithRules = (
     // Rule 1: Default values when nothing is specified
     if (!tsConfigFile && !configFile) {
         return {
-            tsConfigFile: resolvePath(system, DEFAULT_BUILD_DIR, DEFAULT_TSCONFIG_FILE),
+            tsConfigFile: resolvePath(system, DEFAULT_BUILD_DIR, PROJECT_FILE_NAME),
         };
     }
 
@@ -61,7 +60,7 @@ const resolvePathsWithRules = (
         const resolvedConfigFile = resolvePath(system, configFile);
         const configDir = path.dirname(resolvedConfigFile);
         return {
-            tsConfigFile: resolvePath(system, configDir, DEFAULT_TSCONFIG_FILE),
+            tsConfigFile: resolvePath(system, configDir, PROJECT_FILE_NAME),
             configFile: resolvedConfigFile,
         };
     }
@@ -73,29 +72,6 @@ const resolvePathsWithRules = (
     return {
         tsConfigFile: resolvedTsConfigFile,
         configFile: resolvedConfigFile,
-    };
-};
-
-/**
- * Returns tsc's error for a project file that does not exist, or undefined if it exists. The default project file in
- * the current directory may be missing, because the CLI and the loader pass it when no project was given.
- */
-const checkProjectFile = (system: ts.System, projectFile: string): ts.Diagnostic | undefined => {
-    if (system.fileExists(projectFile) || projectFile === resolvePath(system, DEFAULT_BUILD_DIR, DEFAULT_TSCONFIG_FILE)) {
-        return undefined;
-    }
-    // An earlier resolution may have mapped the project directory to its missing tsconfig.json already
-    const projectDir = path.dirname(projectFile);
-    const isDirectory = path.basename(projectFile) === DEFAULT_TSCONFIG_FILE && system.directoryExists(projectDir);
-    return {
-        category: ts.DiagnosticCategory.Error,
-        code: isDirectory ? 5057 : 5058,
-        file: undefined,
-        start: undefined,
-        length: undefined,
-        messageText: isDirectory
-            ? `Cannot find a tsconfig.json file at the specified directory: '${projectDir}'.`
-            : `The specified path does not exist: '${projectFile}'.`,
     };
 };
 
@@ -181,12 +157,6 @@ export class ResolvedCompilerOptions implements CompilerOptions {
 
         this.tsConfigFile = resolvedPaths.tsConfigFile;
         this.configFile = resolvedPaths.configFile;
-
-        // Only a parsed --project argument can fail: API and loader callers may name a tsconfig file that does not exist
-        const projectError = cliArgs?.options?.project && this.tsConfigFile ? checkProjectFile(this.system, this.tsConfigFile) : undefined;
-        if (projectError) {
-            this.reporter.reportDiagnostic(projectError);
-        }
 
         this.buildDir =
             (this.tsConfigFile && path.dirname(this.tsConfigFile)) ??
