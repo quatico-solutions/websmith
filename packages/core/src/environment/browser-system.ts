@@ -5,8 +5,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-// @ts-expect-error no type declarations
-import createHashFn from "create-hash";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import ts from "typescript";
 import { tsLibDefaults } from "../compiler";
@@ -44,7 +43,7 @@ export const createBrowserSystem = (files?: Record<string, string>, options: Bro
             modifiedTimes[resolved] = Date.now();
             pathWatchers.callWatchers(dirPath, ts.FileWatcherEventKind.Created, true);
         },
-        createHash: (data: string): string => createHashFn("sha256").update(data).digest("hex"),
+        createHash: (data: string): string => createHash("sha256").update(data).digest("hex"),
         deleteFile: (filePath: string): void => {
             if (filePath && filePath.length > 0) {
                 const absolutePath = resolvePath(filePath);
