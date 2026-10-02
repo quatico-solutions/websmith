@@ -225,7 +225,7 @@ first, right after the benchmark that measures it is trustworthy.
 
 ### Benchmark
 
-- `infra/esm-bench-watchdog` — `esm-watch-bench.cjs` watchdog race fixed with a generation token, so a late `done` after the watchdog fired starts no second step chain; the step scheduler extracted and unit-tested (a late `done` after a timeout runs `next` once — fails before); the initial build recorded and the manual `develop` baseline procedure documented in the header; no product change <!-- builds: race-free esm-watch-bench step scheduler and documented baseline procedure -->
+- `infra/esm-bench-watchdog` — `esm-watch-bench.cjs` watchdog race fixed with a generation token, so a late `done` after the watchdog fired starts no second step chain; the step scheduler extracted and unit-tested (a late `done` after a timeout runs `next` once — fails before); the initial build recorded and the manual `develop` baseline procedure documented in the header; no product change → #153 <!-- builds: race-free esm-watch-bench step scheduler and documented baseline procedure -->
 
 ### Resolve once
 
