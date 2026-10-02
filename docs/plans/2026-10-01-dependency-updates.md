@@ -151,7 +151,7 @@ seven months.
 
 ### Published packages
 
-- `bug/trim-runtime-dependencies` — `create-hash` replaced by `node:crypto` in `browser-system.ts`, `path` dropped from core and compiler-test, `lodash ^4.18.1` in core and node, Release-Notes entry under `## [Unreleased]`, #110 closed. Test: unit tests in `browser-system.spec.ts` pin the sha256 hex digest of a known input (they would fail on a wrong algorithm); `pnpm pack` of core, compiler and node installed in a scratch directory shows `npm ls sha.js cipher-base create-hash` empty and lodash at 4.18.1 or later (fails before); Definition of Done green <!-- builds: create-hash and path removal, lodash floor -->
+- `bug/trim-runtime-dependencies` — `create-hash` replaced by `node:crypto` in `browser-system.ts`, `path` dropped from core and compiler-test, `lodash ^4.18.1` in core and node, Release-Notes entry under `## [Unreleased]`, #110 closed. Test: unit tests in `browser-system.spec.ts` pin the sha256 hex digest of a known input (they would fail on a wrong algorithm); `pnpm pack` of core, compiler and node installed in a scratch directory shows `npm ls sha.js cipher-base create-hash` empty and lodash at 4.18.1 or later (fails before); Definition of Done green → #164 <!-- builds: create-hash and path removal, lodash floor -->
 
 ### Transitive packages
 
