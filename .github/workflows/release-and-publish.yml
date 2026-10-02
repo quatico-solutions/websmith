@@ -27,17 +27,17 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                   ref: ${{ inputs.tag || github.ref }}
 
             - name: Setup environment
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v7
               with:
                   node-version: 24
                   registry-url: https://registry.npmjs.org/
                   scope: "@quatico"
-            - uses: pnpm/action-setup@v3
+            - uses: pnpm/action-setup@v6
               with:
                   version: 9
 
@@ -62,14 +62,14 @@ jobs:
 
             - name: Extract release notes
               id: extract-release-notes
-              uses: ffurrer2/extract-release-notes@v2
+              uses: ffurrer2/extract-release-notes@v3
               with:
                   changelog_file: Release-Notes.md
                   # A release candidate tag (v0.10.0-rc.1) publishes the [Unreleased] section
                   prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
 
             - name: create release
-              uses: softprops/action-gh-release@v2
+              uses: softprops/action-gh-release@v3
               with:
                   tag_name: ${{ env.RELEASE_TAG }}
                   body: ${{ steps.extract-release-notes.outputs.release_notes }}
