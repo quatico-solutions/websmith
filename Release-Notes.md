@@ -18,7 +18,11 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
-- TBA
+Builds that passed before can now fail: the `websmith` command reports errors it used to ignore and exits with code 1.
+
+- `websmith --project <directory>` compiles `<directory>/tsconfig.json` with its options, as `tsc` does. A `--project`
+  path that does not exist (error 5058) or a directory without `tsconfig.json` (error 5057) is an error that names the
+  absolute path. Before, all three compiled nothing and exited with code 0.
 
 ### Fixed
 
