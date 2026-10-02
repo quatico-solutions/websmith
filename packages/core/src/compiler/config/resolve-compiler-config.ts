@@ -143,6 +143,17 @@ const getUsedProfiles = (profile: string | undefined, config: CompilationConfig,
     return result;
 };
 
+const formatPosition = (err: unknown): string => {
+    const { line, column } = (err ?? {}) as { line?: unknown; column?: unknown };
+    // comment-json reports a 1-based line and a 0-based column.
+    return typeof line === "number" && typeof column === "number" ? ` (line ${line}, column ${column + 1})` : "";
+};
+
+const formatReason = (err: unknown): string => {
+    const message = err instanceof Error ? err.message : String(err);
+    return message.endsWith(".") ? message : `${message}.`;
+};
+
 /**
  * Reads the websmith configuration file. Reports configuration errors only for the selected profile and the profiles
  * it depends on, as other profiles don't take part in the compilation.
@@ -163,7 +174,13 @@ export const resolveCompilationConfig = (
     } else {
         const content = system.readFile(resolvedPath);
         if (content) {
-            const config = parse(content ?? "{}") as CompilationConfig;
+            let config: CompilationConfig;
+            try {
+                config = parse(content) as CompilationConfig;
+            } catch (err: unknown) {
+                reporter.reportDiagnostic(new ErrorMessage(`Invalid JSON in configuration file "${resolvedPath}"${formatPosition(err)}: ${formatReason(err)}`));
+                return {};
+            }
             const result = { ...updatePaths(config, path.dirname(resolvedPath), system) };
             if (result.profiles) {
                 const usedProfiles = getUsedProfiles(profileName, result);

@@ -84,14 +84,12 @@ describe("addCompileCommand", () => {
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
                     noEmit: false,
                     pretty: true,
-                    project: "./tsconfig.json",
+                    project: "/tsconfig.json",
                     removeComments: false,
                     strict: false,
-                    target: ts.ScriptTarget.ES5,
                 },
                 raw: {
                     configFilePath: "/tsconfig.json",
@@ -113,14 +111,12 @@ describe("addCompileCommand", () => {
                 declaration: false,
                 declarationMap: false,
                 emitDecorationOnly: false,
-                esModuleInterop: false,
                 jsx: ts.JsxEmit.Preserve,
                 noEmit: false,
                 pretty: true,
-                project: "./tsconfig.json",
+                project: "/tsconfig.json",
                 removeComments: false,
                 strict: false,
-                target: ts.ScriptTarget.ES5,
             },
             tsConfigFile: "/tsconfig.json",
             watch: false,
@@ -151,6 +147,20 @@ describe("addCompileCommand", () => {
         );
     });
 
+    it("should report malformed config file w/ --configFile cli argument", () => {
+        const testSystem = createSystem({ "./websmith.config.json": "{" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--configFile", "./websmith.config.json"], { from: "user" });
+
+        expect(target.getOptions().config).toEqual({});
+        expect(target.getReporter().reportDiagnostic).toHaveBeenNthCalledWith(
+            1,
+            new ErrorMessage(`Invalid JSON in configuration file "/websmith.config.json" (line 1, column 2): Unexpected end of JSON input.`)
+        );
+    });
+
     it("should yield project option w/ --project cli argument", () => {
         const testSystem = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
         const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
@@ -158,6 +168,88 @@ describe("addCompileCommand", () => {
         addCompileCommand(new Command(), target).parse(["--project", "expected/tsconfig.json"], { from: "user" });
 
         expect(target.getOptions().tsConfig!.configFilePath).toEqual(expect.stringContaining("/expected/tsconfig.json"));
+    });
+
+    it("should yield normalised project w/ --project directory cli argument", () => {
+        const testSystem = createSystem(
+            { "/expected/tsconfig.json": JSON.stringify({ include: ["src/**/*"] }), "/expected/src/index.ts": "export {};" },
+            { virtual: true }
+        );
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+
+        addCompileCommand(new Command(), target).parse(["--project", "expected"], { from: "user" });
+
+        expect(target.getOptions().tsConfigFile).toBe("/expected/tsconfig.json");
+        expect(target.getOptions().tsConfig!.project).toBe("/expected/tsconfig.json");
+        expect(target.getOptions().buildDir).toBe("/expected");
+        expect(target.getOptions().cliArgs.fileNames).toEqual(["/expected/src/index.ts"]);
+    });
+
+    it("should report 5057 w/ --project directory without tsconfig.json", () => {
+        const testSystem = createSystem({ "/emptydir/src/index.ts": "export {};" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--project", "emptydir"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5058 }));
+    });
+
+    it("should report 5058 w/ missing --project file", () => {
+        const testSystem = createSystem({}, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--project", "missing.json"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({ code: 5058, messageText: "The specified path does not exist: '/missing.json'." })
+        );
+    });
+
+    it("should report 5057 w/ --project current directory without tsconfig.json", () => {
+        const testSystem = createSystem({ "/src/index.ts": "export {};" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--project", "."], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5058 }));
+    });
+
+    it("should report 5058 w/ --project tsconfig.json and w/o tsconfig.json", () => {
+        const testSystem = createSystem({ "/src/index.ts": "export {};" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--project", "./tsconfig.json"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ code: 5058 }));
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
+    });
+
+    it("should report 5058 w/ --project tsconfig.json in existing directory without tsconfig.json", () => {
+        const testSystem = createSystem({ "/emptydir/src/index.ts": "export {};" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--project", "emptydir/tsconfig.json"], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ code: 5058 }));
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
+    });
+
+    it("should report nothing w/o --project and w/o tsconfig.json", () => {
+        const testSystem = createSystem({ "/src/index.ts": "export {};" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse([], { from: "user" });
+
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5058 }));
+        expect(target.getReporter().reportDiagnostic).not.toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
     });
 
     it("should yield sourceMap option w/ --sourceMap cli argument", () => {
@@ -297,6 +389,19 @@ describe("addCompileCommand#addons", () => {
         expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
             new WarnMessage(`Addons directory "${testSystem.resolvePath("./unknown")}" does not exist.`)
         );
+    });
+
+    it("should show warning once w/ --addonsDir cli argument and non-existing path", () => {
+        const testSystem = createSystem({ "./websmith.config.json": "{}" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--addonsDir", "./unknown"], { from: "user" });
+        const actual = jest
+            .mocked(target.getReporter().reportDiagnostic)
+            .mock.calls.filter(([cur]) => cur.messageText === `Addons directory "${testSystem.resolvePath("./unknown")}" does not exist.`);
+
+        expect(actual).toHaveLength(1);
     });
 
     it("should yield options addons w/ --addons cli argument and existing addon", () => {

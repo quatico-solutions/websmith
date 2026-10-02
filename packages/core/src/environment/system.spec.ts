@@ -5,7 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { createSystem } from "../environment";
-import { ignoreConfigFiles, recursiveFindByFilter } from "./system";
+import ts from "typescript";
+import { createVersionedFile, ignoreConfigFiles, recursiveFindByFilter } from "./system";
 
 describe("recursiveFindByFilter", () => {
     it("should find files", () => {
@@ -56,5 +57,18 @@ describe("ignoreConfigFiles", () => {
         expect(ignoreConfigFiles("websmith.config.json")).toBe(false);
         expect(ignoreConfigFiles("websmith.config.prod.json")).toBe(false);
         expect(ignoreConfigFiles("test.ts")).toBe(true);
+    });
+});
+
+describe("createVersionedFile", () => {
+    it.each([
+        ["node16", { module: ts.ModuleKind.Node16 }, ts.ScriptTarget.ES2022],
+        ["nodenext", { module: ts.ModuleKind.NodeNext }, ts.ScriptTarget.ESNext],
+        ["nothing", {}, ts.getDefaultCompilerOptions().target],
+        ["nodenext and target ES5", { module: ts.ModuleKind.NodeNext, target: ts.ScriptTarget.ES5 }, ts.ScriptTarget.ES5],
+    ])("yields source file with effective target w/ %s set", (_name, tsConfig, expected) => {
+        const actual = createVersionedFile("/src/target.ts", "export const x = 1;", tsConfig);
+
+        expect(actual.languageVersion).toBe(expected);
     });
 });

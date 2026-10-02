@@ -41,14 +41,12 @@ describe("constructor", () => {
                         declaration: false,
                         declarationMap: false,
                         emitDecorationOnly: false,
-                        esModuleInterop: false,
                         jsx: ts.JsxEmit.Preserve,
                         noEmit: false,
                         outDir: "/dist",
                         pretty: true,
                         removeComments: false,
                         strict: false,
-                        target: ts.ScriptTarget.ES5,
                     }),
                 }),
                 config: {},
@@ -61,14 +59,12 @@ describe("constructor", () => {
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
                     noEmit: false,
                     outDir: "/dist",
                     pretty: true,
                     removeComments: false,
                     strict: false,
-                    target: ts.ScriptTarget.ES5,
                 }),
                 tsConfigFile: "/tsconfig.json",
                 watch: false,
@@ -93,13 +89,11 @@ describe("constructor", () => {
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
                     noEmit: false,
                     pretty: true,
                     removeComments: false,
                     strict: false,
-                    target: ts.ScriptTarget.ES5,
                 },
             },
             config: {},
@@ -111,13 +105,11 @@ describe("constructor", () => {
                 declaration: false,
                 declarationMap: false,
                 emitDecorationOnly: false,
-                esModuleInterop: false,
                 jsx: ts.JsxEmit.Preserve,
                 noEmit: false,
                 pretty: true,
                 removeComments: false,
                 strict: false,
-                target: ts.ScriptTarget.ES5,
             },
             tsConfigFile: "/tsconfig.json",
         });
@@ -192,7 +184,6 @@ describe("constructor", () => {
             },
             tsConfig: {
                 configFilePath: "/expected/tsconfig.json",
-                target: ts.ScriptTarget.ES5,
             },
 
             cliArgs: {
@@ -448,6 +439,29 @@ describe("tsConfigFile", () => {
 
         expect(testObj.tsConfigFile).toBe("/tsconfig.json");
     });
+
+    it("should yield tsconfig.json in directory w/ project directory", () => {
+        const fileSystem = createSystem({ "/project/tsconfig.json": "{}", "/project/src/index.ts": "export {};" }, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./project", reporter: new NoReporter() });
+
+        expect(testObj.tsConfigFile).toBe("/project/tsconfig.json");
+    });
+
+    it("should yield tsconfig.json files and options w/ project directory", () => {
+        const fileSystem = createSystem(
+            {
+                "/project/tsconfig.json": JSON.stringify({ compilerOptions: { outDir: "./dist", strict: true }, include: ["src/**/*"] }),
+                "/project/src/index.ts": "export {};",
+            },
+            { virtual: true }
+        );
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./project", reporter: new NoReporter() });
+
+        expect(testObj.cliArgs.fileNames).toEqual(["/project/src/index.ts"]);
+        expect(testObj.tsConfig).toEqual(expect.objectContaining({ outDir: "/project/dist", strict: true }));
+    });
 });
 
 describe("tsConfig", () => {
@@ -462,15 +476,40 @@ describe("tsConfig", () => {
             declaration: false,
             declarationMap: false,
             emitDecorationOnly: false,
-            esModuleInterop: false,
             jsx: ts.JsxEmit.Preserve,
             configFilePath: "/tsconfig.json",
             noEmit: false,
             pretty: true,
             removeComments: false,
             strict: false,
-            target: ts.ScriptTarget.ES5,
         });
+    });
+
+    it("should yield no target and esModuleInterop if not passed", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
+
+        expect(testObj.tsConfig).not.toHaveProperty("target");
+        expect(testObj.tsConfig).not.toHaveProperty("esModuleInterop");
+    });
+
+    it("should yield passed target and esModuleInterop", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            tsConfig: { module: ts.ModuleKind.NodeNext, target: ts.ScriptTarget.ES5, esModuleInterop: false },
+        });
+
+        expect(testObj.tsConfig).toMatchObject({ target: ts.ScriptTarget.ES5, esModuleInterop: false });
+    });
+
+    it("should yield jsx preserve if not passed", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {});
+
+        expect(testObj.tsConfig.jsx).toBe(ts.JsxEmit.Preserve);
     });
 
     it("should yield passed value with defaults", () => {
@@ -488,7 +527,6 @@ describe("tsConfig", () => {
             declaration: false,
             declarationMap: false,
             emitDecorationOnly: false,
-            esModuleInterop: false,
             jsx: ts.JsxEmit.Preserve,
             configFilePath: "/tsconfig.json",
             noEmit: false,
@@ -496,7 +534,6 @@ describe("tsConfig", () => {
             pretty: true,
             removeComments: false,
             strict: false,
-            target: ts.ScriptTarget.ES5,
         });
     });
 
@@ -523,7 +560,6 @@ describe("tsConfig", () => {
             declaration: false,
             declarationMap: false,
             emitDecorationOnly: false,
-            esModuleInterop: false,
             jsx: ts.JsxEmit.Preserve,
             configFilePath: "/tsconfig.json",
             noEmit: false,
@@ -531,7 +567,6 @@ describe("tsConfig", () => {
             pretty: true,
             removeComments: false,
             strict: false,
-            target: ts.ScriptTarget.ES5,
         });
     });
 
@@ -569,14 +604,12 @@ describe("tsConfig", () => {
             declaration: false,
             declarationMap: false,
             emitDecorationOnly: false,
-            esModuleInterop: false,
             configFilePath: "/tsconfig.json",
             noEmit: false,
             outDir: "/profile-out-dir",
             pretty: true,
             removeComments: false,
             strict: false,
-            target: ts.ScriptTarget.ES5,
             jsx: ts.JsxEmit.Preserve,
         });
     });
@@ -615,14 +648,12 @@ describe("tsConfig", () => {
             declaration: false,
             declarationMap: false,
             emitDecorationOnly: false,
-            esModuleInterop: false,
             configFilePath: "/tsconfig.json",
             noEmit: false,
             outDir: "/loader-out-dir",
             pretty: true,
             removeComments: false,
             strict: false,
-            target: ts.ScriptTarget.ES5,
             jsx: ts.JsxEmit.Preserve,
         });
     });
@@ -659,6 +690,14 @@ describe("profile", () => {
 });
 
 describe("buildDir", () => {
+    it("should yield project directory w/ project directory", () => {
+        const fileSystem = createSystem({ "/project/tsconfig.json": "{}", "/project/src/index.ts": "export {};" }, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./project", reporter: new NoReporter() });
+
+        expect(testObj.buildDir).toBe("/project");
+    });
+
     it("should yield current directory if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
@@ -710,13 +749,11 @@ describe("cliArgs", () => {
                 declaration: false,
                 declarationMap: false,
                 emitDecorationOnly: false,
-                esModuleInterop: false,
                 jsx: ts.JsxEmit.Preserve,
                 noEmit: false,
                 pretty: true,
                 removeComments: false,
                 strict: false,
-                target: ts.ScriptTarget.ES5,
             },
             raw: {
                 configFilePath: "/tsconfig.json",
@@ -1013,14 +1050,12 @@ describe("getOptions", () => {
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
                     configFilePath: "/tsconfig.json",
                     noEmit: false,
                     pretty: true,
                     removeComments: false,
                     strict: false,
-                    target: ts.ScriptTarget.ES5,
                 },
                 raw: {
                     configFilePath: "/tsconfig.json",
@@ -1035,13 +1070,11 @@ describe("getOptions", () => {
                 declaration: false,
                 declarationMap: false,
                 emitDecorationOnly: false,
-                esModuleInterop: false,
                 jsx: ts.JsxEmit.Preserve,
                 noEmit: false,
                 pretty: true,
                 removeComments: false,
                 strict: false,
-                target: ts.ScriptTarget.ES5,
             },
             tsConfigFile: "/tsconfig.json",
         });

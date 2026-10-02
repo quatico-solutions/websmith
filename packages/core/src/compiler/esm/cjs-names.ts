@@ -48,7 +48,8 @@ type ImportedName = { name: string; node: ts.Node };
 /** A default import: `node` locates the diagnostic, `local` is the binding, absent for `export { default } from`. */
 type DefaultImport = { node: ts.Node; local?: ts.Identifier };
 
-const IMPORT_CONDITIONS = ["node", "import", "module-sync", "default"];
+/** The conditions Node resolves package `"exports"` with for an `import`. */
+export const IMPORT_CONDITIONS = ["node", "import", "module-sync", "default"];
 const REQUIRE_CONDITIONS = ["node", "require", "default"];
 const MAX_REEXPORT_DEPTH = 32;
 // Names Node provides for every CommonJS module, whatever the lexer detects
@@ -145,7 +146,9 @@ const readBareSpecifier = (statement: ts.Statement): string | undefined => {
     return specifier && isBareSpecifier(specifier) ? specifier : undefined;
 };
 
-const isBareSpecifier = (specifier: string): boolean => !/^[./#]/.test(specifier) && !/^[a-z][a-z0-9+.-]*:/i.test(specifier) && !isBuiltin(specifier);
+/** True for a specifier that names a package, false for relative paths, `#imports`, URLs and Node builtins. */
+export const isBareSpecifier = (specifier: string): boolean =>
+    !/^[./#]/.test(specifier) && !/^[a-z][a-z0-9+.-]*:/i.test(specifier) && !isBuiltin(specifier);
 
 /** Splits the bindings of a declaration into default imports (`def`, `{ default as x }`) and other named ones. */
 const readImportedNames = (statement: ts.Statement): { defaults: DefaultImport[]; named: ImportedName[] } => {
@@ -219,7 +222,7 @@ const toKey = (fileName: string): string => fileName.replace(/\\/g, "/");
  * Resolves a bare specifier like Node: the nearest `node_modules/<name>/package.json` upwards from `fromDir`, then its
  * `"exports"` with the given conditions, or without `"exports"` its `main` and `index.js`.
  */
-const resolvePackage = (
+export const resolvePackage = (
     specifier: string,
     fromDir: string,
     conditions: string[],

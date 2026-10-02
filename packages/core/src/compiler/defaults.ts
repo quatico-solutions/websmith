@@ -6,14 +6,15 @@
  */
 import ts from "typescript";
 
+// target and esModuleInterop stay unset: TypeScript derives them from module, as tsc does
 export const tsDefaults: ts.CompilerOptions = {
-    ...ts.getDefaultCompilerOptions(),
     allowJs: false,
     checkJs: false,
     declaration: false,
     declarationMap: false,
     emitDecorationOnly: false,
-    esModuleInterop: false,
+    // Without it TypeScript writes .tsx files to .js files that still contain JSX, with no diagnostic
+    jsx: ts.JsxEmit.Preserve,
     noEmit: false,
     pretty: true,
     removeComments: false,

@@ -96,6 +96,24 @@ describe("parsedCommandLine w/ valid tsconfig.json", () => {
 
         expect(actual.errors).toEqual([]);
     });
+
+    it("yields tsconfig.json files and options w/ project directory", () => {
+        const target = createSystem(
+            {
+                "/project/tsconfig.json": JSON.stringify({
+                    compilerOptions: { outDir: "./dist", strict: true },
+                    include: ["src/**/*"],
+                }),
+                "/project/src/foobar.ts": `class Foobar {}`,
+            },
+            { virtual: true }
+        );
+
+        const actual = parsedCommandLine("./project", {}, target);
+
+        expect(actual.fileNames).toEqual(["/project/src/foobar.ts"]);
+        expect(actual.options).toEqual({ configFilePath: "/project/tsconfig.json", outDir: "/project/dist", strict: true });
+    });
 });
 
 describe("parsedCommandLine w/ default tsconfig.json", () => {

@@ -40,7 +40,7 @@
     "devDependencies": {
         "@eslint/compat": "^1.2.6",
         "@eslint/js": "^9.19.0",
-        "@nx/eslint-plugin": "^18.3.4",
+        "@nx/eslint-plugin": "^22.7.12",
         "@types/jest": "^29.5.14",
         "@typescript-eslint/eslint-plugin": "8.58.0",
         "@typescript-eslint/parser": "8.58.0",

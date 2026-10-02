@@ -18,6 +18,7 @@ import { scanModule } from "./scan-module";
 const ESM = { kind: "esm" } as const;
 const AUTO = { kind: "auto" } as const;
 const DYNAMIC = { kind: "dynamic" } as const;
+const COMMONJS = { kind: "commonjs" } as const;
 
 const createContext = (files: Record<string, string> = {}, overrides: Partial<ImportRuleContext> = {}): ImportRuleContext => ({
     runtime: "node",
@@ -112,6 +113,30 @@ describe("checkMissingExtension", () => {
 
         expect(actual).toEqual([`relative import "./b?v=1" has no file extension, which ES modules require; add the extension: "./b.js?v=1"`]);
     });
+
+    it("yields 91010 w/ extensionless literal dynamic import in node CommonJS file", () => {
+        const actual = checkMissingExtension(scan(`import("./b");`), COMMONJS, createContext()).map(cur => cur.code);
+
+        expect(actual).toEqual([91010]);
+    });
+
+    it("yields nothing w/ extensionless static import in node CommonJS file", () => {
+        const actual = checkMissingExtension(scan(`import "./b";`), COMMONJS, createContext());
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ extensionless literal dynamic import in bundler dynamic file", () => {
+        const actual = checkMissingExtension(scan(`import("./b");`), DYNAMIC, createContext({}, { runtime: "bundler" }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ extensionless literal dynamic import in CommonJS file under bundler runtime", () => {
+        const actual = checkMissingExtension(scan(`import("./b");`), COMMONJS, createContext({}, { runtime: "bundler" }));
+
+        expect(actual).toEqual([]);
+    });
 });
 
 describe("checkMissingExtension w/ ambiguous names", () => {
@@ -199,6 +224,12 @@ describe("checkDirectoryImport", () => {
         expect(actual).toEqual([
             `relative import "./utils?v=1" names a directory, which ES modules cannot import; import the file: "./utils/index.js?v=1"`,
         ]);
+    });
+
+    it("yields 91011 w/ literal dynamic import of directory in node CommonJS file", () => {
+        const actual = checkDirectoryImport(scan(`import("./utils");`), COMMONJS, createContext({ "/dist/utils/index.js": "" })).map(cur => cur.code);
+
+        expect(actual).toEqual([91011]);
     });
 });
 
@@ -354,6 +385,126 @@ describe("checkUnresolvedImport", () => {
 
         expect(actual).toEqual([]);
     });
+
+    it("yields 91012 w/ literal dynamic import of missing file in node CommonJS file", () => {
+        const actual = checkUnresolvedImport(scan(`import("./gone.js");`), COMMONJS, createContext()).map(cur => cur.code);
+
+        expect(actual).toEqual([91012]);
+    });
+
+    it("yields 91012 w/ import of directory without index file in bundler auto file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./dir";`), AUTO, createContext({ "/dist/dir/other.js": "" }, { runtime: "bundler" })).map(
+            cur => cur.code
+        );
+
+        expect(actual).toEqual([91012]);
+    });
+
+    it("yields 91012 w/ import of empty directory in bundler auto file", () => {
+        const system = createSystem({}, { virtual: true });
+        system.createDirectory("/dist/empty");
+
+        const actual = checkUnresolvedImport(scan(`import "./empty";`), AUTO, { runtime: "bundler", system }).map(cur => cur.code);
+
+        expect(actual).toEqual([91012]);
+    });
+
+    it("yields 91012 w/ import of directory with package.json without entry field in bundler auto file", () => {
+        const actual = checkUnresolvedImport(
+            scan(`import "./dir";`),
+            AUTO,
+            createContext({ "/dist/dir/package.json": `{"name":"d"}` }, { runtime: "bundler" })
+        ).map(cur => cur.code);
+
+        expect(actual).toEqual([91012]);
+    });
+
+    it("yields 91012 w/ import of directory with package.json with empty main in bundler auto file", () => {
+        const actual = checkUnresolvedImport(
+            scan(`import "./dir";`),
+            AUTO,
+            createContext({ "/dist/dir/package.json": `{"main":""}` }, { runtime: "bundler" })
+        ).map(cur => cur.code);
+
+        expect(actual).toEqual([91012]);
+    });
+
+    it("yields message naming heuristic w/ import of directory without index file in bundler auto file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./dir";`), AUTO, createContext({ "/dist/dir/other.js": "" }, { runtime: "bundler" })).map(
+            cur => cur.message
+        );
+
+        expect(actual).toEqual([
+            `relative import "./dir" names a directory with no index file and no package.json entry; ` +
+                'if your webpack config sets `resolve.mainFiles` or `resolve.mainFields`, use `esm.ignore` or `check: "warn"`',
+        ]);
+    });
+
+    it("yields nothing w/ import of directory with package.json with only module field in bundler auto file", () => {
+        const actual = checkUnresolvedImport(
+            scan(`import "./dir";`),
+            AUTO,
+            createContext({ "/dist/dir/package.json": `{"module":"m.js"}`, "/dist/dir/m.js": "" }, { runtime: "bundler" })
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ import of directory with package.json with extensionless main in bundler auto file", () => {
+        const actual = checkUnresolvedImport(
+            scan(`import "./dir";`),
+            AUTO,
+            createContext({ "/dist/dir/package.json": `{"main":"lib"}`, "/dist/dir/lib.js": "" }, { runtime: "bundler" })
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ import of directory with package.json with main naming directory in bundler auto file", () => {
+        const actual = checkUnresolvedImport(
+            scan(`import "./dir";`),
+            AUTO,
+            createContext({ "/dist/dir/package.json": `{"main":"./lib"}`, "/dist/dir/lib/index.js": "" }, { runtime: "bundler" })
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ import of directory with package.json with main naming missing file in bundler auto file", () => {
+        const actual = checkUnresolvedImport(
+            scan(`import "./dir";`),
+            AUTO,
+            createContext({ "/dist/dir/package.json": `{"main":"gone.js"}` }, { runtime: "bundler" })
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ import of directory with package.json with only browser field in bundler auto file", () => {
+        const actual = checkUnresolvedImport(
+            scan(`import "./dir";`),
+            AUTO,
+            createContext({ "/dist/dir/package.json": `{"browser":"b.js"}`, "/dist/dir/b.js": "" }, { runtime: "bundler" })
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ import of directory with only index.mjs in bundler auto file", () => {
+        const actual = checkUnresolvedImport(scan(`import "./dir";`), AUTO, createContext({ "/dist/dir/index.mjs": "" }, { runtime: "bundler" }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ import of directory with index.js written this run in bundler auto file", () => {
+        const actual = checkUnresolvedImport(
+            scan(`import "./dir";`),
+            AUTO,
+            createContext({}, { runtime: "bundler", writtenFiles: new Set(["/dist/dir/index.js"]) })
+        );
+
+        expect(actual).toEqual([]);
+    });
 });
 
 describe("checkJsonImportAttribute", () => {
@@ -402,8 +553,58 @@ describe("checkJsonImportAttribute", () => {
         expect(actual).toEqual([]);
     });
 
-    it("yields nothing w/ bare JSON specifier in node ESM file", () => {
-        const actual = checkJsonImportAttribute(scan(`import data from "pkg/d.json";`), ESM, createContext());
+    it("yields 91013 w/ bare JSON specifier in node ESM file", () => {
+        const actual = checkJsonImportAttribute(scan(`import data from "pkg/d.json";`), ESM, createContext()).map(cur => [cur.code, cur.message]);
+
+        expect(actual).toEqual([[91013, `JSON import "pkg/d.json" has no import attribute, which Node requires; add: with { type: "json" }`]]);
+    });
+
+    it("yields 91013 w/ bare specifier mapped to JSON file by package exports in node ESM file", () => {
+        const actual = checkJsonImportAttribute(
+            scan(`import d from "jpkg/data";`),
+            ESM,
+            createContext({
+                "/dist/node_modules/jpkg/package.json": `{"name":"jpkg","exports":{"./data":"./d.json"}}`,
+                "/dist/node_modules/jpkg/d.json": "{}",
+            })
+        ).map(cur => cur.code);
+
+        expect(actual).toEqual([91013]);
+    });
+
+    it("yields 91013 w/ literal dynamic bare JSON import in node ESM file", () => {
+        const actual = checkJsonImportAttribute(scan(`await import("jpkg/d.json");`), ESM, createContext()).map(cur => cur.code);
+
+        expect(actual).toEqual([91013]);
+    });
+
+    it("yields 91013 w/ literal dynamic JSON import in node CommonJS file", () => {
+        const actual = checkJsonImportAttribute(scan(`import("./d.json");`), COMMONJS, createContext()).map(cur => cur.code);
+
+        expect(actual).toEqual([91013]);
+    });
+
+    it("yields nothing w/ bare JSON specifier with type json attribute in node ESM file", () => {
+        const actual = checkJsonImportAttribute(scan(`import data from "pkg/d.json" with { type: "json" };`), ESM, createContext());
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ bare JSON specifier in bundler ESM file", () => {
+        const actual = checkJsonImportAttribute(scan(`import data from "pkg/d.json";`), ESM, createContext({}, { runtime: "bundler" }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ bare specifier resolving to JS entry in node ESM file", () => {
+        const actual = checkJsonImportAttribute(
+            scan(`import x from "jpkg";`),
+            ESM,
+            createContext({
+                "/dist/node_modules/jpkg/package.json": `{"name":"jpkg","main":"index.js"}`,
+                "/dist/node_modules/jpkg/index.js": "",
+            })
+        );
 
         expect(actual).toEqual([]);
     });

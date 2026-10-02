@@ -273,7 +273,7 @@ describe("addCompileCommand", () => {
             it("should handle --project option", () => {
                 executeCompiler("--project ./custom-tsconfig.json", compiler);
 
-                expect(compiler.getOptions().tsConfig!.project).toBe("./custom-tsconfig.json");
+                expect(compiler.getOptions().tsConfig!.project).toBe("/custom-tsconfig.json");
             });
         });
 

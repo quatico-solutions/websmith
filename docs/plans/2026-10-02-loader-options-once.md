@@ -22,6 +22,7 @@
 - **Rounds:** 1
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #134 merged
 - **Started:** 2026-10-02, Jan Wloka, `infra/esm-bench-watchdog`
+- **Started:** 2026-10-02, Jan Wloka, `bug/loader-resolve-options-once`
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
@@ -225,7 +226,7 @@ first, right after the benchmark that measures it is trustworthy.
 
 ### Benchmark
 
-- `infra/esm-bench-watchdog` — `esm-watch-bench.cjs` watchdog race fixed with a generation token, so a late `done` after the watchdog fired starts no second step chain; the step scheduler extracted and unit-tested (a late `done` after a timeout runs `next` once — fails before); the initial build recorded and the manual `develop` baseline procedure documented in the header; no product change <!-- builds: race-free esm-watch-bench step scheduler and documented baseline procedure -->
+- `infra/esm-bench-watchdog` — `esm-watch-bench.cjs` watchdog race fixed with a generation token, so a late `done` after the watchdog fired starts no second step chain; the step scheduler extracted and unit-tested (a late `done` after a timeout runs `next` once — fails before); the initial build recorded and the manual `develop` baseline procedure documented in the header; no product change → #153 <!-- builds: race-free esm-watch-bench step scheduler and documented baseline procedure -->
 
 ### Resolve once
 

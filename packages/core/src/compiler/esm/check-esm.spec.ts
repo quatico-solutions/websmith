@@ -419,9 +419,10 @@ describe("checkEsm", () => {
     });
 
     it("yields nothing w/ dynamic import in async function in node .cjs output", () => {
-        const actual = codesOf([output("/dist/target.cjs", `async function f() { await import("./x.mjs"); }\nmodule.exports = f;`)], {
-            runtime: "node",
-        });
+        const actual = codesOf(
+            [output("/dist/target.cjs", `async function f() { await import("./x.mjs"); }\nmodule.exports = f;`), output("/dist/x.mjs", "")],
+            { runtime: "node" }
+        );
 
         expect(actual).toEqual([]);
     });
@@ -622,6 +623,20 @@ describe("checkEsm", () => {
         const actual = readFile.mock.calls.length;
 
         expect(actual).toBe(1);
+    });
+
+    it("reports package.json of bare specifier mapped to JSON file by package exports as dependency", () => {
+        const onDependency = jest.fn();
+        const files = {
+            ...MODULE_PACKAGE,
+            "/dist/node_modules/jpkg/package.json": `{"name":"jpkg","exports":{"./data":"./d.json"}}`,
+            "/dist/node_modules/jpkg/d.json": "{}",
+        };
+
+        checkEsm([output("/dist/target.js", `import d from "jpkg/data";`)], { runtime: "node" }, createContext(files, { onDependency }));
+        const actual = onDependency.mock.calls.map(cur => cur[0]);
+
+        expect(actual).toContain("/dist/node_modules/jpkg/package.json");
     });
 
     it("reports full package.json dependencies to each check w/ package type cache shared by two checks", () => {

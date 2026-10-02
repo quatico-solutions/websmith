@@ -1,25 +1,13 @@
 {
     "extends": "nx/presets/npm.json",
-    "tasksRunnerOptions": {
-        "default": {
-            "runner": "nx/tasks-runners/default",
-            "options": {
-                "cacheableOperations": [
-                    "dist",
-                    "test",
-                    "lint",
-                    "build",
-                    "test:e2e"
-                ],
-                "cacheDirectory": ".nx-cache"
-            }
-        }
-    },
+    "cacheDirectory": ".nx-cache",
+    "defaultBase": "develop",
     "targetDefaults": {
         "dist": {
             "dependsOn": [
                 "^dist"
-            ]
+            ],
+            "cache": true
         },
         "build": {
             "dependsOn": [
@@ -27,7 +15,8 @@
             ],
             "outputs": [
                 "{projectRoot}/lib"
-            ]
+            ],
+            "cache": true
         },
         "typecheck": {
             "dependsOn": [
@@ -37,10 +26,14 @@
         "lint": {
             "dependsOn": [
                 "^build"
-            ]
+            ],
+            "cache": true
+        },
+        "test": {
+            "cache": true
+        },
+        "test:e2e": {
+            "cache": true
         }
-    },
-    "affected": {
-        "defaultBase": "develop"
     }
 }

@@ -113,7 +113,13 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
     const importRules = context.importRules ?? IMPORT_RULES;
     const isIgnored = createIgnoreMatcher(esm.ignore, context);
     const checkCjsNames = createCjsNamesCheck(esm.runtime, context);
-    const importContext = { runtime: esm.runtime, system: context.system, writtenFiles: new Set(files.map(cur => path.resolve(cur.name))) };
+    const importContext = {
+        runtime: esm.runtime,
+        system: context.system,
+        writtenFiles: new Set(files.map(cur => path.resolve(cur.name))),
+        onDependency: context.onDependency,
+        cjsNamesCache: context.cjsNamesCache,
+    };
 
     return files
         .filter(cur => JS_FILE.test(cur.name) && !isIgnored(cur.name))

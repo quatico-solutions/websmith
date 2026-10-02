@@ -121,7 +121,7 @@ describe("bin.ts", () => {
         );
         executeCompiler("--project ./tsconfig.json --sourceMap", target);
 
-        expect(target.getOptions()).toMatchObject({ tsConfig: { sourceMap: true, project: "./tsconfig.json" } });
+        expect(target.getOptions()).toMatchObject({ tsConfig: { sourceMap: true, project: "/tsconfig.json" } });
     }, 60000);
 
     it("should handle addon-related arguments", () => {
@@ -136,14 +136,12 @@ describe("bin.ts", () => {
             declaration: false,
             declarationMap: false,
             emitDecorationOnly: false,
-            esModuleInterop: false,
             jsx: 1,
             noEmit: false,
             pretty: true,
-            project: "./tsconfig.json",
+            project: "/tsconfig.json",
             removeComments: false,
             strict: false,
-            target: 1,
         });
         expect(target.getOptions().config).toEqual({ addons: ["foo", "bar"], addonsDir: "/custom-addons" });
     }, 60000);
@@ -165,14 +163,12 @@ describe("bin.ts", () => {
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: 1,
                     noEmit: false,
                     pretty: true,
-                    project: "./tsconfig.json",
+                    project: "/tsconfig.json",
                     removeComments: false,
                     strict: false,
-                    target: 1,
                 }),
             },
             config: {},
@@ -190,14 +186,12 @@ describe("bin.ts", () => {
                 declaration: false,
                 declarationMap: false,
                 emitDecorationOnly: false,
-                esModuleInterop: false,
                 jsx: ts.JsxEmit.Preserve,
                 noEmit: false,
                 pretty: true,
-                project: "./tsconfig.json",
+                project: "/tsconfig.json",
                 removeComments: false,
                 strict: false,
-                target: ts.ScriptTarget.ES5,
             }),
             tsConfigFile: "/tsconfig.json",
             watch: false,

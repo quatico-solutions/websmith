@@ -21,6 +21,7 @@
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #133 merged
 - **Started:** 2026-10-02, Jan Wloka, `infra/dependabot-config`
 - **Started:** 2026-10-02, Jan Wloka, `infra/upgrade-nx`
+- **Started:** 2026-10-02, Jan Wloka, `bug/trim-runtime-dependencies`
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
@@ -147,11 +148,11 @@ seven months.
 
 ### nx
 
-- `infra/upgrade-nx` — `nx` and `@nx/eslint-plugin` to the newest 22.x in all ten manifests, `nx migrate`, `nx.json` legacy keys rewritten, `@nrwl/nx-cloud` removed, lockfile regenerated with pnpm 9 and its new install-script packages listed in the PR. Test: Definition of Done green; a second `pnpm test` run is served from the nx cache; `pnpm audit --audit-level=high` before and after shows nx, tar, form-data and the nx-driven axios gone <!-- builds: nx 22 upgrade and nx.json cache config -->
+- `infra/upgrade-nx` — `nx` and `@nx/eslint-plugin` to the newest 22.x in all ten manifests, `nx migrate`, `nx.json` legacy keys rewritten, `@nrwl/nx-cloud` removed, lockfile regenerated with pnpm 9 and its new install-script packages listed in the PR. Test: Definition of Done green; a second `pnpm test` run is served from the nx cache; `pnpm audit --audit-level=high` before and after shows nx, tar, form-data and the nx-driven axios gone → #159 <!-- builds: nx 22 upgrade and nx.json cache config -->
 
 ### Published packages
 
-- `bug/trim-runtime-dependencies` — `create-hash` replaced by `node:crypto` in `browser-system.ts`, `path` dropped from core and compiler-test, `lodash ^4.18.1` in core and node, Release-Notes entry under `## [Unreleased]`, #110 closed. Test: unit tests in `browser-system.spec.ts` pin the sha256 hex digest of a known input (they would fail on a wrong algorithm); `pnpm pack` of core, compiler and node installed in a scratch directory shows `npm ls sha.js cipher-base create-hash` empty and lodash at 4.18.1 or later (fails before); Definition of Done green <!-- builds: create-hash and path removal, lodash floor -->
+- `bug/trim-runtime-dependencies` — `create-hash` replaced by `node:crypto` in `browser-system.ts`, `path` dropped from core and compiler-test, `lodash ^4.18.1` in core and node, Release-Notes entry under `## [Unreleased]`, #110 closed. Test: unit tests in `browser-system.spec.ts` pin the sha256 hex digest of a known input (they would fail on a wrong algorithm); `pnpm pack` of core, compiler and node installed in a scratch directory shows `npm ls sha.js cipher-base create-hash` empty and lodash at 4.18.1 or later (fails before); Definition of Done green → #164 <!-- builds: create-hash and path removal, lodash floor -->
 
 ### Transitive packages
 
