@@ -16,9 +16,11 @@ The `websmith` command exits with code 1 when compilation reports an error-level
 own command on `@quatico/websmith-core` gets the same behaviour by wrapping its reporter in an `ErrorTrackingReporter`:
 
 ```typescript
-import { Compiler, DefaultReporter, ErrorTrackingReporter } from "@quatico/websmith-core";
+import { Compiler, createOptions, createSystem, DefaultReporter, ErrorTrackingReporter } from "@quatico/websmith-core";
 
+const system = createSystem();
 const reporter = new ErrorTrackingReporter(new DefaultReporter(system));
+const options = createOptions({ project: "./tsconfig.json" }, reporter, system);
 const compiler = new Compiler({ ...options, reporter }, {}, system);
 
 compiler.compile();
@@ -27,6 +29,10 @@ if (reporter.hasErrors()) {
     process.exitCode = 1;
 }
 ```
+
+Pass the same tracked reporter to `createOptions`: its default is a `NoReporter`, so configuration errors would
+otherwise go unreported outside the `Compiler`. Errors from addon activation reach the reporter once an `AddonRegistry`
+is attached to the `Compiler`.
 
 `new ErrorTrackingReporter(reporter)` forwards every call to the wrapped reporter. `hasErrors()` returns `true` once an
 error-level diagnostic was reported; warnings and messages do not count.

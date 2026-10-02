@@ -8,6 +8,8 @@ import { ReporterMock } from "../../test";
 import { createSystem } from "../environment";
 import { Compiler } from "./Compiler";
 import ts from "typescript";
+import { ErrorTrackingReporter } from "./ErrorTrackingReporter";
+import { NoReporter } from "./NoReporter";
 
 describe("end-2-end compile w/ websmith", () => {
     it("should test reporter mock", () => {
@@ -211,5 +213,29 @@ describe("end-2-end compile w/ websmith", () => {
         expect(reporter.message).toContain("Configuration:");
         expect(reporter.message).toContain("outDir:");
         expect(reporter.message).toContain("dist/server");
+    }, 60000);
+});
+
+describe("compile w/ ErrorTrackingReporter", () => {
+    it("should track errors w/ syntax error in source file", () => {
+        const system = createSystem({ "tsconfig.json": "{}", "src/broken.ts": `export const = ;` }, { virtual: true });
+        const target = new ErrorTrackingReporter(new NoReporter());
+        const testObj = new Compiler({ reporter: target, tsConfig: { outDir: "/bin" } }, undefined, system);
+
+        testObj.compile();
+        const actual = target.hasErrors();
+
+        expect(actual).toBe(true);
+    }, 60000);
+
+    it("should not track errors w/ valid source file", () => {
+        const system = createSystem({ "tsconfig.json": "{}", "src/valid.ts": `export const valid = "hello";` }, { virtual: true });
+        const target = new ErrorTrackingReporter(new NoReporter());
+        const testObj = new Compiler({ reporter: target, tsConfig: { outDir: "/bin" } }, undefined, system);
+
+        testObj.compile();
+        const actual = target.hasErrors();
+
+        expect(actual).toBe(false);
     }, 60000);
 });
