@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"export PATH=$HOME/.nvm/versions/node/v22.17.0/bin:$HOME/.nvm/versions/node/v22.14.0/bin:$PATH NX_DAEMON=false; trash perf/.omc; ls -a perf tests | head; python3 - <<'EOF'\\np='tests/esm-wat...",
-  "error": "Exit code 1\nperf:\n.\n..\nesm-watch-bench.cjs\nwatch-steps.cjs\n\ntests:\n__snapshots__\n.\n..\n\n/Users/jwloka/Quatico/Webbloqs.io/githhub/websmith/.worktrees/plot-wt-infra-esm-bench-watchdog/packages/webpack-test/tests/esm-watch-bench-steps.test.ts\n  13:30  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports\n\n✖ 1 problem (1 error, 0 warnings)",
-  "timestamp": "2026-10-02T14:28:40.902Z",
-  "retry_count": 2
-}
