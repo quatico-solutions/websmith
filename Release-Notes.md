@@ -62,6 +62,10 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 
   To keep such a build passing, fix the import (add the attribute, the extension or an index file), skip the file with
   `esm.ignore`, or set `check: "warn"`.
+- A malformed `websmith.config.json` passed with `--configFile` is reported as a configuration error that names the
+  absolute file path and the position (`Invalid JSON in configuration file "<path>" (line 1, column 9): Unexpected
+  token ,.`), with exit code 1, instead of a `SyntaxError` stack trace. The webpack loader reports it the same way.
+- A missing `--addonsDir` directory is warned about once instead of twice.
 
 ### Fixed
 
@@ -80,6 +84,13 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 ### Removed
 
 - TBA
+
+### Security
+
+- `@quatico/websmith-core` no longer depends on `create-hash` and `path`; it hashes with `node:crypto`. Users no
+  longer install `sha.js` and `cipher-base` (two critical advisories) through websmith.
+- `@quatico/websmith-core` and `@quatico/websmith-node` require `lodash ^4.18.1` (was `^4.17.21`, which admits
+  versions with a high advisory).
 
 ## [0.10.0] - 2026-10-02
 

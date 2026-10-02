@@ -181,7 +181,7 @@ plan does not change `reportedConfigErrors` or the `depends` closure, which #134
 
 ### websmith.config.json and addonsDir
 
-- `bug/cli-config-parse-and-addons-dir` — items 4, 5: a malformed `websmith.config.json` passed with `--configFile` reported as an `ErrorMessage` with the file path, one line, no stack; the `addonsDir` warning only from the `AddonRegistry`. Unit: `resolve-compiler-config.spec.ts`, `command.spec.ts`; e2e in `bin.test.ts`: malformed config exits 1 without a stack trace and names the file, missing `--addonsDir` warns once (extends the test at `bin.test.ts:455`); `Release-Notes.md` entry <!-- builds: reported websmith.config.json parse errors and a single addonsDir warning -->
+- `bug/cli-config-parse-and-addons-dir` — items 4, 5: a malformed `websmith.config.json` passed with `--configFile` reported as an `ErrorMessage` with the file path, one line, no stack; the `addonsDir` warning only from the `AddonRegistry`. Unit: `resolve-compiler-config.spec.ts`, `command.spec.ts`; e2e in `bin.test.ts`: malformed config exits 1 without a stack trace and names the file, missing `--addonsDir` warns once (extends the test at `bin.test.ts:455`); `Release-Notes.md` entry <!-- builds: reported websmith.config.json parse errors and a single addonsDir warning --> → #163
 
 ### The emitSkipped rule
 
