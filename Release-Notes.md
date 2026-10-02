@@ -18,10 +18,23 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
-- Builds that passed 0.10.x may now fail: under `esm: { runtime: "node" }`, the ESM check tests the path that Node
-  derives from a relative specifier, so a JSON import with a query or fragment (`import d from "./d.json?v=1"`)
-  without `with { type: "json" }` now gets 91013, in the CLI and in the webpack loader. Node 24 rejects that import
-  with `ERR_IMPORT_ATTRIBUTE_MISSING`. To keep such a build passing, add the attribute, skip the file with
+- Builds that passed 0.10.x may now fail. The ESM check now reports these imports, each of which the build passed but
+  the runtime rejects:
+  - under `esm: { runtime: "node" }`, the ESM check tests the path that Node derives from a relative specifier, so a
+    JSON import with a query or fragment (`import d from "./d.json?v=1"`) without `with { type: "json" }` now gets
+    91013, in the CLI and in the webpack loader. Node 24 rejects that import with `ERR_IMPORT_ATTRIBUTE_MISSING`;
+  - under `node`, a bare JSON import without the attribute (`import d from "pkg/d.json"`, or a specifier that the
+    package's `"exports"` map to a `.json` file) gets 91013, in the CLI and in the webpack loader. Node 24 rejects it
+    with `ERR_IMPORT_ATTRIBUTE_MISSING`;
+  - under `node`, `import()` with a string literal in a CommonJS file (`.cjs`, or `.js` under `"type": "commonjs"`)
+    gets 91010–91013 (in the webpack loader 91010, 91011 and 91013), because Node loads what it imports as an ES
+    module: `import("./b")` fails with `ERR_MODULE_NOT_FOUND`. Static imports and `require()` in those files are
+    checked as before;
+  - under `esm: { runtime: "bundler" }`, a relative import in a `javascript/auto` file that names a directory with
+    neither an `index` file (`.js`, `.mjs`, `.cjs`, `.json`) nor a `package.json` with a `main`, `module` or `browser`
+    field gets 91012, in the CLI only. webpack's default resolution reports "Module not found" for it.
+
+  To keep such a build passing, fix the import (add the attribute, the extension or an index file), skip the file with
   `esm.ignore`, or set `check: "warn"`.
 
 ### Fixed

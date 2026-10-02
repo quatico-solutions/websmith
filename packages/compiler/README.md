@@ -192,7 +192,9 @@ the name is undefined stay reported, and so do uses outside the guarded branch.
 91001–91004 apply to files the runtime loads as ES modules, plus 91004 in `javascript/auto` and `javascript/dynamic`
 files for `bundler`. Under `node`, `.cjs` files and files under `"type": "commonjs"` load as CommonJS: 91030, 91031
 and 91033 report ESM syntax and top-level `await` in them. Dynamic `import()` is valid CommonJS and never counts as
-ESM syntax. When 91030, 91031 or 91032 reports a file, its 91001–91004 findings are left out: they share one cause,
+ESM syntax, but Node loads what it imports as an ES module: under `node`, the relative and bare specifiers of
+`import()` in these files get 91010–91013 (in the webpack loader 91010, 91011 and 91013). Their static imports are left
+to 91030 and 91031, and `require()` is not checked. When 91030, 91031 or 91032 reports a file, its 91001–91004 findings are left out: they share one cause,
 a module format that contradicts how the file loads, for example CommonJS that a transformer or result processor
 writes into a file loaded as ESM.
 
@@ -207,14 +209,19 @@ path. TS1479 and TS1471 (CommonJS importing an ES module) are not labelled: `req
 supported Node versions.
 
 91010–91013 check the relative specifiers (`./`, `../`) of static imports, re-exports and `import()` with a string
-literal. `import()` with a computed specifier is skipped, and bare specifiers such as `"pkg"` are not checked. The
+literal. `import()` with a computed specifier is skipped. Of the bare specifiers such as `"pkg"`, only 91013 checks
+any, and only under `node`: a bare import without `with { type: "json" }` gets 91013 when its name ends in `.json`
+(`"pkg/d.json"`, installed or not) or when the package's `"exports"` resolve it to a `.json` file. The
 check sees the specifier in the emitted file, not the one in the TypeScript source. A specifier counts as
 extensionless when it has no extension, or when its extension is none of `.js`, `.mjs`, `.cjs`, `.json`, `.node` and
 `.wasm` and adding `.js` names an existing file (e.g. `./user.service`); any other specifier that names no file gets
 91012; a JSON import with `assert` instead of `with` also gets 91013. 91012 resolves a specifier against the files the
 build writes and the files on disk, so under `addonEmitOnly` a file left by an earlier build counts. In
-`javascript/auto` files it also tries the extensions `.js`, `.mjs`, `.cjs` and `.json` and accepts directories, like
-webpack does. On the Program path, TypeScript may report the same import on the source file as well (TS2834, TS2835,
+`javascript/auto` files it also tries the extensions `.js`, `.mjs`, `.cjs` and `.json`, and accepts a directory that
+holds `index.js`, `index.mjs`, `index.cjs` or `index.json`, or a `package.json` with a non-empty string `main`,
+`module` or `browser` (the file that field names is not checked). Any other directory gets 91012. This is a heuristic
+for webpack's default resolution, and it runs in the CLI only: if your webpack config sets `resolve.mainFiles` or
+`resolve.mainFields`, skip the file with `esm.ignore` or set `check: "warn"`. On the Program path, TypeScript may report the same import on the source file as well (TS2834, TS2835,
 TS1543).
 
 The rules derive the file path from the specifier the way the runtime does, and every rule tests that path:
