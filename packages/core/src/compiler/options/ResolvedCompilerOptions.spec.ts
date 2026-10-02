@@ -448,6 +448,81 @@ describe("tsConfigFile", () => {
 
         expect(testObj.tsConfigFile).toBe("/tsconfig.json");
     });
+
+    it("should yield tsconfig.json in directory w/ project directory", () => {
+        const fileSystem = createSystem({ "/project/tsconfig.json": "{}", "/project/src/index.ts": "export {};" }, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./project", reporter: new NoReporter() });
+
+        expect(testObj.tsConfigFile).toBe("/project/tsconfig.json");
+    });
+
+    it("should report error 5058 with absolute path w/ missing project file", () => {
+        const fileSystem = createSystem({ "/tsconfig.json": "{}" }, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./missing.json", reporter: target });
+
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                category: ts.DiagnosticCategory.Error,
+                code: 5058,
+                file: undefined,
+                messageText: "The specified path does not exist: '/missing.json'.",
+            })
+        );
+    });
+
+    it("should report error 5057 with absolute path w/ project directory without tsconfig.json", () => {
+        const fileSystem = createSystem({ "/tsconfig.json": "{}", "/emptydir/src/index.ts": "export {};" }, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./emptydir", reporter: target });
+
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                category: ts.DiagnosticCategory.Error,
+                code: 5057,
+                file: undefined,
+                messageText: "Cannot find a tsconfig.json file at the specified directory: '/emptydir'.",
+            })
+        );
+    });
+
+    it("should report error 5057 w/ already resolved project directory without tsconfig.json", () => {
+        const fileSystem = createSystem({ "/emptydir/src/index.ts": "export {};" }, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "/emptydir/tsconfig.json", reporter: target });
+
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ code: 5057 }));
+    });
+
+    it("should report nothing w/o project and w/o tsconfig.json", () => {
+        const fileSystem = createSystem({ "/src/index.ts": "export {};" }, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { reporter: target });
+
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
+    });
+
+    it("should report nothing w/ default project and w/o tsconfig.json", () => {
+        const fileSystem = createSystem({ "/src/index.ts": "export {};" }, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./tsconfig.json", reporter: target });
+
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
+    });
 });
 
 describe("tsConfig", () => {
@@ -659,6 +734,29 @@ describe("profile", () => {
 });
 
 describe("buildDir", () => {
+    it("should yield project directory w/ project directory", () => {
+        const fileSystem = createSystem({ "/project/tsconfig.json": "{}", "/project/src/index.ts": "export {};" }, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./project", reporter: new NoReporter() });
+
+        expect(testObj.buildDir).toBe("/project");
+    });
+
+    it("should yield tsconfig.json files and options w/ project directory", () => {
+        const fileSystem = createSystem(
+            {
+                "/project/tsconfig.json": JSON.stringify({ compilerOptions: { outDir: "./dist", strict: true }, include: ["src/**/*"] }),
+                "/project/src/index.ts": "export {};",
+            },
+            { virtual: true }
+        );
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./project", reporter: new NoReporter() });
+
+        expect(testObj.cliArgs.fileNames).toEqual(["/project/src/index.ts"]);
+        expect(testObj.tsConfig).toEqual(expect.objectContaining({ outDir: "/project/dist", strict: true }));
+    });
+
     it("should yield current directory if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
