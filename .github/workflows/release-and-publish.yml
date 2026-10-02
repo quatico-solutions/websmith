@@ -1,5 +1,6 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
-# For more information see: https://help.github.com/actions/language-and-framework-guides/publishing-nodejs-packages
+# Builds and tests a release tag, creates its GitHub release and publishes the packages to npm.
+# npm publishing uses trusted publishing (OIDC): each package on npmjs.com names this repository and this workflow
+# file as its trusted publisher, so no npm token is stored. See https://docs.npmjs.com/trusted-publishers
 
 name: Create release and publish npm package
 
@@ -7,6 +8,19 @@ on:
     push:
         tags:
             - "v*"
+    # Publishes an existing tag again, e.g. after a failed publish, with this version of the workflow
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: "Existing release tag to build and publish, e.g. v0.10.0"
+                required: true
+
+permissions:
+    contents: write
+    id-token: write
+
+env:
+    RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
     release:
@@ -14,6 +28,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+              with:
+                  ref: ${{ inputs.tag || github.ref }}
 
             - name: Setup environment
               uses: actions/setup-node@v4
@@ -24,6 +40,10 @@ jobs:
             - uses: pnpm/action-setup@v3
               with:
                   version: 9
+
+            - name: npm with trusted publishing
+              # Trusted publishing needs npm 11.5.1 or newer
+              run: npm install --global npm@^11.5.1 && npm --version
 
             - name: install
               run: pnpm install --frozen-lockfile
@@ -46,21 +66,30 @@ jobs:
               with:
                   changelog_file: Release-Notes.md
                   # A release candidate tag (v0.10.0-rc.1) publishes the [Unreleased] section
-                  prerelease: ${{ contains(github.ref_name, '-') }}
+                  prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
 
             - name: create release
               uses: softprops/action-gh-release@v2
-              if: startsWith(github.ref, 'refs/tags/')
               with:
+                  tag_name: ${{ env.RELEASE_TAG }}
                   body: ${{ steps.extract-release-notes.outputs.release_notes }}
-                  prerelease: ${{ contains(github.ref_name, '-') }}
+                  prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
               env:
-                  # The workflow permissions of the project must be updated to 'Workflows have read and write permissions in the repository for all scopes'
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: publish
               # Release candidates are verified from the tag and are not published to npm
-              if: ${{ !contains(github.ref_name, '-') }}
-              run: pnpm publish --recursive --access public --no-git-checks
-              env:
-                  NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+              if: ${{ !contains(env.RELEASE_TAG, '-') }}
+              run: |
+                  # pnpm pack replaces workspace: versions; npm publishes through OIDC and adds provenance
+                  mkdir -p "$RUNNER_TEMP/packages"
+                  pnpm --recursive --filter "./packages/*" exec sh -c \
+                      'if [ "$(node -p "require(\"./package.json\").private === true")" = "false" ]; then pnpm pack --pack-destination "$RUNNER_TEMP/packages"; fi'
+                  for tarball in "$RUNNER_TEMP"/packages/*.tgz; do
+                      spec=$(tar -xOzf "$tarball" package/package.json | node -p 'const p = JSON.parse(require("fs").readFileSync(0, "utf8")); p.name + "@" + p.version')
+                      if npm view "$spec" version > /dev/null 2>&1; then
+                          echo "$spec is already published, skipping"
+                      else
+                          npm publish "$tarball" --access public
+                      fi
+                  done
