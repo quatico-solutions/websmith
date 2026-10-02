@@ -20,6 +20,7 @@
 - **Rounds:** 1
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #133 merged
 - **Started:** 2026-10-02, Jan Wloka, `infra/dependabot-config`
+- **Started:** 2026-10-02, Jan Wloka, `infra/upgrade-nx`
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
@@ -142,7 +143,7 @@ seven months.
 
 ### Dependabot config
 
-- `infra/dependabot-config` — `.github/dependabot.yml` with `directories: ["/", "/packages/*"]`, a security group, dev and production version groups, cooldown, labels, PR limit, `E` prefix and `typescript` majors ignored; `claude-review` skipped for `dependabot[bot]`. Test: `pnpm lint` and the Definition of Done green; after merge, the Dependabot run log shows both directories parsed and no `typescript` major proposed <!-- builds: .github/dependabot.yml and the claude-review skip -->
+- `infra/dependabot-config` — `.github/dependabot.yml` with `directories: ["/", "/packages/*"]`, a security group, dev and production version groups, cooldown, labels, PR limit, `E` prefix and `typescript` majors ignored; `claude-review` skipped for `dependabot[bot]`. Test: `pnpm lint` and the Definition of Done green; after merge, the Dependabot run log shows both directories parsed and no `typescript` major proposed → #146 <!-- builds: .github/dependabot.yml and the claude-review skip -->
 
 ### nx
 
