@@ -182,7 +182,9 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         this.tsConfigFile = resolvedPaths.tsConfigFile;
         this.configFile = resolvedPaths.configFile;
 
-        const projectError = tsConfigFile && this.tsConfigFile ? checkProjectFile(this.system, this.tsConfigFile) : undefined;
+        // Only a project passed like tsc's --project can fail: API and loader callers may name a tsconfig file that does not exist
+        const project = cliArgs?.options?.project ?? tsConfig?.project;
+        const projectError = project && this.tsConfigFile ? checkProjectFile(this.system, this.tsConfigFile) : undefined;
         if (projectError) {
             this.reporter.reportDiagnostic(projectError);
         }
