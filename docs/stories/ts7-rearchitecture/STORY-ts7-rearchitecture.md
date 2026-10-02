@@ -55,9 +55,10 @@ Research details: [analysis-ts7-api-gap.md](analysis-ts7-api-gap.md).
 ### Candidate slice independent of the strategy
 
 - 🟡 Clear the TypeScript 6.0 deprecation hits — now planned, split between two plans:
-  - `tsc-option-parity` (#135): the `esModuleInterop: false` default, the `target: ES5` default and the
-    hand-copied ES3/ES5 target tables
-  - `typescript-6-support`: the `strict: false` default, `Classic`/`Node10` in websmith's own compilations, repo
+  - ✅ `tsc-option-parity` (#135): the `esModuleInterop: false` default and the implied `target: ES5` default
+    (#161), the hand-copied ES3/ES5 target tables (`bug/option-enum-tables`)
+  - `typescript-6-support`: the remaining hits, owned per its table in
+    `docs/plans/2026-10-02-typescript-6-support.md` — the `strict: false` default, `Classic`/`Node10` in websmith's own compilations, repo
     tsconfigs (`moduleResolution: "node"`, `downlevelIteration`, `rootDir`), the `--outFile` flag (kept, README
     note), plus hits found by the 2026-10-02 probe (ts-loader `rootDir`, websmith-node `tsc` spawn, test env)
 
