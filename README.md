@@ -54,7 +54,7 @@ The default configuration uses the `tsconfig.json` file in your project root to 
 }
 ```
 
-Pass the file to the compiler with `websmith --configFile ./websmith.config.json`; websmith does not look for it on its own. Add `"addonsDir": "./addons"` to the file or pass `--addonsDir`, there is no default addons directory. Read more about addons in the [Customizing the compilation output](#customizing-the-compilation-output) section.
+Pass the file to the compiler with `websmith --configFile ./websmith.config.json`; websmith does not look for it on its own. Add `"addonsDir": "./addons"` to the file, relative to the directory of the file, or pass `--addonsDir`, relative to the current directory. There is no default addons directory. The `tsconfig.json` is not looked up next to the file; it is `./tsconfig.json` unless you pass `--project`. Read more about addons in the [Customizing the compilation output](#customizing-the-compilation-output) section.
 
 ### Use websmith with webpack
 

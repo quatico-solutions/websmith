@@ -260,10 +260,10 @@ The `websmith.config.json` file is used to configure the compilation output. It 
 
 * `addons`: A list of compiler addons
 * `addonEmitOnly`: Whether to only emit files processed by active addons (boolean)
-* `addonsDir`: Path to the directory containing the addons, relative to the directory of the `tsconfig.json` in use. Without a `websmith.config.json` and without `--addonsDir`, there is no addons directory.
+* `addonsDir`: Path to the directory containing the addons, relative to the directory of the `websmith.config.json`. Without a `websmith.config.json` and without `--addonsDir`, there is no addons directory.
 * `profiles`: A list of compilation profiles
 * `transpileOnly`: Whether the compiler should emit any output.
 
 The `profiles` section contains a record of compilation profiles. See above for more details on configuring profiles.
 
-The file is only read when you pass its path with the `--configFile` parameter, e.g. `websmith --configFile ./websmith.config.json`. There is no automatic lookup, not even for a file in the project root. The `tsconfig.json` is then looked up next to the configuration file, unless you pass `--project`.
+The file is only read when you pass its path with the `--configFile` parameter, e.g. `websmith --configFile ./websmith.config.json`. There is no automatic lookup, not even for a file in the project root. The `tsconfig.json` is not looked up next to the configuration file: it stays `./tsconfig.json` in the current working directory unless you pass `--project`.

@@ -66,11 +66,9 @@ The default configuration uses the `tsconfig.json` file in your project root to 
 - **configFile** (string): Path to a `websmith.config.json`. Required to use the file: there is no automatic lookup.
   A `configFile` that does not exist is a configuration error. Without it, only the loader options apply.
 - **config** (object): Websmith configuration (`addons`, `addonsDir`, `profiles`, `transpileOnly`, `addonEmitOnly`).
-  It overrides the same keys of the file named in `configFile`.
-- **profiles** (object): Compilation profiles by name, merged with the profiles from `configFile`.
+  It overrides the same keys of the file named in `configFile`. Define profiles for the loader in `config.profiles`.
 - **debug** (boolean): Report messages and suggestions as warnings, in addition to errors and warnings. Defaults to
   `false`.
-- **instanceName** (string): Name of the compiler instance. The loader derives it from a hash of the options.
 - **transpileOnly** (boolean): Enable transpile-only mode for faster builds without type checking. Defaults to
   `false`, or to `true` when the webpack configuration contains a `ForkTsCheckerWebpackPlugin`.
 - **addonEmitOnly** (boolean): Only emit files that are processed by active addons. When enabled, all files are still compiled for dependencies and type checking, but only files processed by addon callbacks (generators, processors, transformers) are written to disk. This is useful for code generation workflows where you want to preserve original source files unchanged while emitting only generated or transformed files.
