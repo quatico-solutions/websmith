@@ -39,6 +39,19 @@ type RunOptions = {
 
 const REQUIRE_SOURCE = `declare const require: (id: string) => unknown;\nexport const x = require("node:path");\n`;
 const DIRNAME_SOURCE = `declare const __dirname: string;\nexport const dir = __dirname;\n`;
+const UMD_SOURCE = [
+    `// @ts-nocheck`,
+    `(function (factory) {`,
+    `    if (typeof module === "object" && typeof module.exports === "object") {`,
+    `        var v = factory(require, exports);`,
+    `        if (v !== undefined) module.exports = v;`,
+    `    } else {`,
+    `        globalThis.lib = factory();`,
+    `    }`,
+    `})(function () { return { x: 1 }; });`,
+    `export {};`,
+    ``,
+].join("\n");
 const NODE_DEPENDENT = (): Record<string, CompilationProfile> => ({
     target: { depends: ["node"], tsConfig: { outDir: path.join(testDirs.PROJECT_DIR, "tsout") } },
     node: { tsConfig: { outDir: testDirs.NODE_DIR }, esm: { runtime: "node" } },
@@ -151,6 +164,53 @@ describe("webpack w/ websmith-loader and ESM check", () => {
         };
 
         expect(actual).toEqual({ exitCode: 0, errors: [], tsSourceMapAssets: [], mapsMtsSource: true });
+    }, 60000);
+
+    it("reports nothing w/ UMD wrapper under bundler runtime and javascript/esm rule", () => {
+        writeConfig({ target: { esm: { runtime: "bundler" } } });
+        writeSources({ "a.ts": UMD_SOURCE });
+
+        const [actual] = runWebpack({ entry: { main: "./src/a.ts" }, type: "javascript/esm" });
+
+        expect(actual).toMatchObject({ exitCode: 0, errors: [], warnings: [] });
+    }, 60000);
+
+    it("reports nothing w/ UMD wrapper in node dependent profile", () => {
+        writeConfig(NODE_DEPENDENT());
+        writeSources({ "a.ts": UMD_SOURCE });
+
+        const [{ exitCode, errors, warnings }] = runWebpack({ entry: { main: "./src/a.ts" } });
+        // Under javascript/auto webpack itself warns that it cannot follow the require passed to the factory
+        const actual = { exitCode, errors, esmCodes: warnings.map(codeOf).filter(Boolean) };
+
+        expect(actual).toEqual({ exitCode: 0, errors: [], esmCodes: [] });
+    }, 60000);
+
+    it("reports nothing w/ default import of __esModule package shadowed by local under bundler runtime and javascript/esm rule", () => {
+        writeConfig({ target: { esm: { runtime: "bundler" } } });
+        writeSourceFile("node_modules/esmodule-package/package.json", JSON.stringify({ name: "esmodule-package" }), testDirs.PROJECT_DIR);
+        writeSourceFile(
+            "node_modules/esmodule-package/index.js",
+            `"use strict";\nObject.defineProperty(exports, "__esModule", { value: true });\nexports.default = def;\nexports.named = 1;\nfunction def() { }\n`,
+            testDirs.PROJECT_DIR
+        );
+        writeSources({
+            "a.ts": `// @ts-nocheck\nimport pkg from "esmodule-package";\nfunction f() { const pkg = () => 1; return pkg(); }\nexport const value = [pkg.named, f()];\n`,
+        });
+
+        const [actual] = runWebpack({ entry: { main: "./src/a.ts" }, type: "javascript/esm" });
+
+        expect(actual).toMatchObject({ exitCode: 0, errors: [], warnings: [] });
+    }, 60000);
+
+    it("reports 91013 w/ JSON import with query in node dependent profile", () => {
+        writeConfig(NODE_DEPENDENT());
+        writeSources({ "a.ts": `// @ts-nocheck\nimport d from "./d.json?v=1";\nexport const value = d;\n`, "d.json": JSON.stringify({ d: 1 }) });
+
+        const [{ exitCode, errors }] = runWebpack({ entry: { main: "./src/a.ts" } });
+        const actual = { exitCode, errors: errors.map(codeOf) };
+
+        expect(actual).toEqual({ exitCode: 1, errors: ["ESM91013"] });
     }, 60000);
 });
 
