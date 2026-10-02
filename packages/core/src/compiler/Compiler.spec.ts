@@ -12,6 +12,7 @@ import { ReporterMock } from "../../test";
 import { createSystem } from "../environment";
 import { AddonRegistry } from "./addons";
 import { type CompilationContext } from "./compilation";
+import { scriptTargetToString } from "./config";
 import { Compiler, type CompileFragment } from "./Compiler";
 import { DefaultReporter } from "./DefaultReporter";
 import { NoReporter } from "./NoReporter";
@@ -4088,10 +4089,35 @@ describe("compile w/ esm profile", () => {
         const actual = target.mock.calls.map(([cur]) => cur.messageText);
 
         expect(actual).toEqual([
-            `Profile 'client' sets 'esm', but 'module' is unset and 'target' is '${ts.ScriptTarget[ts.getDefaultCompilerOptions().target!]}', ` +
+            `Profile 'client' sets 'esm', but 'module' is unset and 'target' is '${scriptTargetToString(ts.getDefaultCompilerOptions().target!)}', ` +
                 `so TypeScript emits CommonJS. ` +
                 `Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'. The ESM check skips this profile.`,
         ]);
+    });
+
+    it("reports one error naming unset module and target w/o module and ES3 target", () => {
+        const fileSystem = createSystem(
+            {
+                "package.json": JSON.stringify({ type: "module" }),
+                "src/target.ts": `import { a } from "./dep";\nexport const x = a;`,
+                "src/dep.ts": `export const a = 1;`,
+            },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
+            reporter,
+            tsConfig: { target: ts.ScriptTarget.ES3, sourceMap: false },
+        });
+
+        testObj.compile();
+        const actual = target.mock.calls.map(([cur]) => cur.messageText);
+
+        expect(actual).toContain(
+            `Profile 'client' sets 'esm', but 'module' is unset and 'target' is 'es3', so TypeScript emits CommonJS. ` +
+                `Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'. The ESM check skips this profile.`
+        );
     });
 
     it("yields ESM diagnostic for JavaScript file w/ result processor writing CommonJS", () => {

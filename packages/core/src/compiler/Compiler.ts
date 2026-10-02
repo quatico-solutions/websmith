@@ -24,7 +24,7 @@ import type { CompilerAddon } from "./addons/CompilerAddon";
 import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
-import { getEffectiveTarget, TS_ERROR_CODE_INVALID_OPTION_VALUE } from "./config";
+import { getEffectiveTarget, scriptTargetToString, TS_ERROR_CODE_INVALID_OPTION_VALUE } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import { checkEsm, createCjsNamesCache, getEmittedModuleKind, isEsmModuleKind, type EsmCheckContext } from "./esm";
 import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from "./options";
@@ -779,7 +779,7 @@ export class Compiler {
         if (esm && !isEsmModuleKind(getEmittedModuleKind({ module, target }))) {
             // The config validation reports a module set by the profile itself; name one set elsewhere once here
             if (reportNonEsm && isEsmModuleKind(profileConfig?.tsConfig?.module)) {
-                const targetName = typeof target === "number" ? ts.ScriptTarget[target] : String(target);
+                const targetName = scriptTargetToString(target);
                 const moduleName = typeof module === "number" ? ts.ModuleKind[module] : module;
                 const cause =
                     module === undefined
