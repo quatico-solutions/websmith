@@ -24,7 +24,7 @@ import type { CompilerAddon } from "./addons/CompilerAddon";
 import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
-import { getEffectiveTarget } from "./config";
+import { getEffectiveTarget, TS_ERROR_CODE_INVALID_OPTION_VALUE } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import { checkEsm, createCjsNamesCache, getEmittedModuleKind, isEsmModuleKind, type EsmCheckContext } from "./esm";
 import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from "./options";
@@ -55,27 +55,6 @@ type CompilationFragment = {
     useFastPath?: boolean;
     addonNeedsBigProgram?: boolean;
 };
-
-const TARGET_MAP: Record<number, ts.ScriptTarget> = {
-    0: ts.ScriptTarget.ES3,
-    1: ts.ScriptTarget.ES5,
-    2: ts.ScriptTarget.ES2015,
-    3: ts.ScriptTarget.ES2016,
-    4: ts.ScriptTarget.ES2017,
-    5: ts.ScriptTarget.ES2018,
-    6: ts.ScriptTarget.ES2019,
-    7: ts.ScriptTarget.ES2020,
-    8: ts.ScriptTarget.ES2021,
-    9: ts.ScriptTarget.ES2022,
-    10: ts.ScriptTarget.ES2023,
-    11: ts.ScriptTarget.ES2024,
-    99: ts.ScriptTarget.ESNext,
-    100: ts.ScriptTarget.JSON,
-};
-
-// TypeScript error code for invalid CLI option arguments
-// This error occurs when numeric enum values are used in CLI args that TypeScript's command-line parser rejects
-const TS_ERROR_CODE_INVALID_CLI_OPTION = 6046;
 
 const WATCH_OPTIONS: ts.WatchOptions = {
     // ts.watchFile / fs.watch / fs.watchFile have a bug with the FsEvent based watch, causing double firing.
@@ -436,7 +415,6 @@ export class Compiler {
                   },
               };
 
-        // Normalize compiler options to fix numeric enum values
         const normalizedCliArgs = {
             ...profileCliArgs,
             options: this.normalizeCompilerOptions(profileCliArgs.options),
@@ -1000,27 +978,13 @@ export class Compiler {
     }
 
     /**
-     * Normalizes TypeScript compiler options by converting numeric enum values to their string equivalents.
-     * This ensures compatibility with TypeScript's diagnostic checking which expects string values.
+     * Returns a shallow copy of the compiler options, so callers can change it without changing the profile's options.
      */
     private normalizeCompilerOptions(tsConfig?: ts.CompilerOptions): ts.CompilerOptions {
-        if (!tsConfig) {
-            return {};
-        }
-
-        const normalized = { ...tsConfig };
-
-        // Normalize target if it's a number
-        if (typeof normalized.target === "number") {
-            // Keep the numeric value - TypeScript accepts it internally
-            normalized.target = TARGET_MAP[normalized.target] ?? normalized.target;
-        }
-
-        return normalized;
+        return { ...(tsConfig ?? {}) };
     }
 
     protected createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
-        // Normalize TypeScript options to ensure enum values are properly formatted
         const normalizedConfig = this.normalizeCompilerOptions(tsConfig);
 
         // Serialize options for comparison (exclude functions and complex objects)
@@ -1402,12 +1366,12 @@ export class Compiler {
                 : ts.transpileModule(content, { compilerOptions, fileName, reportDiagnostics: true, transformers: ctx.getTransformers() });
 
         // Use ts.getOutputFileNames to get correct output paths
-        // Note: We filter TS_ERROR_CODE_INVALID_CLI_OPTION below, so numeric enum values won't cause issues
+        // Note: We filter TS_ERROR_CODE_INVALID_OPTION_VALUE below, so numeric enum values won't cause issues
         const fileNames = ts.getOutputFileNames(ctx.getCliArgs(), fileName, !this.system.useCaseSensitiveFileNames);
 
         // Filter out cliArgs validation errors to avoid reporting issues
         // with numeric enum values that TypeScript's command-line parser rejects
-        const filteredDiagnostics = (diagnostics ?? []).filter(d => d.code !== TS_ERROR_CODE_INVALID_CLI_OPTION);
+        const filteredDiagnostics = (diagnostics ?? []).filter(d => d.code !== TS_ERROR_CODE_INVALID_OPTION_VALUE);
 
         return {
             outputFiles: concat(

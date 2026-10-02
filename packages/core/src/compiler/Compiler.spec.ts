@@ -44,6 +44,10 @@ class CompilerTestClass extends Compiler {
         return super.createCompilationContext(profile);
     }
 
+    public createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
+        return super.createProgram(tsConfig);
+    }
+
     public getSystem(): ts.System {
         return super.getSystem();
     }
@@ -451,6 +455,30 @@ describe("constructor", () => {
             target: ts.ScriptTarget.ES2022,
             module: ts.ModuleKind.ES2022,
         });
+    });
+
+    it("creates program w/ target name from profile tsConfig in configFile", () => {
+        const target = createSystem(
+            {
+                "./websmith.config.json": JSON.stringify({ profiles: { "target-profile": { tsConfig: { target: "ESNext" } } } }),
+                "./src/target.ts": "export const x = 1;",
+            },
+            { virtual: true }
+        );
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+                configFile: "./websmith.config.json",
+                profile: "target-profile",
+            },
+            undefined,
+            target
+        ).createProfileContextsIfNecessary();
+
+        const actual = testObj.createProgram(testObj.getOptions().getOptions("target-profile").tsConfig);
+
+        expect(actual.getCompilerOptions().target).toBe(ts.ScriptTarget.ESNext);
+        expect(testObj.getContext("target-profile")!.getCompilerOptions().target).toBe(ts.ScriptTarget.ESNext);
     });
 
     it("yields tsConfig from profile and tsConfig property in config", () => {
