@@ -62,7 +62,7 @@ jobs:
 
             - name: Extract release notes
               id: extract-release-notes
-              uses: ffurrer2/extract-release-notes@v2
+              uses: ffurrer2/extract-release-notes@v3
               with:
                   changelog_file: Release-Notes.md
                   # A release candidate tag (v0.10.0-rc.1) publishes the [Unreleased] section
