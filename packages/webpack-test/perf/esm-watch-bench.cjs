@@ -25,6 +25,20 @@
  *         classification depends on it, each at the loader's existing per-module cost (compiler-instances.ts). The
  *         raw medians, ratios and modules rebuilt are printed for every scenario.
  *
+ * A step that triggers no rebuild within its watchdog, max(30 s, 3 × initial build), is counted as `unchanged`. A
+ * rebuild that finishes after its step ended is counted as `late` and records nothing (watch-steps.cjs).
+ *
+ * The initial build, webpack's compile time of the first watch build, is printed per variant as the median over the
+ * processes. Baseline against `develop`, e.g. for a change that speeds up the initial build:
+ *   1. git worktree add ../websmith-develop $(git merge-base origin/develop HEAD)
+ *   2. In both trees: pnpm install --offline && pnpm build
+ *   3. In both trees, 3 times, from packages/webpack-test: pnpm perf:esm --modules 1000 --processes 5
+ *      Every run generates the same project for the same --modules. Use the same --modules and --processes everywhere.
+ *   4. On each side, take the 3 "Initial build" medians of variant A, the variant without the ESM check, and their
+ *      median: the median of 3 is the median of the three runs' per-variant medians, not of single builds.
+ *   5. Compare the two numbers and put both, and the command, in the PR. The gate of loader-options-once
+ *      (docs/plans/2026-10-02-loader-options-once.md): the 1000-module initial build drops by at least 80%.
+ *
  * Options: --processes 5 --modules 1000 --edits 30 --flips 5 --settle 300 --keep
  */
 const { spawnSync } = require("node:child_process");
@@ -218,14 +232,16 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
     const actions = [
         ...leaves.map((leaf, i) => ({
             scenario: "edit",
+            file: path.join(projectDir, "src", moduleFile(leaf)),
             run: () => fs.writeFileSync(path.join(projectDir, "src", moduleFile(leaf)), createModuleSource(leaf, count, i + 1)),
         })),
         ...Array.from({ length: flips }, (_, i) => ({
             scenario: "flip",
+            file: packageJson,
             run: () => fs.writeFileSync(packageJson, JSON.stringify({ name: "esm-bench", type: i % 2 === 0 ? "commonjs" : "module" })),
         })),
     ];
-    const results = { variant, initial: undefined, edit: [], flip: [], unchanged: { edit: 0, flip: 0 } };
+    const results = { variant, initial: undefined, edit: [], flip: [], unchanged: { edit: 0, flip: 0 }, late: { edit: 0, flip: 0 } };
     // A flip may rebuild most modules, which takes about as long as the initial build
     const watchdogMs = () => Math.max(30000, 3 * results.initial.ms);
     let watching;
@@ -250,7 +266,7 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
         const built = [...stats.compilation.modules].filter(cur => stats.compilation.builtModules.has(cur)).length;
         const checkMs = checkTime;
         checkTime = 0;
-        steps.done(start => ({ ms: start !== undefined ? now - start : stats.endTime - stats.startTime, checkMs, built }));
+        steps.done(start => ({ ms: start !== undefined ? now - start : stats.endTime - stats.startTime, checkMs, built }), compiler.modifiedFiles);
     });
 };
 
@@ -267,6 +283,7 @@ const summarize = (runs, scenario) => {
             const builtMedians = processRuns.map(cur => median(cur[scenario].map(sample => sample.built)));
             const shareMedians = processRuns.map(cur => median(cur[scenario].map(sample => (sample.ms > 0 ? sample.checkMs / sample.ms : 0))));
             const unchanged = processRuns.reduce((sum, cur) => sum + cur.unchanged[scenario], 0);
+            const late = processRuns.reduce((sum, cur) => sum + cur.late[scenario], 0);
             return [
                 variant,
                 {
@@ -276,6 +293,7 @@ const summarize = (runs, scenario) => {
                     checkShare: median(shareMedians),
                     built: median(builtMedians),
                     unchanged,
+                    late,
                 },
             ];
         })
@@ -329,7 +347,7 @@ const main = () => {
             `\nScenario ${scenario} (${scenario === "edit" ? options.edits : options.flips} per process, ${options.processes} processes per variant)`
         );
         VARIANTS.forEach(variant => {
-            const { median: value, processMedians, checkMs, checkShare, built, unchanged } = summary[variant];
+            const { median: value, processMedians, checkMs, checkShare, built, unchanged, late } = summary[variant];
             const ratio = value / summary.A.median;
             const gated = variant !== "A";
             const ok = scenario === "edit" ? ratio <= BUDGET : checkShare <= CHECK_SHARE_BUDGET;
@@ -337,9 +355,16 @@ const main = () => {
             console.log(
                 `  ${variant}: median ${value.toFixed(1)} ms, ratio ${ratio.toFixed(3)}, ESM check ${checkMs.toFixed(1)} ms ` +
                     `(${(checkShare * 100).toFixed(2)}% of rebuild)${gated ? (ok ? " ok" : " OVER BUDGET") : ""}, modules built ${built}, ` +
-                    `unchanged ${unchanged}, per process [${processMedians.map(cur => cur.toFixed(1)).join(", ")}]`
+                    `unchanged ${unchanged}, late ${late}, per process [${processMedians.map(cur => cur.toFixed(1)).join(", ")}]`
             );
         });
+    });
+    console.log(`\nInitial build (${options.modules} modules, ${options.processes} processes per variant)`);
+    VARIANTS.forEach(variant => {
+        const processInitials = runs.filter(cur => cur.variant === variant).map(cur => cur.initial.ms);
+        console.log(
+            `  ${variant}: median ${median(processInitials).toFixed(0)} ms, per process [${processInitials.map(cur => cur.toFixed(0)).join(", ")}]`
+        );
     });
     console.log(
         `\nGates: edit median(B or C) / median(A) <= ${BUDGET}, flip ESM check share of rebuild (B, C) <= ${CHECK_SHARE_BUDGET * 100}%: ` +
