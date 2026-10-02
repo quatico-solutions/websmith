@@ -8,6 +8,7 @@
 import { type CompilationProfile, ErrorMessage, InfoMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
 import { type CompilationContext, type CompilerAddon, type CompilerAddons, compilerAddons, writeCommonJsMarker } from "@quatico/websmith-core";
 import fs from "node:fs";
+import { isBuiltin } from "node:module";
 import path from "node:path";
 import ts from "typescript";
 import { type LoaderContext, type Compilation } from "webpack";
@@ -29,6 +30,17 @@ export interface WebpackAddonConfig {
  * "Could not find a declaration file for module" (7016).
  */
 const MODULE_RESOLUTION_ERRORS = [2307, 2792, 7016];
+
+/**
+ * Node built-ins resolve at runtime whether or not `@types/node` is installed for the addons, so they never warrant a warning.
+ */
+const isNodeBuiltinImport = (diagnostic: ts.Diagnostic): boolean => {
+    if (!diagnostic.file || diagnostic.start === undefined || diagnostic.length === undefined) {
+        return false;
+    }
+    const specifier = diagnostic.file.text.substring(diagnostic.start, diagnostic.start + diagnostic.length).replace(/^["'`]|["'`]$/g, "");
+    return isBuiltin(specifier);
+};
 
 export const formatDiagnostic = (diagnostic: ts.Diagnostic): string => {
     const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n");
@@ -328,7 +340,7 @@ export class WebpackAddonService {
 
         // Node10 resolution ignores package.json "exports"; Node resolves such imports at runtime, so only warn
         preEmitDiagnostics
-            .filter(diagnostic => MODULE_RESOLUTION_ERRORS.includes(diagnostic.code))
+            .filter(diagnostic => MODULE_RESOLUTION_ERRORS.includes(diagnostic.code) && !isNodeBuiltinImport(diagnostic))
             .forEach(diagnostic => this.config.reporter.reportDiagnostic(new WarnMessage(`Addon compilation: ${formatDiagnostic(diagnostic)}`)));
 
         if (emitResult.emitSkipped || emitResult.diagnostics.length > 0) {
