@@ -45,17 +45,22 @@ jobs:
               uses: ffurrer2/extract-release-notes@v2
               with:
                   changelog_file: Release-Notes.md
+                  # A release candidate tag (v0.10.0-rc.1) publishes the [Unreleased] section
+                  prerelease: ${{ contains(github.ref_name, '-') }}
 
             - name: create release
               uses: softprops/action-gh-release@v2
               if: startsWith(github.ref, 'refs/tags/')
               with:
                   body: ${{ steps.extract-release-notes.outputs.release_notes }}
+                  prerelease: ${{ contains(github.ref_name, '-') }}
               env:
                   # The workflow permissions of the project must be updated to 'Workflows have read and write permissions in the repository for all scopes'
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: publish
+              # Release candidates are verified from the tag and are not published to npm
+              if: ${{ !contains(github.ref_name, '-') }}
               run: pnpm publish --recursive --access public --no-git-checks
               env:
                   NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
