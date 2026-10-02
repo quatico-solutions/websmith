@@ -72,7 +72,7 @@ const removeOverlappingSegments = (basePath: string, relativePath: string) => {
 };
 
 // TypeScript error code for an option value outside its allowed names, e.g. module "NodeLatest"
-const TS_ERROR_CODE_INVALID_OPTION_VALUE = 6046;
+export const TS_ERROR_CODE_INVALID_OPTION_VALUE = 6046;
 
 /**
  * Converts option names in a profile's tsConfig, e.g. module "NodeNext", to the enum values TypeScript expects, as

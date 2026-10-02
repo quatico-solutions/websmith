@@ -7,7 +7,7 @@
 import { type TscArguments } from "@quatico/websmith-api";
 import ts from "typescript";
 import { createSystem } from "../../environment";
-import { createArgs, parsedCommandLine } from "./parsed-command-line";
+import { createArgs, moduleKindToString, parsedCommandLine, scriptTargetToString } from "./parsed-command-line";
 
 describe("parsedCommandLine w/ empty tsconfig.json", () => {
     it("yields empty config with empty config file and no args", () => {
@@ -746,14 +746,50 @@ describe("createArgs", () => {
         expect(actual).toEqual(["--target", "es2020"]);
     });
 
-    it.each(Object.values(ts.ModuleKind).filter((cur): cur is ts.ModuleKind => typeof cur === "number"))(
-        "returns array with lower-case name of numeric module %s",
+    it.each([...new Set(Object.values(ts.ModuleKind).filter((cur): cur is ts.ModuleKind => typeof cur === "number"))])(
+        "returns array that tsc parses back to numeric module %s",
         module => {
-            const actual = createArgs({ module: module as any });
+            const actual = ts.parseCommandLine(createArgs({ module: module as any }));
 
-            expect(actual).toEqual(["--module", ts.ModuleKind[module].toLowerCase()]);
+            expect(actual.errors).toEqual([]);
+            expect(actual.options.module).toBe(module);
         }
     );
+
+    it.each(
+        [...new Set(Object.values(ts.ScriptTarget).filter((cur): cur is ts.ScriptTarget => typeof cur === "number"))].filter(
+            cur => cur !== ts.ScriptTarget.JSON
+        )
+    )("returns array that tsc parses back to numeric target %s", target => {
+        const actual = ts.parseCommandLine(createArgs({ target: target as any }));
+
+        expect(actual.errors).toEqual([]);
+        expect(actual.options.target).toBe(target);
+    });
+
+    it("returns array with esnext for numeric target ESNext", () => {
+        const actual = createArgs({ target: 99 as any });
+
+        expect(actual).toEqual(["--target", "esnext"]);
+    });
+
+    it("returns array with json for numeric target JSON", () => {
+        const actual = createArgs({ target: 100 as any });
+
+        expect(actual).toEqual(["--target", "json"]);
+    });
+
+    it("returns array with es2025 for numeric target 12", () => {
+        const actual = createArgs({ target: 12 as ts.ScriptTarget as any });
+
+        expect(actual).toEqual(["--target", "es2025"]);
+    });
+
+    it("returns array with the number for unknown numeric target", () => {
+        const actual = createArgs({ target: 42 as any });
+
+        expect(actual).toEqual(["--target", "42"]);
+    });
 
     it("returns array with empty array value", () => {
         const actual = createArgs({ lib: [] });
@@ -973,3 +1009,53 @@ const createTsConfig = (config: TscArguments) => {
         2
     );
 };
+
+describe("scriptTargetToString", () => {
+    it.each([
+        [0, "es3"],
+        [1, "es5"],
+        [2, "es2015"],
+        [3, "es2016"],
+        [4, "es2017"],
+        [5, "es2018"],
+        [6, "es2019"],
+        [7, "es2020"],
+        [8, "es2021"],
+        [9, "es2022"],
+        [10, "es2023"],
+        [11, "es2024"],
+        [12, "es2025"],
+        [99, "esnext"],
+        [100, "json"],
+    ])("returns name of target %s", (target, expected) => {
+        const actual = scriptTargetToString(target);
+
+        expect(actual).toBe(expected);
+    });
+
+    it("returns the number for unknown target", () => {
+        const actual = scriptTargetToString(42);
+
+        expect(actual).toBe("42");
+    });
+});
+
+describe("moduleKindToString", () => {
+    it.each([
+        [ts.ModuleKind.None, "none"],
+        [ts.ModuleKind.CommonJS, "commonjs"],
+        [ts.ModuleKind.ES2015, "es2015"],
+        [ts.ModuleKind.ESNext, "esnext"],
+        [ts.ModuleKind.NodeNext, "nodenext"],
+    ])("returns name of module %s", (module, expected) => {
+        const actual = moduleKindToString(module);
+
+        expect(actual).toBe(expected);
+    });
+
+    it("returns the number for unknown module", () => {
+        const actual = moduleKindToString(42);
+
+        expect(actual).toBe("42");
+    });
+});

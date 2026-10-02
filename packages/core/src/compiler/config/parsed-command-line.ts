@@ -149,38 +149,28 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
     };
 };
 
+// Names --target accepts where the reverse map of ts.ScriptTarget yields another member name: "Latest" for 99, and
+// "LatestStandard" for 12 or no name at all before TypeScript 6. "json" is not a --target name but stays as before.
+const SCRIPT_TARGET_NAMES: Record<number, string> = {
+    12: "es2025",
+    99: "esnext",
+    100: "json",
+};
+
 /**
  * Converts TypeScript ScriptTarget enum value to its string name.
  * @param target The ScriptTarget enum value
  * @returns The string name (e.g., "esnext", "es2020")
  */
-const scriptTargetToString = (target: number): string => {
-    // Map TypeScript ScriptTarget enum values to their string names
-    const targetMap: Record<number, string> = {
-        0: "es3",
-        1: "es5",
-        2: "es2015",
-        3: "es2016",
-        4: "es2017",
-        5: "es2018",
-        6: "es2019",
-        7: "es2020",
-        8: "es2021",
-        9: "es2022",
-        10: "es2023",
-        11: "es2024",
-        99: "esnext",
-        100: "json",
-    };
-    return targetMap[target] ?? String(target);
-};
+export const scriptTargetToString = (target: number): string =>
+    SCRIPT_TARGET_NAMES[target] ?? (ts.ScriptTarget[target] as string | undefined)?.toLowerCase() ?? String(target);
 
 /**
  * Converts TypeScript ModuleKind enum value to its string name.
  * @param module The ModuleKind enum value
  * @returns The string name (e.g., "esnext", "commonjs")
  */
-const moduleKindToString = (module: number): string => (ts.ModuleKind[module] as string | undefined)?.toLowerCase() ?? String(module);
+export const moduleKindToString = (module: number): string => (ts.ModuleKind[module] as string | undefined)?.toLowerCase() ?? String(module);
 
 /**
  * Converts a value to its string representation for command-line arguments.
