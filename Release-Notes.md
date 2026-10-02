@@ -84,7 +84,7 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   - The `error` and `warn` options are called after webpack has the diagnostic: `error` receives errors, `warn`
     receives warnings, and messages and suggestions reach `warn` only with `debug`. Before, `error` received every
     diagnostic, warnings included. The message now starts with the emitted file and position, `file (line,col): `.
-- The webpack loader compiles addons with `Node10` module resolution instead of `NodeNext`, so its output is CommonJS whatever the project's `"type"` is. Addons compiled by earlier versions are recompiled once. Unresolved imports in addons (e.g. packages whose types exist only under `package.json` `"exports"`) are reported as warnings; the build continues and Node resolves them at runtime.
+- The webpack loader compiles addons with `Node10` module resolution instead of `NodeNext`, so its output is CommonJS whatever the project's `"type"` is. Addons compiled by earlier versions are recompiled once. Unresolved imports in addons (e.g. packages whose types exist only under `package.json` `"exports"`) are reported as warnings, except imports of Node built-in modules such as `path` or `node:fs/promises`; the build continues and Node resolves them at runtime.
 
 ### Fixed
 
