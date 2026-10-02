@@ -14,6 +14,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Added
 
+- `@quatico/websmith-core` exports `ErrorTrackingReporter`, the reporter wrapper the `websmith` command uses to exit
+  with code 1 on error-level diagnostics. Hosts that build their own command can use it the same way; see
+  "Embedding websmith" in `packages/core/README.md`.
 - New per-profile `esm` option in `websmith.config.json`: `{ "runtime": "node" | "bundler", "check": "error" | "warn" | "off", "ignore": string[] }`.
   A profile with `esm` gets compile-time diagnostics (codes 91001–91005) when the JavaScript that `websmith` writes
   would fail to load as an ES module, including code that addons generate: free `require`, `module`, `exports`,

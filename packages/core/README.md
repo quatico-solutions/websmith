@@ -9,3 +9,24 @@
 This package contains shared library functions for the websmith compiler. It's a peer dependency of the [@quatico/websmith-compiler](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler#readme) package and should not be used directly. If you want to integrate websmith into your build process go to [@quatico/websmith-compiler](https://github.com/quatico-solutions/websmith/tree/develop/packages/compiler#readme) for the `websmith` command line tool or to [websmith-loader](https://github.com/quatico-solutions/websmith/tree/develop/packages/webpack#readme) for the webpack loader.
 
 See the [websmith github repository](https://github.com/quatico-solutions/websmith#readme) for more information and examples.
+
+## Embedding websmith / failing your own command on errors
+
+The `websmith` command exits with code 1 when compilation reports an error-level diagnostic. A host that builds its
+own command on `@quatico/websmith-core` gets the same behaviour by wrapping its reporter in an `ErrorTrackingReporter`:
+
+```typescript
+import { Compiler, DefaultReporter, ErrorTrackingReporter } from "@quatico/websmith-core";
+
+const reporter = new ErrorTrackingReporter(new DefaultReporter(system));
+const compiler = new Compiler({ ...options, reporter }, {}, system);
+
+compiler.compile();
+
+if (reporter.hasErrors()) {
+    process.exitCode = 1;
+}
+```
+
+`new ErrorTrackingReporter(reporter)` forwards every call to the wrapped reporter. `hasErrors()` returns `true` once an
+error-level diagnostic was reported; warnings and messages do not count.

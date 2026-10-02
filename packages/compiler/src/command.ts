@@ -6,12 +6,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type CompilerArguments, type CompilerOptions, type Reporter, WarnMessage } from "@quatico/websmith-api";
-import { type AddonConfig, AddonRegistry, Compiler, createOptions, DefaultReporter, NoReporter } from "@quatico/websmith-core";
+import { type AddonConfig, AddonRegistry, Compiler, createOptions, DefaultReporter, ErrorTrackingReporter, NoReporter } from "@quatico/websmith-core";
 import { type Command, program } from "commander";
 import parseArgs from "minimist";
 import path from "node:path";
 import ts from "typescript";
-import { ErrorTrackingReporter } from "./ErrorTrackingReporter";
 import { getVersion } from "./get-version";
 
 export const addCompileCommand = (parent = program, compiler?: Compiler): Command => {

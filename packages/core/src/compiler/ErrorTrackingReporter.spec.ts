@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { ErrorMessage, InfoMessage, WarnMessage } from "@quatico/websmith-api";
-import { NoReporter } from "@quatico/websmith-core";
+import { NoReporter } from "./NoReporter";
 import { ErrorTrackingReporter } from "./ErrorTrackingReporter";
 
 describe("ErrorTrackingReporter", () => {
