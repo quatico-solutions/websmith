@@ -448,6 +448,29 @@ describe("tsConfigFile", () => {
 
         expect(testObj.tsConfigFile).toBe("/tsconfig.json");
     });
+
+    it("should yield tsconfig.json in directory w/ project directory", () => {
+        const fileSystem = createSystem({ "/project/tsconfig.json": "{}", "/project/src/index.ts": "export {};" }, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./project", reporter: new NoReporter() });
+
+        expect(testObj.tsConfigFile).toBe("/project/tsconfig.json");
+    });
+
+    it("should yield tsconfig.json files and options w/ project directory", () => {
+        const fileSystem = createSystem(
+            {
+                "/project/tsconfig.json": JSON.stringify({ compilerOptions: { outDir: "./dist", strict: true }, include: ["src/**/*"] }),
+                "/project/src/index.ts": "export {};",
+            },
+            { virtual: true }
+        );
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./project", reporter: new NoReporter() });
+
+        expect(testObj.cliArgs.fileNames).toEqual(["/project/src/index.ts"]);
+        expect(testObj.tsConfig).toEqual(expect.objectContaining({ outDir: "/project/dist", strict: true }));
+    });
 });
 
 describe("tsConfig", () => {
@@ -659,6 +682,14 @@ describe("profile", () => {
 });
 
 describe("buildDir", () => {
+    it("should yield project directory w/ project directory", () => {
+        const fileSystem = createSystem({ "/project/tsconfig.json": "{}", "/project/src/index.ts": "export {};" }, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { tsConfigFile: "./project", reporter: new NoReporter() });
+
+        expect(testObj.buildDir).toBe("/project");
+    });
+
     it("should yield current directory if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 

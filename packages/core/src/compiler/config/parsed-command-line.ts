@@ -7,11 +7,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { aggregateMessages, COMPILER_ARGUMENT_KEYS, type CompilerArgumentKey, type CompilerArguments } from "@quatico/websmith-api";
 import ts from "typescript";
+import { resolveProjectFile } from "./resolve-project-file";
 
 /**
  * Parses tsconfig.json files and creates parsed command line options.
  *
- * @param tsConfigFile
+ * @param tsConfigFile Path to the tsconfig file or to a directory containing a 'tsconfig.json'
  * @param system
  */
 export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments, system: ts.System): ts.ParsedCommandLine | never => {
@@ -71,12 +72,13 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
     }
     const tscArgs = ts.parseCommandLine(commandLineArgs);
 
-    if (tsConfigFile && system.fileExists(tsConfigFile)) {
+    const projectFile = tsConfigFile ? resolveProjectFile(system, tsConfigFile) : tsConfigFile;
+    if (projectFile && system.fileExists(projectFile)) {
         // If explicit files were provided as CLI arguments, still use tsconfig options but not file discovery
         if (tscArgs.fileNames.length > 0) {
             // Parse tsconfig to get the compiler options but ignore file discovery
             const tsConfigResult = ts.getParsedCommandLineOfConfigFile(
-                system.resolvePath(tsConfigFile),
+                projectFile,
                 {
                     ...extraArgs,
                     ...tscArgs.options, // CLI options can override tsconfig.json
@@ -106,7 +108,7 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         }
 
         const result = ts.getParsedCommandLineOfConfigFile(
-            system.resolvePath(tsConfigFile),
+            projectFile,
             {
                 ...extraArgs,
                 ...tscArgs.options, // CLI options can override tsconfig.json
@@ -134,7 +136,7 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
     }
 
     return {
-        options: { ...extraArgs, ...tscArgs.options, configFilePath: system.resolvePath(tsConfigFile) },
+        options: { ...extraArgs, ...tscArgs.options, configFilePath: system.resolvePath(projectFile) },
         // Filter out invalid file paths like "/" that can cause compilation errors
         fileNames: tscArgs.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""),
         errors: tscArgs.errors,
