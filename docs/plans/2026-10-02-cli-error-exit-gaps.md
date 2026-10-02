@@ -177,7 +177,7 @@ plan does not change `reportedConfigErrors` or the `depends` closure, which #134
 
 ### Project resolution
 
-- `bug/cli-project-directory` — item 6: `--project` normalised once in `resolvePathsWithRules` for all three guards; `-p <directory>` compiles `<directory>/tsconfig.json`, a missing path reports TS5058 and a directory without `tsconfig.json` TS5057, both with the resolved absolute path; README states the TS5042 difference. Unit: `parsed-command-line.spec.ts`, `ResolvedCompilerOptions.spec.ts`, `command.spec.ts`; e2e in `bin.test.ts`: `-p .` from the project directory compiles and fails on a syntax error, `-p <absolute directory>` compiles, `-p missing.json` exits 1 with TS5058, `-p emptydir` exits 1 with TS5057; `Release-Notes.md` entry <!-- builds: --project directory and missing-path resolution shared by parsedCommandLine and ResolvedCompilerOptions -->
+- `bug/cli-project-directory` — item 6: `--project` normalised once in `resolvePathsWithRules` for all three guards; `-p <directory>` compiles `<directory>/tsconfig.json`, a missing path reports TS5058 and a directory without `tsconfig.json` TS5057, both with the resolved absolute path; README states the TS5042 difference. Unit: `parsed-command-line.spec.ts`, `ResolvedCompilerOptions.spec.ts`, `command.spec.ts`; e2e in `bin.test.ts`: `-p .` from the project directory compiles and fails on a syntax error, `-p <absolute directory>` compiles, `-p missing.json` exits 1 with TS5058, `-p emptydir` exits 1 with TS5057; `Release-Notes.md` entry <!-- builds: --project directory and missing-path resolution shared by parsedCommandLine and ResolvedCompilerOptions --> → #147
 
 ### websmith.config.json and addonsDir
 
