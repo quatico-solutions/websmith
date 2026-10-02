@@ -792,8 +792,7 @@ describe("createCompilationContext", () => {
             cliArgs: {
                 errors: [],
                 fileNames: [],
-                options: {
-                },
+                options: {},
             },
             config: {
                 field: "expected-value",
@@ -3894,12 +3893,10 @@ describe("compile w/ esm profile", () => {
                     fileName.endsWith("b.ts") ? `import { a } from "cjspkg";\nexport const usedB = a;` : content
                 ),
         });
-        const testObj = createEsmCompiler(
-            fileSystem,
-            { client: { esm: { runtime: "node" }, addons: ["addon-a", "addon-b"] } },
-            "client",
-            { reporter, cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] } }
-        ).setAddonRegistry(addons);
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["addon-a", "addon-b"] } }, "client", {
+            reporter,
+            cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] },
+        }).setAddonRegistry(addons);
         const target = jest.spyOn(fileSystem, "readFile");
 
         testObj.compile();
@@ -3960,7 +3957,9 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.messageText]);
 
-        expect(actual).toEqual([["/src/generated.js", expect.stringMatching(/\(source "src\/generated\.ts", profile "client", addons: gen-addon\)\.$/)]]);
+        expect(actual).toEqual([
+            ["/src/generated.js", expect.stringMatching(/\(source "src\/generated\.ts", profile "client", addons: gen-addon\)\.$/)],
+        ]);
     });
 
     it("names no addon in ESM diagnostic w/ processor registered outside addon", () => {
@@ -4184,7 +4183,9 @@ describe("compile w/ esm profile", () => {
 
         const actual = testObj.compile().diagnostics.map(cur => [cur.file?.fileName, cur.code, cur.messageText]);
 
-        expect(actual).toEqual([["/src/target.js", 91001, expect.stringMatching(/\(source "src\/target\.ts", profile "client", addons: banner-addon\)\.$/)]]);
+        expect(actual).toEqual([
+            ["/src/target.js", 91001, expect.stringMatching(/\(source "src\/target\.ts", profile "client", addons: banner-addon\)\.$/)],
+        ]);
     });
 
     it("names no addon w/ result processor rewriting emitted file unchanged", () => {
@@ -4207,7 +4208,10 @@ describe("compile w/ esm profile", () => {
     });
 
     it("leaves writeFile of system unchanged w/ result processor running", () => {
-        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
         const reporter = new ReporterMock(fileSystem);
         const writeFile = fileSystem.writeFile;
         const target = jest.fn();
@@ -4224,7 +4228,10 @@ describe("compile w/ esm profile", () => {
     });
 
     it("restores system of context w/ throwing result processor", () => {
-        const fileSystem = createSystem({ "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" }, { virtual: true });
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;" },
+            { virtual: true }
+        );
         const reporter = new ReporterMock(fileSystem);
         const writeFile = fileSystem.writeFile;
         const addons = createAddons(fileSystem, reporter, {
@@ -4241,6 +4248,184 @@ describe("compile w/ esm profile", () => {
 
         expect(testObj.getContext("client")!.getSystem()).toBe(fileSystem);
         expect(fileSystem.writeFile).toBe(writeFile);
+    });
+
+    const createNestedCompiler = (
+        system: ts.System,
+        reporter: Reporter,
+        profiles: Record<string, object> = { nested: { esm: { runtime: "node" } } }
+    ) =>
+        new CompilerTestClass(
+            {
+                reporter,
+                config: { profiles },
+                profile: "nested",
+                tsConfig: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext, sourceMap: false },
+                cliArgs: { fileNames: ["/nested/inner.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            system
+        );
+
+    // A copy of the context's system, as an addon wrapping it would make; the spread alone would drop the
+    // members the observing system inherits from the system it wraps
+    const copySystem = (source: ts.System, ctx: CompilationContext): ts.System => {
+        const result: Record<string, unknown> = {};
+        for (const key in source) {
+            result[key] = source[key as keyof ts.System];
+        }
+        return { ...(result as unknown as ts.System), writeFile: (...args) => ctx.getSystem().writeFile(...args) };
+    };
+
+    const getReportedDiagnostics = (target: jest.SpyInstance, fileName: string) =>
+        target.mock.calls.map(([cur]) => cur as ts.Diagnostic).filter(cur => cur.file?.fileName === fileName && cur.code === 91001);
+
+    it("yields one ESM diagnostic w/ result processor running nested compile through context system", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;", "nested/inner.ts": ESM_SOURCE },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const addons = createAddons(fileSystem, reporter, {
+            "nesting-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => createNestedCompiler(processorCtx.getSystem(), reporter).compile()),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["nesting-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+        const actual = getReportedDiagnostics(target, "/nested/inner.js");
+
+        expect(actual).toHaveLength(1);
+    });
+
+    it("yields one ESM diagnostic w/ result processor running nested compile through wrapped context system", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;", "nested/inner.ts": ESM_SOURCE },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const addons = createAddons(fileSystem, reporter, {
+            "nesting-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => {
+                    createNestedCompiler(copySystem(processorCtx.getSystem(), processorCtx), reporter).compile();
+                }),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["nesting-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+        const actual = getReportedDiagnostics(target, "/nested/inner.js");
+
+        expect(actual).toHaveLength(1);
+    });
+
+    it("yields two ESM diagnostics w/ result processor rewriting file after nested compile checked it", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;", "nested/inner.ts": ESM_SOURCE },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const addons = createAddons(fileSystem, reporter, {
+            "nesting-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => {
+                    const system = processorCtx.getSystem();
+                    createNestedCompiler(system, reporter).compile();
+                    system.writeFile("/nested/inner.js", `// banner\n${system.readFile("/nested/inner.js")}`);
+                }),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["nesting-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+        const actual = getReportedDiagnostics(target, "/nested/inner.js");
+
+        expect(actual).toHaveLength(2);
+    });
+
+    it("yields one ESM diagnostic w/ nested compile without esm writing CommonJS", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;", "nested/inner.ts": ESM_SOURCE },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const addons = createAddons(fileSystem, reporter, {
+            "nesting-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) =>
+                    createNestedCompiler(processorCtx.getSystem(), reporter, { nested: {} }).compile()
+                ),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["nesting-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+        const actual = getReportedDiagnostics(target, "/nested/inner.js");
+
+        expect(actual).toHaveLength(1);
+    });
+
+    it("names nested profile addons only w/ result processor running nested compile", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;", "nested/inner.ts": ESM_SOURCE },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const nestedAddons = createAddons(fileSystem, reporter, {
+            "literal-addon": ctx => ctx.registerTransformer({ before: [changeLiteral] }),
+        });
+        const addons = createAddons(fileSystem, reporter, {
+            "nesting-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) =>
+                    createNestedCompiler(processorCtx.getSystem(), reporter, { nested: { esm: { runtime: "node" }, addons: ["literal-addon"] } })
+                        .setAddonRegistry(nestedAddons)
+                        .compile()
+                ),
+        });
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["nesting-addon"] } }, "client", {
+            reporter,
+        }).setAddonRegistry(addons);
+
+        testObj.compile();
+        const actual = getReportedDiagnostics(target, "/nested/inner.js").map(cur => cur.messageText);
+
+        expect(actual).toEqual([expect.stringMatching(/\(source "nested\/inner\.ts", profile "nested", addons: literal-addon\)\.$/)]);
+    });
+
+    it("yields one ESM diagnostic per compile w/ two compiles after throwing nested result processor", () => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": "export const x = 1;", "nested/inner.ts": ESM_SOURCE },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const addons = createAddons(fileSystem, reporter, {
+            "nesting-addon": ctx =>
+                ctx.registerResultProcessor((_files, processorCtx) => {
+                    createNestedCompiler(processorCtx.getSystem(), reporter).compile();
+                    throw new Error("whatever");
+                }),
+        });
+        createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" }, addons: ["nesting-addon"] } }, "client", { reporter })
+            .setAddonRegistry(addons)
+            .compile();
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
+            reporter,
+            cliArgs: { fileNames: ["/nested/inner.ts"], options: {}, errors: [] },
+        });
+
+        testObj.compile();
+        const actual = getReportedDiagnostics(target, "/nested/inner.js");
+
+        expect(actual).toHaveLength(2);
     });
 
     it("reports ignored file w/ esm ignore and debug", () => {
