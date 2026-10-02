@@ -419,9 +419,10 @@ describe("checkEsm", () => {
     });
 
     it("yields nothing w/ dynamic import in async function in node .cjs output", () => {
-        const actual = codesOf([output("/dist/target.cjs", `async function f() { await import("./x.mjs"); }\nmodule.exports = f;`)], {
-            runtime: "node",
-        });
+        const actual = codesOf(
+            [output("/dist/target.cjs", `async function f() { await import("./x.mjs"); }\nmodule.exports = f;`), output("/dist/x.mjs", "")],
+            { runtime: "node" }
+        );
 
         expect(actual).toEqual([]);
     });
