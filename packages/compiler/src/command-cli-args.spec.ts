@@ -14,7 +14,6 @@ import { addCompileCommand } from "./command";
 
 beforeEach(() => {
     jest.spyOn(process.stderr, "write").mockImplementation(() => true);
-    jest.spyOn(console, "time").mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -194,6 +193,20 @@ describe("addCompileCommand", () => {
 
         beforeEach(() => {
             compiler = new Compiler({ reporter: new NoReporter() }, undefined, createSystem({}, { virtual: true }));
+        });
+
+        describe("Console output", () => {
+            it("should print nothing to the console when --profile is given", () => {
+                const time = jest.spyOn(console, "time");
+                const timeEnd = jest.spyOn(console, "timeEnd");
+                const log = jest.spyOn(console, "log").mockImplementation(() => {});
+
+                executeCompiler("--profile development", compiler);
+
+                const actual = [time, timeEnd, log].flatMap(spy => spy.mock.calls);
+                log.mockRestore();
+                expect(actual).toEqual([]);
+            });
         });
 
         describe("Boolean Options", () => {
