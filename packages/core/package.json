@@ -38,12 +38,12 @@
     "dependencies": {
         "@quatico/websmith-api": "workspace:*",
         "cjs-module-lexer": "^2.2.1",
-        "comment-json": "^4.2.5",
+        "comment-json": "^5.0.0",
         "create-hash": "1.2.0",
         "deepmerge": "^4.3.1",
-        "lodash": "^4.17.21",
+        "lodash": "^4.18.1",
         "path": "0.12.7",
-        "resolve.exports": "^2.0.2"
+        "resolve.exports": "^2.0.3"
     },
     "peerDependencies": {
         "typescript": "5.x"
@@ -53,7 +53,7 @@
         "@eslint/js": "^9.19.0",
         "@nx/eslint-plugin": "^18.3.4",
         "@types/jest": "^29.5.14",
-        "@types/lodash": "^4.17.15",
+        "@types/lodash": "^4.17.25",
         "@types/node": "24.13.6",
         "@typescript-eslint/eslint-plugin": "^8.22.0",
         "@typescript-eslint/parser": "^8.22.0",
@@ -74,7 +74,7 @@
         "prettier": "^3.4.2",
         "rimraf": "6.0.1",
         "ts-jest": "^29.2.5",
-        "typescript": "5.7.3",
+        "typescript": "5.9.3",
         "typescript-eslint": "^8.22.0"
     }
 }
