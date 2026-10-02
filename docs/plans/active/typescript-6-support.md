@@ -1,0 +1,1 @@
+../2026-10-02-typescript-6-support.md
