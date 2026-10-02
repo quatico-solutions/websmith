@@ -18,6 +18,15 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 
+Builds that passed before can now fail: the `websmith` command reports errors it used to ignore and exits with code 1.
+
+- `websmith --project <directory>` compiles `<directory>/tsconfig.json` with its options, as `tsc` does. An explicit
+  `--project` that names no tsconfig file is an error that names the absolute path: a path that does not exist, such as
+  `-p missing.json` or `-p tsconfig.json` without that file (error 5058), or a directory without `tsconfig.json`, such
+  as `-p .` (error 5057). Before, all of them compiled nothing and exited with code 0. Without `--project`, a missing
+  `./tsconfig.json` is still not an error.
+- `tsConfig.project` and `cliArgs.options.project` are now absolute paths to the tsconfig file, also for a relative
+  `--project`. Addons that read them see this absolute path.
 - Builds that passed 0.10.x may now fail. The ESM check now reports these imports, each of which the build passed but
   the runtime rejects:
   - under `esm: { runtime: "node" }`, the ESM check tests the path that Node derives from a relative specifier, so a

@@ -78,9 +78,12 @@ The `websmith` command supports the same command line parameters as the `tsc` co
 * `--configFile <filePath>`: File path to the "websmith.config.json". There is no default and no automatic lookup: the file is only read when you pass this parameter. Without it, only the command line parameters apply.
 * `--debug`: Enable the output of debug information.
 * `--profile <profileName>`: Name of the profile to use with a specific compiler configuration and list of addons. No profile is applied by default.
+* `--project <projectPath>` (`-p`): Path to a tsconfig file or to a directory that contains a `tsconfig.json`, as with `tsc`. A directory compiles `<directory>/tsconfig.json` and resolves relative paths in it, like `outDir`, against that directory. An explicit `--project` that names no tsconfig file fails the build with the absolute path in the message: a path that does not exist, like `-p missing.json` or `-p tsconfig.json` without that file (error 5058), or a directory without `tsconfig.json`, like `-p .` (error 5057). Without `--project`, websmith uses `./tsconfig.json` in the current working directory and does not look for it in parent directories; a missing `./tsconfig.json` is not an error then.
 * `--transpileOnly`: Enable the transpile only mode.
 
 See all available parameters with the `websmith --help` command.
+
+Unlike `tsc`, websmith accepts `--project` together with file names: `websmith -p tsconfig.json src/a.ts` compiles only `src/a.ts` with the options of the tsconfig file, where `tsc` refuses the combination with error TS5042.
 
 ## <a name="compilation-profiles"></a>Compilation profiles
 

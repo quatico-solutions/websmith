@@ -56,6 +56,18 @@ describe("createOptions", () => {
         });
     });
 
+    it("should return tsconfig.json files w/ project directory", () => {
+        const target = createSystem(
+            { "/project/tsconfig.json": JSON.stringify({ include: ["src/**/*"] }), "/project/src/index.ts": "export {};" },
+            { virtual: true }
+        );
+
+        const actual = createOptions({ project: "./project" }, new NoReporter(), target);
+
+        expect(actual.tsConfigFile).toBe("/project/tsconfig.json");
+        expect(actual.cliArgs?.fileNames).toEqual(["/project/src/index.ts"]);
+    });
+
     it("should return debug path w/ debug true", () => {
         const target = createSystem({}, { virtual: true });
 

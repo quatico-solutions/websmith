@@ -17,12 +17,11 @@ import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
 import type ts from "typescript";
 import type { CompilerOptionsValue } from "typescript";
-import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile } from "../config";
+import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, resolveProjectFile, PROJECT_FILE_NAME } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
 import { tsDefaults } from "../defaults";
 
 const DEFAULT_BUILD_DIR = "./";
-const DEFAULT_TSCONFIG_FILE = "tsconfig.json";
 
 type ResolvedPaths = {
     tsConfigFile?: string;
@@ -44,13 +43,13 @@ const resolvePathsWithRules = (
     // Rule 1: Default values when nothing is specified
     if (!tsConfigFile && !configFile) {
         return {
-            tsConfigFile: resolvePath(system, DEFAULT_BUILD_DIR, DEFAULT_TSCONFIG_FILE),
+            tsConfigFile: resolvePath(system, DEFAULT_BUILD_DIR, PROJECT_FILE_NAME),
         };
     }
 
     // Rule 2: Only tsConfigFile specified
     if (tsConfigFile && !configFile) {
-        const resolvedTsConfigFile = resolvePath(system, tsConfigFile);
+        const resolvedTsConfigFile = resolveProjectFile(system, tsConfigFile);
         return {
             tsConfigFile: resolvedTsConfigFile,
         };
@@ -61,13 +60,13 @@ const resolvePathsWithRules = (
         const resolvedConfigFile = resolvePath(system, configFile);
         const configDir = path.dirname(resolvedConfigFile);
         return {
-            tsConfigFile: resolvePath(system, configDir, DEFAULT_TSCONFIG_FILE),
+            tsConfigFile: resolvePath(system, configDir, PROJECT_FILE_NAME),
             configFile: resolvedConfigFile,
         };
     }
 
     // For other combinations, start with provided values
-    const resolvedTsConfigFile = tsConfigFile ? resolvePath(system, tsConfigFile) : undefined;
+    const resolvedTsConfigFile = tsConfigFile ? resolveProjectFile(system, tsConfigFile) : undefined;
     const resolvedConfigFile = configFile ? resolvePath(system, configFile) : undefined;
 
     return {
