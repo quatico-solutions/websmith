@@ -4,6 +4,7 @@
         "module": "CommonJS",
         "outDir": "./lib",
         "rootDir": "./src",
+        "tsBuildInfoFile": "./lib/tsconfig.tsbuildinfo",
         "typeRoots": ["@types", "./node_modules/@types", "../../node_modules/@types"] /* List of folders to include type definitions from. */,
         "noEmit": false,
         "moduleResolution": null

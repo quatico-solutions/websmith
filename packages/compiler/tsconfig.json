@@ -7,6 +7,7 @@
         "lib": ["ES2020"],
         "outDir": "./lib",
         "rootDir": "./src",
+        "tsBuildInfoFile": "./lib/tsconfig.tsbuildinfo",
         "noEmit": false
     },
     "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.test.ts"],

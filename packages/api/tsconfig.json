@@ -3,6 +3,7 @@
     "compilerOptions": {
         "outDir": "./lib",
         "rootDir": "./src",
+        "tsBuildInfoFile": "./lib/tsconfig.tsbuildinfo",
         "noEmit": false,
         "moduleResolution": null,
         "module": "commonjs"
