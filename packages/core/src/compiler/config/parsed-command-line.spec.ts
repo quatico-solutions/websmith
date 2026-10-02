@@ -1053,6 +1053,16 @@ describe("moduleKindToString", () => {
         expect(actual).toBe(expected);
     });
 
+    it.each([...new Set(Object.values(ts.ModuleKind).filter((cur): cur is ts.ModuleKind => typeof cur === "number"))])(
+        "returns name that --module parses back to module %s",
+        module => {
+            const actual = ts.parseCommandLine(["--module", moduleKindToString(module)]);
+
+            expect(actual.errors).toEqual([]);
+            expect(actual.options.module).toBe(module);
+        }
+    );
+
     it("returns the number for unknown module", () => {
         const actual = moduleKindToString(42);
 
