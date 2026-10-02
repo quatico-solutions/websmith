@@ -183,8 +183,8 @@ Give every fixture an explicit `target` and `module` in tsconfig and profile.
 
 - `should exit with status 1 and report 91001 once w/ result processor running nested compile through wrapped system in node ESM profile`:
   the addon builds a nested compile with a wrapped `ctx.getSystem()` and `reporter: ctx.getReporter()`; count
-  `ESM91001` lines for the nested output file. Before: two. See the known risk above: this is the test expected to
-  stay at two with a module-scoped registry.
+  `ESM91001` lines for the nested output file. Before: two; after: one (the fixture's core is a second copy, which
+  the `globalThis` registry covers — see "Two copies of core" above).
 - *(pin)* `should report 91001 without naming transformer addon w/ transformer only adding synthetic comment in node ESM profile`:
   a source that keeps a `require` (91001) and a transformer addon that only calls `addSyntheticLeadingComment`.
   Assert the 91001 line and that the output does not contain `addons: <that addon>`. It fails if someone changes the
@@ -196,8 +196,8 @@ Docs:
   - `:277-278`: the in-place sentence from the decision above.
   - Near `:280-283` (result processors): a nested websmith compile that a result processor runs through
     `ctx.getSystem()` is checked once, by the nested compile, and its findings name the nested profile's addons
-    only. They fail the outer build only when the nested compile reports to `ctx.getReporter()`. Two copies of
-    `@quatico/websmith-core` in one process check such a file twice.
+    only. They fail the outer build only when the nested compile reports to `ctx.getReporter()`. This also holds when
+    the nested compile uses another copy of `@quatico/websmith-core` in the same process.
 - **`Release-Notes.md`, `## [Unreleased]`, `### Fixed`** (`:66`): one entry for item 9. A file a nested compile
   writes and checks is checked once, not twice; its findings name the nested profile's addons. This entry needs no
   "may now fail" line, since it removes a report.
