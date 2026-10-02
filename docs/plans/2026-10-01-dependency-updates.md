@@ -147,7 +147,7 @@ seven months.
 
 ### nx
 
-- `infra/upgrade-nx` — `nx` and `@nx/eslint-plugin` to the newest 22.x in all ten manifests, `nx migrate`, `nx.json` legacy keys rewritten, `@nrwl/nx-cloud` removed, lockfile regenerated with pnpm 9 and its new install-script packages listed in the PR. Test: Definition of Done green; a second `pnpm test` run is served from the nx cache; `pnpm audit --audit-level=high` before and after shows nx, tar, form-data and the nx-driven axios gone <!-- builds: nx 22 upgrade and nx.json cache config -->
+- `infra/upgrade-nx` — `nx` and `@nx/eslint-plugin` to the newest 22.x in all ten manifests, `nx migrate`, `nx.json` legacy keys rewritten, `@nrwl/nx-cloud` removed, lockfile regenerated with pnpm 9 and its new install-script packages listed in the PR. Test: Definition of Done green; a second `pnpm test` run is served from the nx cache; `pnpm audit --audit-level=high` before and after shows nx, tar, form-data and the nx-driven axios gone → #159 <!-- builds: nx 22 upgrade and nx.json cache config -->
 
 ### Published packages
 
