@@ -49,7 +49,7 @@
     "devDependencies": {
         "@eslint/compat": "^1.2.6",
         "@eslint/js": "^9.19.0",
-        "@nx/eslint-plugin": "^18.3.4",
+        "@nx/eslint-plugin": "^22.7.12",
         "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-core": "workspace:*",
         "websmith-loader": "workspace:*",
