@@ -271,6 +271,68 @@ describe("WebpackAddonService", () => {
             );
         });
 
+        it.each([["path"], ["node:path"], ["node:fs/promises"], ["fs/promises"], ["node:test"]])(
+            "should not report warning for Node built-in module %s",
+            specifier => {
+                const addonsDir = path.join(tempDir, "addons");
+                writeTsAddon(
+                    addonsDir,
+                    "builtin-addon",
+                    `import * as whatever from "${specifier}";\nexport const activate = (ctx: any) => whatever;`
+                );
+                const target = jest.spyOn(mockReporter, "reportDiagnostic");
+                const testObj = new WebpackAddonService({ addonsDir, system: mockSystem, reporter: mockReporter });
+
+                testObj.getAvailableAddons();
+
+                expect(target).not.toHaveBeenCalled();
+            }
+        );
+
+        it("should report warning w/ bare test specifier that is a Node built-in only w/ node: prefix", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            writeTsAddon(addonsDir, "test-addon", "import whatever from 'test';\nexport const activate = (ctx: any) => whatever;");
+            const target = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({ addonsDir, system: mockSystem, reporter: mockReporter });
+
+            testObj.getAvailableAddons();
+
+            expect(target).toHaveBeenCalledWith(expect.objectContaining({ messageText: expect.stringContaining("Cannot find module 'test'") }));
+        });
+
+        it("should not report warning for Node built-in in export declaration", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            writeTsAddon(
+                addonsDir,
+                "reexport-addon",
+                "export { readFile } from 'node:fs/promises';\nexport const activate = (ctx: any): void => {};"
+            );
+            const target = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({ addonsDir, system: mockSystem, reporter: mockReporter });
+
+            testObj.getAvailableAddons();
+
+            expect(target).not.toHaveBeenCalled();
+        });
+
+        it("should report warning for missing package w/ Node built-in imports in same addon", () => {
+            const addonsDir = path.join(tempDir, "addons");
+            writeTsAddon(
+                addonsDir,
+                "mixed-addon",
+                "import path from 'node:path';\nimport { whatever } from 'missing-package';\nexport const activate = (ctx: any) => [path, whatever];"
+            );
+            const target = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({ addonsDir, system: mockSystem, reporter: mockReporter });
+
+            testObj.getAvailableAddons();
+
+            expect(target).toHaveBeenCalledWith(
+                expect.objectContaining({ messageText: expect.stringContaining("Cannot find module 'missing-package'") })
+            );
+            expect(target).not.toHaveBeenCalledWith(expect.objectContaining({ messageText: expect.stringContaining("'node:path'") }));
+        });
+
         it("should skip CommonJS package.json marker w/ cache directory that cannot be created", () => {
             const addonsDir = path.join(tempDir, "addons");
             writeTsAddon(addonsDir, "whatever-addon", "export const activate = (ctx: any): void => {};");
