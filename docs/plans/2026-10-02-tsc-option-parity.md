@@ -203,7 +203,7 @@ project that leaves it unset with TS5107, on the Program and the `transpileOnly`
 
 ### Option constants
 
-- `bug/option-enum-tables` — remove `TARGET_MAP` and its `normalizeCompilerOptions` branch, derive `scriptTargetToString` from `ts.ScriptTarget` with explicit entries for 12 (`es2025`), 99 (`esnext`) and 100 (`json`) and use it in the `Compiler.ts:802` message, one exported 6046 constant used by `convertEnumOptions` and `Compiler.ts:1405`, the `ts7-rearchitecture` story's candidate slice updated in the last commit; unit tests for every target value incl. 12/99/100 and for `moduleKindToString` over all `--module` names; e2e: a compiler-test case passing `--target esnext` through the CLI args path reaches `tsc` as `esnext`, existing suites green <!-- builds: derived target names with explicit 12/99/100 entries, shared TS 6046 constant -->
+- `bug/option-enum-tables` — remove `TARGET_MAP` and its `normalizeCompilerOptions` branch, derive `scriptTargetToString` from `ts.ScriptTarget` with explicit entries for 12 (`es2025`), 99 (`esnext`) and 100 (`json`) and use it in the `Compiler.ts:802` message, one exported 6046 constant used by `convertEnumOptions` and `Compiler.ts:1405`, the `ts7-rearchitecture` story's candidate slice updated in the last commit; unit tests for every target value incl. 12/99/100 and for `moduleKindToString` over all `--module` names; e2e: a compiler-test case passing `--target esnext` through the CLI args path reaches `tsc` as `esnext`, existing suites green <!-- builds: derived target names with explicit 12/99/100 entries, shared TS 6046 constant --> → #168
 
 ### Profile lib names
 
