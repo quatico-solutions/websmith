@@ -6,7 +6,14 @@
  */
 
 import { type CompilationProfile, ErrorMessage, InfoMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
-import { type CompilationContext, type CompilerAddon, type CompilerAddons, compilerAddons, writeCommonJsMarker } from "@quatico/websmith-core";
+import {
+    type CompilationContext,
+    type CompilerAddon,
+    type CompilerAddons,
+    compilerAddons,
+    getProfileClosure,
+    writeCommonJsMarker,
+} from "@quatico/websmith-core";
 import fs from "node:fs";
 import { isBuiltin } from "node:module";
 import path from "node:path";
@@ -504,7 +511,8 @@ export class WebpackAddonService {
 
         // Add addons from profile and its dependencies recursively
         if (profile) {
-            const profileAddons = this.getAddonsWithDependencies(profile, new Set());
+            const { profiles = {} } = this.config;
+            const profileAddons = getProfileClosure(profile, this.config, "dependents-first").profiles.flatMap(name => profiles[name].addons ?? []);
             requestedAddons.push(...profileAddons);
         }
 
@@ -518,43 +526,8 @@ export class WebpackAddonService {
             .map(name => this.loadedAddons.get(name))
             .filter((addon): addon is CompilerAddon => addon !== undefined);
 
-        // Keep the natural order: dependencies first, then current profile
-        // This ensures transformers chain correctly (e.g., foobar→CLIENT→SERVER)
+        // Keep the natural order: base addons, then each profile's addons before those of the profiles it depends on
         return resolvedAddons;
-    }
-
-    /**
-     * Recursively resolves addons from a profile and all its dependencies.
-     * Handles circular dependencies by tracking visited profiles.
-     */
-    private getAddonsWithDependencies(profile: string, visited: Set<string>): string[] {
-        const { profiles = {} } = this.config;
-
-        // Prevent circular dependencies
-        if (visited.has(profile)) {
-            return [];
-        }
-        visited.add(profile);
-
-        const profileConfig = profiles[profile];
-        if (!profileConfig) {
-            // Profile doesn't exist
-            return [];
-        }
-
-        // Get addons from this profile
-        const profileAddons = profileConfig.addons || [];
-
-        // Get addons from dependencies recursively
-        const dependencyAddons: string[] = [];
-        if (profileConfig.depends) {
-            for (const dependentProfile of profileConfig.depends) {
-                dependencyAddons.push(...this.getAddonsWithDependencies(dependentProfile, visited));
-            }
-        }
-
-        // Combine current profile addons first, then dependency addons (matching core system logic)
-        return [...profileAddons, ...dependencyAddons];
     }
 
     private createCompilerAddons(): CompilerAddons {
