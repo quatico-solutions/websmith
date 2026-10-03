@@ -1096,7 +1096,11 @@ exports.activate = ctx => ctx.registerTransformer({
     }, 60000);
 
     it("should exit with status 1 and report 91022 in emitted file w/ import of unexported package subpath in node ESM profile", () => {
-        createNodeModule("epkg", { "package.json": JSON.stringify({ name: "epkg", type: "module", exports: { ".": "./index.js" } }), "index.js": "", "internal.js": "" });
+        createNodeModule("epkg", {
+            "package.json": JSON.stringify({ name: "epkg", type: "module", exports: { ".": "./index.js" } }),
+            "index.js": "",
+            "internal.js": "",
+        });
         fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
         createWebsmithConfig({
@@ -1152,7 +1156,12 @@ exports.activate = ctx => ctx.registerTransformer({
             profiles: {
                 client: {
                     esm: { runtime: "node" },
-                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, paths: { "@app/*": ["./src/lib/*"] } },
+                    tsConfig: {
+                        outDir: testDirs.OUTPUT_DIR,
+                        target: ts.ScriptTarget.ESNext,
+                        module: ts.ModuleKind.ESNext,
+                        paths: { "@app/*": ["./src/lib/*"] },
+                    },
                 },
             },
         });
@@ -1202,7 +1211,12 @@ exports.activate = ctx => ctx.registerTransformer({
             profiles: {
                 client: {
                     esm: { runtime: "node" },
-                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, paths: { selfpkg: ["./src/lib.ts"] } },
+                    tsConfig: {
+                        outDir: testDirs.OUTPUT_DIR,
+                        target: ts.ScriptTarget.ESNext,
+                        module: ts.ModuleKind.ESNext,
+                        paths: { selfpkg: ["./src/lib.ts"] },
+                    },
                 },
             },
         });
@@ -1239,7 +1253,12 @@ exports.activate = ctx => ctx.registerTransformer({
             profiles: {
                 client: {
                     esm: { runtime: "node" },
-                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, paths: { "@app/*": ["./packages/*/index.js"] } },
+                    tsConfig: {
+                        outDir: testDirs.OUTPUT_DIR,
+                        target: ts.ScriptTarget.ESNext,
+                        module: ts.ModuleKind.ESNext,
+                        paths: { "@app/*": ["./packages/*/index.js"] },
+                    },
                 },
             },
         });

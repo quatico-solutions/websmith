@@ -384,14 +384,17 @@ const describeSubpathTarget = (specifier: string, resolution: Resolution, contex
         case "file":
             return [
                 ImportDiagnosticCode.UnresolvedPackageSubpath,
-                `package import "${specifier}" names no file of package "${packageName}", which has no "exports"; add the extension: "${specifier}.js"`,
+                `package import "${specifier}" names no file of package "${packageName}", which has no "exports"; ` +
+                    `add the extension: "${specifier}.js"`,
             ];
         case "index":
         case "directory":
             return [
                 ImportDiagnosticCode.UnresolvedPackageSubpath,
                 `package import "${specifier}" names a directory of package "${packageName}", which ES modules cannot import; ` +
-                    (result.target === "index" ? `import the file: "${specifier.replace(/\/+$/, "")}/index.js"` : "import a file inside the directory"),
+                    (result.target === "index"
+                        ? `import the file: "${specifier.replace(/\/+$/, "")}/index.js"`
+                        : "import a file inside the directory"),
             ];
         default:
             return undefined;

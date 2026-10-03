@@ -630,7 +630,10 @@ describe("checkJsonImportAttribute", () => {
 });
 
 const EPKG = {
-    "/dist/node_modules/epkg/package.json": JSON.stringify({ name: "epkg", exports: { ".": "./index.js", "./feature": "./feature.js", "./lib/*": "./lib/*" } }),
+    "/dist/node_modules/epkg/package.json": JSON.stringify({
+        name: "epkg",
+        exports: { ".": "./index.js", "./feature": "./feature.js", "./lib/*": "./lib/*" },
+    }),
     "/dist/node_modules/epkg/index.js": "",
     "/dist/node_modules/epkg/feature.js": "",
     "/dist/node_modules/epkg/lib/x.js": "",
@@ -657,7 +660,9 @@ describe("checkPackageSubpath", () => {
             })
         ).map(cur => [cur.code, cur.message]);
 
-        expect(actual).toEqual([[91022, `"rpkg" is not exported by package "rpkg" for conditions node, import, module-sync, default; exported subpaths: "."`]]);
+        expect(actual).toEqual([
+            [91022, `"rpkg" is not exported by package "rpkg" for conditions node, import, module-sync, default; exported subpaths: "."`],
+        ]);
     });
 
     it("yields 91022 w/ literal dynamic import of unexported subpath in node CommonJS file", () => {
@@ -772,7 +777,10 @@ describe("checkPackageSubpath", () => {
         const actual = checkPackageSubpath(scan(`import x from "npkg/sub";`), ESM, context).map(cur => [cur.code, cur.message]);
 
         expect(actual).toEqual([
-            [91023, `package import "npkg/sub" names a directory of package "npkg", which ES modules cannot import; import a file inside the directory`],
+            [
+                91023,
+                `package import "npkg/sub" names a directory of package "npkg", which ES modules cannot import; import a file inside the directory`,
+            ],
         ]);
     });
 
@@ -842,7 +850,11 @@ describe("checkPackageSubpath", () => {
     });
 
     it("yields nothing w/ hash imports specifier matching paths pattern in node ESM file", () => {
-        const actual = checkPackageSubpath(scan(`import x from "#x";`), ESM, createContext({}, { compilerOptions: { paths: { "#x": ["./src/x.ts"] } } }));
+        const actual = checkPackageSubpath(
+            scan(`import x from "#x";`),
+            ESM,
+            createContext({}, { compilerOptions: { paths: { "#x": ["./src/x.ts"] } } })
+        );
 
         expect(actual).toEqual([]);
     });
