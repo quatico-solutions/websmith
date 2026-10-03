@@ -203,6 +203,10 @@ describe("getCompilerInstance option resolution", () => {
     const createContext = (options: WebsmithLoaderConfig, compiler?: Compiler) =>
         ({ ...(compiler && { _compiler: compiler }), getOptions: () => options }) as unknown as LoaderContext<WebsmithLoaderConfig>;
 
+    // thread-loader passes a compiler stub without hooks, which carries the start time of webpack's watch compilation
+    const createWorkerContext = (options: WebsmithLoaderConfig, fsStartTime: number) =>
+        createContext(options, { fsStartTime, options: { plugins: [] } } as unknown as Compiler);
+
     it("resolves options once w/ three modules of one compilation", () => {
         const target = jest.spyOn(TsCompiler.prototype, "setOptions");
         const options = createOptions("once");
@@ -284,6 +288,42 @@ describe("getCompilerInstance option resolution", () => {
 
         testObj.refreshAddons();
         testObj.build(path.join(fixtureDir, "src", "a.ts"));
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("loads addons again w/o compilation hooks w/ next watch compilation and changed addon file", () => {
+        const target = jest.spyOn(WebpackAddonService.prototype, "getAvailableAddons");
+        const options = createOptions("addons-worker-changed");
+        getCompilerInstance(options, createWorkerContext(options, 1)).build(path.join(fixtureDir, "src", "a.ts"));
+        touchFixture("addons/counter/addon.js");
+
+        getCompilerInstance(options, createWorkerContext(options, 2)).build(path.join(fixtureDir, "src", "a.ts"));
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(2);
+    });
+
+    it("checks addons once per watch compilation w/o compilation hooks", () => {
+        const target = jest.spyOn(TsCompiler.prototype, "refreshAddons");
+        const options = createOptions("addons-worker-once");
+
+        [1, 1, 2, 2, 2].forEach(cur => getCompilerInstance(options, createWorkerContext(options, cur)));
+        const actual = target.mock.calls.length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("checks addons at most once per second w/o compilation hooks and compilation start time", () => {
+        const target = jest.spyOn(TsCompiler.prototype, "refreshAddons");
+        const options = createOptions("addons-throttled");
+        const now = jest.spyOn(Date, "now");
+
+        [1000, 1500, 2100, 2200].forEach(cur => {
+            now.mockReturnValue(cur);
+            getCompilerInstance(options, createContext(options));
+        });
         const actual = target.mock.calls.length;
 
         expect(actual).toBe(1);

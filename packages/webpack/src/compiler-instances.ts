@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { DefaultReporter } from "@quatico/websmith-core";
-import { type LoaderContext } from "webpack";
+import { type Compiler, type LoaderContext } from "webpack";
 import { CompilationQueue } from "./CompilationQueue";
 import { getInstanceFromCache, setInstanceInCache } from "./instance-cache";
 import { createLoaderOptionsLoader } from "./loader-options";
@@ -25,6 +25,9 @@ export const getCompilerInstance = (
     if (instance) {
         if (!instance.hasCompilationHooks()) {
             instance.refreshOptions(() => loadOptions(options, context)());
+            if (isAddonsCheckDue(instance, compiler)) {
+                instance.refreshAddons();
+            }
         }
     } else {
         const system = ts.sys;
@@ -46,8 +49,26 @@ export const getCompilerInstance = (
             });
         }
         setInstanceInCache(compiler, options.instanceName, instance);
+        isAddonsCheckDue(instance, compiler);
     }
     return instance;
+};
+
+// Without compilation hooks, e.g. one instance per thread-loader worker, the addons are checked once per watch
+// compilation, whose start time the compiler stub carries, else at most once per interval: the check lists the
+// addons directory, which costs milliseconds
+const ADDONS_CHECK_INTERVAL_MS = 1000;
+const addonsChecks = new WeakMap<TsCompiler, { startTime?: number; checkedAt: number }>();
+
+const isAddonsCheckDue = (instance: TsCompiler, compiler: Compiler | undefined): boolean => {
+    const startTime = compiler?.fsStartTime;
+    const now = Date.now();
+    const last = addonsChecks.get(instance);
+    const due = !!last && (startTime !== undefined ? startTime !== last.startTime : now - last.checkedAt >= ADDONS_CHECK_INTERVAL_MS);
+    if (!last || due) {
+        addonsChecks.set(instance, { startTime, checkedAt: now });
+    }
+    return due;
 };
 
 // Without the raw loader options, e.g. from a loader context stub, the resolved ones are resolved again
