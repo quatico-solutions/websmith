@@ -1095,6 +1095,208 @@ exports.activate = ctx => ctx.registerTransformer({
         expect(actual2).not.toContain("ESM910");
     }, 60000);
 
+    it("should exit with status 1 and report 91022 in emitted file w/ import of unexported package subpath in node ESM profile", () => {
+        createNodeModule("epkg", { "package.json": JSON.stringify({ name: "epkg", type: "module", exports: { ".": "./index.js" } }), "index.js": "", "internal.js": "" });
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                },
+            },
+        });
+        createSourceFile(`// @ts-nocheck\nimport x from "epkg/internal.js";\nexport const value = x;`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (2,15): ESM91022`);
+    }, 60000);
+
+    it("should exit with status 1 and report 91023 in emitted file w/ extensionless package subpath in node ESM profile", () => {
+        createNodeModule("npkg", { "package.json": JSON.stringify({ name: "npkg" }), "sub.js": "module.exports = 1;" });
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                },
+            },
+        });
+        createSourceFile(`// @ts-nocheck\nimport x from "npkg/sub";\nexport const value = x;`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (2,15): ESM91023`);
+    }, 60000);
+
+    it("should exit with status 1 and report 91024 in emitted file w/ tsconfig paths alias in node ESM profile", () => {
+        fs.mkdirSync(path.join(testDirs.SOURCE_DIR, "lib"), { recursive: true });
+        createSourceFile(`export default "l";`, path.join("lib", "l.ts"));
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, paths: { "@app/*": ["./src/lib/*"] } },
+                },
+            },
+        });
+        createSourceFile(`import l from "@app/l";\nexport const value = l;`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (1,15): ESM91024`);
+    }, 60000);
+
+    it("should exit with zero status w/ import of exported package subpath in node ESM profile", () => {
+        createNodeModule("epkg", {
+            "package.json": JSON.stringify({ name: "epkg", type: "module", exports: { "./feature": "./feature.js" } }),
+            "feature.js": "export default 1;",
+        });
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                },
+            },
+        });
+        createSourceFile(`// @ts-nocheck\nimport x from "epkg/feature";\nexport const value = x;`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(0);
+        expect(actual2).not.toContain("ESM910");
+    }, 60000);
+
+    it("should exit with zero status w/ package self-reference in node ESM profile", () => {
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, paths: { selfpkg: ["./src/lib.ts"] } },
+                },
+            },
+        });
+        fs.writeFileSync(
+            path.join(testDirs.OUTPUT_DIR, "package.json"),
+            JSON.stringify({ name: "selfpkg", type: "module", exports: { ".": "./lib.js" } }),
+            { encoding: "utf-8" }
+        );
+        createSourceFile(`export default "lib";`, "lib.ts");
+        createSourceFile(`import lib from "selfpkg";\nexport const value = lib;`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(0);
+        expect(actual2).not.toContain("ESM910");
+    }, 60000);
+
+    it("should exit with zero status w/ symlinked workspace package matching paths alias in node ESM profile", () => {
+        const workspaceDir = path.join(testDirs.PROJECT_DIR, "packages", "l");
+        fs.mkdirSync(workspaceDir, { recursive: true });
+        fs.writeFileSync(path.join(workspaceDir, "package.json"), JSON.stringify({ name: "@app/l", type: "module", exports: "./index.js" }), {
+            encoding: "utf-8",
+        });
+        fs.writeFileSync(path.join(workspaceDir, "index.js"), `export default "l";`, { encoding: "utf-8" });
+        fs.mkdirSync(path.join(testDirs.PROJECT_DIR, "node_modules", "@app"), { recursive: true });
+        fs.symlinkSync(workspaceDir, path.join(testDirs.PROJECT_DIR, "node_modules", "@app", "l"), "junction");
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, paths: { "@app/*": ["./packages/*/index.js"] } },
+                },
+            },
+        });
+        createSourceFile(`// @ts-nocheck\nimport l from "@app/l";\nexport const value = l;`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(0);
+        expect(actual2).not.toContain("ESM910");
+    }, 60000);
+
+    it("should exit with zero status w/ development-only export and customConditions in node ESM profile", () => {
+        createNodeModule("dpkg", {
+            "package.json": JSON.stringify({ name: "dpkg", type: "module", exports: { ".": { development: "./dev.js" } } }),
+            "dev.js": "export default 1;",
+        });
+        createPackageJson({ type: "module" });
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({
+            outDir: testDirs.OUTPUT_DIR,
+            noEmit: false,
+            target: "esnext",
+            module: "nodenext",
+            moduleResolution: "nodenext",
+            customConditions: ["development"],
+            types: [],
+        });
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    esm: { runtime: "node" },
+                    tsConfig: {
+                        outDir: testDirs.OUTPUT_DIR,
+                        target: ts.ScriptTarget.ESNext,
+                        module: ts.ModuleKind.NodeNext,
+                        moduleResolution: ts.ModuleResolutionKind.NodeNext,
+                        customConditions: ["development"],
+                    },
+                },
+            },
+        });
+        createSourceFile(`// @ts-nocheck\nimport x from "dpkg";\nexport const value = x;`, "test.ts");
+
+        const target = executeCompilerStatus(
+            `--profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(0);
+        expect(actual2).not.toContain("ESM910");
+    }, 60000);
+
     const createEsmProject = (check: "error" | "warn", addons = ["require-generator"]) => {
         fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
@@ -1405,6 +1607,12 @@ exports.activate = ctx => ctx.registerTransformer({
         fs.mkdirSync(packageDir, { recursive: true });
         fs.writeFileSync(path.join(packageDir, "package.json"), JSON.stringify({ name: "project-package", main: "index.js" }), { encoding: "utf-8" });
         fs.writeFileSync(path.join(packageDir, "index.js"), 'exports.REPLACEMENT = "projectPackageProcessed";', { encoding: "utf-8" });
+    };
+
+    const createNodeModule = (name: string, files: Record<string, string>) => {
+        const packageDir = path.join(testDirs.PROJECT_DIR, "node_modules", name);
+        fs.mkdirSync(packageDir, { recursive: true });
+        Object.entries(files).forEach(([fileName, content]) => fs.writeFileSync(path.join(packageDir, fileName), content, { encoding: "utf-8" }));
     };
 
     const createWebsmithConfig = (config: CompilationConfig) => {
