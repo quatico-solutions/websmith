@@ -1191,7 +1191,8 @@ export class Compiler {
         // Fast path: Use transpileModule when flag is set (no addons need type info, no declarations)
         // OR when explicitly in transpileOnly mode
         if (this.transpileOnly || shouldUseFastPath) {
-            if (ts.isDeclarationFileName(fileName)) {
+            // .d.ts, .d.mts, .d.cts and .d.<ext>.ts as ts.isDeclarationFileName has it, which is not public in TypeScript 5
+            if (/\.d\.([cm]?ts|[^/\\]*\.ts)$/.test(fileName)) {
                 // Declaration files emit nothing, but tsc still reports their syntax errors
                 return { outputFiles: [], diagnostics: this.getSyntacticDiagnostics(compilationFragment), emitSkipped: true };
             } else {
@@ -1514,7 +1515,7 @@ export class Compiler {
     private getSyntacticDiagnostics({ ctx, fileName, content }: CompilationFragment): ts.Diagnostic[] {
         const options = ctx.getCompilerOptions();
         let diagnostics: readonly ts.Diagnostic[];
-        if (ts.isDeclarationFileName(fileName)) {
+        if (!/\.[cm]?jsx?$/i.test(fileName)) {
             const host: ts.CompilerHost = {
                 getSourceFile: (name, languageVersionOrOptions) =>
                     name === fileName ? ts.createSourceFile(name, content, languageVersionOrOptions) : undefined,
