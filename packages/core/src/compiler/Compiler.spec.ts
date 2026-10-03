@@ -81,6 +81,22 @@ class CompilerTestClass extends Compiler {
         return this["baselineEmitCacheFileTimes"];
     }
 
+    public getCompilationCaches() {
+        return {
+            packageJsonInfoCache: this["packageJsonInfoCache"],
+            rootFilesCacheInvalidated: this["rootFilesCacheInvalidated"],
+            reportedWatchDiagnostics: this["reportedWatchDiagnostics"],
+        };
+    }
+
+    public resetCompilationCaches(): void {
+        super.resetCompilationCaches();
+    }
+
+    public recreateCompilationContexts(): this {
+        return super.recreateCompilationContexts();
+    }
+
     public testShouldSkipFile(fileName: string, ctx: CompilationContext, profile?: string): boolean {
         const activeAddons = this.addons ? this.addons.getAvailableAddons(profile) : [];
         return this.shouldSkipFile(fileName, ctx, activeAddons);
@@ -791,6 +807,103 @@ describe("setOptions", () => {
 
         expect(testObj.getBaselineEmitCache().size).toBe(0);
         expect(testObj.getBaselineEmitCacheFileTimes().size).toBe(0);
+    });
+});
+
+describe("resetCompilationCaches", () => {
+    it("drops caches of one compilation and keeps baseline transpile cache", () => {
+        const target = createSystem({ "src/target.ts": `export const test = 'hello';` }, { virtual: true });
+        const testObj = new CompilerTestClass({ reporter: new ReporterMock(target) }, undefined, target);
+        testObj.getBaselineTranspileCache().set("whatever", "whatever");
+        testObj.getBaselineEmitCache().set("whatever", "whatever");
+        testObj.getBaselineEmitCacheFileTimes().set("whatever", new Date());
+        testObj.getCompilationCaches().reportedWatchDiagnostics.add("whatever");
+        testObj["packageJsonInfoCache"] = {} as ts.PackageJsonInfoCache;
+        testObj["rootFilesCacheInvalidated"] = false;
+
+        testObj.resetCompilationCaches();
+        const actual = {
+            transpile: testObj.getBaselineTranspileCache().size,
+            emit: testObj.getBaselineEmitCache().size,
+            fileTimes: testObj.getBaselineEmitCacheFileTimes().size,
+            watchDiagnostics: testObj.getCompilationCaches().reportedWatchDiagnostics.size,
+            packageJsonInfoCache: testObj.getCompilationCaches().packageJsonInfoCache,
+            rootFilesCacheInvalidated: testObj.getCompilationCaches().rootFilesCacheInvalidated,
+        };
+
+        expect(actual).toEqual({
+            transpile: 1,
+            emit: 0,
+            fileTimes: 0,
+            watchDiagnostics: 0,
+            packageJsonInfoCache: undefined,
+            rootFilesCacheInvalidated: true,
+        });
+    });
+
+    it("keeps the compilation contexts", () => {
+        const target = createSystem({ "src/target.ts": `export const test = 'hello';` }, { virtual: true });
+        const testObj = new CompilerTestClass({ reporter: new ReporterMock(target) }, undefined, target).createProfileContextsIfNecessary();
+        const expected = testObj.getContext();
+
+        testObj.resetCompilationCaches();
+        const actual = testObj.getContext();
+
+        expect(actual).toBe(expected);
+    });
+});
+
+describe("recreateCompilationContexts", () => {
+    it("creates new profile contexts w/ current options", () => {
+        const target = createSystem(
+            { "websmith.config.json": JSON.stringify({ profiles: { "target-profile": {} } }), "src/target.ts": `export const test = 'hello';` },
+            { virtual: true }
+        );
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+                configFile: "/websmith.config.json",
+                profile: "target-profile",
+                tsConfig: { target: ts.ScriptTarget.ES2015 },
+            },
+            undefined,
+            target
+        ).createProfileContextsIfNecessary();
+        const previous = testObj.getContext("target-profile");
+        testObj.setOptions({ configFile: "/websmith.config.json", profile: "target-profile", tsConfig: { target: ts.ScriptTarget.ES2020 } });
+
+        testObj.recreateCompilationContexts();
+        const actual = testObj.getContext("target-profile");
+
+        expect(actual).not.toBe(previous);
+        expect(actual?.getCompilerOptions().target).toBe(ts.ScriptTarget.ES2020);
+    });
+});
+
+describe("emitSourceFile w/ baseline emit cache", () => {
+    it("evicts entries of a file w/ changed modification time and keeps entries of other files", () => {
+        const target = createSystem({ "src/a.ts": `export const a = 1;`, "src/b.ts": `export const b = 1;` }, { virtual: true });
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+                tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, declaration: true },
+                config: { transpileOnly: false, addonEmitOnly: true },
+                cliArgs: { fileNames: [path.resolve("/src/a.ts"), path.resolve("/src/b.ts")], options: {}, errors: [] },
+            },
+            undefined,
+            target
+        ).createProfileContextsIfNecessary();
+        testObj.getContext()?.registerTransformer({ before: [_context => sourceFile => sourceFile] });
+        jest.spyOn(target, "getModifiedTime").mockReturnValue(new Date(1000));
+        testObj.emitSourceFile(path.resolve("/src/a.ts"), undefined, false);
+        testObj.emitSourceFile(path.resolve("/src/b.ts"), undefined, false);
+        target.writeFile(path.resolve("/src/a.ts"), `export const a = 2;`);
+        jest.spyOn(target, "getModifiedTime").mockImplementation(fileName => new Date(fileName.endsWith("a.ts") ? 2000 : 1000));
+
+        testObj.emitSourceFile(path.resolve("/src/a.ts"), undefined, false);
+        const actual = [...testObj.getBaselineEmitCache().keys()].map(cur => path.basename(cur.split(":")[0]));
+
+        expect(actual.sort()).toEqual(["a.ts", "b.ts"]);
     });
 });
 

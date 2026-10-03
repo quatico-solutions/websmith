@@ -62,6 +62,18 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 
   To keep such a build passing, fix the import (add the attribute, the extension or an index file), skip the file with
   `esm.ignore`, or set `check: "warn"`.
+- The webpack loader resolves its options, `websmith.config.json` and `tsconfig.json` once per compilation and loader
+  instance instead of once per module, and again only when one of these files changes. The gain shows in large builds,
+  not in builds of a few dozen modules.
+- The webpack loader loads and activates addons once per loader instance: an addon instance is reused for every module
+  of a compilation and across watch rebuilds, and an edited addon is loaded again on the next rebuild, also under
+  `thread-loader`. Before, the loader loaded the addon modules again for every module but kept their first
+  activation, so an edited addon was not picked up under watch. Addons must not rely on being activated again for
+  each module; see "Option resolution and addon lifetime" in `packages/webpack/README.md`.
+- The webpack loader fails the build with `Profile '<name>' sets 'esm', but ...` when a profile sets `esm` and gets a
+  module format that is not ESM from `tsconfig.json`, a dependent profile or an unset `module`. Before, the loader
+  skipped the ESM check of that profile without a message and the build passed, so such builds now fail. Use an ES
+  module format such as `"ESNext"` or `"NodeNext"`, or remove `esm` from the profile.
 - A malformed `websmith.config.json` passed with `--configFile` is reported as a configuration error that names the
   absolute file path and the position (`Invalid JSON in configuration file "<path>" (line 1, column 9): Unexpected
   token ,.`), with exit code 1, instead of a `SyntaxError` stack trace. The webpack loader reports it the same way.
@@ -69,6 +81,11 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 
 ### Fixed
 
+- Under watch, the webpack loader picks up edits of `tsconfig.json` and of the files it extends, and webpack's
+  persistent cache no longer restores modules compiled with an older `websmith.config.json`, `tsconfig.json` or
+  extended file. Before, edits of these files were not watched or did not change the compiled modules.
+- Under watch, a `websmith.config.json` that is no valid JSON is reported as a configuration error, and the build
+  passes again once the file is fixed. Before, it aborted the watch compilation.
 - The ESM check no longer reports `require`, `module` and `exports` in a UMD wrapper (91001, 91002): a `typeof` test of
   any CommonJS name now guards all five, so `factory(require, exports)` inside
   `if (typeof module === "object" && typeof module.exports === "object")` passes, as in TypeScript's own `module: umd`

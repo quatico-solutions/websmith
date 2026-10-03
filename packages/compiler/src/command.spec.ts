@@ -118,6 +118,7 @@ describe("addCompileCommand", () => {
                 removeComments: false,
                 strict: false,
             },
+            tsConfigExtends: [],
             tsConfigFile: "/tsconfig.json",
             watch: false,
         });

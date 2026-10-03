@@ -18,6 +18,8 @@ export type WebpackLoaderContext = {
     dependencyCallback?: (filePath: string) => void;
     websmithCompiler: TsCompiler;
     queue: CompilationQueue;
+    /** Resolves the loader options again from their files. */
+    loadOptions: () => WebsmithLoaderConfig;
 };
 
 export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
@@ -31,6 +33,10 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     const { fragment, diagnostics, dependencies } = instance.build(this.resourcePath, this._module?.type);
     dependencies.files.forEach(cur => this.addDependency(cur));
     dependencies.missing.forEach(cur => this.addMissingDependency(cur));
+    // A change of the options files rebuilds the module, also from webpack's persistent cache
+    const optionsFiles = instance.getOptionsFiles();
+    optionsFiles.files.forEach(cur => this.addDependency(cur));
+    optionsFiles.missing.forEach(cur => this.addMissingDependency(cur));
     reportDiagnostics(this, diagnostics, options, instance.getOptions().debug ?? false);
     // Without compilation hooks, e.g. under thread-loader, which passes a compiler stub, every module reports them
     if (!instance.hasCompilationHooks()) {

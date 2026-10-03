@@ -15,9 +15,17 @@ import {
 } from "@quatico/websmith-api";
 import deepmerge, { type ArrayMergeOptions } from "deepmerge";
 import path from "node:path";
-import type ts from "typescript";
+import ts from "typescript";
 import type { CompilerOptionsValue } from "typescript";
-import { parsedCommandLine, resolveCompilationConfig, resolvePath, resolvePaths, resolveProfile, resolveProjectFile, PROJECT_FILE_NAME } from "../config";
+import {
+    parsedCommandLine,
+    resolveCompilationConfig,
+    resolvePath,
+    resolvePaths,
+    resolveProfile,
+    resolveProjectFile,
+    PROJECT_FILE_NAME,
+} from "../config";
 import { DefaultReporter } from "../DefaultReporter";
 import { tsDefaults } from "../defaults";
 
@@ -85,6 +93,8 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly tsConfigFile?: string;
     /** The TSC configuration. */
     public readonly tsConfig?: ts.CompilerOptions;
+    /** The files `tsConfigFile` extends, directly or through other extended files, also missing relative `.json` paths. */
+    public readonly tsConfigExtends: string[];
     public readonly profile?: string;
     public readonly buildDir: string;
     public readonly cliArgs: ts.ParsedCommandLine;
@@ -157,6 +167,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
 
         this.tsConfigFile = resolvedPaths.tsConfigFile;
         this.configFile = resolvedPaths.configFile;
+        this.tsConfigExtends = getExtendedConfigFiles(this.system, this.tsConfigFile);
 
         this.buildDir =
             (this.tsConfigFile && path.dirname(this.tsConfigFile)) ??
@@ -373,6 +384,19 @@ const getTsConfig = (system: ts.System, projectDir: string, options: CompilerOpt
         ...mergedTsConfig, // Profile options merged with base tsConfig
         ...cliOptions, // CLI options override everything
     };
+};
+
+/**
+ * Returns the files a tsconfig.json extends, in the order TypeScript reads them; no file discovery. A missing target is
+ * listed only when TypeScript can name it, e.g. a relative path ending in `.json`, not a missing package.
+ */
+const getExtendedConfigFiles = (system: ts.System, tsConfigFile?: string): string[] => {
+    if (!tsConfigFile || !system.fileExists(tsConfigFile)) {
+        return [];
+    }
+    const sourceFile = ts.readJsonConfigFile(tsConfigFile, fileName => system.readFile(fileName));
+    ts.parseJsonSourceFileConfigFileContent(sourceFile, { ...system, readDirectory: () => [] }, path.dirname(tsConfigFile), undefined, tsConfigFile);
+    return sourceFile.extendedSourceFiles ?? [];
 };
 
 const getProfile = (name?: string, config?: CompilationConfig): CompilationProfile => {

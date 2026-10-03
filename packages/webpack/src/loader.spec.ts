@@ -370,6 +370,7 @@ const setUpLoader = (
         getOptions: () => ({ debug }),
         getConfigErrors: () => configErrors,
         hasCompilationHooks: () => compilationHooks,
+        getOptionsFiles: () => ({ files: ["/websmith.config.json", "/tsconfig.json", "/tsconfig.base.json"], missing: ["/tsconfig.gone.json"] }),
     };
     jest.mocked(getCompilerInstance).mockReturnValue(instance as unknown as TsCompiler);
     jest.mocked(getLoaderOptions).mockReturnValue(options);
@@ -476,7 +477,23 @@ describe("loader", () => {
         loader.call(target);
         const actual = [jest.mocked(target.addDependency).mock.calls, jest.mocked(target.addMissingDependency).mock.calls];
 
-        expect(actual).toEqual([[["/package.json"]], [["/dist/package.json"]]]);
+        expect(actual).toEqual([expect.arrayContaining([["/package.json"]]), expect.arrayContaining([["/dist/package.json"]])]);
+    });
+
+    it("registers options files as module dependencies through loader context", () => {
+        setUpLoader(createBuildResult());
+        const target = createLoaderContext();
+
+        loader.call(target);
+        const actual = {
+            files: jest.mocked(target.addDependency).mock.calls.map(([cur]) => cur),
+            missing: jest.mocked(target.addMissingDependency).mock.calls.map(([cur]) => cur),
+        };
+
+        expect(actual).toEqual({
+            files: expect.arrayContaining(["/websmith.config.json", "/tsconfig.json", "/tsconfig.base.json"]),
+            missing: expect.arrayContaining(["/tsconfig.gone.json"]),
+        });
     });
 
     it("yields output of built fragment", () => {

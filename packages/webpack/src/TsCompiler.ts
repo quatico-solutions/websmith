@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { type CompilerOptions, InfoMessage, type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
+import { type CompilerOptions, ErrorMessage, InfoMessage, type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
 import {
     checkDirectoryImport,
     checkJsonImportAttribute,
@@ -86,7 +86,7 @@ export class CompilationScanCache implements ScanCache {
 
 /**
  * Keeps the errors that option resolution reports, i.e. the configuration errors of the selected profile, instead of
- * printing them: the loader resolves options for every module, and fails the compilation with them once.
+ * printing them: the loader fails the compilation with them.
  */
 class ConfigErrorReporter implements Reporter {
     public errors: ts.Diagnostic[] = [];
@@ -94,8 +94,11 @@ class ConfigErrorReporter implements Reporter {
 
     constructor(private readonly target: Reporter) {}
 
-    public collect<T>(resolve: () => T): T {
-        this.errors = [];
+    /** Collects the errors `resolve` reports, after those collected before with `keep`. */
+    public collect<T>(resolve: () => T, keep = false): T {
+        if (!keep) {
+            this.errors = [];
+        }
         this.collecting = true;
         try {
             return resolve();
@@ -137,6 +140,10 @@ export class TsCompiler extends Compiler {
     private esmCheckTime = 0;
     private cachesPerCompilation = false;
     private compilationHooks = false;
+    private readonly baseOptions: CompilerOptions;
+    private optionsFiles: LoaderBuildResult["dependencies"] = { files: [], missing: [] };
+    private readonly optionsFileTimes = new Map<string, number | undefined>();
+    private addonsStamp?: string;
 
     constructor(
         options: CompilerOptions,
@@ -150,10 +157,12 @@ export class TsCompiler extends Compiler {
         this.warn = loaderOptions.warn ?? (() => {});
         this.error = loaderOptions.error ?? (() => {});
         this.loaderContext = loaderContext;
+        this.baseOptions = options;
 
         const profileName = this.getOptions().profile || loaderOptions.profile;
         this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
         super.createProfileContextsIfNecessary();
+        this.completeResolution();
     }
 
     public getProfile(): string | undefined {
@@ -174,15 +183,59 @@ export class TsCompiler extends Compiler {
         return reporter instanceof ConfigErrorReporter ? reporter.errors : [];
     }
 
+    /**
+     * Resolves the options again from `loaderOptions`, which must be resolved again from their files too, and creates
+     * the compilation contexts and loads the addons again on their next use.
+     */
     public updateLoaderConfig(loaderOptions: WebpackLoaderOptions): void {
-        this.setOptions(this.getOptions(), loaderOptions);
+        this.setOptions(this.baseOptions, loaderOptions);
+        this.resetAddons();
+        this.recreateCompilationContexts();
 
-        // Initialize or re-initialize the webpack addon service now that we have the full configuration
-        this.setupWebpackAddonService();
-
-        // Update profile after configuration is updated
         const profileName = this.getOptions().profile || loaderOptions.profile;
         this.profile = profileName ? this.getFragmentProfile(profileName) : undefined;
+        this.completeResolution();
+    }
+
+    /** Returns the files the options are resolved from: the config file, the tsconfig.json and the files it extends. */
+    public getOptionsFiles(): LoaderBuildResult["dependencies"] {
+        return this.optionsFiles;
+    }
+
+    /**
+     * Resolves the options again with `loadOptions` when one of their files changed: is one of `modifiedFiles`, or,
+     * without them, has another modification time than at the last resolution. Returns whether it resolved them.
+     * When they cannot be resolved, e.g. from a config file that is no JSON, the previous options stay and the error
+     * is the configuration error until the next change.
+     */
+    public refreshOptions(loadOptions: () => WebpackLoaderOptions, modifiedFiles?: ReadonlySet<string>): boolean {
+        const files = [...this.optionsFiles.files, ...this.optionsFiles.missing];
+        const changed = modifiedFiles
+            ? files.some(cur => modifiedFiles.has(cur))
+            : files.some(cur => this.getModifiedTime(cur) !== this.optionsFileTimes.get(cur));
+        if (changed) {
+            try {
+                this.updateLoaderConfig(loadOptions());
+            } catch (error) {
+                this.recordOptionsFiles();
+                const message = error instanceof Error ? error.message : String(error);
+                this.collectConfigErrors(() =>
+                    this.getReporter().reportDiagnostic(new ErrorMessage(`Cannot resolve the loader options: ${message}`))
+                );
+            }
+        }
+        return changed;
+    }
+
+    /**
+     * Loads the addons again on their next use when a file in the addons directory changed since they were loaded;
+     * call it once per webpack compilation. Unchanged addons stay active across compilations.
+     */
+    public refreshAddons(): void {
+        if (this.webpackAddonService && this.getAddonsStamp() !== this.addonsStamp) {
+            this.resetAddons();
+            this.recreateCompilationContexts();
+        }
     }
 
     /** Marks that compilation hooks report the config errors once per compilation, so the loader does not. */
@@ -207,6 +260,7 @@ export class TsCompiler extends Compiler {
      * use; call it once per webpack compilation.
      */
     public resetCompilationCaches(): void {
+        super.resetCompilationCaches();
         this.compilationCaches = TsCompiler.createCompilationCaches();
         this.scanCache.nextCompilation();
     }
@@ -240,7 +294,8 @@ export class TsCompiler extends Compiler {
         const { buildDir } = this.getOptions();
         const filePath = resolvePath(this.getSystem(), buildDir, resourcePath);
         if (!this.cachesPerCompilation) {
-            // Scans stay: they are keyed by their text, so only the memos can go stale
+            // Scans stay: they are keyed by their text, so only the memos and the core's compilation caches can go stale
+            super.resetCompilationCaches();
             this.compilationCaches = TsCompiler.createCompilationCaches();
         }
         const diagnostics: ts.Diagnostic[] = [];
@@ -303,7 +358,7 @@ export class TsCompiler extends Compiler {
         onDependency: EsmCheckContext["onDependency"]
     ): ts.Diagnostic[] {
         const ctx = this.getContext(profile);
-        // updateLoaderConfig runs for every module, so a profile that is not ESM is not reported here again
+        // A profile that is not ESM is reported once per option resolution, see completeResolution
         const esm = ctx && files.length > 0 ? this.getCheckedEsm(profile, ctx, false) : undefined;
         if (!ctx || !esm) {
             return [];
@@ -320,6 +375,66 @@ export class TsCompiler extends Compiler {
         } finally {
             this.esmCheckTime += performance.now() - start;
         }
+    }
+
+    /** Records the files of the resolved options and their modification times, and reports profiles that are not ESM. */
+    private completeResolution(): void {
+        this.recordOptionsFiles();
+        this.collectConfigErrors(
+            () =>
+                this.getOptions()
+                    .getSelectedProfiles()
+                    .forEach(profile => {
+                        const ctx = this.getContext(profile);
+                        if (ctx) {
+                            this.getCheckedEsm(profile, ctx);
+                        }
+                    }),
+            true
+        );
+    }
+
+    private recordOptionsFiles(): void {
+        const { configFile, tsConfigFile, tsConfigExtends = [] } = this.getOptions();
+        // webpack compares native paths
+        const files = [...new Set([configFile, tsConfigFile, ...tsConfigExtends].filter(cur => !!cur).map(cur => path.resolve(cur as string)))];
+        // Not this.getSystem(): subclasses may replace it before their construction completes
+        const system = super.getSystem();
+        this.optionsFiles = { files: files.filter(cur => system.fileExists(cur)), missing: files.filter(cur => !system.fileExists(cur)) };
+        this.optionsFileTimes.clear();
+        files.forEach(cur => this.optionsFileTimes.set(cur, this.getModifiedTime(cur)));
+    }
+
+    /** Collects the errors `report` reports as configuration errors, after the previous ones with `keep`. */
+    private collectConfigErrors(report: () => void, keep = false): void {
+        const reporter = this.getReporter();
+        if (reporter instanceof ConfigErrorReporter) {
+            reporter.collect(report, keep);
+        } else {
+            report();
+        }
+    }
+
+    private getModifiedTime(fileName: string): number | undefined {
+        return super.getSystem().getModifiedTime?.(fileName)?.getTime();
+    }
+
+    /** Identifies the files of the addons directory and their modification times. */
+    private getAddonsStamp(): string {
+        const addonsDir = this.getOptions().config?.addonsDir;
+        const system = this.getSystem();
+        if (!addonsDir || !system.directoryExists(addonsDir)) {
+            return "";
+        }
+        return system
+            .readDirectory(addonsDir, undefined, ["**/node_modules"])
+            .map(cur => `${cur}:${this.getModifiedTime(cur)}`)
+            .join("\n");
+    }
+
+    private resetAddons(): void {
+        this.webpackAddonService = undefined;
+        this.cachedWebpackContext = undefined;
     }
 
     private static createCompilationCaches(): Pick<EsmCheckContext, "packageTypeCache" | "cjsNamesCache"> {
@@ -348,6 +463,7 @@ export class TsCompiler extends Compiler {
                 ...(options.debug ? { debug: true } : {}),
             };
 
+            this.addonsStamp = this.getAddonsStamp();
             this.webpackAddonService = new WebpackAddonService(addonConfig);
             this.logDebug(`WebpackAddonService initialized with addonsDir: ${config?.addonsDir}`);
 

@@ -84,3 +84,14 @@ describe("setInstanceInCache", () => {
         expect(secondInstance).toBe(target);
     });
 });
+
+describe("getInstanceFromCache w/ compiler stubs", () => {
+    it("returns instance cached w/ another compiler stub without hooks", () => {
+        const expected = {} as TsCompiler;
+        setInstanceInCache({ options: { plugins: [] } } as unknown as Compiler, "stub-instance", expected);
+
+        const actual = getInstanceFromCache({ options: { plugins: [] } } as unknown as Compiler, "stub-instance");
+
+        expect(actual).toBe(expected);
+    });
+});
