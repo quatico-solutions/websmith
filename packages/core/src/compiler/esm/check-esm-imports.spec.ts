@@ -15,6 +15,12 @@ const MODULE_PACKAGE = { "/package.json": JSON.stringify({ type: "module" }) };
 const IMPORT_VIOLATIONS = `import "./b";\nimport "./utils";\nimport "./gone.js";\nimport data from "./d.json";`;
 const UTILS_ON_DISK = { ...MODULE_PACKAGE, "/dist/utils/index.js": "", "/dist/d.json": "{}" };
 
+const EPKG = { "/dist/node_modules/epkg/package.json": JSON.stringify({ name: "epkg", exports: { ".": "./index.js" } }) };
+const DPKG = {
+    "/dist/node_modules/dpkg/package.json": JSON.stringify({ name: "dpkg", exports: { ".": { development: "./dev.js" } } }),
+    "/dist/node_modules/dpkg/dev.js": "",
+};
+
 const output = (name: string, text = ""): ts.OutputFile => ({ name, text, writeByteOrderMark: false });
 
 const codesOf = (files: ts.OutputFile[], esm: EsmProfileOptions, onDisk: Record<string, string> = MODULE_PACKAGE): number[] =>
@@ -163,6 +169,27 @@ describe("checkEsm w/ relative imports", () => {
         const actual = codesOf([output("/dist/target.js", `import data from "pkg/d.json";`)], { runtime: "node" });
 
         expect(actual).toEqual([91013]);
+    });
+
+    it("yields 91022 w/ unexported subpath in node ESM output", () => {
+        const actual = codesOf([output("/dist/target.js", `import x from "epkg/internal.js";`)], { runtime: "node" }, { ...MODULE_PACKAGE, ...EPKG });
+
+        expect(actual).toEqual([91022]);
+    });
+
+    it("yields nothing w/ development-only export and customConditions in compilerOptions in node ESM output", () => {
+        const actual = checkEsm(
+            [output("/dist/target.js", `import x from "dpkg";`)],
+            { runtime: "node" },
+            {
+                system: createSystem({ ...MODULE_PACKAGE, ...DPKG }, { virtual: true }),
+                reporter: new NoReporter(),
+                projectDir: "/",
+                compilerOptions: { customConditions: ["development"] },
+            }
+        );
+
+        expect(actual).toEqual([]);
     });
 
     it("yields 91012 warning w/ check warn and directory without index file in bundler auto output", () => {

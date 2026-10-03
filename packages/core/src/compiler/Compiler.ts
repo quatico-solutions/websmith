@@ -900,6 +900,7 @@ export class Compiler {
                 profile,
                 addons,
                 sources,
+                compilerOptions: ctx.getCompilerOptions(),
                 ...overrides,
                 cjsNamesCache,
             })

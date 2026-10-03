@@ -23,7 +23,28 @@ export const CjsNamesDiagnosticCode = {
 
 type Dependency = [fileName: string, exists: boolean];
 
-type Resolution = { entry?: string; reason?: string; dependencies: Dependency[] };
+/**
+ * Why a bare specifier has no entry: no package in any `node_modules`, an unreadable manifest, a subpath its
+ * `"exports"` does not export, no file for the subpath, or `"module"` / `"browser"` fields a bundler may prefer.
+ */
+export type ResolutionFailure = "not-found" | "unreadable" | "not-exported" | "no-entry" | "bundler-fields";
+
+export type Resolution = {
+    entry?: string;
+    /** Why no entry was found, in words for `--debug`, set together with `failure`. */
+    reason?: string;
+    failure?: ResolutionFailure;
+    /** The package name and the subpath the specifier names, `"."` for the package root. */
+    packageName: string;
+    subpath: string;
+    /** Directory of the package found, absent with the not-found outcome. */
+    packageDir?: string;
+    /** The package's `"exports"`, absent when its manifest has none or was not read. */
+    exports?: unknown;
+    dependencies: Dependency[];
+};
+
+type EntryResult = Pick<Resolution, "entry" | "reason" | "failure" | "exports">;
 
 /** How a resolved package entry loads: as ES module, as CommonJS with the names the lexer detects, or unknown. */
 type EntryAnalysis = ({ kind: "esm" } | { kind: "commonjs"; names: ReadonlySet<string> } | { kind: "unknown"; reason: string }) & {
@@ -246,20 +267,20 @@ export const resolvePackage = (
     const name = segments.slice(0, nameLength).join("/");
     const subpath = segments.length > nameLength ? `./${segments.slice(nameLength).join("/")}` : ".";
 
-    let result: Omit<Resolution, "dependencies"> = { reason: "package not found in node_modules" };
+    let result: EntryResult & { packageDir?: string } = { reason: "package not found in node_modules", failure: "not-found" };
     for (let dir = fromDir; ; dir = path.dirname(dir)) {
         const packageDir = path.join(dir, "node_modules", name);
         const packageJson = path.join(packageDir, "package.json");
         if (path.basename(dir) !== "node_modules" && probe(packageJson)) {
-            result = resolveEntry(packageDir, packageJson, subpath, conditions, runtime, system, probe);
-            result = result.entry ? { entry: toRealPath(result.entry, system, dependencies) } : result;
+            const found = resolveEntry(packageDir, packageJson, subpath, conditions, runtime, system, probe);
+            result = { ...found, packageDir, ...(found.entry !== undefined && { entry: toRealPath(found.entry, system, dependencies) }) };
             break;
         }
         if (path.dirname(dir) === dir) {
             break;
         }
     }
-    const resolution = { ...result, dependencies };
+    const resolution: Resolution = { ...result, packageName: name, subpath, dependencies };
     cache.resolutions.set(key, resolution);
     return resolution;
 };
@@ -272,7 +293,7 @@ const resolveEntry = (
     runtime: EsmRuntime,
     system: ts.System,
     probe: (fileName: string) => boolean
-): Omit<Resolution, "dependencies"> => {
+): EntryResult => {
     let manifest: unknown;
     try {
         manifest = JSON.parse(system.readFile(packageJson) ?? "");
@@ -280,18 +301,22 @@ const resolveEntry = (
         manifest = undefined;
     }
     if (typeof manifest !== "object" || manifest === null) {
-        return { reason: `cannot read "${packageJson}"` };
+        return { reason: `cannot read "${packageJson}"`, failure: "unreadable" };
     }
+    const exports = "exports" in manifest && manifest.exports !== null ? manifest.exports : undefined;
     let candidates: string[];
-    if ("exports" in manifest && manifest.exports !== undefined && manifest.exports !== null) {
+    if (exports !== undefined) {
         try {
             candidates = (resolveExports(manifest, subpath, { conditions, unsafe: true }) ?? []).slice(0, 1);
         } catch {
-            return { reason: `"${subpath}" is not exported by "${packageJson}"` };
+            return { reason: `"${subpath}" is not exported by "${packageJson}"`, failure: "not-exported", exports };
         }
     } else if (runtime === "bundler" && ("module" in manifest || "browser" in manifest)) {
         // Bundlers prefer these fields over main, and which one they pick depends on their configuration
-        return { reason: `"${packageJson}" has a "module" or "browser" field and no "exports", the bundler may not load its main entry` };
+        return {
+            reason: `"${packageJson}" has a "module" or "browser" field and no "exports", the bundler may not load its main entry`,
+            failure: "bundler-fields",
+        };
     } else if (subpath === ".") {
         const main =
             "main" in manifest && typeof manifest.main === "string" && manifest.main
@@ -302,7 +327,10 @@ const resolveEntry = (
         candidates = [subpath];
     }
     const entry = candidates.map(cur => path.join(packageDir, cur)).find(probe);
-    return entry ? { entry } : { reason: `no entry file for "${subpath}" in "${packageDir}"` };
+    return {
+        ...(entry ? { entry } : { reason: `no entry file for "${subpath}" in "${packageDir}"`, failure: "no-entry" }),
+        ...(exports !== undefined && { exports }),
+    };
 };
 
 /**

@@ -15,7 +15,7 @@ import {
     type ModuleClassification,
     type PackageTypeCache,
 } from "./classify-module";
-import { IMPORT_RULES, type ImportRule } from "./import-rules";
+import { IMPORT_RULES, type ImportRule, type ImportRuleContext } from "./import-rules";
 import { checkPackageType, PackageTypeCode } from "./package-type-rules";
 import { scanModule, type FreeReference, type ModuleScan } from "./scan-module";
 
@@ -50,8 +50,10 @@ export type EsmCheckContext = {
     scanCache?: ScanCache;
     /** How the runtime loads every checked file, e.g. webpack's module type; classified per file when absent. */
     moduleKind?: ModuleClassification["kind"];
-    /** Rules on relative imports to run, all rules when absent. */
+    /** Rules on imports to run, all rules when absent. */
     importRules?: readonly ImportRule[];
+    /** The profile's tsconfig options bare imports depend on, passed to the import rules. */
+    compilerOptions?: ImportRuleContext["compilerOptions"];
 };
 
 /** Stable diagnostic codes of the ESM check, one per rule (range 91000–91099). */
@@ -119,6 +121,7 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
         writtenFiles: new Set(files.map(cur => path.resolve(cur.name))),
         onDependency: context.onDependency,
         cjsNamesCache: context.cjsNamesCache,
+        compilerOptions: context.compilerOptions,
     };
 
     return files
