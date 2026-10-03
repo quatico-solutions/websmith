@@ -23,6 +23,7 @@
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #134 merged
 - **Started:** 2026-10-02, Jan Wloka, `infra/esm-bench-watchdog`
 - **Started:** 2026-10-02, Jan Wloka, `bug/loader-resolve-options-once`
+- **Started:** 2026-10-03, Jan Wloka, `bug/depends-closure-core`
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
