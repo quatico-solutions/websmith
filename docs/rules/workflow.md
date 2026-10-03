@@ -13,8 +13,8 @@ Commands, CI, code style, license headers and commit conventions for the websmit
 
 **The Rule:** Run the same steps as CI before pushing. A task is not complete until all of them pass.
 
-**Why?** `.github/workflows/pull-request.yml` runs these on every PR (Node 20, pnpm 9). A green local build with
-a skipped step is still a red PR.
+**Why?** `.github/workflows/pull-request.yml` runs these on every PR (Node 22 and 24 on pnpm 9, plus an advisory
+TypeScript 6.0.3 cell on Node 24). A green local build with a skipped step is still a red PR.
 
 ### Wrong
 

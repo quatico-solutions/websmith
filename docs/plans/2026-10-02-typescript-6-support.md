@@ -299,7 +299,7 @@ deprecation errors" is answered yes.
 
 ### CI leg
 
-- `infra/typescript-6-ci-leg` — `pull-request.yml` matrix with the 6.0.3 override cell on Node 24 (`continue-on-error: true`), `pnpm pkg set pnpm.overrides.typescript` plus `pnpm install --no-frozen-lockfile` in that cell only, the installed-version assertion as the first step after install in every cell, explicit job names keeping `dist (22)` / `dist (24)`; #133's workflow changes checked first. Test: the PR's own run shows three cells on pnpm 9, the assertion step reports 5.7.3 / 5.7.3 / 6.0.3, and a deliberately wrong override value in a throwaway commit fails the assertion (then reverted); Definition of Done green on the 5.7.3 cells <!-- builds: advisory TypeScript 6.0.3 cell in pull-request.yml -->
+- `infra/typescript-6-ci-leg` — `pull-request.yml` matrix with the 6.0.3 override cell on Node 24 (`continue-on-error: true`), `pnpm pkg set pnpm.overrides.typescript` plus `pnpm install --no-frozen-lockfile` in that cell only, the installed-version assertion as the first step after install in every cell, explicit job names keeping `dist (22)` / `dist (24)`; #133's workflow changes checked first. Test: the PR's own run shows three cells on pnpm 9, the assertion step reports 5.7.3 / 5.7.3 / 6.0.3, and a deliberately wrong override value in a throwaway commit fails the assertion (then reverted); Definition of Done green on the 5.7.3 cells → #171 <!-- builds: advisory TypeScript 6.0.3 cell in pull-request.yml -->
 
 ### Fixtures
 
