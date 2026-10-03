@@ -9,11 +9,26 @@ on:
 
 jobs:
     dist:
+        name: ${{ matrix.name }}
         runs-on: ubuntu-latest
+        continue-on-error: ${{ matrix.advisory }}
         strategy:
             matrix:
                 # 22 is the declared engines floor (>=22.12), 24 the development version
-                node-version: [22, 24]
+                # typescript 5.7.3 comes from the lockfile; the advisory cell overrides it to 6.0.3 on Node 24
+                include:
+                    - name: dist (22)
+                      node-version: 22
+                      typescript: 5.7.3
+                      advisory: false
+                    - name: dist (24)
+                      node-version: 24
+                      typescript: 5.7.3
+                      advisory: false
+                    - name: dist (24, typescript 6.0.3)
+                      node-version: 24
+                      typescript: 6.0.3
+                      advisory: true
         steps:
             - name: checkout
               uses: actions/checkout@v7
@@ -27,16 +42,47 @@ jobs:
                   version: 9
 
             - name: install
+              if: ${{ !matrix.advisory }}
               run: pnpm install --frozen-lockfile
 
+            - name: install with typescript override
+              if: ${{ matrix.advisory }}
+              run: |
+                  pnpm pkg set pnpm.overrides.typescript=${{ matrix.typescript }}
+                  pnpm install --no-frozen-lockfile
+
+            - name: assert typescript version
+              id: assert-typescript
+              env:
+                  EXPECTED: ${{ matrix.typescript }}
+              run: |
+                  pnpm --version
+                  packages=$(pnpm -r ls --depth -1 --json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).length")
+                  versions=$(node -p "require('typescript/package.json').version"; pnpm -r --reporter-hide-prefix exec node -p "require('typescript/package.json').version")
+                  echo "$versions"
+                  found=$(printf '%s\n' "$versions" | grep -c . || true)
+                  if ! [ "$packages" -gt 1 ] 2>/dev/null || [ "$found" -ne "$packages" ]; then
+                      echo "::error::Expected typescript $EXPECTED in ${packages:-?} packages (root included), found $found versions"
+                      exit 1
+                  fi
+                  wrong=$(printf '%s\n' "$versions" | grep -vxF "$EXPECTED" | sort -u | paste -sd, - || true)
+                  if [ -n "$wrong" ]; then
+                      echo "::error::Expected typescript $EXPECTED, found $wrong"
+                      exit 1
+                  fi
+
             - name: lint
+              if: ${{ !cancelled() && steps.assert-typescript.outcome == 'success' }}
               run: pnpm lint
 
             - name: test
+              if: ${{ !cancelled() && steps.assert-typescript.outcome == 'success' }}
               run: pnpm test
 
             - name: build
+              if: ${{ !cancelled() && steps.assert-typescript.outcome == 'success' }}
               run: pnpm build
 
             - name: E2E tests
+              if: ${{ !cancelled() && steps.assert-typescript.outcome == 'success' }}
               run: pnpm test:e2e
