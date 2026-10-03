@@ -120,10 +120,14 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   `@quatico/websmith-core`. Its findings name the nested profile's addons only.
 - A `depends` cycle in `websmith.config.json` no longer crashes with `Maximum call stack size exceeded`; with deeper
   `depends` chains a dependency's `tsConfig` is merged before the profiles that depend on it.
+- Loader-option `tsConfig` and inline `config.profiles` accept option names such as `module: "NodeNext"`, as
+  `tsconfig.json` does, and report unknown names as configuration errors.
 
 ### Removed
 
-- TBA
+- **Breaking:** the top-level `profiles` loader option is removed from `WebpackLoaderOptions` and from
+  `LoaderOptions`. The loader ignored it; passing it now fails the build with a configuration error pointing to
+  `config.profiles`.
 
 ### Security
 
