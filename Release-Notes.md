@@ -27,10 +27,40 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   `./tsconfig.json` is still not an error.
 - `tsConfig.project` and `cliArgs.options.project` are now absolute paths to the tsconfig file, also for a relative
   `--project`. Addons that read them see this absolute path.
-- Builds that passed 0.10.x may now fail: under `esm: { runtime: "node" }`, the ESM check tests the path that Node
-  derives from a relative specifier, so a JSON import with a query or fragment (`import d from "./d.json?v=1"`)
-  without `with { type: "json" }` now gets 91013, in the CLI and in the webpack loader. Node 24 rejects that import
-  with `ERR_IMPORT_ATTRIBUTE_MISSING`. To keep such a build passing, add the attribute, skip the file with
+- **Breaking:** websmith no longer sets `target: "ES5"` and `esModuleInterop: false` when a project leaves them out.
+  For these two options it uses the same defaults as `tsc` 5.x. Output changes for projects that set `module` to
+  `node16` or `nodenext` and leave `target` or `esModuleInterop` unset:
+  - with `node16` or `nodenext`, output targets ES2022 or ESNext (`const`, native `async`) instead of ES5 (`var`,
+    `__awaiter`), and the newer target changes the default `lib` and turns on `useDefineForClassFields`, so class
+    fields are emitted as own properties with `[[Define]]` semantics, which can change the runtime behaviour of
+    classes that rely on setters or on fields declared without an initializer;
+  - with `node16` or `nodenext`, default imports of CommonJS modules use the `__importDefault` /
+    `__importStar` helpers and `allowSyntheticDefaultImports` is on, so some type errors about missing default
+    exports disappear; `.d.mts` declarations of dynamic imports from CommonJS files now match `tsc`.
+
+  With `module: preserve` websmith now derives target and interop like `tsc`, with no output change. Projects with
+  other `module` values are unaffected. To keep the old output, set `"target": "ES5"`,
+  `"esModuleInterop": false` and, if class-field semantics matter, `"useDefineForClassFields": false` in
+  `tsconfig.json`, or in a profile's `tsConfig` in `websmith.config.json` when the `tsconfig.json` is shared. Options
+  a project leaves unset now follow the installed TypeScript's defaults, so upgrading TypeScript (for example to 6.x)
+  can change websmith's output the same way it changes `tsc`'s.
+- Builds that passed 0.10.x may now fail. The ESM check now reports these imports, each of which the build passed but
+  the runtime rejects:
+  - under `esm: { runtime: "node" }`, the ESM check tests the path that Node derives from a relative specifier, so a
+    JSON import with a query or fragment (`import d from "./d.json?v=1"`) without `with { type: "json" }` now gets
+    91013, in the CLI and in the webpack loader. Node 24 rejects that import with `ERR_IMPORT_ATTRIBUTE_MISSING`;
+  - under `node`, a bare JSON import without the attribute (`import d from "pkg/d.json"`, or a specifier that the
+    package's `"exports"` map to a `.json` file) gets 91013, in the CLI and in the webpack loader. Node 24 rejects it
+    with `ERR_IMPORT_ATTRIBUTE_MISSING`;
+  - under `node`, `import()` with a string literal in a CommonJS file (`.cjs`, or `.js` under `"type": "commonjs"`)
+    gets 91010–91013 (in the webpack loader 91010, 91011 and 91013), because Node loads what it imports as an ES
+    module: `import("./b")` fails with `ERR_MODULE_NOT_FOUND`. Static imports and `require()` in those files are
+    checked as before;
+  - under `esm: { runtime: "bundler" }`, a relative import in a `javascript/auto` file that names a directory with
+    neither an `index` file (`.js`, `.mjs`, `.cjs`, `.json`) nor a `package.json` with a `main`, `module` or `browser`
+    field gets 91012, in the CLI only. webpack's default resolution reports "Module not found" for it.
+
+  To keep such a build passing, fix the import (add the attribute, the extension or an index file), skip the file with
   `esm.ignore`, or set `check: "warn"`.
 - The webpack loader resolves its options, `websmith.config.json` and `tsconfig.json` once per compilation and loader
   instance instead of once per module, and again only when one of these files changes. The gain shows in large builds,
@@ -39,6 +69,10 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   of a compilation and across watch rebuilds, and an edited addon is loaded again on the next rebuild. Addons must not
   rely on being activated again for each module; see "Option resolution and addon lifetime" in
   `packages/webpack/README.md`.
+- A malformed `websmith.config.json` passed with `--configFile` is reported as a configuration error that names the
+  absolute file path and the position (`Invalid JSON in configuration file "<path>" (line 1, column 9): Unexpected
+  token ,.`), with exit code 1, instead of a `SyntaxError` stack trace. The webpack loader reports it the same way.
+- A missing `--addonsDir` directory is warned about once instead of twice.
 
 ### Fixed
 
@@ -62,6 +96,13 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 ### Removed
 
 - TBA
+
+### Security
+
+- `@quatico/websmith-core` no longer depends on `create-hash` and `path`; it hashes with `node:crypto`. Users no
+  longer install `sha.js` and `cipher-base` (two critical advisories) through websmith.
+- `@quatico/websmith-core` and `@quatico/websmith-node` require `lodash ^4.18.1` (was `^4.17.21`, which admits
+  versions with a high advisory).
 
 ## [0.10.0] - 2026-10-02
 

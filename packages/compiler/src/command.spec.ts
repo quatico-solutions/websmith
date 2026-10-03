@@ -84,14 +84,12 @@ describe("addCompileCommand", () => {
                     declaration: false,
                     declarationMap: false,
                     emitDecorationOnly: false,
-                    esModuleInterop: false,
                     jsx: ts.JsxEmit.Preserve,
                     noEmit: false,
                     pretty: true,
                     project: "/tsconfig.json",
                     removeComments: false,
                     strict: false,
-                    target: ts.ScriptTarget.ES5,
                 },
                 raw: {
                     configFilePath: "/tsconfig.json",
@@ -113,14 +111,12 @@ describe("addCompileCommand", () => {
                 declaration: false,
                 declarationMap: false,
                 emitDecorationOnly: false,
-                esModuleInterop: false,
                 jsx: ts.JsxEmit.Preserve,
                 noEmit: false,
                 pretty: true,
                 project: "/tsconfig.json",
                 removeComments: false,
                 strict: false,
-                target: ts.ScriptTarget.ES5,
             },
             tsConfigExtends: [],
             tsConfigFile: "/tsconfig.json",
@@ -149,6 +145,20 @@ describe("addCompileCommand", () => {
         expect(target.getReporter().reportDiagnostic).toHaveBeenNthCalledWith(
             1,
             new ErrorMessage(`No configuration file found at "${"/does-not-exist/websmith.config.json"}".`)
+        );
+    });
+
+    it("should report malformed config file w/ --configFile cli argument", () => {
+        const testSystem = createSystem({ "./websmith.config.json": "{" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--configFile", "./websmith.config.json"], { from: "user" });
+
+        expect(target.getOptions().config).toEqual({});
+        expect(target.getReporter().reportDiagnostic).toHaveBeenNthCalledWith(
+            1,
+            new ErrorMessage(`Invalid JSON in configuration file "/websmith.config.json" (line 1, column 2): Unexpected end of JSON input.`)
         );
     });
 
@@ -380,6 +390,19 @@ describe("addCompileCommand#addons", () => {
         expect(target.getReporter().reportDiagnostic).toHaveBeenCalledWith(
             new WarnMessage(`Addons directory "${testSystem.resolvePath("./unknown")}" does not exist.`)
         );
+    });
+
+    it("should show warning once w/ --addonsDir cli argument and non-existing path", () => {
+        const testSystem = createSystem({ "./websmith.config.json": "{}" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+        target.getReporter().reportDiagnostic = jest.fn();
+
+        addCompileCommand(new Command(), target).parse(["--addonsDir", "./unknown"], { from: "user" });
+        const actual = jest
+            .mocked(target.getReporter().reportDiagnostic)
+            .mock.calls.filter(([cur]) => cur.messageText === `Addons directory "${testSystem.resolvePath("./unknown")}" does not exist.`);
+
+        expect(actual).toHaveLength(1);
     });
 
     it("should yield options addons w/ --addons cli argument and existing addon", () => {

@@ -182,11 +182,6 @@ export const addonConfig = (command: Command, system: ts.System, options: Compil
     const resolvedAddonsDir = addonsDir ? system.resolvePath(addonsDir) : undefined;
     const addonOutDir = path.join(path.dirname(system.resolvePath(options?.tsConfigFile ?? "./tsconfig.json")), ".websmith-cache", "addons-cli");
 
-    // Check if addons directory exists and warn if it doesn't
-    if (resolvedAddonsDir && !system.directoryExists(resolvedAddonsDir)) {
-        reporter.reportDiagnostic(new WarnMessage(`Addons directory "${resolvedAddonsDir}" does not exist.`));
-    }
-
     return {
         addons:
             addons

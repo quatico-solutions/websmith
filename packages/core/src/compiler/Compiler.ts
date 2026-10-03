@@ -24,6 +24,7 @@ import type { CompilerAddon } from "./addons/CompilerAddon";
 import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext } from "./compilation";
+import { getEffectiveTarget } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import { checkEsm, createCjsNamesCache, getEmittedModuleKind, isEsmModuleKind, type EsmCheckContext } from "./esm";
 import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from "./options";
@@ -814,11 +815,12 @@ export class Compiler {
         // esm is read from the profile itself, not from its dependencies: it is not inherited through depends
         const profileConfig = profile ? this.options.config?.profiles?.[profile] : undefined;
         const esm = profileConfig?.esm;
-        const { module, target } = ctx.getCompilerOptions();
+        const { module } = ctx.getCompilerOptions();
+        const target = getEffectiveTarget(ctx.getCompilerOptions());
         if (esm && !isEsmModuleKind(getEmittedModuleKind({ module, target }))) {
             // The config validation reports a module set by the profile itself; name one set elsewhere once here
             if (reportNonEsm && isEsmModuleKind(profileConfig?.tsConfig?.module)) {
-                const targetName = typeof target === "number" ? ts.ScriptTarget[target] : (target ?? "ES5");
+                const targetName = typeof target === "number" ? ts.ScriptTarget[target] : String(target);
                 const moduleName = typeof module === "number" ? ts.ModuleKind[module] : module;
                 const cause =
                     module === undefined
@@ -999,7 +1001,10 @@ export class Compiler {
             `profiles: ${this.options.config?.profiles ? Object.keys(this.options.config.profiles).join(", ") : ""}`,
             `addonsDir: ${this.options.config?.addonsDir}`,
             `outDir: ${resolvedOutDir}`,
-            `target: ${profileTsConfig.target ?? resolvedTsConfig?.target ?? cliTsConfig?.target ?? 99}`,
+            `target: ${getEffectiveTarget({
+                module: profileTsConfig.module ?? resolvedTsConfig?.module ?? cliTsConfig?.module,
+                target: profileTsConfig.target ?? resolvedTsConfig?.target ?? cliTsConfig?.target,
+            })}`,
             `module: ${profileTsConfig.module ?? resolvedTsConfig?.module ?? cliTsConfig?.module ?? 99}`,
             `strict: ${profileTsConfig.strict ?? resolvedTsConfig?.strict ?? cliTsConfig?.strict ?? true}`,
             `sourceMap: ${profileTsConfig.sourceMap ?? resolvedTsConfig?.sourceMap ?? cliTsConfig?.sourceMap ?? true}`,
@@ -1224,14 +1229,14 @@ export class Compiler {
             // When addonEmitOnly is enabled, detect if transformers changed the output
             // Uses per-file Program comparison (same as Case 3) while returning language service output
             if (this.addonEmitOnly && this.hasRegisteredTransformers(ctx)) {
-                const sourceFile = ts.createSourceFile(fileName, content, compilerOptions.target ?? ts.ScriptTarget.Latest, true);
+                const sourceFile = ts.createSourceFile(fileName, content, getEffectiveTarget(compilerOptions), true);
                 const perFileHost = {
                     ...ts.createCompilerHost(compilerOptions),
                     getSourceFile: (name: string) => {
                         if (name === fileName) {
                             return sourceFile;
                         }
-                        return ts.createCompilerHost(compilerOptions).getSourceFile(name, compilerOptions.target ?? ts.ScriptTarget.Latest);
+                        return ts.createCompilerHost(compilerOptions).getSourceFile(name, getEffectiveTarget(compilerOptions));
                     },
                     writeFile: () => {},
                 };
@@ -1301,7 +1306,7 @@ export class Compiler {
                 fileName,
                 content,
                 {
-                    languageVersion: ctx.getCompilerOptions().target ?? ts.ScriptTarget.Latest,
+                    languageVersion: getEffectiveTarget(ctx.getCompilerOptions()),
                     impliedNodeFormat: this.getImpliedNodeFormat(fileName, ctx.getCompilerOptions()),
                 },
                 true

@@ -142,4 +142,52 @@ describe("checkEsm w/ relative imports", () => {
 
         expect(actual).toEqual([91030]);
     });
+
+    it("yields 91010 w/ extensionless dynamic import in node .cjs output", () => {
+        const actual = codesOf([output("/dist/target.cjs", `import("./b");`), output("/dist/b.js")], { runtime: "node" });
+
+        expect(actual).toEqual([91010]);
+    });
+
+    it("yields 91010 w/ extensionless dynamic import in node .js output under type commonjs", () => {
+        const actual = codesOf(
+            [output("/dist/target.js", `import("./b");`), output("/dist/b.js")],
+            { runtime: "node" },
+            { "/package.json": JSON.stringify({ type: "commonjs" }) }
+        );
+
+        expect(actual).toEqual([91010]);
+    });
+
+    it("yields 91013 w/ bare JSON import in node ESM output", () => {
+        const actual = codesOf([output("/dist/target.js", `import data from "pkg/d.json";`)], { runtime: "node" });
+
+        expect(actual).toEqual([91013]);
+    });
+
+    it("yields 91012 warning w/ check warn and directory without index file in bundler auto output", () => {
+        const actual = checkEsm(
+            [output("/dist/target.js", `import "./dir";`), output("/dist/dir/other.js")],
+            { runtime: "bundler", check: "warn" },
+            {
+                system: createSystem({}, { virtual: true }),
+                reporter: new NoReporter(),
+                projectDir: "/",
+            }
+        ).map(cur => [cur.code, cur.category]);
+
+        expect(actual).toEqual([[91012, ts.DiagnosticCategory.Warning]]);
+    });
+
+    it("yields nothing w/ require of extensionless relative path in node .cjs output", () => {
+        const actual = codesOf([output("/dist/target.cjs", `require("./b");`)], { runtime: "node" });
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ extensionless dynamic import in bundler .cjs output", () => {
+        const actual = codesOf([output("/dist/target.cjs", `import("./b");`), output("/dist/b.js")], { runtime: "bundler" });
+
+        expect(actual).toEqual([]);
+    });
 });
