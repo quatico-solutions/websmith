@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import {
+    ErrorMessage,
     TSC_ARGUMENT_KEYS,
     type CompilationConfig,
     type CompilationProfile,
@@ -180,6 +181,9 @@ export class ResolvedCompilerOptions implements CompilerOptions {
 
         // profiles
         const profileName = loaderOptions?.profile ?? options.profile;
+        if (loaderOptions && "profiles" in loaderOptions) {
+            this.reporter.reportDiagnostic(new ErrorMessage("'profiles' is not a loader option; use 'config.profiles'."));
+        }
         convertProfileEnumOptions(this.config, profileName, this.reporter);
         resolvedOptions.tsConfig = convertEnumOptions(resolvedOptions.tsConfig ?? {}, LOADER_OPTIONS_LOCATION, this.reporter);
         cliArgs.options = convertCliEnumOptions(cliArgs.options ?? {}, tsConfig ?? {}, this.reporter);

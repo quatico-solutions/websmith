@@ -31,15 +31,19 @@ afterEach(() => {
 });
 
 describe("webpack w/ websmith-loader and option names in loader options", () => {
-    it.each([true, false])("should emit ES module code w/ tsConfig module NodeNext and transpileOnly %s", transpileOnly => {
-        writeSourceFile("index.ts", `export const hello: string = "world";\n`, testDirs.SOURCE_DIR);
+    it.each([true, false])(
+        "should emit ES module code w/ tsConfig module NodeNext and transpileOnly %s",
+        transpileOnly => {
+            writeSourceFile("index.ts", `export const hello: string = "world";\n`, testDirs.SOURCE_DIR);
 
-        const actual = runWebpack({ transpileOnly, tsConfig: { module: "NodeNext" } });
+            const actual = runWebpack({ transpileOnly, tsConfig: { module: "NodeNext" } });
 
-        expect(actual.exitCode).toBe(0);
-        expect(actual.emitted).toContain("export const hello");
-        expect(actual.emitted).not.toContain("exports.hello");
-    }, 60000);
+            expect(actual.exitCode).toBe(0);
+            expect(actual.emitted).toContain("export const hello");
+            expect(actual.emitted).not.toContain("exports.hello");
+        },
+        60000
+    );
 
     it("should fail w/ config error once w/ invalid tsConfig module and several modules", () => {
         writeSourceFile("index.ts", `export { hello } from "./hello";\n`, testDirs.SOURCE_DIR);
@@ -49,6 +53,16 @@ describe("webpack w/ websmith-loader and option names in loader options", () => 
 
         expect(actual.exitCode).toBe(1);
         expect(countOf(actual.output, "Invalid 'tsConfig.module' value 'nope' in the loader options")).toBe(1);
+    }, 60000);
+
+    it("should fail w/ config error once w/ top-level profiles", () => {
+        writeSourceFile("index.ts", `export { hello } from "./hello";\n`, testDirs.SOURCE_DIR);
+        writeSourceFile("hello.ts", `export const hello: string = "world";\n`, testDirs.SOURCE_DIR);
+
+        const actual = runWebpack({ transpileOnly: true, profiles: { client: {} } });
+
+        expect(actual.exitCode).toBe(1);
+        expect(countOf(actual.output, "use 'config.profiles'")).toBe(1);
     }, 60000);
 });
 

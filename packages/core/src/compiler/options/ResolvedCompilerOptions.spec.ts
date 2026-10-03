@@ -1454,3 +1454,28 @@ describe("option names", () => {
         expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
 });
+
+describe("profiles loader option", () => {
+    it("should report one error w/ top-level profiles in loader options", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { reporter: target }, { profiles: { client: {} } } as any);
+
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({ messageText: "'profiles' is not a loader option; use 'config.profiles'." })
+        );
+    });
+
+    it("should report nothing w/ config profiles in loader options", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { reporter: target }, { config: { profiles: { client: {} } }, profile: "client" });
+
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
+    });
+});

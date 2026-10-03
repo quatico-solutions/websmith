@@ -79,6 +79,22 @@ describe("createOptions", () => {
         expect(actual.cliArgs?.options.module).toBe("NodeNext");
     });
 
+    it("should return profiles w/ top-level profiles", () => {
+        const target = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
+
+        const actual = createOptions({ tsConfigFile: "./expected/tsconfig.json", profiles: { client: {} } } as never, new NoReporter(), target);
+
+        expect(actual).toHaveProperty("profiles", { client: {} });
+    });
+
+    it("should return no profiles w/o top-level profiles", () => {
+        const target = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
+
+        const actual = createOptions({ tsConfigFile: "./expected/tsconfig.json" }, new NoReporter(), target);
+
+        expect(actual).not.toHaveProperty("profiles");
+    });
+
     it("should return debug path w/ debug true", () => {
         const target = createSystem({ "./tsconfig.json": "{}" }, { virtual: true });
 
