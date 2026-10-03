@@ -100,4 +100,20 @@ describe("getProfileClosure", () => {
 
         expect(actual).toEqual({ profiles: ["b", "a"], missing: ["x", "y"] });
     });
+
+    it("reports inherited property names as missing w/ depends on constructor, toString and __proto__", () => {
+        const config = { profiles: { a: { depends: ["constructor", "toString", "__proto__"] } } };
+
+        const actual = getProfileClosure("a", config, "dependencies-first");
+
+        expect(actual).toEqual({ profiles: ["a"], missing: ["constructor", "toString", "__proto__"] });
+    });
+
+    it("returns empty closure w/ unconfigured target named constructor", () => {
+        const config = { profiles: { a: {} } };
+
+        const actual = getProfileClosure("constructor", config, "dependents-first");
+
+        expect(actual).toEqual({ profiles: [], missing: [] });
+    });
 });
