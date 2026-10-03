@@ -367,7 +367,9 @@ describe("bin.ts e2e tests", () => {
         const actual2 = target.output;
 
         expect(actual1).toBe(1);
-        expect(actual2).toContain(`5057: Cannot find a tsconfig.json file at the specified directory: '${path.join(testDirs.PROJECT_DIR, "emptydir")}'.`);
+        expect(actual2).toContain(
+            `5057: Cannot find a tsconfig.json file at the specified directory: '${path.join(testDirs.PROJECT_DIR, "emptydir")}'.`
+        );
         expect(actual2).not.toContain("5058");
         expect(actual2.split("\n").filter(line => line.includes("Error:"))).toHaveLength(1);
     }, 60000);
@@ -651,6 +653,87 @@ describe("bin.ts e2e tests", () => {
         expect(actual1).toBe(1);
         expect(actual2).toContain(`${metaFile} (1,1): ESM91032`);
         expect(actual2).toContain(`(profile "client", addons: meta-writer).`);
+    }, 60000);
+
+    it("should exit with status 1 and report 91001 once w/ result processor running nested compile through wrapped system in node ESM profile", () => {
+        createEsmProject("error", []);
+        const nestedSource = path.join(testDirs.PROJECT_DIR, "nested", "inner.ts");
+        const nestedOutput = path.join(testDirs.OUTPUT_DIR, "nested");
+        fs.mkdirSync(path.dirname(nestedSource), { recursive: true });
+        fs.writeFileSync(nestedSource, `declare const require: (id: string) => unknown;\nexport const x = require("node:path");\n`, {
+            encoding: "utf-8",
+        });
+        createAddon(
+            "nested-compiler",
+            `const { Compiler } = require("@quatico/websmith-core");
+const ts = require("typescript");
+exports.activate = ctx => ctx.registerResultProcessor((_files, processorCtx) => {
+    const source = processorCtx.getSystem();
+    const system = {};
+    for (const key in source) system[key] = source[key];
+    system.writeFile = (...args) => processorCtx.getSystem().writeFile(...args);
+    new Compiler({
+        reporter: processorCtx.getReporter(),
+        config: { profiles: { nested: { esm: { runtime: "node" } } } },
+        profile: "nested",
+        tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, outDir: ${JSON.stringify(nestedOutput)}, rootDir: ${JSON.stringify(path.dirname(nestedSource))}, types: [] },
+        cliArgs: { fileNames: [${JSON.stringify(nestedSource)}], options: {}, errors: [] },
+    }, {}, system).compile();
+});`
+        );
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    addons: ["nested-compiler"],
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                },
+            },
+        });
+
+        const target = executeCompilerStatus(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.status;
+        const actual2 = target.output.split(/\r?\n/).filter(cur => cur.includes(`${path.join(nestedOutput, "inner.js")} (1,18): ESM91001`));
+
+        expect(actual1).toBe(1);
+        expect(actual2).toEqual([expect.stringContaining(`(source "nested/inner.ts", profile "nested").`)]);
+    }, 60000);
+
+    it("should report 91001 without naming transformer addon w/ transformer only adding synthetic comment in node ESM profile", () => {
+        fs.writeFileSync(path.join(testDirs.OUTPUT_DIR, "package.json"), JSON.stringify({ type: "module" }), { encoding: "utf-8" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", module: "esnext", types: [] });
+        createWebsmithConfig({
+            profiles: {
+                client: {
+                    addons: ["comment-transformer"],
+                    esm: { runtime: "node" },
+                    tsConfig: { outDir: testDirs.OUTPUT_DIR, target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext },
+                },
+            },
+        });
+        createSourceFile(`declare const require: (id: string) => unknown;\nexport const x = require("node:path");\n`, "test.ts");
+        createAddon(
+            "comment-transformer",
+            `const ts = require("typescript");
+exports.activate = ctx => ctx.registerTransformer({
+    before: [() => sourceFile => {
+        sourceFile.statements.forEach(cur => ts.addSyntheticLeadingComment(cur, ts.SyntaxKind.MultiLineCommentTrivia, " banner ", true));
+        return sourceFile;
+    }],
+});`
+        );
+
+        const target = executeCompilerStatus(
+            `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --profile client --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --configFile ${path.join(testDirs.PROJECT_DIR, "websmith.config.json")}`
+        );
+        const actual1 = target.output;
+        const actual2 = getOutput("test.js");
+
+        expect(actual1).toContain(`${path.join(testDirs.OUTPUT_DIR, "test.js")} (2,18): ESM91001`);
+        expect(actual1).not.toContain("addons: comment-transformer");
+        expect(actual2).toContain("/* banner */");
     }, 60000);
 
     it("should exit with status 1 and report only the config error w/ node ESM profile and CommonJS profile module", () => {

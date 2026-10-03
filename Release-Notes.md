@@ -80,6 +80,9 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   longer get 91012; an encoded `/` or `\` (`%2F`, `%5C`) still does. Under `bundler`, the specifier as written wins
   when it names an existing file, otherwise the query and fragment are dropped, and nothing is decoded. The fix hints
   of 91010 and 91011 keep the query after the path (`./b.js?v=1`).
+- A file that a nested websmith compile, run by a result processor through `ctx.getSystem()`, writes and checks is
+  checked once instead of twice, also when the nested compile gets a copy of that system or uses another copy of
+  `@quatico/websmith-core`. Its findings name the nested profile's addons only.
 
 ### Removed
 

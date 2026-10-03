@@ -27,6 +27,7 @@ import { CompilationContext } from "./compilation";
 import { getEffectiveTarget, scriptTargetToString, TS_ERROR_CODE_INVALID_OPTION_VALUE } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import { checkEsm, createCjsNamesCache, getEmittedModuleKind, isEsmModuleKind, type EsmCheckContext } from "./esm";
+import { collectEsmChecks, recordEsmCheck } from "./esm-check-registry";
 import { arrayMerge, resolveCompilerOptions, type ResolvedCompilerOptions } from "./options";
 
 export type CompileFragment = {
@@ -746,19 +747,36 @@ export class Compiler {
             );
             let resultProcessorAddon: string | undefined;
             // Result processors write through the context's system; files they write with fs directly are invisible here
-            ctx.observeWrites(
-                (name, text) => {
-                    const key = this.system.resolvePath(name);
-                    const previous = outputs.get(key);
-                    const changed = previous?.files[0].text !== text;
-                    const addons = [...(previous?.addons ?? []), ...(changed && resultProcessorAddon ? [resultProcessorAddon] : [])];
-                    // A file the result processor creates has no source; one it rewrites keeps the source it was emitted from
-                    outputs.set(key, { files: [{ name, text, writeByteOrderMark: false }], addons: [...new Set(addons)], source: previous?.source });
-                },
-                () => runResultProcessors(cur => (resultProcessorAddon = ctx.findAddonName(cur)))
+            const nestedChecks = collectEsmChecks(() =>
+                ctx.observeWrites(
+                    (name, text) => {
+                        const key = this.system.resolvePath(name);
+                        const previous = outputs.get(key);
+                        const changed = previous?.files[0].text !== text;
+                        const addons = [...(previous?.addons ?? []), ...(changed && resultProcessorAddon ? [resultProcessorAddon] : [])];
+                        // A file the result processor creates has no source; one it rewrites keeps the source it was emitted from
+                        outputs.set(key, {
+                            files: [{ name, text, writeByteOrderMark: false }],
+                            addons: [...new Set(addons)],
+                            source: previous?.source,
+                        });
+                    },
+                    () => runResultProcessors(cur => (resultProcessorAddon = ctx.findAddonName(cur)))
+                )
             );
+            // A nested compile run by a result processor checked the files it wrote; one rewritten since is checked again
+            const checked = new Set(nestedChecks.map(cur => `${cur.path}\0${cur.text}`));
+            const unchecked = [...outputs.entries()].filter(([key, { files: outputFiles }]) => !checked.has(`${key}\0${outputFiles[0].text}`));
             // Diagnostics carry the emitted file as location, so report() keeps them on the Program path too
-            result.diagnostics = [...result.diagnostics, ...this.checkEsmOutput(esm, profile, ctx, [...outputs.values()])];
+            result.diagnostics = [
+                ...result.diagnostics,
+                ...this.checkEsmOutput(
+                    esm,
+                    profile,
+                    ctx,
+                    unchecked.map(([, cur]) => cur)
+                ),
+            ];
         } else {
             runResultProcessors();
         }
@@ -840,6 +858,9 @@ export class Compiler {
     ): ts.Diagnostic[] {
         const groups = new Map<string, { files: ts.OutputFile[]; addons: string[]; sources: Map<string, string> }>();
         outputs.forEach(({ files, addons, source }) => {
+            // Inside a result processor's window, so the compile that ran this one as a nested compile does not check
+            // them again; files esm.ignore skips are recorded too
+            files.forEach(cur => recordEsmCheck({ path: this.system.resolvePath(cur.name), text: cur.text }));
             const key = addons.join("\n");
             const group = groups.get(key) ?? { files: [], addons, sources: new Map<string, string>() };
             group.files.push(...files);

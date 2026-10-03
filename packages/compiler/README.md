@@ -275,13 +275,19 @@ added the file through `addInputFile` or `addVirtualFile`, or one of its transfo
 it received. A generator is named on the file it adds, not on the file it was processing. Only the latest build of a
 file counts, so a watch rebuild no longer names an addon that changed an earlier version. A diagnostic that names no
 addon points at a construct from your own source. A transformer that rebuilds nodes without a real change is named
-too; one that only mutates nodes in place is not.
+too. A transformer that only edits nodes in place (comments, emit flags) is not named; such an edit cannot introduce an
+ESM finding.
 
-The check runs in `websmith` builds and in watch mode, where every rebuilt file is checked and reported without
-stopping the watcher. It also checks the JavaScript files that result processors write through
-`ctx.getSystem().writeFile` and names the result processor's addon. A result processor that rewrites an emitted file
-is checked once, on the final content, and is named only if it changed the content. Files that addons write with `fs`
-or another file system API directly are not visible to websmith and are not checked. The webpack loader runs the check
+The check runs in `websmith` builds and in watch mode, where every rebuilt file is checked and reported without stopping
+the watcher. It also checks the JavaScript files that result processors write through `ctx.getSystem().writeFile` and
+names the result processor's addon. A result processor that rewrites an emitted file is checked once, on the final
+content, and is named only if it changed the content. A nested websmith compile that a result processor runs through
+`ctx.getSystem()`, directly or through a copy of it, is checked once, by the nested compile, and its findings name the
+nested profile's addons only, not the result processor's addon. They fail the outer build only when the nested compile
+reports to `ctx.getReporter()`. This also holds when the nested compile uses another copy of `@quatico/websmith-core` in
+the same process. A file the nested compile writes without checking it (its profile has no `esm`), or one the result
+processor rewrites afterwards, is checked by the outer compile. Files that addons write with `fs` or another file system
+API directly are not visible to websmith and are not checked. The webpack loader runs the check
 on the modules it compiles, see
 [ESM check in websmith-loader](https://github.com/quatico-solutions/websmith/tree/develop/packages/webpack/README.md#esm-check).
 
