@@ -66,9 +66,14 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   instance instead of once per module, and again only when one of these files changes. The gain shows in large builds,
   not in builds of a few dozen modules.
 - The webpack loader loads and activates addons once per loader instance: an addon instance is reused for every module
-  of a compilation and across watch rebuilds, and an edited addon is loaded again on the next rebuild. Addons must not
-  rely on being activated again for each module; see "Option resolution and addon lifetime" in
-  `packages/webpack/README.md`.
+  of a compilation and across watch rebuilds, and an edited addon is loaded again on the next rebuild, also under
+  `thread-loader`. Before, the loader loaded the addon modules again for every module but kept their first
+  activation, so an edited addon was not picked up under watch. Addons must not rely on being activated again for
+  each module; see "Option resolution and addon lifetime" in `packages/webpack/README.md`.
+- The webpack loader fails the build with `Profile '<name>' sets 'esm', but ...` when a profile sets `esm` and gets a
+  module format that is not ESM from `tsconfig.json`, a dependent profile or an unset `module`. Before, the loader
+  skipped the ESM check of that profile without a message and the build passed, so such builds now fail. Use an ES
+  module format such as `"ESNext"` or `"NodeNext"`, or remove `esm` from the profile.
 - A malformed `websmith.config.json` passed with `--configFile` is reported as a configuration error that names the
   absolute file path and the position (`Invalid JSON in configuration file "<path>" (line 1, column 9): Unexpected
   token ,.`), with exit code 1, instead of a `SyntaxError` stack trace. The webpack loader reports it the same way.
