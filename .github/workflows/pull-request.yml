@@ -48,7 +48,7 @@ jobs:
             - name: install with typescript override
               if: ${{ matrix.advisory }}
               run: |
-                  pnpm pkg set pnpm.overrides.typescript=${{ matrix.typescript }}
+                  pnpm pkg set pnpm.overrides.typescript=6.0.2
                   pnpm install --no-frozen-lockfile
 
             - name: assert typescript version
