@@ -7,7 +7,7 @@
 import type ts from "typescript";
 import { type TscCliArguments } from "./TscArguments";
 import { type Reporter } from "./addons";
-import { type CompilationConfig, type CompilationProfile } from "./config";
+import { type CompilationConfig } from "./config";
 
 /**
  * Array of all TypeScript compiler option keys.
@@ -201,7 +201,6 @@ export const LOADER_OPTIONS_KEYS: (keyof LoaderOptions)[] = [
     "debug",
     "instanceName",
     "profile",
-    "profiles",
     "transpileOnly",
     "tsConfig",
     "tsConfigFile",
@@ -227,7 +226,6 @@ export type LoaderOptions = {
     debug?: boolean;
     instanceName?: string;
     profile?: string;
-    profiles?: Record<string, CompilationProfile>;
     transpileOnly?: boolean;
     tsConfig?: ts.CompilerOptions;
     tsConfigFile?: string;

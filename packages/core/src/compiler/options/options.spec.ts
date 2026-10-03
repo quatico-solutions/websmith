@@ -278,12 +278,6 @@ describe("createOptions", () => {
             const target = createSystem({}, { virtual: true });
             const loaderArgs: LoaderOptions = {
                 instanceName: "test-loader",
-                profiles: {
-                    dev: {
-                        addons: ["test-addon"],
-                        tsConfig: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.CommonJS, strict: false, noEmit: false },
-                    },
-                },
                 tsConfig: { strict: true, noEmit: true },
             };
 
@@ -292,12 +286,6 @@ describe("createOptions", () => {
             // Loader-specific properties are passed through the system
             expect(actual).toMatchObject({
                 instanceName: "test-loader",
-                profiles: {
-                    dev: {
-                        addons: ["test-addon"],
-                        tsConfig: { target: ts.ScriptTarget.ES2021, module: ts.ModuleKind.CommonJS, strict: false, noEmit: false },
-                    },
-                },
                 tsConfig: { strict: true, noEmit: true },
             });
         });
@@ -322,7 +310,6 @@ describe("createOptions", () => {
 
                 // LoaderOptions
                 instanceName: "main-loader",
-                profiles: { prod: { addons: ["prod-addon"] } },
             };
 
             const actual = createOptions(combinedArgs, new NoReporter(), target);

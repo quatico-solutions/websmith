@@ -63,11 +63,11 @@ describe("CompilerArguments", () => {
         it("should contain loader-specific options", () => {
             expect(LOADER_OPTIONS_KEYS).toContain("instanceName");
             expect(LOADER_OPTIONS_KEYS).toContain("tsConfigFile");
-            expect(LOADER_OPTIONS_KEYS).toContain("profiles");
+            expect(LOADER_OPTIONS_KEYS).not.toContain("profiles");
         });
 
-        it("should have exactly 9 options", () => {
-            expect(LOADER_OPTIONS_KEYS).toHaveLength(9);
+        it("should have exactly 8 options", () => {
+            expect(LOADER_OPTIONS_KEYS).toHaveLength(8);
         });
     });
 
@@ -82,7 +82,7 @@ describe("CompilerArguments", () => {
             }
 
             // The actual length should be the unique keys length
-            expect(COMPILER_ARGUMENT_KEYS).toHaveLength(149);
+            expect(COMPILER_ARGUMENT_KEYS).toHaveLength(148);
         });
 
         it("should contain keys from all categories", () => {
@@ -96,7 +96,6 @@ describe("CompilerArguments", () => {
 
             // Loader keys
             expect(COMPILER_ARGUMENT_KEYS).toContain("instanceName");
-            expect(COMPILER_ARGUMENT_KEYS).toContain("profiles");
         });
     });
 
