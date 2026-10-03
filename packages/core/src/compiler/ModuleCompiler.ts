@@ -328,7 +328,11 @@ export class ModuleCompiler extends Compiler {
         }
 
         // Apply addon transformations BEFORE compilation to register transformers
-        this.applyAddons(filePath);
+        try {
+            this.applyAddons(filePath);
+        } catch (error) {
+            diagnostics.push(new ErrorMessage(`Addon processing failed: ${error instanceof Error ? error.message : String(error)}`));
+        }
 
         // Transpile source file with webpack target but do not write the file, i.e. file is written by webpack
         this.logDebug(`Emitting source file: ${filePath} with profile: ${this.profile || "default"}`);
@@ -346,8 +350,25 @@ export class ModuleCompiler extends Compiler {
     }
 
     /**
-     * The host's addon step: applies the host's own addons to `filePath` before the target profile emits it. Without an
-     * override, the addons of the `AddonRegistry` apply.
+     * Runs the result processors of the host's profile once with `files`, e.g. the files the host wrote. Returns the
+     * errors of processors that throw as error diagnostics; the processors after them still run.
+     */
+    public runResultProcessors(files: string[]): ts.Diagnostic[] {
+        const ctx = this.getContext(this.profile);
+        const diagnostics: ts.Diagnostic[] = [];
+        ctx?.getResultProcessors().forEach(cur => {
+            try {
+                cur(files, ctx);
+            } catch (err) {
+                diagnostics.push(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
+            }
+        });
+        return diagnostics;
+    }
+
+    /**
+     * The host's addon step: applies the host's own addons to `filePath` before the target profile emits it. A throw is
+     * an error diagnostic of the build. Without an override, the addons of the `AddonRegistry` apply.
      */
     protected applyAddons(_filePath: string): void {
         // The registry's addons are activated with the compilation contexts
