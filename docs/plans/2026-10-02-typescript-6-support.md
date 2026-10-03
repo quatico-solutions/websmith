@@ -21,6 +21,7 @@
 - **Rounds:** 1
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #144 merged
 - **Started:** 2026-10-02, Jan Wloka, `infra/typescript-6-toolchain`
+- **Started:** 2026-10-03, Jan Wloka, `infra/typescript-6-ci-leg`
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
