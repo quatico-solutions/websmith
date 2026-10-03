@@ -20,6 +20,8 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
         const compilationQueueContributor = context.queue.contribute();
         compiler.hooks.beforeRun.tap(LOADER_NAME, () => {
             compilationQueueContributor.inProgress();
+            // A repeated run() reports no modified files, so the modification times of the options files tell a change
+            context.websmithCompiler?.refreshOptions(context.loadOptions);
         });
         compiler.hooks.watchRun.tap(LOADER_NAME, () => {
             compilationQueueContributor.inProgress();

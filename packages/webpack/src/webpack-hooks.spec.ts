@@ -192,6 +192,31 @@ describe("webpack-hooks", () => {
             expect(actual).toBe(1);
         });
 
+        it("should resolve options of websmith compiler again w/ changed modification time of tsconfig.json before run", () => {
+            const websmithCompiler = createOptionsCompiler();
+            const target = jest.spyOn(websmithCompiler, "setOptions");
+            addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler, loadOptions: () => OPTIONS_LOADER_CONFIG });
+            const [[, onBeforeRun]] = jest.mocked(mockCompiler.hooks.beforeRun.tap).mock.calls as unknown as [[string, () => void]];
+            jest.spyOn(websmithCompiler.getSystem(), "getModifiedTime").mockReturnValue(new Date(Date.now() + 10000));
+
+            onBeforeRun();
+            const actual = target.mock.calls.length;
+
+            expect(actual).toBe(1);
+        });
+
+        it("should keep options of websmith compiler w/ unchanged options files before run", () => {
+            const websmithCompiler = createOptionsCompiler();
+            const target = jest.spyOn(websmithCompiler, "setOptions");
+            addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler, loadOptions: () => OPTIONS_LOADER_CONFIG });
+            const [[, onBeforeRun]] = jest.mocked(mockCompiler.hooks.beforeRun.tap).mock.calls as unknown as [[string, () => void]];
+
+            onBeforeRun();
+            const actual = target.mock.calls.length;
+
+            expect(actual).toBe(0);
+        });
+
         it("should keep options of websmith compiler w/ modified unrelated file in watch run", () => {
             const websmithCompiler = createOptionsCompiler();
             const target = jest.spyOn(websmithCompiler, "setOptions");

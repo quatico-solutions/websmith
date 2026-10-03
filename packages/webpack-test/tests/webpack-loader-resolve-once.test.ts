@@ -25,6 +25,8 @@ type RunOptions = {
     outputs: string[];
     /** Files to write after each watch build, relative to the project; runs webpack once when absent. */
     steps?: Record<string, string>[];
+    /** Files to write before each further run() of the same compiler, without watch, relative to the project. */
+    reruns?: Record<string, string>[];
 };
 
 beforeEach(() => {
@@ -146,6 +148,22 @@ describe("webpack w/ websmith-loader under watch", () => {
             ["second", "marker-transformed"],
         ]);
     }, 90000);
+});
+
+describe("webpack w/ websmith-loader and repeated runs", () => {
+    it("emits output of edited tsconfig.json w/ second run of the same compiler", () => {
+        writeTsConfig({ removeComments: false });
+        writeSourceFile("websmith.config.json", JSON.stringify({}), projectDir);
+        writeSourceFile("src/a.ts", COMMENTED_SOURCE, projectDir);
+
+        const actual = runWebpack({
+            config: singleRule(),
+            outputs: ["dist/main.js"],
+            reruns: [{ "tsconfig.json": tsConfig({ removeComments: true }) }],
+        }).map(cur => cur.outputs["dist/main.js"].includes("comment-marker"));
+
+        expect(actual).toEqual([true, false]);
+    }, 60000);
 });
 
 describe("webpack w/ websmith-loader and several instances", () => {
@@ -286,7 +304,7 @@ const readCounterLog = () => {
     return { load: lines.filter(cur => cur === "load").length, activate: lines.filter(cur => cur === "activate").length };
 };
 
-const runWebpack = ({ config, outputs, steps }: RunOptions): BuildReport[] => {
+const runWebpack = ({ config, outputs, steps, reruns }: RunOptions): BuildReport[] => {
     const script = `
         const fs = require("node:fs");
         const path = require("node:path");
@@ -300,6 +318,7 @@ const runWebpack = ({ config, outputs, steps }: RunOptions): BuildReport[] => {
             profile,
         });
         const steps = ${JSON.stringify(steps ?? null)};
+        const reruns = ${JSON.stringify(reruns ?? [])};
         const outputs = ${JSON.stringify(outputs)};
         const compiler = webpack(${config});
         const report = stats => {
@@ -311,15 +330,25 @@ const runWebpack = ({ config, outputs, steps }: RunOptions): BuildReport[] => {
             console.log("RESULT " + JSON.stringify({ errors, outputs: Object.fromEntries(outputs.map(cur => [cur, read(cur)])) }));
         };
         if (!steps) {
-            compiler.run((err, stats) => {
+            let run = 0;
+            const onRun = (err, stats) => {
                 if (err) {
                     console.error(err);
                     process.exitCode = 2;
-                } else {
-                    report(stats);
+                    return compiler.close(() => undefined);
                 }
-                compiler.close(() => undefined);
-            });
+                report(stats);
+                const files = reruns[run++];
+                if (!files) {
+                    return compiler.close(() => undefined);
+                }
+                // A later modification time than the previous run's
+                setTimeout(() => {
+                    Object.entries(files).forEach(([fileName, content]) => fs.writeFileSync(path.join(projectDir, fileName), content));
+                    compiler.run(onRun);
+                }, 1000);
+            };
+            compiler.run(onRun);
         } else {
             let step = 0;
             let watchdog;
@@ -355,13 +384,14 @@ const runWebpack = ({ config, outputs, steps }: RunOptions): BuildReport[] => {
     const scriptPath = path.join(projectDir, "run-webpack.cjs");
     fs.writeFileSync(scriptPath, script, { encoding: "utf-8" });
 
-    const result = spawnSync(process.execPath, [scriptPath], { cwd: projectDir, encoding: "utf-8", timeout: (steps?.length ?? 1) * 26000 + 15000 });
+    const builds = (steps ?? reruns ?? []).length + 1;
+    const result = spawnSync(process.execPath, [scriptPath], { cwd: projectDir, encoding: "utf-8", timeout: builds * 26000 + 15000 });
     const reports = result.stdout
         .split("\n")
         .filter(cur => cur.startsWith("RESULT "))
         .map(cur => JSON.parse(cur.slice("RESULT ".length)) as BuildReport);
-    if (reports.length !== (steps ? steps.length + 1 : 1)) {
-        throw new Error(`webpack reported ${reports.length} builds, expected ${steps ? steps.length + 1 : 1}: ${result.stdout}${result.stderr}`);
+    if (reports.length !== builds) {
+        throw new Error(`webpack reported ${reports.length} builds, expected ${builds}: ${result.stdout}${result.stderr}`);
     }
     return reports;
 };
