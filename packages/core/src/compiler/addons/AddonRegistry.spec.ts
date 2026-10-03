@@ -1208,10 +1208,12 @@ describe("shouldProcessFile loading", () => {
         const activateFn = jest.fn();
         const shouldProcessFileFn = jest.fn(() => true);
 
-        createAddon("addons/full-featured/addon", system, "export const activate = () => {}; export const shouldProcessFile = () => true;", {
-            activate: activateFn,
-            shouldProcessFile: shouldProcessFileFn,
-        });
+        createAddon(
+            "addons/full-featured/addon",
+            system,
+            "export const activate = () => {}; export const shouldProcessFile = () => true;",
+            { activate: activateFn, shouldProcessFile: shouldProcessFileFn }
+        );
 
         const testObj = new AddonRegistry({
             addonsDir: "./addons",
@@ -1233,10 +1235,12 @@ describe("shouldProcessFile loading", () => {
     it("should not copy shouldProcessFile if it's not a function", () => {
         const system = createSystem({}, { virtual: true });
 
-        createAddon("addons/invalid-filter/addon", system, "export const activate = () => {}; export const shouldProcessFile = 'not a function';", {
-            activate: jest.fn(),
-            shouldProcessFile: "not a function",
-        });
+        createAddon(
+            "addons/invalid-filter/addon",
+            system,
+            "export const activate = () => {}; export const shouldProcessFile = 'not a function';",
+            { activate: jest.fn(), shouldProcessFile: "not a function" }
+        );
 
         const testObj = new AddonRegistry({
             addonsDir: "./addons",

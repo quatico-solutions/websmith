@@ -368,7 +368,7 @@ describe("WebpackAddonService", () => {
 
             // @ts-expect-error - getActiveAddons is private
             testObj.getActiveAddons("a");
-            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+            const actual = reporterSpy.mock.calls.map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").split("\n")[0]);
 
             expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "b1", "c1", "d1"']);
         });
@@ -390,7 +390,7 @@ describe("WebpackAddonService", () => {
 
             // @ts-expect-error - getActiveAddons is private
             testObj.getActiveAddons("a");
-            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+            const actual = reporterSpy.mock.calls.map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").split("\n")[0]);
 
             expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "b1", "d1", "c1"']);
         });
@@ -412,7 +412,7 @@ describe("WebpackAddonService", () => {
 
             // @ts-expect-error - getActiveAddons is private
             testObj.getActiveAddons("a");
-            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+            const actual = reporterSpy.mock.calls.map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").split("\n")[0]);
 
             expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "b1", "d1", "c1"']);
         });
@@ -429,7 +429,7 @@ describe("WebpackAddonService", () => {
 
             // @ts-expect-error - getActiveAddons is private
             testObj.getActiveAddons("a");
-            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+            const actual = reporterSpy.mock.calls.map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").split("\n")[0]);
 
             expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "b1"']);
         });
@@ -446,7 +446,7 @@ describe("WebpackAddonService", () => {
 
             // @ts-expect-error - getActiveAddons is private
             testObj.getActiveAddons("a");
-            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+            const actual = reporterSpy.mock.calls.map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").split("\n")[0]);
 
             expect(actual).toEqual(['Missing addons for profile "a": "base", "a1"']);
         });
@@ -463,7 +463,7 @@ describe("WebpackAddonService", () => {
 
             // @ts-expect-error - getActiveAddons is private
             testObj.getActiveAddons("a");
-            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+            const actual = reporterSpy.mock.calls.map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").split("\n")[0]);
 
             expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "b1"']);
         });
@@ -480,7 +480,7 @@ describe("WebpackAddonService", () => {
 
             // @ts-expect-error - getActiveAddons is private
             testObj.getActiveAddons("a");
-            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+            const actual = reporterSpy.mock.calls.map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").split("\n")[0]);
 
             expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "shared", "b1", "c1"']);
         });
@@ -497,7 +497,7 @@ describe("WebpackAddonService", () => {
 
             // @ts-expect-error - getActiveAddons is private
             testObj.getActiveAddons("unknown");
-            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+            const actual = reporterSpy.mock.calls.map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").split("\n")[0]);
 
             expect(actual).toEqual(['Missing addons for profile "unknown": "base"']);
         });
