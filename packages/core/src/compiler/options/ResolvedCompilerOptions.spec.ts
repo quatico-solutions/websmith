@@ -1007,7 +1007,7 @@ describe("getSelectedProfiles w/ depends graphs", () => {
         expect(actual).toEqual(["d", "b", "c", "a"]);
     });
 
-    it("should yield third level before second level w/ three-level chain", () => {
+    it("should yield dependencies before dependents w/ three-level chain", () => {
         const fileSystem = createSystem({}, { virtual: true });
         const testObj = new ResolvedCompilerOptions(fileSystem, {
             config: { profiles: { a: { depends: ["b"] }, b: { depends: ["c"] }, c: { depends: ["d"] }, d: {} } },
@@ -1015,10 +1015,10 @@ describe("getSelectedProfiles w/ depends graphs", () => {
 
         const actual = testObj.getSelectedProfiles("a");
 
-        expect(actual).toEqual(["c", "d", "b", "a"]);
+        expect(actual).toEqual(["d", "c", "b", "a"]);
     });
 
-    it("should yield shared dependency after first dependent w/ diamond", () => {
+    it("should yield shared dependency once before its dependents w/ diamond", () => {
         const fileSystem = createSystem({}, { virtual: true });
         const testObj = new ResolvedCompilerOptions(fileSystem, {
             config: { profiles: { a: { depends: ["b", "c"] }, b: { depends: ["d"] }, c: { depends: ["d"] }, d: {} } },
@@ -1026,30 +1026,30 @@ describe("getSelectedProfiles w/ depends graphs", () => {
 
         const actual = testObj.getSelectedProfiles("a");
 
-        expect(actual).toEqual(["b", "d", "c", "a"]);
+        expect(actual).toEqual(["d", "b", "c", "a"]);
     });
 
-    it("should throw RangeError w/ depends cycle", () => {
+    it("should yield each profile once w/ depends cycle", () => {
         const fileSystem = createSystem({}, { virtual: true });
         const testObj = new ResolvedCompilerOptions(fileSystem, { config: { profiles: { a: { depends: ["b"] }, b: { depends: ["a"] } } } });
 
-        const actual = () => testObj.getSelectedProfiles("a");
+        const actual = testObj.getSelectedProfiles("a");
 
-        expect(actual).toThrow(RangeError);
+        expect(actual).toEqual(["b", "a"]);
     });
 
-    it("should throw RangeError w/ self-dependency", () => {
+    it("should yield profile once w/ self-dependency", () => {
         const fileSystem = createSystem({}, { virtual: true });
         const testObj = new ResolvedCompilerOptions(fileSystem, { config: { profiles: { a: { depends: ["a"] } } } });
 
-        const actual = () => testObj.getSelectedProfiles("a");
+        const actual = testObj.getSelectedProfiles("a");
 
-        expect(actual).toThrow(RangeError);
+        expect(actual).toEqual(["a"]);
     });
 });
 
 describe("getOptions w/ depends graphs", () => {
-    it("should merge tsConfig of third level last w/ three-level chain", () => {
+    it("should merge tsConfig of second level after third level w/ three-level chain", () => {
         const fileSystem = createSystem({}, { virtual: true });
         const testObj = new ResolvedCompilerOptions(fileSystem, {
             config: {
@@ -1064,10 +1064,10 @@ describe("getOptions w/ depends graphs", () => {
 
         const actual = testObj.getOptions("a").tsConfig?.target;
 
-        expect(actual).toBe(ts.ScriptTarget.ES2022);
+        expect(actual).toBe(ts.ScriptTarget.ES2020);
     });
 
-    it("should merge tsConfig of shared dependency last w/ diamond", () => {
+    it("should merge tsConfig of dependent after shared dependency w/ diamond", () => {
         const fileSystem = createSystem({}, { virtual: true });
         const testObj = new ResolvedCompilerOptions(fileSystem, {
             config: {
@@ -1082,7 +1082,7 @@ describe("getOptions w/ depends graphs", () => {
 
         const actual = testObj.getOptions("a").tsConfig?.target;
 
-        expect(actual).toBe(ts.ScriptTarget.ES2022);
+        expect(actual).toBe(ts.ScriptTarget.ES2020);
     });
 
     it("should merge tsConfig of dependency first w/ one level of depends", () => {
@@ -1101,13 +1101,20 @@ describe("getOptions w/ depends graphs", () => {
         expect(actual).toBe(ts.ScriptTarget.ES2020);
     });
 
-    it("should throw RangeError w/ depends cycle", () => {
+    it("should merge tsConfig of target last w/ depends cycle", () => {
         const fileSystem = createSystem({}, { virtual: true });
-        const testObj = new ResolvedCompilerOptions(fileSystem, { config: { profiles: { a: { depends: ["b"] }, b: { depends: ["a"] } } } });
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    a: { depends: ["b"], tsConfig: { target: ts.ScriptTarget.ES2020 } },
+                    b: { depends: ["a"], tsConfig: { target: ts.ScriptTarget.ES2022 } },
+                },
+            },
+        });
 
-        const actual = () => testObj.getOptions("a");
+        const actual = testObj.getOptions("a").tsConfig?.target;
 
-        expect(actual).toThrow(RangeError);
+        expect(actual).toBe(ts.ScriptTarget.ES2020);
     });
 });
 

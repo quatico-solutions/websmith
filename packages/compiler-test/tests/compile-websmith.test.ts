@@ -499,6 +499,37 @@ describe("compile w/ websmith", () => {
         expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
     }, 60000);
 
+    it("should transform foobar functions with named profile and addonsDir, depends cycle in config-file", async () => {
+        writeWebsmithConfig({
+            addonsDir: path.relative(testDirs.PROJECT_DIR, ADDONS_DIR),
+            profiles: {
+                "profile-transform": {
+                    depends: ["profile-process"],
+                    addons: ["foobar-replace-transformer"],
+                },
+                "profile-process": {
+                    depends: ["profile-transform"],
+                    addons: ["export-yaml-generator"],
+                },
+            },
+        });
+
+        await compile([path.join(testDirs.SOURCE_DIR, "foobar-function.ts")], {
+            tsConfig: { ...tsDefaults },
+            websmith: {
+                profile: "profile-process",
+                configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
+                tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                config: {
+                    addonsDir: ADDONS_DIR,
+                },
+            },
+        });
+
+        expect(getOutput("foobar-function.js")).toContain("function barfoo");
+        expect(getOutput("output.yaml")).toContain("exports: [getFoobar]");
+    }, 60000);
+
     it("should transform foobar functions with named profile and addonsDir, chained addons in config-file", async () => {
         writeWebsmithConfig({
             addonsDir: path.relative(testDirs.PROJECT_DIR, ADDONS_DIR),
