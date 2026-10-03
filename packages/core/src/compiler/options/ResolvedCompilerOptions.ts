@@ -106,6 +106,8 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly additionalArguments?: Record<string, unknown>;
     /** Instance name for webpack loader. */
     public readonly instanceName?: string;
+    /** Profiles configuration from loader options. */
+    public readonly profiles?: Record<string, CompilationProfile>;
 
     constructor(
         private system: ts.System,
@@ -161,6 +163,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         this.additionalArguments = options.additionalArguments;
         // Set loader-specific properties from resolvedOptions (which contains merged options)
         this.instanceName = (resolvedOptions as { instanceName?: string }).instanceName;
+        this.profiles = (resolvedOptions as { profiles?: Record<string, CompilationProfile> }).profiles;
 
         // Resolve paths according to the defined rules
         const resolvedPaths = resolvePathsWithRules(this.system, { tsConfigFile, configFile });

@@ -28,7 +28,7 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
     const { project = tsConfigFile || "./tsconfig.json", sourceMap = false } = args;
 
     // Extract LoaderOptions
-    const { config, instanceName, tsConfig } = args;
+    const { config, instanceName, profiles, tsConfig } = args;
 
     const cliArgs = parsedCommandLine(project, args, system);
     return resolveCompilerOptions(system, {
@@ -58,5 +58,6 @@ export const createOptions = (args: CompilerArguments, reporter = new NoReporter
         },
         // Include additional properties that might be used by the compiler
         ...(instanceName && { instanceName }),
+        ...(profiles && { profiles }),
     });
 };
