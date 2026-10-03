@@ -134,6 +134,10 @@ describe("webpack w/ ts-loader", () => {
         await webpack([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
             webpack: {
                 ...webpackDefaults,
+                output: {
+                    ...webpackDefaults.output,
+                    module: true,
+                },
                 experiments: {
                     outputModule: true,
                 },

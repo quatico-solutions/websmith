@@ -155,45 +155,18 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
         // For webpack e2e tests, we're testing the loader integration
         // The output will be bundled but should contain our transpiled code
         expect(getOutput("foobar-arrow.js")).toMatchInlineSnapshot(`
-            "/******/ // The require scope
-            /******/ var __webpack_require__ = {};
-            /******/ 
-            /************************************************************************/
-            /******/ /* webpack/runtime/define property getters */
-            /******/ (() => {
-            /******/ 	// define getter functions for harmony exports
-            /******/ 	__webpack_require__.d = (exports, definition) => {
-            /******/ 		for(var key in definition) {
-            /******/ 			if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            /******/ 				Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-            /******/ 			}
-            /******/ 		}
-            /******/ 	};
-            /******/ })();
-            /******/ 
-            /******/ /* webpack/runtime/hasOwnProperty shorthand */
-            /******/ (() => {
-            /******/ 	__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
-            /******/ })();
-            /******/ 
-            /************************************************************************/
-            var __webpack_exports__ = {};
-            /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-            /* harmony export */   y: () => (/* binding */ getFoobar)
-            /* harmony export */ });
-            // @annotated()
-            const getFoobar = (date) => {
-                return foobar(date);
-            };
-            const foobar = (date) => {
-                return \`foobar \${date.toISOString()}\`;
-            };
+"// @annotated()
+const getFoobar = (date) => {
+    return foobar(date);
+};
+const foobar = (date) => {
+    return \`foobar \${date.toISOString()}\`;
+};
 
-            var __webpack_exports__getFoobar = __webpack_exports__.y;
-            export { __webpack_exports__getFoobar as getFoobar };
+export { getFoobar };
 
-            //# sourceMappingURL=foobar-arrow.js.map"
-        `);
+//# sourceMappingURL=foobar-arrow.js.map"
+`);
         expect(getOutput("foobar-arrow.d.ts")).toMatchInlineSnapshot(`
             "export declare const getFoobar: (date: Date) => string;
             //# sourceMappingURL=foobar-arrow.d.ts.map"

@@ -157,7 +157,7 @@ seven months.
 
 ### Transitive packages
 
-- `infra/fix-transitive-alerts` — the remediation ladder for every remaining critical and high alert after #139 merges: lockfile refresh, parent bumps (webpack `^5.104.1`, closing #108), range-scoped overrides with GHSA comments last; lockfile regenerated with pnpm 9. The PR lists each alert with its mechanism. Test: Definition of Done green; `pnpm audit --audit-level=high` reports no critical or high; after merge, the alert API shows no open critical or high on `develop` <!-- builds: lockfile refresh and range-scoped pnpm.overrides -->
+- `infra/fix-transitive-alerts` — the remediation ladder for every remaining critical and high alert after #139 merges: lockfile refresh, parent bumps (webpack `^5.104.1`, closing #108), range-scoped overrides with GHSA comments last; lockfile regenerated with pnpm 9. The PR lists each alert with its mechanism. Test: Definition of Done green; `pnpm audit --audit-level=high` reports no critical or high; after merge, the alert API shows no open critical or high on `develop` → #175 <!-- builds: lockfile refresh and range-scoped pnpm.overrides -->
 
 ## Notes
 

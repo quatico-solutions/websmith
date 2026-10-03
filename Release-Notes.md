@@ -131,6 +131,7 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   longer install `sha.js` and `cipher-base` (two critical advisories) through websmith.
 - `@quatico/websmith-core` and `@quatico/websmith-node` require `lodash ^4.18.1` (was `^4.17.21`, which admits
   versions with a high advisory).
+- Development dependencies updated (nx 22, vulnerable transitives); no change to the published packages' behaviour.
 
 ## [0.10.0] - 2026-10-02
 

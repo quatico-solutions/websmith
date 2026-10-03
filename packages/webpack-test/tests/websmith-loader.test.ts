@@ -126,8 +126,8 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toContain(`/src/functions/getDate.ts":`);
-        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toContain('/src/model/index.ts":');
+        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toMatch(/\/src\/functions\/getDate\.ts":?\n/);
+        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toMatch(/\/src\/model\/index\.ts":?\n/);
         expect(actual).toMatch(/successfully/);
     }, 60000);
 
@@ -142,8 +142,8 @@ describe("webpack w/ websmith", () => {
 
         const output = getOutput("main.js", testDirs.OUTPUT_DIR);
         // Check basic compilation works
-        expect(output).toContain('/src/functions/getDate.ts":');
-        expect(output).toContain('/src/model/index.ts":');
+        expect(output).toMatch(/\/src\/functions\/getDate\.ts":?\n/);
+        expect(output).toMatch(/\/src\/model\/index\.ts":?\n/);
         expect(actual).toMatch(/successfully/);
 
         // NOTE: Addon execution pipeline is functional - profile configuration needs fixing
@@ -158,8 +158,8 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toContain('/src/functions/getDate.ts":');
-        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toContain('/src/model/index.ts":');
+        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toMatch(/\/src\/functions\/getDate\.ts":?\n/);
+        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toMatch(/\/src\/model\/index\.ts":?\n/);
         expect(actual).toMatch(/successfully/);
     }, 60000);
 
@@ -273,7 +273,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toContain("[websmith-loader] Build completed for:");
         expect(actual).toContain("[websmith-loader] Setting up WebpackAddonService - addonsDir:");
         expect(actual).toContain("[websmith-loader] WebpackAddonService initialized with addonsDir:");
-        expect(actual).toContain("webpack 5.97.1 compiled");
+        expect(actual).toMatch(/webpack 5\.\d+\.\d+ compiled/);
     }, 60000);
 
     it("should show debug logs in webpack stats with infrastructureLogging enabled", async () => {
@@ -334,7 +334,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toContain("[websmith-loader] Write file:");
         expect(actual).toContain("[websmith-loader] Emit result");
         expect(actual).toContain("[websmith-loader] Build completed for:");
-        expect(actual).toContain("webpack 5.97.1 compiled");
+        expect(actual).toMatch(/webpack 5\.\d+\.\d+ compiled/);
     }, 60000);
 
     it("should not show debug logs when debug is disabled", async () => {
@@ -374,7 +374,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).not.toContain("[websmith-loader] Profile:");
         expect(actual).not.toContain("[websmith-loader] Emitting source file:");
         expect(actual).not.toContain("[websmith-loader] Build completed for:");
-        expect(actual).toContain("webpack 5.97.1 compiled");
+        expect(actual).toMatch(/webpack 5\.\d+\.\d+ compiled/);
     }, 60000);
 
     it("should show debug logs with different webpack stats configurations", async () => {
@@ -440,7 +440,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toContain("[websmith-loader] Write file:");
         expect(actual).toContain("[websmith-loader] Emit result");
         expect(actual).toContain("[websmith-loader] Build completed for:");
-        expect(actual).toContain("webpack 5.97.1 compiled");
+        expect(actual).toMatch(/webpack 5\.\d+\.\d+ compiled/);
     }, 60000);
 
     it("should show debug logs in webpack stats with multiple files", async () => {
@@ -494,7 +494,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toContain("[websmith-loader] Write file:");
         expect(actual).toContain("[websmith-loader] Emit result");
         expect(actual).toContain("[websmith-loader] Build completed for:");
-        expect(actual).toContain("webpack 5.97.1 compiled");
+        expect(actual).toMatch(/webpack 5\.\d+\.\d+ compiled/);
 
         // Verify that the bundle was created successfully
         expect(fs.existsSync(path.join(testDirs.OUTPUT_DIR, "bundle.js"))).toBe(true);
@@ -529,8 +529,8 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(getOutput("main.js")).toContain('/src/functions/getDate.ts":');
-        expect(getOutput("main.js")).toContain('/src/model/index.ts":');
+        expect(getOutput("main.js")).toMatch(/\/src\/functions\/getDate\.ts":?\n/);
+        expect(getOutput("main.js")).toMatch(/\/src\/model\/index\.ts":?\n/);
     }, 60000);
 
     it("should fail with syntax error w/ invalid TypeScript file and transpileOnly being used", async () => {
@@ -613,9 +613,9 @@ describe("webpack w/ websmith", () => {
             },
         });
 
-        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toContain('/src/functions/getDate.ts":');
-        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toContain('/src/model/index.ts":');
-        expect(actual).toContain("webpack 5.97.1 compiled");
+        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toMatch(/\/src\/functions\/getDate\.ts":?\n/);
+        expect(getOutput("main.js", testDirs.OUTPUT_DIR)).toMatch(/\/src\/model\/index\.ts":?\n/);
+        expect(actual).toMatch(/webpack 5\.\d+\.\d+ compiled/);
     }, 60000);
 
     it("should show WebpackAddonContext debug messages when debug is enabled with addons", async () => {
@@ -674,7 +674,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toContain("[websmith-loader] Build completed for:");
 
         // Verify general webpack compilation success
-        expect(actual).toContain("webpack 5.97.1 compiled");
+        expect(actual).toMatch(/webpack 5\.\d+\.\d+ compiled/);
 
         // Verify the addon system is working (YAML file should be created)
         expect(getOutput("output.yaml", testDirs.OUTPUT_DIR)).toContain("exports:");
