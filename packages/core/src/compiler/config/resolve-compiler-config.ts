@@ -7,7 +7,7 @@
 import { type CompilationConfig, type CompilationProfile, ErrorMessage, type Reporter } from "@quatico/websmith-api";
 import { parse } from "comment-json";
 import path from "node:path";
-import ts from "typescript";
+import type ts from "typescript";
 import { isEsmModuleKind } from "../esm";
 import { convertEnumOptions } from "./convert-enum-options";
 import { getProfileClosure } from "./profile-closure";
