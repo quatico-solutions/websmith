@@ -58,10 +58,19 @@ Builds that passed before can now fail: the `websmith` command reports errors it
     checked as before;
   - under `esm: { runtime: "bundler" }`, a relative import in a `javascript/auto` file that names a directory with
     neither an `index` file (`.js`, `.mjs`, `.cjs`, `.json`) nor a `package.json` with a `main`, `module` or `browser`
-    field gets 91012, in the CLI only. webpack's default resolution reports "Module not found" for it.
+    field gets 91012, in the CLI only. webpack's default resolution reports "Module not found" for it;
+  - under `node`, a bare import of a subpath, or the root, that the package's `"exports"` do not export
+    (`import x from "pkg/internal.js"`) gets 91022, in the CLI only, unless the profile's tsconfig sets
+    `customConditions`. Node 24 rejects it with `ERR_PACKAGE_PATH_NOT_EXPORTED`;
+  - under `node`, a bare import of an extensionless or directory subpath of a package without `"exports"`
+    (`import x from "pkg/sub"`) gets 91023, in the CLI only. Node 24 rejects it with `ERR_MODULE_NOT_FOUND` or
+    `ERR_UNSUPPORTED_DIR_IMPORT`;
+  - under `node`, a bare import that matches a tsconfig `paths` alias and names no installed package
+    (`import l from "@app/l"`) gets 91024, in the CLI only. TypeScript leaves the alias in the emitted file, and Node 24
+    rejects it with `ERR_MODULE_NOT_FOUND`.
 
-  To keep such a build passing, fix the import (add the attribute, the extension or an index file), skip the file with
-  `esm.ignore`, or set `check: "warn"`.
+  To keep such a build passing, fix the import (add the attribute, the extension or an index file, import an exported
+  subpath, or rewrite the alias), skip the file with `esm.ignore`, or set `check: "warn"`.
 - The webpack loader resolves its options, `websmith.config.json` and `tsconfig.json` once per compilation and loader
   instance instead of once per module, and again only when one of these files changes. The gain shows in large builds,
   not in builds of a few dozen modules.

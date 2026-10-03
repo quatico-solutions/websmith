@@ -187,6 +187,9 @@ the name is undefined stay reported, and so do uses outside the guarded branch.
 | 91013 | JSON import without an import attribute; add `with { type: "json" }` | error | allowed | allowed | allowed |
 | 91020 | named import that the CommonJS package does not export (`import { a } from "pkg"`) | error | allowed | allowed | — |
 | 91021 | default import from a CommonJS module that sets `__esModule` (`import def from "pkg"`) | error | error | allowed | — |
+| 91022 | bare import of a subpath, or the root, that the package's `"exports"` do not export (`import x from "pkg/internal.js"`) | error | allowed | allowed | allowed |
+| 91023 | bare import of an extensionless or directory subpath of a package without `"exports"` (`"pkg/sub"`); import `pkg/sub.js` or `pkg/sub/index.js` | error | allowed | allowed | allowed |
+| 91024 | bare import that matches a tsconfig `paths` alias, which TypeScript leaves in the emitted file (`"@app/l"`) | error | allowed | allowed | allowed |
 | 91030 | `.cjs` file with ESM syntax (`import`, `export` or `import.meta`) | error | — | — | error |
 | 91031 | `.js` file with ESM syntax under `"type": "commonjs"`; names the `package.json` | error | — | — | error |
 | 91032 | file loaded as ESM whose output is CommonJS: no ESM syntax, but `exports.x =`, `module.exports =` or `__esModule` | error | error | — | — |
@@ -196,7 +199,7 @@ the name is undefined stay reported, and so do uses outside the guarded branch.
 files for `bundler`. Under `node`, `.cjs` files and files under `"type": "commonjs"` load as CommonJS: 91030, 91031
 and 91033 report ESM syntax and top-level `await` in them. Dynamic `import()` is valid CommonJS and never counts as
 ESM syntax, but Node loads what it imports as an ES module: under `node`, the relative and bare specifiers of
-`import()` in these files get 91010–91013 (in the webpack loader 91010, 91011 and 91013). Their static imports are left
+`import()` in these files get 91010–91013 and 91022–91024 (in the webpack loader 91010, 91011 and 91013). Their static imports are left
 to 91030 and 91031, and `require()` is not checked. When 91030, 91031 or 91032 reports a file, its 91001–91004 findings are left out: they share one cause,
 a module format that contradicts how the file loads, for example CommonJS that a transformer or result processor
 writes into a file loaded as ESM.
@@ -212,8 +215,8 @@ path. TS1479 and TS1471 (CommonJS importing an ES module) are not labelled: `req
 supported Node versions.
 
 91010–91013 check the relative specifiers (`./`, `../`) of static imports, re-exports and `import()` with a string
-literal. `import()` with a computed specifier is skipped. Of the bare specifiers such as `"pkg"`, only 91013 checks
-any, and only under `node`: a bare import without `with { type: "json" }` gets 91013 when its name ends in `.json`
+literal. `import()` with a computed specifier is skipped. Of the bare specifiers such as `"pkg"`, only 91013 and
+91022–91024 check any, and only under `node` (91022–91024 are described below): a bare import without `with { type: "json" }` gets 91013 when its name ends in `.json`
 (`"pkg/d.json"`, installed or not) or when the package's `"exports"` resolve it to a `.json` file. The
 check sees the specifier in the emitted file, not the one in the TypeScript source. A specifier counts as
 extensionless when it has no extension, or when its extension is none of `.js`, `.mjs`, `.cjs`, `.json`, `.node` and
@@ -261,8 +264,29 @@ to the import binding count: a parameter, variable, function or class of the sam
 `typeof pkg` is reported: it yields `"object"`, the type of `module.exports`, where the source expects the type of the
 default export.
 
-When the check cannot decide, for example for a package that is not installed or a re-export it cannot resolve, it
-reports nothing and `--debug` lists the import.
+91022–91024 check the bare specifiers of `import`, `export … from` and `import()` with a string literal under `node`,
+in the CLI only: webpack resolves bare specifiers itself and reports what it cannot resolve, so neither `bundler` nor
+the webpack loader runs them. They resolve the package as 91020 and 91021 do, and each import gets at most one of them.
+
+* 91022: the package's `"exports"` do not export the subpath, or the root `"."` (e.g. `"exports"` with only a
+  `require` condition), for the conditions `node`, `import`, `module-sync` and `default`. Node throws
+  `ERR_PACKAGE_PATH_NOT_EXPORTED`. The message lists up to five exported subpaths, those sharing the longest prefix
+  with the requested one first. A profile whose tsconfig sets `customConditions` gets no 91022: the runtime may load
+  the package with those conditions (`node --conditions=…`).
+* 91023: a package without `"exports"` has no file at the subpath, but a directory of that name or a file with `.js`
+  added. Node throws `ERR_UNSUPPORTED_DIR_IMPORT` for the directory, also when `sub.js` lies beside it and for
+  `"pkg/sub/"`, and `ERR_MODULE_NOT_FOUND` for the file. The hint names `"pkg/sub/index.js"` or `"pkg/sub.js"`. The
+  root of a package without `"exports"` resolves through `main` as before.
+* 91024: the specifier matches a key of the profile's `compilerOptions.paths`, exactly or, for a key with one `*`, by
+  prefix and suffix, and no package of that name is installed in `node_modules` upwards from the emitted file.
+  TypeScript does not rewrite `paths` in emitted code, so Node throws `ERR_MODULE_NOT_FOUND`. Not reported are
+  `#imports` specifiers, a self-reference (the `package.json` nearest to the emitted file has the package's `name`
+  and an `"exports"`), workspace packages symlinked into `node_modules`, and the catch-all key `"*"`. Rewrite the alias
+  with a transformer addon or a build tool, or use a package `"imports"` entry.
+
+When the check cannot decide, for example for a package that is not installed and matches no `paths` key, a package
+subpath that names no file or directory, or a re-export it cannot resolve, it reports nothing and `--debug` lists the
+import.
 
 Diagnostics point at the construct in the emitted file, printed as an absolute path, and name the source file it was emitted from, relative to the
 project directory, the profile and the addons that changed the file, e.g.

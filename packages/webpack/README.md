@@ -158,6 +158,7 @@ These rules run in the loader:
 | 91010, 91011 | `runtime: "node"` only; under `bundler`, webpack reports imports it cannot resolve as fully specified |
 | 91012 | never; webpack reports imports it cannot resolve (*Module not found*) |
 | 91021 | yes |
+| 91022, 91023, 91024 | never; webpack resolves bare specifiers |
 
 The `package.json` files the check reads, and the nearer ones it looked for but did not find, are registered as
 dependencies of the module: in watch mode, changing a `"type"` or adding a `package.json` rebuilds the modules whose
