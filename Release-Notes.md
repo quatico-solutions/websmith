@@ -125,9 +125,8 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 
 ### Removed
 
-- **Breaking:** the top-level `profiles` loader option is removed from `WebpackLoaderOptions` and from
-  `LoaderOptions`. The loader ignored it; passing it now fails the build with a configuration error pointing to
-  `config.profiles`.
+- **Breaking:** the top-level `profiles` loader option is removed from `WebpackLoaderOptions`. The loader ignored
+  it; passing it now fails the build with a configuration error pointing to `config.profiles`.
 
 ### Security
 

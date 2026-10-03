@@ -45,6 +45,16 @@ describe("webpack w/ websmith-loader and option names in loader options", () => 
         60000
     );
 
+    it("should emit ES module code w/ tsConfig module NodeNext in selected config profile", () => {
+        writeSourceFile("index.ts", `export const hello: string = "world";\n`, testDirs.SOURCE_DIR);
+
+        const actual = runWebpack({ transpileOnly: true, config: { profiles: { client: { tsConfig: { module: "NodeNext" } } } }, profile: "client" });
+
+        expect(actual.exitCode).toBe(0);
+        expect(actual.emitted).toContain("export const hello");
+        expect(actual.emitted).not.toContain("exports.hello");
+    }, 60000);
+
     it("should fail w/ config error once w/ invalid tsConfig module and several modules", () => {
         writeSourceFile("index.ts", `export { hello } from "./hello";\n`, testDirs.SOURCE_DIR);
         writeSourceFile("hello.ts", `export const hello: string = "world";\n`, testDirs.SOURCE_DIR);
