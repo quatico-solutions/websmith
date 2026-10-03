@@ -186,7 +186,7 @@ plan does not change `reportedConfigErrors` or the `depends` closure, which #134
 
 ### The emitSkipped rule
 
-- `bug/emit-skipped-rule` — item 8 and the output rule for items 1 to 3: the language-service branches (`Compiler.ts:1201-1203`, `:1256-1258`) and the fast path (`:1414`) set `emitSkipped` only without output files or with `noEmitOnError` and an error. Unit: `Compiler.spec.ts` for the three producers, with and without `noEmitOnError`; e2e in `bin.test.ts` or `packages/compiler-test`: type-info addon, `declaration`, TS4094 source writes `a.js` and exits 1, as without the addon; fast path with an invalid option combination (TS5095) writes output and exits 1; `Release-Notes.md` entry <!-- builds: one emitSkipped rule for language-service and fast-path output under option and declaration errors -->
+- `bug/emit-skipped-rule` — item 8 and the output rule for items 1 to 3: the language-service branches (`Compiler.ts:1201-1203`, `:1256-1258`) and the fast path (`:1414`) set `emitSkipped` only without output files or with `noEmitOnError` and an error. Unit: `Compiler.spec.ts` for the three producers, with and without `noEmitOnError`; e2e in `bin.test.ts` or `packages/compiler-test`: type-info addon, `declaration`, TS4094 source writes `a.js` and exits 1, as without the addon; fast path with an invalid option combination (TS5095) writes output and exits 1; `Release-Notes.md` entry <!-- builds: one emitSkipped rule for language-service and fast-path output under option and declaration errors --> → #170
 
 ### Option errors
 

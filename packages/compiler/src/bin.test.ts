@@ -510,6 +510,62 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toBe(1);
     }, 60000);
 
+    it.each([
+        { noEmitOnError: false, expected: true },
+        { noEmitOnError: true, expected: false },
+    ])(
+        "should exit with status 1, report the declaration emit error once and write .js $expected w/ addon requiring type information, declaration and noEmitOnError $noEmitOnError",
+        ({ noEmitOnError, expected }) => {
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, declaration: true, noEmitOnError, target: "esnext", types: [] });
+            createSourceFile(`export const Foo = class { private x = 1; };`, "test.ts");
+            createAddon("type-info-addon", `exports.activate = () => {};`);
+
+            const target = executeCompilerStatus(
+                `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons type-info-addon --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`
+            );
+            const actual1 = target.status;
+            const actual2 =
+                target.output.split(
+                    `${path.join(testDirs.SOURCE_DIR, "test.ts")} (1,14): Property 'x' of exported anonymous class type may not be private or protected.`
+                ).length - 1;
+            const actual3 = getOutput("test.js") !== undefined;
+
+            expect(actual1).toBe(1);
+            expect(actual2).toBe(1);
+            expect(actual3).toBe(expected);
+        },
+        60000
+    );
+
+    it.each([
+        { noEmitOnError: false, expected: true },
+        { noEmitOnError: true, expected: false },
+    ])(
+        "should exit with status 1, report the TypeScript option error once and write .js $expected w/ option error, noEmitOnError $noEmitOnError on fast path",
+        ({ noEmitOnError, expected }) => {
+            createTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                noEmit: false,
+                noEmitOnError,
+                module: "commonjs",
+                moduleResolution: "bundler",
+                target: "esnext",
+                types: [],
+            } as TscArguments);
+            createSourceFile(`export const a = 1;`, "test.ts");
+
+            const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+            const actual1 = target.status;
+            const actual2 = target.output.split("Option 'bundler' can only be used when").length - 1;
+            const actual3 = getOutput("test.js") !== undefined;
+
+            expect(actual1).toBe(1);
+            expect(actual2).toBe(1);
+            expect(actual3).toBe(expected);
+        },
+        60000
+    );
+
     it.each([{ noEmitOnError: false }, { noEmitOnError: true }])(
         "should exit with status 1 and report the syntax error once w/ addon requiring type information and noEmitOnError $noEmitOnError",
         ({ noEmitOnError }) => {

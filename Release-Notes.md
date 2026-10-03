@@ -78,6 +78,15 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   absolute file path and the position (`Invalid JSON in configuration file "<path>" (line 1, column 9): Unexpected
   token ,.`), with exit code 1, instead of a `SyntaxError` stack trace. The webpack loader reports it the same way.
 - A missing `--addonsDir` directory is warned about once instead of twice.
+- Option errors and declaration emit errors no longer suppress `.js` output, as with `tsc`, unless `noEmitOnError` is
+  set.
+  - Without an addon that needs type information, an option error such as TS5095 (`moduleResolution: "bundler"` with
+    `module: "commonjs"`) now writes the output instead of none. The webpack loader now gets the JavaScript of such a
+    module.
+  - With an addon that needs type information and `declaration: true`, a declaration emit error such as TS4094 no
+    longer drops the file's `.js`.
+  - With `noEmitOnError`, a file with an error is no longer written without an addon that needs type information or
+    with `transpileOnly`.
 
 ### Fixed
 
