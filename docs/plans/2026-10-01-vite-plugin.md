@@ -18,6 +18,7 @@
 - **Impl:** own branches
 - **Rounds:** 1
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #132 merged
+- **Started:** 2026-10-03, Jan Wloka, `feature/neutral-module-compiler`
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
