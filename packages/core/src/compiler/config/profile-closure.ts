@@ -38,7 +38,7 @@ export const getProfileClosure = (
             result.profiles.push(name);
         }
         for (const dep of profiles[name].depends ?? []) {
-            if (!profiles[dep]) {
+            if (!Object.hasOwn(profiles, dep)) {
                 if (!result.missing.includes(dep)) {
                     result.missing.push(dep);
                 }
@@ -51,7 +51,7 @@ export const getProfileClosure = (
         }
     };
 
-    if (profileName && profiles[profileName]) {
+    if (profileName && Object.hasOwn(profiles, profileName)) {
         visit(profileName);
     }
     return result;
