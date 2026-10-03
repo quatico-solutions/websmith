@@ -235,7 +235,7 @@ first, right after the benchmark that measures it is trustworthy.
 
 ### depends closure
 
-- `bug/depends-closure-core` — one ordered `depends` closure in core used by `getUsedProfiles`, `getDependentProfiles`, `WebpackAddonService.getAddonsWithDependencies` and `AddonRegistry.getExpectedAddonsWithDependencies`; characterisation tests written first on each caller for order, cycles and missing targets, then unit tests of the new function (fail before: it does not exist); no behaviour change, existing e2e suites green <!-- builds: shared depends closure in core -->
+- `bug/depends-closure-core` — one ordered `depends` closure in core used by `getUsedProfiles`, `getDependentProfiles`, `WebpackAddonService.getAddonsWithDependencies` and `AddonRegistry.getExpectedAddonsWithDependencies`; characterisation tests written first on each caller for order, cycles and missing targets, then unit tests of the new function (fail before: it does not exist); no behaviour change, existing e2e suites green → #172 <!-- builds: shared depends closure in core -->
 
 ### Option names
 
