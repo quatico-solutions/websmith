@@ -18,6 +18,7 @@ import path from "node:path";
 import ts from "typescript";
 import type { CompilerOptionsValue } from "typescript";
 import {
+    getProfileClosure,
     parsedCommandLine,
     resolveCompilationConfig,
     resolvePath,
@@ -318,33 +319,9 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     }
 
     public getSelectedProfiles(profileName?: string): string[] {
-        const existingProfiles = Object.keys(this.config?.profiles ?? {});
-        const profile = profileName ?? this.profile;
-
-        return getDependentProfiles(existingProfiles, profile, this.config).filter(cur => existingProfiles.includes(cur));
+        return getProfileClosure(profileName ?? this.profile, this.config, "dependencies-first").profiles;
     }
 }
-
-const getDependentProfiles = (existingProfiles: string[], profileName?: string, config?: CompilationConfig): string[] => {
-    const { profiles = {} } = config ?? {};
-    const { depends = [] } = (profileName ? profiles[profileName] : {}) ?? {};
-
-    const results = new Set<string>();
-    // Add the current profile and recursively get its dependencies
-    if (profileName && existingProfiles.includes(profileName)) {
-        results.add(profileName);
-    }
-    for (let i = depends.length - 1; i >= 0; i--) {
-        const cur = depends[i];
-        if (existingProfiles.includes(cur)) {
-            results.add(cur);
-            // Recursively get dependencies of dependencies
-            getDependentProfiles(existingProfiles, cur, config).forEach(dep => results.add(dep));
-        }
-    }
-
-    return Array.from(results).reverse();
-};
 
 /**
  * Returns the resolved compiler options, optionally for the given profile. The ts.CompilerOptions are merged from the
@@ -354,7 +331,7 @@ const getDependentProfiles = (existingProfiles: string[], profileName?: string, 
  */
 const getTsConfig = (system: ts.System, projectDir: string, options: CompilerOptions, profileName?: string): ts.CompilerOptions => {
     const { tsConfig, config, profile, cliArgs, tsConfigFile } = options;
-    const profileTsConfig = getDependentProfiles(Object.keys(options.config?.profiles ?? []), profileName ?? profile, options.config)
+    const profileTsConfig = getProfileClosure(profileName ?? profile, options.config, "dependencies-first").profiles
         .map(cur => getProfile(cur, config))
         .reduce((acc: ts.CompilerOptions, cur) => deepmerge<ts.CompilerOptions>(acc, cur.tsConfig ?? {}, { arrayMerge }), {});
 

@@ -9,6 +9,7 @@ import { parse } from "comment-json";
 import path from "node:path";
 import ts from "typescript";
 import { isEsmModuleKind } from "../esm";
+import { getProfileClosure } from "./profile-closure";
 
 const updatePaths = (config: CompilationConfig, basePath: string, system: ts.System): CompilationConfig => {
     return {
@@ -134,15 +135,6 @@ const validateEsm = (name: string, profile: CompilationProfile, configFilePath: 
     }
 };
 
-/** Returns the given profile and the profiles it depends on, directly or transitively. */
-const getUsedProfiles = (profile: string | undefined, config: CompilationConfig, result = new Set<string>()): Set<string> => {
-    if (profile && !result.has(profile) && config.profiles?.[profile]) {
-        result.add(profile);
-        config.profiles[profile].depends?.forEach(dep => getUsedProfiles(dep, config, result));
-    }
-    return result;
-};
-
 const formatPosition = (err: unknown): string => {
     const { line, column } = (err ?? {}) as { line?: unknown; column?: unknown };
     // comment-json reports a 1-based line and a 0-based column.
@@ -183,7 +175,7 @@ export const resolveCompilationConfig = (
             }
             const result = { ...updatePaths(config, path.dirname(resolvedPath), system) };
             if (result.profiles) {
-                const usedProfiles = getUsedProfiles(profileName, result);
+                const usedProfiles = new Set(getProfileClosure(profileName, result, "dependents-first").profiles);
                 Object.entries(result.profiles).forEach(([name, profile]) => {
                     const isUsed = usedProfiles.has(name);
                     if (profile.addons?.length) {

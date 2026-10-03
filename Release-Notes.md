@@ -118,6 +118,8 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 - A file that a nested websmith compile, run by a result processor through `ctx.getSystem()`, writes and checks is
   checked once instead of twice, also when the nested compile gets a copy of that system or uses another copy of
   `@quatico/websmith-core`. Its findings name the nested profile's addons only.
+- A `depends` cycle in `websmith.config.json` no longer crashes with `Maximum call stack size exceeded`; with deeper
+  `depends` chains a dependency's `tsConfig` is merged before the profiles that depend on it.
 
 ### Removed
 

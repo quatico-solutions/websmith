@@ -8,7 +8,7 @@ import { ErrorMessage, InfoMessage, WarnMessage, type AddonContext, type Compila
 import { createRequire } from "node:module";
 import path from "node:path";
 import ts from "typescript";
-import { resolvePath } from "../config";
+import { getProfileClosure, resolvePath } from "../config";
 import { compilerAddons, type CompilerAddon, type CompilerAddons } from "./CompilerAddon";
 
 /**
@@ -188,46 +188,21 @@ export class AddonRegistry {
     }
 
     /**
-     * Recursively resolves addons from a profile and all its dependencies.
-     * Handles circular dependencies by tracking visited profiles.
+     * Returns the base addons, then the addons of the profile's dependencies before its own, each name once. Returns
+     * only the base addons without a profile, and no addons for an unknown profile.
      */
-    private getExpectedAddonsWithDependencies(profile?: string, visited: Set<string> = new Set()): string[] {
+    private getExpectedAddonsWithDependencies(profile?: string): string[] {
         const { profiles = {}, addons = [] } = this.config;
-
-        // If no profile is provided, return base addons
+        const baseAddons = addons.filter(it => it.length > 0);
         if (!profile) {
-            return addons.filter(it => it.length > 0);
+            return baseAddons;
         }
-
-        // Prevent circular dependencies
-        if (visited.has(profile)) {
-            return [];
-        }
-        visited.add(profile);
-
-        const profileConfig = profiles[profile];
-        if (!profileConfig) {
+        if (!profiles[profile]) {
             // Profile doesn't exist - will be handled by warning system
             return [];
         }
-
-        // Get addons from this profile
-        const profileAddons = profileConfig.addons ?? [];
-
-        // Get addons from dependencies recursively
-        const dependencyAddons: string[] = [];
-        if (profileConfig.depends) {
-            for (const dependentProfile of profileConfig.depends) {
-                dependencyAddons.push(...this.getExpectedAddonsWithDependencies(dependentProfile, new Set(visited)));
-            }
-        }
-
-        // Combine base addons, profile addons, and dependency addons
-        const baseAddons = addons.filter(it => it.length > 0);
-        const allAddons = [...baseAddons, ...dependencyAddons, ...profileAddons];
-
-        // Return unique addon names
-        return [...new Set(allAddons)];
+        const profileAddons = getProfileClosure(profile, this.config, "dependencies-first").profiles.flatMap(name => profiles[name].addons ?? []);
+        return [...new Set([...baseAddons, ...profileAddons])];
     }
 
     private getMissingAddons(expectedNames: string[] = []): string[] {

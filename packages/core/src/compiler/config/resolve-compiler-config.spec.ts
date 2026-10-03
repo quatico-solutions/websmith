@@ -460,6 +460,133 @@ describe("resolveCompilationConfig", () => {
     });
 });
 
+describe("resolveCompilationConfig w/ depends graphs", () => {
+    it("should validate profiles of three-level chain w/ selected profile", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const system = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: {
+                        a: { depends: ["b"] },
+                        b: { depends: ["c"], esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } },
+                        c: { depends: ["d"], esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } },
+                        d: { esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } },
+                        other: { esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } },
+                    },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), system, "a");
+        const actual = targetFn.mock.calls
+            .map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").match(/in profile '(\w+)'/)?.[1])
+            .sort();
+
+        expect(actual).toEqual(["b", "c", "d"]);
+    });
+
+    it("should validate shared dependency once w/ diamond", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const system = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: {
+                        a: { depends: ["b", "c"], esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } },
+                        b: { depends: ["d"] },
+                        c: { depends: ["d"] },
+                        d: { esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } },
+                    },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), system, "a");
+        const actual = targetFn.mock.calls
+            .map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").match(/in profile '(\w+)'/)?.[1])
+            .sort();
+
+        expect(actual).toEqual(["a", "d"]);
+    });
+
+    it("should validate both profiles w/ depends cycle", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const system = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: {
+                        a: { depends: ["b"], esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } },
+                        b: { depends: ["a"], esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } },
+                    },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), system, "a");
+        const actual = targetFn.mock.calls
+            .map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").match(/in profile '(\w+)'/)?.[1])
+            .sort();
+
+        expect(actual).toEqual(["a", "b"]);
+    });
+
+    it("should validate profile once w/ self-dependency", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const system = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: { a: { depends: ["a"], esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } } },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), system, "a");
+        const actual = targetFn.mock.calls
+            .map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").match(/in profile '(\w+)'/)?.[1])
+            .sort();
+
+        expect(actual).toEqual(["a"]);
+    });
+
+    it("should validate nothing w/ unknown selected profile", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const system = createSystem(
+            { "./target-config.json": JSON.stringify({ profiles: { a: { esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } } } }) },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), system, "unknown");
+        const actual = targetFn.mock.calls
+            .map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").match(/in profile '(\w+)'/)?.[1])
+            .sort();
+
+        expect(actual).toEqual([]);
+    });
+
+    it("should validate configured profiles w/ missing depends target", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+        const system = createSystem(
+            {
+                "./target-config.json": JSON.stringify({
+                    profiles: { a: { depends: ["missing", "b"] }, b: { esm: { runtime: "deno" }, tsConfig: { module: "ESNext" } } },
+                }),
+            },
+            { virtual: true }
+        );
+
+        resolveCompilationConfig("./target-config.json", new NoReporter(), system, "a");
+        const actual = targetFn.mock.calls;
+
+        expect(actual).toEqual([
+            [new ErrorMessage("Unknown profile 'missing' in 'depends' of './target-config.json'.")],
+            [new ErrorMessage(`Unknown 'esm.runtime' value 'deno' in profile 'b' of './target-config.json'. Expected "node" or "bundler".`)],
+        ]);
+    });
+});
+
 describe("resolvePath", () => {
     const fileSystem = createSystem({}, { virtual: true });
 

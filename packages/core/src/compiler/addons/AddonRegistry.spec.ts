@@ -219,6 +219,151 @@ describe("getExpectedAddonsWithDependencies", () => {
     });
 });
 
+describe("getExpectedAddonsWithDependencies w/ depends graphs", () => {
+    it("returns base addons, then dependency addons before profile addons w/ three-level chain", () => {
+        const system = createSystem({}, { virtual: true });
+        const testObj = new AddonRegistry({
+            addons: ["base"],
+            profiles: {
+                a: { depends: ["b"], addons: ["a1"] },
+                b: { depends: ["c"], addons: ["b1"] },
+                c: { depends: ["d"], addons: ["c1"] },
+                d: { addons: ["d1"] },
+            },
+            addonsDir: "./empty",
+            reporter: new ReporterMock(system),
+            system,
+        });
+
+        // @ts-expect-error private property access
+        const actual = testObj.getExpectedAddonsWithDependencies("a");
+
+        expect(actual).toEqual(["base", "d1", "c1", "b1", "a1"]);
+    });
+
+    it("returns base addons, then dependency addons before profile addons w/ diamond", () => {
+        const system = createSystem({}, { virtual: true });
+        const testObj = new AddonRegistry({
+            addons: ["base"],
+            profiles: {
+                a: { depends: ["b", "c"], addons: ["a1"] },
+                b: { depends: ["d"], addons: ["b1"] },
+                c: { depends: ["d"], addons: ["c1"] },
+                d: { addons: ["d1"] },
+            },
+            addonsDir: "./empty",
+            reporter: new ReporterMock(system),
+            system,
+        });
+
+        // @ts-expect-error private property access
+        const actual = testObj.getExpectedAddonsWithDependencies("a");
+
+        expect(actual).toEqual(["base", "d1", "b1", "c1", "a1"]);
+    });
+
+    it("returns base addons, then dependency addons before profile addons w/ nested dependency of first dependency", () => {
+        const system = createSystem({}, { virtual: true });
+        const testObj = new AddonRegistry({
+            addons: ["base"],
+            profiles: {
+                a: { depends: ["b", "c"], addons: ["a1"] },
+                b: { depends: ["d"], addons: ["b1"] },
+                c: { addons: ["c1"] },
+                d: { addons: ["d1"] },
+            },
+            addonsDir: "./empty",
+            reporter: new ReporterMock(system),
+            system,
+        });
+
+        // @ts-expect-error private property access
+        const actual = testObj.getExpectedAddonsWithDependencies("a");
+
+        expect(actual).toEqual(["base", "d1", "b1", "c1", "a1"]);
+    });
+
+    it("returns base addons, then dependency addons before profile addons w/ depends cycle", () => {
+        const system = createSystem({}, { virtual: true });
+        const testObj = new AddonRegistry({
+            addons: ["base"],
+            profiles: { a: { depends: ["b"], addons: ["a1"] }, b: { depends: ["a"], addons: ["b1"] } },
+            addonsDir: "./empty",
+            reporter: new ReporterMock(system),
+            system,
+        });
+
+        // @ts-expect-error private property access
+        const actual = testObj.getExpectedAddonsWithDependencies("a");
+
+        expect(actual).toEqual(["base", "b1", "a1"]);
+    });
+
+    it("returns base addons, then dependency addons before profile addons w/ self-dependency", () => {
+        const system = createSystem({}, { virtual: true });
+        const testObj = new AddonRegistry({
+            addons: ["base"],
+            profiles: { a: { depends: ["a"], addons: ["a1"] } },
+            addonsDir: "./empty",
+            reporter: new ReporterMock(system),
+            system,
+        });
+
+        // @ts-expect-error private property access
+        const actual = testObj.getExpectedAddonsWithDependencies("a");
+
+        expect(actual).toEqual(["base", "a1"]);
+    });
+
+    it("returns base addons, then dependency addons before profile addons w/ missing depends target", () => {
+        const system = createSystem({}, { virtual: true });
+        const testObj = new AddonRegistry({
+            addons: ["base"],
+            profiles: { a: { depends: ["missing", "b"], addons: ["a1"] }, b: { addons: ["b1"] } },
+            addonsDir: "./empty",
+            reporter: new ReporterMock(system),
+            system,
+        });
+
+        // @ts-expect-error private property access
+        const actual = testObj.getExpectedAddonsWithDependencies("a");
+
+        expect(actual).toEqual(["base", "b1", "a1"]);
+    });
+
+    it("returns base addons, then dependency addons before profile addons w/ addon shared by two profiles", () => {
+        const system = createSystem({}, { virtual: true });
+        const testObj = new AddonRegistry({
+            addons: ["base"],
+            profiles: { a: { depends: ["b", "c"], addons: ["a1"] }, b: { addons: ["shared", "b1"] }, c: { addons: ["c1", "shared"] } },
+            addonsDir: "./empty",
+            reporter: new ReporterMock(system),
+            system,
+        });
+
+        // @ts-expect-error private property access
+        const actual = testObj.getExpectedAddonsWithDependencies("a");
+
+        expect(actual).toEqual(["base", "shared", "b1", "c1", "a1"]);
+    });
+
+    it("returns empty w/ unknown target profile", () => {
+        const system = createSystem({}, { virtual: true });
+        const testObj = new AddonRegistry({
+            addons: ["base"],
+            profiles: { a: { addons: ["a1"] } },
+            addonsDir: "./empty",
+            reporter: new ReporterMock(system),
+            system,
+        });
+
+        // @ts-expect-error private property access
+        const actual = testObj.getExpectedAddonsWithDependencies("unknown");
+
+        expect(actual).toEqual([]);
+    });
+});
+
 describe("reportMissingAddons", () => {
     it("reports missing addons directory", () => {
         const system = createSystem({}, { virtual: true });

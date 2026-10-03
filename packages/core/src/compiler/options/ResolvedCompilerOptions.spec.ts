@@ -977,6 +977,147 @@ describe("getSelectedProfiles", () => {
     });
 });
 
+describe("getSelectedProfiles w/ depends graphs", () => {
+    it("should yield empty array w/ unknown profile", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, { config: { profiles: { a: {} } } });
+
+        const actual = testObj.getSelectedProfiles("unknown");
+
+        expect(actual).toEqual([]);
+    });
+
+    it("should yield dependencies before profile w/ missing depends target", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, { config: { profiles: { a: { depends: ["missing", "b"] }, b: {} } } });
+
+        const actual = testObj.getSelectedProfiles("a");
+
+        expect(actual).toEqual(["b", "a"]);
+    });
+
+    it("should yield dependencies before profile w/ nested dependency of first dependency", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: { profiles: { a: { depends: ["b", "c"] }, b: { depends: ["d"] }, c: {}, d: {} } },
+        });
+
+        const actual = testObj.getSelectedProfiles("a");
+
+        expect(actual).toEqual(["d", "b", "c", "a"]);
+    });
+
+    it("should yield dependencies before dependents w/ three-level chain", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: { profiles: { a: { depends: ["b"] }, b: { depends: ["c"] }, c: { depends: ["d"] }, d: {} } },
+        });
+
+        const actual = testObj.getSelectedProfiles("a");
+
+        expect(actual).toEqual(["d", "c", "b", "a"]);
+    });
+
+    it("should yield shared dependency once before its dependents w/ diamond", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: { profiles: { a: { depends: ["b", "c"] }, b: { depends: ["d"] }, c: { depends: ["d"] }, d: {} } },
+        });
+
+        const actual = testObj.getSelectedProfiles("a");
+
+        expect(actual).toEqual(["d", "b", "c", "a"]);
+    });
+
+    it("should yield each profile once w/ depends cycle", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, { config: { profiles: { a: { depends: ["b"] }, b: { depends: ["a"] } } } });
+
+        const actual = testObj.getSelectedProfiles("a");
+
+        expect(actual).toEqual(["b", "a"]);
+    });
+
+    it("should yield profile once w/ self-dependency", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, { config: { profiles: { a: { depends: ["a"] } } } });
+
+        const actual = testObj.getSelectedProfiles("a");
+
+        expect(actual).toEqual(["a"]);
+    });
+});
+
+describe("getOptions w/ depends graphs", () => {
+    it("should merge tsConfig of second level after third level w/ three-level chain", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    a: { depends: ["b"] },
+                    b: { depends: ["c"] },
+                    c: { depends: ["d"], tsConfig: { target: ts.ScriptTarget.ES2020 } },
+                    d: { tsConfig: { target: ts.ScriptTarget.ES2022 } },
+                },
+            },
+        });
+
+        const actual = testObj.getOptions("a").tsConfig?.target;
+
+        expect(actual).toBe(ts.ScriptTarget.ES2020);
+    });
+
+    it("should merge tsConfig of dependent after shared dependency w/ diamond", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    a: { depends: ["b", "c"] },
+                    b: { depends: ["d"], tsConfig: { target: ts.ScriptTarget.ES2020 } },
+                    c: { depends: ["d"] },
+                    d: { tsConfig: { target: ts.ScriptTarget.ES2022 } },
+                },
+            },
+        });
+
+        const actual = testObj.getOptions("a").tsConfig?.target;
+
+        expect(actual).toBe(ts.ScriptTarget.ES2020);
+    });
+
+    it("should merge tsConfig of dependency first w/ one level of depends", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    a: { depends: ["missing", "b"], tsConfig: { target: ts.ScriptTarget.ES2020 } },
+                    b: { tsConfig: { target: ts.ScriptTarget.ES2022 } },
+                },
+            },
+        });
+
+        const actual = testObj.getOptions("a").tsConfig?.target;
+
+        expect(actual).toBe(ts.ScriptTarget.ES2020);
+    });
+
+    it("should merge tsConfig of target last w/ depends cycle", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            config: {
+                profiles: {
+                    a: { depends: ["b"], tsConfig: { target: ts.ScriptTarget.ES2020 } },
+                    b: { depends: ["a"], tsConfig: { target: ts.ScriptTarget.ES2022 } },
+                },
+            },
+        });
+
+        const actual = testObj.getOptions("a").tsConfig?.target;
+
+        expect(actual).toBe(ts.ScriptTarget.ES2020);
+    });
+});
+
 describe("getAddons", () => {
     it("should yield empty array with no addons", () => {
         const fileSystem = createSystem({}, { virtual: true });

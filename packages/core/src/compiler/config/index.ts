@@ -9,3 +9,4 @@ export { parsedCommandLine, scriptTargetToString } from "./parsed-command-line";
 export { resolveProfile } from "./resolve-profile";
 export { PROJECT_FILE_NAME, projectFileDiagnostic, resolveProjectFile } from "./resolve-project-file";
 export { getEffectiveTarget } from "./effective-options";
+export { getProfileClosure, type ProfileClosure, type ProfileClosureOrder } from "./profile-closure";
