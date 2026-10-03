@@ -107,13 +107,15 @@ Each loader instance, i.e. each loader rule with its own options in each webpack
 it reads `websmith.config.json`, the `tsconfig.json` and the files the `tsconfig.json` extends when it compiles its
 first module, and again only when one of these files changes. They are dependencies of every module the loader
 compiles, so in watch mode an edit of any of them rebuilds these modules with the new options, and webpack's
-persistent cache does not restore modules compiled with other versions of them. Without compiler hooks, e.g. under
-`thread-loader`, each worker compares the modification times of these files before each module instead.
+persistent cache does not restore modules compiled with other versions of them. Before a repeated `compiler.run()`
+without watch, and without compiler hooks, e.g. under `thread-loader`, before each module, the loader compares the
+modification times of these files instead.
 
 Addons are loaded and activated once per loader instance, not per module: an addon stays active for every module of
 a compilation and across watch rebuilds while its files and the options are unchanged. After an edit of a file in
-`addonsDir` or of the files above, the next rebuild loads and activates the addons again. Under `thread-loader`, an
-addon edit takes effect when the workers restart. Addons must not rely on being activated again for each module.
+`addonsDir` or of the files above, the next rebuild loads and activates the addons again. Under `thread-loader`, each
+worker looks for edits in `addonsDir` once per watch compilation, and at most once a second without watch. Addons
+must not rely on being activated again for each module.
 
 #### `.mts` and `.cts` files
 
