@@ -351,6 +351,31 @@ describe("TsCompiler ESM check", () => {
         expect(actual).toBe(2);
     });
 
+    it("emits CommonJS after package.json changes to commonjs and compilation caches are reset w/ caches kept per compilation", () => {
+        const testObj = new TsCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: true },
+            undefined,
+            undefined,
+            createSystem(
+                {
+                    ...MODULE_PACKAGE,
+                    "/tsconfig.json": JSON.stringify({ compilerOptions: { target: "es2020", module: "nodenext", outDir: "/dist", rootDir: "/src" } }),
+                    "/src/a.ts": "export const a = 1;",
+                },
+                { virtual: true }
+            )
+        );
+        testObj.keepCachesPerCompilation();
+        testObj.build("/src/a.ts");
+        testObj.getSystem().writeFile("/package.json", JSON.stringify({ type: "commonjs" }));
+
+        testObj.resetCompilationCaches();
+        const actual = testObj.build("/src/a.ts").fragment.files.find(cur => cur.name.endsWith(".js"))?.text;
+
+        expect(actual).toContain("exports.a = 1;");
+    });
+
     it("reuses parsed output w/ second build of unchanged output", () => {
         const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
         const [expected] = testObj.build("/src/a.ts", "javascript/esm").diagnostics;
