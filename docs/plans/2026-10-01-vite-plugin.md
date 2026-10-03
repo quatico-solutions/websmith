@@ -201,7 +201,7 @@ string. This plan writes the package fresh off `develop` and keeps only the atte
 
 ### Neutral module compiler
 
-- `feature/neutral-module-compiler` — bundler-neutral `ModuleCompiler` in `@quatico/websmith-core` (`build(file, { moduleKind })` → `{ fragment, diagnostics, dependencies }`, `getConfigErrors()`, `runResultProcessors(files)`, host-supplied `AddonContext` factory), `TsCompiler` reduced to a webpack host of it, no loader behaviour change; lands after #134's `bug/loader-resolve-options-once`; unit tests in core for the contract (must fail before: no core export), existing webpack unit tests and `packages/webpack-test` green unchanged as the guard <!-- builds: bundler-neutral ModuleCompiler in websmith-core, websmith-loader as its webpack host -->
+- `feature/neutral-module-compiler` — bundler-neutral `ModuleCompiler` in `@quatico/websmith-core` (`build(file, { moduleKind })` → `{ fragment, diagnostics, dependencies }`, `getConfigErrors()`, `runResultProcessors(files)`, host-supplied `AddonContext` factory), `TsCompiler` reduced to a webpack host of it, no loader behaviour change; lands after #134's `bug/loader-resolve-options-once`; unit tests in core for the contract (must fail before: no core export), existing webpack unit tests and `packages/webpack-test` green unchanged as the guard → #174 <!-- builds: bundler-neutral ModuleCompiler in websmith-core, websmith-loader as its webpack host -->
   Layers: core module compiler → webpack loader host
   Proves: the per-module compile runs without webpack and the loader behaves as before
 
