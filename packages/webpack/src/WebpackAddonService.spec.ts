@@ -350,6 +350,159 @@ describe("WebpackAddonService", () => {
         });
     });
 
+    describe("profile addons w/ depends graphs", () => {
+        it("should request base addons, then profile addons before dependency addons w/ three-level chain", () => {
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({
+                addonsDir: path.join(tempDir, "addons"),
+                addons: ["base"],
+                profiles: {
+                    a: { depends: ["b"], addons: ["a1"] },
+                    b: { depends: ["c"], addons: ["b1"] },
+                    c: { depends: ["d"], addons: ["c1"] },
+                    d: { addons: ["d1"] },
+                },
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons("a");
+            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+
+            expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "b1", "c1", "d1"']);
+        });
+
+        it("should request base addons, then profile addons before dependency addons w/ diamond", () => {
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({
+                addonsDir: path.join(tempDir, "addons"),
+                addons: ["base"],
+                profiles: {
+                    a: { depends: ["b", "c"], addons: ["a1"] },
+                    b: { depends: ["d"], addons: ["b1"] },
+                    c: { depends: ["d"], addons: ["c1"] },
+                    d: { addons: ["d1"] },
+                },
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons("a");
+            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+
+            expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "b1", "d1", "c1"']);
+        });
+
+        it("should request base addons, then profile addons before dependency addons w/ nested dependency of first dependency", () => {
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({
+                addonsDir: path.join(tempDir, "addons"),
+                addons: ["base"],
+                profiles: {
+                    a: { depends: ["b", "c"], addons: ["a1"] },
+                    b: { depends: ["d"], addons: ["b1"] },
+                    c: { addons: ["c1"] },
+                    d: { addons: ["d1"] },
+                },
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons("a");
+            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+
+            expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "b1", "d1", "c1"']);
+        });
+
+        it("should request base addons, then profile addons before dependency addons w/ depends cycle", () => {
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({
+                addonsDir: path.join(tempDir, "addons"),
+                addons: ["base"],
+                profiles: { a: { depends: ["b"], addons: ["a1"] }, b: { depends: ["a"], addons: ["b1"] } },
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons("a");
+            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+
+            expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "b1"']);
+        });
+
+        it("should request base addons, then profile addons before dependency addons w/ self-dependency", () => {
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({
+                addonsDir: path.join(tempDir, "addons"),
+                addons: ["base"],
+                profiles: { a: { depends: ["a"], addons: ["a1"] } },
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons("a");
+            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+
+            expect(actual).toEqual(['Missing addons for profile "a": "base", "a1"']);
+        });
+
+        it("should request base addons, then profile addons before dependency addons w/ missing depends target", () => {
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({
+                addonsDir: path.join(tempDir, "addons"),
+                addons: ["base"],
+                profiles: { a: { depends: ["missing", "b"], addons: ["a1"] }, b: { addons: ["b1"] } },
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons("a");
+            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+
+            expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "b1"']);
+        });
+
+        it("should request base addons, then profile addons before dependency addons w/ addon shared by two profiles", () => {
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({
+                addonsDir: path.join(tempDir, "addons"),
+                addons: ["base"],
+                profiles: { a: { depends: ["b", "c"], addons: ["a1"] }, b: { addons: ["shared", "b1"] }, c: { addons: ["c1", "shared"] } },
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons("a");
+            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+
+            expect(actual).toEqual(['Missing addons for profile "a": "base", "a1", "shared", "b1", "c1"']);
+        });
+
+        it("should request base addons w/ unknown target profile", () => {
+            const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
+            const testObj = new WebpackAddonService({
+                addonsDir: path.join(tempDir, "addons"),
+                addons: ["base"],
+                profiles: { a: { addons: ["a1"] } },
+                system: mockSystem,
+                reporter: mockReporter,
+            });
+
+            // @ts-expect-error - getActiveAddons is private
+            testObj.getActiveAddons("unknown");
+            const actual = reporterSpy.mock.calls.map(([cur]) => String(cur.messageText).split("\n")[0]);
+
+            expect(actual).toEqual(['Missing addons for profile "unknown": "base"']);
+        });
+    });
+
     describe("unknown addon validation", () => {
         it("should report warning for unknown addons in profile", () => {
             const reporterSpy = jest.spyOn(mockReporter, "reportDiagnostic");
