@@ -1353,3 +1353,104 @@ describe("getOptions", () => {
         expect(actual.tsConfig?.target).toBe(ts.ScriptTarget.ESNext);
     });
 });
+
+describe("option names", () => {
+    const createLoaderOptions = (tsConfig: ts.CompilerOptions, rest: Record<string, unknown> = {}) =>
+        ({ tsConfig, cliArgs: { options: { ...tsConfig }, fileNames: [], errors: [] }, ...rest }) as any;
+
+    it("should yield enum value in tsConfig and cliArgs w/ module name in loader tsConfig", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {}, createLoaderOptions({ module: "NodeNext" as any }));
+
+        expect(testObj.tsConfig?.module).toBe(ts.ModuleKind.NodeNext);
+        expect(testObj.cliArgs.options.module).toBe(ts.ModuleKind.NodeNext);
+    });
+
+    it("should yield enum value in profile options w/ module name in loader tsConfig", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            {},
+            createLoaderOptions({ module: "NodeNext" as any }, { config: { profiles: { client: {} } }, profile: "client" })
+        );
+
+        const actual = testObj.getOptions("client");
+
+        expect(actual.tsConfig?.module).toBe(ts.ModuleKind.NodeNext);
+        expect(actual.cliArgs?.options.module).toBe(ts.ModuleKind.NodeNext);
+    });
+
+    it("should yield enum value w/ tsConfig module name passed to options", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { tsConfig: { moduleResolution: "Bundler" as any } });
+
+        expect(testObj.tsConfig?.moduleResolution).toBe(ts.ModuleResolutionKind.Bundler);
+    });
+
+    it("should report one error and drop the value w/ invalid module in loader tsConfig", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: target }, createLoaderOptions({ module: "nope" as any }));
+
+        expect(testObj.cliArgs.options.module).not.toBe("nope");
+        expect(testObj.tsConfig?.module).not.toBe("nope");
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({ messageText: expect.stringMatching(/^Invalid 'tsConfig\.module' value 'nope' in the loader options\. /) })
+        );
+    });
+
+    it("should yield enum value w/ inline profile overriding the profile of the config file", () => {
+        const fileSystem = createSystem(
+            { "./websmith.config.json": JSON.stringify({ profiles: { client: { tsConfig: { module: "CommonJS", target: "ES2020" } } } }) },
+            { virtual: true }
+        );
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            { configFile: "./websmith.config.json" },
+            { config: { profiles: { client: { tsConfig: { module: "NodeNext" as any } } } }, profile: "client" }
+        );
+
+        expect(testObj.config?.profiles?.client.tsConfig).toEqual({ module: ts.ModuleKind.NodeNext, target: ts.ScriptTarget.ES2020 });
+        expect(testObj.getOptions("client").tsConfig?.module).toBe(ts.ModuleKind.NodeNext);
+    });
+
+    it("should report one error w/ invalid module in selected inline profile", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(
+            fileSystem,
+            { reporter: target },
+            { config: { profiles: { base: { tsConfig: { target: "bogus" as any } }, client: { depends: ["base"] } } }, profile: "client" }
+        );
+
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({
+                messageText: expect.stringMatching(/^Invalid 'tsConfig\.target' value 'bogus' in profile 'base' of the loader options\. /),
+            })
+        );
+    });
+
+    it("should drop the value and report nothing w/ invalid module in unselected inline profile", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            { reporter: target },
+            { config: { profiles: { valid: {}, other: { tsConfig: { module: "nope" as any, outDir: "./dist" } } } }, profile: "valid" }
+        );
+
+        expect(testObj.config?.profiles?.other.tsConfig).toEqual({ outDir: "./dist" });
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
+    });
+});
