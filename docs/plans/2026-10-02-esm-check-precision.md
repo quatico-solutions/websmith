@@ -21,6 +21,7 @@
 - **Started:** 2026-10-02, Jan Wloka, `bug/esm-check-false-positives`
 - **Started:** 2026-10-02, Jan Wloka, `bug/esm-check-import-misses`
 - **Started:** 2026-10-02, Jan Wloka, `bug/esm-check-attribution`
+- **Started:** 2026-10-03, Jan Wloka, `bug/esm-check-package-subpaths`
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
