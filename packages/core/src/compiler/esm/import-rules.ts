@@ -8,16 +8,19 @@ import type { EsmRuntime } from "@quatico/websmith-api";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import ts from "typescript";
-import { createCjsNamesCache, IMPORT_CONDITIONS, isBareSpecifier, resolvePackage, type CjsNamesCache } from "./cjs-names";
-import type { DependencyCallback, ModuleClassification } from "./classify-module";
+import { createCjsNamesCache, IMPORT_CONDITIONS, isBareSpecifier, resolvePackage, type CjsNamesCache, type Resolution } from "./cjs-names";
+import { createPackageTypeLookup, type DependencyCallback, type ModuleClassification, type PackageTypeLookup } from "./classify-module";
 import type { ModuleScan } from "./scan-module";
 
-/** Stable diagnostic codes of the rules on relative imports and, for 91013, bare imports. */
+/** Stable diagnostic codes of the rules on relative imports and, for 91013 and 91022–91024, bare imports. */
 export const ImportDiagnosticCode = {
     MissingExtension: 91010,
     DirectoryImport: 91011,
     UnresolvedImport: 91012,
     MissingJsonAttribute: 91013,
+    PackageSubpathNotExported: 91022,
+    UnresolvedPackageSubpath: 91023,
+    UnresolvedPathsAlias: 91024,
 } as const;
 
 export type ImportRuleContext = {
@@ -30,6 +33,8 @@ export type ImportRuleContext = {
     onDependency?: DependencyCallback;
     /** Per-build memo of package resolution, created per context when absent. */
     cjsNamesCache?: CjsNamesCache;
+    /** The profile's tsconfig options bare imports depend on; without them neither option counts as set. */
+    compilerOptions?: Pick<ts.CompilerOptions, "customConditions" | "paths">;
 };
 
 export type ImportFinding = { code: number; message: string; start: number; length: number };
@@ -43,7 +48,7 @@ export type ImportRule = (
 
 type CollectedImport = {
     specifier: string;
-    /** True for a specifier that names a package, which only 91013 checks. */
+    /** True for a specifier that names a package, which only 91013 and 91022–91024 check. */
     bare: boolean;
     /** True for `import()`, the only import a Node CommonJS file loads as ES module. */
     dynamic: boolean;
@@ -163,9 +168,36 @@ export const checkJsonImportAttribute: ImportRule = ({ file }, { kind }, context
                   )
               );
 
-export const IMPORT_RULES: readonly ImportRule[] = [checkMissingExtension, checkDirectoryImport, checkUnresolvedImport, checkJsonImportAttribute];
+/**
+ * Bare import that Node cannot load although the build passes, in a Node ES module or a Node CommonJS `import()`:
+ * a subpath or root the package's `"exports"` does not export for Node's import conditions (91022, silent with
+ * `customConditions`), an extensionless or directory subpath of a package without `"exports"` (91023), or a tsconfig
+ * `paths` alias TypeScript left in the emitted specifier (91024). Each import yields at most one finding; a package
+ * that is not installed and matches no `paths` key, or a subpath that names nothing, stays unknown.
+ */
+export const checkPackageSubpath: ImportRule = ({ file }, { kind }, context) =>
+    context.runtime !== "node"
+        ? []
+        : selectImports(file, kind, context, ["esm"])
+              .filter(cur => cur.bare)
+              .flatMap(cur => {
+                  const resolution = resolveBareImport(cur.specifier, file.fileName, context);
+                  const message =
+                      describeNotExported(cur.specifier, resolution, context) ??
+                      describeSubpathTarget(cur.specifier, resolution, context) ??
+                      describePathsAlias(cur.specifier, file.fileName, resolution, context);
+                  return message ? [finding(message[0], message[1], cur)] : [];
+              });
 
-/** Runs every rule on relative imports. */
+export const IMPORT_RULES: readonly ImportRule[] = [
+    checkMissingExtension,
+    checkDirectoryImport,
+    checkUnresolvedImport,
+    checkJsonImportAttribute,
+    checkPackageSubpath,
+];
+
+/** Runs every rule on imports. */
 export const checkImports: ImportRule = (scan, classification, context) => IMPORT_RULES.flatMap(rule => rule(scan, classification, context));
 
 const finding = (code: number, message: string, { start, length }: CollectedImport): ImportFinding => ({ code, message, start, length });
@@ -249,13 +281,10 @@ const hasEntryField = (packageJson: string, context: ImportRuleContext): boolean
 const packageCaches = new WeakMap<ImportRuleContext, CjsNamesCache>();
 
 /**
- * True when Node loads a bare specifier as JSON: its name ends in `.json`, or its package resolves it to a `.json`
- * file with Node's import conditions. The files the resolution probed are replayed to `onDependency`.
+ * Resolves a bare specifier with Node's import conditions through the context's package cache, so every rule shares
+ * one entry per specifier. The files the resolution probed are replayed to `onDependency`.
  */
-const importsPackageJson = (specifier: string, importer: string, context: ImportRuleContext): boolean => {
-    if (JSON_FILE.test(specifier)) {
-        return true;
-    }
+const resolveBareImport = (specifier: string, importer: string, context: ImportRuleContext): Resolution => {
     let cache = context.cjsNamesCache ?? packageCaches.get(context);
     if (!cache) {
         cache = createCjsNamesCache();
@@ -263,7 +292,173 @@ const importsPackageJson = (specifier: string, importer: string, context: Import
     }
     const resolution = resolvePackage(specifier, path.dirname(importer), IMPORT_CONDITIONS, context.runtime, context.system, cache);
     resolution.dependencies.forEach(([fileName, exists]) => context.onDependency?.(fileName, exists));
-    return resolution.entry !== undefined && JSON_FILE.test(resolution.entry);
+    return resolution;
+};
+
+/**
+ * True when Node loads a bare specifier as JSON: its name ends in `.json`, or its package resolves it to a `.json`
+ * file with Node's import conditions.
+ */
+const importsPackageJson = (specifier: string, importer: string, context: ImportRuleContext): boolean => {
+    if (JSON_FILE.test(specifier)) {
+        return true;
+    }
+    const { entry } = resolveBareImport(specifier, importer, context);
+    return entry !== undefined && JSON_FILE.test(entry);
+};
+
+type Described = [code: number, message: string];
+
+const MAX_LISTED_SUBPATHS = 5;
+
+/** 91022 when the package's `"exports"` rejects the subpath, unless `customConditions` may let the runtime load it. */
+const describeNotExported = (specifier: string, resolution: Resolution, context: ImportRuleContext): Described | undefined => {
+    if (resolution.failure !== "not-exported" || (context.compilerOptions?.customConditions?.length ?? 0) > 0) {
+        return undefined;
+    }
+    const listed = listExportedSubpaths(resolution.exports, resolution.subpath);
+    return [
+        ImportDiagnosticCode.PackageSubpathNotExported,
+        `"${specifier}" is not exported by package "${resolution.packageName}" for conditions ${IMPORT_CONDITIONS.join(", ")}; ` +
+            `exported subpaths: ${listed.length > 0 ? listed.map(cur => `"${cur}"`).join(", ") : "none"}`,
+    ];
+};
+
+/**
+ * The subpaths an `"exports"` value exports, patterns as written and keys mapped to `null` left out, nearest the
+ * requested subpath first: the longest common prefix, ties in manifest order. A string, an array or conditions alone
+ * export `"."` only.
+ */
+const listExportedSubpaths = (exports: unknown, subpath: string): string[] => {
+    const keys = typeof exports === "object" && exports !== null && !Array.isArray(exports) ? Object.keys(exports) : [];
+    const subpaths = keys.some(cur => cur.startsWith("."))
+        ? keys.filter(cur => cur.startsWith(".") && (exports as Record<string, unknown>)[cur] !== null)
+        : ["."];
+    const commonPrefix = (key: string): number => {
+        let length = 0;
+        while (length < key.length && key[length] === subpath[length]) {
+            length++;
+        }
+        return length;
+    };
+    return subpaths
+        .map((key, index) => ({ key, index, prefix: commonPrefix(key) }))
+        .sort((a, b) => b.prefix - a.prefix || a.index - b.index)
+        .slice(0, MAX_LISTED_SUBPATHS)
+        .map(cur => cur.key);
+};
+
+const subpathTargets = new WeakMap<ImportRuleContext, Map<string, { target?: "directory" | "index" | "file"; probes: [string, boolean][] }>>();
+
+/**
+ * 91023 when a subpath of a package without `"exports"` names no file but a directory or, with `.js` added, a file.
+ * A directory wins over the file beside it, as in Node, and a trailing `/` names a directory only.
+ */
+const describeSubpathTarget = (specifier: string, resolution: Resolution, context: ImportRuleContext): Described | undefined => {
+    const { failure, subpath, packageDir, packageName } = resolution;
+    if (failure !== "no-entry" || resolution.exports !== undefined || subpath === "." || packageDir === undefined) {
+        return undefined;
+    }
+    const base = path.join(packageDir, subpath);
+    const cached = memo(subpathTargets, context);
+    let result = cached.get(base);
+    if (!result) {
+        const probes: [string, boolean][] = [];
+        const probe = (fileName: string, exists: boolean): boolean => {
+            probes.push([fileName, exists]);
+            return exists;
+        };
+        const dirName = base.replace(/[\\/]+$/, "");
+        let target: "directory" | "index" | "file" | undefined;
+        if (probe(dirName, context.system.directoryExists(dirName))) {
+            const index = path.join(dirName, "index.js");
+            target = probe(index, context.system.fileExists(index)) ? "index" : "directory";
+        } else if (!subpath.endsWith("/") && probe(`${base}.js`, context.system.fileExists(`${base}.js`))) {
+            target = "file";
+        }
+        result = { target, probes };
+        cached.set(base, result);
+    }
+    result.probes.forEach(([fileName, exists]) => context.onDependency?.(fileName, exists));
+    switch (result.target) {
+        case "file":
+            return [
+                ImportDiagnosticCode.UnresolvedPackageSubpath,
+                `package import "${specifier}" names no file of package "${packageName}", which has no "exports"; add the extension: "${specifier}.js"`,
+            ];
+        case "index":
+        case "directory":
+            return [
+                ImportDiagnosticCode.UnresolvedPackageSubpath,
+                `package import "${specifier}" names a directory of package "${packageName}", which ES modules cannot import; ` +
+                    (result.target === "index" ? `import the file: "${specifier.replace(/\/+$/, "")}/index.js"` : "import a file inside the directory"),
+            ];
+        default:
+            return undefined;
+    }
+};
+
+/**
+ * 91024 when no package is installed for a specifier that matches a tsconfig `paths` key, exactly or, for a key with
+ * one `*`, by prefix and suffix, and that is no self-reference. The catch-all key `"*"` matches no specifier, so a
+ * package that is not installed stays unknown.
+ */
+const describePathsAlias = (specifier: string, importer: string, resolution: Resolution, context: ImportRuleContext): Described | undefined => {
+    if (resolution.failure !== "not-found") {
+        return undefined;
+    }
+    const pattern = findPathsPattern(specifier, context.compilerOptions?.paths);
+    if (pattern === undefined || isSelfReference(resolution.packageName, importer, context)) {
+        return undefined;
+    }
+    return [
+        ImportDiagnosticCode.UnresolvedPathsAlias,
+        `"${specifier}" matches the tsconfig "paths" pattern "${pattern}", which TypeScript does not rewrite in emitted code; ` +
+            `rewrite it with a transformer addon or a build tool, or use a package "imports" entry`,
+    ];
+};
+
+/** The `paths` key TypeScript applies to a specifier: an exact key, else the matching pattern with the longest prefix. */
+const findPathsPattern = (specifier: string, paths: ts.MapLike<string[]> | undefined): string | undefined => {
+    const keys = Object.keys(paths ?? {});
+    if (keys.includes(specifier)) {
+        return specifier;
+    }
+    return keys
+        .filter(cur => cur !== "*" && cur.split("*").length === 2)
+        .filter(cur => {
+            const [prefix, suffix] = cur.split("*");
+            return specifier.length >= prefix.length + suffix.length && specifier.startsWith(prefix) && specifier.endsWith(suffix);
+        })
+        .sort((a, b) => b.indexOf("*") - a.indexOf("*"))[0];
+};
+
+const packageScopes = new WeakMap<ImportRuleContext, PackageTypeLookup>();
+
+/**
+ * True when Node resolves a package name from the importing file itself: only the nearest package.json counts, and it
+ * must carry that `name` and an `"exports"`.
+ */
+const isSelfReference = (packageName: string, importer: string, context: ImportRuleContext): boolean => {
+    let lookup = packageScopes.get(context);
+    if (!lookup) {
+        lookup = createPackageTypeLookup(context.system, context.onDependency);
+        packageScopes.set(context, lookup);
+    }
+    const packageJson = lookup(importer)?.packageJson;
+    let manifest: unknown;
+    try {
+        manifest = JSON.parse((packageJson && context.system.readFile(packageJson)) ?? "");
+    } catch {
+        return false;
+    }
+    return (
+        typeof manifest === "object" &&
+        manifest !== null &&
+        (manifest as Record<string, unknown>).name === packageName &&
+        (manifest as Record<string, unknown>).exports !== undefined &&
+        (manifest as Record<string, unknown>).exports !== null
+    );
 };
 
 const memo = <T>(store: WeakMap<ImportRuleContext, Map<string, T>>, context: ImportRuleContext): Map<string, T> => {

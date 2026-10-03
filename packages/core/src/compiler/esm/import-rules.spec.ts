@@ -10,6 +10,7 @@ import {
     checkImports,
     checkJsonImportAttribute,
     checkMissingExtension,
+    checkPackageSubpath,
     checkUnresolvedImport,
     type ImportRuleContext,
 } from "./import-rules";
@@ -625,6 +626,267 @@ describe("checkJsonImportAttribute", () => {
         const actual = checkJsonImportAttribute(scan(`import data from "./d.json?v=1";`), ESM, createContext({}, { runtime: "bundler" }));
 
         expect(actual).toEqual([]);
+    });
+});
+
+const EPKG = {
+    "/dist/node_modules/epkg/package.json": JSON.stringify({ name: "epkg", exports: { ".": "./index.js", "./feature": "./feature.js", "./lib/*": "./lib/*" } }),
+    "/dist/node_modules/epkg/index.js": "",
+    "/dist/node_modules/epkg/feature.js": "",
+    "/dist/node_modules/epkg/lib/x.js": "",
+};
+
+const NPKG = { "/dist/node_modules/npkg/package.json": JSON.stringify({ name: "npkg" }) };
+
+const APP_PATHS = { compilerOptions: { paths: { "@app/*": ["./src/lib/*"] } } };
+
+describe("checkPackageSubpath", () => {
+    it("yields 91022 w/ subpath not exported by package in node ESM file", () => {
+        const actual = checkPackageSubpath(scan(`import x from "epkg/internal.js";`), ESM, createContext(EPKG)).map(cur => cur.code);
+
+        expect(actual).toEqual([91022]);
+    });
+
+    it("yields 91022 w/ package root exported only for require in node ESM file", () => {
+        const actual = checkPackageSubpath(
+            scan(`import x from "rpkg";`),
+            ESM,
+            createContext({
+                "/dist/node_modules/rpkg/package.json": JSON.stringify({ name: "rpkg", exports: { require: "./index.cjs" } }),
+                "/dist/node_modules/rpkg/index.cjs": "",
+            })
+        ).map(cur => [cur.code, cur.message]);
+
+        expect(actual).toEqual([[91022, `"rpkg" is not exported by package "rpkg" for conditions node, import, module-sync, default; exported subpaths: "."`]]);
+    });
+
+    it("yields 91022 w/ literal dynamic import of unexported subpath in node CommonJS file", () => {
+        const actual = checkPackageSubpath(scan(`import("epkg/internal.js");`), COMMONJS, createContext(EPKG)).map(cur => cur.code);
+
+        expect(actual).toEqual([91022]);
+    });
+
+    it("yields message listing exported subpaths nearest first w/ unexported subpath", () => {
+        const exports = {
+            ".": "./index.js",
+            "./feature": "./feature.js",
+            "./i": "./i.js",
+            "./internal-x": "./x.js",
+            "./in/*": "./in/*",
+            "./internal.json": null,
+            "./int": "./int.js",
+            "./internal/a.js": "./a.js",
+            "./zeta": "./zeta.js",
+        };
+
+        const actual = checkPackageSubpath(
+            scan(`import x from "pkg/internal.js";`),
+            ESM,
+            createContext({ "/dist/node_modules/pkg/package.json": JSON.stringify({ name: "pkg", exports }) })
+        ).map(cur => cur.message);
+
+        expect(actual).toEqual([
+            `"pkg/internal.js" is not exported by package "pkg" for conditions node, import, module-sync, default; ` +
+                `exported subpaths: "./internal-x", "./internal/a.js", "./int", "./in/*", "./i"`,
+        ]);
+    });
+
+    it("yields nothing w/ development-only export and customConditions in node ESM file", () => {
+        const actual = checkPackageSubpath(
+            scan(`import x from "dpkg";`),
+            ESM,
+            createContext(
+                {
+                    "/dist/node_modules/dpkg/package.json": JSON.stringify({ name: "dpkg", exports: { ".": { development: "./dev.js" } } }),
+                    "/dist/node_modules/dpkg/dev.js": "",
+                },
+                { compilerOptions: { customConditions: ["development"] } }
+            )
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ exported subpath in node ESM file", () => {
+        const actual = checkPackageSubpath(
+            scan(`import x from "epkg";\nimport y from "epkg/feature";\nimport z from "epkg/lib/x.js";`),
+            ESM,
+            createContext(EPKG)
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ unexported subpath in bundler ESM file", () => {
+        const actual = checkPackageSubpath(scan(`import x from "epkg/internal.js";`), ESM, createContext(EPKG, { runtime: "bundler" }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91023 w/ extensionless subpath of package without exports in node ESM file", () => {
+        const actual = checkPackageSubpath(
+            scan(`import x from "npkg/sub";`),
+            ESM,
+            createContext({ ...NPKG, "/dist/node_modules/npkg/sub.js": "" })
+        ).map(cur => [cur.code, cur.message]);
+
+        expect(actual).toEqual([
+            [91023, `package import "npkg/sub" names no file of package "npkg", which has no "exports"; add the extension: "npkg/sub.js"`],
+        ]);
+    });
+
+    it("yields 91023 w/ directory subpath of package without exports in node ESM file", () => {
+        const actual = checkPackageSubpath(
+            scan(`import x from "npkg/sub";`),
+            ESM,
+            createContext({ ...NPKG, "/dist/node_modules/npkg/sub.js": "", "/dist/node_modules/npkg/sub/index.js": "" })
+        ).map(cur => [cur.code, cur.message]);
+
+        expect(actual).toEqual([
+            [
+                91023,
+                `package import "npkg/sub" names a directory of package "npkg", which ES modules cannot import; import the file: "npkg/sub/index.js"`,
+            ],
+        ]);
+    });
+
+    it("yields 91023 w/ subpath with trailing slash in node ESM file", () => {
+        const actual = checkPackageSubpath(
+            scan(`import x from "npkg/sub/";`),
+            ESM,
+            createContext({ ...NPKG, "/dist/node_modules/npkg/sub/index.js": "" })
+        ).map(cur => [cur.code, cur.message]);
+
+        expect(actual).toEqual([
+            [
+                91023,
+                `package import "npkg/sub/" names a directory of package "npkg", which ES modules cannot import; import the file: "npkg/sub/index.js"`,
+            ],
+        ]);
+    });
+
+    it("yields 91023 w/ directory subpath without index.js in node ESM file", () => {
+        const context = createContext(NPKG);
+        context.system.createDirectory("/dist/node_modules/npkg/sub");
+
+        const actual = checkPackageSubpath(scan(`import x from "npkg/sub";`), ESM, context).map(cur => [cur.code, cur.message]);
+
+        expect(actual).toEqual([
+            [91023, `package import "npkg/sub" names a directory of package "npkg", which ES modules cannot import; import a file inside the directory`],
+        ]);
+    });
+
+    it("yields nothing w/ subpath naming existing file of package without exports in node ESM file", () => {
+        const actual = checkPackageSubpath(
+            scan(`import x from "npkg/sub.js";`),
+            ESM,
+            createContext({ ...NPKG, "/dist/node_modules/npkg/sub.js": "" })
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ subpath naming nothing of package without exports in node ESM file", () => {
+        const actual = checkPackageSubpath(scan(`import x from "npkg/gone";`), ESM, createContext(NPKG));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91024 w/ specifier matching paths pattern and no package in node ESM file", () => {
+        const actual = checkPackageSubpath(scan(`import l from "@app/l";`), ESM, createContext({}, APP_PATHS)).map(cur => [cur.code, cur.message]);
+
+        expect(actual).toEqual([
+            [
+                91024,
+                `"@app/l" matches the tsconfig "paths" pattern "@app/*", which TypeScript does not rewrite in emitted code; ` +
+                    `rewrite it with a transformer addon or a build tool, or use a package "imports" entry`,
+            ],
+        ]);
+    });
+
+    it("yields 91024 w/ specifier matching exact paths key in node ESM file", () => {
+        const actual = checkPackageSubpath(
+            scan(`import c from "config";`),
+            ESM,
+            createContext({}, { compilerOptions: { paths: { config: ["./src/config.ts"] } } })
+        ).map(cur => cur.code);
+
+        expect(actual).toEqual([91024]);
+    });
+
+    it("yields nothing w/ self-reference to nearest package.json with name and exports in node ESM file", () => {
+        const actual = checkPackageSubpath(
+            scan(`import l from "@app/l";`),
+            ESM,
+            createContext({ "/dist/package.json": JSON.stringify({ name: "@app/l", exports: "./l.js" }), "/dist/l.js": "" }, APP_PATHS)
+        );
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields 91024 w/ alias equal to name of package.json beyond the nearest one", () => {
+        const actual = checkPackageSubpath(
+            scan(`import l from "@app/l";`),
+            ESM,
+            createContext(
+                {
+                    "/package.json": JSON.stringify({ name: "@app/l", exports: "./dist/l.js" }),
+                    "/dist/package.json": JSON.stringify({ type: "module" }),
+                    "/dist/l.js": "",
+                },
+                APP_PATHS
+            )
+        ).map(cur => cur.code);
+
+        expect(actual).toEqual([91024]);
+    });
+
+    it("yields nothing w/ hash imports specifier matching paths pattern in node ESM file", () => {
+        const actual = checkPackageSubpath(scan(`import x from "#x";`), ESM, createContext({}, { compilerOptions: { paths: { "#x": ["./src/x.ts"] } } }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ uninstalled package matching no paths pattern in node ESM file", () => {
+        const actual = checkPackageSubpath(scan(`import x from "lodash";`), ESM, createContext({}, APP_PATHS));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields nothing w/ paths alias in bundler ESM file", () => {
+        const actual = checkPackageSubpath(scan(`import l from "@app/l";`), ESM, createContext({}, { runtime: "bundler", ...APP_PATHS }));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("reports probed files to onDependency w/ unexported subpath", () => {
+        const onDependency = jest.fn();
+
+        checkPackageSubpath(
+            scan(`import x from "epkg/internal.js";\nimport y from "npkg/sub";\nimport z from "npkg/other";\nimport l from "@app/l";`),
+            ESM,
+            createContext(
+                {
+                    ...EPKG,
+                    ...NPKG,
+                    "/dist/node_modules/npkg/sub/index.js": "",
+                    "/dist/node_modules/npkg/other.js": "",
+                    "/dist/package.json": JSON.stringify({ type: "module" }),
+                },
+                { onDependency, ...APP_PATHS }
+            )
+        );
+        const actual = onDependency.mock.calls;
+
+        expect(actual).toEqual(
+            expect.arrayContaining([
+                ["/dist/node_modules/epkg/package.json", true],
+                ["/dist/node_modules/npkg/sub", true],
+                ["/dist/node_modules/npkg/sub/index.js", true],
+                ["/dist/node_modules/npkg/other.js", true],
+                ["/dist/package.json", true],
+            ])
+        );
     });
 });
 

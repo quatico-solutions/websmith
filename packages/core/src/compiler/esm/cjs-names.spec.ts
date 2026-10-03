@@ -11,7 +11,7 @@ import path from "node:path";
 import ts from "typescript";
 import { NoReporter } from "../NoReporter";
 import { checkEsm, type EsmCheckContext } from "./check-esm";
-import { createCjsNamesCache } from "./cjs-names";
+import { createCjsNamesCache, IMPORT_CONDITIONS, resolvePackage } from "./cjs-names";
 
 const MODULE_PACKAGE = JSON.stringify({ type: "module" });
 
@@ -534,5 +534,56 @@ describe("checkEsm CommonJS names", () => {
         const actual = system.readFile.mock.calls.filter(([cur]) => cur === path.join(root, "node_modules", "objcjs", "index.js"));
 
         expect(actual).toHaveLength(1);
+    });
+});
+
+describe("resolvePackage", () => {
+    const resolve = (root: string, specifier: string) =>
+        resolvePackage(specifier, path.join(root, "dist"), IMPORT_CONDITIONS, "node", ts.sys, createCjsNamesCache());
+
+    it("yields the not-exported outcome w/ subpath missing from exports", () => {
+        const root = createProject({ "node_modules/epkg/package.json": JSON.stringify({ name: "epkg", exports: { ".": "./index.js" } }) });
+
+        const actual = resolve(root, "epkg/internal.js");
+
+        expect([actual.entry, actual.failure, actual.packageName, actual.subpath, actual.exports]).toEqual([
+            undefined,
+            "not-exported",
+            "epkg",
+            "./internal.js",
+            { ".": "./index.js" },
+        ]);
+    });
+
+    it("yields the not-exported outcome w/ package root exported only for require", () => {
+        const root = createProject({
+            "node_modules/epkg/package.json": JSON.stringify({ name: "epkg", exports: { require: "./index.cjs" } }),
+            "node_modules/epkg/index.cjs": "",
+        });
+
+        const actual = resolve(root, "epkg");
+
+        expect([actual.failure, actual.subpath]).toEqual(["not-exported", "."]);
+    });
+
+    it("yields the not-found outcome w/ no package in any node_modules", () => {
+        const root = createProject({});
+
+        const actual = resolve(root, "@app/l");
+
+        expect([actual.entry, actual.failure, actual.packageName, actual.subpath]).toEqual([undefined, "not-found", "@app/l", "."]);
+    });
+
+    it("yields an entry w/ a workspace package symlinked into node_modules", () => {
+        const root = createProject({
+            "packages/l/package.json": JSON.stringify({ name: "@app/l", type: "module", exports: "./index.js" }),
+            "packages/l/index.js": "export default 1;",
+        });
+        fs.mkdirSync(path.join(root, "node_modules", "@app"), { recursive: true });
+        fs.symlinkSync(path.join(root, "packages", "l"), path.join(root, "node_modules", "@app", "l"), "junction");
+
+        const actual = resolve(root, "@app/l");
+
+        expect([actual.entry, actual.failure]).toEqual([path.join(root, "packages", "l", "index.js"), undefined]);
     });
 });
