@@ -11,7 +11,7 @@
 
 ## Status
 
-- **State:** Approved
+- **State:** Delivered
 - **Type:** bug
 - **Story:** node24-esm-support
 - **Review:** pr
@@ -22,6 +22,7 @@
 - **Started:** 2026-10-02, Jan Wloka, `bug/esm-check-import-misses`
 - **Started:** 2026-10-02, Jan Wloka, `bug/esm-check-attribution`
 - **Started:** 2026-10-03, Jan Wloka, `bug/esm-check-package-subpaths`
+- **Delivered:** 2026-10-03
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
