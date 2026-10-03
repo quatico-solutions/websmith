@@ -4877,6 +4877,101 @@ describe("compile w/ syntax error and addon needing type information", () => {
     });
 });
 
+describe("emitSourceFile w/ error and emitSkipped rule", () => {
+    const createCompiler = (fileSystem: ts.System, tsConfig: ts.CompilerOptions, withTypeInfoAddon: boolean) => {
+        const reporter = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter,
+                config: withTypeInfoAddon ? { addons: ["type-info-addon"] } : undefined,
+                tsConfig: { target: ts.ScriptTarget.ESNext, types: [], ...tsConfig },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+        if (withTypeInfoAddon) {
+            fileSystem.createDirectory("./addons");
+            const addons = new AddonRegistry({ addonsDir: "./addons", reporter, system: fileSystem });
+            // Legacy addon: needsTypeInfo is undefined, so the compilation uses the language service
+            addons.getAvailableAddons = jest.fn().mockReturnValue([{ getName: () => "type-info-addon", activate: () => {} }]);
+            testObj.setAddonRegistry(addons);
+        }
+        return testObj.createProfileContextsIfNecessary();
+    };
+
+    it("yields .js w/ declaration emit error, declaration and addon needing type information", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const Foo = class { private x = 1; };` }, { virtual: true });
+        const testObj = createCompiler(fileSystem, { declaration: true }, true);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.files.map(cur => cur.name)).toContain("/src/target.js");
+    });
+
+    it("yields no files w/ declaration emit error, declaration, noEmitOnError and addon needing type information", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const Foo = class { private x = 1; };` }, { virtual: true });
+        const testObj = createCompiler(fileSystem, { declaration: true, noEmitOnError: true }, true);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.files).toEqual([]);
+    });
+
+    it("yields .js w/ type error and addon needing type information", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const x: number = "s";` }, { virtual: true });
+        const testObj = createCompiler(fileSystem, {}, true);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.files.map(cur => cur.name)).toContain("/src/target.js");
+    });
+
+    it("yields no files w/ type error, noEmitOnError and addon needing type information", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const x: number = "s";` }, { virtual: true });
+        const testObj = createCompiler(fileSystem, { noEmitOnError: true }, true);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.files).toEqual([]);
+    });
+
+    it("yields .js and option error w/ option error on fast path", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+        const testObj = createCompiler(fileSystem, { module: ts.ModuleKind.CommonJS, moduleResolution: ts.ModuleResolutionKind.Bundler }, false);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.files.map(cur => cur.name)).toContain("/src/target.js");
+        expect(actual.diagnostics?.map(cur => cur.code)).toContain(5095);
+    });
+
+    it("yields no files w/ option error and noEmitOnError on fast path", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+        const testObj = createCompiler(
+            fileSystem,
+            { module: ts.ModuleKind.CommonJS, moduleResolution: ts.ModuleResolutionKind.Bundler, noEmitOnError: true },
+            false
+        );
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.files).toEqual([]);
+    });
+
+    it.each([
+        { name: "ESNext", module: ts.ModuleKind.ESNext },
+        { name: "NodeNext", module: ts.ModuleKind.NodeNext },
+    ])("yields no files w/ syntax error, noEmitOnError and module $name on fast path", ({ module }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const a = ;` }, { virtual: true });
+        const testObj = createCompiler(fileSystem, { module, noEmitOnError: true }, false);
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, false);
+
+        expect(actual.files).toEqual([]);
+    });
+});
+
 describe("source file language version", () => {
     const createVersionCompiler = (target: ts.ScriptTarget[], tsConfig: ts.CompilerOptions, needsTypeInfo: boolean, addonEmitOnly: boolean) => {
         const fileSystem = createSystem({ "src/target.ts": "export const x = 1;" }, { virtual: true });

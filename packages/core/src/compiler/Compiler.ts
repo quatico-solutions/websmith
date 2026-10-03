@@ -1253,6 +1253,7 @@ export class Compiler {
             return {
                 ...emitOutput,
                 diagnostics: langService.getSyntacticDiagnostics(fileName),
+                emitSkipped: this.isLanguageServiceEmitSkipped(emitOutput, compilerOptions),
             };
         }
 
@@ -1269,7 +1270,16 @@ export class Compiler {
         return {
             ...emitOutput,
             diagnostics: langService.getSyntacticDiagnostics(fileName),
+            emitSkipped: this.isLanguageServiceEmitSkipped(emitOutput, compilerOptions),
         };
+    }
+
+    /**
+     * The language service skips the emit of a file with a declaration emit error, yet still returns its .js. Like tsc,
+     * only noEmitOnError or missing output skip the emit.
+     */
+    private isLanguageServiceEmitSkipped(emitOutput: ts.EmitOutput, compilerOptions: ts.CompilerOptions): boolean {
+        return emitOutput.emitSkipped && (!!compilerOptions.noEmitOnError || emitOutput.outputFiles.length === 0);
     }
 
     private transpileSourceCode({ content, ctx, fileName }: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
@@ -1413,14 +1423,18 @@ export class Compiler {
         // with numeric enum values that TypeScript's command-line parser rejects
         const filteredDiagnostics = (diagnostics ?? []).filter(d => d.code !== TS_ERROR_CODE_INVALID_OPTION_VALUE);
 
+        const outputFiles = concat(
+            this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText),
+            this.extractOutputFile(fileNames, isSourceMap, sourceMapText)
+        );
         return {
-            outputFiles: concat(
-                this.extractOutputFile(fileNames, isTranspiledSourceFile, outputText),
-                this.extractOutputFile(fileNames, isSourceMap, sourceMapText)
-            ),
+            outputFiles,
             diagnostics: filteredDiagnostics,
-            // Errors in the source, such as syntax errors, carry their file and still emit, as tsc does
-            emitSkipped: filteredDiagnostics.some(cur => !cur.file),
+            // Errors, option errors included, still emit as with tsc, unless noEmitOnError is set. transpileModule
+            // ignores noEmitOnError, so it is read from the context's options here
+            emitSkipped:
+                outputFiles.length === 0 ||
+                (!!compilerOptions.noEmitOnError && filteredDiagnostics.some(cur => cur.category === ts.DiagnosticCategory.Error)),
         };
     }
 
