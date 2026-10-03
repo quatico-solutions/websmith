@@ -7,8 +7,9 @@
 import { type CompilationConfig, type CompilationProfile, ErrorMessage, type Reporter } from "@quatico/websmith-api";
 import { parse } from "comment-json";
 import path from "node:path";
-import ts from "typescript";
+import type ts from "typescript";
 import { isEsmModuleKind } from "../esm";
+import { convertEnumOptions } from "./convert-enum-options";
 import { getProfileClosure } from "./profile-closure";
 
 const updatePaths = (config: CompilationConfig, basePath: string, system: ts.System): CompilationConfig => {
@@ -71,34 +72,6 @@ const removeOverlappingSegments = (basePath: string, relativePath: string) => {
     }
     return path.join(basePathSegments.join(path.sep), relativePathSegments.join(path.sep));
 };
-
-// TypeScript error code for an option value outside its allowed names, e.g. module "NodeLatest"
-export const TS_ERROR_CODE_INVALID_OPTION_VALUE = 6046;
-
-/**
- * Converts option names in a profile's tsConfig, e.g. module "NodeNext", to the enum values TypeScript expects, as
- * tsconfig.json parsing does. Drops names TypeScript doesn't know and reports them if a reporter is given.
- */
-const convertEnumOptions = (name: string, tsConfig: ts.CompilerOptions, configFilePath: string, reporter?: Reporter): ts.CompilerOptions =>
-    Object.fromEntries(
-        Object.entries(tsConfig).flatMap(([key, value]): [string, ts.CompilerOptionsValue][] => {
-            if (typeof value !== "string") {
-                return [[key, value as ts.CompilerOptionsValue]];
-            }
-            const { options, errors } = ts.convertCompilerOptionsFromJson({ [key]: value }, "");
-            const error = errors.find(cur => cur.code === TS_ERROR_CODE_INVALID_OPTION_VALUE);
-            if (error) {
-                reporter?.reportDiagnostic(
-                    new ErrorMessage(
-                        `Invalid 'tsConfig.${key}' value '${value}' in profile '${name}' of '${configFilePath}'. ` +
-                            ts.flattenDiagnosticMessageText(error.messageText, " ")
-                    )
-                );
-                return [];
-            }
-            return [[key, typeof options[key] === "number" ? options[key] : value]];
-        })
-    );
 
 const ESM_RUNTIMES = ["node", "bundler"];
 const ESM_CHECK_LEVELS = ["error", "warn", "off"];
@@ -170,7 +143,9 @@ export const resolveCompilationConfig = (
             try {
                 config = parse(content) as CompilationConfig;
             } catch (err: unknown) {
-                reporter.reportDiagnostic(new ErrorMessage(`Invalid JSON in configuration file "${resolvedPath}"${formatPosition(err)}: ${formatReason(err)}`));
+                reporter.reportDiagnostic(
+                    new ErrorMessage(`Invalid JSON in configuration file "${resolvedPath}"${formatPosition(err)}: ${formatReason(err)}`)
+                );
                 return {};
             }
             const result = { ...updatePaths(config, path.dirname(resolvedPath), system) };
@@ -192,7 +167,11 @@ export const resolveCompilationConfig = (
                         validateEsm(name, profile, configFilePath, reporter);
                     }
                     if (profile.tsConfig) {
-                        profile.tsConfig = convertEnumOptions(name, profile.tsConfig, configFilePath, isUsed ? reporter : undefined);
+                        profile.tsConfig = convertEnumOptions(
+                            profile.tsConfig,
+                            `in profile '${name}' of '${configFilePath}'`,
+                            isUsed ? reporter : undefined
+                        );
                     }
                 });
             }

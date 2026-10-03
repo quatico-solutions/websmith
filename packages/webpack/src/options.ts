@@ -89,5 +89,7 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
         profile: resolveProfile(profile, compilationConfig, reporter),
         tsConfig: cliArgs.options,
         watch: false,
+        // Not a loader option: passed on for option resolution to report it
+        ...("profiles" in args && { profiles: args.profiles }),
     };
 };

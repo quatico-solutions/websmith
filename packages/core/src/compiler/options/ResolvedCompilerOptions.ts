@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import {
+    ErrorMessage,
     TSC_ARGUMENT_KEYS,
     type CompilationConfig,
     type CompilationProfile,
@@ -18,6 +19,7 @@ import path from "node:path";
 import ts from "typescript";
 import type { CompilerOptionsValue } from "typescript";
 import {
+    convertEnumOptions,
     getProfileClosure,
     parsedCommandLine,
     resolveCompilationConfig,
@@ -179,6 +181,12 @@ export class ResolvedCompilerOptions implements CompilerOptions {
 
         // profiles
         const profileName = loaderOptions?.profile ?? options.profile;
+        if (loaderOptions && "profiles" in loaderOptions) {
+            this.reporter.reportDiagnostic(new ErrorMessage("'profiles' is not a loader option; use 'config.profiles'."));
+        }
+        convertProfileEnumOptions(this.config, profileName, this.reporter);
+        resolvedOptions.tsConfig = convertEnumOptions(resolvedOptions.tsConfig ?? {}, LOADER_OPTIONS_LOCATION, this.reporter);
+        cliArgs.options = convertCliEnumOptions(cliArgs.options ?? {}, tsConfig ?? {}, this.reporter);
 
         if (this.config?.addonsDir) {
             this.config.addonsDir = resolvePath(this.system, this.buildDir, this.config.addonsDir);
@@ -374,6 +382,37 @@ const getExtendedConfigFiles = (system: ts.System, tsConfigFile?: string): strin
     const sourceFile = ts.readJsonConfigFile(tsConfigFile, fileName => system.readFile(fileName));
     ts.parseJsonSourceFileConfigFileContent(sourceFile, { ...system, readDirectory: () => [] }, path.dirname(tsConfigFile), undefined, tsConfigFile);
     return sourceFile.extendedSourceFiles ?? [];
+};
+
+const LOADER_OPTIONS_LOCATION = "in the loader options";
+
+/**
+ * Converts the option names of each profile's tsConfig in place. Profiles of a config file were converted when it was
+ * read, so the names left come from the loader options. Only the profiles the build uses report unknown names.
+ */
+const convertProfileEnumOptions = (config: CompilationConfig, profileName: string | undefined, reporter: Reporter): void => {
+    const usedProfiles = new Set(getProfileClosure(profileName, config, "dependents-first").profiles);
+    Object.entries(config.profiles ?? {}).forEach(([name, profile]) => {
+        if (profile.tsConfig) {
+            profile.tsConfig = convertEnumOptions(
+                profile.tsConfig,
+                `in profile '${name}' of the loader options`,
+                usedProfiles.has(name) ? reporter : undefined
+            );
+        }
+    });
+};
+
+/**
+ * Converts the option names of the CLI options, which the loader fills with its tsConfig. Values equal to those of
+ * `tsConfig` were reported when it was converted, so only the others report unknown names.
+ */
+const convertCliEnumOptions = (options: ts.CompilerOptions, tsConfig: ts.CompilerOptions, reporter: Reporter): ts.CompilerOptions => {
+    const unreported = Object.fromEntries(Object.entries(options).filter(([key, value]) => tsConfig[key] !== value));
+    return {
+        ...convertEnumOptions(options, LOADER_OPTIONS_LOCATION),
+        ...convertEnumOptions(unreported, LOADER_OPTIONS_LOCATION, reporter),
+    };
 };
 
 const getProfile = (name?: string, config?: CompilationConfig): CompilationProfile => {
