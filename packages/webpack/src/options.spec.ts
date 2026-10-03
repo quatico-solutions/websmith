@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { NoReporter, createSystem } from "@quatico/websmith-core";
-import ts from "typescript";
+import type ts from "typescript";
 import { createOptions } from "./options";
 
 describe("createOptions", () => {
