@@ -12,6 +12,7 @@ import { ReporterMock } from "../../test";
 import { createSystem } from "../environment";
 import { AddonRegistry } from "./addons";
 import { type CompilationContext } from "./compilation";
+import { scriptTargetToString } from "./config";
 import { Compiler, type CompileFragment } from "./Compiler";
 import { DefaultReporter } from "./DefaultReporter";
 import { NoReporter } from "./NoReporter";
@@ -42,6 +43,10 @@ class CompilerTestClass extends Compiler {
 
     public createCompilationContext(profile: string): CompilationContext {
         return super.createCompilationContext(profile);
+    }
+
+    public createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
+        return super.createProgram(tsConfig);
     }
 
     public getSystem(): ts.System {
@@ -451,6 +456,30 @@ describe("constructor", () => {
             target: ts.ScriptTarget.ES2022,
             module: ts.ModuleKind.ES2022,
         });
+    });
+
+    it("creates program w/ target name from profile tsConfig in configFile", () => {
+        const target = createSystem(
+            {
+                "./websmith.config.json": JSON.stringify({ profiles: { "target-profile": { tsConfig: { target: "ESNext" } } } }),
+                "./src/target.ts": "export const x = 1;",
+            },
+            { virtual: true }
+        );
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(target),
+                configFile: "./websmith.config.json",
+                profile: "target-profile",
+            },
+            undefined,
+            target
+        ).createProfileContextsIfNecessary();
+
+        const actual = testObj.createProgram(testObj.getOptions().getOptions("target-profile").tsConfig);
+
+        expect(actual.getCompilerOptions().target).toBe(ts.ScriptTarget.ESNext);
+        expect(testObj.getContext("target-profile")!.getCompilerOptions().target).toBe(ts.ScriptTarget.ESNext);
     });
 
     it("yields tsConfig from profile and tsConfig property in config", () => {
@@ -4060,10 +4089,35 @@ describe("compile w/ esm profile", () => {
         const actual = target.mock.calls.map(([cur]) => cur.messageText);
 
         expect(actual).toEqual([
-            `Profile 'client' sets 'esm', but 'module' is unset and 'target' is '${ts.ScriptTarget[ts.getDefaultCompilerOptions().target!]}', ` +
+            `Profile 'client' sets 'esm', but 'module' is unset and 'target' is '${scriptTargetToString(ts.getDefaultCompilerOptions().target!)}', ` +
                 `so TypeScript emits CommonJS. ` +
                 `Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'. The ESM check skips this profile.`,
         ]);
+    });
+
+    it("reports one error naming unset module and target w/o module and ES3 target", () => {
+        const fileSystem = createSystem(
+            {
+                "package.json": JSON.stringify({ type: "module" }),
+                "src/target.ts": `import { a } from "./dep";\nexport const x = a;`,
+                "src/dep.ts": `export const a = 1;`,
+            },
+            { virtual: true }
+        );
+        const reporter = new ReporterMock(fileSystem);
+        const target = jest.spyOn(reporter, "reportDiagnostic");
+        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
+            reporter,
+            tsConfig: { target: ts.ScriptTarget.ES3, sourceMap: false },
+        });
+
+        testObj.compile();
+        const actual = target.mock.calls.map(([cur]) => cur.messageText);
+
+        expect(actual).toContain(
+            `Profile 'client' sets 'esm', but 'module' is unset and 'target' is 'es3', so TypeScript emits CommonJS. ` +
+                `Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'. The ESM check skips this profile.`
+        );
     });
 
     it("yields ESM diagnostic for JavaScript file w/ result processor writing CommonJS", () => {
