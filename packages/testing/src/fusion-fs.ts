@@ -179,7 +179,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
         ): StatWatcher =>
             memfs.existsSync(path)
                 ? (memfs.watchFile(path, options as any, listener as any) as any)
-                : actualFs.watchFile(path, options as any, listener),
+                : (actualFs.watchFile(path, options as any, listener) as any),
         unwatchFile: (path: PathLike, listener?: (curr: Stats, prev: Stats) => void): void =>
             memfs.existsSync(path) ? memfs.unwatchFile(path, listener as any) : actualFs.unwatchFile(path, listener),
     } as any;

@@ -36,6 +36,9 @@ module.exports = {
                     options: {
                         configFile: path.resolve(__dirname, "tsconfig.json"),
                         transpileOnly: true,
+                        compilerOptions: {
+                            rootDir: path.resolve(__dirname, ".."),
+                        },
                     },
                 },
                 exclude: /node_modules/,

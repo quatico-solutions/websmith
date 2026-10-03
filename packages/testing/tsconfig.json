@@ -2,8 +2,9 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "outDir": "./lib",
+        "rootDir": "./src",
+        "tsBuildInfoFile": "./lib/tsconfig.tsbuildinfo",
         "noEmit": false,
-        "moduleResolution": "node",
         "module": "commonjs"
     },
     "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.test.ts"],

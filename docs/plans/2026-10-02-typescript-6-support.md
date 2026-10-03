@@ -294,7 +294,7 @@ deprecation errors" is answered yes.
 
 ### Toolchain
 
-- `infra/typescript-6-toolchain` — repo tsconfigs valid on 5.7.3 and 6.0.3 (no `downlevelIteration`, root `moduleResolution: "bundler"`, `"moduleResolution": null` and `"rootDir": "./src"` in every CommonJS package), ts-loader `^9.6.2` with `rootDir` = `packages/` for the CLI bundle, the `fusion-fs.ts:182` typing, ts-jest and typescript-eslint releases whose peers include 5.7.3 and 6.0; no `ignoreDeprecations`. Test: Definition of Done green on 5.7.3; `pnpm build` and `pnpm lint` green on 6.0.3 through the override in a scratch copy (red before: TS5107 in `websmith-api`), commands and output in the PR <!-- builds: TypeScript-6-clean repo tsconfigs and toolchain -->
+- `infra/typescript-6-toolchain` — repo tsconfigs valid on 5.7.3 and 6.0.3 (no `downlevelIteration`, root `moduleResolution: "bundler"`, `"moduleResolution": null` and `"rootDir": "./src"` in every CommonJS package), ts-loader `^9.6.2` with `rootDir` = `packages/` for the CLI bundle, the `fusion-fs.ts:182` typing, ts-jest and typescript-eslint releases whose peers include 5.7.3 and 6.0; no `ignoreDeprecations`. Test: Definition of Done green on 5.7.3; `pnpm build` and `pnpm lint` green on 6.0.3 through the override in a scratch copy (red before: TS5107 in `websmith-api`), commands and output in the PR → #166 <!-- builds: TypeScript-6-clean repo tsconfigs and toolchain -->
 
 ### CI leg
 
