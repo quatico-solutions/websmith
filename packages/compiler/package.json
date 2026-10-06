@@ -43,10 +43,10 @@
     "dependencies": {
         "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-core": "workspace:*",
-        "commander": "^13.1.0",
+        "commander": "^15.0.0",
         "minimist": "^1.2.8",
         "tslib": "2.8.1",
-        "typescript": "5.7.3"
+        "typescript": "5.9.3"
     },
     "devDependencies": {
         "@eslint/compat": "^1.2.6",
