@@ -7,6 +7,9 @@
 import { type CompilationEnv, compilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
+// TypeScript 6 emits "use strict" for every script (5.x only under strict); the subject here is the addon's output, not the prologue
+const withoutUseStrict = (content: string): string => content.replace(/^"use strict";\n/, "");
+
 describe("foobar-replace-transformer addon", () => {
     let testObj: CompilationEnv;
 
@@ -32,7 +35,7 @@ describe("foobar-replace-transformer addon", () => {
             })
             .compile();
 
-        const actual = testObj.getCompiledFile("target.js")!.getContent();
+        const actual = withoutUseStrict(testObj.getCompiledFile("target.js")!.getContent());
 
         expect(actual).toMatchInlineSnapshot(`
             "function barfoo() {
@@ -52,10 +55,7 @@ describe("foobar-replace-transformer addon", () => {
 
         const actual = testObj.getCompiledFiles().getPaths("__TEST_TRANSFORMER__");
 
-        expect(actual).toEqual(expect.arrayContaining([
-            expect.stringContaining("dist/bar.js"),
-            expect.stringContaining("dist/foo.js")
-        ]));
+        expect(actual).toEqual(expect.arrayContaining([expect.stringContaining("dist/bar.js"), expect.stringContaining("dist/foo.js")]));
         expect(testObj.getCompiledFile("foo.js")?.getContent()).toEqual(expect.stringContaining("export class barfoo"));
     }, 60000);
 });
