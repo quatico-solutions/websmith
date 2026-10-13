@@ -94,7 +94,7 @@ A compilation profile is a set of options that specify the environment for a com
 You can define a compilation profile by adding a `profiles` section to the `websmith.config.json` file. The `profiles` section contains a unique profile `name` and a set of options. The `name` is used to specify the profile when calling the websmith compiler. The options are used to configure the compilation output. The options contain the following sections:
 
 * `addons`: A list of addon names to apply for this profile
-* `tsConfig`: The TypeScript compiler options for this profile
+* `tsConfig`: The TypeScript compiler options for this profile, with option names such as `"module": "NodeNext"` or `"lib": ["ES2022"]` accepted as in `tsconfig.json`
 * `config`: Profile specific properties provided to profile addons
 * `depends`: The list of profiles to be applied before this profile
 * `esm`: Checks that the JavaScript this profile emits loads as ES modules, see [ESM check](#esm-check)

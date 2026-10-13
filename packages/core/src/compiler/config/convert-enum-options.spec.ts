@@ -14,6 +14,11 @@ const tsMessageOf = (key: string, value: string): string => {
     return ts.flattenDiagnosticMessageText(error?.messageText, " ");
 };
 
+const tsLibMessageOf = (entry: string): string => {
+    const error = ts.convertCompilerOptionsFromJson({ lib: [entry] }, "").errors.find(cur => cur.code === TS_ERROR_CODE_INVALID_OPTION_VALUE);
+    return ts.flattenDiagnosticMessageText(error?.messageText, " ");
+};
+
 describe("convertEnumOptions", () => {
     it.each([
         { key: "module", value: "NodeNext", expected: ts.ModuleKind.NodeNext },
@@ -32,15 +37,74 @@ describe("convertEnumOptions", () => {
         expect(actual).toEqual({ module: ts.ModuleKind.NodeNext, outDir: "./dist", strict: true });
     });
 
-    it("should return arrays unchanged w/ lib", () => {
+    it("should return lib file names w/ lib names", () => {
         const actual = convertEnumOptions({ lib: ["ES2022", "DOM"] }, "in the loader options");
 
-        expect(actual).toEqual({ lib: ["ES2022", "DOM"] });
+        expect(actual).toEqual({ lib: ["lib.es2022.d.ts", "lib.dom.d.ts"] });
+    });
+
+    it("should return lib file names w/ mixed case lib names", () => {
+        const actual = convertEnumOptions({ lib: ["es2022", "Dom.Iterable"] }, "in the loader options");
+
+        expect(actual).toEqual({ lib: ["lib.es2022.d.ts", "lib.dom.iterable.d.ts"] });
+    });
+
+    it("should return lib file names as written and report nothing w/ lib file names", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+
+        const actual = convertEnumOptions({ lib: ["lib.es2022.d.ts", "LIB.DOM.d.ts"] }, "in the loader options", new NoReporter());
+
+        expect(actual).toEqual({ lib: ["lib.es2022.d.ts", "LIB.DOM.d.ts"] });
+        expect(targetFn).not.toHaveBeenCalled();
+    });
+
+    it("should keep the valid entries and report one error w/ unknown lib entry", () => {
+        const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
+
+        const actual = convertEnumOptions({ lib: ["ES2022", "bogus"] }, "in the loader options", new NoReporter());
+
+        expect(actual).toEqual({ lib: ["lib.es2022.d.ts"] });
+        expect(targetFn.mock.calls).toEqual([
+            [new ErrorMessage(`Invalid 'tsConfig.lib' value 'bogus' in the loader options. ${tsLibMessageOf("bogus")}`)],
+        ]);
+    });
+
+    it("should return an empty lib w/ only unknown lib entries", () => {
+        const actual = convertEnumOptions({ lib: ["bogus"] }, "in the loader options");
+
+        expect(actual).toEqual({ lib: [] });
+    });
+
+    it("should drop the entry silently w/o reporter and unknown lib entry", () => {
+        const actual = convertEnumOptions({ lib: ["bogus", "ES2022"] }, "in the loader options");
+
+        expect(actual).toEqual({ lib: ["lib.es2022.d.ts"] });
+    });
+
+    it("should return non-string lib entries unchanged w/ non-string lib entry", () => {
+        const actual = convertEnumOptions({ lib: [42, "ES2022"] as unknown as string[] }, "in the loader options");
+
+        expect(actual).toEqual({ lib: [42, "lib.es2022.d.ts"] });
+    });
+
+    it("should return lib unchanged w/ lib string", () => {
+        const actual = convertEnumOptions({ lib: "ES2022" as unknown as string[] }, "in the loader options");
+
+        expect(actual).toEqual({ lib: "ES2022" });
+    });
+
+    it("should return other arrays unchanged w/ rootDirs and types", () => {
+        const actual = convertEnumOptions({ rootDirs: ["./a", "./b"], types: ["node"] }, "in the loader options");
+
+        expect(actual).toEqual({ rootDirs: ["./a", "./b"], types: ["node"] });
     });
 
     it("should return an equal result and report nothing w/ converted output", () => {
         const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
-        const converted = convertEnumOptions({ module: "NodeNext", target: "ES2022", outDir: "./dist" }, "in the loader options");
+        const converted = convertEnumOptions(
+            { module: "NodeNext", target: "ES2022", outDir: "./dist", lib: ["ES2022", "DOM", "lib.webworker.d.ts"] },
+            "in the loader options"
+        );
 
         const actual = convertEnumOptions(converted, "in the loader options", new NoReporter());
 
