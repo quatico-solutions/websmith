@@ -6,9 +6,9 @@
  */
 import { AddonRegistry, DefaultReporter, ModuleCompiler } from "@quatico/websmith-core";
 import ts from "typescript";
-import { createFilter, type FilterPattern, type Plugin, type Rollup } from "vite";
+import { createFilter, type Plugin, type Rollup } from "vite";
 import { isCompiledId } from "./module-ids";
-import { DEFAULT_EXCLUDE, DEFAULT_INCLUDE, resolveViteOptions, type ResolvedViteOptions, type WebsmithViteOptions } from "./options";
+import { createHookFilter, resolveViteOptions, type ResolvedViteOptions, type WebsmithViteOptions } from "./options";
 
 export type { WebsmithViteOptions } from "./options";
 
@@ -24,10 +24,6 @@ const formatErrors = (diagnostics: readonly ts.Diagnostic[]): string | undefined
     return errors.length > 0 ? errors.map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n")).join("\n") : undefined;
 };
 
-// Vite's hook filter takes no null and no readonly array
-const toHookFilter = (pattern: FilterPattern): string | RegExp | Array<string | RegExp> | undefined =>
-    pattern === null || typeof pattern === "string" || pattern instanceof RegExp ? (pattern ?? undefined) : [...pattern];
-
 /**
  * Creates the websmith Vite plugin: it compiles the TypeScript modules of the bundle with websmith and the addons of
  * the selected `profile`, and returns their JavaScript and source map to Vite.
@@ -41,8 +37,8 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
         name: "websmith",
         enforce: "pre",
         configResolved(config) {
-            resolved = resolveViteOptions(options, config.root);
-            filter = createFilter(resolved.include, resolved.exclude);
+            resolved = resolveViteOptions(options, config.root, createFilter);
+            filter = resolved.filter;
         },
         buildStart() {
             if (compiler) {
@@ -57,7 +53,7 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
             }
         },
         transform: {
-            filter: { id: { include: toHookFilter(options.include ?? DEFAULT_INCLUDE), exclude: toHookFilter(options.exclude ?? DEFAULT_EXCLUDE) } },
+            filter: { id: createHookFilter(options) },
             handler(_code, id) {
                 if (!compiler || !isCompiledId(id, filter)) {
                     return null;

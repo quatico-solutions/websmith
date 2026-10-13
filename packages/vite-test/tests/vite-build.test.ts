@@ -72,6 +72,24 @@ describe("vite build w/ websmith plugin", () => {
         expect(actual).toContain(`export const data: string = "MARK_IN";`);
     }, 60000);
 
+    it("should bundle module changed by processor addon w/ include relative to root other than cwd", () => {
+        writeConfig({});
+        writeFile("src/main.ts", `export const greeting: string = "MARK_IN";\n`);
+
+        const actual = runViteBuild({ pluginOptions: { profile: "app", include: "src/**/*.ts" }, cwd: __dirname });
+
+        expect(actual).toContain("MARK_OUT");
+    }, 60000);
+
+    it("should bundle module unchanged w/ exclude relative to root other than cwd", () => {
+        writeConfig({});
+        writeFile("src/main.ts", `export const greeting: string = "MARK_IN";\n`);
+
+        const actual = runViteBuild({ pluginOptions: { profile: "app", exclude: "src/**" }, cwd: __dirname });
+
+        expect(actual).toContain("MARK_IN");
+    }, 60000);
+
     it("should fail w/ option error of tsconfig", () => {
         writeTsConfig({ jsx: "react", jsxFactory: "h", reactNamespace: "R" });
         writeConfig({});
@@ -117,10 +135,12 @@ const runViteBuild = ({
     vite = "vite",
     pluginOptions,
     viteOptions = {},
+    cwd = projectDir,
 }: {
     vite?: string;
     pluginOptions: Record<string, unknown>;
     viteOptions?: Record<string, unknown>;
+    cwd?: string;
 }): string => {
     writeFile(
         "build.mjs",
@@ -140,7 +160,7 @@ const runViteBuild = ({
         console.log(JSON.stringify(outputs.filter(cur => cur.type === "chunk").map(cur => cur.code).join("\\n")));
         `
     );
-    const { status, stdout, stderr } = spawnSync(process.execPath, ["build.mjs"], { cwd: projectDir, encoding: "utf-8" });
+    const { status, stdout, stderr } = spawnSync(process.execPath, [path.join(projectDir, "build.mjs")], { cwd, encoding: "utf-8" });
     if (status !== 0) {
         throw new Error(`vite build failed with exit code ${status}:\n${stderr}`);
     }
