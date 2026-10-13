@@ -12,7 +12,7 @@ import { ReporterMock } from "../../test";
 import { createSystem } from "../environment";
 import { AddonRegistry } from "./addons";
 import { type CompilationContext } from "./compilation";
-import { scriptTargetToString } from "./config";
+import { getEffectiveTarget, scriptTargetToString } from "./config";
 import { Compiler, type CompileFragment } from "./Compiler";
 import { DefaultReporter } from "./DefaultReporter";
 import { NoReporter } from "./NoReporter";
@@ -102,6 +102,10 @@ class CompilerTestClass extends Compiler {
         return this.shouldSkipFile(fileName, ctx, activeAddons);
     }
 }
+
+const isTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6;
+const describeOnTs5 = isTs5 ? describe : describe.skip;
+const describeOnTs6 = isTs5 ? describe.skip : describe;
 
 beforeEach(() => {
     jest.spyOn(console, "log").mockImplementation(() => {});
@@ -613,12 +617,12 @@ describe("setOptions", () => {
     });
 
     it("yields buildDir with compiler options", () => {
-        const target = createSystem({ "src/target.ts": `class Target {}` }, { virtual: true });
+        const target = createSystem({ "src/target.ts": `export class Target {}` }, { virtual: true });
 
         new CompilerTestClass(
             {
                 reporter: new ReporterMock(target),
-                tsConfig: { outDir: "/expected", target: ts.ScriptTarget.ESNext },
+                tsConfig: { outDir: "/expected", rootDir: "/src", target: ts.ScriptTarget.ESNext },
                 cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
             },
             undefined,
@@ -626,7 +630,7 @@ describe("setOptions", () => {
         ).watch();
 
         expect(target.readFile("/expected/target.js")).toMatchInlineSnapshot(`
-            "class Target {
+            "export class Target {
             }
             "
         `);
@@ -2269,7 +2273,7 @@ describe("watch", () => {
                     },
                 },
             },
-            tsConfig: { declaration: true, outDir: "/build", target: ts.ScriptTarget.ESNext },
+            tsConfig: { declaration: true, outDir: "/build", rootDir: "/src", target: ts.ScriptTarget.ESNext },
             watch: true,
             profile: "target2",
             cliArgs: {
@@ -2318,7 +2322,7 @@ describe("watch", () => {
             config: {
                 profiles: { target: { tsConfig: { outDir: "/build", declaration: true } } },
             },
-            tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
+            tsConfig: { declaration: true, rootDir: "/src", target: ts.ScriptTarget.ESNext },
             cliArgs: {
                 options: { outDir: "/build", configFilePath: "/project/tsconfig.json" },
                 fileNames: ["/src/target.ts"],
@@ -2367,7 +2371,7 @@ describe("watch", () => {
                     },
                 },
             },
-            tsConfig: { declaration: false, target: ts.ScriptTarget.ESNext },
+            tsConfig: { declaration: false, rootDir: "/src", target: ts.ScriptTarget.ESNext },
             cliArgs: {
                 options: { outDir: "/build", configFilePath: "/project/tsconfig.json" },
                 fileNames: ["/src/target.ts"],
@@ -2425,7 +2429,7 @@ describe("watch", () => {
                 },
                 transpileOnly: true,
             },
-            tsConfig: { declaration: true, target: ts.ScriptTarget.ESNext },
+            tsConfig: { declaration: true, rootDir: "/src", target: ts.ScriptTarget.ESNext },
             cliArgs: {
                 options: { outDir: "/build", configFilePath: "/project/tsconfig.json" },
                 fileNames: ["/src/target.ts"],
@@ -2593,7 +2597,7 @@ describe("watch", () => {
         const testObj = new Compiler(
             {
                 reporter: new ReporterMock(fileSystem),
-                tsConfig: { outDir: "/build", target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
+                tsConfig: { outDir: "/build", rootDir: "/src", target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
                 cliArgs: { fileNames: ["/src/target.ts"], options: { outDir: "/build" }, errors: [] },
                 watch: true,
             },
@@ -2618,7 +2622,7 @@ describe("watch", () => {
         const testObj = new Compiler(
             {
                 reporter: new ReporterMock(fileSystem),
-                tsConfig: { outDir: "/build", target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
+                tsConfig: { outDir: "/build", rootDir: "/src", target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
                 cliArgs: { fileNames: ["/src/target.ts"], options: { outDir: "/build" }, errors: [] },
                 watch: true,
             },
@@ -4440,46 +4444,66 @@ describe("compile w/ esm profile", () => {
         ]);
     });
 
-    it("yields no ESM diagnostic w/o module and default target", () => {
-        const fileSystem = createSystem(
-            {
-                "package.json": JSON.stringify({ type: "module" }),
-                "src/target.ts": `import { a } from "./dep";\nexport const x = a;`,
-                "src/dep.ts": `export const a = 1;`,
-            },
-            { virtual: true }
-        );
-        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", { tsConfig: { sourceMap: false } });
+    describeOnTs5("on TypeScript 5", () => {
+        it("yields no ESM diagnostic w/o module and default target", () => {
+            const fileSystem = createSystem(
+                {
+                    "package.json": JSON.stringify({ type: "module" }),
+                    "src/target.ts": `import { a } from "./dep";\nexport const x = a;`,
+                    "src/dep.ts": `export const a = 1;`,
+                },
+                { virtual: true }
+            );
+            const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", { tsConfig: { sourceMap: false } });
 
-        const actual = testObj.compile().diagnostics.map(cur => cur.code);
+            const actual = testObj.compile().diagnostics.map(cur => cur.code);
 
-        expect(actual).toEqual([]);
-    });
-
-    it("reports one error naming unset module and target w/o module and default target", () => {
-        const fileSystem = createSystem(
-            {
-                "package.json": JSON.stringify({ type: "module" }),
-                "src/target.ts": `import { a } from "./dep";\nexport const x = a;`,
-                "src/dep.ts": `export const a = 1;`,
-            },
-            { virtual: true }
-        );
-        const reporter = new ReporterMock(fileSystem);
-        const target = jest.spyOn(reporter, "reportDiagnostic");
-        const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
-            reporter,
-            tsConfig: { sourceMap: false },
+            expect(actual).toEqual([]);
         });
 
-        testObj.compile();
-        const actual = target.mock.calls.map(([cur]) => cur.messageText);
+        it("reports one error naming unset module and target w/o module and default target", () => {
+            const fileSystem = createSystem(
+                {
+                    "package.json": JSON.stringify({ type: "module" }),
+                    "src/target.ts": `import { a } from "./dep";\nexport const x = a;`,
+                    "src/dep.ts": `export const a = 1;`,
+                },
+                { virtual: true }
+            );
+            const reporter = new ReporterMock(fileSystem);
+            const target = jest.spyOn(reporter, "reportDiagnostic");
+            const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", {
+                reporter,
+                tsConfig: { sourceMap: false },
+            });
 
-        expect(actual).toEqual([
-            `Profile 'client' sets 'esm', but 'module' is unset and 'target' is '${scriptTargetToString(ts.getDefaultCompilerOptions().target!)}', ` +
-                `so TypeScript emits CommonJS. ` +
-                `Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'. The ESM check skips this profile.`,
-        ]);
+            testObj.compile();
+            const actual = target.mock.calls.map(([cur]) => cur.messageText);
+
+            expect(actual).toEqual([
+                `Profile 'client' sets 'esm', but 'module' is unset and 'target' is '${scriptTargetToString(ts.getDefaultCompilerOptions().target!)}', ` +
+                    `so TypeScript emits CommonJS. ` +
+                    `Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'. The ESM check skips this profile.`,
+            ]);
+        });
+    });
+
+    describeOnTs6("on TypeScript 6", () => {
+        it("checks ES module output w/o module and default target", () => {
+            const fileSystem = createSystem(
+                {
+                    "package.json": JSON.stringify({ type: "module" }),
+                    "src/target.ts": `import { a } from "./dep";\nexport const x = a;`,
+                    "src/dep.ts": `export const a = 1;`,
+                },
+                { virtual: true }
+            );
+            const testObj = createEsmCompiler(fileSystem, { client: { esm: { runtime: "node" } } }, "client", { tsConfig: { sourceMap: false } });
+
+            const actual = testObj.compile().diagnostics.map(cur => cur.code);
+
+            expect(actual).toEqual([91010]);
+        });
     });
 
     it("reports one error naming unset module and target w/o module and ES3 target", () => {
@@ -4940,10 +4964,10 @@ describe("report w/ TypeScript ESM diagnostics", () => {
         "/project/node_modules/esm-only/index.d.ts": `declare const esm: number;\nexport default esm;`,
     };
 
-    const createNodeNextProgram = (): ts.Program => {
+    const createNodeNextProgram = (module: ts.ModuleKind.Node16 | ts.ModuleKind.NodeNext = ts.ModuleKind.NodeNext): ts.Program => {
         const options = {
-            module: ts.ModuleKind.NodeNext,
-            moduleResolution: ts.ModuleResolutionKind.NodeNext,
+            module,
+            moduleResolution: module === ts.ModuleKind.Node16 ? ts.ModuleResolutionKind.Node16 : ts.ModuleResolutionKind.NodeNext,
             target: ts.ScriptTarget.ESNext,
             types: [],
         };
@@ -5053,7 +5077,7 @@ describe("report w/ TypeScript ESM diagnostics", () => {
     });
 
     it("reports TS1479 unlabelled w/ esm profile on Program path", () => {
-        const program = createNodeNextProgram();
+        const program = createNodeNextProgram(ts.ModuleKind.Node16);
 
         const actual = reportWith({ client: { esm: { runtime: "node" } } }, program, 1479);
 
@@ -5213,19 +5237,19 @@ describe("emitSourceFile w/ error and emitSkipped rule", () => {
 
     it("yields .js and option error w/ option error on fast path", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
-        const testObj = createCompiler(fileSystem, { module: ts.ModuleKind.CommonJS, moduleResolution: ts.ModuleResolutionKind.Bundler }, false);
+        const testObj = createCompiler(fileSystem, { module: ts.ModuleKind.CommonJS, moduleResolution: ts.ModuleResolutionKind.Node16 }, false);
 
         const actual = testObj.emitSourceFile("/src/target.ts", undefined, false);
 
         expect(actual.files.map(cur => cur.name)).toContain("/src/target.js");
-        expect(actual.diagnostics?.map(cur => cur.code)).toContain(5095);
+        expect(actual.diagnostics?.map(cur => cur.code)).toContain(5110);
     });
 
     it("yields no files w/ option error and noEmitOnError on fast path", () => {
         const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
         const testObj = createCompiler(
             fileSystem,
-            { module: ts.ModuleKind.CommonJS, moduleResolution: ts.ModuleResolutionKind.Bundler, noEmitOnError: true },
+            { module: ts.ModuleKind.CommonJS, moduleResolution: ts.ModuleResolutionKind.Node16, noEmitOnError: true },
             false
         );
 
@@ -5284,8 +5308,8 @@ describe("source file language version", () => {
     };
 
     it.each([
-        ["node16", { module: ts.ModuleKind.Node16 }, ts.ScriptTarget.ES2022],
-        ["nodenext", { module: ts.ModuleKind.NodeNext }, ts.ScriptTarget.ESNext],
+        ["node16", { module: ts.ModuleKind.Node16 }, getEffectiveTarget({ module: ts.ModuleKind.Node16 })],
+        ["nodenext", { module: ts.ModuleKind.NodeNext }, getEffectiveTarget({ module: ts.ModuleKind.NodeNext })],
         ["nothing", {}, ts.getDefaultCompilerOptions().target],
     ])("parses with effective target for per-file declarations w/ %s set", (_name, tsConfig, expected) => {
         const target: ts.ScriptTarget[] = [];
@@ -5298,8 +5322,8 @@ describe("source file language version", () => {
     });
 
     it.each([
-        ["node16", { module: ts.ModuleKind.Node16 }, ts.ScriptTarget.ES2022],
-        ["nodenext", { module: ts.ModuleKind.NodeNext }, ts.ScriptTarget.ESNext],
+        ["node16", { module: ts.ModuleKind.Node16 }, getEffectiveTarget({ module: ts.ModuleKind.Node16 })],
+        ["nodenext", { module: ts.ModuleKind.NodeNext }, getEffectiveTarget({ module: ts.ModuleKind.NodeNext })],
         ["nothing", {}, ts.getDefaultCompilerOptions().target],
     ])("parses with effective target for addonEmitOnly detection w/ type info addon and %s set", (_name, tsConfig, expected) => {
         const target: ts.ScriptTarget[] = [];
@@ -5314,8 +5338,8 @@ describe("source file language version", () => {
 
 describe("debug configuration summary", () => {
     it.each([
-        ["node16", { module: ts.ModuleKind.Node16 }, ts.ScriptTarget.ES2022],
-        ["nodenext", { module: ts.ModuleKind.NodeNext }, ts.ScriptTarget.ESNext],
+        ["node16", { module: ts.ModuleKind.Node16 }, getEffectiveTarget({ module: ts.ModuleKind.Node16 })],
+        ["nodenext", { module: ts.ModuleKind.NodeNext }, getEffectiveTarget({ module: ts.ModuleKind.NodeNext })],
         ["nothing", {}, ts.getDefaultCompilerOptions().target],
         ["nodenext and target ES5", { module: ts.ModuleKind.NodeNext, target: ts.ScriptTarget.ES5 }, ts.ScriptTarget.ES5],
     ])("reports effective target w/ %s set", (_name, tsConfig, expected) => {
