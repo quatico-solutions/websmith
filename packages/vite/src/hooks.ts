@@ -21,7 +21,15 @@ export type HookContext = Pick<Rollup.PluginContext, "error" | "warn" | "addWatc
 /** The part of the module compiler the hooks use, so a spec can stub it. */
 export type HookCompiler = Pick<
     ModuleCompiler,
-    "build" | "getConfigErrors" | "getOptions" | "getProfile" | "getOptionsFiles" | "resetCompilationCaches" | "keepCachesPerCompilation"
+    | "build"
+    | "getConfigErrors"
+    | "getOptions"
+    | "getProfile"
+    | "getOptionsFiles"
+    | "refreshOptions"
+    | "refreshAddons"
+    | "resetCompilationCaches"
+    | "keepCachesPerCompilation"
 >;
 
 /** The hooks of the websmith plugin, called with Rollup's plugin context as `this`. */
@@ -91,6 +99,10 @@ export const createWebsmithHooks = (
         // configuration errors of the dev server belongs to the feature/vite-plugin-dev-server slice.
         buildStart() {
             if (compiler) {
+                // A rebuild of vite build --watch resolves the options again when one of their files changed, so the
+                // configuration errors raised below are those of the current config, and loads changed addons again
+                compiler.refreshOptions(() => resolved?.loaderOptions ?? {});
+                compiler.refreshAddons();
                 compiler.resetCompilationCaches();
             } else {
                 compiler = createCompiler(resolved?.loaderOptions ?? {}, reporter);

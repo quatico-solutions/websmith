@@ -46,6 +46,8 @@ const createCompiler = (overrides: Partial<HookCompiler> = {}): HookCompiler => 
     build: jest.fn(() => ({ fragment: fragment({ "main.js": "export const x = 1;" }), diagnostics: [], dependencies: { files: [], missing: [] } })),
     getConfigErrors: jest.fn(() => []),
     getOptionsFiles: jest.fn(() => ({ files: [], missing: [] })),
+    refreshOptions: jest.fn(() => false),
+    refreshAddons: jest.fn(),
     resetCompilationCaches: jest.fn(),
     keepCachesPerCompilation: jest.fn(),
     ...overrides,
@@ -376,6 +378,54 @@ describe("createWebsmithHooks", () => {
             const actual = compiler.keepCachesPerCompilation;
 
             expect(actual).toHaveBeenCalledTimes(1);
+        });
+
+        it("should not refresh options w/ first build", () => {
+            const compiler = createCompiler();
+            const testObj = createHooks(compiler);
+
+            testObj.buildStart.call(createContext());
+            const actual = compiler.refreshOptions;
+
+            expect(actual).not.toHaveBeenCalled();
+        });
+
+        it("should refresh options with the loader options w/ rebuild", () => {
+            const compiler = createCompiler();
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+
+            testObj.buildStart.call(createContext());
+            const actual = jest.mocked(compiler.refreshOptions).mock.calls[0][0]();
+
+            expect(actual).toEqual({ configFile: `${ROOT}/websmith.config.json`, profile: "app" });
+        });
+
+        it("should refresh addons w/ rebuild", () => {
+            const compiler = createCompiler();
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+
+            testObj.buildStart.call(createContext());
+            const actual = compiler.refreshAddons;
+
+            expect(actual).toHaveBeenCalledTimes(1);
+        });
+
+        it("should refresh options before resetting caches w/ rebuild", () => {
+            const order: string[] = [];
+            const compiler = createCompiler({
+                refreshOptions: jest.fn(() => (order.push("refreshOptions"), false)),
+                refreshAddons: jest.fn(() => order.push("refreshAddons")),
+                resetCompilationCaches: jest.fn(() => order.push("resetCompilationCaches")),
+            });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+
+            testObj.buildStart.call(createContext());
+            const actual = order;
+
+            expect(actual).toEqual(["refreshOptions", "refreshAddons", "resetCompilationCaches"]);
         });
 
         it("should reset compilation caches w/ rebuild", () => {
