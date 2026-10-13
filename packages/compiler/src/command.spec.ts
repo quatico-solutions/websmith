@@ -556,7 +556,7 @@ describe("addCompileCommand#profile", () => {
         expect(target.getOptions().profile).toEqual("expected");
     });
 
-    it("should yield missing profile warning w/ --profile cli argument and unknown name", () => {
+    it("should yield missing profile error w/ --profile cli argument and unknown name", () => {
         const target = new NoReporter();
         jest.spyOn(target, "reportDiagnostic").mockImplementation(() => {});
         const testSystem = createSystem({}, { virtual: true });
@@ -572,7 +572,7 @@ describe("addCompileCommand#profile", () => {
         });
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
-            new WarnMessage('Missing profile: The following profile is passed but not configured "unknown".')
+            new ErrorMessage("Profile 'unknown' is passed but no websmith.config.json was found.")
         );
     });
 
@@ -634,7 +634,7 @@ describe("addCompileCommand#profile", () => {
 
         expect(target.reportDiagnostic).toHaveBeenNthCalledWith(
             1,
-            new WarnMessage('Missing profile: The following profile is passed but not configured "known".')
+            new ErrorMessage("Profile 'known' is passed but no websmith.config.json was found.")
         );
     });
 });

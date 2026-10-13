@@ -140,7 +140,8 @@ class ConfigErrorReporter implements Reporter {
  * `takeUnreportedConfigErrors` per module, and calls `refreshOptions`,
  * `refreshAddons` and `resetCompilationCaches` when its compilations start. A host that applies addons of its own
  * overrides `applyAddons`, and `prepareAddons` if they need setting up first; without that, the addons come from the
- * `AddonRegistry` of the host options.
+ * `AddonRegistry` of the host options. When `isProfileConfigured` is false, `build` emits nothing and the host finishes
+ * the module without output: the configuration error of the profile fails the build.
  */
 export class ModuleCompiler extends Compiler {
     private profile?: string;
@@ -171,7 +172,7 @@ export class ModuleCompiler extends Compiler {
         this.targetCompilerOptions = targetCompilerOptions;
         this.baseOptions = options;
 
-        // The host checks the profile once its construction completes, see checkProfile
+        // Option resolution reports an unconfigured profile, see isProfileConfigured
         this.profile = this.getOptions().profile || loaderOptions.profile || undefined;
         super.createProfileContextsIfNecessary();
         this.completeResolution();
@@ -185,6 +186,11 @@ export class ModuleCompiler extends Compiler {
     /** Returns the profile whose output the host bundles. */
     public getProfile(): string | undefined {
         return this.profile;
+    }
+
+    /** Returns false if the host's profile is not configured, which option resolution reports as configuration error. */
+    public isProfileConfigured(): boolean {
+        return !this.profile || Object.hasOwn(this.getOptions().config?.profiles ?? {}, this.profile);
     }
 
     /**
@@ -244,7 +250,7 @@ export class ModuleCompiler extends Compiler {
         this.recreateCompilationContexts();
 
         const profileName = this.getOptions().profile || loaderOptions.profile;
-        this.profile = profileName ? this.checkProfile(profileName) : undefined;
+        this.profile = profileName || undefined;
         this.completeResolution();
     }
 
@@ -353,6 +359,9 @@ export class ModuleCompiler extends Compiler {
         const diagnostics: ts.Diagnostic[] = [];
         const dependencies = { files: new Set<string>(), missing: new Set<string>() };
         const onDependency = (fileName: string, exists: boolean) => (exists ? dependencies.files : dependencies.missing).add(fileName);
+        if (!this.isProfileConfigured()) {
+            return { fragment: { version: 0, files: [], writtenFiles: [] }, diagnostics: [], dependencies: { files: [], missing: [] } };
+        }
 
         if (this.profile) {
             const selectedProfiles = this.getOptions().getSelectedProfiles(this.profile);
@@ -434,11 +443,6 @@ export class ModuleCompiler extends Compiler {
      */
     protected prepareAddons(): void {
         // Nothing to set up without a host
-    }
-
-    /** Validates the host's profile on a new option resolution; returns the profile to build with. */
-    protected checkProfile(profile: string): string {
-        return profile;
     }
 
     /** Called after the target profile emitted `filePath` and before its output is checked. */

@@ -45,13 +45,13 @@ describe("resolveCompilationConfig", () => {
         expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
 
-    it("should report one error and return defaults w/ malformed config file", () => {
+    it("should report one error and yield undefined w/ malformed config file", () => {
         const system = createSystem({ "./websmith.config.json": "{" }, { virtual: true });
         const target = { reportDiagnostic: jest.fn() } as unknown as Reporter;
 
         const actual = resolveCompilationConfig("./websmith.config.json", target, system);
 
-        expect(actual).toEqual({});
+        expect(actual).toBeUndefined();
         expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -76,7 +76,7 @@ describe("resolveCompilationConfig", () => {
 
         const actual = resolveCompilationConfig("./websmith.config.json", target, system, "broken");
 
-        expect(actual).toEqual({});
+        expect(actual).toBeUndefined();
         expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
         expect(target.reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ messageText: expect.stringContaining("Invalid JSON") }));
     });
@@ -126,7 +126,7 @@ describe("resolveCompilationConfig", () => {
         });
     });
 
-    it("should throw error w/ non-existing profile dependencies", () => {
+    it("should report nothing w/ non-existing profile dependencies", () => {
         const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
 
         const target = createSystem(
@@ -144,10 +144,10 @@ describe("resolveCompilationConfig", () => {
 
         resolveCompilationConfig("./target-config.json", new NoReporter(), target, "profile1");
 
-        expect(targetFn).toHaveBeenCalledWith(new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'."));
+        expect(targetFn).not.toHaveBeenCalled();
     });
 
-    it("should throw error w/ existing and non-existing profile dependencies", () => {
+    it("should report nothing w/ existing and non-existing profile dependencies", () => {
         const targetFn = jest.spyOn(NoReporter.prototype, "reportDiagnostic");
 
         const target = createSystem(
@@ -173,7 +173,7 @@ describe("resolveCompilationConfig", () => {
 
         resolveCompilationConfig("./target-config.json", new NoReporter(), target, "profile1");
 
-        expect(targetFn).toHaveBeenCalledWith(new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'."));
+        expect(targetFn).not.toHaveBeenCalled();
     });
 
     it("should report error w/ unknown esm runtime", () => {
@@ -444,7 +444,6 @@ describe("resolveCompilationConfig", () => {
 
         expect(actual).toEqual([
             [new ErrorMessage(`Unknown 'esm.runtime' value 'deno' in profile 'middle' of './target-config.json'. Expected "node" or "bundler".`)],
-            [new ErrorMessage("Unknown profile 'unknown-profile' in 'depends' of './target-config.json'.")],
         ]);
     });
 
@@ -581,7 +580,6 @@ describe("resolveCompilationConfig w/ depends graphs", () => {
         const actual = targetFn.mock.calls;
 
         expect(actual).toEqual([
-            [new ErrorMessage("Unknown profile 'missing' in 'depends' of './target-config.json'.")],
             [new ErrorMessage(`Unknown 'esm.runtime' value 'deno' in profile 'b' of './target-config.json'. Expected "node" or "bundler".`)],
         ]);
     });

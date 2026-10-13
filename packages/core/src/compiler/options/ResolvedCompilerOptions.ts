@@ -25,8 +25,8 @@ import {
     resolveCompilationConfig,
     resolvePath,
     resolvePaths,
-    resolveProfile,
     resolveProjectFile,
+    validateProfile,
     PROJECT_FILE_NAME,
 } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
@@ -120,7 +120,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         loaderOptions?: WebpackLoaderOptions
     ) {
         this.reporter = options.reporter ?? new DefaultReporter(this.system);
-        const compilationConfig = loadCompilationConfig(options, loaderOptions ?? {}, this.reporter, this.system);
+        const { compilationConfig, isConfigFileInvalid } = loadCompilationConfig(options, loaderOptions ?? {}, this.reporter, this.system);
         let resolvedOptions = deepmerge<CompilerOptions>(
             {
                 ...options,
@@ -198,7 +198,17 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             this.config.addonsDir = resolvePath(this.system, this.buildDir, this.config.addonsDir);
         }
         // resolve tsconfig
-        this.profile = resolveProfile(profileName, this.config, this.reporter);
+        this.profile = profileName;
+        const profilesLocation =
+            this.configFile && this.system.fileExists(this.configFile)
+                ? `'${this.configFile}'`
+                : Object.keys(this.config.profiles ?? {}).length
+                  ? "the loader options"
+                  : undefined;
+        // An invalid config file is reported already, its profiles are unknown
+        if (!isConfigFileInvalid) {
+            validateProfile(profileName, this.config, profilesLocation, this.reporter);
+        }
         resolvedOptions = { ...resolvedOptions, config: this.config, tsConfigFile: this.tsConfigFile };
         this.tsConfig = getTsConfig(this.system, this.buildDir, resolvedOptions, this.profile);
 
@@ -471,18 +481,19 @@ const loadCompilationConfig = (
     loaderOptions: WebpackLoaderOptions,
     reporter: Reporter,
     system: ts.System
-): CompilationConfig => {
+): { compilationConfig: CompilationConfig; isConfigFileInvalid: boolean } => {
     // Prefer config values from webpack loaderConfig, but fallback to values from websmith.config.json
     const { configFile = loaderOptions.configFile ?? options.configFile, profile = options.profile, transpileOnly } = loaderOptions;
     const addons = loaderOptions.config?.addons ?? options.config?.addons ?? [];
     const addonsDir = loaderOptions.config?.addonsDir ?? options.config?.addonsDir;
-    let results: CompilationConfig = {
+    const results: CompilationConfig = {
         ...(addons.length && { addons }),
         ...(!!addonsDir && { addonsDir }),
         ...(!!transpileOnly && { transpileOnly }),
     };
-    if (configFile) {
-        results = { ...resolveCompilationConfig(configFile, reporter, system, profile), ...results };
+    if (!configFile) {
+        return { compilationConfig: results, isConfigFileInvalid: false };
     }
-    return results;
+    const fileConfig = resolveCompilationConfig(configFile, reporter, system, profile);
+    return { compilationConfig: { ...fileConfig, ...results }, isConfigFileInvalid: !fileConfig };
 };

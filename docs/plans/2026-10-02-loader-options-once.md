@@ -248,7 +248,7 @@ first, right after the benchmark that measures it is trustworthy.
 
 ### Unconfigured profile
 
-- `bug/loader-unknown-profile-error` — an unconfigured profile, a profile without a config file and a missing `depends` target are config errors in the #131 format naming the available profiles, reported once, no stack trace; `getFragmentProfile` removed; unit tests in core and `TsCompiler.spec.ts`; e2e: a loader with `profile: "missing"` and one with a profile but no `websmith.config.json` <!-- builds: profile validation as a config error in core option resolution --> <!-- waits: bug/depends-closure-core -->
+- `bug/loader-unknown-profile-error` — an unconfigured profile, a profile without a config file and a missing `depends` target are config errors in the #131 format naming the available profiles, reported once, no stack trace; `getFragmentProfile` removed; unit tests in core and `TsCompiler.spec.ts`; e2e: a loader with `profile: "missing"` and one with a profile but no `websmith.config.json` → #188 <!-- builds: profile validation as a config error in core option resolution --> <!-- waits: bug/depends-closure-core -->
 
 ### Dependent-profile diagnostics
 

@@ -54,11 +54,6 @@ export class TsCompiler extends ModuleCompiler {
         this.warn = loaderOptions.warn ?? (() => {});
         this.error = loaderOptions.error ?? (() => {});
         this.loaderContext = loaderContext;
-
-        const profile = this.getProfile();
-        if (profile) {
-            this.checkProfile(profile);
-        }
     }
 
     /**
@@ -100,10 +95,6 @@ export class TsCompiler extends ModuleCompiler {
         this.applyAddonFunctionality(filePath, { version: 0, files: [], writtenFiles: [], diagnostics: [] });
     }
 
-    protected checkProfile(profile: string): string {
-        return this.getFragmentProfile(profile);
-    }
-
     protected resetAddons(): void {
         super.resetAddons();
         this.webpackAddonService = undefined;
@@ -138,15 +129,6 @@ export class TsCompiler extends ModuleCompiler {
         } else {
             this.logDebug(`No WebpackAddonService created - no addons configured`);
         }
-    }
-
-    private getFragmentProfile(profile: string): string {
-        // Validate profile against available profiles in config
-        const profiles = this.getOptions().config?.profiles;
-        if (profiles && !profiles[profile]) {
-            this.warn(new WebpackError(`Profile "${profile}" not found in configuration. Available profiles: ${Object.keys(profiles).join(", ")}`));
-        }
-        return profile;
     }
 
     private applyAddonFunctionality(filePath: string, result: CompileFragment): void {

@@ -6,6 +6,7 @@
  */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
+import { ErrorMessage } from "@quatico/websmith-api";
 import ts from "typescript";
 import { ReporterMock } from "../../../test";
 import { createSystem } from "../../environment";
@@ -686,6 +687,55 @@ describe("profile", () => {
         );
 
         expect(testObj.profile).toBe("expected");
+    });
+
+    it("should report error and yield name w/ unknown profile in config file", () => {
+        const fileSystem = createSystem({ "/websmith.config.json": JSON.stringify({ profiles: { a: {}, b: {} } }) }, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { configFile: "/websmith.config.json", profile: "missing", reporter: target });
+
+        expect(testObj.profile).toBe("missing");
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            new ErrorMessage("Profile 'missing' is not configured in '/websmith.config.json'. Available profiles: a, b.")
+        );
+    });
+
+    it("should report error w/ missing depends target in loader options profiles", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { reporter: target }, {
+            profile: "a",
+            config: { profiles: { a: { depends: ["nope"] } } },
+        } as any);
+
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            new ErrorMessage("Unknown profile 'nope' in 'depends' of the loader options. Available profiles: a.")
+        );
+    });
+
+    it("should report only the parse error w/ profile and invalid config file", () => {
+        const fileSystem = createSystem({ "/websmith.config.json": '{ "profiles": { "a": {} },, }' }, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { configFile: "/websmith.config.json", profile: "a", reporter: target });
+
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ messageText: expect.stringContaining("Invalid JSON") }));
+    });
+
+    it("should report nothing w/ configured profile", () => {
+        const fileSystem = createSystem({ "/websmith.config.json": JSON.stringify({ profiles: { a: {} } }) }, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { configFile: "/websmith.config.json", profile: "a", reporter: target });
+
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
 });
 

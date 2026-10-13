@@ -243,7 +243,7 @@ describe("ModuleCompiler options", () => {
 
         const actual = testObj.getConfigErrors().map(cur => cur.messageText);
 
-        expect(actual).toEqual(["Unknown profile 'unknown-profile' in 'depends' of '/websmith.config.json'."]);
+        expect(actual).toEqual(["Unknown profile 'unknown-profile' in 'depends' of '/websmith.config.json'. Available profiles: broken, valid."]);
         expect(spy.mock.calls.filter(([cur]) => cur.category === ts.DiagnosticCategory.Error)).toEqual([]);
     });
 
@@ -255,7 +255,7 @@ describe("ModuleCompiler options", () => {
 
         expect(actual).toBe(true);
         expect(testObj.getConfigErrors().map(cur => cur.messageText)).toEqual([
-            "Unknown profile 'unknown-profile' in 'depends' of '/websmith.config.json'.",
+            "Unknown profile 'unknown-profile' in 'depends' of '/websmith.config.json'. Available profiles: broken, valid.",
         ]);
     });
 
@@ -287,6 +287,81 @@ describe("ModuleCompiler options", () => {
 
         expect(actual).toBe(false);
         expect(target).not.toHaveBeenCalled();
+    });
+});
+
+describe("ModuleCompiler unconfigured profile", () => {
+    const CONFIG_FILE = { "/websmith.config.json": JSON.stringify({ profiles: { a: {}, b: {} } }) };
+    const PROFILE_ERROR = "Profile 'missing' is not configured in '/websmith.config.json'. Available profiles: a, b.";
+
+    const createProfileCompiler = (profile: string): ModuleCompiler => {
+        const system = createSystem({ ...TS_CONFIG, ...CONFIG_FILE, "/src/a.ts": "export const a = 1;" }, { virtual: true });
+        return new ModuleCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
+            { tsConfigFile: "/tsconfig.json", configFile: "/websmith.config.json", transpileOnly: true, profile },
+            system
+        );
+    };
+
+    it("build yields no files and no diagnostics w/ unconfigured profile", () => {
+        const testObj = createProfileCompiler("missing");
+
+        const actual = testObj.build("/src/a.ts");
+
+        expect(actual).toEqual({
+            fragment: { version: 0, files: [], writtenFiles: [] },
+            diagnostics: [],
+            dependencies: { files: [], missing: [] },
+        });
+    });
+
+    it("getConfigErrors yields profile error w/ unconfigured profile", () => {
+        const testObj = createProfileCompiler("missing");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.messageText);
+
+        expect(actual).toEqual([PROFILE_ERROR]);
+    });
+
+    it("isProfileConfigured yields false w/ unconfigured profile", () => {
+        const testObj = createProfileCompiler("missing");
+
+        const actual = testObj.isProfileConfigured();
+
+        expect(actual).toBe(false);
+    });
+
+    it("isProfileConfigured yields true w/ configured profile", () => {
+        const testObj = createProfileCompiler("a");
+
+        const actual = testObj.isProfileConfigured();
+
+        expect(actual).toBe(true);
+    });
+
+    it("isProfileConfigured yields true after updateLoaderConfig w/ config defining profile", () => {
+        const testObj = createProfileCompiler("missing");
+
+        testObj.updateLoaderConfig({
+            tsConfigFile: "/tsconfig.json",
+            transpileOnly: true,
+            profile: "missing",
+            config: { profiles: { missing: {} } },
+        });
+        const actual = testObj.isProfileConfigured();
+
+        expect(actual).toBe(true);
+        expect(testObj.getConfigErrors()).toEqual([]);
+    });
+
+    it("takeUnreportedConfigErrors yields profile error to first module only", () => {
+        const testObj = createProfileCompiler("missing");
+        testObj.takeUnreportedConfigErrors("/src/a.ts");
+
+        const actual = testObj.takeUnreportedConfigErrors("/src/b.ts");
+
+        expect(actual).toEqual([]);
+        expect(testObj.takeUnreportedConfigErrors("/src/a.ts").map(cur => cur.messageText)).toEqual([PROFILE_ERROR]);
     });
 });
 

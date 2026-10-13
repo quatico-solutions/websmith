@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { TSC_ARGUMENT_KEYS, type CompilerOptions, type Reporter, type TscArgumentKey } from "@quatico/websmith-api";
-import { NoReporter, parsedCommandLine, resolveCompilationConfig, resolvePaths, resolveProfile } from "@quatico/websmith-core";
+import { NoReporter, parsedCommandLine, resolveCompilationConfig, resolvePaths } from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
@@ -86,7 +86,7 @@ export const createOptions = (args: WebsmithLoaderConfig, reporter: Reporter = n
         ...(tsConfigFile && { tsConfigFile }),
         debug,
         reporter,
-        profile: resolveProfile(profile, compilationConfig, reporter),
+        profile,
         tsConfig: cliArgs.options,
         watch: false,
         // Not a loader option: passed on for option resolution to report it
