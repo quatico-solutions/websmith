@@ -45,13 +45,13 @@ describe("resolveCompilationConfig", () => {
         expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
 
-    it("should report one error and return defaults w/ malformed config file", () => {
+    it("should report one error and yield undefined w/ malformed config file", () => {
         const system = createSystem({ "./websmith.config.json": "{" }, { virtual: true });
         const target = { reportDiagnostic: jest.fn() } as unknown as Reporter;
 
         const actual = resolveCompilationConfig("./websmith.config.json", target, system);
 
-        expect(actual).toEqual({});
+        expect(actual).toBeUndefined();
         expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -76,7 +76,7 @@ describe("resolveCompilationConfig", () => {
 
         const actual = resolveCompilationConfig("./websmith.config.json", target, system, "broken");
 
-        expect(actual).toEqual({});
+        expect(actual).toBeUndefined();
         expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
         expect(target.reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ messageText: expect.stringContaining("Invalid JSON") }));
     });

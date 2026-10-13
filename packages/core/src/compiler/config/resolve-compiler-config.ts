@@ -121,14 +121,14 @@ const formatReason = (err: unknown): string => {
 
 /**
  * Reads the websmith configuration file. Reports configuration errors only for the selected profile and the profiles
- * it depends on, as other profiles don't take part in the compilation.
+ * it depends on, as other profiles don't take part in the compilation. Yields `undefined` if the file is invalid JSON.
  */
 export const resolveCompilationConfig = (
     configFilePath: string | undefined,
     reporter: Reporter,
     system: ts.System,
     profileName?: string
-): CompilationConfig => {
+): CompilationConfig | undefined => {
     if (!configFilePath) {
         return {};
     }
@@ -146,7 +146,7 @@ export const resolveCompilationConfig = (
                 reporter.reportDiagnostic(
                     new ErrorMessage(`Invalid JSON in configuration file "${resolvedPath}"${formatPosition(err)}: ${formatReason(err)}`)
                 );
-                return {};
+                return undefined;
             }
             const result = { ...updatePaths(config, path.dirname(resolvedPath), system) };
             if (result.profiles) {

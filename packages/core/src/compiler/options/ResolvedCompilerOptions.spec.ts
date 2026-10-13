@@ -717,6 +717,17 @@ describe("profile", () => {
         );
     });
 
+    it("should report only the parse error w/ profile and invalid config file", () => {
+        const fileSystem = createSystem({ "/websmith.config.json": '{ "profiles": { "a": {} },, }' }, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        new ResolvedCompilerOptions(fileSystem, { configFile: "/websmith.config.json", profile: "a", reporter: target });
+
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(expect.objectContaining({ messageText: expect.stringContaining("Invalid JSON") }));
+    });
+
     it("should report nothing w/ configured profile", () => {
         const fileSystem = createSystem({ "/websmith.config.json": JSON.stringify({ profiles: { a: {} } }) }, { virtual: true });
         const target = new NoReporter();
