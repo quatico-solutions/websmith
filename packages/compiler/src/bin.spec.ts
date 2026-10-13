@@ -141,7 +141,6 @@ describe("bin.ts", () => {
             pretty: true,
             project: "/tsconfig.json",
             removeComments: false,
-            strict: false,
         });
         expect(target.getOptions().config).toEqual({ addons: ["foo", "bar"], addonsDir: "/custom-addons" });
     }, 60000);
@@ -168,7 +167,6 @@ describe("bin.ts", () => {
                     pretty: true,
                     project: "/tsconfig.json",
                     removeComments: false,
-                    strict: false,
                 }),
             },
             config: {},
@@ -191,7 +189,6 @@ describe("bin.ts", () => {
                 pretty: true,
                 project: "/tsconfig.json",
                 removeComments: false,
-                strict: false,
             }),
             tsConfigFile: "/tsconfig.json",
             watch: false,

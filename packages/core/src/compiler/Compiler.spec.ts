@@ -190,7 +190,6 @@ describe("constructor", () => {
             tsConfig: {
                 target: ts.ScriptTarget.ES5,
                 module: ts.ModuleKind.CommonJS,
-                strict: false,
             },
         };
         const loaderOptions = {
@@ -1072,7 +1071,6 @@ describe("compile", () => {
                 outDir: "/lib/expected",
                 pretty: true,
                 removeComments: false,
-                strict: false,
             })
         );
     });

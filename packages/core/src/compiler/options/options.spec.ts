@@ -58,7 +58,6 @@ describe("createOptions", () => {
             pretty: true,
             project: "./expected/tsconfig.json",
             removeComments: false,
-            strict: false,
         });
     });
 
@@ -200,7 +199,6 @@ describe("createOptions", () => {
                         pretty: true,
                         project: "./tsconfig.json",
                         removeComments: false,
-                        strict: false,
                         watch: true,
                     },
                 },
@@ -227,7 +225,6 @@ describe("createOptions", () => {
                     pretty: true,
                     project: "./tsconfig.json",
                     removeComments: false,
-                    strict: false,
                     watch: true,
                 },
                 tsConfigFile: "/tsconfig.json",
@@ -375,7 +372,6 @@ describe("createOptions", () => {
                         noEmit: false,
                         pretty: true,
                         removeComments: false,
-                        strict: false,
                     },
                 },
                 config: {},
@@ -393,7 +389,6 @@ describe("createOptions", () => {
                     noEmit: false,
                     pretty: true,
                     removeComments: false,
-                    strict: false,
                 },
                 tsConfigFile: "/tsconfig.json",
                 watch: false,

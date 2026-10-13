@@ -89,7 +89,6 @@ describe("addCompileCommand", () => {
                     pretty: true,
                     project: "/tsconfig.json",
                     removeComments: false,
-                    strict: false,
                 },
                 raw: {
                     configFilePath: "/tsconfig.json",
@@ -117,7 +116,6 @@ describe("addCompileCommand", () => {
                 pretty: true,
                 project: "/tsconfig.json",
                 removeComments: false,
-                strict: false,
             },
             tsConfigExtends: [],
             tsConfigFile: "/tsconfig.json",
