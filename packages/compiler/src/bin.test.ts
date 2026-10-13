@@ -27,6 +27,9 @@ const getTestDirs = () => {
 
 const ADDONS_DIR = path.resolve(__dirname, "..", "..", "example-addons", "src");
 
+// TS5095 (bundler resolution with CommonJS) is an error on TypeScript 5 only
+const describeOnTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6 ? describe : describe.skip;
+
 let originalCwd: string;
 let testDirs: ReturnType<typeof getTestDirs>;
 
@@ -634,6 +637,72 @@ describe("bin.ts e2e tests", () => {
         expect(actual1).toBe(1);
         expect(actual2).toBe(1);
     }, 60000);
+
+    it.each([
+        {
+            name: "addon requiring type information",
+            declaration: false,
+            args: () => `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons type-info-addon`,
+        },
+        { name: "declaration", declaration: true, args: () => "" },
+    ])(
+        "should exit with status 1, report the missing type definition file once and write the output w/ $name",
+        ({ declaration, args }) => {
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, rootDir: "src", noEmit: false, declaration, target: "esnext", types: ["does-not-exist"] });
+            createSourceFile(`export const a = 1;`, "a.ts");
+            createSourceFile(`export const b = 1;`, "b.ts");
+            createAddon("type-info-addon", `exports.activate = () => {};`);
+
+            const target = executeCompilerStatus(`${args()} --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+            const actual1 = target.status;
+            const actual2 = target.output.split("Cannot find type definition file for 'does-not-exist'").length - 1;
+            const actual3 = getOutput("a.js") !== undefined && getOutput("b.js") !== undefined;
+
+            expect(actual1).toBe(1);
+            expect(actual2).toBe(1);
+            expect(actual3).toBe(true);
+        },
+        60000
+    );
+
+    it("should exit with status 1 and report the rootDir violation once per file outside rootDir w/ declaration", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, rootDir: "src/lib", noEmit: false, declaration: true, target: "esnext", types: [] });
+        fs.mkdirSync(path.join(testDirs.SOURCE_DIR, "lib"), { recursive: true });
+        createSourceFile(`import { b } from "../b";\nexport const index = b;`, path.join("lib", "index.ts"));
+        createSourceFile(`export const b = 1;`, "b.ts");
+        createSourceFile(`export const c = 1;`, "c.ts");
+
+        const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+        const actual1 = target.status;
+        const actual2 = target.output.split("is not under 'rootDir'").length - 1;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toBe(2);
+    }, 60000);
+
+    describeOnTs5("w/ an option error of the per-file declaration Program", () => {
+        it("should exit with status 1 and report the option error once w/ declaration, commonjs and bundler resolution", () => {
+            createTsConfig({
+                outDir: testDirs.OUTPUT_DIR,
+                rootDir: "src",
+                noEmit: false,
+                declaration: true,
+                target: "esnext",
+                module: "commonjs",
+                moduleResolution: "bundler",
+                types: [],
+            });
+            createSourceFile(`export const a = 1;`, "a.ts");
+            createSourceFile(`export const b = 1;`, "b.ts");
+
+            const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+            const actual1 = target.status;
+            const actual2 = target.output.split("Option 'bundler' can only be used").length - 1;
+
+            expect(actual1).toBe(1);
+            expect(actual2).toBe(1);
+        }, 60000);
+    });
 
     it.each([
         { name: "--addonEmitOnly", args: () => "--addonEmitOnly" },
