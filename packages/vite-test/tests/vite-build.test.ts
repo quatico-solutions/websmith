@@ -132,10 +132,20 @@ const writeTsxFixture = (): void => {
 };
 
 // The plugin options as JavaScript source, with RegExp values that JSON drops
-const toSource = (options: Record<string, unknown>): string =>
-    `{ ${Object.entries(options)
-        .map(([key, value]) => `${JSON.stringify(key)}: ${value instanceof RegExp ? String(value) : JSON.stringify(value)}`)
-        .join(", ")} }`;
+const toSource = (value: unknown): string => {
+    if (value instanceof RegExp) {
+        return String(value);
+    }
+    if (Array.isArray(value)) {
+        return `[${value.map(toSource).join(", ")}]`;
+    }
+    if (value !== null && typeof value === "object") {
+        return `{ ${Object.entries(value)
+            .map(([key, cur]) => `${JSON.stringify(key)}: ${toSource(cur)}`)
+            .join(", ")} }`;
+    }
+    return JSON.stringify(value) ?? "undefined";
+};
 
 const runViteBuild = ({
     vite = "vite",
