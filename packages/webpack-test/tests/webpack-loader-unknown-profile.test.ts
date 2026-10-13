@@ -4,7 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import type { CompilationConfig } from "@quatico/websmith-core";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -70,7 +69,7 @@ describe("webpack w/ websmith-loader and an unconfigured profile", () => {
     }, 60000);
 });
 
-type RunOptions = { profile: string; configFile?: boolean; config?: Partial<CompilationConfig>; threadLoader?: boolean };
+type RunOptions = { profile: string; configFile?: boolean; config?: { profiles: Record<string, { depends?: string[] }> }; threadLoader?: boolean };
 
 const runWebpack = ({ profile, configFile = false, config, threadLoader = false }: RunOptions): { exitCode: number | null; output: string } => {
     const loaderOptions = {

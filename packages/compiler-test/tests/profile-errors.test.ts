@@ -29,18 +29,18 @@ afterEach(() => {
 
 describe("compile w/ websmith and an unconfigured profile", () => {
     it("reports profile error once and writes nothing w/ unknown profile in config file", () => {
-        const target = new NoReporter();
-        target.reportDiagnostic = jest.fn();
+        const reporter = new NoReporter();
+        const target = jest.spyOn(reporter, "reportDiagnostic");
         const options = createOptions(
             { project: path.join(projectDir, "tsconfig.json"), configFile: path.join(projectDir, "websmith.config.json"), profile: "missing" },
             new NoReporter(),
             ts.sys
         );
 
-        new Compiler({ ...options, reporter: target }, {}, ts.sys).compile();
-        const actual = jest
-            .mocked(target.reportDiagnostic)
-            .mock.calls.filter(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n").startsWith("Profile 'missing' is not configured in"));
+        new Compiler({ ...options, reporter }, {}, ts.sys).compile();
+        const actual = target.mock.calls.filter(([cur]) =>
+            ts.flattenDiagnosticMessageText(cur.messageText, "\n").startsWith("Profile 'missing' is not configured in")
+        );
 
         expect(actual).toEqual([[expect.objectContaining({ category: ts.DiagnosticCategory.Error })]]);
         expect(fs.existsSync(path.join(projectDir, "dist"))).toBe(false);
