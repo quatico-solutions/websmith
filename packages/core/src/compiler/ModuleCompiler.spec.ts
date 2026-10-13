@@ -292,7 +292,9 @@ describe("ModuleCompiler options", () => {
 
 describe("ModuleCompiler option errors", () => {
     const INVALID_TS_CONFIG = {
-        "/tsconfig.json": JSON.stringify({ compilerOptions: { module: "commonjs", moduleResolution: "bundler", outDir: "/dist", rootDir: "/src" } }),
+        "/tsconfig.json": JSON.stringify({
+            compilerOptions: { jsx: "react", jsxFactory: "h", reactNamespace: "R", outDir: "/dist", rootDir: "/src" },
+        }),
     };
     const SOURCES = { "/src/a.ts": "export const a = 1;", "/src/b.ts": "export const b = 2;" };
     const LOADER_OPTIONS = { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" };
@@ -321,7 +323,7 @@ describe("ModuleCompiler option errors", () => {
 
         const actual = testObj.getConfigErrors().map(cur => cur.code);
 
-        expect(actual).toEqual([5095]);
+        expect(actual).toEqual([5053]);
     });
 
     it("yields file-less warning and websmith error w/o code in build", () => {
@@ -367,7 +369,7 @@ describe("ModuleCompiler option errors", () => {
 
         const actual = testObj.getConfigErrors().map(cur => cur.code);
 
-        expect(actual).toEqual([5095]);
+        expect(actual).toEqual([5053]);
     });
 
     it("yields config errors once to first built module w/o compilation hooks", () => {
@@ -376,7 +378,7 @@ describe("ModuleCompiler option errors", () => {
 
         const actual = testObj.takeUnreportedConfigErrors("/src/a.ts").map(cur => cur.code);
 
-        expect(actual).toEqual([5095]);
+        expect(actual).toEqual([5053]);
     });
 
     it("yields no config errors to second module w/ errors taken by first module", () => {
@@ -400,7 +402,7 @@ describe("ModuleCompiler option errors", () => {
 
         const actual = testObj.takeUnreportedConfigErrors("/src/a.ts").map(cur => cur.code);
 
-        expect(actual).toEqual([5095]);
+        expect(actual).toEqual([5053]);
     });
 
     it("yields config errors to next module after options update", () => {
@@ -412,6 +414,6 @@ describe("ModuleCompiler option errors", () => {
 
         const actual = testObj.takeUnreportedConfigErrors("/src/b.ts").map(cur => cur.code);
 
-        expect(actual).toEqual([5095]);
+        expect(actual).toEqual([5053]);
     });
 });

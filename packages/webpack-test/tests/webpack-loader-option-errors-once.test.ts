@@ -16,15 +16,25 @@ const getProjectDir = () => {
 };
 
 let projectDir: string;
-// TS5095; the loader reports TypeScript's message without its code
-const OPTION_ERROR = "Option 'bundler' can only be used when";
+// TS5053 prefix; the loader reports TypeScript's message without its code
+const OPTION_ERROR = "Option 'reactNamespace' cannot be specified with option 'jsxFactory'";
 
 beforeEach(() => {
     projectDir = getProjectDir();
-    // TS5095: moduleResolution bundler needs an ES module kind, an option error every module of the fast path returns
+    // TS5053: jsxFactory excludes reactNamespace, an option error every module of the fast path returns on TypeScript 5 and 6
     writeSourceFile(
         "tsconfig.json",
-        JSON.stringify({ compilerOptions: { target: "es2020", module: "commonjs", moduleResolution: "bundler", rootDir: "src", outDir: "tsout" } }),
+        JSON.stringify({
+            compilerOptions: {
+                target: "es2020",
+                module: "commonjs",
+                jsx: "react",
+                jsxFactory: "h",
+                reactNamespace: "R",
+                rootDir: "src",
+                outDir: "tsout",
+            },
+        }),
         projectDir
     );
     writeSourceFile("websmith.config.json", JSON.stringify({ profiles: { one: {}, two: {} } }), projectDir);
