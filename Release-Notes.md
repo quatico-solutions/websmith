@@ -110,6 +110,12 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   Before, it printed nothing and exited 0. The webpack loader and the Vite plugin report the `tsconfig.json` errors
   once per compilation. `tsc` exits 2 when it reports errors but still emits, and 1 without output for command-line
   errors; websmith exits 1 and writes the output in both cases.
+- Errors without a file, such as "Cannot find type definition file" (TS2688), a `rootDir` that does not contain every
+  source file (TS6059), and option errors with `declaration: true`, such as TS5095, are reported once and fail the
+  build with an addon that needs type information, with `declaration: true`, and in watch mode. Before, websmith
+  printed nothing and exited 0. Errors that need the type checker of the whole program, such as a missing global type
+  under `noLib` (TS2318), are reported only with an addon that needs type information. The webpack loader reports them
+  with `declaration: true` too; an error that names a source file, such as TS6059, is reported on that module.
 
 ### Fixed
 
