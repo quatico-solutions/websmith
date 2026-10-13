@@ -130,7 +130,9 @@ describe("bin.ts e2e tests", () => {
             "export declare const getFoobar: (date: Date) => string;
             //# sourceMappingURL=foobar-arrow.d.ts.map"
         `);
-        expect(getOutput("foobar-arrow.d.ts.map")).toBe(emitWithTsc()["foobar-arrow.d.ts.map"]);
+        const expectedMap = emitWithTsc()["foobar-arrow.d.ts.map"];
+        expect(expectedMap).toBeDefined();
+        expect(getOutput("foobar-arrow.d.ts.map")).toBe(expectedMap);
     }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", () => {
