@@ -68,11 +68,11 @@ describe("webpack w/ websmith-loader and a broken profile in websmith.config.jso
         expect(actual.output).toContain("sets 'esm', but its 'tsConfig.module' is 'CommonJS'");
     }, 60000);
 
-    it("should fail w/ config error per module w/ thread-loader and broken selected profile", () => {
+    it("should fail w/ config error once w/ thread-loader and broken selected profile", () => {
         const actual = runWebpack("broken", true);
 
         expect(actual.exitCode).toBe(1);
-        expect(countOf(actual.output, "Unknown profile 'unknown-profile' in 'depends'")).toBe(2);
+        expect(countOf(actual.output, "Unknown profile 'unknown-profile' in 'depends'")).toBe(1);
     }, 60000);
 
     it("should build w/o errors w/ thread-loader and valid selected profile", () => {
@@ -98,7 +98,7 @@ const runWebpack = (profile: string, threadLoader = false): { exitCode: number |
                         {
                             test: /\\.ts$/,
                             use: [
-                                ${threadLoader ? `${JSON.stringify(require.resolve("thread-loader"))},` : ""}
+                                ${threadLoader ? `{ loader: ${JSON.stringify(require.resolve("thread-loader"))}, options: { workers: 1 } },` : ""}
                                 {
                                     loader: ${JSON.stringify(require.resolve("websmith-loader"))},
                                     options: {

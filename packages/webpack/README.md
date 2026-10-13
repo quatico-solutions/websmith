@@ -92,6 +92,10 @@ TypeScript diagnostics and ESM check diagnostics are emitted on the module that 
   information, e.g. TS4094 (property of an exported anonymous class type may not be private), TS2742 (inferred
   type cannot be named without a reference) and, under `isolatedDeclarations`, TS9xxx.
 
+TypeScript errors without a file belong to no module, e.g. option errors such as TS5095 (`moduleResolution: "bundler"`
+with `module: "CommonJS"`): every module would report the same one. The loader reports them once per compilation like
+configuration errors, see below.
+
 Configuration errors in `websmith.config.json` of the selected `profile` and the profiles it depends on fail the
 build too, e.g. an unknown profile in `depends`, an unknown `esm.runtime`, or `esm` together with
 `tsConfig.module: "CommonJS"`. A `configFile` that does not exist is a configuration error as well. Errors of
@@ -99,8 +103,8 @@ profiles the build does not use are not reported. Configuration errors belong to
 once per compilation to webpack's errors and passes it to `error`, also when several loader rules use the same
 configuration. A watch rebuild reports them again while they remain. Editing `websmith.config.json` triggers a
 rebuild that reports its current errors and compiles the loader's modules again with the new configuration. Without
-compiler hooks, e.g. under `thread-loader`, the loader emits the configuration errors on
-every module it builds instead, so they appear once per module. With webpack's persistent cache
+compiler hooks, e.g. under `thread-loader`, each worker emits the configuration errors on the first module it builds
+instead, and again whenever that module is rebuilt, so they appear once per worker. With webpack's persistent cache
 (`cache: { type: "filesystem" }`), a build that restores every module from the cache runs no loader and reports
 no configuration errors.
 

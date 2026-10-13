@@ -8,6 +8,7 @@
 import path from "node:path";
 import { ErrorMessage } from "@quatico/websmith-api";
 import { createSystem, NoReporter } from "@quatico/websmith-core";
+import ts from "typescript";
 import { type Compilation, type Compiler } from "webpack";
 import { CompilationQueue } from "./CompilationQueue";
 import { type WebpackLoaderContext } from "./loader";
@@ -138,6 +139,26 @@ describe("webpack-hooks", () => {
             expect(actual).toEqual(["Unknown profile 'whatever' in 'depends'."]);
         });
 
+        it("should push file-less TypeScript error once w/ several websmith compilers in one compilation", () => {
+            const optionError: ts.Diagnostic = {
+                file: undefined,
+                start: undefined,
+                length: undefined,
+                code: 5095,
+                category: ts.DiagnosticCategory.Error,
+                messageText: "Option 'bundler' can only be used when 'module' is set to 'preserve' or 'es2015' or later.",
+            };
+            const target = createCompilation(mockCompiler);
+            addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: createConfigErrorCompiler([optionError]) });
+            addCompilationHooks(mockCompiler, mockOptions, { ...mockContext, websmithCompiler: createConfigErrorCompiler([optionError]) });
+            const taps = getAfterCompileTaps(mockCompiler);
+
+            taps.forEach(cur => cur(target));
+            const actual = target.errors.map(cur => cur.message);
+
+            expect(actual).toEqual(["Option 'bundler' can only be used when 'module' is set to 'preserve' or 'es2015' or later."]);
+        });
+
         it("should call error option w/ config errors after compile", () => {
             const target = jest.fn();
             addCompilationHooks(mockCompiler, { ...mockOptions, error: target }, { ...mockContext, websmithCompiler: createConfigErrorCompiler() });
@@ -257,7 +278,7 @@ describe("webpack-hooks", () => {
     });
 });
 
-const createConfigErrorCompiler = () =>
+const createConfigErrorCompiler = (configErrors: ts.Diagnostic[] = [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")]) =>
     ({
         resetCompilationCaches: jest.fn(),
         refreshAddons: jest.fn(),
@@ -266,7 +287,7 @@ const createConfigErrorCompiler = () =>
         useCompilationHooks: jest.fn(),
         getOptions: () => ({ configFile: "/websmith.config.json" }),
         getOptionsFiles: () => ({ files: [path.resolve("/websmith.config.json")], missing: [] }),
-        getConfigErrors: () => [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")],
+        getConfigErrors: () => configErrors,
     }) as unknown as jest.Mocked<TsCompiler>;
 
 const createCompilation = (compiler: Compiler) =>
