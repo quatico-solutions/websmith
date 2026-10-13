@@ -41,7 +41,10 @@ const writeTsConfig = (): string => {
         tsConfigFile,
         JSON.stringify({ compilerOptions: { module: "commonjs", outDir: "websmith", skipLibCheck: true, types: [] }, include: ["src/**/*"] })
     );
-    fs.writeFileSync(path.join(projectDir, "tsconfig.tsc.json"), JSON.stringify({ extends: "./tsconfig.json", compilerOptions: { outDir: "tsc" } }));
+    fs.writeFileSync(
+        path.join(projectDir, "tsconfig.tsc.json"),
+        JSON.stringify({ extends: "./tsconfig.json", compilerOptions: { outDir: "tsc", pretty: false } })
+    );
     return tsConfigFile;
 };
 
@@ -54,12 +57,14 @@ const readOutputPaths = (outDir: string): string[] =>
               .sort()
         : [];
 
-// tsc prints "error TS5011: …", with color codes before " TS" when pretty; websmith's reporter prints "Error: 5011: …"
+// tsc prints "error TS5011: …" (pretty is off, so no color codes); websmith's reporter prints "Error: 5011: …"
 const readErrorCodes = (output: string, pattern: RegExp): string[] => [...new Set([...output.matchAll(pattern)].map(cur => cur[1]))].sort();
 
-// websmith-node's tsc Compiler rejects on a non-zero exit; keep its message to read the error codes from it
+// websmith-node's tsc Compiler rejects on a non-zero exit; its message holds only the first output line, so read the full stdout
 const compileTsc = async (): Promise<{ paths: string[]; codes: string[] }> => {
-    const output = await compile([], { tsConfig: { project: path.join(projectDir, "tsconfig.tsc.json") } }).catch((error: Error) => error.message);
+    const output = await compile([], { tsConfig: { project: path.join(projectDir, "tsconfig.tsc.json") } }).catch(
+        (error: Error) => (error as Error & { getStdout?: () => string | undefined }).getStdout?.() ?? error.message
+    );
     return { paths: readOutputPaths(path.join(projectDir, "tsc")), codes: readErrorCodes(output, / TS(\d+): /g) };
 };
 
