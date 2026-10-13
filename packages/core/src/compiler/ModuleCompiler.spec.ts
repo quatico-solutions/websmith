@@ -4,7 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type CompilationProfile, type Reporter } from "@quatico/websmith-api";
+import { type CompilationProfile, ErrorMessage, type Reporter } from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
 import { createSystem } from "../environment";
@@ -68,9 +68,13 @@ class RecordingCompiler extends ModuleCompiler {
 
 describe("ModuleCompiler build", () => {
     it("yields fragment changed by processor addon from registry", () => {
-        const testObj = createModuleCompiler({ ...MODULE_PACKAGE, "/src/a.ts": `export const x = "before";` }, { target: { addons: ["replacer"] } }, {
-            replacer: ctx => ctx.registerProcessor((_fileName, content) => content.replace("before", "after")),
-        });
+        const testObj = createModuleCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": `export const x = "before";` },
+            { target: { addons: ["replacer"] } },
+            {
+                replacer: ctx => ctx.registerProcessor((_fileName, content) => content.replace("before", "after")),
+            }
+        );
 
         const actual = testObj.build("/src/a.ts").fragment.files.find(cur => cur.name.endsWith(".js"))?.text;
 
@@ -185,9 +189,13 @@ describe("ModuleCompiler build", () => {
 describe("ModuleCompiler runResultProcessors", () => {
     it("runs each result processor of target profile once w/ files", () => {
         const target = jest.fn();
-        const testObj = createModuleCompiler({ "/src/a.ts": "export const a = 1;" }, { target: { addons: ["results"] } }, {
-            results: ctx => ctx.registerResultProcessor(target),
-        });
+        const testObj = createModuleCompiler(
+            { "/src/a.ts": "export const a = 1;" },
+            { target: { addons: ["results"] } },
+            {
+                results: ctx => ctx.registerResultProcessor(target),
+            }
+        );
 
         testObj.runResultProcessors(["/dist/a.js", "/dist/b.js"]);
 
@@ -196,13 +204,17 @@ describe("ModuleCompiler runResultProcessors", () => {
 
     it("yields error diagnostic and runs next result processor w/ throwing result processor", () => {
         const target = jest.fn();
-        const testObj = createModuleCompiler({ "/src/a.ts": "export const a = 1;" }, { target: { addons: ["throwing", "results"] } }, {
-            throwing: ctx =>
-                ctx.registerResultProcessor(() => {
-                    throw new Error("Result exploded");
-                }),
-            results: ctx => ctx.registerResultProcessor(target),
-        });
+        const testObj = createModuleCompiler(
+            { "/src/a.ts": "export const a = 1;" },
+            { target: { addons: ["throwing", "results"] } },
+            {
+                throwing: ctx =>
+                    ctx.registerResultProcessor(() => {
+                        throw new Error("Result exploded");
+                    }),
+                results: ctx => ctx.registerResultProcessor(target),
+            }
+        );
 
         const actual = testObj.runResultProcessors(["/dist/a.js"]).map(cur => [cur.category, cur.messageText]);
 
@@ -242,7 +254,9 @@ describe("ModuleCompiler options", () => {
         const actual = testObj.refreshOptions(loadOptions, new Set([path.resolve("/websmith.config.json")]));
 
         expect(actual).toBe(true);
-        expect(testObj.getConfigErrors().map(cur => cur.messageText)).toEqual(["Unknown profile 'unknown-profile' in 'depends' of '/websmith.config.json'."]);
+        expect(testObj.getConfigErrors().map(cur => cur.messageText)).toEqual([
+            "Unknown profile 'unknown-profile' in 'depends' of '/websmith.config.json'.",
+        ]);
     });
 
     it("resolves options not again w/ other modified file", () => {
@@ -273,5 +287,131 @@ describe("ModuleCompiler options", () => {
 
         expect(actual).toBe(false);
         expect(target).not.toHaveBeenCalled();
+    });
+});
+
+describe("ModuleCompiler option errors", () => {
+    const INVALID_TS_CONFIG = {
+        "/tsconfig.json": JSON.stringify({ compilerOptions: { module: "commonjs", moduleResolution: "bundler", outDir: "/dist", rootDir: "/src" } }),
+    };
+    const SOURCES = { "/src/a.ts": "export const a = 1;", "/src/b.ts": "export const b = 2;" };
+    const LOADER_OPTIONS = { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" };
+
+    class InjectingCompiler extends ModuleCompiler {
+        public injected: ts.Diagnostic[] = [];
+
+        protected emitSourceFile(...args: Parameters<ModuleCompiler["emitSourceFile"]>): ReturnType<ModuleCompiler["emitSourceFile"]> {
+            const fragment = super.emitSourceFile(...args);
+            return { ...fragment, diagnostics: [...(fragment.diagnostics ?? []), ...this.injected] };
+        }
+    }
+
+    it("yields no file-less TypeScript error in build w/ invalid option and two files", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+
+        const actual = [testObj.build("/src/a.ts"), testObj.build("/src/b.ts")].flatMap(cur => cur.diagnostics.map(diagnostic => diagnostic.code));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields file-less TypeScript error once as config error w/ invalid option and two files built", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.code);
+
+        expect(actual).toEqual([5095]);
+    });
+
+    it("yields file-less warning and websmith error w/o code in build", () => {
+        const system = createSystem({ ...TS_CONFIG, "/src/a.ts": "export const a = 1;" }, { virtual: true });
+        const testObj = new InjectingCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: true },
+            system
+        );
+        testObj.injected = [
+            {
+                file: undefined,
+                start: undefined,
+                length: undefined,
+                code: 6000,
+                category: ts.DiagnosticCategory.Warning,
+                messageText: "File-less warning",
+            },
+            new ErrorMessage("Websmith error"),
+        ];
+
+        const actual = testObj.build("/src/a.ts").diagnostics.map(cur => cur.messageText);
+
+        expect(actual).toEqual(["File-less warning", "Websmith error"]);
+        expect(testObj.getConfigErrors()).toEqual([]);
+    });
+
+    it("yields no file-less TypeScript error as config error after options update w/ valid options", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.getSystem().writeFile("/tsconfig.json", TS_CONFIG["/tsconfig.json"]);
+        testObj.updateLoaderConfig(LOADER_OPTIONS);
+
+        const actual = testObj.getConfigErrors();
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields file-less TypeScript error as config error after compilation caches reset", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.resetCompilationCaches();
+
+        const actual = testObj.getConfigErrors().map(cur => cur.code);
+
+        expect(actual).toEqual([5095]);
+    });
+
+    it("yields config errors once to first built module w/o compilation hooks", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+
+        const actual = testObj.takeUnreportedConfigErrors("/src/a.ts").map(cur => cur.code);
+
+        expect(actual).toEqual([5095]);
+    });
+
+    it("yields no config errors to second module w/ errors taken by first module", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.takeUnreportedConfigErrors("/src/a.ts");
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.takeUnreportedConfigErrors("/src/b.ts");
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields config errors again to carrier module w/ carrier built again", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.takeUnreportedConfigErrors("/src/a.ts");
+        testObj.build("/src/b.ts");
+        testObj.takeUnreportedConfigErrors("/src/b.ts");
+        testObj.build("/src/a.ts");
+
+        const actual = testObj.takeUnreportedConfigErrors("/src/a.ts").map(cur => cur.code);
+
+        expect(actual).toEqual([5095]);
+    });
+
+    it("yields config errors to next module after options update", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.takeUnreportedConfigErrors("/src/a.ts");
+        testObj.updateLoaderConfig(LOADER_OPTIONS);
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.takeUnreportedConfigErrors("/src/b.ts").map(cur => cur.code);
+
+        expect(actual).toEqual([5095]);
     });
 });
