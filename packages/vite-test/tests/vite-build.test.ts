@@ -62,12 +62,12 @@ describe("vite build w/ websmith plugin", () => {
         expect(actual).not.toContain("react/jsx-runtime");
     }, 60000);
 
-    it("should bundle raw import untouched w/ ?raw query", () => {
+    it("should bundle raw import untouched w/ ?raw query and unanchored include", () => {
         writeConfig({});
         writeFile("src/data.ts", `export const data: string = "MARK_IN";\n`);
         writeFile("src/main.ts", `import data from "./data.ts?raw";\nexport const raw = data;\n`);
 
-        const actual = runViteBuild({ pluginOptions: { profile: "app" } });
+        const actual = runViteBuild({ pluginOptions: { profile: "app", include: /\.ts/ } });
 
         expect(actual).toContain(`export const data: string = "MARK_IN";`);
     }, 60000);
@@ -131,6 +131,12 @@ const writeTsxFixture = (): void => {
     writeFile("src/main.ts", `export { view } from "./view";\n`);
 };
 
+// The plugin options as JavaScript source, with RegExp values that JSON drops
+const toSource = (options: Record<string, unknown>): string =>
+    `{ ${Object.entries(options)
+        .map(([key, value]) => `${JSON.stringify(key)}: ${value instanceof RegExp ? String(value) : JSON.stringify(value)}`)
+        .join(", ")} }`;
+
 const runViteBuild = ({
     vite = "vite",
     pluginOptions,
@@ -152,7 +158,7 @@ const runViteBuild = ({
             root: ${JSON.stringify(projectDir)},
             configFile: false,
             logLevel: "warn",
-            plugins: [websmith(${JSON.stringify(pluginOptions)})],
+            plugins: [websmith(${toSource(pluginOptions)})],
             ...${JSON.stringify(viteOptions)},
             build: { write: false, minify: false, lib: { entry: "src/main.ts", formats: ["es"] } },
         });
