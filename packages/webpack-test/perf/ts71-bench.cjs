@@ -338,7 +338,7 @@ const runInProcess = ({ variant, versionsDir, corpus, edits }) => {
 
     // (e) watch rebuild: createProgram with oldProgram and a host serving the edited text, then emit the edited file
     const overrides = new Map();
-    const host = ts.createCompilerHost(PROGRAM_OPTIONS);
+    const host = ts.createCompilerHost(PROGRAM_OPTIONS, true); // as createCompileHost in packages/core
     const readFile = host.readFile;
     host.readFile = fileName => (overrides.has(fileName) ? overrides.get(fileName) : readFile(fileName));
     const getSourceFile = host.getSourceFile;
