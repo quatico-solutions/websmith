@@ -136,7 +136,8 @@ class ConfigErrorReporter implements Reporter {
  * Compiles one module at a time for a bundler host, without depending on a bundler. The host calls `build` per module
  * and reports its diagnostics, reports `getConfigErrors` once per compilation, and calls `refreshOptions`,
  * `refreshAddons` and `resetCompilationCaches` when its compilations start. A host that applies addons of its own
- * overrides `applyAddons`; without that, the addons come from the `AddonRegistry` of the host options.
+ * overrides `applyAddons`, and `prepareAddons` if they need setting up first; without that, the addons come from the
+ * `AddonRegistry` of the host options.
  */
 export class ModuleCompiler extends Compiler {
     private profile?: string;
@@ -377,7 +378,11 @@ export class ModuleCompiler extends Compiler {
         // The registry's addons are activated with the compilation contexts
     }
 
-    /** Sets up the host's own addons before its addon step. A throw fails the build, unlike a throw of `applyAddons`. */
+    /**
+     * Sets up the host's own addons before its addon step, after the dependent profiles emitted. `build` calls it on
+     * every build, so an override must be idempotent, e.g. set up only once. A throw fails the build, unlike a throw of
+     * `applyAddons`.
+     */
     protected prepareAddons(): void {
         // Nothing to set up without a host
     }
