@@ -94,12 +94,12 @@ exports[`compile w/ websmith should build js and no d.ts with tsconfig.json 1`] 
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getFoobar = void 0;
 // @annotated()
-var getFoobar = function (date) {
+const getFoobar = (date) => {
     return foobar(date);
 };
 exports.getFoobar = getFoobar;
-var foobar = function (date) {
-    return "foobar ".concat(date.toISOString());
+const foobar = (date) => {
+    return \`foobar \${date.toISOString()}\`;
 };
 "
 `;
