@@ -7,6 +7,7 @@
 import { InfoMessage, type EsmProfileOptions } from "@quatico/websmith-api";
 import ts from "typescript";
 import { createSystem } from "../../environment";
+import { getEffectiveTarget } from "../config/effective-options";
 import { NoReporter } from "../NoReporter";
 import { checkEsm, getEmittedModuleKind, type EsmCheckContext } from "./check-esm";
 import { checkMissingExtension } from "./import-rules";
@@ -712,10 +713,10 @@ describe("getEmittedModuleKind", () => {
         expect(actual).toBe(ts.ModuleKind.CommonJS);
     });
 
-    it("yields CommonJS w/o module and target", () => {
+    it("yields the module kind of the installed TypeScript's default target w/o module and target", () => {
         const actual = getEmittedModuleKind({});
 
-        expect(actual).toBe(ts.ModuleKind.CommonJS);
+        expect(actual).toBe(getEmittedModuleKind({ target: getEffectiveTarget({}) }));
     });
 
     it("yields ES2015 w/o module and ES2020 target", () => {
