@@ -140,7 +140,9 @@ export const runViteBuild = (options: RunViteOptions): string => {
 
 /**
  * Runs `vite build --watch` with the plugin: after the first `END` event it runs `afterFirstBuild` in the build
- * process, e.g. a file write, and returns the watcher events up to the end of the second build.
+ * process, e.g. a file write, and returns the watcher events up to the end of the second build. Rollup registers
+ * the watch files of a build asynchronously after its `END`, so a write right after it can go unseen: the runner
+ * repeats `afterFirstBuild` every 250 ms until the watcher reports the `START` of the second build.
  */
 export const runViteWatch = ({
     vite = "vite",
@@ -163,10 +165,14 @@ export const runViteWatch = ({
         });
         const events = [];
         let builds = 0;
+        let retry;
         const finish = async () => {
             console.log(JSON.stringify(events));
             await watcher.close();
             process.exit(0);
+        };
+        const afterFirstBuild = () => {
+            ${afterFirstBuild}
         };
         watcher.on("event", event => {
             if (event.code === "ERROR") {
@@ -174,10 +180,15 @@ export const runViteWatch = ({
             } else {
                 events.push({ code: event.code });
             }
+            if (event.code === "START" && retry) {
+                clearInterval(retry);
+                retry = undefined;
+            }
             if (event.code === "END" || event.code === "ERROR") {
                 builds++;
                 if (builds === 1) {
-                    ${afterFirstBuild}
+                    afterFirstBuild();
+                    retry = setInterval(afterFirstBuild, 250);
                 } else {
                     void finish();
                 }
