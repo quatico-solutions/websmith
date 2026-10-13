@@ -1396,8 +1396,8 @@ describe("option names", () => {
 
         const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: target }, createLoaderOptions({ module: "nope" as any }));
 
-        expect(testObj.cliArgs.options.module).not.toBe("nope");
-        expect(testObj.tsConfig?.module).not.toBe("nope");
+        expect(testObj.cliArgs.options.module).toBeUndefined();
+        expect(testObj.tsConfig?.module).toBeUndefined();
         expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({ messageText: expect.stringMatching(/^Invalid 'tsConfig\.module' value 'nope' in the loader options\. /) })
