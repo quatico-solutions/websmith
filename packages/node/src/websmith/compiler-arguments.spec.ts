@@ -130,4 +130,16 @@ describe("parseCliArguments", () => {
 
         expect(actual).toEqual(["--pretty", "false", "src/index.ts"]);
     });
+
+    it("should not add ignoreConfig with ignoreConfig option false and tsc version 6", () => {
+        const actual = parseCliArguments({ ignoreConfig: false }, ["src/index.ts"], "6.0.3");
+
+        expect(actual).toEqual(["--pretty", "false", "src/index.ts"]);
+    });
+
+    it("should not add ignoreConfig with build option and tsc version 6", () => {
+        const actual = parseCliArguments({ build: true }, ["tsconfig.json"], "6.0.3");
+
+        expect(actual).toEqual(["--build", "--pretty", "false", "tsconfig.json"]);
+    });
 });
