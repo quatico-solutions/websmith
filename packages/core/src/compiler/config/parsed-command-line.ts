@@ -5,7 +5,13 @@
  * ---------------------------------------------------------------------------------------------
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { aggregateMessages, COMPILER_ARGUMENT_KEYS, type CompilerArgumentKey, type CompilerArguments } from "@quatico/websmith-api";
+import {
+    aggregateMessages,
+    COMPILER_ARGUMENT_KEYS,
+    WEBSMITH_ARGUMENT_KEYS,
+    type CompilerArgumentKey,
+    type CompilerArguments,
+} from "@quatico/websmith-api";
 import ts from "typescript";
 import { resolveProjectFile } from "./resolve-project-file";
 
@@ -65,8 +71,12 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
         ...(profiles ? { profiles } : {}),
     };
 
+    // websmith's own arguments and --build, which websmith does not implement, are no tsc flags: TypeScript rejects them
+    const tscOnlyArgs = Object.fromEntries(
+        Object.entries(rest).filter(([key]) => key !== "build" && !(WEBSMITH_ARGUMENT_KEYS as string[]).includes(key))
+    );
     // Create command line args and add file arguments if provided
-    const commandLineArgs = createArgs(rest);
+    const commandLineArgs = createArgs(tscOnlyArgs);
     if (fileNames && Array.isArray(fileNames)) {
         commandLineArgs.push(...fileNames);
     }
@@ -104,6 +114,7 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
                 // Filter out invalid file paths like "/" and empty strings.
                 // Use explicit files provided via CLI arguments instead of tsconfig file discovery.
                 fileNames: tscArgs.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""),
+                errors: [...tscArgs.errors, ...ts.getConfigFileParsingDiagnostics(tsConfigResult)],
             };
         }
 
@@ -132,6 +143,8 @@ export const parsedCommandLine = (tsConfigFile: string, args: CompilerArguments,
             },
             // Filter out invalid file paths like "/" that can cause compilation errors
             fileNames: result.fileNames.filter(fileName => fileName !== "/" && fileName.trim() !== ""),
+            // The syntax errors of the tsconfig.json are in the non-enumerable options.configFile the spread drops
+            errors: [...tscArgs.errors, ...ts.getConfigFileParsingDiagnostics(result)],
         };
     }
 

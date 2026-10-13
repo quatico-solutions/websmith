@@ -108,6 +108,11 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     public readonly instanceName?: string;
     /** Profiles configuration from loader options. */
     public readonly profiles?: Record<string, CompilationProfile>;
+    /**
+     * The errors of the command-line options and of `tsConfigFile`, e.g., an unknown option or a JSON syntax error,
+     * without TS18003 and without the errors of profile options. A compilation reports them once per build.
+     */
+    public readonly configErrors: ts.Diagnostic[];
 
     constructor(
         private system: ts.System,
@@ -229,6 +234,8 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         // Get the parsed command line from tsconfig.json which includes proper file discovery
         const parsedTsConfig =
             this.tsConfigFile && this.system.fileExists(this.tsConfigFile) ? parsedCommandLine(this.tsConfigFile, {}, this.system) : {};
+        // Only the command-line errors of the first argument: the loader options' cliArgs hold errors of numeric enum values
+        this.configErrors = getConfigErrors([...(options.cliArgs?.errors ?? []), ...((parsedTsConfig as ts.ParsedCommandLine).errors ?? [])]);
 
         // Determine if we should use CLI files or tsconfig file discovery
         const useCliFiles = cliArgs?.fileNames?.length > 0;
@@ -257,7 +264,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
                 ...premergedCliArgs.options, // This includes CLI-specific options like outDir, rootDir
             },
             fileNames: finalFileNames,
-            errors: [],
+            errors: this.configErrors,
             // Explicitly set the raw.configFilePath for webpack loader access
             raw: {
                 ...baseCliArgs.raw,
@@ -342,6 +349,25 @@ export class ResolvedCompilerOptions implements CompilerOptions {
     }
 }
 
+// TS18003 "No inputs were found" is about file discovery, not options: CLI files and bundlers choose the files
+const NO_INPUTS_FOUND = 18003;
+
+/**
+ * Returns the errors without TS18003 and without duplicates, e.g., the tsconfig.json errors of the first option
+ * resolution passed to the next one in `cliArgs.errors`.
+ */
+const getConfigErrors = (errors: ts.Diagnostic[]): ts.Diagnostic[] => {
+    const keys = new Set<string>();
+    return errors.filter(cur => {
+        const key = [cur.file?.fileName, cur.start, cur.code, ts.flattenDiagnosticMessageText(cur.messageText, "\n")].join("\0");
+        if (cur.code === NO_INPUTS_FOUND || keys.has(key)) {
+            return false;
+        }
+        keys.add(key);
+        return true;
+    });
+};
+
 /**
  * Returns the resolved compiler options, optionally for the given profile. The ts.CompilerOptions are merged from the
  * tsconfig.json, the CLI arguments, the profile options.
@@ -350,8 +376,8 @@ export class ResolvedCompilerOptions implements CompilerOptions {
  */
 const getTsConfig = (system: ts.System, projectDir: string, options: CompilerOptions, profileName?: string): ts.CompilerOptions => {
     const { tsConfig, config, profile, cliArgs, tsConfigFile } = options;
-    const profileTsConfig = getProfileClosure(profileName ?? profile, options.config, "dependencies-first").profiles
-        .map(cur => getProfile(cur, config))
+    const profileTsConfig = getProfileClosure(profileName ?? profile, options.config, "dependencies-first")
+        .profiles.map(cur => getProfile(cur, config))
         .reduce((acc: ts.CompilerOptions, cur) => deepmerge<ts.CompilerOptions>(acc, cur.tsConfig ?? {}, { arrayMerge }), {});
 
     // Read tsconfig.json if it exists

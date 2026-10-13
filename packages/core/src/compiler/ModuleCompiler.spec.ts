@@ -420,6 +420,9 @@ describe("ModuleCompiler option errors", () => {
             compilerOptions: { jsx: "react", jsxFactory: "h", reactNamespace: "R", outDir: "/dist", rootDir: "/src" },
         }),
     };
+    const BOGUS_TS_CONFIG = {
+        "/tsconfig.json": JSON.stringify({ compilerOptions: { bogusOption: true, outDir: "/dist", rootDir: "/src" } }),
+    };
     const SOURCES = { "/src/a.ts": "export const a = 1;", "/src/b.ts": "export const b = 2;" };
     const LOADER_OPTIONS = { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" };
 
@@ -564,5 +567,37 @@ describe("ModuleCompiler option errors", () => {
         const actual = testObj.takeUnreportedConfigErrors("/src/b.ts").map(cur => cur.code);
 
         expect(actual).toEqual([5053]);
+    });
+    it("yields tsconfig.json error once as config error w/ unknown option", () => {
+        const testObj = createModuleCompiler({ ...BOGUS_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.code);
+
+        expect(actual).toEqual([5023]);
+    });
+
+    it("yields tsconfig.json error to first module only w/ unknown option", () => {
+        const testObj = createModuleCompiler({ ...BOGUS_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.build("/src/b.ts");
+
+        const actual = [testObj.takeUnreportedConfigErrors("/src/a.ts"), testObj.takeUnreportedConfigErrors("/src/b.ts")].map(cur =>
+            cur.map(diagnostic => diagnostic.code)
+        );
+
+        expect(actual).toEqual([[5023], []]);
+    });
+
+    it("yields no tsconfig.json error after options update w/ fixed tsconfig.json", () => {
+        const testObj = createModuleCompiler({ ...BOGUS_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.getSystem().writeFile("/tsconfig.json", TS_CONFIG["/tsconfig.json"]);
+        testObj.updateLoaderConfig(LOADER_OPTIONS);
+
+        const actual = testObj.getConfigErrors();
+
+        expect(actual).toEqual([]);
     });
 });

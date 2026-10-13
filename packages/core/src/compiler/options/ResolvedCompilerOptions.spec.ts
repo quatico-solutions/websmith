@@ -900,6 +900,72 @@ describe("cliArgs", () => {
     });
 });
 
+describe("configErrors", () => {
+    const BOGUS_TSCONFIG = JSON.stringify({ include: ["*.ts"], compilerOptions: { bogusOption: true } });
+
+    it("should yield the error of an unknown option in tsconfig.json once", () => {
+        const fileSystem = createSystem({ "/tsconfig.json": BOGUS_TSCONFIG, "/test.ts": "export const test = 1;" }, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new NoReporter() });
+
+        expect(testObj.configErrors.map(cur => cur.code)).toEqual([5023]);
+    });
+
+    it("should yield the error of an unknown option in tsconfig.json once w/ the same error in cliArgs", () => {
+        const fileSystem = createSystem({ "/tsconfig.json": BOGUS_TSCONFIG, "/test.ts": "export const test = 1;" }, { virtual: true });
+        const first = new ResolvedCompilerOptions(fileSystem, { reporter: new NoReporter() });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, first.getOptions());
+
+        expect(testObj.configErrors.map(cur => cur.code)).toEqual([5023]);
+    });
+
+    it("should yield a command-line error of cliArgs in configErrors and in cliArgs.errors", () => {
+        const fileSystem = createSystem({ "/test.ts": "export const test = 1;" }, { virtual: true });
+        const { errors } = ts.parseCommandLine(["--target", "foo"]);
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            reporter: new NoReporter(),
+            cliArgs: { options: {}, fileNames: [], errors },
+        });
+
+        expect(testObj.configErrors.map(cur => cur.code)).toEqual([6046]);
+        expect(testObj.cliArgs.errors.map(cur => cur.code)).toEqual([6046]);
+    });
+
+    it("should not yield a command-line error of the loader options", () => {
+        const fileSystem = createSystem({ "/test.ts": "export const test = 1;" }, { virtual: true });
+        const { errors } = ts.parseCommandLine(["--moduleResolution", "100"]);
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: [], errors: [] } }, {
+            cliArgs: { options: {}, fileNames: [], errors },
+        } as any);
+
+        expect(testObj.configErrors).toEqual([]);
+    });
+
+    it("should not yield TS18003 w/ tsconfig.json whose include matches nothing", () => {
+        const fileSystem = createSystem({ "/tsconfig.json": JSON.stringify({ include: ["src"] }) }, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: new NoReporter() });
+
+        expect(testObj.configErrors).toEqual([]);
+    });
+
+    it("should not add the errors of profile options w/ two profiles", () => {
+        const fileSystem = createSystem({ "/tsconfig.json": BOGUS_TSCONFIG, "/test.ts": "export const test = 1;" }, { virtual: true });
+        const testObj = new ResolvedCompilerOptions(fileSystem, {
+            reporter: new NoReporter(),
+            config: { profiles: { a: { tsConfig: { strict: true } }, b: { depends: ["a"] } } },
+        });
+
+        testObj.getOptions("a");
+        testObj.getOptions("b");
+
+        expect(testObj.configErrors.map(cur => cur.code)).toEqual([5023]);
+    });
+});
+
 describe("getSelectedProfiles", () => {
     it("should yield empty array with no profiles", () => {
         const fileSystem = createSystem({}, { virtual: true });

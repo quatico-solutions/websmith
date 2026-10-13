@@ -102,6 +102,14 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   - Output does not change. JavaScript sources are still copied; under `noEmitOnError`, one with a syntax error is
     not written.
   - A valid `.d.mts` or `.d.cts` source no longer fails such a build with "Transpilation failed".
+- `websmith` reports invalid options once per build, also in watch mode, still writes the output, and exits 1:
+  - options in `tsconfig.json`, such as an unknown option (TS5023) or an invalid value (TS6046);
+  - a `tsconfig.json` that is no valid JSON, or whose `extends` target is missing;
+  - invalid values of command-line flags, such as `--target foo`.
+
+  Before, it printed nothing and exited 0. The webpack loader and the Vite plugin report the `tsconfig.json` errors
+  once per compilation. `tsc` exits 2 when it reports errors but still emits, and 1 without output for command-line
+  errors; websmith exits 1 and writes the output in both cases.
 
 ### Fixed
 
