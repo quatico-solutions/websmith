@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { NoReporter, createSystem } from "@quatico/websmith-core";
+import type ts from "typescript";
 import { createOptions } from "./options";
 
 describe("createOptions", () => {
@@ -63,6 +64,35 @@ describe("createOptions", () => {
             outDir: "/lib",
             strict: true,
         });
+    });
+
+    it("should return option names unconverted w/ tsConfig module name", () => {
+        const target = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
+
+        const actual = createOptions(
+            { tsConfigFile: "./expected/tsconfig.json", tsConfig: { module: "NodeNext" as unknown as ts.ModuleKind } },
+            new NoReporter(),
+            target
+        );
+
+        expect(actual.tsConfig?.module).toBe("NodeNext");
+        expect(actual.cliArgs?.options.module).toBe("NodeNext");
+    });
+
+    it("should return profiles w/ top-level profiles", () => {
+        const target = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
+
+        const actual = createOptions({ tsConfigFile: "./expected/tsconfig.json", profiles: { client: {} } } as never, new NoReporter(), target);
+
+        expect(actual).toHaveProperty("profiles", { client: {} });
+    });
+
+    it("should return no profiles w/o top-level profiles", () => {
+        const target = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
+
+        const actual = createOptions({ tsConfigFile: "./expected/tsconfig.json" }, new NoReporter(), target);
+
+        expect(actual).not.toHaveProperty("profiles");
     });
 
     it("should return debug path w/ debug true", () => {

@@ -62,11 +62,14 @@ The default configuration uses the `tsconfig.json` file in your project root to 
 #### Loader Options
 
 - **tsConfigFile** (string): Path to the TypeScript configuration file. Defaults to `./tsconfig.json`.
-- **tsConfig** (object): TypeScript compiler options. They override the options from the `tsconfig.json`.
+- **tsConfig** (object): TypeScript compiler options. They override the options from the `tsconfig.json`. Like
+  `tsconfig.json`, it accepts option names, e.g. `module: "NodeNext"`; an unknown name is a configuration error.
 - **configFile** (string): Path to a `websmith.config.json`. Required to use the file: there is no automatic lookup.
   A `configFile` that does not exist is a configuration error. Without it, only the loader options apply.
 - **config** (object): Websmith configuration (`addons`, `addonsDir`, `profiles`, `transpileOnly`, `addonEmitOnly`).
   It overrides the same keys of the file named in `configFile`. Define profiles for the loader in `config.profiles`.
+  The `tsConfig` of a profile accepts option names too, and unknown names are configuration errors. A top-level
+  `profiles` option is a configuration error: profiles belong in `config.profiles`.
 - **debug** (boolean): Report messages and suggestions as warnings, in addition to errors and warnings. Defaults to
   `false`.
 - **transpileOnly** (boolean): Enable transpile-only mode for faster builds without type checking. Defaults to

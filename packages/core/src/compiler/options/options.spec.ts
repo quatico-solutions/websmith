@@ -22,6 +22,14 @@ describe("createOptions", () => {
         );
     });
 
+    it("should return enum values w/ option names in tsConfig", () => {
+        const target = createSystem({}, { virtual: true });
+
+        const actual = createOptions({ tsConfig: { module: "NodeNext" as unknown as ts.ModuleKind } }, new NoReporter(), target);
+
+        expect(actual.tsConfig?.module).toBe(ts.ModuleKind.NodeNext);
+    });
+
     it("should return debug and watch w/ flags set to true", () => {
         const actual = createOptions({ debug: true, watch: true });
 
