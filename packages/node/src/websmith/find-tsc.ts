@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 /* eslint-disable max-len */
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathExists } from "path-exists";
@@ -43,6 +44,21 @@ export const findTsc = async (logger = new Logger()) => {
 `);
             throw new Error(`Couldn’t find the "${TSC_EXECUTABLE}" typescript compiler in any expected locations!`);
         });
+};
+
+// Reads the version of the binary itself: it may differ from the imported typescript (ts.version)
+export const readTscVersion = async (tscPath: string): Promise<string | undefined> => {
+    try {
+        // the nvm-global tsc is a symlink, only its target has the package.json two levels up
+        const realPath = await fs.promises.realpath(tscPath);
+        const packageJson = JSON.parse(await fs.promises.readFile(path.join(path.dirname(realPath), "..", "package.json"), "utf-8")) as {
+            name?: unknown;
+            version?: unknown;
+        };
+        return packageJson.name === "typescript" && typeof packageJson.version === "string" ? packageJson.version : undefined;
+    } catch (_ignored) {
+        return undefined;
+    }
 };
 
 const getTscPathIfExists = async (candidate: string): Promise<string> => {

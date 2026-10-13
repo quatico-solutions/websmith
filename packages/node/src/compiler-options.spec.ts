@@ -7,6 +7,27 @@
 import { parseNumberValue } from "./compiler-options";
 
 describe("parseNumberValue", () => {
+    it.each([
+        [0, "ES3"],
+        [1, "ES5"],
+        [2, "ES2015"],
+        [3, "ES2016"],
+        [4, "ES2017"],
+        [5, "ES2018"],
+        [6, "ES2019"],
+        [7, "ES2020"],
+        [8, "ES2021"],
+        [9, "ES2022"],
+        [10, "ES2023"],
+        [11, "ES2024"],
+        [12, "ES2025"],
+        [99, "ESNext"],
+    ])("should return target name for value %d", (value, expected) => {
+        const actual = parseNumberValue("target", value);
+
+        expect(actual).toBe(expected);
+    });
+
     it("should return target value", () => {
         expect(parseNumberValue("target", 99)).toEqual("ESNext");
     });

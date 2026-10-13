@@ -135,6 +135,8 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   `tsconfig.json` converts them. Before, they were passed as written and declarations degraded to `any`. File names
   such as `"lib.es2022.d.ts"` keep working. An unknown name is reported as an error and fails the build; the valid
   entries of the list are kept, as `tsc` does. Loader-option `tsConfig` and inline profiles too.
+- `@quatico/websmith-node` works with TypeScript 6's `tsc`, which rejects file arguments next to a `tsconfig.json`
+  (TS5112), and passes `--target ES2025` by its name.
 
 ### Removed
 

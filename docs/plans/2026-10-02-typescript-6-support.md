@@ -307,7 +307,7 @@ deprecation errors" is answered yes.
 
 ### websmith-node
 
-- `bug/node-tsc-ignore-config` — `@quatico/websmith-node` reads the version of the `tsc` that `findTsc()` returns (its `package.json`) and passes `--ignoreConfig` only to a 6.x binary with file arguments (`websmith/Compiler.ts:86`); its target names get an explicit `12` → `ES2025` (and 99 → `ESNext`) entry instead of `ts.ScriptTarget[value]` (`compiler-options.ts:31-33`). Unit tests: argument list for 5.x and 6.x binaries, the mixed cases (6.x imported with a 5.x binary and the reverse), every target value incl. 12/99. Test: e2e node suites' single-file compile green on both cells (red before on 6.0.3: TS5112) <!-- builds: spawned-tsc version check and target names in websmith-node -->
+- `bug/node-tsc-ignore-config` — `@quatico/websmith-node` reads the version of the `tsc` that `findTsc()` returns (its `package.json`) and passes `--ignoreConfig` only to a 6.x binary with file arguments (`websmith/Compiler.ts:86`); its target names get an explicit `12` → `ES2025` (and 99 → `ESNext`) entry instead of `ts.ScriptTarget[value]` (`compiler-options.ts:31-33`). Unit tests: argument list for 5.x and 6.x binaries, the mixed cases (6.x imported with a 5.x binary and the reverse), every target value incl. 12/99. Test: e2e node suites' single-file compile green on both cells (red before on 6.0.3: TS5112) → #184 <!-- builds: spawned-tsc version check and target names in websmith-node -->
 
 ### 7.1 bench
 

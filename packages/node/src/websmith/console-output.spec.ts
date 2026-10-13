@@ -48,4 +48,12 @@ describe("parseReasonFromConsole", () => {
 
         expect(parseReasonFromConsole(stdout, stderr)).toBeNull();
     });
+
+    it("should return reason w/o color codes with colored tsc output", () => {
+        const stdout = "\u001b[91merror\u001b[0m\u001b[90m TS6053: \u001b[0mFile 'src/does-not-exist.ts' not found.\n  whatever";
+
+        const actual = parseReasonFromConsole(stdout, "");
+
+        expect(actual).toBe("error TS6053: File 'src/does-not-exist.ts' not found.");
+    });
 });
