@@ -1347,7 +1347,8 @@ const convertTsCompilerOptionsToJson = (config: ts.CompilerOptions): Record<stri
         // Use TypeScript's built-in enum reverse lookup for known enum properties
         switch (key) {
             case "target":
-                result[key] = ts.ScriptTarget[value as ts.ScriptTarget]?.toLowerCase() || value;
+                // The reverse map yields "Latest" for ESNext, which tsc rejects as a --target
+                result[key] = value === ts.ScriptTarget.ESNext ? "esnext" : ts.ScriptTarget[value as ts.ScriptTarget]?.toLowerCase() || value;
                 break;
             case "module":
                 result[key] = ts.ModuleKind[value as ts.ModuleKind]?.toLowerCase() || value;
