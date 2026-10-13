@@ -583,6 +583,77 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toBe(1);
     }, 60000);
 
+    it("should exit with status 1, report the command-line option error once and write the output w/ invalid --target", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, types: [] } as TscArguments);
+        createSourceFile(`export const a = 1;`, "test.ts");
+
+        const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --target foo`);
+        const actual1 = target.status;
+        const actual2 = target.output.split("Argument for '--target' option must be").length - 1;
+        const actual3 = getOutput("test.js") !== undefined;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toBe(1);
+        expect(actual3).toBe(true);
+    }, 60000);
+
+    it.each([
+        { name: "fast path", args: () => "" },
+        { name: "addon requiring type information", args: () => `--addonsDir ${path.join(testDirs.PROJECT_DIR, "addons")} --addons type-info-addon` },
+    ])(
+        "should exit with status 1, report the unknown tsconfig.json option once and write the output w/ $name",
+        ({ args }) => {
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, types: [], bogusOption: true } as TscArguments);
+            createSourceFile(`export const a = 1;`, "test.ts");
+            createAddon("type-info-addon", `exports.activate = () => {};`);
+
+            const target = executeCompilerStatus(`${args()} --project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+            const actual1 = target.status;
+            const actual2 = target.output.split("Unknown compiler option 'bogusOption'.").length - 1;
+            const actual3 = getOutput("test.js") !== undefined;
+
+            expect(actual1).toBe(1);
+            expect(actual2).toBe(1);
+            expect(actual3).toBe(true);
+        },
+        60000
+    );
+
+    it("should exit with status 1 and report the syntax error once w/ tsconfig.json missing closing brace", () => {
+        fs.writeFileSync(
+            path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+            `{ "compilerOptions": { "outDir": ${JSON.stringify(testDirs.OUTPUT_DIR)}, "rootDir": "src", "types": [] }, "include": ["src/**/*"]\n`,
+            { encoding: "utf-8" }
+        );
+        createSourceFile(`export const a = 1;`, "test.ts");
+
+        const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+        const actual1 = target.status;
+        const actual2 = target.output.split("'}' expected.").length - 1;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toBe(1);
+    }, 60000);
+
+    it.each([
+        { name: "--addonEmitOnly", args: () => "--addonEmitOnly" },
+        { name: "file argument", args: () => path.join(testDirs.SOURCE_DIR, "test.ts") },
+    ])(
+        "should exit with status 0 and report no unknown compiler option w/ $name and valid project",
+        ({ args }) => {
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, types: [] } as TscArguments);
+            createSourceFile(`export const a = 1;`, "test.ts");
+
+            const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} ${args()}`);
+            const actual1 = target.status;
+            const actual2 = target.output.includes("Unknown compiler option");
+
+            expect(actual1).toBe(0);
+            expect(actual2).toBe(false);
+        },
+        60000
+    );
+
     it.each([
         { noEmitOnError: false, expected: true },
         { noEmitOnError: true, expected: false },
