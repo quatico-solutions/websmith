@@ -67,11 +67,28 @@ describe("webpack w/ websmith-loader and an unconfigured profile", () => {
         expect(actual.exitCode).toBe(1);
         expect(countOf(actual.output, "Unknown profile 'nope' in 'depends' of the loader options. Available profiles: a.")).toBe(1);
     }, 60000);
+
+    it("should fail w/ profile error in second build w/ filesystem cache and unknown profile in config file", () => {
+        writeWebsmithConfig({ profiles: { a: {}, b: {} } }, testDirs.PROJECT_DIR);
+        const first = runWebpack({ profile: "missing", configFile: true, filesystemCache: true });
+
+        const actual = runWebpack({ profile: "missing", configFile: true, filesystemCache: true });
+
+        expect(first.exitCode).toBe(1);
+        expect(actual.exitCode).toBe(1);
+        expect(countOf(actual.output, "Profile 'missing' is not configured in")).toBe(1);
+    }, 120000);
 });
 
-type RunOptions = { profile: string; configFile?: boolean; config?: { profiles: Record<string, { depends?: string[] }> }; threadLoader?: boolean };
+type RunOptions = {
+    profile: string;
+    configFile?: boolean;
+    config?: { profiles: Record<string, { depends?: string[] }> };
+    threadLoader?: boolean;
+    filesystemCache?: boolean;
+};
 
-const runWebpack = ({ profile, configFile = false, config, threadLoader = false }: RunOptions): { exitCode: number | null; output: string } => {
+const runWebpack = ({ profile, configFile = false, config, threadLoader = false, filesystemCache = false }: RunOptions): { exitCode: number | null; output: string } => {
     const loaderOptions = {
         transpileOnly: true,
         tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
@@ -91,6 +108,7 @@ const runWebpack = ({ profile, configFile = false, config, threadLoader = false 
                     other: ${JSON.stringify(path.join(testDirs.SOURCE_DIR, "other.ts"))},
                 },
                 output: { path: ${JSON.stringify(testDirs.OUTPUT_DIR)} },
+                ${filesystemCache ? `cache: { type: "filesystem", cacheDirectory: ${JSON.stringify(path.join(testDirs.PROJECT_DIR, ".cache"))} },` : ""}
                 resolve: { extensions: [".ts", ".js"] },
                 module: {
                     rules: [

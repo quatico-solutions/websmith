@@ -42,8 +42,10 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     if (!instance.hasCompilationHooks()) {
         reportDiagnostics(this, instance.takeUnreportedConfigErrors(this.resourcePath), options, false);
     }
-    // The configuration error of the profile fails the build: the module has no output
+    // The configuration error of the profile fails the build: the module has no output. It stays out of the
+    // persistent cache, else the next build restores it without running the loader and reports no error
     if (!instance.isProfileConfigured()) {
+        this.cacheable?.(false);
         this.callback(null, "");
         return;
     }

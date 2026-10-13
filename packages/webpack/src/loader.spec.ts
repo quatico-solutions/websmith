@@ -518,6 +518,15 @@ describe("loader", () => {
         expect(target.callback).toHaveBeenCalledWith(null, "");
     });
 
+    it("marks module as not cacheable w/ unconfigured profile", () => {
+        setUpLoader(createBuildResult(), {}, false, [], true, false);
+        const target = createLoaderContext();
+
+        loader.call(target);
+
+        expect(target.cacheable).toHaveBeenLastCalledWith(false);
+    });
+
     it("emits no error on module w/ unconfigured profile and compilation hooks", () => {
         setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Profile 'whatever' is not configured.")], true, false);
         const target = createLoaderContext();
