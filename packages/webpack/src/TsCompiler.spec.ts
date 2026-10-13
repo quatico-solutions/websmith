@@ -172,6 +172,7 @@ const createSource = (fileName: string, text: string) => {
 };
 
 const MODULE_PACKAGE = { "/package.json": JSON.stringify({ type: "module" }) };
+const COMMONJS_PACKAGE = { "/package.json": JSON.stringify({ name: "cjs" }) };
 const TS_CONFIG = { "/tsconfig.json": JSON.stringify({ compilerOptions: { target: "es2020", module: "esnext", outDir: "/dist", rootDir: "/src" } }) };
 const REQUIRE_SOURCE = `declare const require: (id: string) => unknown;\nexport const x = require("x");`;
 
@@ -197,6 +198,52 @@ describe("TsCompiler ESM check", () => {
         const actual = testObj.build("/src/a.ts", "javascript/esm").diagnostics.map(cur => cur.code);
 
         expect(actual).toEqual([91001]);
+    });
+
+    it("yields 91001 w/ esm module kind object and require in bundler target under commonjs package", () => {
+        const testObj = createEsmCompiler({ ...COMMONJS_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+
+        const actual = testObj.build("/src/a.ts", { moduleKind: "esm" }).diagnostics.map(cur => cur.code);
+
+        expect(actual).toEqual([91001]);
+    });
+
+    it("yields nothing w/o module kind and require in bundler target under commonjs package", () => {
+        const testObj = createEsmCompiler({ ...COMMONJS_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+
+        const actual = testObj.build("/src/a.ts").diagnostics;
+
+        expect(actual).toEqual([]);
+    });
+
+    it("reports no unknown webpack module type w/ esm module kind object and debug", () => {
+        const target = new NoReporter();
+        const spy = jest.spyOn(target, "reportDiagnostic");
+        const testObj = new TsCompiler(
+            {
+                config: { profiles: { target: { esm: { runtime: "bundler" } } } },
+                reporter: target,
+                cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] },
+                debug: true,
+            },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" },
+            undefined,
+            undefined,
+            createSystem({ ...TS_CONFIG, ...COMMONJS_PACKAGE, "/src/a.ts": "export const a = 1;" }, { virtual: true })
+        );
+
+        testObj.build("/src/a.ts", { moduleKind: "esm" });
+
+        const actual = spy.mock.calls.map(([cur]) => ts.flattenDiagnosticMessageText(cur.messageText, "\n"));
+        expect(actual).not.toContainEqual(expect.stringContaining("Unknown webpack module type"));
+    });
+
+    it("yields nothing w/ auto module kind object and require in bundler target under module package", () => {
+        const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+
+        const actual = testObj.build("/src/a.ts", { moduleKind: "auto" }).diagnostics;
+
+        expect(actual).toEqual([]);
     });
 
     it("yields nothing w/ javascript/auto module type and require in bundler target under module package", () => {
