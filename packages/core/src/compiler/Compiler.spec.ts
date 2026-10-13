@@ -1282,6 +1282,42 @@ describe("compile", () => {
             "
         `);
     });
+
+    it("reports a command-line option error once and writes the output w/ profile depending on another", () => {
+        const fileSystem = createSystem({ "src/a.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const { errors } = ts.parseCommandLine(["--target", "foo"]);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                config: { profiles: { a: {}, b: { depends: ["a"] } } },
+                profile: "b",
+                cliArgs: { fileNames: ["/src/a.ts"], options: {}, errors },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = target.message.split("Argument for '--target' option must be").length - 1;
+
+        expect(actual).toBe(1);
+        expect(fileSystem.readFile("/src/a.js")).toBeDefined();
+    });
+
+    it("returns no command-line option error in the diagnostics", () => {
+        const fileSystem = createSystem({ "src/a.ts": `export const a = 1;` }, { virtual: true });
+        const { errors } = ts.parseCommandLine(["--target", "foo"]);
+        const testObj = new CompilerTestClass(
+            { reporter: new ReporterMock(fileSystem), cliArgs: { fileNames: ["/src/a.ts"], options: {}, errors } },
+            undefined,
+            fileSystem
+        );
+
+        const actual = testObj.compile();
+
+        expect(actual.diagnostics.map(cur => cur.code)).not.toContain(6046);
+    });
 });
 
 describe("emitSourceFile", () => {
@@ -2200,6 +2236,23 @@ describe("watch", () => {
 
         fileSystem.writeFile("/src/a.ts", `export const a = 2;`);
         const actual = target.message.split("Option '--resolveJsonModule' cannot be specified").length - 1;
+
+        expect(actual).toBe(1);
+        testObj.closeAllWatchers();
+    });
+
+    it("reports a command-line option error once w/ initial watch build and rebuild", () => {
+        const fileSystem = createSystem({ "src/a.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const { errors } = ts.parseCommandLine(["--target", "foo"]);
+        const testObj = new CompilerTestClass(
+            { reporter: target, watch: true, cliArgs: { fileNames: ["/src/a.ts"], options: {}, errors } },
+            undefined,
+            fileSystem
+        ).watch();
+
+        fileSystem.writeFile("/src/a.ts", `export const a = 2;`);
+        const actual = target.message.split("Argument for '--target' option must be").length - 1;
 
         expect(actual).toBe(1);
         testObj.closeAllWatchers();

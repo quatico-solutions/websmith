@@ -203,11 +203,16 @@ export class ModuleCompiler extends Compiler {
 
     /**
      * Returns the configuration errors of the last option resolution, of the selected profile and its dependencies,
-     * then the TypeScript errors without a file that builds returned since, e.g. option errors such as TS5095.
+     * then the errors of the `tsconfig.json`, e.g. an unknown option or invalid JSON, then the TypeScript errors without
+     * a file that builds returned since, e.g. option errors such as TS5095.
      */
     public getConfigErrors(): ts.Diagnostic[] {
         const reporter = this.getReporter();
-        return [...(reporter instanceof ConfigErrorReporter ? reporter.errors : []), ...this.fileLessErrors.values()];
+        return [
+            ...(reporter instanceof ConfigErrorReporter ? reporter.errors : []),
+            ...this.getOptions().configErrors,
+            ...this.fileLessErrors.values(),
+        ];
     }
 
     /**
