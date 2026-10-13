@@ -76,14 +76,14 @@ describe("createWatchHost", () => {
     });
 
     describe("getDefaultLibFileName", () => {
-        it("returns lib.es2015.d.ts", () => {
+        it("returns the installed TypeScript's default lib", () => {
             const target = createSystem({}, { virtual: true });
             const config = parsedCommandLine("tsconfig.json", {}, target);
             const testObj = createWatchHost(config.fileNames, config.options, target, new NoReporter());
 
             const actual = testObj.getDefaultLibFileName(config.options);
 
-            expect(actual).toBe("/lib.d.ts");
+            expect(actual).toBe(`/${ts.getDefaultLibFileName(config.options)}`);
         });
     });
 

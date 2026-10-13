@@ -10,6 +10,9 @@ import { createSystem } from "../../environment";
 import { NoReporter } from "../NoReporter";
 import { resolveCompilationConfig, resolvePath } from "./resolve-compiler-config";
 
+const tscModuleError = (value: string): string =>
+    ts.flattenDiagnosticMessageText(ts.parseCommandLine(["--module", value]).errors[0].messageText, "\n");
+
 describe("resolveCompilationConfig", () => {
     it("should return undefined w/ empty path", () => {
         const target = createSystem({}, { virtual: true });
@@ -366,11 +369,7 @@ describe("resolveCompilationConfig", () => {
 
         expect(actual).toEqual({ target: ts.ScriptTarget.ES2022 });
         expect(targetFn.mock.calls).toEqual([
-            [
-                new ErrorMessage(
-                    `Invalid 'tsConfig.module' value 'NodeLatest' in profile 'client' of './target-config.json'. Argument for '--module' option must be: 'none', 'commonjs', 'amd', 'system', 'umd', 'es6', 'es2015', 'es2020', 'es2022', 'esnext', 'node16', 'nodenext', 'preserve'.`
-                ),
-            ],
+            [new ErrorMessage(`Invalid 'tsConfig.module' value 'NodeLatest' in profile 'client' of './target-config.json'. ${tscModuleError("NodeLatest")}`)],
         ]);
     });
 
