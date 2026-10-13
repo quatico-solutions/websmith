@@ -391,9 +391,8 @@ export class CompilationEnv {
                         ...resolveCompilerOptions(this.system, {}),
                         tsConfig: {
                             module: ts.ModuleKind.CommonJS,
-                            target: ts.ScriptTarget.ES5,
+                            target: ts.ScriptTarget.ES2020,
                             esModuleInterop: true,
-                            moduleResolution: ts.ModuleResolutionKind.Node10,
                             types: ["node"],
                             skipLibCheck: true,
                         },
