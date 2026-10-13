@@ -10,7 +10,7 @@ import ts from "typescript";
 import type { createFilter, ResolvedConfig, Rollup } from "vite";
 import { selectConfigErrors } from "./config-errors";
 import { DiagnosticReporter } from "./diagnostic-reporter";
-import { partitionDiagnostics, toRollupError, toRollupWarning } from "./diagnostics";
+import { getDiagnosticKey, partitionDiagnostics, toRollupError, toRollupWarning } from "./diagnostics";
 import { isCompiledId } from "./module-ids";
 import { resolveViteOptions, type ResolvedViteOptions, type WebsmithViteOptions } from "./options";
 import { pickOutput } from "./output";
@@ -19,7 +19,10 @@ import { pickOutput } from "./output";
 export type HookContext = Pick<Rollup.PluginContext, "error" | "warn" | "addWatchFile">;
 
 /** The part of the module compiler the hooks use, so a spec can stub it. */
-export type HookCompiler = Pick<ModuleCompiler, "build" | "getConfigErrors" | "resetCompilationCaches" | "keepCachesPerCompilation">;
+export type HookCompiler = Pick<
+    ModuleCompiler,
+    "build" | "getConfigErrors" | "getOptionsFiles" | "resetCompilationCaches" | "keepCachesPerCompilation"
+>;
 
 /** The hooks of the websmith plugin, called with Rollup's plugin context as `this`. */
 export type WebsmithHooks = {
@@ -47,8 +50,8 @@ export const createModuleCompiler = (loaderOptions: Partial<WebpackLoaderOptions
 
 /**
  * Creates the hooks of the websmith plugin for `options`: `configResolved` resolves them against Vite's root,
- * `buildStart` creates the compiler, `transformHandler` compiles one module, and `buildEnd` reports the
- * configuration errors of the build.
+ * `buildStart` creates the compiler and raises its configuration errors, `transformHandler` compiles one module,
+ * and `buildEnd` raises the file-less TypeScript errors the modules returned.
  */
 export const createWebsmithHooks = (
     options: WebsmithViteOptions,
@@ -59,6 +62,8 @@ export const createWebsmithHooks = (
     let compiler: HookCompiler | undefined;
     let command: "build" | "serve" = "build";
     const reporter = new DiagnosticReporter();
+    // The configuration errors buildStart raised, which buildEnd does not raise again
+    let raisedKeys = new Set<string>();
 
     const report = (context: HookContext, diagnostics: readonly ts.Diagnostic[]): ts.Diagnostic[] => {
         const { errors, warnings } = partitionDiagnostics(diagnostics, resolved?.loaderOptions.debug ?? false);
@@ -72,12 +77,26 @@ export const createWebsmithHooks = (
             filter = resolved.filter;
             command = config.command;
         },
+        // Configuration errors fail the build before any module is compiled. In serve mode nothing is raised, since an
+        // error here stops the dev server; the reporter buffer stays for the first transform, and reporting the
+        // configuration errors of the dev server belongs to the feature/vite-plugin-dev-server slice.
         buildStart() {
             if (compiler) {
                 compiler.resetCompilationCaches();
             } else {
                 compiler = createCompiler(resolved?.loaderOptions ?? {}, reporter);
                 compiler.keepCachesPerCompilation();
+            }
+            raisedKeys = new Set();
+            if (command !== "build") {
+                return;
+            }
+            const { files, missing } = compiler.getOptionsFiles();
+            [...files, ...missing].forEach(cur => this.addWatchFile(cur));
+            const errors = report(this, [...compiler.getConfigErrors(), ...reporter.take()]);
+            if (errors.length > 0) {
+                raisedKeys = new Set(errors.map(getDiagnosticKey));
+                this.error(toRollupError(errors));
             }
         },
         transformHandler(_code, id) {
@@ -91,12 +110,18 @@ export const createWebsmithHooks = (
             }
             return pickOutput(fragment);
         },
-        // The compiler keeps option errors and TypeScript errors without a file out of the module diagnostics. Without
-        // webpack's afterCompile, the build reports them once at its end: getConfigErrors holds those of all modules,
-        // where takeUnreportedConfigErrors would leave them on a carrier module a watch rebuild may not transform again.
-        // Reporting them in the dev server belongs to the feature/vite-plugin-dev-server slice: its buildEnd runs on close.
+        // The compiler keeps the TypeScript errors without a file out of the module diagnostics, since every module
+        // returns the same option errors. Without webpack's afterCompile, the build raises them once at its end: those
+        // of all modules, minus the configuration errors buildStart raised. Anything reported after the last transform
+        // is a warning here. A dev server calls buildEnd on close, where raising would abort the closing plugins.
         buildEnd(error) {
-            const errors = compiler ? selectConfigErrors(command, error, compiler.getConfigErrors()) : [];
+            if (!compiler) {
+                return;
+            }
+            const late = report(this, reporter.take());
+            const errors = selectConfigErrors(command, error, [...compiler.getConfigErrors(), ...late]).filter(
+                cur => !raisedKeys.has(getDiagnosticKey(cur))
+            );
             if (errors.length > 0) {
                 this.error(toRollupError(errors));
             }

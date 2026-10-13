@@ -36,6 +36,7 @@ const build = (diagnostics: ts.Diagnostic[], files: Record<string, string> = {})
 const createCompiler = (overrides: Partial<HookCompiler> = {}): HookCompiler => ({
     build: jest.fn(() => ({ fragment: fragment({ "main.js": "export const x = 1;" }), diagnostics: [], dependencies: { files: [], missing: [] } })),
     getConfigErrors: jest.fn(() => []),
+    getOptionsFiles: jest.fn(() => ({ files: [], missing: [] })),
     resetCompilationCaches: jest.fn(),
     keepCachesPerCompilation: jest.fn(),
     ...overrides,
@@ -206,6 +207,115 @@ describe("createWebsmithHooks", () => {
     });
 
     describe("buildStart", () => {
+        it("should raise configuration errors w/ build mode", () => {
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("Unknown profile 'missing'")]) });
+            const testObj = createHooks(compiler);
+
+            const actual = () => testObj.buildStart.call(createContext());
+
+            expect(actual).toThrow("Unknown profile 'missing'");
+        });
+
+        it("should raise one error with every configuration error w/ two errors", () => {
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("First"), diagnostic("Second")]) });
+            const testObj = createHooks(compiler);
+            const target = createContext();
+
+            expect(() => testObj.buildStart.call(target)).toThrow();
+            const actual = target.error;
+
+            expect(actual).toHaveBeenCalledWith({ message: "First\nSecond" });
+        });
+
+        it("should not raise configuration errors w/ serve mode", () => {
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("Unknown profile 'missing'")]) });
+            const testObj = createHooks(compiler, "serve");
+
+            const actual = () => testObj.buildStart.call(createContext());
+
+            expect(actual).not.toThrow();
+        });
+
+        it("should raise activation error reported through reporter w/ build mode", () => {
+            const testObj = createWebsmithHooks(
+                {},
+                {
+                    createFilter: () => () => true,
+                    createCompiler: (_options, reporter) => {
+                        reporter.reportDiagnostic(new ErrorMessage('Error activating addon "thrower": Error: BOOM_ACTIVATE'));
+                        return createCompiler();
+                    },
+                }
+            );
+            testObj.configResolved({ root: ROOT, command: "build" });
+
+            const actual = () => testObj.buildStart.call(createContext());
+
+            expect(actual).toThrow("BOOM_ACTIVATE");
+        });
+
+        it("should leave activation error to the handler w/ serve mode", () => {
+            const testObj = createWebsmithHooks(
+                {},
+                {
+                    createFilter: () => () => true,
+                    createCompiler: (_options, reporter) => {
+                        reporter.reportDiagnostic(new ErrorMessage('Error activating addon "thrower": Error: BOOM_ACTIVATE'));
+                        return createCompiler();
+                    },
+                }
+            );
+            testObj.configResolved({ root: ROOT, command: "serve" });
+            testObj.buildStart.call(createContext());
+
+            const actual = () => testObj.transformHandler.call(createContext(), "whatever", MAIN);
+
+            expect(actual).toThrow("BOOM_ACTIVATE");
+        });
+
+        it("should warn once w/ missing addons warning reported twice", () => {
+            const testObj = createWebsmithHooks(
+                {},
+                {
+                    createFilter: () => () => true,
+                    createCompiler: (_options, reporter) => {
+                        reporter.reportDiagnostic(new WarnMessage('Missing addons for profile "app": "nope"'));
+                        reporter.reportDiagnostic(new WarnMessage('Missing addons for profile "app": "nope"'));
+                        return createCompiler();
+                    },
+                }
+            );
+            testObj.configResolved({ root: ROOT, command: "build" });
+            const target = createContext();
+
+            testObj.buildStart.call(target);
+            const actual = target.warn;
+
+            expect(actual).toHaveBeenCalledTimes(1);
+        });
+
+        it("should add watch files for options files w/ build mode", () => {
+            const compiler = createCompiler({ getOptionsFiles: jest.fn(() => ({ files: [`${ROOT}/websmith.config.json`], missing: [`${ROOT}/tsconfig.json`] })) });
+            const testObj = createHooks(compiler);
+            const target = createContext();
+
+            testObj.buildStart.call(target);
+            const actual = (target.addWatchFile as jest.Mock).mock.calls.flat();
+
+            expect(actual).toEqual([`${ROOT}/websmith.config.json`, `${ROOT}/tsconfig.json`]);
+        });
+
+        it("should not add watch files w/ serve mode", () => {
+            const compiler = createCompiler({ getOptionsFiles: jest.fn(() => ({ files: [`${ROOT}/websmith.config.json`], missing: [] })) });
+            const testObj = createHooks(compiler, "serve");
+            const target = createContext();
+
+            testObj.buildStart.call(target);
+            const actual = target.addWatchFile;
+
+            expect(actual).not.toHaveBeenCalled();
+        });
+
         it("should create compiler once w/ two builds", () => {
             const target = jest.fn(() => createCompiler());
             const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: target });
@@ -252,10 +362,48 @@ describe("createWebsmithHooks", () => {
     });
 
     describe("buildEnd", () => {
+        it("should not raise errors buildStart raised w/ build mode", () => {
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("Unknown profile 'missing'")]) });
+            const testObj = createHooks(compiler);
+            expect(() => testObj.buildStart.call(createContext())).toThrow();
+
+            const actual = () => testObj.buildEnd.call(createContext(), undefined);
+
+            expect(actual).not.toThrow();
+        });
+
+        it("should raise errors collected after buildStart w/ build mode", () => {
+            const errors = [diagnostic("Unknown profile 'missing'")];
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => errors) });
+            const testObj = createHooks(compiler);
+            expect(() => testObj.buildStart.call(createContext())).toThrow();
+            errors.push(diagnostic("TS5053"));
+
+            const actual = () => testObj.buildEnd.call(createContext(), undefined);
+
+            expect(actual).toThrow(/^TS5053$/);
+        });
+
+        it("should warn w/ warning reported after the last transform", () => {
+            let reporter: Reporter | undefined;
+            const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), createCompiler()) });
+            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.buildStart.call(createContext());
+            reporter?.reportDiagnostic(new WarnMessage("LATE_WARNING"));
+            const target = createContext();
+
+            testObj.buildEnd.call(target, undefined);
+            const actual = target.warn;
+
+            expect(actual).toHaveBeenCalledWith("LATE_WARNING");
+        });
+
         it("should raise config errors w/ build mode", () => {
-            const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("TS5053")]) });
+            const errors: ts.Diagnostic[] = [];
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => errors) });
             const testObj = createHooks(compiler);
             testObj.buildStart.call(createContext());
+            errors.push(diagnostic("TS5053"));
 
             const actual = () => testObj.buildEnd.call(createContext(), undefined);
 
@@ -273,9 +421,11 @@ describe("createWebsmithHooks", () => {
         });
 
         it("should not raise config errors w/ earlier build error", () => {
-            const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("TS5053")]) });
+            const errors: ts.Diagnostic[] = [];
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => errors) });
             const testObj = createHooks(compiler);
             testObj.buildStart.call(createContext());
+            errors.push(diagnostic("TS5053"));
 
             const actual = () => testObj.buildEnd.call(createContext(), new Error("whatever"));
 
