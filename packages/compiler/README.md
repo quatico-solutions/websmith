@@ -85,6 +85,8 @@ See all available parameters with the `websmith --help` command.
 
 Unlike `tsc`, websmith accepts `--project` together with file names: `websmith -p tsconfig.json src/a.ts` compiles only `src/a.ts` with the options of the tsconfig file, where `tsc` refuses the combination with error TS5042.
 
+websmith exits with code 1 for every failure, including option and configuration errors after which it still writes the output, such as an unknown option in `tsconfig.json` or `--target foo`. `tsc` exits with code 2 when it reports errors but still emits, and with code 1 without output for invalid command-line values. Scripts that test for `tsc`'s exit code 2 must test for a non-zero exit code instead.
+
 ## <a name="compilation-profiles"></a>Compilation profiles
 
 A compilation profile is a set of options that specify the environment for a compilation output. You can specify the **addons to apply** for this profile, custom TypeScript **compiler options** for this profile, and **configuration properties** passed to any addon used in the profile.
