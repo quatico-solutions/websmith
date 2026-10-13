@@ -95,22 +95,26 @@ describe("Compiler#compile w/ fake tsc binary", () => {
     it("should spawn tsc version 6 w/ ignoreConfig whatever the installed typescript", async () => {
         const tscPath = writeFakeTsc("6.0.3");
         jest.spyOn(findTscModule, "findTsc").mockResolvedValue(tscPath);
-        const target = jest.spyOn(crossSpawn, "spawn").mockImplementation(() => createFakeProcess() as unknown as ReturnType<typeof crossSpawn.spawn>);
+        const target = jest
+            .spyOn(crossSpawn, "spawn")
+            .mockImplementation(() => createFakeProcess() as unknown as ReturnType<typeof crossSpawn.spawn>);
         const testObj = new Compiler({ noEmit: true });
 
         await testObj.compile(["src/index.ts"]);
 
-        expect(target).toHaveBeenCalledWith(tscPath, ["--noEmit", "--ignoreConfig", "src/index.ts"], expect.anything());
+        expect(target).toHaveBeenCalledWith(tscPath, ["--noEmit", "--pretty", "false", "--ignoreConfig", "src/index.ts"], expect.anything());
     });
 
     it("should spawn tsc version 5 w/o ignoreConfig whatever the installed typescript", async () => {
         const tscPath = writeFakeTsc("5.7.3");
         jest.spyOn(findTscModule, "findTsc").mockResolvedValue(tscPath);
-        const target = jest.spyOn(crossSpawn, "spawn").mockImplementation(() => createFakeProcess() as unknown as ReturnType<typeof crossSpawn.spawn>);
+        const target = jest
+            .spyOn(crossSpawn, "spawn")
+            .mockImplementation(() => createFakeProcess() as unknown as ReturnType<typeof crossSpawn.spawn>);
         const testObj = new Compiler({ noEmit: true });
 
         await testObj.compile(["src/index.ts"]);
 
-        expect(target).toHaveBeenCalledWith(tscPath, ["--noEmit", "src/index.ts"], expect.anything());
+        expect(target).toHaveBeenCalledWith(tscPath, ["--noEmit", "--pretty", "false", "src/index.ts"], expect.anything());
     });
 });

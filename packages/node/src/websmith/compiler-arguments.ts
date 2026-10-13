@@ -12,6 +12,9 @@ import { parseNumberValue } from "../compiler-options";
 const needsIgnoreConfig = (tsConfig: ts.CompilerOptions, files: string[], tscVersion?: string): boolean =>
     files.length > 0 && tsConfig.ignoreConfig !== true && Number.parseInt(tscVersion ?? "", 10) >= 6;
 
+// tsc 6 colors its output under FORCE_COLOR even without a TTY, the reducer drops pretty: false
+const prettyArguments = (tsConfig: ts.CompilerOptions): string[] => (tsConfig.pretty === true ? [] : ["--pretty", "false"]);
+
 export const parseCliArguments = (tsConfig: ts.CompilerOptions, files: string[], tscVersion?: string) =>
     Object.entries(tsConfig)
         .reduce((acc: string[], [key, value]) => {
@@ -32,4 +35,4 @@ export const parseCliArguments = (tsConfig: ts.CompilerOptions, files: string[],
             }
             return acc;
         }, [])
-        .concat(needsIgnoreConfig(tsConfig, files, tscVersion) ? ["--ignoreConfig"] : [], files);
+        .concat(prettyArguments(tsConfig), needsIgnoreConfig(tsConfig, files, tscVersion) ? ["--ignoreConfig"] : [], files);
