@@ -207,7 +207,7 @@ project that leaves it unset with TS5107, on the Program and the `transpileOnly`
 
 ### Profile lib names
 
-- `bug/profile-lib-names` — `convertEnumOptions` (as moved by #134) converts the `lib` array entry by entry: short names to file names, `lib.*.d.ts` entries kept as written, unknown entries reported as 6046 and dropped while valid ones stay; other arrays untouched; unit tests for valid, mixed-case, file-name, mixed valid/unknown, already-converted (idempotent) and `rootDirs`-unchanged inputs; e2e: profile `"lib": ["ES2022"]` gives the same declarations as `tsc --lib es2022`, profile `"lib": ["lib.es2022.d.ts"]` still does, profile `"lib": ["ES2022", "bogus"]` fails with the 6046 message; Changelog Fixed entry in `Release-Notes.md` <!-- builds: lib conversion in convertEnumOptions --> <!-- waits: bug/loader-tsconfig-enum-options -->
+- `bug/profile-lib-names` — `convertEnumOptions` (as moved by #134) converts the `lib` array entry by entry: short names to file names, `lib.*.d.ts` entries kept as written, unknown entries reported as 6046 and dropped while valid ones stay; other arrays untouched; unit tests for valid, mixed-case, file-name, mixed valid/unknown, already-converted (idempotent) and `rootDirs`-unchanged inputs; e2e: profile `"lib": ["ES2022"]` gives the same declarations as `tsc --lib es2022`, profile `"lib": ["lib.es2022.d.ts"]` still does, profile `"lib": ["ES2022", "bogus"]` fails with the 6046 message; Changelog Fixed entry in `Release-Notes.md` → #180 <!-- builds: lib conversion in convertEnumOptions --> <!-- waits: bug/loader-tsconfig-enum-options -->
 
 ## Notes
 
