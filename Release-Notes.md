@@ -131,6 +131,10 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 - The webpack loader reports a TypeScript option error, e.g. TS5095 or TS5053, once per compilation instead of once
   per module, also when several loader rules share the options. Under `thread-loader`, configuration errors and option
   errors appear once per worker instead of once per module.
+- `lib` names in a profile `tsConfig` of `websmith.config.json` (e.g. `"lib": ["ES2022"]`) are converted the way
+  `tsconfig.json` converts them. Before, they were passed as written and declarations degraded to `any`. File names
+  such as `"lib.es2022.d.ts"` keep working. An unknown name is reported as an error and fails the build; the valid
+  entries of the list are kept, as `tsc` does. Loader-option `tsConfig` and inline profiles too.
 
 ### Removed
 
