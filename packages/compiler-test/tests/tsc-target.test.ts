@@ -58,13 +58,7 @@ const writeTsConfig = (): string => {
 };
 
 const compileTscEsNext = (): Record<string, string> => {
-    execFileSync(process.execPath, [
-        require.resolve("typescript/bin/tsc"),
-        "--project",
-        path.join(projectDir, "tsconfig.tsc.json"),
-        "--target",
-        "esnext",
-    ]);
+    execFileSync(process.execPath, [require.resolve("typescript/bin/tsc"), "--project", path.join(projectDir, "tsconfig.tsc.json"), "--target", "esnext"]);
     return readOutput(path.join(projectDir, "tsc"));
 };
 
