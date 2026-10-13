@@ -1191,12 +1191,17 @@ export class Compiler {
         // Fast path: Use transpileModule when flag is set (no addons need type info, no declarations)
         // OR when explicitly in transpileOnly mode
         if (this.transpileOnly || shouldUseFastPath) {
-            if (fileName.endsWith(".d.ts")) {
-                return undefined;
+            // .d.ts, .d.mts, .d.cts and .d.<ext>.ts as ts.isDeclarationFileName has it, which is not public in TypeScript 5
+            if (/\.d\.([cm]?ts|[^/\\]*\.ts)$/.test(fileName)) {
+                // Declaration files emit nothing, but tsc still reports their syntax errors
+                return { outputFiles: [], diagnostics: this.getSyntacticDiagnostics(compilationFragment), emitSkipped: true };
             } else {
                 const isSourceFile = (name: string) => name.match(/\.([cm]?ts|tsx)$/i);
                 if (!isSourceFile(fileName)) {
-                    return this.transpileJson(compilationFragment);
+                    const output = this.transpileJson(compilationFragment);
+                    return /\.[cm]?jsx?$/i.test(fileName) && ctx.getCompilerOptions().allowJs
+                        ? this.addJavaScriptSyntaxDiagnostics(output, compilationFragment)
+                        : output;
                 }
                 return this.transpileSourceCode(compilationFragment);
             }
@@ -1500,6 +1505,61 @@ export class Compiler {
         const { diagnostics } = program.emit(undefined, undefined, undefined, false, transformers);
 
         return { outputText, sourceMapText, diagnostics: [...program.getSyntacticDiagnostics(), ...diagnostics] };
+    }
+
+    /**
+     * Returns the syntax errors of a declaration or JavaScript file that the fast path copies or drops without parsing.
+     * ts.transpileModule cannot take a declaration file, so those get a single-file Program. Diagnostics without a file,
+     * the option errors, are left to the TypeScript files that report them already.
+     */
+    private getSyntacticDiagnostics({ ctx, fileName, content }: CompilationFragment): ts.Diagnostic[] {
+        const options = ctx.getCompilerOptions();
+        let diagnostics: readonly ts.Diagnostic[];
+        if (!/\.[cm]?jsx?$/i.test(fileName)) {
+            const host: ts.CompilerHost = {
+                getSourceFile: (name, languageVersionOrOptions) =>
+                    name === fileName ? ts.createSourceFile(name, content, languageVersionOrOptions) : undefined,
+                writeFile: () => undefined,
+                getDefaultLibFileName: () => "lib.d.ts",
+                useCaseSensitiveFileNames: () => false,
+                getCanonicalFileName: name => name,
+                getCurrentDirectory: () => "",
+                getNewLine: () => "\n",
+                fileExists: name => name === fileName,
+                readFile: () => "",
+                directoryExists: () => true,
+                getDirectories: () => [],
+            };
+            const program = ts.createProgram(
+                [fileName],
+                { ...options, noLib: true, noResolve: true, noCheck: true, allowNonTsExtensions: true },
+                host
+            );
+            diagnostics = program.getSyntacticDiagnostics();
+        } else {
+            // Without transformers: the output is discarded, the file is copied verbatim
+            diagnostics = ts.transpileModule(content, { compilerOptions: options, fileName, reportDiagnostics: true }).diagnostics ?? [];
+        }
+        return diagnostics.filter(cur => cur.file !== undefined && cur.code !== TS_ERROR_CODE_INVALID_OPTION_VALUE);
+    }
+
+    /** Adds the syntax errors to a copied JavaScript file and skips its emit by the rule transpileSourceCode applies. */
+    private addJavaScriptSyntaxDiagnostics(
+        output: (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined,
+        compilationFragment: CompilationFragment
+    ): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
+        if (!output) {
+            return output;
+        }
+        const diagnostics = [...(output.diagnostics ?? []), ...this.getSyntacticDiagnostics(compilationFragment)];
+        return {
+            ...output,
+            diagnostics,
+            emitSkipped:
+                output.outputFiles.length === 0 ||
+                (!!compilationFragment.ctx.getCompilerOptions().noEmitOnError &&
+                    diagnostics.some(cur => cur.category === ts.DiagnosticCategory.Error)),
+        };
     }
 
     /** Returns the module format TypeScript gives a file from its extension and the nearest package.json. */

@@ -198,7 +198,7 @@ plan does not change `reportedConfigErrors` or the `depends` closure, which #134
 
 ### Fast path for .d.ts and JavaScript
 
-- `bug/fast-path-dts-js-syntax-errors` — item 7: `.d.ts` sources and, under `allowJs`, `.js`/`.jsx`/`.mjs`/`.cjs` sources are syntax-checked on the fast path with `transpileModule` and `reportDiagnostics`; output unchanged, `.json` untouched; build time of a many-`.d.ts` fixture measured before and after in the PR. Unit: `Compiler.spec.ts`; e2e in `bin.test.ts`: a syntax error in a `.d.ts` source exits 1 with TS1110 and in a `.js` source with `allowJs` exits 1 with TS1109/TS1134, without asserting the `.js` output path (the `allowJs` layout differs from `tsc`, see Notes); `Release-Notes.md` entry <!-- builds: syntactic diagnostics for .d.ts and JavaScript sources on the transpileModule fast path -->
+- `bug/fast-path-dts-js-syntax-errors` — item 7: `.d.ts` sources and, under `allowJs`, `.js`/`.jsx`/`.mjs`/`.cjs` sources are syntax-checked on the fast path with `transpileModule` and `reportDiagnostics`; output unchanged, `.json` untouched; build time of a many-`.d.ts` fixture measured before and after in the PR. Unit: `Compiler.spec.ts`; e2e in `bin.test.ts`: a syntax error in a `.d.ts` source exits 1 with TS1110 and in a `.js` source with `allowJs` exits 1 with TS1109/TS1134, without asserting the `.js` output path (the `allowJs` layout differs from `tsc`, see Notes); `Release-Notes.md` entry <!-- builds: syntactic diagnostics for .d.ts and JavaScript sources on the transpileModule fast path --> → #176
 
 ### Watch
 

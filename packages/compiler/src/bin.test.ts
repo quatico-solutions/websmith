@@ -445,6 +445,79 @@ describe("bin.ts e2e tests", () => {
         expect(actual2).toContain(`${path.join(testDirs.SOURCE_DIR, "test.ts")} (1,18): Expression expected.`);
     }, 60000);
 
+    it.each([{ skipLibCheck: false }, { skipLibCheck: true }])(
+        "should exit with status 1 and report the syntax error once w/ syntax error in d.ts, skipLibCheck $skipLibCheck on fast path",
+        ({ skipLibCheck }) => {
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, skipLibCheck, target: "esnext", types: [] });
+            createSourceFile(`export const a = 1;`, "test.ts");
+            createSourceFile(`export declare const c: ;`, "c.d.ts");
+
+            const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+            const actual1 = target.status;
+            const actual2 = target.output.split(`${path.join(testDirs.SOURCE_DIR, "c.d.ts")} (1,25): Type expected.`).length - 1;
+
+            expect(actual1).toBe(1);
+            expect(actual2).toBe(1);
+            expect(getOutput("test.js")).toBeDefined();
+        },
+        60000
+    );
+
+    it("should exit with status 0 w/ valid d.mts and module esnext on fast path", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, module: "esnext", target: "esnext", types: [] });
+        createSourceFile(`export const a = 1;`, "test.ts");
+        createSourceFile(`export declare const m: number;`, "m.d.mts");
+
+        const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+        const actual1 = target.status;
+        const actual2 = target.output;
+
+        expect(actual1).toBe(0);
+        expect(actual2).not.toContain("Transpilation failed");
+    }, 60000);
+
+    it.each([
+        { fileName: "b.js", source: `export const b = ;`, expected: "(1,18): Expression expected." },
+        { fileName: "c.cjs", source: `const 1 = 2;`, expected: "(1,7): Variable declaration expected." },
+    ])(
+        "should exit with status 1, report the syntax error once and copy the file w/ syntax error in $fileName and allowJs on fast path",
+        ({ fileName, source, expected }) => {
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, allowJs: true, target: "esnext", types: [] });
+            createSourceFile(`export const a = 1;`, "test.ts");
+            createSourceFile(source, fileName);
+
+            const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
+            const actual1 = target.status;
+            const actual2 = target.output.split(`${path.join(testDirs.SOURCE_DIR, fileName)} ${expected}`).length - 1;
+
+            expect(actual1).toBe(1);
+            expect(actual2).toBe(1);
+            expect(findOutputs(fileName)).toHaveLength(1);
+        },
+        60000
+    );
+
+    it("should exit with status 1 and not write the file w/ syntax error in js, allowJs and noEmitOnError on fast path", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, allowJs: true, noEmitOnError: true, target: "esnext", types: [] });
+        createSourceFile(`export const a = 1;`, "test.ts");
+        createSourceFile(`export const b = ;`, "b.js");
+
+        const actual = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`).status;
+
+        expect(actual).toBe(1);
+        expect(findOutputs("b.js")).toEqual([]);
+    }, 60000);
+
+    it("should exit with status 0 w/ syntax error in js w/o allowJs on fast path", () => {
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "esnext", types: [] });
+        createSourceFile(`export const a = 1;`, "test.ts");
+        createSourceFile(`export const b = ;`, "b.js");
+
+        const actual = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`).status;
+
+        expect(actual).toBe(0);
+    }, 60000);
+
     it("should exit with status 1 and report the syntax error once w/ syntax error and declaration", () => {
         createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, declaration: true, target: "esnext", types: [] });
         createSourceFile(`export const a = ;`, "test.ts");
@@ -1642,6 +1715,9 @@ exports.activate = ctx => ctx.registerTransformer({
 
     const getOutput = (filePath: string): string | undefined =>
         fs.existsSync(path.join(testDirs.OUTPUT_DIR, filePath)) ? fs.readFileSync(path.join(testDirs.OUTPUT_DIR, filePath), "utf-8") : undefined;
+
+    const findOutputs = (baseName: string): string[] =>
+        fs.readdirSync(testDirs.OUTPUT_DIR, { recursive: true, encoding: "utf-8" }).filter(cur => path.basename(cur) === baseName);
 
     const createPackageJson = (packageJson: Record<string, unknown>) => {
         fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "package.json"), JSON.stringify(packageJson), { encoding: "utf-8" });

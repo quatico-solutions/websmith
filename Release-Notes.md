@@ -96,6 +96,12 @@ Builds that passed before can now fail: the `websmith` command reports errors it
     longer drops the file's `.js`.
   - With `noEmitOnError`, a file with an error is no longer written without an addon that needs type information or
     with `transpileOnly`.
+- Syntax errors in `.d.ts` files and, with `allowJs`, in JavaScript sources (`.js`, `.jsx`, `.mjs`, `.cjs`) are
+  reported and fail the build when no addon needs type information or with `transpileOnly`. Before, such a build
+  exited 0.
+  - Output does not change. JavaScript sources are still copied; under `noEmitOnError`, one with a syntax error is
+    not written.
+  - A valid `.d.mts` or `.d.cts` source no longer fails such a build with "Transpilation failed".
 
 ### Fixed
 

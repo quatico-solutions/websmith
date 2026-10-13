@@ -1113,6 +1113,27 @@ describe("compile", () => {
         expect(target.message).toBe("Error: /src/target.ts (1,18): Expression expected.\n");
     });
 
+    it("reports d.ts and js syntax errors once w/ allowJs and fast path", () => {
+        const fileSystem = createSystem(
+            { "src/a.ts": `export const a = 1;`, "src/c.d.ts": `export declare const c: ;`, "src/b.js": `export const b = ;` },
+            { virtual: true }
+        );
+        const target = new ReporterMock(fileSystem);
+
+        new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, outDir: "/build" },
+                cliArgs: { fileNames: ["src/a.ts", "src/c.d.ts", "src/b.js"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).compile();
+
+        expect(target.message.split("\n").filter(cur => cur === "Error: /src/c.d.ts (1,25): Type expected.")).toHaveLength(1);
+        expect(target.message.split("\n").filter(cur => cur === "Error: /src/b.js (1,18): Expression expected.")).toHaveLength(1);
+    });
+
     it.each([
         {
             name: "syntax error",
@@ -1720,6 +1741,7 @@ describe("emitSourceFile", () => {
                 sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
+                allowJs: true,
             },
             cliArgs: { fileNames: ["src/config.json"], options: {}, errors: [] },
         };
@@ -1729,6 +1751,7 @@ describe("emitSourceFile", () => {
             .emitSourceFile("/src/config.json", undefined, false);
 
         expect(getText("config.json", actual)).toMatchInlineSnapshot(`"{"name":"test"}"`);
+        expect(actual.diagnostics).toEqual([]);
     });
 
     it("yields transpiled d.ts w/ transpileOnly", () => {
@@ -1756,6 +1779,7 @@ describe("emitSourceFile", () => {
             .emitSourceFile("types/style.d.ts", undefined, false);
 
         expect(actual.files).toEqual([]);
+        expect(actual.diagnostics).toEqual([]);
     });
 
     it("yields transpiled d.ts w/o transpileOnly", () => {
@@ -1782,6 +1806,206 @@ describe("emitSourceFile", () => {
             .emitSourceFile("types/style.d.ts", undefined, false);
 
         expect(actual.files).toEqual([]);
+        expect(actual.diagnostics).toEqual([]);
+    });
+
+    it.each([
+        { name: "fast path", transpileOnly: false },
+        { name: "transpileOnly", transpileOnly: true },
+    ])("yields syntax error with file and position and no output w/ d.ts on $name", ({ transpileOnly }) => {
+        const fileSystem = createSystem({ "src/c.d.ts": `export declare const c: ;` }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, outDir: "/build" },
+            cliArgs: { fileNames: ["/src/c.d.ts"], options: {}, errors: [] },
+            config: { transpileOnly },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/c.d.ts", undefined, false);
+
+        expect(actual.diagnostics).toEqual([
+            expect.objectContaining({
+                code: 1110,
+                category: ts.DiagnosticCategory.Error,
+                start: 24,
+                file: expect.objectContaining({ fileName: "/src/c.d.ts" }),
+            }),
+        ]);
+        expect(actual.files).toEqual([]);
+    });
+
+    it.each([{ fileName: "/src/m.d.mts" }, { fileName: "/src/m.d.cts" }])(
+        "yields syntax error with file and position w/ $fileName and module ESNext on fast path",
+        ({ fileName }) => {
+            const fileSystem = createSystem({ [fileName]: `export declare const m: ;` }, { virtual: true });
+            const target = {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, outDir: "/build" },
+                cliArgs: { fileNames: [fileName], options: {}, errors: [] },
+            };
+
+            const actual = new CompilerTestClass(target, undefined, fileSystem)
+                .createProfileContextsIfNecessary()
+                .emitSourceFile(fileName, undefined, false);
+
+            expect(actual.diagnostics).toEqual([
+                expect.objectContaining({
+                    code: 1110,
+                    category: ts.DiagnosticCategory.Error,
+                    start: 24,
+                    file: expect.objectContaining({ fileName }),
+                }),
+            ]);
+            expect(actual.files).toEqual([]);
+        }
+    );
+
+    it.each([
+        { fileName: "/src/g.d.ts", source: `declare const g: number;` },
+        { fileName: "/src/m.d.mts", source: `export declare const m: number;` },
+        { fileName: "/src/m.d.cts", source: `export declare const m: number;` },
+    ])("yields no diagnostics w/ valid $fileName and module ESNext on fast path", ({ fileName, source }) => {
+        const fileSystem = createSystem({ [fileName]: source }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, outDir: "/build" },
+            cliArgs: { fileNames: [fileName], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile(fileName, undefined, false);
+
+        expect(actual.diagnostics).toEqual([]);
+        expect(actual.files).toEqual([]);
+        expect(target.reporter.message).toBe("");
+    });
+
+    it.each(
+        [
+            { fileName: "/src/b.js", source: `export const b = ;`, code: 1109, start: 17 },
+            { fileName: "/src/b.mjs", source: `export const b = ;`, code: 1109, start: 17 },
+            { fileName: "/src/c.cjs", source: `const 1 = 2;`, code: 1134, start: 6 },
+            { fileName: "/src/ann.js", source: `export const x: number = 1;`, code: 8010, start: 16 },
+        ].flatMap(cur => [
+            { ...cur, name: "ESNext", module: ts.ModuleKind.ESNext },
+            { ...cur, name: "NodeNext", module: ts.ModuleKind.NodeNext },
+        ])
+    )(
+        "yields syntax error $code and verbatim copy w/ $fileName, allowJs and module $name on fast path",
+        ({ fileName, source, code, start, module }) => {
+            const fileSystem = createSystem({ [fileName]: source }, { virtual: true });
+            const target = {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext, module, allowJs: true, outDir: "/build" },
+                cliArgs: { fileNames: [fileName], options: {}, errors: [] },
+            };
+
+            const actual = new CompilerTestClass(target, undefined, fileSystem)
+                .createProfileContextsIfNecessary()
+                .emitSourceFile(fileName, undefined, false);
+
+            expect(actual.diagnostics).toEqual([
+                expect.objectContaining({
+                    code,
+                    category: ts.DiagnosticCategory.Error,
+                    start,
+                    file: expect.objectContaining({ fileName }),
+                }),
+            ]);
+            expect(actual.files.map(cur => cur.text)).toEqual([source]);
+        }
+    );
+
+    it("yields JSX syntax errors and verbatim copy w/ jsx file, allowJs and jsx ReactJSX on fast path", () => {
+        const source = `export const d = <div>;\n`;
+        const fileSystem = createSystem({ "src/d.jsx": source }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX, allowJs: true, outDir: "/build" },
+            cliArgs: { fileNames: ["/src/d.jsx"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/d.jsx", undefined, false);
+
+        expect(actual.diagnostics).toEqual([
+            expect.objectContaining({ code: 17008, start: 18, file: expect.objectContaining({ fileName: "/src/d.jsx" }) }),
+            expect.objectContaining({ code: 1005, start: 24, file: expect.objectContaining({ fileName: "/src/d.jsx" }) }),
+        ]);
+        expect(actual.files.map(cur => cur.text)).toEqual([source]);
+    });
+
+    it("yields only syntax error w/o option error w/ js file, allowJs and module CommonJS with moduleResolution Bundler", () => {
+        const fileSystem = createSystem({ "src/b.js": `export const b = ;` }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: {
+                target: ts.ScriptTarget.ESNext,
+                module: ts.ModuleKind.CommonJS,
+                moduleResolution: ts.ModuleResolutionKind.Bundler,
+                allowJs: true,
+                outDir: "/build",
+            },
+            cliArgs: { fileNames: ["/src/b.js"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/b.js", undefined, false);
+
+        expect(actual.diagnostics?.map(cur => cur.code)).toEqual([1109]);
+    });
+
+    it("yields no diagnostics and verbatim copy w/ js syntax error w/o allowJs on fast path", () => {
+        const fileSystem = createSystem({ "src/b.js": `export const b = ;` }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, outDir: "/build" },
+            cliArgs: { fileNames: ["/src/b.js"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/b.js", undefined, false);
+
+        expect(actual.diagnostics).toEqual([]);
+        expect(actual.files.map(cur => cur.text)).toEqual([`export const b = ;`]);
+    });
+
+    it("yields syntax error and no output w/ js syntax error, allowJs and noEmitOnError on fast path", () => {
+        const fileSystem = createSystem({ "src/b.js": `export const b = ;` }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, noEmitOnError: true, outDir: "/build" },
+            cliArgs: { fileNames: ["/src/b.js"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/b.js", undefined, false);
+
+        expect(actual.diagnostics).toEqual([expect.objectContaining({ code: 1109, start: 17 })]);
+        expect(actual.files).toEqual([]);
+    });
+
+    it("yields verbatim copy w/ valid js file, allowJs and noEmitOnError on fast path", () => {
+        const fileSystem = createSystem({ "src/b.js": `export const b = 1;` }, { virtual: true });
+        const target = {
+            reporter: new ReporterMock(fileSystem),
+            tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, noEmitOnError: true, outDir: "/build" },
+            cliArgs: { fileNames: ["/src/b.js"], options: {}, errors: [] },
+        };
+
+        const actual = new CompilerTestClass(target, undefined, fileSystem)
+            .createProfileContextsIfNecessary()
+            .emitSourceFile("/src/b.js", undefined, false);
+
+        expect(actual.diagnostics).toEqual([]);
+        expect(actual.files.map(cur => cur.text)).toEqual([`export const b = 1;`]);
     });
 });
 
