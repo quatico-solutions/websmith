@@ -89,6 +89,13 @@ const TRANSPILE_REMOVED_OPTIONS = [
  */
 const ESM_LABELLED_TS_CODES: ReadonlySet<number> = new Set([2835, 2834, 1543, 1470, 1309, 1203]);
 
+/**
+ * TS5011, "Cannot infer rootDir": TypeScript 6 reports it per Program with that Program's source directory, so the
+ * per-file Programs and the Program of a watch build would each print their own. `bug/typescript-6-root-dir-once`
+ * reports it once per compilation.
+ */
+const ROOT_DIR_INFERENCE_ERROR = 5011;
+
 export class Compiler {
     private system: ts.System;
     private options!: ResolvedCompilerOptions;
@@ -673,11 +680,9 @@ export class Compiler {
         const label = this.createEsmLabel(profile);
         // Skip pre-emit diagnostics in transpileOnly mode or when using fast transpileModule path
         // to avoid validation errors with numeric enum values that TypeScript's internal validation rejects.
-        // Global diagnostics of the Program are filtered out.
+        // Diagnostics without a file, such as option errors (TS5095) or a missing type definition (TS2688), are reported.
         const preEmitDiagnostics =
-            !this.transpileOnly && program
-                ? ts.getPreEmitDiagnostics(program).filter(cur => program.getProjectReferences?.()?.length || cur.file)
-                : [];
+            !this.transpileOnly && program ? ts.getPreEmitDiagnostics(program).filter(cur => cur.code !== ROOT_DIR_INFERENCE_ERROR) : [];
         // The Program and the fragments of the result find the same errors in unprocessed files, and every fragment
         // of the fast path returns the same option errors. websmith's own diagnostics without a file (code 0) stay per file.
         const reported = new Set<string>();
@@ -845,7 +850,16 @@ export class Compiler {
     /** Emits one source file of a watch build and reports its diagnostics, which no report() call sees in watch mode. */
     private emitWatchedFile(...args: Parameters<Compiler["emitSourceFile"]>): CompileFragment | undefined {
         const fragment: CompileFragment | undefined = this.emitSourceFile(...args);
-        fragment?.diagnostics?.forEach(cur => {
+        const profile = args[1];
+        // The language service's fragment carries syntactic diagnostics only; its Program's option errors, such as a
+        // missing type definition file (TS2688), are reported once per session like the fast path's
+        const usesLanguageService = !this.transpileOnly && !this.shouldUseTranspileModuleFastPath(profile) && this.anyAddonNeedsTypeInfo(profile);
+        const optionsDiagnostics = usesLanguageService
+            ? (this.getContext(profile)?.getLanguageService().getProgram()?.getOptionsDiagnostics() ?? []).filter(
+                  cur => cur.code !== ROOT_DIR_INFERENCE_ERROR
+              )
+            : [];
+        [...optionsDiagnostics, ...(fragment?.diagnostics ?? [])].forEach(cur => {
             // Every file of the fast path returns the option errors, which a rebuild does not change; websmith's own
             // diagnostics without a file (code 0) belong to the file that returned them
             const key = !cur.file && cur.code > 0 ? this.getDiagnosticKey(cur) : undefined;
@@ -1296,6 +1310,18 @@ export class Compiler {
         return emitOutput.emitSkipped && (!!compilerOptions.noEmitOnError || emitOutput.outputFiles.length === 0);
     }
 
+    /**
+     * Returns the options diagnostics of a per-file Program that concern `sourceFile`: one that names another source
+     * file of the Program, e.g. TS6059 for an imported file outside `rootDir`, is returned by that file's own Program.
+     */
+    private getOwnOptionsDiagnostics(program: ts.Program, sourceFile: ts.SourceFile): ts.Diagnostic[] {
+        const otherFiles = program.getSourceFiles().filter(cur => cur !== sourceFile && !cur.isDeclarationFile);
+        return program.getOptionsDiagnostics().filter(cur => {
+            const message = ts.flattenDiagnosticMessageText(cur.messageText, "\n");
+            return cur.code !== ROOT_DIR_INFERENCE_ERROR && !otherFiles.some(other => message.includes(other.fileName));
+        });
+    }
+
     private transpileSourceCode({ content, ctx, fileName }: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
         const isTranspiledSourceFile = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)$/i);
         const isSourceMap = (name: string): boolean => !!name.match(/\.([cm]?js|jsx)\.map$/i);
@@ -1351,11 +1377,12 @@ export class Compiler {
                 );
 
                 // The emit is also skipped for declaration emit errors and then returns only those. Under noEmitOnError
-                // it returns the syntactic diagnostics itself, so these are added only once.
+                // it returns the pre-emit diagnostics itself, options diagnostics included, so these are added only once.
                 const emitted = new Set(emitResult.diagnostics.map(cur => this.getDiagnosticKey(cur)));
                 return {
                     outputFiles,
                     diagnostics: [
+                        ...this.getOwnOptionsDiagnostics(program, sourceFile).filter(cur => !emitted.has(this.getDiagnosticKey(cur))),
                         ...program.getSyntacticDiagnostics(sourceFile).filter(cur => !emitted.has(this.getDiagnosticKey(cur))),
                         ...emitResult.diagnostics,
                     ],
