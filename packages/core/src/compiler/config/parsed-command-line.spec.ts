@@ -676,6 +676,37 @@ describe("parsedCommandLine w/ extra args", () => {
         });
         expect(actual.raw).toEqual(DEFAULT_RAW);
     });
+
+    it("returns the error of an invalid command-line value w/ existing tsconfig.json", () => {
+        const actual = parsedCommandLine("tsconfig.json", { target: "foo" } as TscArguments, target);
+
+        expect(actual.errors.map(cur => cur.code)).toEqual([6046]);
+    });
+
+    it("returns no error for websmith's own arguments w/ existing tsconfig.json", () => {
+        const actual = parsedCommandLine("tsconfig.json", { files: [], addonEmitOnly: true, build: true } as TscArguments, target);
+
+        expect(actual.errors).toEqual([]);
+    });
+
+    it("returns the syntax error of a tsconfig.json w/ missing closing brace", () => {
+        const system = createSystem({ "tsconfig.json": `{ "include": ["*.ts"]\n`, "/one.ts": "export const one = 1;" }, { virtual: true });
+
+        const actual = parsedCommandLine("tsconfig.json", {}, system);
+
+        expect(actual.errors).toEqual([expect.objectContaining({ code: 1005, file: expect.anything() })]);
+    });
+
+    it("returns the error of an unknown option in tsconfig.json", () => {
+        const system = createSystem(
+            { "tsconfig.json": JSON.stringify({ include: ["*.ts"], compilerOptions: { bogusOption: true } }), "/one.ts": "export const one = 1;" },
+            { virtual: true }
+        );
+
+        const actual = parsedCommandLine("tsconfig.json", {}, system);
+
+        expect(actual.errors).toEqual([expect.objectContaining({ code: 5023, file: expect.anything() })]);
+    });
 });
 
 describe("createArgs", () => {

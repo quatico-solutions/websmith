@@ -98,7 +98,8 @@ configuration errors, see below.
 
 Configuration errors in `websmith.config.json` of the selected `profile` and the profiles it depends on fail the
 build too, e.g. an unknown profile in `depends`, an unknown `esm.runtime`, or `esm` together with
-`tsConfig.module: "CommonJS"`. A `configFile` that does not exist is a configuration error as well. Errors of
+`tsConfig.module: "CommonJS"`. A `configFile` that does not exist is a configuration error as well, and so are
+errors in `tsconfig.json`: unknown options, invalid values, and invalid JSON. Errors of
 profiles the build does not use are not reported. Configuration errors belong to no module: the loader adds each one
 once per compilation to webpack's errors and passes it to `error`, also when several loader rules use the same
 configuration. A watch rebuild reports them again while they remain. Editing `websmith.config.json` triggers a

@@ -143,6 +143,7 @@ export class Compiler {
         const { profile, buildDir } = this.options;
         const selectedProfiles = profile ? this.options.getSelectedProfiles(profile) : [undefined];
         this.packageJsonInfoCache = undefined;
+        this.options.configErrors.forEach(cur => this.reporter.reportDiagnostic(cur));
 
         if (this.options.debug) {
             this.reporter.reportDiagnostic(new InfoMessage(`Starting compilation with debug mode enabled.`));
@@ -217,6 +218,7 @@ export class Compiler {
     }
 
     watch(): this {
+        this.options.configErrors.forEach(cur => this.reporter.reportDiagnostic(cur));
         this.createProfileContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {

@@ -101,6 +101,7 @@ describe("addCompileCommand", () => {
                 reporter: {},
                 system: expect.any(Object),
             },
+            configErrors: [],
             debug: false,
             reporter: expect.any(NoReporter),
             system: expect.any(Object),
