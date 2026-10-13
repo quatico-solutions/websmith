@@ -409,6 +409,11 @@ export class Compiler {
         return this;
     }
 
+    /** Returns the compiler options that override the resolved options in the compilation context of `profile`. */
+    protected getContextCompilerOptions(_profile?: string): ts.CompilerOptions {
+        return {};
+    }
+
     protected createCompilationContext(profile?: string): CompilationContext {
         const { configFile, tsConfigFile, cliArgs, watch } = this.options;
         const selectedProfiles = this.options.getSelectedProfiles(profile);
@@ -435,13 +440,14 @@ export class Compiler {
                   },
               };
 
+        const contextOptions = this.getContextCompilerOptions(profile);
         const normalizedCliArgs = {
             ...profileCliArgs,
-            options: this.normalizeCompilerOptions(profileCliArgs.options),
+            options: this.normalizeCompilerOptions({ ...profileCliArgs.options, ...contextOptions }),
         };
 
         return new CompilationContext({
-            tsConfig: profileOptions.tsConfig ?? {},
+            tsConfig: { ...profileOptions.tsConfig, ...contextOptions },
             projectDir: path.dirname(configFile ?? tsConfigFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
             system: this.system,
             cliArgs: normalizedCliArgs,
