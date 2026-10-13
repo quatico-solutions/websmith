@@ -404,12 +404,15 @@ const convertProfileEnumOptions = (config: CompilationConfig, profileName: strin
     });
 };
 
+const isSameValue = (one: unknown, other: unknown): boolean =>
+    Array.isArray(one) && Array.isArray(other) ? one.length === other.length && one.every((cur, index) => cur === other[index]) : one === other;
+
 /**
  * Converts the option names of the CLI options, which the loader fills with its tsConfig. Values equal to those of
- * `tsConfig` were reported when it was converted, so only the others report unknown names.
+ * `tsConfig`, arrays by their entries, were reported when it was converted, so only the others report unknown names.
  */
 const convertCliEnumOptions = (options: ts.CompilerOptions, tsConfig: ts.CompilerOptions, reporter: Reporter): ts.CompilerOptions => {
-    const unreported = Object.fromEntries(Object.entries(options).filter(([key, value]) => tsConfig[key] !== value));
+    const unreported = Object.fromEntries(Object.entries(options).filter(([key, value]) => !isSameValue(tsConfig[key], value)));
     return {
         ...convertEnumOptions(options, LOADER_OPTIONS_LOCATION),
         ...convertEnumOptions(unreported, LOADER_OPTIONS_LOCATION, reporter),

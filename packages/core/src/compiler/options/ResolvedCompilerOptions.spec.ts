@@ -1481,6 +1481,56 @@ describe("option names", () => {
         expect(testObj.config?.profiles?.other.tsConfig).toEqual({ outDir: "./dist" });
         expect(target.reportDiagnostic).not.toHaveBeenCalled();
     });
+
+    it("should report one error and keep the valid entry w/ unknown lib entry in loader tsConfig", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new ResolvedCompilerOptions(fileSystem, { reporter: target }, createLoaderOptions({ lib: ["ES2022", "bogus"] }));
+
+        expect(testObj.tsConfig?.lib).toContain("lib.es2022.d.ts");
+        expect(testObj.cliArgs.options.lib).toContain("lib.es2022.d.ts");
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            expect.objectContaining({ messageText: expect.stringMatching(/^Invalid 'tsConfig\.lib' value 'bogus' in the loader options\. /) })
+        );
+    });
+
+    it("should yield lib file names and report nothing w/ lib names in selected profile of the config file", () => {
+        const fileSystem = createSystem(
+            { "./websmith.config.json": JSON.stringify({ profiles: { p: { tsConfig: { lib: ["ES2022"] } } } }) },
+            { virtual: true }
+        );
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+        const testObj = new ResolvedCompilerOptions(fileSystem, { configFile: "./websmith.config.json", reporter: target }, { profile: "p" });
+
+        const actual = testObj.getOptions("p").tsConfig?.lib;
+
+        expect(actual).toContain("lib.es2022.d.ts");
+        expect(actual).not.toContain("ES2022");
+        expect(target.reportDiagnostic).not.toHaveBeenCalled();
+    });
+
+    it("should yield lib file names only w/ lib in tsconfig.json and lib names in selected profile", () => {
+        const fileSystem = createSystem(
+            {
+                "/tsconfig.json": JSON.stringify({ compilerOptions: { lib: ["es2020"] } }),
+                "/websmith.config.json": JSON.stringify({ profiles: { p: { tsConfig: { lib: ["ES2022"] } } } }),
+            },
+            { virtual: true }
+        );
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            { tsConfigFile: "/tsconfig.json", configFile: "/websmith.config.json", reporter: new NoReporter() },
+            { profile: "p" }
+        );
+
+        expect(testObj.tsConfig?.lib).toEqual(expect.arrayContaining(["lib.es2022.d.ts"]));
+        expect(testObj.tsConfig?.lib?.every(cur => /^lib\..+\.d\.ts$/.test(cur))).toBe(true);
+    });
 });
 
 describe("profiles loader option", () => {
