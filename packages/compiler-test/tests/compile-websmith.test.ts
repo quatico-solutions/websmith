@@ -57,9 +57,10 @@ beforeEach(() => {
     tsDefaults = {
         target: ts.ScriptTarget.ESNext,
         module: ts.ModuleKind.ESNext,
-        moduleResolution: ts.ModuleResolutionKind.Node10,
+        moduleResolution: ts.ModuleResolutionKind.Bundler,
         project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
         outDir: testDirs.OUTPUT_DIR,
+        rootDir: testDirs.SOURCE_DIR,
         removeComments: true,
         skipLibCheck: true,
         noEmit: false,
@@ -94,10 +95,11 @@ describe("compile w/ websmith", () => {
         const result = await compile([path.join(testDirs.SOURCE_DIR, "foobar-arrow.ts")], {
             tsConfig: {
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 declaration: true,
                 target: ts.ScriptTarget.ESNext,
-                moduleResolution: ts.ModuleResolutionKind.Node10,
+                moduleResolution: ts.ModuleResolutionKind.Bundler,
             },
             websmith: { tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json") },
         });
@@ -112,9 +114,10 @@ describe("compile w/ websmith", () => {
     it("should build js and no d.ts with tsconfig.json", async () => {
         writeTsConfig({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
             module: ts.ModuleKind.CommonJS,
-            target: ts.ScriptTarget.ES5,
+            target: ts.ScriptTarget.ES2020,
             declaration: true,
             declarationMap: true,
         });
@@ -134,9 +137,10 @@ describe("compile w/ websmith", () => {
     it("should build js and d.ts with tsconfig.json and overriding tsconfig props", async () => {
         writeTsConfig({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: true,
             module: ts.ModuleKind.CommonJS,
-            target: ts.ScriptTarget.ES5,
+            target: ts.ScriptTarget.ES2020,
             declaration: true,
             declarationMap: true,
         });
@@ -146,7 +150,7 @@ describe("compile w/ websmith", () => {
                 noEmit: false,
                 module: ts.ModuleKind.ESNext,
                 target: ts.ScriptTarget.ESNext,
-                moduleResolution: ts.ModuleResolutionKind.Node10,
+                moduleResolution: ts.ModuleResolutionKind.Bundler,
                 project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
             },
             websmith: { tsConfigFile: path.join(testDirs.PROJECT_DIR, "tsconfig.json") },
@@ -162,9 +166,10 @@ describe("compile w/ websmith", () => {
     it("should build js and d.ts with tsconfig.json, tsconfig props and overriding profile props", async () => {
         writeTsConfig({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: true,
             module: ts.ModuleKind.CommonJS,
-            target: ts.ScriptTarget.ES5,
+            target: ts.ScriptTarget.ES2020,
             declaration: true,
             declarationMap: true,
         });
@@ -173,7 +178,7 @@ describe("compile w/ websmith", () => {
             tsConfig: {
                 noEmit: true,
                 module: ts.ModuleKind.CommonJS,
-                target: ts.ScriptTarget.ES5,
+                target: ts.ScriptTarget.ES2020,
                 project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
             },
             websmith: {
@@ -184,7 +189,7 @@ describe("compile w/ websmith", () => {
                                 noEmit: false,
                                 target: ts.ScriptTarget.ESNext,
                                 module: ts.ModuleKind.ESNext,
-                                moduleResolution: ts.ModuleResolutionKind.Node10,
+                                moduleResolution: ts.ModuleResolutionKind.Bundler,
                             },
                         },
                     },
@@ -204,9 +209,10 @@ describe("compile w/ websmith", () => {
     it("should build js and d.ts with tsconfig.json, tsconfig props and overriding props in websmith config", async () => {
         writeTsConfig({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: true,
             module: ts.ModuleKind.CommonJS,
-            target: ts.ScriptTarget.ES5,
+            target: ts.ScriptTarget.ES2020,
             declaration: true,
             declarationMap: true,
         });
@@ -217,7 +223,7 @@ describe("compile w/ websmith", () => {
                         noEmit: false,
                         target: ts.ScriptTarget.ESNext,
                         module: ts.ModuleKind.ESNext,
-                        moduleResolution: ts.ModuleResolutionKind.Node10,
+                        moduleResolution: ts.ModuleResolutionKind.Bundler,
                     },
                 },
             },
@@ -227,7 +233,7 @@ describe("compile w/ websmith", () => {
             tsConfig: {
                 noEmit: true,
                 module: ts.ModuleKind.CommonJS,
-                target: ts.ScriptTarget.ES5,
+                target: ts.ScriptTarget.ES2020,
                 project: path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
             },
             websmith: {
@@ -541,9 +547,10 @@ describe("compile w/ websmith", () => {
         });
         writeTsConfig({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: true,
             module: ts.ModuleKind.CommonJS,
-            target: ts.ScriptTarget.ES5,
+            target: ts.ScriptTarget.ES2020,
             declaration: true,
             declarationMap: true,
         });
@@ -565,6 +572,7 @@ describe("compile w/ websmith", () => {
     it("should only emit files processed by addons when addonEmitOnly is enabled", async () => {
         writeTsConfig({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
             declaration: true,
             ...tsDefaults,
@@ -611,6 +619,7 @@ describe("compile w/ websmith", () => {
     it("should emit all files when addonEmitOnly is disabled", async () => {
         writeTsConfig({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
             declaration: true,
             ...tsDefaults,
@@ -656,6 +665,7 @@ describe("compile w/ websmith", () => {
         it("should only emit transformed files in full compilation mode (addonEmitOnly=true, transpileOnly=false)", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 declaration: true,
                 ...tsDefaults,
@@ -703,6 +713,7 @@ describe("compile w/ websmith", () => {
         it("should only emit transformed files with addonEmitOnly=true, transpileOnly=true", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 ...tsDefaults,
             });
@@ -749,6 +760,7 @@ describe("compile w/ websmith", () => {
         it("should emit all files with addonEmitOnly=false, transpileOnly=false", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 declaration: true,
                 ...tsDefaults,
@@ -794,6 +806,7 @@ describe("compile w/ websmith", () => {
         it("should emit all files with addonEmitOnly=false, transpileOnly=true", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 ...tsDefaults,
             });
@@ -840,6 +853,7 @@ describe("compile w/ websmith", () => {
         it("should only emit generated files with addonEmitOnly=true, transpileOnly=false", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 declaration: true,
                 ...tsDefaults,
@@ -884,6 +898,7 @@ describe("compile w/ websmith", () => {
         it("should only emit generated files with addonEmitOnly=true, transpileOnly=true", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 ...tsDefaults,
             });
@@ -927,6 +942,7 @@ describe("compile w/ websmith", () => {
         it("should emit all files with addonEmitOnly=false, transpileOnly=false", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 declaration: true,
                 ...tsDefaults,
@@ -969,6 +985,7 @@ describe("compile w/ websmith", () => {
         it("should emit all files with addonEmitOnly=false, transpileOnly=true", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 ...tsDefaults,
             });
@@ -1012,6 +1029,7 @@ describe("compile w/ websmith", () => {
         it("should only emit processed files with addonEmitOnly=true, transpileOnly=false", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 declaration: true,
                 ...tsDefaults,
@@ -1054,6 +1072,7 @@ describe("compile w/ websmith", () => {
         it("should emit all files with addonEmitOnly=false, transpileOnly=true", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 ...tsDefaults,
             });
@@ -1096,6 +1115,7 @@ describe("compile w/ websmith", () => {
         it("should emit only metadata file with addonEmitOnly=true, transpileOnly=false", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 ...tsDefaults,
             });
@@ -1148,6 +1168,7 @@ describe("compile w/ websmith", () => {
         it("should emit metadata about processed files with addonEmitOnly=true, transpileOnly=true", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 ...tsDefaults,
             });
@@ -1205,6 +1226,7 @@ describe("compile w/ websmith", () => {
         it("should emit metadata about all files with addonEmitOnly=false", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 ...tsDefaults,
             });
@@ -1258,6 +1280,7 @@ describe("compile w/ websmith", () => {
         it("should emit all files when processor reformats code (even without semantic changes)", async () => {
             writeTsConfig({
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 ...tsDefaults,
             });

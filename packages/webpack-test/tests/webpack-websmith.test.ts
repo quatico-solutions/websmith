@@ -85,6 +85,7 @@ beforeEach(() => {
         {
             target: ts.ScriptTarget.ES2020,
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
         },
         testDirs.PROJECT_DIR
     );
@@ -397,6 +398,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
             {
                 target: ts.ScriptTarget.ES2020,
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
             },
             testDirs.PROJECT_DIR
         );
@@ -810,6 +812,7 @@ describe("webpack w/ websmith, multiple profiles", () => {
                 {
                     target: ts.ScriptTarget.ES2020,
                     outDir: testDirs.OUTPUT_DIR,
+                    rootDir: testDirs.SOURCE_DIR,
                 },
                 testDirs.PROJECT_DIR
             );

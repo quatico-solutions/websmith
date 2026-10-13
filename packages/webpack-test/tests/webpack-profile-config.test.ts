@@ -24,7 +24,7 @@ beforeEach(() => {
 
     writeSourceFile("index.ts", `export { hello } from "./hello";\n`, testDirs.SOURCE_DIR);
     writeSourceFile("hello.ts", `export const hello: string = "world";\n`, testDirs.SOURCE_DIR);
-    writeTsConfig({ target: ts.ScriptTarget.ES2020, outDir: testDirs.OUTPUT_DIR }, testDirs.PROJECT_DIR);
+    writeTsConfig({ target: ts.ScriptTarget.ES2020, outDir: testDirs.OUTPUT_DIR, rootDir: testDirs.SOURCE_DIR }, testDirs.PROJECT_DIR);
     writeWebsmithConfig(
         {
             profiles: {

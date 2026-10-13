@@ -13,10 +13,12 @@ const OUTPUT_DIR = path.join(__dirname, "..", "lib");
 const SOURCE_DIR = path.join(__dirname, "..", "src");
 
 const tsDefaults = {
-    moduleResolution: ts.ModuleResolutionKind.Node10,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
     outDir: OUTPUT_DIR,
     removeComments: true,
 };
+
+const describeOnTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6 ? describe : describe.skip;
 
 beforeAll(() => {
     fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
@@ -53,16 +55,20 @@ describe("compile w/ tsc", () => {
         fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
     }, 60000);
 
-    it("should build foobar-arrow.js with ES5 target", async () => {
-        await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
-            tsConfig: {
-                ...tsDefaults,
-                target: ts.ScriptTarget.ES5,
-            },
-        });
+    describeOnTs5("on TypeScript 5", () => {
+        it("should build foobar-arrow.js with ES5 target", async () => {
+            await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
+                // ES5 implies module CommonJS, where an unset moduleResolution is node10 and bundler is TS5095
+                tsConfig: {
+                    outDir: OUTPUT_DIR,
+                    removeComments: true,
+                    target: ts.ScriptTarget.ES5,
+                },
+            });
 
-        expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-arrow.js"), "utf-8")).toMatchSnapshot();
+            expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-arrow.js"), "utf-8")).toMatchSnapshot();
 
-        fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
-    }, 60000);
+            fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
+        }, 60000);
+    });
 });

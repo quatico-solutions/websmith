@@ -86,8 +86,8 @@ beforeEach(() => {
 
     writeTsConfig(
         {
-            moduleResolution: ts.ModuleResolutionKind.Node10,
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             target: ts.ScriptTarget.ESNext,
             module: ts.ModuleKind.CommonJS,
             declaration: false,
@@ -564,8 +564,8 @@ describe("webpack w/ websmith", () => {
     it("should fail with syntax error and declaration emit error once each w/ declaration and per-file Program", async () => {
         writeTsConfig(
             {
-                moduleResolution: ts.ModuleResolutionKind.Node10,
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 target: ts.ScriptTarget.ESNext,
                 module: ts.ModuleKind.CommonJS,
                 declaration: true,

@@ -303,7 +303,7 @@ deprecation errors" is answered yes.
 
 ### Fixtures
 
-- `bug/typescript-6-test-fixtures` — compiler-test and webpack-test fixtures and test options off `Node10` and `target: ES5` (row 11): `ES2020` and an omitted `moduleResolution`, expected output regenerated from `tsc` of the running major; cases whose subject is ES5 downlevel output run on 5.x only (skipped by installed major, named in the test title); one e2e that asserts websmith's output paths equal `tsc`'s for a project with `src/`, `outDir` and no `rootDir`. Test: Definition of Done green on the 5.7.3 cells; on the 6.0.3 cell no TS5107 for `target`/`moduleResolution` comes from these suites (red before) <!-- builds: version-neutral e2e fixtures -->
+- `bug/typescript-6-test-fixtures` — compiler-test and webpack-test fixtures and test options off `Node10` and `target: ES5` (row 11): `ES2020` and an omitted `moduleResolution`, expected output regenerated from `tsc` of the running major; cases whose subject is ES5 downlevel output run on 5.x only (skipped by installed major, named in the test title); one e2e that asserts websmith's output paths equal `tsc`'s for a project with `src/`, `outDir` and no `rootDir`. Test: Definition of Done green on the 5.7.3 cells; on the 6.0.3 cell no TS5107 for `target`/`moduleResolution` comes from these suites (red before) → #183 <!-- builds: version-neutral e2e fixtures -->
 
 ### websmith-node
 

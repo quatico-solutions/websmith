@@ -110,7 +110,7 @@ describe("bin.ts e2e tests", () => {
             declaration: true,
             declarationMap: true,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         copySourceFile("foobar-arrow.ts");
 
@@ -130,13 +130,13 @@ describe("bin.ts e2e tests", () => {
             "export declare const getFoobar: (date: Date) => string;
             //# sourceMappingURL=foobar-arrow.d.ts.map"
         `);
-        expect(getOutput("foobar-arrow.d.ts.map")).toMatchInlineSnapshot(
-            `"{"version":3,"file":"foobar-arrow.d.ts","sourceRoot":"","sources":["../src/foobar-arrow.ts"],"names":[],"mappings":"AACA,eAAO,MAAM,SAAS,SAAU,IAAI,WAEnC,CAAC"}"`
-        );
+        const expectedMap = emitWithTsc()["foobar-arrow.d.ts.map"];
+        expect(expectedMap).toBeDefined();
+        expect(getOutput("foobar-arrow.d.ts.map")).toBe(expectedMap);
     }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "es5", module: "commonjs" });
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "es2020", module: "commonjs" });
         createWebsmithConfig({
             profiles: {
                 target: {
@@ -145,7 +145,7 @@ describe("bin.ts e2e tests", () => {
                         outDir: `${testDirs.OUTPUT_DIR}/target`,
                         target: ts.ScriptTarget.ESNext,
                         module: ts.ModuleKind.ESNext,
-                        moduleResolution: ts.ModuleResolutionKind.Node10,
+                        moduleResolution: ts.ModuleResolutionKind.Bundler,
                     },
                 },
             },
@@ -214,7 +214,7 @@ describe("bin.ts e2e tests", () => {
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         copySourceFile("foobar-function.ts");
 
@@ -256,7 +256,7 @@ describe("bin.ts e2e tests", () => {
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         copySourceFile("foobar-function.ts");
 
@@ -621,7 +621,7 @@ describe("bin.ts e2e tests", () => {
                 noEmit: false,
                 noEmitOnError,
                 module: "commonjs",
-                moduleResolution: "bundler",
+                moduleResolution: "node16",
                 target: "esnext",
                 types: [],
             } as TscArguments);
@@ -629,7 +629,8 @@ describe("bin.ts e2e tests", () => {
 
             const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);
             const actual1 = target.status;
-            const actual2 = target.output.split("Option 'bundler' can only be used when").length - 1;
+            const actual2 =
+                target.output.split("Option 'module' must be set to 'Node16' when option 'moduleResolution' is set to 'Node16'").length - 1;
             const actual3 = getOutput("test.js") !== undefined;
 
             expect(actual1).toBe(1);
@@ -1706,7 +1707,7 @@ exports.activate = ctx => ctx.registerTransformer({
 
     const createTsConfig = (config: TscArguments) => {
         const tsConfig = {
-            compilerOptions: config,
+            compilerOptions: config.outDir && !config.rootDir ? { ...config, rootDir: "src" } : config,
             include: ["src/**/*"],
             exclude: ["node_modules", "dist"],
         };
