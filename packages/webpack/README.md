@@ -75,7 +75,8 @@ The default configuration uses the `tsconfig.json` file in your project root to 
 - **transpileOnly** (boolean): Enable transpile-only mode for faster builds without type checking. Defaults to
   `false`, or to `true` when the webpack configuration contains a `ForkTsCheckerWebpackPlugin`.
 - **addonEmitOnly** (boolean): Only emit files that are processed by active addons. When enabled, all files are still compiled for dependencies and type checking, but only files processed by addon callbacks (generators, processors, transformers) are written to disk. This is useful for code generation workflows where you want to preserve original source files unchanged while emitting only generated or transformed files.
-- **profile** (string): Name of the compilation profile to use. Without a profile, no profile addons are applied.
+- **profile** (string): Name of the compilation profile to use. Without a profile, no profile addons are applied. A
+  name that is not configured is a configuration error.
 - **error** and **warn** (functions): Secondary sinks, called after the loader has emitted a diagnostic on the
   module: `error` receives each error, `warn` each warning, and with `debug` also each message and suggestion. Each
   gets a `WebpackError` whose message starts with the emitted file and position, `file (line,col): `. webpack
@@ -97,9 +98,9 @@ with `module: "CommonJS"`): every module would report the same one. The loader r
 configuration errors, see below.
 
 Configuration errors in `websmith.config.json` of the selected `profile` and the profiles it depends on fail the
-build too, e.g. an unknown profile in `depends`, an unknown `esm.runtime`, or `esm` together with
-`tsConfig.module: "CommonJS"`. A `configFile` that does not exist is a configuration error as well. Errors of
-profiles the build does not use are not reported. Configuration errors belong to no module: the loader adds each one
+build too, e.g. an unconfigured `profile`, an unknown profile in `depends`, an unknown `esm.runtime`, or `esm`
+together with `tsConfig.module: "CommonJS"`. A `configFile` that does not exist is a configuration error as well.
+Errors of profiles the build does not use are not reported. Configuration errors belong to no module: the loader adds each one
 once per compilation to webpack's errors and passes it to `error`, also when several loader rules use the same
 configuration. A watch rebuild reports them again while they remain. Editing `websmith.config.json` triggers a
 rebuild that reports its current errors and compiles the loader's modules again with the new configuration. Without
