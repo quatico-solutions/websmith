@@ -156,13 +156,6 @@ export const resolveCompilationConfig = (
                     if (profile.addons?.length) {
                         profile.addons = [...(profile.addons ?? []), ...(result.addons ?? [])];
                     }
-                    if (isUsed && profile.depends?.length) {
-                        profile.depends.forEach(dep => {
-                            if (!result.profiles?.[dep]) {
-                                reporter.reportDiagnostic(new ErrorMessage(`Unknown profile '${dep}' in 'depends' of '${configFilePath}'.`));
-                            }
-                        });
-                    }
                     if (isUsed && profile.esm) {
                         validateEsm(name, profile, configFilePath, reporter);
                     }

@@ -25,8 +25,8 @@ import {
     resolveCompilationConfig,
     resolvePath,
     resolvePaths,
-    resolveProfile,
     resolveProjectFile,
+    validateProfile,
     PROJECT_FILE_NAME,
 } from "../config";
 import { DefaultReporter } from "../DefaultReporter";
@@ -193,7 +193,14 @@ export class ResolvedCompilerOptions implements CompilerOptions {
             this.config.addonsDir = resolvePath(this.system, this.buildDir, this.config.addonsDir);
         }
         // resolve tsconfig
-        this.profile = resolveProfile(profileName, this.config, this.reporter);
+        this.profile = profileName;
+        const profilesLocation =
+            this.configFile && this.system.fileExists(this.configFile)
+                ? `'${this.configFile}'`
+                : Object.keys(this.config.profiles ?? {}).length
+                  ? "the loader options"
+                  : undefined;
+        validateProfile(profileName, this.config, profilesLocation, this.reporter);
         resolvedOptions = { ...resolvedOptions, config: this.config, tsConfigFile: this.tsConfigFile };
         this.tsConfig = getTsConfig(this.system, this.buildDir, resolvedOptions, this.profile);
 
