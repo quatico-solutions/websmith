@@ -49,7 +49,7 @@ describe("end-2-end compile w/ websmith", () => {
         const actual = new Compiler(
             {
                 reporter: new ReporterMock(target),
-                tsConfig: { outDir: "/bin" },
+                tsConfig: { outDir: "/bin", rootDir: "/src" },
             },
             undefined,
             target
@@ -74,7 +74,7 @@ describe("end-2-end compile w/ websmith", () => {
         const actual = new Compiler(
             {
                 reporter: new ReporterMock(target),
-                tsConfig: { outDir: "/bin", declaration: true, declarationMap: true },
+                tsConfig: { outDir: "/bin", rootDir: "/src", declaration: true, declarationMap: true },
             },
             undefined,
             target
@@ -220,7 +220,7 @@ describe("compile w/ ErrorTrackingReporter", () => {
     it("should track errors w/ syntax error in source file", () => {
         const system = createSystem({ "tsconfig.json": "{}", "src/broken.ts": `export const = ;` }, { virtual: true });
         const target = new ErrorTrackingReporter(new NoReporter());
-        const testObj = new Compiler({ reporter: target, tsConfig: { outDir: "/bin" } }, undefined, system);
+        const testObj = new Compiler({ reporter: target, tsConfig: { outDir: "/bin", rootDir: "/src" } }, undefined, system);
 
         testObj.compile();
         const actual = target.hasErrors();
@@ -231,7 +231,7 @@ describe("compile w/ ErrorTrackingReporter", () => {
     it("should not track errors w/ valid source file", () => {
         const system = createSystem({ "tsconfig.json": "{}", "src/valid.ts": `export const valid = "hello";` }, { virtual: true });
         const target = new ErrorTrackingReporter(new NoReporter());
-        const testObj = new Compiler({ reporter: target, tsConfig: { outDir: "/bin" } }, undefined, system);
+        const testObj = new Compiler({ reporter: target, tsConfig: { outDir: "/bin", rootDir: "/src" } }, undefined, system);
 
         testObj.compile();
         const actual = target.hasErrors();
