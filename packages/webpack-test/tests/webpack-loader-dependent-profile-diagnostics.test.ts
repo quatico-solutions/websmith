@@ -20,8 +20,9 @@ const getTestDirs = () => {
 // TS4094 under declaration: true, with transpileOnly: false
 const DECLARATION_ERROR_SOURCE = `export const C = class { private p = 1; };\n`;
 const DECLARATION_ERROR = "may not be private or protected";
-// TS5095, whose wording varies across TypeScript versions
-const OPTION_ERROR = /can only be used when 'module' is set to/;
+// A file-less option error of the dependent profile: TS5095 on TypeScript 5, where its wording varies across versions;
+// TypeScript 6 lifts that restriction and reports the deprecated ES5 target instead (TS5107)
+const OPTION_ERROR = /can only be used when 'module' is set to|target=ES5' is deprecated/;
 
 let testDirs: ReturnType<typeof getTestDirs>;
 
@@ -115,8 +116,8 @@ describe("webpack w/ websmith-loader and dependent profiles", () => {
         writeWebsmithConfig(
             {
                 profiles: {
-                    app: { depends: ["dep"], tsConfig: { module: "esnext", outDir: outDir("dist") } },
-                    dep: { tsConfig: { module: "commonjs", outDir: outDir("dep-out") } },
+                    app: { depends: ["dep"], tsConfig: { module: "esnext", target: "es2020", outDir: outDir("dist") } },
+                    dep: { tsConfig: { module: "commonjs", target: "es5", outDir: outDir("dep-out") } },
                 },
             },
             testDirs.PROJECT_DIR
