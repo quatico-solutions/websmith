@@ -54,17 +54,18 @@ const readOutputPaths = (outDir: string): string[] =>
               .sort()
         : [];
 
-const readErrorCodes = (output: string): string[] => [...new Set([...output.matchAll(/error TS(\d+)/g)].map(cur => cur[1]))].sort();
+// tsc prints "error TS5011: …", websmith's reporter prints "Error: 5011: …"
+const readErrorCodes = (output: string, pattern: RegExp): string[] => [...new Set([...output.matchAll(pattern)].map(cur => cur[1]))].sort();
 
 // websmith-node's tsc Compiler rejects on a non-zero exit; keep its message to read the error codes from it
 const compileTsc = async (): Promise<{ paths: string[]; codes: string[] }> => {
     const output = await compile([], { tsConfig: { project: path.join(projectDir, "tsconfig.tsc.json") } }).catch((error: Error) => error.message);
-    return { paths: readOutputPaths(path.join(projectDir, "tsc")), codes: readErrorCodes(output) };
+    return { paths: readOutputPaths(path.join(projectDir, "tsc")), codes: readErrorCodes(output, /error TS(\d+):/g) };
 };
 
 const compileWebsmith = async (files: string[], tsConfigFile: string): Promise<{ paths: string[]; codes: string[] }> => {
     const output = await compile(files, { websmith: { tsConfigFile } });
-    return { paths: readOutputPaths(path.join(projectDir, "websmith")), codes: readErrorCodes(output) };
+    return { paths: readOutputPaths(path.join(projectDir, "websmith")), codes: readErrorCodes(output, /Error: (\d+):/g) };
 };
 
 describe("compile w/ websmith and tsc w/o rootDir", () => {
