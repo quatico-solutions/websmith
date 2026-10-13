@@ -128,8 +128,8 @@ export class TsCompiler extends ModuleCompiler {
                 ...(options.debug ? { debug: true } : {}),
             };
 
-            this.markAddonsLoaded();
             this.webpackAddonService = new WebpackAddonService(addonConfig);
+            this.markAddonsLoaded();
             this.logDebug(`WebpackAddonService initialized with addonsDir: ${config?.addonsDir}`);
 
             // Load available addons immediately
