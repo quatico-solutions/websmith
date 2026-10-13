@@ -58,12 +58,12 @@ describe("webpack watch w/ websmith-loader and a source file outside rootDir", (
             writeSourceFile("src/lib/index.ts", `import { b } from "../b";\nexport const main = [b];\n`, projectDir);
             writeSourceFile("src/b.ts", `export const b = 2;\n`, projectDir);
 
-            const actual = runWebpack({ entry: "./src/lib/index.ts", edit: `export const main = [];\n` });
+            const actual = runWebpack({ entry: "./src/lib/index.ts", edit: `export const main = [];\n`, removes: "b.ts" });
             const builds = actual.output.split(BUILD_MARKER).slice(1);
 
-            expect(builds).toHaveLength(2);
+            expect(builds.length).toBeGreaterThanOrEqual(2);
             expect(countOf(builds[0], ROOT_DIR_ERROR)).toBe(1);
-            expect(countOf(builds[1], ROOT_DIR_ERROR)).toBe(0);
+            expect(countOf(builds[builds.length - 1], ROOT_DIR_ERROR)).toBe(0);
         },
         60000
     );
@@ -73,10 +73,11 @@ const BUILD_MARKER = "=== build ";
 
 /**
  * Runs webpack with one loader rule over `./src/index.ts`. With `watch`, runs `compiler.watch` over `watch.entry`,
- * writes `watch.edit` to the entry after the first build and closes the watcher after the second; the output of
- * each build follows a `BUILD_MARKER` line.
+ * writes `watch.edit` to the entry after the first build and closes the watcher after the first build without a
+ * module named `watch.removes`: webpack may rebuild once more before the edit, e.g. under load. The output of each
+ * build follows a `BUILD_MARKER` line.
  */
-const runWebpack = (watch?: { entry: string; edit: string }): { exitCode: number | null; output: string } => {
+const runWebpack = (watch?: { entry: string; edit: string; removes: string }): { exitCode: number | null; output: string } => {
     const script = `
         const fs = require("node:fs");
         const path = require("node:path");
@@ -111,11 +112,14 @@ const runWebpack = (watch?: { entry: string; edit: string }): { exitCode: number
                 ? `
         setTimeout(() => { console.error("watch timed out"); process.exit(3); }, 40000).unref();
         let build = 0;
+        let edited = false;
         const watching = webpack(config).watch({ aggregateTimeout: 50, poll: 100 }, (err, stats) => {
-            report(build, err, stats);
-            if (build++ === 0) {
+            report(build++, err, stats);
+            const removed = ![...stats.compilation.modules].some(cur => cur.resource && cur.resource.endsWith(${JSON.stringify(watch.removes)}));
+            if (!edited) {
+                edited = true;
                 setTimeout(() => fs.writeFileSync(path.join(projectDir, ${JSON.stringify(watch.entry)}), ${JSON.stringify(watch.edit)}), 300);
-            } else {
+            } else if (removed) {
                 watching.close(() => {});
             }
         });`
