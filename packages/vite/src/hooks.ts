@@ -8,7 +8,7 @@ import { type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api"
 import { AddonRegistry, ModuleCompiler } from "@quatico/websmith-core";
 import ts from "typescript";
 import type { createFilter, ResolvedConfig, Rollup } from "vite";
-import { selectConfigErrors } from "./config-errors";
+import { checkTargetModule, selectConfigErrors } from "./config-errors";
 import { DiagnosticReporter } from "./diagnostic-reporter";
 import { getDiagnosticKey, partitionDiagnostics, toRollupError, toRollupWarning } from "./diagnostics";
 import { isCompiledId } from "./module-ids";
@@ -21,7 +21,7 @@ export type HookContext = Pick<Rollup.PluginContext, "error" | "warn" | "addWatc
 /** The part of the module compiler the hooks use, so a spec can stub it. */
 export type HookCompiler = Pick<
     ModuleCompiler,
-    "build" | "getConfigErrors" | "getOptionsFiles" | "resetCompilationCaches" | "keepCachesPerCompilation"
+    "build" | "getConfigErrors" | "getOptions" | "getProfile" | "getOptionsFiles" | "resetCompilationCaches" | "keepCachesPerCompilation"
 >;
 
 /** The hooks of the websmith plugin, called with Rollup's plugin context as `this`. */
@@ -47,6 +47,15 @@ export const createModuleCompiler = (loaderOptions: Partial<WebpackLoaderOptions
         addons: new AddonRegistry({ reporter, system: ts.sys }),
         targetCompilerOptions: TARGET_COMPILER_OPTIONS,
     });
+
+// The target profile's merged tsConfig, with module and target as enums, and whether the profile itself sets esm
+const checkProfileModule = (compiler: HookCompiler): ts.Diagnostic[] => {
+    const profile = compiler.getProfile();
+    const options = compiler.getOptions();
+    const hasEsm = profile !== undefined && options.config?.profiles?.[profile]?.esm !== undefined;
+    const error = checkTargetModule(profile, options.getOptions(profile).tsConfig ?? {}, hasEsm);
+    return error ? [error] : [];
+};
 
 /**
  * Creates the hooks of the websmith plugin for `options`: `configResolved` resolves them against Vite's root,
@@ -93,7 +102,7 @@ export const createWebsmithHooks = (
             }
             const { files, missing } = compiler.getOptionsFiles();
             [...files, ...missing].forEach(cur => this.addWatchFile(cur));
-            const errors = report(this, [...compiler.getConfigErrors(), ...reporter.take()]);
+            const errors = report(this, [...compiler.getConfigErrors(), ...checkProfileModule(compiler), ...reporter.take()]);
             if (errors.length > 0) {
                 raisedKeys = new Set(errors.map(getDiagnosticKey));
                 this.error(toRollupError(errors));

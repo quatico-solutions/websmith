@@ -33,7 +33,16 @@ const diagnostic = (messageText: string, category = ts.DiagnosticCategory.Error,
 const build = (diagnostics: ts.Diagnostic[], files: Record<string, string> = {}): HookCompiler["build"] =>
     jest.fn(() => ({ fragment: fragment(files), diagnostics, dependencies: { files: [], missing: [] } }));
 
+const createOptions = (profiles: Record<string, { tsConfig?: ts.CompilerOptions; esm?: object }>, profile?: string): ReturnType<HookCompiler["getOptions"]> =>
+    ({
+        config: { profiles },
+        getOptions: (name?: string) => ({ tsConfig: name ? profiles[name]?.tsConfig : undefined }),
+        profile,
+    }) as unknown as ReturnType<HookCompiler["getOptions"]>;
+
 const createCompiler = (overrides: Partial<HookCompiler> = {}): HookCompiler => ({
+    getOptions: jest.fn(() => createOptions({ app: { tsConfig: { module: ts.ModuleKind.ESNext } } }, "app")),
+    getProfile: jest.fn(() => "app"),
     build: jest.fn(() => ({ fragment: fragment({ "main.js": "export const x = 1;" }), diagnostics: [], dependencies: { files: [], missing: [] } })),
     getConfigErrors: jest.fn(() => []),
     getOptionsFiles: jest.fn(() => ({ files: [], missing: [] })),
@@ -292,6 +301,26 @@ describe("createWebsmithHooks", () => {
             const actual = target.warn;
 
             expect(actual).toHaveBeenCalledTimes(1);
+        });
+
+        it("should raise configuration error w/ profile emitting commonjs", () => {
+            const compiler = createCompiler({ getOptions: jest.fn(() => createOptions({ app: { tsConfig: { module: ts.ModuleKind.CommonJS } } }, "app")) });
+            const testObj = createHooks(compiler);
+
+            const actual = () => testObj.buildStart.call(createContext());
+
+            expect(actual).toThrow("Profile 'app' emits CommonJS");
+        });
+
+        it("should not raise w/ profile emitting commonjs and esm set", () => {
+            const compiler = createCompiler({
+                getOptions: jest.fn(() => createOptions({ app: { tsConfig: { module: ts.ModuleKind.CommonJS }, esm: { runtime: "bundler" } } }, "app")),
+            });
+            const testObj = createHooks(compiler);
+
+            const actual = () => testObj.buildStart.call(createContext());
+
+            expect(actual).not.toThrow();
         });
 
         it("should add watch files for options files w/ build mode", () => {
