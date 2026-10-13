@@ -19,6 +19,11 @@ const JS_MAP_FILE = /\.(?:[cm]?js|jsx)\.map$/i;
 // Keeps JSX for Vite's own JSX handling, in the fragment returned to Vite only
 const TARGET_COMPILER_OPTIONS: ts.CompilerOptions = { jsx: ts.JsxEmit.Preserve, sourceMap: true, inlineSourceMap: false };
 
+const formatErrors = (diagnostics: readonly ts.Diagnostic[]): string | undefined => {
+    const errors = diagnostics.filter(cur => cur.category === ts.DiagnosticCategory.Error);
+    return errors.length > 0 ? errors.map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n")).join("\n") : undefined;
+};
+
 // Vite's hook filter takes no null and no readonly array
 const toHookFilter = (pattern: FilterPattern): string | RegExp | Array<string | RegExp> | undefined =>
     pattern === null || typeof pattern === "string" || pattern instanceof RegExp ? (pattern ?? undefined) : [...pattern];
@@ -58,9 +63,9 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
                     return null;
                 }
                 const { fragment, diagnostics } = compiler.build(id, { moduleKind: "esm" });
-                const errors = diagnostics.filter(cur => cur.category === ts.DiagnosticCategory.Error);
-                if (errors.length > 0) {
-                    this.error(errors.map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n")).join("\n"));
+                const errors = formatErrors(diagnostics);
+                if (errors) {
+                    this.error(errors);
                 }
                 const outputText = fragment.files.find(cur => JS_FILE.test(cur.name))?.text;
                 if (!outputText) {
@@ -72,6 +77,15 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
                     map: sourceMapText ? (JSON.parse(sourceMapText) as Rollup.ExistingRawSourceMap) : null,
                 };
             },
+        },
+        // The compiler keeps option errors and TypeScript errors without a file out of the module diagnostics. Without
+        // webpack's afterCompile, the build reports them once at its end: getConfigErrors holds those of all modules,
+        // where takeUnreportedConfigErrors would leave them on a carrier module a watch rebuild may not transform again.
+        buildEnd(error) {
+            const errors = !error && compiler ? formatErrors(compiler.getConfigErrors()) : undefined;
+            if (errors) {
+                this.error(errors);
+            }
         },
     };
 };

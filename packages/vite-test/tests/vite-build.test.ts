@@ -14,17 +14,15 @@ const getProjectDir = (): string => {
     return path.resolve(__dirname, "..", `test-output-vite-build-${testId}_${Date.now()}`);
 };
 
+// TS5053 prefix: jsxFactory excludes reactNamespace, an option error TypeScript 5 and 6 report without a file
+const OPTION_ERROR = "Option 'reactNamespace' cannot be specified with option 'jsxFactory'";
+
 let projectDir: string;
 
 beforeEach(() => {
     projectDir = getProjectDir();
 
-    writeFile(
-        "tsconfig.json",
-        JSON.stringify({
-            compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", rootDir: "./src", outDir: "./tsc-out" },
-        })
-    );
+    writeTsConfig({});
     writeFile("addons/replacer/addon.js", `exports.activate = ctx => ctx.registerProcessor((_f, c) => c.replaceAll("MARK_IN", "MARK_OUT"));\n`);
     writeFile("src/env.d.ts", `declare module "*?raw" {\n    const text: string;\n    export default text;\n}\n`);
 });
@@ -73,6 +71,16 @@ describe("vite build w/ websmith plugin", () => {
 
         expect(actual).toContain(`export const data: string = "MARK_IN";`);
     }, 60000);
+
+    it("should fail w/ option error of tsconfig", () => {
+        writeTsConfig({ jsx: "react", jsxFactory: "h", reactNamespace: "R" });
+        writeConfig({});
+        writeFile("src/main.ts", `export const greeting: string = "MARK_IN";\n`);
+
+        const actual = () => runViteBuild({ pluginOptions: { profile: "app", transpileOnly: true } });
+
+        expect(actual).toThrow(OPTION_ERROR);
+    }, 60000);
 });
 
 const writeFile = (fileName: string, content: string): void => {
@@ -80,6 +88,21 @@ const writeFile = (fileName: string, content: string): void => {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, content, { encoding: "utf-8" });
 };
+
+const writeTsConfig = (compilerOptions: Record<string, unknown>): void =>
+    writeFile(
+        "tsconfig.json",
+        JSON.stringify({
+            compilerOptions: {
+                target: "ES2022",
+                module: "ESNext",
+                moduleResolution: "bundler",
+                rootDir: "./src",
+                outDir: "./tsc-out",
+                ...compilerOptions,
+            },
+        })
+    );
 
 const writeConfig = (tsConfig: Record<string, unknown>): void =>
     writeFile("websmith.config.json", JSON.stringify({ addonsDir: "./addons", profiles: { app: { addons: ["replacer"], tsConfig } } }));
