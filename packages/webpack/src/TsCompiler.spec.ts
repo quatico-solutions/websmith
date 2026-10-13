@@ -199,6 +199,27 @@ describe("TsCompiler ESM check", () => {
         expect(actual).toEqual([91001]);
     });
 
+    it("yields diagnostics of javascript/esm module type w/ esm module kind object and require in bundler target", () => {
+        const files = { ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE };
+        const profiles: Record<string, CompilationProfile> = { target: { esm: { runtime: "bundler" } } };
+        const expected = createEsmCompiler(files, profiles)
+            .build("/src/a.ts", "javascript/esm")
+            .diagnostics.map(cur => [cur.code, cur.messageText]);
+        const testObj = createEsmCompiler(files, profiles);
+
+        const actual = testObj.build("/src/a.ts", { moduleKind: "esm" }).diagnostics.map(cur => [cur.code, cur.messageText]);
+
+        expect(actual).toEqual(expected);
+    });
+
+    it("yields nothing w/ auto module kind object and require in bundler target under module package", () => {
+        const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
+
+        const actual = testObj.build("/src/a.ts", { moduleKind: "auto" }).diagnostics;
+
+        expect(actual).toEqual([]);
+    });
+
     it("yields nothing w/ javascript/auto module type and require in bundler target under module package", () => {
         const testObj = createEsmCompiler({ ...MODULE_PACKAGE, "/src/a.ts": REQUIRE_SOURCE }, { target: { esm: { runtime: "bundler" } } });
 

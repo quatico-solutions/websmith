@@ -64,6 +64,8 @@ export class TsCompiler extends ModuleCompiler {
     /**
      * Compiles one module for webpack. `moduleType` is webpack's type of the module, which decides how the ESM check
      * classifies the target's output under `runtime: "bundler"`; without it the check classifies by package.json.
+     * The object form keeps `ModuleCompiler.build`'s signature: it takes the bundler-neutral `moduleKind` as is, so no
+     * webpack module type is mapped and none is reported as unknown.
      */
     public build(resourcePath: string, moduleType?: string | ModuleBuildOptions): LoaderBuildResult {
         if (typeof moduleType === "object") {
