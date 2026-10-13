@@ -15,7 +15,7 @@ import { tsDefaults } from "../compiler-options";
 import { Logger } from "../Logger";
 import { parseCliArguments } from "./compiler-arguments";
 import { parseReasonFromConsole } from "./console-output";
-import { TSC_EXECUTABLE, findTsc } from "./find-tsc";
+import { TSC_EXECUTABLE, findTsc, readTscVersion } from "./find-tsc";
 
 const tscProcessOptions = {
     env: process.env,
@@ -51,9 +51,11 @@ export class Compiler {
         this.logger.debug("Starting compilation", { files, tsConfig: this.tsConfig });
 
         let tscPath: string;
+        let tscVersion: string | undefined;
         try {
             tscPath = await findTsc(this.logger);
-            this.logger.debug("Found TypeScript compiler", { tscPath });
+            tscVersion = await readTscVersion(tscPath);
+            this.logger.debug("Found TypeScript compiler", { tscPath, tscVersion });
         } catch (error) {
             this.logger.debug("Failed to find TypeScript compiler", { error });
             return Promise.reject(error as Error);
@@ -61,8 +63,8 @@ export class Compiler {
 
         const result = await new Promise<string>((resolve, reject) => {
             try {
-                const tscCliArgs = parseCliArguments(this.tsConfig, files);
-                this.logger.debug("Parsed CLI arguments", { tscCliArgs });
+                const tscCliArgs = parseCliArguments(this.tsConfig, files, tscVersion);
+                this.logger.debug("Parsed CLI arguments", { tscCliArgs, tscVersion });
                 this.logger.success(`Found a typescript compiler at: "${tildify(tscPath)}"`);
                 this.logger.step(`Spawning the compilation command: "${[TSC_EXECUTABLE, ...tscCliArgs].join(" ")}"`);
                 this.createProcess(tscPath, tscCliArgs, reject, resolve);

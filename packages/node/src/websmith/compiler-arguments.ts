@@ -8,7 +8,11 @@ import { isArray } from "lodash";
 import type ts from "typescript";
 import { parseNumberValue } from "../compiler-options";
 
-export const parseCliArguments = (tsConfig: ts.CompilerOptions, files: string[]) =>
+// tsc 6 rejects file arguments next to a tsconfig.json (TS5112), tsc 5 rejects --ignoreConfig (TS5023)
+const needsIgnoreConfig = (tsConfig: ts.CompilerOptions, files: string[], tscVersion?: string): boolean =>
+    files.length > 0 && tsConfig.ignoreConfig !== true && Number.parseInt(tscVersion ?? "", 10) >= 6;
+
+export const parseCliArguments = (tsConfig: ts.CompilerOptions, files: string[], tscVersion?: string) =>
     Object.entries(tsConfig)
         .reduce((acc: string[], [key, value]) => {
             if (value === false) {
@@ -28,4 +32,4 @@ export const parseCliArguments = (tsConfig: ts.CompilerOptions, files: string[])
             }
             return acc;
         }, [])
-        .concat(files);
+        .concat(needsIgnoreConfig(tsConfig, files, tscVersion) ? ["--ignoreConfig"] : [], files);
