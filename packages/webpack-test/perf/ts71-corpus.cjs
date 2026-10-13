@@ -16,7 +16,7 @@
  * consts. All draws come from a mulberry32 PRNG seeded with `seed`, never from Math.random, so that the same size and
  * seed give the same files and the same hash on every Node version.
  */
-const crypto = require("node:crypto");
+const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -144,7 +144,7 @@ const writeCorpus = (dir, { size, seed = DEFAULT_SEED } = {}) => {
     }
     entries.forEach(entry => writeFile(path.join(dir, entry.relative), entry.content));
 
-    const hash = crypto.createHash("sha256");
+    const hash = createHash("sha256");
     [...entries]
         .sort((a, b) => (a.relative < b.relative ? -1 : a.relative > b.relative ? 1 : 0))
         .forEach(entry => {

@@ -73,7 +73,7 @@
  *          --versions-dir <dir> --out <file> --keep
  */
 const { spawnSync } = require("node:child_process");
-const crypto = require("node:crypto");
+const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const { createRequire } = require("node:module");
 const os = require("node:os");
@@ -163,7 +163,7 @@ const stats = values => {
 const fmt = (value, digits = 1) => (typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "n/a");
 const fmtStats = (cur, digits = 1) => (cur ? `${fmt(cur.median, digits)} [${fmt(cur.min, digits)}–${fmt(cur.max, digits)}]` : "n/a");
 
-const sha256 = content => crypto.createHash("sha256").update(content).digest("hex");
+const sha256 = content => createHash("sha256").update(content).digest("hex");
 
 class CorrectnessError extends Error {}
 
@@ -301,13 +301,13 @@ const summarizeCalls = durations => ({
 const leafIndices = (count, edits) => Array.from({ length: edits }, (_, i) => Math.floor(count / 2) + ((i * 7) % Math.floor(count / 2)));
 
 const runInProcess = ({ variant, versionsDir, corpus, edits }) => {
-    const resolve = createRequire(path.join(versionsDir, "package.json"));
+    const requireAlias = createRequire(path.join(versionsDir, "package.json"));
     const sources = corpus.files.map(fileName => ({ fileName, text: fs.readFileSync(fileName, "utf-8") }));
     const markers = new Set(corpus.markerFiles);
     const results = {};
 
     // (a) cold start: require of the alias plus the first transpileModule
-    const load = measure(() => resolve(ALIASES[variant]));
+    const load = measure(() => requireAlias(ALIASES[variant]));
     const ts = load.result;
     const first = measure(() => ts.transpileModule(sources[0].text, { compilerOptions: COMPILER_OPTIONS, fileName: sources[0].fileName, reportDiagnostics: true }));
     results.a = { status: "ok", ms: load.ms + first.ms, loadMs: load.ms, firstCallMs: first.ms, version: ts.version };
@@ -399,7 +399,7 @@ const guardAsync = async (results, key, fn) => {
 const emitText = output => [...output.outputFiles.values()].map(cur => cur.text).join("\n");
 
 const runNative = async ({ versionsDir, corpus, edits, inFlight }) => {
-    const resolve = createRequire(path.join(versionsDir, "package.json"));
+    const { resolve } = createRequire(path.join(versionsDir, "package.json"));
     const sources = corpus.files.map(fileName => ({ fileName, text: fs.readFileSync(fileName, "utf-8") }));
     const results = {};
     const cwd = corpus.dir;
@@ -420,7 +420,7 @@ const runNative = async ({ versionsDir, corpus, edits, inFlight }) => {
         results.a = notMeasurable(error);
     }
     if (!api) {
-        ["b", "c", "e", "f"].forEach(key => (results[key] = { status: NOT_MEASURABLE, reason: "no API: cold start failed" }));
+        ["b", "c", "e", "f"].forEach(key => (results[key] = { status: NOT_MEASURABLE, reason: `no API: cold start failed (${results.a.reason})` }));
         return results;
     }
 
@@ -517,7 +517,7 @@ const runNative = async ({ versionsDir, corpus, edits, inFlight }) => {
 
 // The untimed pass: (b) once on the sync 7.1 API with collectTiming, for bytes and server time per file
 const runPayload = async ({ versionsDir, corpus }) => {
-    const resolve = createRequire(path.join(versionsDir, "package.json"));
+    const { resolve } = createRequire(path.join(versionsDir, "package.json"));
     const sources = corpus.files.map(fileName => ({ fileName, text: fs.readFileSync(fileName, "utf-8") }));
     const { API } = await import(pathToFileURL(resolve("ts71/sync")).href);
     const api = new API({ cwd: corpus.dir, collectTiming: true });
