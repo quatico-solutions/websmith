@@ -19,7 +19,12 @@ let projectDir: string;
 beforeEach(() => {
     projectDir = getProjectDir();
 
-    writeFile("tsconfig.json", JSON.stringify({ compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", outDir: "./tsc-out" } }));
+    writeFile(
+        "tsconfig.json",
+        JSON.stringify({
+            compilerOptions: { target: "ES2022", module: "ESNext", moduleResolution: "bundler", rootDir: "./src", outDir: "./tsc-out" },
+        })
+    );
     writeFile("addons/replacer/addon.js", `exports.activate = ctx => ctx.registerProcessor((_f, c) => c.replaceAll("MARK_IN", "MARK_OUT"));\n`);
     writeFile("src/env.d.ts", `declare module "*?raw" {\n    const text: string;\n    export default text;\n}\n`);
 });
