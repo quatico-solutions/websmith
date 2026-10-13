@@ -137,9 +137,9 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   entries of the list are kept, as `tsc` does. Loader-option `tsConfig` and inline profiles too.
 - `@quatico/websmith-node` works with TypeScript 6's `tsc`, which rejects file arguments next to a `tsconfig.json`
   (TS5112), and passes `--target ES2025` by its name.
-- An unconfigured `profile` fails a webpack loader build with one configuration error that names the available
-  profiles, e.g. `Profile 'x' is not configured in '<configFile>'. Available profiles: a, b.`, instead of a
-  `Module build failed` stack trace per module; without a configuration file the error is
+- An unconfigured `profile` fails a webpack loader build with a configuration error that names the available
+  profiles, e.g. `Profile 'x' is not configured in '<configFile>'. Available profiles: a, b.`, reported once per
+  compilation (once per worker under `thread-loader`) instead of a `Module build failed` stack trace per module; without a configuration file the error is
   `Profile 'x' is passed but no websmith.config.json was found.`. A `depends` target missing from the loader's
   `config.profiles` is a configuration error too, and the `depends` error names the available profiles. The CLI
   reports the same errors and exits 1; before, `websmith --profile <unknown>` warned `Missing profile: …`, wrote
