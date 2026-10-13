@@ -33,7 +33,7 @@ pnpm install --frozen-lockfile   # Install (CI mode)
 pnpm build                       # Build all packages (nx run-many)
 pnpm lint                        # Lint (also runs in husky pre-commit)
 pnpm test                        # Unit + integration tests
-pnpm test:e2e                    # compiler-test / webpack-test end-to-end suites
+pnpm test:e2e                    # compiler-test / webpack-test / vite-test end-to-end suites
 pnpm dist                        # Full distribution build + e2e
 pnpm license:add                 # Add missing license headers
 ```
@@ -96,7 +96,8 @@ A PR is ready when:
 
 - `pnpm lint`, `pnpm test`, `pnpm build` and `pnpm test:e2e` pass (what `.github/workflows/pull-request.yml` runs).
 - Every code change has unit tests (see `docs/rules/testing.md`). Behaviour visible through the CLI, the webpack
-  loader or the addon API also gets an end-to-end case in `packages/compiler-test` or `packages/webpack-test`.
+  loader, the Vite plugin or the addon API also gets an end-to-end case in `packages/compiler-test`,
+  `packages/webpack-test` or `packages/vite-test`.
 - User-visible changes add an entry under `## [Unreleased]` in `Release-Notes.md`. Changes to CLI flags, config
   keys or the addon API update `README.md` or the affected `packages/*/README.md`. No changesets.
 - User-facing text is English.

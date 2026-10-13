@@ -239,7 +239,8 @@ it("should throw error for invalid input", () => {
 - **Unit and integration tests**: each package keeps `*.spec.ts` and `*.test.ts` files next to the sources in
   `src/`. Jest picks up `src/.*\.(test|spec)\.ts$`. `*.spec.ts` holds unit tests; `*.test.ts` holds broader
   integration-style tests (e.g. `Compiler.test.ts`).
-- **E2E tests**: `packages/compiler-test` (CLI) and `packages/webpack-test` (loader). Run with `pnpm test:e2e`.
+- **E2E tests**: `packages/compiler-test` (CLI), `packages/webpack-test` (loader) and `packages/vite-test` (Vite
+  plugin, on Vite 7 and on Vite 6 through the `vite6` alias). Run with `pnpm test:e2e`.
 - **Examples as fixtures**: `packages/example-addons` doubles as a reference and test fixture set.
 - **Helpers**: `packages/testing` provides `compileSystem`, `createFs`/`resetFs`, `ReporterMock` and `tsLibMocks`;
   inside core, `createSystem(files, { virtual: true })` from `src/environment` builds an in-memory `ts.System`.
