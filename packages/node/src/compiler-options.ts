@@ -16,6 +16,12 @@ export const tsDefaults: ts.CompilerOptions = {
     noEmit: true,
 };
 
+// The reverse map yields "Latest" for 99 and "LatestStandard" for 12 (nothing on TypeScript 5), neither is a --target value
+const SCRIPT_TARGET_NAMES: Record<number, string> = {
+    12: "ES2025",
+    99: "ESNext",
+};
+
 export const parseNumberValue = (key: string, value: number): string => {
     switch (key) {
         case "importsNotUsedAsValues":
@@ -33,11 +39,7 @@ export const parseNumberValue = (key: string, value: number): string => {
         case "newLine":
             return ts.NewLineKind[value];
         case "target":
-            // TODO: This is a bug in typescript 5.7.2 using value 99 for ESNext and Latest
-            if (value === 99) {
-                return "ESNext";
-            }
-            return ts.ScriptTarget[value];
+            return SCRIPT_TARGET_NAMES[value] ?? ts.ScriptTarget[value] ?? String(value);
         default:
             throw new Error(`Unknown key: "${key}" with number value: "${value}"`);
     }
