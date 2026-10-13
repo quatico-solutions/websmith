@@ -50,6 +50,22 @@ class ThrowingSetupCompiler extends ModuleCompiler {
     }
 }
 
+class RecordingCompiler extends ModuleCompiler {
+    public readonly calls: string[] = [];
+
+    protected prepareAddons(): void {
+        this.calls.push("prepareAddons");
+    }
+
+    protected applyAddons(): void {
+        this.calls.push("applyAddons");
+    }
+
+    protected onTargetEmitted(): void {
+        this.calls.push("onTargetEmitted");
+    }
+}
+
 describe("ModuleCompiler build", () => {
     it("yields fragment changed by processor addon from registry", () => {
         const testObj = createModuleCompiler({ ...MODULE_PACKAGE, "/src/a.ts": `export const x = "before";` }, { target: { addons: ["replacer"] } }, {
@@ -134,6 +150,28 @@ describe("ModuleCompiler build", () => {
         const actual = () => testObj.build("/src/a.ts");
 
         expect(actual).toThrow(new Error("Setup exploded"));
+    });
+
+    it("prepares addons after dependent profile writes and before addon step and target emit", () => {
+        const system = createSystem({ ...TS_CONFIG, "/src/a.ts": "export const a = 1;" }, { virtual: true });
+        const writeFile = system.writeFile.bind(system);
+        const testObj = new RecordingCompiler(
+            {
+                config: { profiles: { target: { depends: ["node"], tsConfig: { outDir: "/dist" } }, node: { tsConfig: { outDir: "/lib" } } } },
+                reporter: new NoReporter(),
+                cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] },
+            },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" },
+            system
+        );
+        system.writeFile = (fileName, ...rest) => {
+            testObj.calls.push(`write ${fileName}`);
+            writeFile(fileName, ...rest);
+        };
+
+        testObj.build("/src/a.ts");
+
+        expect(testObj.calls).toEqual(["write /lib/a.js", "prepareAddons", "applyAddons", "write /dist/a.js", "onTargetEmitted"]);
     });
 
     it("throws w/o system", () => {
