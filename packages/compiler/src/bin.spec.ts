@@ -269,7 +269,7 @@ describe("bin.ts", () => {
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         createSourceFile(
             `
@@ -300,7 +300,7 @@ describe("bin.ts", () => {
             declaration: true,
             declarationMap: true,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         copySourceFile("foobar-arrow.ts");
 
@@ -320,13 +320,13 @@ describe("bin.ts", () => {
             "export declare const getFoobar: (date: Date) => string;
             //# sourceMappingURL=foobar-arrow.d.ts.map"
         `);
-        expect(getOutput("foobar-arrow.d.ts.map")).toMatchInlineSnapshot(
-            `"{"version":3,"file":"foobar-arrow.d.ts","sourceRoot":"","sources":["../src/foobar-arrow.ts"],"names":[],"mappings":"AACA,eAAO,MAAM,SAAS,SAAU,IAAI,WAEnC,CAAC"}"`
-        );
+        const expectedMap = emitWithTsc()["foobar-arrow.d.ts.map"];
+        expect(expectedMap).toBeDefined();
+        expect(getOutput("foobar-arrow.d.ts.map")).toBe(expectedMap);
     }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", () => {
-        createTsConfigFile({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "es5", module: "commonjs" });
+        createTsConfigFile({ outDir: testDirs.OUTPUT_DIR, noEmit: false, target: "es2020", module: "commonjs" });
         createWebsmithConfig({
             profiles: {
                 target: {
@@ -335,7 +335,7 @@ describe("bin.ts", () => {
                         outDir: `${testDirs.OUTPUT_DIR}/target`,
                         target: ts.ScriptTarget.ESNext,
                         module: ts.ModuleKind.ESNext,
-                        moduleResolution: ts.ModuleResolutionKind.Node10,
+                        moduleResolution: ts.ModuleResolutionKind.Bundler,
                     },
                 },
             },
@@ -363,7 +363,7 @@ describe("bin.ts", () => {
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         copySourceFile("foobar-function.ts");
 
@@ -386,7 +386,7 @@ describe("bin.ts", () => {
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         createWebsmithConfig({
             addons: ["client-processor"],
@@ -414,7 +414,7 @@ describe("bin.ts", () => {
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         copySourceFile("foobar-function.ts");
 
@@ -437,7 +437,7 @@ describe("bin.ts", () => {
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         copySourceFile("foobar-function.ts");
 
@@ -461,7 +461,7 @@ describe("bin.ts", () => {
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         copySourceFile("foobar-function.ts");
 
@@ -494,7 +494,7 @@ describe("bin.ts", () => {
             outDir: testDirs.OUTPUT_DIR,
             noEmit: false,
             target: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         copySourceFile("foobar-function.ts");
 
@@ -778,11 +778,21 @@ describe("bin.ts", () => {
 
     const createTsConfig = (config: TscArguments, include: string[] = ["src/**/*"], exclude: string[] = ["node_modules", "dist"]) => {
         const tsConfig = {
-            compilerOptions: config,
+            compilerOptions: config.outDir && !config.rootDir ? { ...config, rootDir: "src" } : config,
             include,
             exclude,
         };
         return JSON.stringify(tsConfig, null, 2);
+    };
+
+    const emitWithTsc = (): Record<string, string> => {
+        const { config } = ts.readConfigFile(path.join(testDirs.PROJECT_DIR, "tsconfig.json"), ts.sys.readFile);
+        const { options, fileNames } = ts.parseJsonConfigFileContent(config, ts.sys, testDirs.PROJECT_DIR);
+        const result: Record<string, string> = {};
+        ts.createProgram(fileNames, options).emit(undefined, (fileName, text) => {
+            result[path.relative(testDirs.OUTPUT_DIR, fileName)] = text;
+        });
+        return result;
     };
 
     const createTsConfigFile = (config: TscArguments, include?: string[], exclude?: string[]) => {
