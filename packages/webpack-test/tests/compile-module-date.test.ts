@@ -24,9 +24,9 @@ const getTestDirs = () => {
 
 const ADDONS_DIR = path.join(__dirname, "..", "..", "example-addons", "src");
 
-const getTsDefaults = (OUTPUT_DIR: string) => ({
-    moduleResolution: ts.ModuleResolutionKind.Node10,
+const getTsDefaults = (OUTPUT_DIR: string, SOURCE_DIR: string) => ({
     outDir: OUTPUT_DIR,
+    rootDir: SOURCE_DIR,
     removeComments: true,
 });
 
@@ -99,7 +99,7 @@ afterEach(() => {
 
 describe("project bundling", () => {
     it("yields bundled output", async () => {
-        const tsDefaults = getTsDefaults(OUTPUT_DIR);
+        const tsDefaults = getTsDefaults(OUTPUT_DIR, SOURCE_DIR);
         const webpackDefaults = getWebpackDefaults(PROJECT_DIR, OUTPUT_DIR);
 
         writeWebsmithConfig(
