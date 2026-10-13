@@ -369,6 +369,8 @@ const setUpLoader = (
         getProfile: () => undefined,
         getOptions: () => ({ debug }),
         getConfigErrors: () => configErrors,
+        // The first module carries the config errors, see ModuleCompiler
+        takeUnreportedConfigErrors: (resourcePath: string) => (resourcePath === "/src/a.ts" ? configErrors : []),
         hasCompilationHooks: () => compilationHooks,
         getOptionsFiles: () => ({ files: ["/websmith.config.json", "/tsconfig.json", "/tsconfig.base.json"], missing: ["/tsconfig.gone.json"] }),
     };
@@ -377,10 +379,10 @@ const setUpLoader = (
     return build;
 };
 
-const createLoaderContext = (module?: { type: string }, compiler?: object) =>
+const createLoaderContext = (module?: { type: string }, compiler?: object, resourcePath = "/src/a.ts") =>
     ({
         ...(compiler && { _compiler: compiler }),
-        resourcePath: "/src/a.ts",
+        resourcePath,
         cacheable: jest.fn(),
         callback: jest.fn(),
         emitError: jest.fn(),
@@ -515,15 +517,27 @@ describe("loader", () => {
         expect(actual).toEqual(["Unknown profile 'whatever' in 'depends'."]);
     });
 
-    it("emits config errors on every module w/o compilation hooks", () => {
+    it("emits no config errors on second module w/o compilation hooks", () => {
         setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")]);
-        const target = createLoaderContext(undefined, {});
+        const target = createLoaderContext(undefined, {}, "/src/b.ts");
         loader.call(createLoaderContext(undefined, {}));
 
         loader.call(target);
-        const actual = jest.mocked(target.emitError).mock.calls.length;
+        const actual = jest.mocked(target.emitError).mock.calls;
 
-        expect(actual).toBe(1);
+        expect(actual).toEqual([]);
+    });
+
+    it("emits config errors again on carrier module w/o compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")]);
+        const target = createLoaderContext(undefined, {});
+        loader.call(createLoaderContext(undefined, {}));
+        loader.call(createLoaderContext(undefined, {}, "/src/b.ts"));
+
+        loader.call(target);
+        const actual = jest.mocked(target.emitError).mock.calls.map(([cur]) => cur.message);
+
+        expect(actual).toEqual(["Unknown profile 'whatever' in 'depends'."]);
     });
 
     it("emits no config errors through loader context w/ compilation hooks", () => {

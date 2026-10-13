@@ -38,9 +38,9 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     optionsFiles.files.forEach(cur => this.addDependency(cur));
     optionsFiles.missing.forEach(cur => this.addMissingDependency(cur));
     reportDiagnostics(this, diagnostics, options, instance.getOptions().debug ?? false);
-    // Without compilation hooks, e.g. under thread-loader, which passes a compiler stub, every module reports them
+    // Without compilation hooks, e.g. under thread-loader, which passes a compiler stub, the first module reports them
     if (!instance.hasCompilationHooks()) {
-        reportDiagnostics(this, instance.getConfigErrors(), options, false);
+        reportDiagnostics(this, instance.takeUnreportedConfigErrors(this.resourcePath), options, false);
     }
 
     // Set loader version based on the file's cache version to enable proper cache invalidation

@@ -134,7 +134,8 @@ class ConfigErrorReporter implements Reporter {
 
 /**
  * Compiles one module at a time for a bundler host, without depending on a bundler. The host calls `build` per module
- * and reports its diagnostics, reports `getConfigErrors` once per compilation, and calls `refreshOptions`,
+ * and reports its diagnostics, reports `getConfigErrors` once per compilation, or without compilation hooks
+ * `takeUnreportedConfigErrors` per module, and calls `refreshOptions`,
  * `refreshAddons` and `resetCompilationCaches` when its compilations start. A host that applies addons of its own
  * overrides `applyAddons`, and `prepareAddons` if they need setting up first; without that, the addons come from the
  * `AddonRegistry` of the host options.
@@ -151,6 +152,9 @@ export class ModuleCompiler extends Compiler {
     private optionsFiles: ModuleBuildResult["dependencies"] = { files: [], missing: [] };
     private readonly optionsFileTimes = new Map<string, number | undefined>();
     private addonsStamp?: string;
+    // Until the next option resolution: Compiler's constructor resolves the options before these fields exist
+    private readonly fileLessErrors = new Map<string, ts.Diagnostic>();
+    private readonly configErrorCarriers = new Map<string, string>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -174,18 +178,46 @@ export class ModuleCompiler extends Compiler {
         return this.profile;
     }
 
-    /** Resolves the options and keeps their configuration errors for `getConfigErrors` instead of reporting them. */
+    /**
+     * Resolves the options and keeps their configuration errors for `getConfigErrors` instead of reporting them. Drops
+     * the file-less errors of the builds with the previous options.
+     */
     public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
+        // Undefined while Compiler's constructor resolves the options
+        this.fileLessErrors?.clear();
+        this.configErrorCarriers?.clear();
         const reporter = this.getReporter();
         return reporter instanceof ConfigErrorReporter
             ? reporter.collect(() => super.setOptions(options, loaderOptions))
             : super.setOptions(options, loaderOptions);
     }
 
-    /** Returns the configuration errors of the last option resolution: of the selected profile and its dependencies. */
+    /**
+     * Returns the configuration errors of the last option resolution, of the selected profile and its dependencies,
+     * then the TypeScript errors without a file that builds returned since, e.g. option errors such as TS5095.
+     */
     public getConfigErrors(): ts.Diagnostic[] {
         const reporter = this.getReporter();
-        return reporter instanceof ConfigErrorReporter ? reporter.errors : [];
+        return [...(reporter instanceof ConfigErrorReporter ? reporter.errors : []), ...this.fileLessErrors.values()];
+    }
+
+    /**
+     * Returns the configuration errors that no other module received since the last option resolution, for a host
+     * without compilation hooks to report on the module `resourcePath`. The first module to receive an error carries it:
+     * it receives the error again on every build, since a host replaces the errors of a rebuilt module.
+     */
+    public takeUnreportedConfigErrors(resourcePath: string): ts.Diagnostic[] {
+        const taken = new Set<string>();
+        return this.getConfigErrors().filter(cur => {
+            const key = ModuleCompiler.getDiagnosticKey(cur);
+            const carrier = this.configErrorCarriers.get(key) ?? resourcePath;
+            this.configErrorCarriers.set(key, carrier);
+            if (carrier !== resourcePath || taken.has(key)) {
+                return false;
+            }
+            taken.add(key);
+            return true;
+        });
     }
 
     /**
@@ -342,7 +374,10 @@ export class ModuleCompiler extends Compiler {
         this.logDebug(`Emitting source file: ${filePath} with profile: ${this.profile || "default"}`);
         const result = this.emitSourceFile(filePath, this.profile, true);
         this.onTargetEmitted(filePath);
-        diagnostics.push(...(result.diagnostics ?? []), ...this.checkLoaderOutput(this.profile, filePath, result.files, moduleKind, onDependency));
+        diagnostics.push(
+            ...this.takeFileLessErrors(result.diagnostics ?? []),
+            ...this.checkLoaderOutput(this.profile, filePath, result.files, moduleKind, onDependency)
+        );
 
         this.logDebug(`Emit result: ${result.files.length} files generated`);
         if (result.files.length > 0) {
@@ -449,6 +484,21 @@ export class ModuleCompiler extends Compiler {
         }
     }
 
+    /**
+     * Keeps the TypeScript errors without a file of `diagnostics` as configuration errors and returns the others: every
+     * module of the fast path returns the same option errors. websmith's own diagnostics without a file (code 0) and
+     * warnings stay on the module.
+     */
+    private takeFileLessErrors(diagnostics: readonly ts.Diagnostic[]): ts.Diagnostic[] {
+        return diagnostics.filter(cur => {
+            if (!cur.file && cur.code > 0 && cur.category === ts.DiagnosticCategory.Error) {
+                this.fileLessErrors.set(ModuleCompiler.getDiagnosticKey(cur), cur);
+                return false;
+            }
+            return true;
+        });
+    }
+
     /** Records the files of the resolved options and their modification times, and reports profiles that are not ESM. */
     private completeResolution(): void {
         this.recordOptionsFiles();
@@ -502,6 +552,10 @@ export class ModuleCompiler extends Compiler {
             .readDirectory(addonsDir, undefined, ["**/node_modules"])
             .map(cur => `${cur}:${this.getModifiedTime(cur)}`)
             .join("\n");
+    }
+
+    private static getDiagnosticKey({ file, start, code, messageText }: ts.Diagnostic): string {
+        return [file?.fileName, start, code, ts.flattenDiagnosticMessageText(messageText, "\n")].join("\0");
     }
 
     private static createCompilationCaches(): Pick<EsmCheckContext, "packageTypeCache" | "cjsNamesCache"> {
