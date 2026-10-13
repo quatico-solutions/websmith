@@ -207,7 +207,7 @@ string. This plan writes the package fresh off `develop` and keeps only the atte
 
 ### Tracer
 
-- `feature/vite-plugin-tracer` — `packages/vite` with `websmith()`, a `pre` `transform` (`{ filter, handler }`, `createFilter`, query and `\0` ids skipped) that compiles one module through `ModuleCompiler` with `configFile` and `profile`, `.tsx` compiled with `jsx: "preserve"`, addons from the core `AddonRegistry`; `packages/vite-test` wired into `pnpm test:e2e`; unit tests for id filtering and option mapping; e2e: `vite build` shows a processor addon's change in the bundle, a `.tsx` module, a `?raw` import left untouched, the build case also on Vite 6 <!-- builds: websmith() Vite plugin factory, packages/vite-test in test:e2e -->
+- `feature/vite-plugin-tracer` — `packages/vite` with `websmith()`, a `pre` `transform` (`{ filter, handler }`, `createFilter`, query and `\0` ids skipped) that compiles one module through `ModuleCompiler` with `configFile` and `profile`, `.tsx` compiled with `jsx: "preserve"`, addons from the core `AddonRegistry`; `packages/vite-test` wired into `pnpm test:e2e`; unit tests for id filtering and option mapping; e2e: `vite build` shows a processor addon's change in the bundle, a `.tsx` module, a `?raw` import left untouched, the build case also on Vite 6 → #182 <!-- builds: websmith() Vite plugin factory, packages/vite-test in test:e2e -->
   Layers: Vite plugin → neutral module compiler → addons → bundle
   Proves: websmith addons run inside `vite build`
 
