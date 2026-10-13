@@ -342,7 +342,7 @@ export { getFoobar };
             declarationMap: true,
             target: "esnext",
             module: "esnext",
-            moduleResolution: "node",
+            moduleResolution: "bundler",
         });
 
         // Create multiple TypeScript files in different directories
@@ -381,7 +381,7 @@ export { getFoobar };
             declarationMap: true,
             target: "esnext",
             module: "esnext",
-            moduleResolution: "node",
+            moduleResolution: "bundler",
         });
 
         // Create multiple directories with index.ts files
@@ -481,7 +481,7 @@ export { getFoobar };
             declarationMap: true,
             target: "esnext",
             module: "esnext",
-            moduleResolution: "node",
+            moduleResolution: "bundler",
         });
 
         // Create multiple directories with index.ts files to test path preservation
@@ -589,7 +589,7 @@ export { getFoobar };
                 declarationMap: true,
                 target: "esnext",
                 module: "esnext",
-                moduleResolution: "node",
+                moduleResolution: "bundler",
             },
             include: ["src/**/*"], // This should help infer rootDir as the src directory
             exclude: ["node_modules", "dist"],
@@ -660,7 +660,7 @@ export { getFoobar };
                 declarationMap: true,
                 target: "esnext",
                 module: "esnext",
-                moduleResolution: "node",
+                moduleResolution: "bundler",
             },
             include: [
                 "../external-src/**/*", // Include patterns pointing outside config directory
@@ -798,7 +798,7 @@ export { getFoobar };
                 declarationMap: true,
                 target: "esnext",
                 module: "esnext",
-                moduleResolution: "node",
+                moduleResolution: "bundler",
             },
             include: [
                 "src/**/*", // Points to config/src (doesn't exist, but pattern is there)
@@ -920,7 +920,7 @@ export { getFoobar };
             declarationMap: true,
             target: "esnext",
             module: "esnext",
-            moduleResolution: "node",
+            moduleResolution: "bundler",
         });
 
         // Create a complex nested structure similar to your real project
