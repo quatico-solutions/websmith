@@ -7,6 +7,7 @@
 import { AddonRegistry, DefaultReporter, ModuleCompiler } from "@quatico/websmith-core";
 import ts from "typescript";
 import { createFilter, type Plugin, type Rollup } from "vite";
+import { selectConfigErrors } from "./config-errors";
 import { isCompiledId } from "./module-ids";
 import { createHookFilter, resolveViteOptions, type ResolvedViteOptions, type WebsmithViteOptions } from "./options";
 
@@ -19,10 +20,8 @@ const JS_MAP_FILE = /\.(?:[cm]?js|jsx)\.map$/i;
 // Keeps JSX for Vite's own JSX handling, in the fragment returned to Vite only
 const TARGET_COMPILER_OPTIONS: ts.CompilerOptions = { jsx: ts.JsxEmit.Preserve, sourceMap: true, inlineSourceMap: false };
 
-const formatErrors = (diagnostics: readonly ts.Diagnostic[]): string | undefined => {
-    const errors = diagnostics.filter(cur => cur.category === ts.DiagnosticCategory.Error);
-    return errors.length > 0 ? errors.map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n")).join("\n") : undefined;
-};
+const formatErrors = (errors: readonly ts.Diagnostic[]): string | undefined =>
+    errors.length > 0 ? errors.map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n")).join("\n") : undefined;
 
 /**
  * Creates the websmith Vite plugin: it compiles the TypeScript modules of the bundle with websmith and the addons of
@@ -32,6 +31,7 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
     let resolved: ResolvedViteOptions | undefined;
     let filter: (id: string) => boolean = () => false;
     let compiler: ModuleCompiler | undefined;
+    let command: "build" | "serve" = "build";
 
     return {
         name: "websmith",
@@ -39,6 +39,7 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
         configResolved(config) {
             resolved = resolveViteOptions(options, config.root, createFilter);
             filter = resolved.filter;
+            command = config.command;
         },
         buildStart() {
             if (compiler) {
@@ -59,7 +60,7 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
                     return null;
                 }
                 const { fragment, diagnostics } = compiler.build(id, { moduleKind: "esm" });
-                const errors = formatErrors(diagnostics);
+                const errors = formatErrors(selectConfigErrors("build", undefined, diagnostics));
                 if (errors) {
                     this.error(errors);
                 }
@@ -77,8 +78,9 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
         // The compiler keeps option errors and TypeScript errors without a file out of the module diagnostics. Without
         // webpack's afterCompile, the build reports them once at its end: getConfigErrors holds those of all modules,
         // where takeUnreportedConfigErrors would leave them on a carrier module a watch rebuild may not transform again.
+        // Reporting them in the dev server belongs to the feature/vite-plugin-dev-server slice: its buildEnd runs on close.
         buildEnd(error) {
-            const errors = !error && compiler ? formatErrors(compiler.getConfigErrors()) : undefined;
+            const errors = compiler ? formatErrors(selectConfigErrors(command, error, compiler.getConfigErrors())) : undefined;
             if (errors) {
                 this.error(errors);
             }
