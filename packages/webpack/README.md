@@ -108,7 +108,8 @@ rebuild that reports its current errors and compiles the loader's modules again 
 compiler hooks, e.g. under `thread-loader`, each worker emits the configuration errors on the first module it builds
 instead, and again whenever that module is rebuilt, so they appear once per worker. With webpack's persistent cache
 (`cache: { type: "filesystem" }`), a build that restores every module from the cache runs no loader and reports
-no configuration errors.
+no configuration errors. The modules of an unconfigured `profile` stay out of the cache, so its error is reported
+in every build.
 
 #### Option resolution and addon lifetime
 
