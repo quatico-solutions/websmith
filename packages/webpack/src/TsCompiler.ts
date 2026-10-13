@@ -87,6 +87,13 @@ export class TsCompiler extends ModuleCompiler {
         }
     }
 
+    protected prepareAddons(): void {
+        // Lazy, so the full configuration is available first
+        if (!this.webpackAddonService) {
+            this.setupWebpackAddonService();
+        }
+    }
+
     protected applyAddons(filePath: string): void {
         this.applyAddonFunctionality(filePath, { version: 0, files: [], writtenFiles: [], diagnostics: [] });
     }
@@ -141,11 +148,6 @@ export class TsCompiler extends ModuleCompiler {
     }
 
     private applyAddonFunctionality(filePath: string, result: CompileFragment): void {
-        // Ensure addon service is initialized (lazy initialization)
-        if (!this.webpackAddonService) {
-            this.setupWebpackAddonService();
-        }
-
         if (!this.webpackAddonService) {
             return;
         }

@@ -44,6 +44,12 @@ class ThrowingAddonsCompiler extends ModuleCompiler {
     }
 }
 
+class ThrowingSetupCompiler extends ModuleCompiler {
+    protected prepareAddons(): void {
+        throw new Error("Setup exploded");
+    }
+}
+
 describe("ModuleCompiler build", () => {
     it("yields fragment changed by processor addon from registry", () => {
         const testObj = createModuleCompiler({ ...MODULE_PACKAGE, "/src/a.ts": `export const x = "before";` }, { target: { addons: ["replacer"] } }, {
@@ -115,6 +121,19 @@ describe("ModuleCompiler build", () => {
 
         expect(actual).toEqual([[ts.DiagnosticCategory.Error, "Addon processing failed: Addon exploded"]]);
         expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("throws setup error w/ throwing host addon setup", () => {
+        const system = createSystem({ ...TS_CONFIG, "/src/a.ts": "export const a = 1;" }, { virtual: true });
+        const testObj = new ThrowingSetupCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: true },
+            system
+        );
+
+        const actual = () => testObj.build("/src/a.ts");
+
+        expect(actual).toThrow(new Error("Setup exploded"));
     });
 
     it("throws w/o system", () => {

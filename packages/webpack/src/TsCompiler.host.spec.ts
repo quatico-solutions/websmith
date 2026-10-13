@@ -77,6 +77,17 @@ describe("TsCompiler addon step", () => {
         expect(actual).toEqual([]);
     });
 
+    it("throws setup error w/ throwing addon service setup", () => {
+        jest.spyOn(WebpackAddonService.prototype, "getAvailableAddons").mockImplementation(() => {
+            throw new Error("Setup exploded");
+        });
+        const testObj = createAddonCompiler(createLoaderContext());
+
+        const actual = () => testObj.build("/src/a.ts");
+
+        expect(actual).toThrow(new Error("Setup exploded"));
+    });
+
     it("runs no result processor of target profile w/ several builds", () => {
         const target = jest.fn();
         jest.spyOn(WebpackAddonService.prototype, "applyAddonsToContext").mockImplementation((context: CompilationContext) => {

@@ -327,6 +327,9 @@ export class ModuleCompiler extends Compiler {
                 });
         }
 
+        // A host whose addons cannot be set up fails the build
+        this.prepareAddons();
+
         // Apply addon transformations BEFORE compilation to register transformers
         try {
             this.applyAddons(filePath);
@@ -372,6 +375,11 @@ export class ModuleCompiler extends Compiler {
      */
     protected applyAddons(_filePath: string): void {
         // The registry's addons are activated with the compilation contexts
+    }
+
+    /** Sets up the host's own addons before its addon step. A throw fails the build, unlike a throw of `applyAddons`. */
+    protected prepareAddons(): void {
+        // Nothing to set up without a host
     }
 
     /** Validates the host's profile on a new option resolution; returns the profile to build with. */
