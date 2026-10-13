@@ -128,6 +128,10 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   `depends` chains a dependency's `tsConfig` is merged before the profiles that depend on it.
 - Loader-option `tsConfig` and inline `config.profiles` accept option names such as `module: "NodeNext"`, as
   `tsconfig.json` does, and report unknown names as configuration errors.
+- `lib` names in a profile `tsConfig` of `websmith.config.json` (e.g. `"lib": ["ES2022"]`) are converted the way
+  `tsconfig.json` converts them. Before, they were passed as written and declarations degraded to `any`. File names
+  such as `"lib.es2022.d.ts"` keep working. An unknown name is reported as an error and fails the build; the valid
+  entries of the list are kept, as `tsc` does. Loader-option `tsConfig` and inline profiles too.
 
 ### Removed
 
