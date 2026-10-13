@@ -4,6 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { ErrorMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
 import { type CompileFragment } from "@quatico/websmith-core";
 import ts from "typescript";
 import { createWebsmithHooks, type HookCompiler, type HookContext } from "./hooks";
@@ -17,14 +18,20 @@ const fragment = (files: Record<string, string> = {}): CompileFragment => ({
     writtenFiles: [],
 });
 
-const diagnostic = (messageText: string, category = ts.DiagnosticCategory.Error): ts.Diagnostic => ({
+const FILE = ts.createSourceFile(MAIN, "const a = 1;\nexport const x = ;\n", ts.ScriptTarget.ES2022);
+const START = "const a = 1;\nexport const x = ".length;
+
+const diagnostic = (messageText: string, category = ts.DiagnosticCategory.Error, position?: { file: ts.SourceFile; start: number }): ts.Diagnostic => ({
     category,
     code: 1,
-    file: undefined,
-    start: undefined,
+    file: position?.file,
+    start: position?.start,
     length: undefined,
     messageText,
 });
+
+const build = (diagnostics: ts.Diagnostic[], files: Record<string, string> = {}): HookCompiler["build"] =>
+    jest.fn(() => ({ fragment: fragment(files), diagnostics, dependencies: { files: [], missing: [] } }));
 
 const createCompiler = (overrides: Partial<HookCompiler> = {}): HookCompiler => ({
     build: jest.fn(() => ({ fragment: fragment({ "main.js": "export const x = 1;" }), diagnostics: [], dependencies: { files: [], missing: [] } })),
@@ -106,15 +113,95 @@ describe("createWebsmithHooks", () => {
         });
 
         it("should raise error w/ error diagnostic", () => {
-            const compiler = createCompiler({
-                build: jest.fn(() => ({ fragment: fragment(), diagnostics: [diagnostic("BOOM")], dependencies: { files: [], missing: [] } })),
-            });
+            const compiler = createCompiler({ build: build([diagnostic("BOOM")]) });
             const testObj = createHooks(compiler);
             testObj.buildStart.call(createContext());
 
             const actual = () => testObj.transformHandler.call(createContext(), "whatever", MAIN);
 
             expect(actual).toThrow("BOOM");
+        });
+
+        it("should raise one error with every message and loc w/ two error diagnostics", () => {
+            const compiler = createCompiler({ build: build([diagnostic("First"), diagnostic("Second", ts.DiagnosticCategory.Error, { file: FILE, start: START })]) });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+            const target = createContext();
+
+            expect(() => testObj.transformHandler.call(target, "whatever", MAIN)).toThrow();
+            const actual = target.error;
+
+            expect(actual).toHaveBeenCalledWith({ message: `First\n${MAIN} (2,18): Second`, loc: { file: MAIN, line: 2, column: 17 } });
+        });
+
+        it("should warn once per warning w/ two warning diagnostics", () => {
+            const compiler = createCompiler({ build: build([diagnostic("One", ts.DiagnosticCategory.Warning), diagnostic("Two", ts.DiagnosticCategory.Warning)]) });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+            const target = createContext();
+
+            testObj.transformHandler.call(target, "whatever", MAIN);
+            const actual = target.warn;
+
+            expect(actual).toHaveBeenCalledTimes(2);
+        });
+
+        it("should warn with loc w/ positioned warning", () => {
+            const compiler = createCompiler({ build: build([diagnostic("ESM91001", ts.DiagnosticCategory.Warning, { file: FILE, start: START })]) });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+            const target = createContext();
+
+            testObj.transformHandler.call(target, "whatever", MAIN);
+            const actual = target.warn;
+
+            expect(actual).toHaveBeenCalledWith({ message: `${MAIN} (2,18): ESM91001`, loc: { file: MAIN, line: 2, column: 17 } });
+        });
+
+        it("should return output w/ warning only", () => {
+            const compiler = createCompiler({ build: build([diagnostic("One", ts.DiagnosticCategory.Warning)], { "main.js": "whatever" }) });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+
+            const actual = testObj.transformHandler.call(createContext(), "whatever", MAIN);
+
+            expect(actual).toEqual({ code: "whatever", map: null });
+        });
+
+        it("should raise error w/ processor throw reported through reporter", () => {
+            let reporter: Reporter | undefined;
+            const compiler = createCompiler({
+                build: jest.fn(() => {
+                    reporter?.reportDiagnostic(new ErrorMessage('Error in processor "thrower": Error: BOOM_PROCESSOR'));
+                    return { fragment: fragment({ "main.js": "whatever" }), diagnostics: [], dependencies: { files: [], missing: [] } };
+                }),
+            });
+            const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), compiler) });
+            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.buildStart.call(createContext());
+
+            const actual = () => testObj.transformHandler.call(createContext(), "whatever", MAIN);
+
+            expect(actual).toThrow("BOOM_PROCESSOR");
+        });
+
+        it("should warn w/ addon warning reported through reporter", () => {
+            let reporter: Reporter | undefined;
+            const compiler = createCompiler({
+                build: jest.fn(() => {
+                    reporter?.reportDiagnostic(new WarnMessage("ADDON_WARNING"));
+                    return { fragment: fragment({ "main.js": "whatever" }), diagnostics: [], dependencies: { files: [], missing: [] } };
+                }),
+            });
+            const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), compiler) });
+            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.buildStart.call(createContext());
+            const target = createContext();
+
+            testObj.transformHandler.call(target, "whatever", MAIN);
+            const actual = target.warn;
+
+            expect(actual).toHaveBeenCalledWith("ADDON_WARNING");
         });
     });
 
