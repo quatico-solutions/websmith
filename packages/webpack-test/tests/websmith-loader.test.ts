@@ -163,7 +163,7 @@ describe("webpack w/ websmith", () => {
         expect(actual).toMatch(/successfully/);
     }, 60000);
 
-    it("should throw error with transpileOnly false", async () => {
+    it("should fail w/ profile and missing config file", async () => {
         writeWebsmithConfig({
             addonsDir: ADDONS_DIR,
             profiles: {
@@ -182,18 +182,21 @@ describe("webpack w/ websmith", () => {
                     profile: "valid",
                 },
             })
-        ).rejects.toThrow(/Error: No profile with name "valid" configured./);
+        ).rejects.toThrow(/Profile 'valid' is passed but no websmith\.config\.json was found\./);
     }, 60000);
 
     it("should throw error with unknown profile name", async () => {
-        writeWebsmithConfig({
-            addonsDir: ADDONS_DIR,
-            profiles: {
-                existing: {
-                    addons: ["export-yaml-generator"],
+        writeWebsmithConfig(
+            {
+                addonsDir: ADDONS_DIR,
+                profiles: {
+                    existing: {
+                        addons: ["export-yaml-generator"],
+                    },
                 },
             },
-        });
+            testDirs.PROJECT_DIR
+        );
 
         await expect(() =>
             webpack(undefined, {
@@ -204,7 +207,7 @@ describe("webpack w/ websmith", () => {
                     profile: "unknown",
                 },
             })
-        ).rejects.toThrow(`Error: No profile with name "unknown" configured.`);
+        ).rejects.toThrow(/Profile 'unknown' is not configured in '.*websmith\.config\.json'\. Available profiles: existing\./);
     }, 60000);
 
     it("should use configured profile with profile name", async () => {
