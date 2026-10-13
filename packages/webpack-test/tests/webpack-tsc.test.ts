@@ -32,7 +32,7 @@ const webpackDefaults = {
     },
 };
 
-const itOnTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6 ? it : it.skip;
+const describeOnTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6 ? describe : describe.skip;
 
 beforeEach(() => {
     jest.spyOn(process.stdout, "write").mockImplementation(() => true); // Don't show extensive log messages in tests
@@ -93,9 +93,8 @@ describe("webpack w/ ts-loader", () => {
         expect(getOutput("main.js")).toMatchSnapshot();
     }, 60000);
 
-    itOnTs5(
-        "should build foobar-arrow.js with ES5 target on TypeScript 5",
-        async () => {
+    describeOnTs5("on TypeScript 5", () => {
+        it("should build foobar-arrow.js with ES5 target", async () => {
             writeTsConfig({
                 target: ts.ScriptTarget.ES5,
             });
@@ -110,13 +109,9 @@ describe("webpack w/ ts-loader", () => {
             });
 
             expect(getOutput("main.js")).toMatchSnapshot();
-        },
-        60000
-    );
+        }, 60000);
 
-    itOnTs5(
-        "should build foobar-function.js with ES5 target on TypeScript 5",
-        async () => {
+        it("should build foobar-function.js with ES5 target", async () => {
             writeTsConfig({
                 target: ts.ScriptTarget.ES5,
             });
@@ -131,9 +126,8 @@ describe("webpack w/ ts-loader", () => {
             });
 
             expect(getOutput("main.js")).toMatchSnapshot();
-        },
-        60000
-    );
+        }, 60000);
+    });
 
     it("should build foobar-arrow.js with ESNEXT and ESM target", async () => {
         writeTsConfig({

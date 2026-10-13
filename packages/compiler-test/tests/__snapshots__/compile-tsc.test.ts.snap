@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`compile w/ tsc should build foobar-arrow.js with ES5 target on TypeScript 5 1`] = `
+exports[`compile w/ tsc on TypeScript 5 should build foobar-arrow.js with ES5 target 1`] = `
 ""use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getFoobar = void 0;

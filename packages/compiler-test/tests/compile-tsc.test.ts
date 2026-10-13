@@ -18,7 +18,7 @@ const tsDefaults = {
     removeComments: true,
 };
 
-const itOnTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6 ? it : it.skip;
+const describeOnTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6 ? describe : describe.skip;
 
 beforeAll(() => {
     fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
@@ -55,9 +55,8 @@ describe("compile w/ tsc", () => {
         fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
     }, 60000);
 
-    itOnTs5(
-        "should build foobar-arrow.js with ES5 target on TypeScript 5",
-        async () => {
+    describeOnTs5("on TypeScript 5", () => {
+        it("should build foobar-arrow.js with ES5 target", async () => {
             await compile([path.join(SOURCE_DIR, "foobar-arrow.ts")], {
                 // ES5 implies module CommonJS, where an unset moduleResolution is node10 and bundler is TS5095
                 tsConfig: {
@@ -70,7 +69,6 @@ describe("compile w/ tsc", () => {
             expect(fs.readFileSync(path.join(OUTPUT_DIR, "foobar-arrow.js"), "utf-8")).toMatchSnapshot();
 
             fs.rmSync(OUTPUT_DIR, { recursive: true, force: true });
-        },
-        60000
-    );
+        }, 60000);
+    });
 });
