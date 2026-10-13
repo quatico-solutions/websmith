@@ -311,7 +311,7 @@ deprecation errors" is answered yes.
 
 ### 7.1 bench
 
-- `infra/typescript-7-1-bench` — benchmark harness beside `packages/webpack-test/perf/esm-watch-bench.cjs`, in no suite: workloads (a)-(f), interleaved runs, the seeded corpus generator, the pinned nightly with integrity hash in an isolated directory, IPC encoding and payload bytes, the `before`-transformer probe script. Test: a dry run with 20 modules and 1 run per variant completes on 5.7.3, 6.0.3 and the nightly and prints every metric the decision rule needs; `pnpm lint` and the Definition of Done green (no product code) <!-- builds: ts71 IPC benchmark harness -->
+- `infra/typescript-7-1-bench` — benchmark harness beside `packages/webpack-test/perf/esm-watch-bench.cjs`, in no suite: workloads (a)-(f), interleaved runs, the seeded corpus generator, the pinned nightly with integrity hash in an isolated directory, IPC encoding and payload bytes, the `before`-transformer probe script. Test: a dry run with 20 modules and 1 run per variant completes on 5.7.3, 6.0.3 and the nightly and prints every metric the decision rule needs; `pnpm lint` and the Definition of Done green (no product code) <!-- builds: ts71 IPC benchmark harness --> → #190
 
 ### 7.1 measurement
 
