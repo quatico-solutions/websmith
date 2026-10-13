@@ -290,6 +290,55 @@ describe("ModuleCompiler options", () => {
     });
 });
 
+describe("ModuleCompiler target compiler options", () => {
+    const VIEW_SOURCE = `declare const h: unknown;\nexport const view = <div id="v" />;`;
+
+    const createJsxCompiler = (): { testObj: ModuleCompiler; system: ts.System } => {
+        const system = createSystem({ ...TS_CONFIG, "/src/v.tsx": VIEW_SOURCE }, { virtual: true });
+        const testObj = new ModuleCompiler(
+            {
+                config: {
+                    profiles: {
+                        target: { depends: ["dep"], tsConfig: { jsx: ts.JsxEmit.ReactJSX, outDir: "/dist" } },
+                        dep: { tsConfig: { jsx: ts.JsxEmit.ReactJSX, outDir: "/lib" } },
+                    },
+                },
+                reporter: new NoReporter(),
+                cliArgs: { options: {}, fileNames: ["/src/v.tsx"], errors: [] },
+            },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" },
+            system,
+            { targetCompilerOptions: { jsx: ts.JsxEmit.Preserve } }
+        );
+        return { testObj, system };
+    };
+
+    it("yields fragment w/ preserved jsx w/ jsx preserve target option and react-jsx profile", () => {
+        const { testObj } = createJsxCompiler();
+
+        const actual = testObj.build("/src/v.tsx").fragment.files.find(cur => cur.name.endsWith(".jsx"))?.text;
+
+        expect(actual).toContain(`<div id="v"/>`);
+    });
+
+    it("writes compiled jsx of dependent profile w/ jsx preserve target option", () => {
+        const { testObj, system } = createJsxCompiler();
+
+        testObj.build("/src/v.tsx");
+
+        expect(system.readFile("/lib/v.js")).toContain("_jsx(");
+    });
+
+    it("yields fragment w/ preserved jsx after updateLoaderConfig w/ jsx preserve target option", () => {
+        const { testObj } = createJsxCompiler();
+        testObj.updateLoaderConfig({ tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" });
+
+        const actual = testObj.build("/src/v.tsx").fragment.files.map(cur => path.extname(cur.name));
+
+        expect(actual).toContain(".jsx");
+    });
+});
+
 describe("ModuleCompiler option errors", () => {
     const INVALID_TS_CONFIG = {
         "/tsconfig.json": JSON.stringify({

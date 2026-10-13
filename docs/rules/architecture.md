@@ -44,10 +44,11 @@ pnpm workspace; every package lives under `packages/`.
 | `core` | Shared compiler implementation and utilities (internal) | `src/compiler/`, `src/environment/` |
 | `compiler` | `websmith` CLI, drop-in replacement for `tsc` | `src/bin.ts`, `src/command.ts` |
 | `webpack` | `websmith-loader` webpack integration | `src/loader.ts`, `src/TsCompiler.ts` |
+| `vite` | `@quatico/websmith-vite` Vite plugin (private until released) | `src/plugin.ts`, `src/options.ts` |
 | `testing` | Test helpers, mock systems, fixtures | `src/` |
 | `node` | Node.js specific `ts.System` implementation | `src/` |
 | `example-addons` | Reference addons for addon developers | `src/*/addon.ts` |
-| `compiler-test`, `webpack-test` | End-to-end suites for CLI and loader | — |
+| `compiler-test`, `webpack-test`, `vite-test` | End-to-end suites for CLI, loader and Vite plugin | — |
 
 ### api exports
 

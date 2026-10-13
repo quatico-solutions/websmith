@@ -1,0 +1,84 @@
+{
+    "name": "@quatico/websmith-vite",
+    "version": "0.10.0",
+    "description": "A Vite plugin for the websmith compiler",
+    "author": "Quatico Solutions AG",
+    "license": "MIT",
+    "private": true,
+    "engines": {
+        "node": ">=22.12"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/quatico-solutions/websmith.git"
+    },
+    "bugs": {
+        "url": "https://github.com/quatico-solutions/websmith/issues"
+    },
+    "homepage": "https://github.com/quatico-solutions/websmith#readme",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "exports": {
+        ".": {
+            "import": {
+                "types": "./lib/index.d.mts",
+                "default": "./lib/index.mjs"
+            },
+            "require": {
+                "types": "./lib/index.d.ts",
+                "default": "./lib/index.js"
+            }
+        },
+        "./package.json": "./package.json"
+    },
+    "files": [
+        "README.md",
+        "lib"
+    ],
+    "scripts": {
+        "clean": "rimraf lib coverage test-output test-temp",
+        "lint": "eslint \"{src,tests}/**/*.{js,ts,tsx,mts}\" --color",
+        "lint:fix": "eslint \"{src,tests}/**/*.{js,ts,tsx,mts}\" --color --fix",
+        "build": "tsc",
+        "typecheck": "tsc --project tsconfig.test.json",
+        "watch": "tsc --watch",
+        "watch:test": "jest --testRegex=\".*\\.spec\\.ts$\" --watch",
+        "test": "jest --testRegex=\".*\\.spec\\.ts$\" --coverage",
+        "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
+    },
+    "dependencies": {
+        "@quatico/websmith-api": "workspace:*",
+        "@quatico/websmith-core": "workspace:*"
+    },
+    "peerDependencies": {
+        "typescript": ">=5.7 <7",
+        "vite": "^6.3.0 || ^7.0.0"
+    },
+    "devDependencies": {
+        "@eslint/compat": "^1.2.6",
+        "@eslint/js": "^9.19.0",
+        "@nx/eslint-plugin": "^22.7.12",
+        "@types/jest": "^29.5.14",
+        "@types/node": "24.13.6",
+        "@typescript-eslint/eslint-plugin": "8.58.0",
+        "@typescript-eslint/parser": "8.58.0",
+        "@typescript-eslint/utils": "8.58.0",
+        "eslint": "^9.19.0",
+        "eslint-config-prettier": "^10.0.1",
+        "eslint-import-resolver-alias": "^1.1.2",
+        "eslint-import-resolver-typescript": "^3.6.3",
+        "eslint-plugin-import": "^2.31.0",
+        "eslint-plugin-jest": "^29.0.1",
+        "eslint-plugin-prettier": "^5.2.3",
+        "eslint-plugin-testing-library": "^7.1.1",
+        "eslint-plugin-unicorn": "^56.0.1",
+        "globals": "^15.14.0",
+        "jest": "^29.7.0",
+        "prettier": "^3.4.2",
+        "rimraf": "^6.0.1",
+        "ts-jest": "^29.4.7",
+        "typescript": "5.7.3",
+        "typescript-eslint": "8.58.0",
+        "vite": "^7.3.0"
+    }
+}

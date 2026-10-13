@@ -65,7 +65,7 @@ pnpm build                  # build all packages
 pnpm typecheck              # type-check all packages
 pnpm lint / pnpm lint:fix   # lint / auto-fix
 pnpm test                   # unit + integration tests
-pnpm test:e2e               # compiler-test + webpack-test
+pnpm test:e2e               # compiler-test + webpack-test + vite-test
 pnpm test:update-snapshots  # update Jest snapshots
 pnpm watch / watch:test     # watch builds / tests (parallel)
 pnpm dist                   # dist targets + e2e
