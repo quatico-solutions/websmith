@@ -600,4 +600,70 @@ describe("ModuleCompiler option errors", () => {
 
         expect(actual).toEqual([]);
     });
+
+    const createCompilerWith = (compilerOptions: object, files: Record<string, string>, transpileOnly: boolean): ModuleCompiler => {
+        const tsConfig = {
+            "/tsconfig.json": JSON.stringify({ compilerOptions: { outDir: "/dist", target: "es2020", module: "esnext", ...compilerOptions } }),
+        };
+        const system = createSystem({ ...tsConfig, ...files }, { virtual: true });
+        return new ModuleCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: Object.keys(files), errors: [] } },
+            { tsConfigFile: "/tsconfig.json", transpileOnly },
+            system
+        );
+    };
+    const ROOT_DIR_SOURCES = { "/src/lib/index.ts": `import { b } from "../b";\nexport const i = b;`, "/src/b.ts": "export const b = 1;" };
+
+    it.each([
+        { name: "fast path", transpileOnly: true, declaration: false },
+        { name: "declaration", transpileOnly: false, declaration: true },
+    ])("yields rootDir violation in build of the offending file w/ $name", ({ transpileOnly, declaration }) => {
+        const testObj = createCompilerWith({ rootDir: "/src/lib", declaration }, ROOT_DIR_SOURCES, transpileOnly);
+
+        const actual = testObj.build("/src/b.ts").diagnostics.map(cur => cur.code);
+
+        expect(actual).toEqual([6059]);
+    });
+
+    it.each([
+        { name: "fast path", transpileOnly: true, declaration: false },
+        { name: "declaration", transpileOnly: false, declaration: true },
+    ])("yields no rootDir violation as config error after build of the offending file w/ $name", ({ transpileOnly, declaration }) => {
+        const testObj = createCompilerWith({ rootDir: "/src/lib", declaration }, ROOT_DIR_SOURCES, transpileOnly);
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.code);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields no missing type definition file in build w/ declaration and two files", () => {
+        const testObj = createCompilerWith({ rootDir: "/src", declaration: true, types: ["does-not-exist"] }, SOURCES, false);
+
+        const actual = [testObj.build("/src/a.ts"), testObj.build("/src/b.ts")].flatMap(cur => cur.diagnostics.map(diagnostic => diagnostic.code));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields missing type definition file once as config error w/ declaration and two files built", () => {
+        const testObj = createCompilerWith({ rootDir: "/src", declaration: true, types: ["does-not-exist"] }, SOURCES, false);
+        testObj.build("/src/a.ts");
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.code);
+
+        expect(actual).toEqual([2688]);
+    });
+
+    it("yields no rootDir violation as config error after build of a file no longer importing the offending one", () => {
+        const testObj = createCompilerWith({ rootDir: "/src/lib" }, ROOT_DIR_SOURCES, true);
+        testObj.build("/src/lib/index.ts");
+        testObj.build("/src/b.ts");
+        testObj.getSystem().writeFile("/src/lib/index.ts", `export const i = 1;`);
+        testObj.build("/src/lib/index.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.code);
+
+        expect(actual).toEqual([]);
+    });
 });

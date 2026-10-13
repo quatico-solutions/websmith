@@ -398,7 +398,7 @@ export class ModuleCompiler extends Compiler {
         const result = this.emitSourceFile(filePath, this.profile, true);
         this.onTargetEmitted(filePath);
         diagnostics.push(
-            ...this.takeFileLessErrors(result.diagnostics ?? []),
+            ...this.takeFileLessErrors(result.diagnostics ?? [], filePath),
             ...this.checkLoaderOutput(this.profile, filePath, result.files, moduleKind, onDependency)
         );
 
@@ -504,12 +504,17 @@ export class ModuleCompiler extends Compiler {
 
     /**
      * Keeps the TypeScript errors without a file of `diagnostics` as configuration errors and returns the others: every
-     * module of the fast path returns the same option errors. websmith's own diagnostics without a file (code 0) and
-     * warnings stay on the module.
+     * module of the fast path returns the same option errors. An error that names the module's own file, e.g. TS6059
+     * for a file outside `rootDir`, stays on the module and lives as long as it, like an error with a file. websmith's
+     * own diagnostics without a file (code 0) and warnings stay on the module too.
      */
-    private takeFileLessErrors(diagnostics: readonly ts.Diagnostic[]): ts.Diagnostic[] {
+    private takeFileLessErrors(diagnostics: readonly ts.Diagnostic[], filePath: string): ts.Diagnostic[] {
+        const ownPath = filePath.replace(/\\/g, "/");
         return diagnostics.filter(cur => {
             if (!cur.file && cur.code > 0 && cur.category === ts.DiagnosticCategory.Error) {
+                if (ts.flattenDiagnosticMessageText(cur.messageText, "\n").replace(/\\/g, "/").includes(ownPath)) {
+                    return true;
+                }
                 this.fileLessErrors.set(ModuleCompiler.getDiagnosticKey(cur), cur);
                 return false;
             }

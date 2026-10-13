@@ -123,7 +123,9 @@ class VirtualProgramCompiler extends CompilerTestClass {
             directoryExists: dirName => system.directoryExists(dirName) || !!base.directoryExists?.(dirName),
             getSourceFile: (fileName, languageVersion, ...rest) => {
                 const text = system.readFile(fileName);
-                return text !== undefined ? ts.createSourceFile(fileName, text, languageVersion) : base.getSourceFile(fileName, languageVersion, ...rest);
+                return text !== undefined
+                    ? ts.createSourceFile(fileName, text, languageVersion)
+                    : base.getSourceFile(fileName, languageVersion, ...rest);
             },
         };
         return ts.createProgram(this.getOptions().cliArgs?.fileNames ?? [], options, host);
@@ -1365,7 +1367,11 @@ describe("compile", () => {
 
     it("reports a rootDir violation once per offending file w/ declaration", () => {
         const fileSystem = createSystem(
-            { "src/lib/a.ts": `import { b } from "../b";\nexport const a = b;`, "src/b.ts": `export const b = 1;`, "src/c.ts": `export const c = 1;` },
+            {
+                "src/lib/a.ts": `import { b } from "../b";\nexport const a = b;`,
+                "src/b.ts": `export const b = 1;`,
+                "src/c.ts": `export const c = 1;`,
+            },
             { virtual: true }
         );
         const target = new ReporterMock(fileSystem);
@@ -2279,7 +2285,11 @@ describe("report", () => {
     ])("reports program's file-less option error once w/ $name", ({ resultHoldsIt }) => {
         const fileSystem = createSystem({}, { virtual: true });
         const target = new ReporterMock(fileSystem);
-        const optionError = { code: 2688, category: ts.DiagnosticCategory.Error, messageText: "Cannot find type definition file for 'does-not-exist'." };
+        const optionError = {
+            code: 2688,
+            category: ts.DiagnosticCategory.Error,
+            messageText: "Cannot find type definition file for 'does-not-exist'.",
+        };
 
         new CompilerTestClass({ reporter: target }, undefined, fileSystem).report(
             {
