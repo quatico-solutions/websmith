@@ -244,7 +244,7 @@ first, right after the benchmark that measures it is trustworthy.
 
 ### Option errors once
 
-- `bug/loader-option-errors-once` — file-less TypeScript diagnostics reported once per compilation, also without compilation hooks; unit tests on the dedup with and without hooks; e2e: an invalid `tsconfig.json` option over several modules yields one error, also with two rules <!-- builds: file-less diagnostic dedup in the loader --> <!-- waits: bug/loader-resolve-options-once -->
+- `bug/loader-option-errors-once` — file-less TypeScript diagnostics reported once per compilation, also without compilation hooks; unit tests on the dedup with and without hooks; e2e: an invalid `tsconfig.json` option over several modules yields one error, also with two rules → #181 <!-- builds: file-less diagnostic dedup in the loader --> <!-- waits: bug/loader-resolve-options-once -->
 
 ### Unconfigured profile
 
