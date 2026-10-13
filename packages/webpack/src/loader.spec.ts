@@ -361,7 +361,8 @@ const setUpLoader = (
     options: WebsmithLoaderConfig = {},
     debug = false,
     configErrors: ts.Diagnostic[] = [],
-    compilationHooks = false
+    compilationHooks = false,
+    profileConfigured = true
 ) => {
     const build = jest.fn().mockReturnValue(result);
     const instance = {
@@ -372,6 +373,7 @@ const setUpLoader = (
         // The first module carries the config errors, see ModuleCompiler
         takeUnreportedConfigErrors: (resourcePath: string) => (resourcePath === "/src/a.ts" ? configErrors : []),
         hasCompilationHooks: () => compilationHooks,
+        isProfileConfigured: () => profileConfigured,
         getOptionsFiles: () => ({ files: ["/websmith.config.json", "/tsconfig.json", "/tsconfig.base.json"], missing: ["/tsconfig.gone.json"] }),
     };
     jest.mocked(getCompilerInstance).mockReturnValue(instance as unknown as TsCompiler);
@@ -505,6 +507,44 @@ describe("loader", () => {
         loader.call(target);
 
         expect(target.callback).toHaveBeenCalledWith(null, OUTPUT.text, undefined);
+    });
+
+    it("yields empty output w/ unconfigured profile", () => {
+        setUpLoader(createBuildResult(), {}, false, [], true, false);
+        const target = createLoaderContext();
+
+        loader.call(target);
+
+        expect(target.callback).toHaveBeenCalledWith(null, "");
+    });
+
+    it("emits no error on module w/ unconfigured profile and compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Profile 'whatever' is not configured.")], true, false);
+        const target = createLoaderContext();
+
+        loader.call(target);
+
+        expect(target.emitError).not.toHaveBeenCalled();
+    });
+
+    it("registers options files as module dependencies w/ unconfigured profile", () => {
+        setUpLoader(createBuildResult(), {}, false, [], true, false);
+        const target = createLoaderContext();
+
+        loader.call(target);
+        const actual = jest.mocked(target.addDependency).mock.calls.map(([cur]) => cur);
+
+        expect(actual).toEqual(expect.arrayContaining(["/websmith.config.json", "/tsconfig.json", "/tsconfig.base.json"]));
+    });
+
+    it("emits config errors on carrier module w/ unconfigured profile w/o compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Profile 'whatever' is not configured.")], false, false);
+        const target = createLoaderContext(undefined, {});
+
+        loader.call(target);
+        const actual = jest.mocked(target.emitError).mock.calls.map(([cur]) => cur.message);
+
+        expect(actual).toEqual(["Profile 'whatever' is not configured."]);
     });
 
     it("emits config errors through loader context w/o compilation hooks", () => {

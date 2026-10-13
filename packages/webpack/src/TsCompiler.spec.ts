@@ -532,9 +532,25 @@ describe("TsCompiler config errors", () => {
         const actual = testObj.getConfigErrors().map(cur => cur.messageText);
 
         expect(actual).toEqual([
-            "Unknown profile 'unknown-profile' in 'depends' of '/websmith.config.json'.",
             "Unknown 'esm.runtime' value 'unknown-runtime' in profile 'broken' of '/websmith.config.json'. Expected \"node\" or \"bundler\".",
+            "Unknown profile 'unknown-profile' in 'depends' of '/websmith.config.json'. Available profiles: broken, valid.",
         ]);
+    });
+
+    it("yields unknown profile as config error w/o calling warn option", () => {
+        const target = jest.fn();
+        const testObj = new TsCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
+            { ...createConfigOptions("missing"), warn: target },
+            undefined,
+            undefined,
+            createSystem({ ...TS_CONFIG, ...CONFIG_FILE, "/src/a.ts": "export const a = 1;" }, { virtual: true })
+        );
+
+        const actual = testObj.getConfigErrors().map(cur => cur.messageText);
+
+        expect(actual).toEqual(["Profile 'missing' is not configured in '/websmith.config.json'. Available profiles: broken, valid."]);
+        expect(target).not.toHaveBeenCalled();
     });
 
     it("reports no config error to reporter w/ broken selected profile", () => {

@@ -42,6 +42,11 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     if (!instance.hasCompilationHooks()) {
         reportDiagnostics(this, instance.takeUnreportedConfigErrors(this.resourcePath), options, false);
     }
+    // The configuration error of the profile fails the build: the module has no output
+    if (!instance.isProfileConfigured()) {
+        this.callback(null, "");
+        return;
+    }
 
     // Set loader version based on the file's cache version to enable proper cache invalidation
     // This ensures webpack knows when to recompile based on source file changes
