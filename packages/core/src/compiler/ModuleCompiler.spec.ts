@@ -348,7 +348,32 @@ describe("ModuleCompiler option errors", () => {
         const actual = testObj.build("/src/a.ts").diagnostics.map(cur => cur.messageText);
 
         expect(actual).toEqual(["File-less warning", "Websmith error"]);
-        expect(testObj.getConfigErrors()).toEqual([]);
+    });
+
+    it("yields no config errors w/ file-less warning and websmith error w/o code in build", () => {
+        const system = createSystem({ ...TS_CONFIG, "/src/a.ts": "export const a = 1;" }, { virtual: true });
+        const testObj = new InjectingCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: ["/src/a.ts"], errors: [] } },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: true },
+            system
+        );
+        testObj.injected = [
+            {
+                file: undefined,
+                start: undefined,
+                length: undefined,
+                code: 6000,
+                category: ts.DiagnosticCategory.Warning,
+                messageText: "File-less warning",
+            },
+            new ErrorMessage("Websmith error"),
+        ];
+
+        testObj.build("/src/a.ts");
+
+        const actual = testObj.getConfigErrors();
+
+        expect(actual).toEqual([]);
     });
 
     it("yields no file-less TypeScript error as config error after options update w/ valid options", () => {
