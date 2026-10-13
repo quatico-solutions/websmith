@@ -186,6 +186,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         }
         convertProfileEnumOptions(this.config, profileName, this.reporter);
         resolvedOptions.tsConfig = convertEnumOptions(resolvedOptions.tsConfig ?? {}, LOADER_OPTIONS_LOCATION, this.reporter);
+        // `tsConfig` must still be the raw loader value: values it shares with cliArgs were reported above and are skipped
         cliArgs.options = convertCliEnumOptions(cliArgs.options ?? {}, tsConfig ?? {}, this.reporter);
 
         if (this.config?.addonsDir) {
@@ -193,7 +194,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
         }
         // resolve tsconfig
         this.profile = resolveProfile(profileName, this.config, this.reporter);
-        resolvedOptions = { ...resolvedOptions, tsConfigFile: this.tsConfigFile };
+        resolvedOptions = { ...resolvedOptions, config: this.config, tsConfigFile: this.tsConfigFile };
         this.tsConfig = getTsConfig(this.system, this.buildDir, resolvedOptions, this.profile);
 
         // resolve cli args

@@ -1420,6 +1420,34 @@ describe("option names", () => {
         expect(testObj.getOptions("client").tsConfig?.module).toBe(ts.ModuleKind.NodeNext);
     });
 
+    it("should yield enum value in tsConfig and cliArgs w/ module name in selected inline profile", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            { reporter: new NoReporter() },
+            { config: { profiles: { client: { tsConfig: { module: "NodeNext" as any } } } }, profile: "client" }
+        );
+
+        expect(testObj.tsConfig?.module).toBe(ts.ModuleKind.NodeNext);
+        expect(testObj.cliArgs.options.module).toBe(ts.ModuleKind.NodeNext);
+    });
+
+    it("should drop the value from tsConfig w/ invalid target in selected inline profile", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const target = new NoReporter();
+        target.reportDiagnostic = jest.fn();
+
+        const testObj = new ResolvedCompilerOptions(
+            fileSystem,
+            { reporter: target },
+            { config: { profiles: { client: { tsConfig: { target: "x" as any } } } }, profile: "client" }
+        );
+
+        expect(testObj.tsConfig?.target).toBeUndefined();
+        expect(target.reportDiagnostic).toHaveBeenCalledTimes(1);
+    });
+
     it("should report one error w/ invalid module in selected inline profile", () => {
         const fileSystem = createSystem({}, { virtual: true });
         const target = new NoReporter();
