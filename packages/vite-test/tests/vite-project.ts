@@ -139,16 +139,17 @@ export const runViteBuild = (options: RunViteOptions): string => {
 };
 
 /**
- * Runs `vite build --watch` with the plugin: after the first `END` event it runs `afterFirstBuild` in the build
- * process, e.g. a file write, and returns the watcher events up to the end of the second build. Rollup registers
- * the watch files of a build asynchronously after its `END`, so a write right after it can go unseen: the runner
- * repeats `afterFirstBuild` every 250 ms until the watcher reports the `START` of the second build.
+ * Runs `vite build --watch` with the plugin: after the `END` of the n-th build it runs `afterBuilds[n - 1]` in the
+ * build process, e.g. a file write, and returns the watcher events up to the outcome of the build after the last
+ * step, its `BUNDLE_END` or `ERROR`. Rollup registers the watch files of a build asynchronously after its `END`, so a
+ * write right after it can go unseen: the runner repeats a step every 250 ms until the watcher reports the `START` of
+ * the next build.
  */
 export const runViteWatch = ({
     vite = "vite",
     pluginOptions,
-    afterFirstBuild,
-}: Pick<RunViteOptions, "vite" | "pluginOptions"> & { afterFirstBuild: string }): ViteWatchEvent[] => {
+    afterBuilds,
+}: Pick<RunViteOptions, "vite" | "pluginOptions"> & { afterBuilds: string[] }): ViteWatchEvent[] => {
     writeFile(
         "watch.mjs",
         `
@@ -164,6 +165,7 @@ export const runViteWatch = ({
             build: { minify: false, lib: { entry: "src/main.ts", formats: ["es"] }, watch: {} },
         });
         const events = [];
+        const afterBuilds = [${afterBuilds.map(cur => `() => { ${cur} }`).join(", ")}];
         let builds = 0;
         let retry;
         const finish = async () => {
@@ -171,27 +173,23 @@ export const runViteWatch = ({
             await watcher.close();
             process.exit(0);
         };
-        const afterFirstBuild = () => {
-            ${afterFirstBuild}
-        };
         watcher.on("event", event => {
             if (event.code === "ERROR") {
                 events.push({ code: event.code, message: event.error.message, hook: event.error.hook });
             } else {
                 events.push({ code: event.code });
             }
-            if (event.code === "START" && retry) {
+            if (event.code === "START") {
+                builds++;
                 clearInterval(retry);
                 retry = undefined;
             }
-            if (event.code === "END" || event.code === "ERROR") {
-                builds++;
-                if (builds === 1) {
-                    afterFirstBuild();
-                    retry = setInterval(afterFirstBuild, 250);
-                } else {
-                    void finish();
-                }
+            if (builds > afterBuilds.length && (event.code === "BUNDLE_END" || event.code === "ERROR")) {
+                void finish();
+            } else if (event.code === "END") {
+                const step = afterBuilds[builds - 1];
+                step();
+                retry = setInterval(step, 250);
             }
         });
         `

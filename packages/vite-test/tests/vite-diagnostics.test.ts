@@ -219,13 +219,19 @@ describe("vite build w/ websmith diagnostics", () => {
         expect(actual2).toHaveLength(1);
     }, 60000);
 
-    it("should report broken config w/ watch rebuild after config change", () => {
+    it("should report broken config and pass w/ watch rebuilds after config changes", () => {
         writeConfig({});
         const brokenConfig = JSON.stringify({ addonsDir: "./addons", profiles: { app: { addons: ["replacer"], depends: ["missing"] } } });
+        const fixedConfig = JSON.stringify({ addonsDir: "./addons", profiles: { app: { addons: ["replacer"] } } });
 
-        const events = runViteWatch({ pluginOptions: APP, afterFirstBuild: `fs.writeFileSync("websmith.config.json", ${JSON.stringify(brokenConfig)});` });
-        const actual = events.filter(cur => cur.code === "ERROR").map(cur => cur.message);
+        const events = runViteWatch({
+            pluginOptions: APP,
+            afterBuilds: [`fs.writeFileSync("websmith.config.json", ${JSON.stringify(brokenConfig)});`, `fs.writeFileSync("websmith.config.json", ${JSON.stringify(fixedConfig)});`],
+        });
+        const actual1 = events.filter(cur => cur.code === "ERROR").map(cur => cur.message);
+        const actual2 = events.at(-1)?.code;
 
-        expect(actual).toEqual([expect.stringContaining("Unknown profile 'missing'")]);
+        expect(actual1).toEqual([expect.stringContaining("Unknown profile 'missing'")]);
+        expect(actual2).toBe("BUNDLE_END");
     }, 90000);
 });
