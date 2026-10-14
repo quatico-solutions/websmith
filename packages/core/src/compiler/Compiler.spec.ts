@@ -1446,6 +1446,17 @@ describe("compile", () => {
         expect(actual).toEqual(["File '/src/lib/a.ts' is not under 'rootDir' '/src/lib/x'."]);
     });
 
+    it("yields own options diagnostic w/ per-file Program of '/src/b.tsx' and another source file '/src/b.ts'", () => {
+        const own = ts.createSourceFile("/src/b.tsx", "", ts.ScriptTarget.ESNext);
+        const other = ts.createSourceFile("/src/b.ts", "", ts.ScriptTarget.ESNext);
+        const program = createProgramMock([own, other], [createOptionsDiagnostic(6059, "File '/src/b.tsx' is not under 'rootDir' '/src/lib'.")]);
+        const testObj = new CompilerTestClass({ reporter: new NoReporter() }, undefined, createSystem({}, { virtual: true }));
+
+        const actual = testObj.getOwnOptionsDiagnostics(program, own).map(cur => cur.code);
+
+        expect(actual).toEqual([6059]);
+    });
+
     it("reports a missing type definition file once w/ addon needing type information", () => {
         const fileSystem = createSystem({ "src/a.ts": `export const a = 1;`, "src/b.ts": `export const b = 1;` }, { virtual: true });
         const target = new ReporterMock(fileSystem);

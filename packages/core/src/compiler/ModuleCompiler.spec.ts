@@ -831,6 +831,16 @@ describe("ModuleCompiler dependent profile diagnostics", () => {
         expect(actual).toEqual([]);
     });
 
+    it("yields file-less TypeScript error naming '/src/a.tsx' as config error w/ build of '/src/a.ts'", () => {
+        const target: ts.Diagnostic = { ...OWN_FILE_ERROR, messageText: "File '/src/a.tsx' is not under 'rootDir' '/src/lib'." };
+        const testObj = createInjectingCompiler({ target: [target] }, { target: { tsConfig: { outDir: "/dist" } } });
+        testObj.build("/src/a.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.messageText);
+
+        expect(actual).toEqual(["File '/src/a.tsx' is not under 'rootDir' '/src/lib'."]);
+    });
+
     it("yields websmith error labelled in build w/ file-less error w/o code only in dependent profile", () => {
         const testObj = createInjectingCompiler({ dep: [new ErrorMessage("Websmith error")] });
 

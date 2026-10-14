@@ -1313,12 +1313,13 @@ export class Compiler {
     /**
      * Returns the options diagnostics of a per-file Program that concern `sourceFile`: one that names another source
      * file of the Program, e.g. TS6059 for an imported file outside `rootDir`, is returned by that file's own Program.
+     * TypeScript quotes the paths in its messages, so `/src/b.ts` does not match a message naming `/src/b.tsx`.
      */
     protected getOwnOptionsDiagnostics(program: ts.Program, sourceFile: ts.SourceFile): ts.Diagnostic[] {
         const otherFiles = program.getSourceFiles().filter(cur => cur !== sourceFile && !cur.isDeclarationFile);
         return program.getOptionsDiagnostics().filter(cur => {
             const message = ts.flattenDiagnosticMessageText(cur.messageText, "\n");
-            return cur.code !== ROOT_DIR_INFERENCE_ERROR && !otherFiles.some(other => message.includes(other.fileName));
+            return cur.code !== ROOT_DIR_INFERENCE_ERROR && !otherFiles.some(other => message.includes(`'${other.fileName}'`));
         });
     }
 

@@ -541,14 +541,14 @@ export class ModuleCompiler extends Compiler {
     /**
      * Keeps the TypeScript errors without a file of `diagnostics` as configuration errors and returns the others: every
      * module of the fast path returns the same option errors, so N modules give one configuration error, not N. An
-     * error that names the module's own file `filePath`, e.g. TS6059 for a file outside `rootDir`, stays on the module
-     * and lives as long as it, like an error with a file; for a dependent profile `dependentProfile` the caller labels
-     * it. The other errors of a dependent profile are kept labelled with it, unless the host's profile already keeps
-     * the same error, whose unlabelled copy replaces a dependent's. websmith's own diagnostics without a file (code 0)
-     * and warnings stay on the module.
+     * error that names the module's own file `filePath` in quotes, as TypeScript names paths, e.g. TS6059 for a file
+     * outside `rootDir`, stays on the module and lives as long as it, like an error with a file; for a dependent profile
+     * `dependentProfile` the caller labels it. The other errors of a dependent profile are kept labelled with it, unless
+     * the host's profile already keeps the same error, whose unlabelled copy replaces a dependent's. websmith's own
+     * diagnostics without a file (code 0) and warnings stay on the module.
      */
     private takeFileLessErrors(diagnostics: readonly ts.Diagnostic[], filePath: string, dependentProfile?: string): ts.Diagnostic[] {
-        const ownPath = filePath.replace(/\\/g, "/");
+        const ownPath = `'${filePath.replace(/\\/g, "/")}'`;
         return diagnostics.filter(cur => {
             if (!cur.file && cur.code > 0 && cur.category === ts.DiagnosticCategory.Error) {
                 if (ts.flattenDiagnosticMessageText(cur.messageText, "\n").replace(/\\/g, "/").includes(ownPath)) {
