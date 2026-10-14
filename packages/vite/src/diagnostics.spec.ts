@@ -52,6 +52,21 @@ describe("toRollupError", () => {
         expect(actual).toEqual({ file: "/project/src/main.ts", line: 2, column: 17 });
     });
 
+    it("should return message without position of loc error w/ positioned error", () => {
+        const actual = toRollupError([diagnostic("Expression expected.", ts.DiagnosticCategory.Error, { file: FILE, start: START })]).message;
+
+        expect(actual).toBe("Expression expected.");
+    });
+
+    it("should keep position of other errors w/ two positioned errors", () => {
+        const actual = toRollupError([
+            diagnostic("First", ts.DiagnosticCategory.Error, { file: FILE, start: START }),
+            diagnostic("Second", ts.DiagnosticCategory.Error, { file: FILE, start: 0 }),
+        ]).message;
+
+        expect(actual).toBe("First\n/project/src/main.ts (1,1): Second");
+    });
+
     it("should return no loc w/o positions", () => {
         const actual = toRollupError([diagnostic("First")]);
 

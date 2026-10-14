@@ -143,7 +143,7 @@ describe("createWebsmithHooks", () => {
             expect(() => testObj.transformHandler.call(target, "whatever", MAIN)).toThrow();
             const actual = target.error;
 
-            expect(actual).toHaveBeenCalledWith({ message: `First\n${MAIN} (2,18): Second`, loc: { file: MAIN, line: 2, column: 17 } });
+            expect(actual).toHaveBeenCalledWith({ message: "First\nSecond", loc: { file: MAIN, line: 2, column: 17 } });
         });
 
         it("should warn once per warning w/ two warning diagnostics", () => {

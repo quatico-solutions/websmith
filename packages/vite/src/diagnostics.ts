@@ -39,11 +39,17 @@ export const getDiagnosticKey = ({ file, start, code, messageText }: ts.Diagnost
 
 /**
  * Returns one Rollup error for `errors`, since `this.error` throws: every error formatted in the message, one per
- * line, and the position of the first error that has one as `loc`.
+ * line, and the position of the first error that has one as `loc`. That error's message has no position, since
+ * Rollup prints `loc` in front of the message.
  */
 export const toRollupError = (errors: readonly ts.Diagnostic[]): RollupErrorLog => {
-    const loc = errors.map(getLocation).find(cur => cur !== undefined);
-    return { message: errors.map(formatDiagnostic).join("\n"), ...(loc && { loc }) };
+    const locs = errors.map(getLocation);
+    const index = locs.findIndex(cur => cur !== undefined);
+    const loc = locs[index];
+    const message = errors
+        .map((cur, i) => (i === index ? ts.flattenDiagnosticMessageText(cur.messageText, "\n") : formatDiagnostic(cur)))
+        .join("\n");
+    return { message, ...(loc && { loc }) };
 };
 
 /** Returns the Rollup warning for `warning`: with its position as `loc` when it has one. */
