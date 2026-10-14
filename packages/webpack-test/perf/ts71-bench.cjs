@@ -30,7 +30,11 @@
  *   (d) is (b) and (c) on 5.7.3 and 6.0.3, the baseline columns
  *   (e) watch rebuild: --edits edits of different leaves on a built program; in process createProgram with
  *       oldProgram and a host serving the edited text, on 7.1 snapshot.update with fileNotifications and
- *       ensurePrograms; every variant asserts that the emit contains the edit's marker and aborts on a stale emit
+ *       ensurePrograms; every variant asserts that the emit contains the edit's marker and aborts on a stale emit.
+ *       Two in-process rows: the judged one uses websmith's host (ts.createCompilerHost, compile-service.ts
+ *       createCompileHost, as Compiler.ts passes it with oldProgram), which caches no SourceFile, so most of its cost
+ *       per edit is re-parsing every file. The unjudged "cached host" row repeats the edits with a host that reuses
+ *       every unchanged SourceFile, so that the measurement can tell the native compiler's gain from the cache's
  *   (f) concurrency: on 7.1 the async API (JSON-RPC) with --in-flight calls in flight against sequential calls on the
  *       same channel; in process sequential only (one thread)
  * Payload bytes: an untimed 7.1 pass per size with collectTiming reports bytes and server ms per file.
@@ -382,25 +386,48 @@ const runInProcess = ({ variant, versionsDir, corpus, edits }) => {
         overrides.has(fileName)
             ? ts.createSourceFile(fileName, overrides.get(fileName), languageVersionOrOptions, true)
             : getSourceFile(fileName, languageVersionOrOptions, onError, shouldCreate);
-    let program = ts.createProgram({ rootNames: corpus.files, options: PROGRAM_OPTIONS, host });
-    const editSamples = leafIndices(corpus.count, edits).map((leaf, i) => {
-        const revision = i + 1;
-        const { file, lines } = corpus.modules[leaf];
-        const text = corpusModule.createModuleSource(leaf, corpus.count, lines, revision);
-        const marker = corpusModule.editMarker(leaf, revision);
-        const { ms } = measure(() => {
-            overrides.set(file, text);
-            fs.writeFileSync(file, text);
-            program = ts.createProgram({ rootNames: corpus.files, options: PROGRAM_OPTIONS, host, oldProgram: program });
-            let output = "";
-            program.emit(program.getSourceFile(file), (_name, emittedText) => (output += emittedText));
-            if (!output.includes(marker)) {
-                throw new CorrectnessError(`${variant} (e): stale emit for ${file}, revision ${revision} missing "${marker}"`);
-            }
+    // per edit: write the edited leaf, rebuild with oldProgram and emit it; `firstRevision` keeps the markers unique
+    const timeEdits = (firstRevision, rebuild) =>
+        leafIndices(corpus.count, edits).map((leaf, i) => {
+            const revision = firstRevision + i;
+            const { file, lines } = corpus.modules[leaf];
+            const text = corpusModule.createModuleSource(leaf, corpus.count, lines, revision);
+            const marker = corpusModule.editMarker(leaf, revision);
+            const { ms } = measure(() => {
+                fs.writeFileSync(file, text);
+                const rebuilt = rebuild(file, text);
+                let output = "";
+                rebuilt.emit(rebuilt.getSourceFile(file), (_name, emittedText) => (output += emittedText));
+                if (!output.includes(marker)) {
+                    throw new CorrectnessError(`${variant} (e): stale emit for ${file}, revision ${revision} missing "${marker}"`);
+                }
+            });
+            return ms;
         });
-        return ms;
+    let program = ts.createProgram({ rootNames: corpus.files, options: PROGRAM_OPTIONS, host });
+    const editSamples = timeEdits(1, (file, text) => {
+        overrides.set(file, text);
+        program = ts.createProgram({ rootNames: corpus.files, options: PROGRAM_OPTIONS, host, oldProgram: program });
+        return program;
     });
-    results.e = { status: "ok", edits: summarizeCalls(editSamples), emitAsserted: true };
+
+    // (e) unjudged: the same leaves again, with a host that reuses every unchanged SourceFile across programs
+    const sourceFiles = new Map();
+    const cachingHost = ts.createCompilerHost(PROGRAM_OPTIONS, true);
+    const parse = cachingHost.getSourceFile;
+    cachingHost.getSourceFile = (fileName, languageVersionOrOptions, onError, shouldCreate) => {
+        if (!sourceFiles.has(fileName)) {
+            sourceFiles.set(fileName, parse(fileName, languageVersionOrOptions, onError, shouldCreate));
+        }
+        return sourceFiles.get(fileName);
+    };
+    let cachedProgram = ts.createProgram({ rootNames: corpus.files, options: PROGRAM_OPTIONS, host: cachingHost });
+    const cachedSamples = timeEdits(edits + 1, file => {
+        sourceFiles.delete(file);
+        cachedProgram = ts.createProgram({ rootNames: corpus.files, options: PROGRAM_OPTIONS, host: cachingHost, oldProgram: cachedProgram });
+        return cachedProgram;
+    });
+    results.e = { status: "ok", edits: summarizeCalls(editSamples), cachedHost: summarizeCalls(cachedSamples), emitAsserted: true };
 
     // (f) sequential throughput only: one thread, in-flight calls have no meaning in process
     const sequential = measure(() => sources.forEach(({ fileName, text }) => ts.transpileModule(text, { compilerOptions: COMPILER_OPTIONS, fileName, reportDiagnostics: true })));
@@ -675,7 +702,7 @@ const describeRun = run => {
             part("a", `a ${fmt(r.a?.ms, 0)} ms`),
             part("b", `b cold ${fmt(r.b?.cold?.medianMs, 2)} warm ${fmt(r.b?.warm?.medianMs, 2)} ms/file`),
             part("c", `c ${fmt(r.c?.totalMs, 0)} ms`),
-            part("e", `e ${fmt(r.e?.edits?.medianMs, 1)} ms/edit`),
+            part("e", `e ${fmt(r.e?.edits?.medianMs, 1)}${r.e?.cachedHost ? ` (cached host ${fmt(r.e.cachedHost.medianMs, 1)})` : ""} ms/edit`),
             part("f", `f ${fmt(r.f?.sequentialPerSecond, 0)}${r.f?.concurrentPerSecond ? `/${fmt(r.f.concurrentPerSecond, 0)}` : ""} modules/s`),
         ].join(", ")
     );
@@ -722,7 +749,14 @@ const summarizeSize = runs => {
                 semanticDiagnostics: of("c")[0]?.results.c.semanticDiagnostics,
             },
         };
-        summary.e = { ...summary.e, [variant]: { ...unmeasured("e"), perEdit: stats(pick(of("e"), variant, cur => cur.results.e.edits.medianMs)) } };
+        summary.e = {
+            ...summary.e,
+            [variant]: {
+                ...unmeasured("e"),
+                perEdit: stats(pick(of("e"), variant, cur => cur.results.e.edits.medianMs)),
+                perEditCachedHost: stats(pick(of("e"), variant, cur => cur.results.e.cachedHost?.medianMs)),
+            },
+        };
         summary.f = {
             ...summary.f,
             [variant]: {
@@ -759,7 +793,12 @@ const printSummary = (size, summary, runs) => {
                 `${summary.c[v].semanticDiagnostics} semantic diagnostics)`
         )
     );
-    line("(e) watch rebuild ms per edit", v => na(summary.e[v], fmtStats(summary.e[v].perEdit, 2)));
+    line("(e) watch rebuild ms per edit, judged (in process: websmith's host, which re-parses every file per edit)", v =>
+        na(summary.e[v], fmtStats(summary.e[v].perEdit, 2))
+    );
+    line("(e) watch rebuild ms per edit, in process with a host reusing unchanged SourceFiles (unjudged)", v =>
+        v === NATIVE ? "n/a (the 7.1 snapshot keeps its own SourceFiles: see the judged row)" : na(summary.e[v], fmtStats(summary.e[v].perEditCachedHost, 2))
+    );
     line("(f) throughput modules/s, sequential / in flight", v =>
         na(summary.f[v], `${fmtStats(summary.f[v].sequentialPerSecond, 0)}${summary.f[v].concurrentPerSecond ? ` / ${fmtStats(summary.f[v].concurrentPerSecond, 0)} (${summary.f[v].inFlight} in flight)` : ""}`)
     );
@@ -802,6 +841,7 @@ const decide = (summary, options) => {
         reason: e[NATIVE].reason,
         native: e[NATIVE].perEdit?.median,
         baseline: e[BASELINE].perEdit?.median,
+        baselineCachedHost: e[BASELINE].perEditCachedHost?.median,
     });
     const p95b = ratioOf(b[NATIVE].warmP95?.median, b[NATIVE].warm?.median);
     const p95c = ratioOf(c[NATIVE].perFileP95?.median, c[NATIVE].perFile?.median);
@@ -836,7 +876,7 @@ const printDecision = (criteria, size) => {
                 ? ` (${cur.reason ?? "no value"})`
                 : cur.metric === "ratio"
                   ? cur.native !== undefined
-                      ? ` (7.1 ${fmt(cur.native, 3)} vs 6.0.3 ${fmt(cur.baseline, 3)})`
+                      ? ` (7.1 ${fmt(cur.native, 3)} vs 6.0.3 ${fmt(cur.baseline, 3)}${cur.baselineCachedHost !== undefined ? `; unjudged: 6.0.3 with a SourceFile-caching host ${fmt(cur.baselineCachedHost, 3)}` : ""})`
                       : ` (b ${fmt(cur.bWarm, 3)}, c ${fmt(cur.cPerFile, 3)})`
                   : ` (cold start ${fmt(cur.coldStartMs, 0)} ms${cur.coldStartMs > 1000 ? ` x ${cur.loaderInstances} loader instances = ${fmt(cur.value, 0)} ms` : ""})`;
         const threshold = cur.metric === "ratio" ? (cur.criterion.startsWith("5") ? `>= ${fmt(cur.threshold, 3)}` : `<= ${cur.threshold}`) : `<= ${cur.threshold} ms`;
