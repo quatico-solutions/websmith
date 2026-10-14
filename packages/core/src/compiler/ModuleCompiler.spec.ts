@@ -817,7 +817,7 @@ describe("ModuleCompiler dependent profile diagnostics", () => {
 
         const actual = flatten(testObj.build("/src/a.ts").diagnostics);
 
-        expect(actual).toEqual([`${OWN_FILE_ERROR.messageText} (profile "dep")`]);
+        expect(actual).toEqual(["File '/src/a.ts' is not under 'rootDir' '/src/lib'. 'rootDir' is expected to contain all source files. (profile \"dep\")"]);
     });
 
     it("yields no file-less TypeScript error naming the module's file as config error after rebuild w/o error in dependent profile", () => {
