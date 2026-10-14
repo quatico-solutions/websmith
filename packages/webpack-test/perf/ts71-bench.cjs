@@ -127,7 +127,7 @@ const parseOptions = argv => {
             if (!strings.has(name) && !Number.isFinite(options[name])) {
                 throw new Error(`Option "${argv[i - 1]}" needs a number, got "${value}"`);
             }
-        } else if (name !== "child") {
+        } else {
             throw new Error(`Unknown option "${argv[i]}"`);
         }
     }
@@ -601,13 +601,22 @@ const printMachine = ({ node, machine, git }, versions, versionsDir, options) =>
     console.log(`Options ${JSON.stringify(options)}`);
 };
 
+// The child config goes through a temp file, not the environment: at 1,000 modules it is about 220 KB, above Linux's 128 KiB
+// limit for one environment string (E2BIG), and every grandchild (tsc --api) would inherit it.
 const spawnChild = (child, label) => {
-    const result = spawnSync(process.execPath, [__filename, "--child"], {
-        cwd: child.corpus.dir,
-        encoding: "utf-8",
-        env: { ...process.env, TS71_BENCH_CHILD: JSON.stringify(child) },
-        maxBuffer: 256 * 1024 * 1024,
-    });
+    const configDir = fs.mkdtempSync(path.join(os.tmpdir(), "websmith-ts71-child-"));
+    const configFile = path.join(configDir, "child.json");
+    let result;
+    try {
+        fs.writeFileSync(configFile, JSON.stringify(child));
+        result = spawnSync(process.execPath, [__filename, "--child", configFile], {
+            cwd: child.corpus.dir,
+            encoding: "utf-8",
+            maxBuffer: 256 * 1024 * 1024,
+        });
+    } finally {
+        fs.rmSync(configDir, { recursive: true, force: true });
+    }
     const line = (result.stdout ?? "").split("\n").find(cur => cur.startsWith("BENCH "));
     if (!line) {
         throw new Error(`${label} reported no result (exit ${result.status}):\n${(result.stdout ?? "").slice(-4000)}\n${(result.stderr ?? "").slice(-4000)}`);
@@ -891,8 +900,8 @@ const main = () => {
     console.log(`RESULT ${out}`);
 };
 
-if (process.env.TS71_BENCH_CHILD) {
-    runChild(JSON.parse(process.env.TS71_BENCH_CHILD)).catch(error => {
+if (process.argv[2] === "--child") {
+    runChild(JSON.parse(fs.readFileSync(process.argv[3], "utf-8"))).catch(error => {
         console.error(error);
         process.exit(2);
     });
