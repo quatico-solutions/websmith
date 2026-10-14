@@ -59,6 +59,8 @@ export class CompilationEnv {
                 target: ts.ScriptTarget.ESNext,
                 declaration: true,
                 outDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.outDir ?? DEFAULT_OUT_DIR),
+                // Explicit, so output paths do not depend on the TypeScript major (6.x no longer infers it)
+                rootDir: resolvePath(this.system, this.rootDir, options?.tsConfig?.rootDir ?? sourceDir),
             },
             config: {
                 ...(options?.config ?? {}),
@@ -67,6 +69,7 @@ export class CompilationEnv {
             },
         });
         const resolvedOutDir = this.compilerOptions.tsConfig!.outDir!;
+        const resolvedRootDir = this.compilerOptions.tsConfig!.rootDir!;
 
         if (this.system.directoryExists(this.rootDir)) {
             this.deleteDirectory(this.rootDir);
@@ -91,6 +94,7 @@ export class CompilationEnv {
                 JSON.stringify({
                     compilerOptions: {
                         outDir: resolvedOutDir,
+                        rootDir: resolvedRootDir,
                         target: "ESNext",
                         module: "ESNext",
                         esModuleInterop: true,
@@ -391,9 +395,8 @@ export class CompilationEnv {
                         ...resolveCompilerOptions(this.system, {}),
                         tsConfig: {
                             module: ts.ModuleKind.CommonJS,
-                            target: ts.ScriptTarget.ES5,
+                            target: ts.ScriptTarget.ES2020,
                             esModuleInterop: true,
-                            moduleResolution: ts.ModuleResolutionKind.Node10,
                             types: ["node"],
                             skipLibCheck: true,
                         },

@@ -10,6 +10,9 @@ import path from "node:path";
 import ts from "typescript";
 import { getOutput as getOutputBase, writeSourceFile, writeTsConfig } from "./test-files";
 
+const describeOnTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6 ? describe : describe.skip;
+const describeOnTs6 = Number(ts.versionMajorMinor.split(".")[0]) >= 6 ? describe : describe.skip;
+
 // Webpack runs in a separate Node process: Jest's own require ignores "type": "module" and would hide the failure.
 const getTestDirs = () => {
     const testId = expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
@@ -64,13 +67,26 @@ describe("webpack w/ websmith-loader and consumer package.json type module", () 
         expect(actual).toMatchObject({ mainJs: expect.stringContaining("function exportsOnlyProcessed(date)") });
     }, 60000);
 
-    it("should warn about unresolved package with types only under package.json exports", () => {
-        writeExportsOnlyPackage();
+    // The loader compiles addons without moduleResolution: TypeScript 5 defaults to node10, which ignores "exports"; TypeScript 6 defaults to bundler, which reads it
+    describeOnTs5("on TypeScript 5", () => {
+        it("should warn about unresolved package with types only under package.json exports", () => {
+            writeExportsOnlyPackage();
 
-        const actual = runWebpack(["exports-only-processor"]);
+            const actual = runWebpack(["exports-only-processor"]);
 
-        expect(actual).toMatch(/WARN.*Cannot find module 'exports-only-package'/);
-    }, 60000);
+            expect(actual).toMatch(/WARN.*Cannot find module 'exports-only-package'/);
+        }, 60000);
+    });
+
+    describeOnTs6("on TypeScript 6", () => {
+        it("should not warn about a package with types only under package.json exports", () => {
+            writeExportsOnlyPackage();
+
+            const actual = runWebpack(["exports-only-processor"]);
+
+            expect(actual).not.toMatch(/WARN.*Cannot find module 'exports-only-package'/);
+        }, 60000);
+    });
 });
 
 const writeExportsOnlyPackage = () => {

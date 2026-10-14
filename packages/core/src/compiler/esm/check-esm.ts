@@ -7,6 +7,7 @@
 import { InfoMessage, type EsmProfileOptions, type Reporter } from "@quatico/websmith-api";
 import path from "node:path";
 import ts from "typescript";
+import { getEffectiveTarget } from "../config/effective-options";
 import { CjsNamesDiagnosticCode, createCjsNamesCheck, type CjsNamesCache } from "./cjs-names";
 import {
     classifyModule,
@@ -92,14 +93,15 @@ const SCRIPT_TARGETS: ReadonlyMap<string, ts.ScriptTarget> = new Map([
 
 /**
  * Returns the module format TypeScript emits for compiler options whose `module` and `target` are given as names
- * or enum values: `module` when set, otherwise ES2015 for a `target` of ES2015 or later and CommonJS below.
+ * or enum values: `module` when set, otherwise ES2015 for a `target` of ES2015 or later and CommonJS below;
+ * an unset `target` is the installed TypeScript's default.
  */
 export const getEmittedModuleKind = (options: { module?: ts.ModuleKind | string; target?: ts.ScriptTarget | string }): ts.ModuleKind | string => {
     if (options.module !== undefined) {
         return options.module;
     }
     const target = typeof options.target === "string" ? SCRIPT_TARGETS.get(options.target.toLowerCase()) : options.target;
-    return (target ?? ts.ScriptTarget.ES5) >= ts.ScriptTarget.ES2015 ? ts.ModuleKind.ES2015 : ts.ModuleKind.CommonJS;
+    return (target ?? getEffectiveTarget({})) >= ts.ScriptTarget.ES2015 ? ts.ModuleKind.ES2015 : ts.ModuleKind.CommonJS;
 };
 
 /**

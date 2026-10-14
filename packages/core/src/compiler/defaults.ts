@@ -6,7 +6,7 @@
  */
 import ts from "typescript";
 
-// target and esModuleInterop stay unset: TypeScript derives them from module, as tsc does
+// target, esModuleInterop and strict stay unset: they follow the installed TypeScript, as in tsc
 export const tsDefaults: ts.CompilerOptions = {
     allowJs: false,
     checkJs: false,
@@ -18,7 +18,6 @@ export const tsDefaults: ts.CompilerOptions = {
     noEmit: false,
     pretty: true,
     removeComments: false,
-    strict: false,
 };
 
 /**

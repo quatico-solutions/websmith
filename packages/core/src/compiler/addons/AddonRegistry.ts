@@ -574,7 +574,6 @@ export class AddonRegistry {
                 module: ts.ModuleKind.CommonJS,
                 target: ts.ScriptTarget.ES2020,
                 esModuleInterop: true,
-                moduleResolution: ts.ModuleResolutionKind.Classic,
                 noResolve: true,
                 skipLibCheck: true,
                 strict: false,

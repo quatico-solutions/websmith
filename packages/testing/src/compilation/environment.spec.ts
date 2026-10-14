@@ -159,7 +159,7 @@ describe("compilationEnv#projects", () => {
 
         expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/target.ts"]);
         expect(actual.getContents()).toEqual([
-            '{"compilerOptions":{"outDir":"/target/dist","target":"ESNext","module":"ESNext","esModuleInterop":true},"include":["/target/src/**/*.ts","/target/src/**/*.tsx"],"exclude":["node_modules","/target/dist"]}',
+            '{"compilerOptions":{"outDir":"/target/dist","rootDir":"/target/src","target":"ESNext","module":"ESNext","esModuleInterop":true},"include":["/target/src/**/*.ts","/target/src/**/*.tsx"],"exclude":["node_modules","/target/dist"]}',
             `export * from "./target";`,
             `export class Target {}`,
         ]);
@@ -238,7 +238,7 @@ describe("compilationEnv#projects", () => {
 
         expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/one.ts", "/target/src/two.ts"]);
         expect(actual.getContents()).toEqual([
-            '{"compilerOptions":{"outDir":"/target/dist","target":"ESNext","module":"ESNext","esModuleInterop":true},"include":["/target/src/**/*.ts","/target/src/**/*.tsx"],"exclude":["node_modules","/target/dist"]}',
+            '{"compilerOptions":{"outDir":"/target/dist","rootDir":"/target/src","target":"ESNext","module":"ESNext","esModuleInterop":true},"include":["/target/src/**/*.ts","/target/src/**/*.tsx"],"exclude":["node_modules","/target/dist"]}',
             `export * from "./two";`,
             `export class One {}`,
             `export class Two {}`,
@@ -258,6 +258,14 @@ describe("compilationEnv#projects", () => {
         expect(actual).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/target.ts"]);
     });
 
+    it("should yield tsconfig with the caller's rootDir", () => {
+        const testObj = compilationEnv("/target", { tsConfig: { rootDir: "./expected" } });
+
+        const actual = testObj.getProjectFiles();
+
+        expect(JSON.parse(actual.getContents()[0]).compilerOptions.rootDir).toBe("/target/expected");
+    });
+
     it("should yield project and add files with file name", () => {
         const testObj = compilationEnv("/target")
             .addSourceFile("index.ts", `export * from "./target";`)
@@ -267,7 +275,7 @@ describe("compilationEnv#projects", () => {
 
         expect(actual.getPaths()).toEqual(["/target/tsconfig.json", "/target/src/index.ts", "/target/src/target.ts"]);
         expect(actual.getContents()).toEqual([
-            '{"compilerOptions":{"outDir":"/target/dist","target":"ESNext","module":"ESNext","esModuleInterop":true},"include":["/target/src/**/*.ts","/target/src/**/*.tsx"],"exclude":["node_modules","/target/dist"]}',
+            '{"compilerOptions":{"outDir":"/target/dist","rootDir":"/target/src","target":"ESNext","module":"ESNext","esModuleInterop":true},"include":["/target/src/**/*.ts","/target/src/**/*.tsx"],"exclude":["node_modules","/target/dist"]}',
             `export * from "./target";`,
             `export class Target {}`,
         ]);

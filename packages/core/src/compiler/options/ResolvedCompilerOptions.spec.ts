@@ -47,7 +47,6 @@ describe("constructor", () => {
                         outDir: "/dist",
                         pretty: true,
                         removeComments: false,
-                        strict: false,
                     }),
                 }),
                 config: {},
@@ -65,7 +64,6 @@ describe("constructor", () => {
                     outDir: "/dist",
                     pretty: true,
                     removeComments: false,
-                    strict: false,
                 }),
                 tsConfigFile: "/tsconfig.json",
                 watch: false,
@@ -94,7 +92,6 @@ describe("constructor", () => {
                     noEmit: false,
                     pretty: true,
                     removeComments: false,
-                    strict: false,
                 },
             },
             config: {},
@@ -110,7 +107,6 @@ describe("constructor", () => {
                 noEmit: false,
                 pretty: true,
                 removeComments: false,
-                strict: false,
             },
             tsConfigFile: "/tsconfig.json",
         });
@@ -482,17 +478,17 @@ describe("tsConfig", () => {
             noEmit: false,
             pretty: true,
             removeComments: false,
-            strict: false,
         });
     });
 
-    it("should yield no target and esModuleInterop if not passed", () => {
+    it("should yield no target, esModuleInterop and strict if not passed", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
         const testObj = new ResolvedCompilerOptions(fileSystem, {});
 
         expect(testObj.tsConfig).not.toHaveProperty("target");
         expect(testObj.tsConfig).not.toHaveProperty("esModuleInterop");
+        expect(testObj.tsConfig).not.toHaveProperty("strict");
     });
 
     it("should yield passed target and esModuleInterop", () => {
@@ -534,7 +530,6 @@ describe("tsConfig", () => {
             outDir: "/expected",
             pretty: true,
             removeComments: false,
-            strict: false,
         });
     });
 
@@ -567,7 +562,6 @@ describe("tsConfig", () => {
             outDir: "/expected",
             pretty: true,
             removeComments: false,
-            strict: false,
         });
     });
 
@@ -610,7 +604,6 @@ describe("tsConfig", () => {
             outDir: "/profile-out-dir",
             pretty: true,
             removeComments: false,
-            strict: false,
             jsx: ts.JsxEmit.Preserve,
         });
     });
@@ -654,7 +647,6 @@ describe("tsConfig", () => {
             outDir: "/loader-out-dir",
             pretty: true,
             removeComments: false,
-            strict: false,
             jsx: ts.JsxEmit.Preserve,
         });
     });
@@ -844,7 +836,6 @@ describe("cliArgs", () => {
                 noEmit: false,
                 pretty: true,
                 removeComments: false,
-                strict: false,
             },
             raw: {
                 configFilePath: "/tsconfig.json",
@@ -1353,7 +1344,6 @@ describe("getOptions", () => {
                     noEmit: false,
                     pretty: true,
                     removeComments: false,
-                    strict: false,
                 },
                 raw: {
                     configFilePath: "/tsconfig.json",
@@ -1372,7 +1362,6 @@ describe("getOptions", () => {
                 noEmit: false,
                 pretty: true,
                 removeComments: false,
-                strict: false,
             },
             tsConfigFile: "/tsconfig.json",
         });

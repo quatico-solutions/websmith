@@ -50,6 +50,11 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   `tsconfig.json`, or in a profile's `tsConfig` in `websmith.config.json` when the `tsconfig.json` is shared. Options
   a project leaves unset now follow the installed TypeScript's defaults, so upgrading TypeScript (for example to 6.x)
   can change websmith's output the same way it changes `tsc`'s.
+- **Breaking (TypeScript 6 only):** websmith no longer pins `strict: false`; an unset `strict` follows the installed
+  TypeScript (off on 5.x as before, on with 6.x, as `tsc` does). Combined with 0.10.0's fail-on-error, a project
+  without `strict` in `tsconfig.json` can fail its build on 6.x. Set `"strict": false` to keep the old behaviour. This
+  is the same rule as the `target` / `esModuleInterop` entry above: options a project leaves unset follow the
+  installed TypeScript.
 - Builds that passed 0.10.x may now fail. The ESM check now reports these imports, each of which the build passed but
   the runtime rejects:
   - under `esm: { runtime: "node" }`, the ESM check tests the path that Node derives from a relative specifier, so a
@@ -151,6 +156,13 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   entries of the list are kept, as `tsc` does. Loader-option `tsConfig` and inline profiles too.
 - `@quatico/websmith-node` works with TypeScript 6's `tsc`, which rejects file arguments next to a `tsconfig.json`
   (TS5112), and passes `--target ES2025` by its name.
+- On TypeScript 6, websmith no longer fails with deprecation errors (TS5107) for options it sets itself:
+  `moduleResolution` `classic` / `node10` when it compiles addons (CLI and webpack loader), and `target: ES5` /
+  `moduleResolution: node10` in `@quatico/websmith-testing`. These compilations now leave `moduleResolution` to
+  TypeScript's default; on TypeScript 6 the loader's addon compile therefore reads `package.json` `exports` (no
+  "Cannot find module" warning for a package with types only under `exports`).
+- `compilationEnv` of `@quatico/websmith-testing` sets `rootDir` to its source directory, so output paths are the same
+  on TypeScript 5 and 6 (`dist/<file>`, not `dist/src/<file>`). A caller's own `rootDir` wins.
 - An unconfigured `profile` fails a webpack loader build with a configuration error that names the available
   profiles, e.g. `Profile 'x' is not configured in '<configFile>'. Available profiles: a, b.`, reported once per
   compilation (once per worker under `thread-loader`) instead of a `Module build failed` stack trace per module; without a configuration file the error is

@@ -7,6 +7,9 @@
 import { compilationEnv, type CompilationEnv } from "@quatico/websmith-testing";
 import path from "node:path";
 
+// TypeScript 6 emits "use strict" for every script (5.x only under strict); the subject here is the addon's output, not the prologue
+const withoutUseStrict = (content: string): string => content.replace(/^"use strict";\n/, "");
+
 describe("foobar-export-processor addon", () => {
     let testObj: CompilationEnv;
 
@@ -53,7 +56,7 @@ describe("foobar-export-processor addon", () => {
             })
             .compile();
 
-        const actual = testObj.getCompiledFile("target.js")!.getContent();
+        const actual = withoutUseStrict(testObj.getCompiledFile("target.js")!.getContent());
 
         expect(actual).toMatchInlineSnapshot(`
             "function whatever() {
@@ -70,7 +73,7 @@ describe("foobar-export-processor addon", () => {
             })
             .compile();
 
-        const actual = testObj.getCompiledFile("target.js")!.getContent();
+        const actual = withoutUseStrict(testObj.getCompiledFile("target.js")!.getContent());
 
         expect(actual).toMatchInlineSnapshot(`
             "const foobar = () => console.log("Hello, Foo!");
