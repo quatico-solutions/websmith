@@ -1314,7 +1314,7 @@ export class Compiler {
      * Returns the options diagnostics of a per-file Program that concern `sourceFile`: one that names another source
      * file of the Program, e.g. TS6059 for an imported file outside `rootDir`, is returned by that file's own Program.
      */
-    private getOwnOptionsDiagnostics(program: ts.Program, sourceFile: ts.SourceFile): ts.Diagnostic[] {
+    protected getOwnOptionsDiagnostics(program: ts.Program, sourceFile: ts.SourceFile): ts.Diagnostic[] {
         const otherFiles = program.getSourceFiles().filter(cur => cur !== sourceFile && !cur.isDeclarationFile);
         return program.getOptionsDiagnostics().filter(cur => {
             const message = ts.flattenDiagnosticMessageText(cur.messageText, "\n");

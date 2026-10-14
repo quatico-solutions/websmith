@@ -49,6 +49,10 @@ class CompilerTestClass extends Compiler {
         return super.createProgram(tsConfig);
     }
 
+    public getOwnOptionsDiagnostics(program: ts.Program, sourceFile: ts.SourceFile): ts.Diagnostic[] {
+        return super.getOwnOptionsDiagnostics(program, sourceFile);
+    }
+
     public getSystem(): ts.System {
         return super.getSystem();
     }
@@ -1393,7 +1397,7 @@ describe("compile", () => {
         expect(actual[1]).toContain("/src/c.ts");
     });
 
-    it("yields no rootDir violation in the fragment of a file under rootDir w/ declaration and import of a file outside", () => {
+    it("yields no rootDir violation in the importer's fragment w/ declaration and real per-file Program importing a file outside rootDir", () => {
         const fileSystem = createSystem(
             { "src/lib/a.ts": `import { b } from "../b";\nexport const a = b;`, "src/b.ts": `export const b = 1;` },
             { virtual: true }
@@ -1411,6 +1415,35 @@ describe("compile", () => {
         const actual = testObj.emitSourceFile("/src/lib/a.ts").diagnostics?.map(cur => cur.code);
 
         expect(actual).toEqual([]);
+    });
+
+    const createOptionsDiagnostic = (code: number, messageText: string): ts.Diagnostic => ({
+        file: undefined,
+        start: undefined,
+        length: undefined,
+        code,
+        category: ts.DiagnosticCategory.Error,
+        messageText,
+    });
+
+    const createProgramMock = (sourceFiles: ts.SourceFile[], optionsDiagnostics: ts.Diagnostic[]): ts.Program =>
+        ({ getSourceFiles: () => sourceFiles, getOptionsDiagnostics: () => optionsDiagnostics }) as unknown as ts.Program;
+
+    it("yields only own options diagnostics w/ per-file Program naming its root and another source file", () => {
+        const own = ts.createSourceFile("/src/lib/a.ts", "", ts.ScriptTarget.ESNext);
+        const other = ts.createSourceFile("/src/b.ts", "", ts.ScriptTarget.ESNext);
+        const program = createProgramMock(
+            [own, other],
+            [
+                createOptionsDiagnostic(6059, "File '/src/b.ts' is not under 'rootDir' '/src/lib'."),
+                createOptionsDiagnostic(6059, "File '/src/lib/a.ts' is not under 'rootDir' '/src/lib/x'."),
+            ]
+        );
+        const testObj = new CompilerTestClass({ reporter: new NoReporter() }, undefined, createSystem({}, { virtual: true }));
+
+        const actual = testObj.getOwnOptionsDiagnostics(program, own).map(cur => cur.messageText);
+
+        expect(actual).toEqual(["File '/src/lib/a.ts' is not under 'rootDir' '/src/lib/x'."]);
     });
 
     it("reports a missing type definition file once w/ addon needing type information", () => {
