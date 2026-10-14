@@ -1,0 +1,177 @@
+{
+    "name": "websmith-ts71-bench-versions",
+    "lockfileVersion": 3,
+    "requires": true,
+    "packages": {
+        "": {
+            "name": "websmith-ts71-bench-versions",
+            "dependencies": {
+                "ts573": "npm:typescript@5.7.3",
+                "ts603": "npm:typescript@6.0.3",
+                "ts71": "npm:typescript@7.1.0-dev.20261013.1"
+            }
+        },
+        "node_modules/@typescript/typescript-darwin-arm64": {
+            "version": "7.1.0-dev.20261013.1",
+            "resolved": "https://registry.npmjs.org/@typescript/typescript-darwin-arm64/-/typescript-darwin-arm64-7.1.0-dev.20261013.1.tgz",
+            "integrity": "sha512-V22DvbTQjg6kMEqU5hhZmxhZqTNdbwNz3YB1CULEtxH7gxMxPvFpMM5rbJQgZlhabo0DxvsFfTdUNjOTr4IPIQ==",
+            "cpu": [
+                "arm64"
+            ],
+            "license": "Apache-2.0",
+            "optional": true,
+            "os": [
+                "darwin"
+            ],
+            "engines": {
+                "node": ">=16.20.0"
+            }
+        },
+        "node_modules/@typescript/typescript-darwin-x64": {
+            "version": "7.1.0-dev.20261013.1",
+            "resolved": "https://registry.npmjs.org/@typescript/typescript-darwin-x64/-/typescript-darwin-x64-7.1.0-dev.20261013.1.tgz",
+            "integrity": "sha512-v10+lJ+NedjOIxTapLg6EQEeWkVdi48f3xVSR9b7e6QXoXCHBpsh/kWXV9TsV5ktK6dVupejI37NhYshHhL30g==",
+            "cpu": [
+                "x64"
+            ],
+            "license": "Apache-2.0",
+            "optional": true,
+            "os": [
+                "darwin"
+            ],
+            "engines": {
+                "node": ">=16.20.0"
+            }
+        },
+        "node_modules/@typescript/typescript-linux-arm": {
+            "version": "7.1.0-dev.20261013.1",
+            "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-arm/-/typescript-linux-arm-7.1.0-dev.20261013.1.tgz",
+            "integrity": "sha512-AoETMKNMW3fSoBShrmReiWcMShNLUzxlOyOEcmvWhJJYMMi0Tn6D3djoeuyojtCgUGwcygGaV5F893axTzDZ3w==",
+            "cpu": [
+                "arm"
+            ],
+            "license": "Apache-2.0",
+            "optional": true,
+            "os": [
+                "linux"
+            ],
+            "engines": {
+                "node": ">=16.20.0"
+            }
+        },
+        "node_modules/@typescript/typescript-linux-arm64": {
+            "version": "7.1.0-dev.20261013.1",
+            "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-arm64/-/typescript-linux-arm64-7.1.0-dev.20261013.1.tgz",
+            "integrity": "sha512-Yfc3YMuraVGekDFh3UNBnuOyXQV76kTqEGN/eYgyarHNy6T8GlhZeF27Q8MTi7UUwf5/gYb4bkXaN1QHazUIIw==",
+            "cpu": [
+                "arm64"
+            ],
+            "license": "Apache-2.0",
+            "optional": true,
+            "os": [
+                "linux"
+            ],
+            "engines": {
+                "node": ">=16.20.0"
+            }
+        },
+        "node_modules/@typescript/typescript-linux-x64": {
+            "version": "7.1.0-dev.20261013.1",
+            "resolved": "https://registry.npmjs.org/@typescript/typescript-linux-x64/-/typescript-linux-x64-7.1.0-dev.20261013.1.tgz",
+            "integrity": "sha512-3A4+Mc0oaeylfTNhOqWO16Rjsus1rbUePzO8syfp3hjd2KMm97KlQjZoWQdTx4HMN+kNO0gkBeK6EPmExcfaug==",
+            "cpu": [
+                "x64"
+            ],
+            "license": "Apache-2.0",
+            "optional": true,
+            "os": [
+                "linux"
+            ],
+            "engines": {
+                "node": ">=16.20.0"
+            }
+        },
+        "node_modules/@typescript/typescript-win32-arm64": {
+            "version": "7.1.0-dev.20261013.1",
+            "resolved": "https://registry.npmjs.org/@typescript/typescript-win32-arm64/-/typescript-win32-arm64-7.1.0-dev.20261013.1.tgz",
+            "integrity": "sha512-lm1K1ltNO88ynBQiQlJJLncUPvDeimW4R50T+Adp8jsLDgbVObuBPXvaiQnpV922JeMWSnOgIH7KeRvxD3W/EQ==",
+            "cpu": [
+                "arm64"
+            ],
+            "license": "Apache-2.0",
+            "optional": true,
+            "os": [
+                "win32"
+            ],
+            "engines": {
+                "node": ">=16.20.0"
+            }
+        },
+        "node_modules/@typescript/typescript-win32-x64": {
+            "version": "7.1.0-dev.20261013.1",
+            "resolved": "https://registry.npmjs.org/@typescript/typescript-win32-x64/-/typescript-win32-x64-7.1.0-dev.20261013.1.tgz",
+            "integrity": "sha512-+K0COtvzbCVuQFVQ25pEXlGOfOqES53+y2XNeZUSfJONLOOmfSc5sniVyTSjjrzMstg8zK9W20nJGKs1eY9BkQ==",
+            "cpu": [
+                "x64"
+            ],
+            "license": "Apache-2.0",
+            "optional": true,
+            "os": [
+                "win32"
+            ],
+            "engines": {
+                "node": ">=16.20.0"
+            }
+        },
+        "node_modules/ts573": {
+            "name": "typescript",
+            "version": "5.7.3",
+            "resolved": "https://registry.npmjs.org/typescript/-/typescript-5.7.3.tgz",
+            "integrity": "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==",
+            "license": "Apache-2.0",
+            "bin": {
+                "tsc": "bin/tsc",
+                "tsserver": "bin/tsserver"
+            },
+            "engines": {
+                "node": ">=14.17"
+            }
+        },
+        "node_modules/ts603": {
+            "name": "typescript",
+            "version": "6.0.3",
+            "resolved": "https://registry.npmjs.org/typescript/-/typescript-6.0.3.tgz",
+            "integrity": "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==",
+            "license": "Apache-2.0",
+            "bin": {
+                "tsc": "bin/tsc",
+                "tsserver": "bin/tsserver"
+            },
+            "engines": {
+                "node": ">=14.17"
+            }
+        },
+        "node_modules/ts71": {
+            "name": "typescript",
+            "version": "7.1.0-dev.20261013.1",
+            "resolved": "https://registry.npmjs.org/typescript/-/typescript-7.1.0-dev.20261013.1.tgz",
+            "integrity": "sha512-wEt6fQCqhZ3hrbIUaO2LS7d94FSzH+xGP+/KJCxFNFHQiG/W2L0rJ/1B7lAQv6VKntlmjWuzYQ8LABuLZ3W/sg==",
+            "license": "Apache-2.0",
+            "bin": {
+                "tsc": "bin/tsc"
+            },
+            "engines": {
+                "node": ">=16.20.0"
+            },
+            "optionalDependencies": {
+                "@typescript/typescript-darwin-arm64": "7.1.0-dev.20261013.1",
+                "@typescript/typescript-darwin-x64": "7.1.0-dev.20261013.1",
+                "@typescript/typescript-linux-arm": "7.1.0-dev.20261013.1",
+                "@typescript/typescript-linux-arm64": "7.1.0-dev.20261013.1",
+                "@typescript/typescript-linux-x64": "7.1.0-dev.20261013.1",
+                "@typescript/typescript-win32-arm64": "7.1.0-dev.20261013.1",
+                "@typescript/typescript-win32-x64": "7.1.0-dev.20261013.1"
+            }
+        }
+    }
+}
