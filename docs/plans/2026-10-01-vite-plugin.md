@@ -213,7 +213,7 @@ string. This plan writes the package fresh off `develop` and keeps only the atte
 
 ### Diagnostics
 
-- `feature/vite-plugin-diagnostics` — TypeScript and ESM check diagnostics (module and dependent profiles) through `this.error`/`this.warn`, ESM `moduleKind` `esm` with the loader's bundler rule set after #137, addon throws as errors, configuration errors once in `buildStart`, CommonJS-emitting profile as a configuration error, no `console`; unit tests for the diagnostic mapping; e2e: a TS error fails `vite build`, a dependent profile's TS error fails it, a throwing addon fails it (not swallowed), a broken profile reported once, an ESM finding, a `module: commonjs` profile rejected <!-- builds: Vite diagnostic reporting for websmith -->
+- `feature/vite-plugin-diagnostics` — TypeScript and ESM check diagnostics (module and dependent profiles) through `this.error`/`this.warn`, ESM `moduleKind` `esm` with the loader's bundler rule set after #137, addon throws as errors, configuration errors once in `buildStart`, CommonJS-emitting profile as a configuration error, no `console`; unit tests for the diagnostic mapping; e2e: a TS error fails `vite build`, a dependent profile's TS error fails it, a throwing addon fails it (not swallowed), a broken profile reported once, an ESM finding, a `module: commonjs` profile rejected → #193 <!-- builds: Vite diagnostic reporting for websmith -->
 
 ### Addon outputs and context
 

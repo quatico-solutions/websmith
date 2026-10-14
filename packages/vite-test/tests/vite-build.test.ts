@@ -4,23 +4,13 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { spawnSync } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
-
-// Vite is ESM only, so it runs in a separate Node process that imports the plugin by its package name
-const getProjectDir = (): string => {
-    const testId = expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
-    return path.resolve(__dirname, "..", `test-output-vite-build-${testId}_${Date.now()}`);
-};
+import { createProject, removeProject, runViteBuild, writeConfig, writeFile, writeTsConfig } from "./vite-project";
 
 // TS5053 prefix: jsxFactory excludes reactNamespace, an option error TypeScript 5 and 6 report without a file
 const OPTION_ERROR = "Option 'reactNamespace' cannot be specified with option 'jsxFactory'";
 
-let projectDir: string;
-
 beforeEach(() => {
-    projectDir = getProjectDir();
+    createProject("vite-build");
 
     writeTsConfig({});
     writeFile("addons/replacer/addon.js", `exports.activate = ctx => ctx.registerProcessor((_f, c) => c.replaceAll("MARK_IN", "MARK_OUT"));\n`);
@@ -28,7 +18,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-    fs.rmSync(projectDir, { recursive: true, force: true });
+    removeProject();
 });
 
 describe("vite build w/ websmith plugin", () => {
@@ -101,84 +91,8 @@ describe("vite build w/ websmith plugin", () => {
     }, 60000);
 });
 
-const writeFile = (fileName: string, content: string): void => {
-    const filePath = path.join(projectDir, fileName);
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, content, { encoding: "utf-8" });
-};
-
-const writeTsConfig = (compilerOptions: Record<string, unknown>): void =>
-    writeFile(
-        "tsconfig.json",
-        JSON.stringify({
-            compilerOptions: {
-                target: "ES2022",
-                module: "ESNext",
-                moduleResolution: "bundler",
-                rootDir: "./src",
-                outDir: "./tsc-out",
-                ...compilerOptions,
-            },
-        })
-    );
-
-const writeConfig = (tsConfig: Record<string, unknown>): void =>
-    writeFile("websmith.config.json", JSON.stringify({ addonsDir: "./addons", profiles: { app: { addons: ["replacer"], tsConfig } } }));
-
 const writeTsxFixture = (): void => {
     writeConfig({ jsx: "react-jsx" });
     writeFile("src/view.tsx", `const h = (tag: string, props: unknown) => ({ tag, props });\nexport const view = <div id="MARK_IN" />;\n`);
     writeFile("src/main.ts", `export { view } from "./view";\n`);
-};
-
-// The plugin options as JavaScript source, with RegExp values that JSON drops
-const toSource = (value: unknown): string => {
-    if (value instanceof RegExp) {
-        return String(value);
-    }
-    if (Array.isArray(value)) {
-        return `[${value.map(toSource).join(", ")}]`;
-    }
-    if (value !== null && typeof value === "object") {
-        return `{ ${Object.entries(value)
-            .map(([key, cur]) => `${JSON.stringify(key)}: ${toSource(cur)}`)
-            .join(", ")} }`;
-    }
-    return JSON.stringify(value) ?? "undefined";
-};
-
-const runViteBuild = ({
-    vite = "vite",
-    pluginOptions,
-    viteOptions = {},
-    cwd = projectDir,
-}: {
-    vite?: string;
-    pluginOptions: Record<string, unknown>;
-    viteOptions?: Record<string, unknown>;
-    cwd?: string;
-}): string => {
-    writeFile(
-        "build.mjs",
-        `
-        import { build } from ${JSON.stringify(vite)};
-        import websmith from "@quatico/websmith-vite";
-
-        const result = await build({
-            root: ${JSON.stringify(projectDir)},
-            configFile: false,
-            logLevel: "warn",
-            plugins: [websmith(${toSource(pluginOptions)})],
-            ...${JSON.stringify(viteOptions)},
-            build: { write: false, minify: false, lib: { entry: "src/main.ts", formats: ["es"] } },
-        });
-        const outputs = (Array.isArray(result) ? result : [result]).flatMap(cur => cur.output);
-        console.log(JSON.stringify(outputs.filter(cur => cur.type === "chunk").map(cur => cur.code).join("\\n")));
-        `
-    );
-    const { status, stdout, stderr } = spawnSync(process.execPath, [path.join(projectDir, "build.mjs")], { cwd, encoding: "utf-8" });
-    if (status !== 0) {
-        throw new Error(`vite build failed with exit code ${status}:\n${stderr}`);
-    }
-    return JSON.parse(stdout.trim().split("\n").pop() ?? "null") as string;
 };
