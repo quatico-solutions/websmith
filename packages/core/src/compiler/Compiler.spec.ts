@@ -194,6 +194,7 @@ describe("constructor", () => {
             tsConfig: {
                 target: ts.ScriptTarget.ES5,
                 module: ts.ModuleKind.CommonJS,
+                strict: false,
             },
         };
         const loaderOptions = {
