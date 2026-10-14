@@ -10,6 +10,10 @@ const APP = { profile: "app" };
 
 const countOf = (text: string | undefined, part: string): number => (text?.split(part).length ?? 1) - 1;
 
+// TS4094 under declaration: true, like the loader's dependent profile e2e
+const DECLARATION_ERROR_SOURCE = `export const C = class { private p = 1; };\n`;
+const DECLARATION_ERROR = "may not be private or protected";
+
 beforeEach(() => {
     createProject("vite-diagnostics");
 
@@ -55,7 +59,47 @@ describe("vite build w/ websmith diagnostics", () => {
         expect(actual2).toBeDefined();
     }, 60000);
 
-    it.todo("should fail w/ declaration error in dependent profile — bug/loader-dependent-profile-diagnostics");
+    it.each(["vite", "vite6"])(
+        "should fail once in transform w/ declaration error only in dependent profile w/ %s",
+        vite => {
+            writeProfiles({
+                app: { depends: ["dep"], tsConfig: { declaration: false, outDir: "./app-out" } },
+                dep: { tsConfig: { declaration: true, outDir: "./dep-out" } },
+            });
+            writeFile("src/main.ts", DECLARATION_ERROR_SOURCE);
+
+            const { error } = runVite({ vite, pluginOptions: APP });
+            const actual1 = error?.message;
+            const actual2 = countOf(error?.message, DECLARATION_ERROR);
+            const actual3 = error?.hook;
+            const actual4 = error?.loc?.file;
+
+            expect(actual1).toMatch(/\(profile "dep"\)$/m);
+            expect(actual2).toBe(1);
+            expect(actual3).toBe("transform");
+            expect(actual4).toMatch(/src[\\/]main\.ts$/);
+        },
+        60000
+    );
+
+    it.each(["vite", "vite6"])(
+        "should fail once without profile label w/ declaration error in target and dependent profile w/ %s",
+        vite => {
+            writeProfiles({
+                app: { depends: ["dep"], tsConfig: { declaration: true, outDir: "./app-out" } },
+                dep: { tsConfig: { declaration: true, outDir: "./dep-out" } },
+            });
+            writeFile("src/main.ts", DECLARATION_ERROR_SOURCE);
+
+            const { error } = runVite({ vite, pluginOptions: APP });
+            const actual1 = countOf(error?.message, DECLARATION_ERROR);
+            const actual2 = error?.message;
+
+            expect(actual1).toBe(1);
+            expect(actual2).not.toContain("(profile");
+        },
+        60000
+    );
 
     it("should fail w/ throwing processor", () => {
         writeFile("addons/thrower/addon.js", `exports.activate = ctx => ctx.registerProcessor(() => { throw new Error("BOOM_PROCESSOR"); });\n`);
