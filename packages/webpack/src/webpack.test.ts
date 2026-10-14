@@ -145,7 +145,7 @@ describe("webpack e2e tests (similar to bin.test.ts)", () => {
             declarationMap: true,
             target: "esnext",
             module: "esnext",
-            moduleResolution: "node",
+            moduleResolution: "bundler",
         });
         copySourceFile("foobar-arrow.ts");
 
