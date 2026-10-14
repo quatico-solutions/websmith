@@ -714,6 +714,60 @@ describe("TsCompiler not ESM profile", () => {
     });
 });
 
+describe("TsCompiler dependent profile diagnostics", () => {
+    // TS4094 under declaration: true
+    const DECLARATION_ERROR_SOURCE = "export const C = class { private p = 1; };\n";
+
+    const createDependentCompiler = (dirs: ReturnType<typeof getTestDirs>, targetDeclaration: boolean): TsCompiler => {
+        const sourceFile = path.join(dirs.SOURCE_DIR, "one.ts");
+        createSource(sourceFile, DECLARATION_ERROR_SOURCE);
+        return new TsCompiler(
+            {
+                config: {
+                    profiles: {
+                        fragment: { depends: ["write"], tsConfig: { declaration: targetDeclaration } },
+                        write: { tsConfig: { declaration: true, outDir: path.join(dirs.PROJECT_DIR, "lib") } },
+                    },
+                },
+                tsConfig: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.ESNext, outDir: dirs.OUTPUT_DIR, rootDir: dirs.SOURCE_DIR },
+                reporter: new NoReporter(),
+                cliArgs: { options: {}, fileNames: [sourceFile], errors: [] },
+            },
+            { configFile: path.join(dirs.PROJECT_DIR, "websmith.config.json"), profile: "fragment", transpileOnly: false }
+        );
+    };
+
+    it("yields declaration error once labelled w/ profile w/ declaration only in dependent profile", () => {
+        const dirs = getTestDirs();
+        const testObj = createDependentCompiler(dirs, false);
+
+        const actual = testObj
+            .build(path.join(dirs.SOURCE_DIR, "one.ts"))
+            .diagnostics.filter(cur => cur.code === 4094)
+            .map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n"));
+
+        expect(actual).toHaveLength(1);
+        expect(actual[0]).toMatch(/may not be private or protected\. \(profile "write"\)$/);
+
+        fs.rmSync(dirs.PROJECT_DIR, { recursive: true, force: true });
+    });
+
+    it("yields declaration error once w/o label w/ declaration in dependent and target profile", () => {
+        const dirs = getTestDirs();
+        const testObj = createDependentCompiler(dirs, true);
+
+        const actual = testObj
+            .build(path.join(dirs.SOURCE_DIR, "one.ts"))
+            .diagnostics.filter(cur => cur.code === 4094)
+            .map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n"));
+
+        expect(actual).toHaveLength(1);
+        expect(actual[0]).toMatch(/may not be private or protected\.$/);
+
+        fs.rmSync(dirs.PROJECT_DIR, { recursive: true, force: true });
+    });
+});
+
 describe("CompilationScanCache", () => {
     const whatever = { hash: "whatever", scan: {} as never };
 

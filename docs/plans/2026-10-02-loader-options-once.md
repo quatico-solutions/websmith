@@ -252,7 +252,7 @@ first, right after the benchmark that measures it is trustworthy.
 
 ### Dependent-profile diagnostics
 
-- `bug/loader-dependent-profile-diagnostics` — dependent profiles' TypeScript diagnostics reach webpack, labelled with the profile, identical diagnostics across profiles reported once; behaviour-change line in `Release-Notes.md`; unit tests in `TsCompiler.spec.ts`; e2e: a declaration-emit error only in a dependent profile fails the build, an error in both profiles appears once <!-- builds: dependent fragment diagnostics in TsCompiler.build --> <!-- waits: bug/loader-option-errors-once -->
+- `bug/loader-dependent-profile-diagnostics` — dependent profiles' TypeScript diagnostics reach webpack, labelled with the profile, identical diagnostics across profiles reported once; behaviour-change line in `Release-Notes.md`; unit tests in `TsCompiler.spec.ts`; e2e: a declaration-emit error only in a dependent profile fails the build, an error in both profiles appears once → #191 <!-- builds: dependent fragment diagnostics in TsCompiler.build --> <!-- waits: bug/loader-option-errors-once -->
 
 ### package.json "type"
 
