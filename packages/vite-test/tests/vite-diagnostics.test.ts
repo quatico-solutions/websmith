@@ -4,6 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { stripVTControlCharacters } from "node:util";
 import { createProject, removeProject, runVite, runViteWatch, writeConfig, writeFile, writeProfiles, writeTsConfig } from "./vite-project";
 
 const APP = { profile: "app" };
@@ -69,7 +70,7 @@ describe("vite build w/ websmith diagnostics", () => {
             writeFile("src/main.ts", DECLARATION_ERROR_SOURCE);
 
             const { error } = runVite({ vite, pluginOptions: APP });
-            const actual1 = error?.message;
+            const actual1 = stripVTControlCharacters(error?.message ?? "");
             const actual2 = countOf(error?.message, DECLARATION_ERROR);
             const actual3 = error?.hook;
             const actual4 = error?.loc?.file;
