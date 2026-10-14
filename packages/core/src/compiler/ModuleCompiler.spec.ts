@@ -806,6 +806,31 @@ describe("ModuleCompiler dependent profile diagnostics", () => {
         expect(actual).toEqual(["Option error"]);
     });
 
+    const OWN_FILE_ERROR: ts.Diagnostic = {
+        ...FILE_LESS_ERROR,
+        code: 6059,
+        messageText: "File '/src/a.ts' is not under 'rootDir' '/src/lib'. 'rootDir' is expected to contain all source files.",
+    };
+
+    it("yields file-less TypeScript error naming the module's file labelled in build w/ error only in dependent profile", () => {
+        const testObj = createInjectingCompiler({ dep: [OWN_FILE_ERROR] });
+
+        const actual = flatten(testObj.build("/src/a.ts").diagnostics);
+
+        expect(actual).toEqual([`${OWN_FILE_ERROR.messageText} (profile "dep")`]);
+    });
+
+    it("yields no file-less TypeScript error naming the module's file as config error after rebuild w/o error in dependent profile", () => {
+        const testObj = createInjectingCompiler({ dep: [OWN_FILE_ERROR] });
+        testObj.build("/src/a.ts");
+        testObj.injected = {};
+        testObj.build("/src/a.ts");
+
+        const actual = testObj.getConfigErrors();
+
+        expect(actual).toEqual([]);
+    });
+
     it("yields websmith error labelled in build w/ file-less error w/o code only in dependent profile", () => {
         const testObj = createInjectingCompiler({ dep: [new ErrorMessage("Websmith error")] });
 
