@@ -20,6 +20,12 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 Builds that passed before can now fail: the `websmith` command reports errors it used to ignore and exits with code 1.
 
+- **Behaviour change:** the webpack loader reports the TypeScript diagnostics of the profiles the selected `profile`
+  depends on, labelled `(profile "<name>")`. Builds with an error only a dependent profile produces, e.g. a declaration
+  emit error such as TS4094 in a profile with `declaration: true`, now fail; before, the dependent profile wrote its
+  files and the error was dropped. An error that the target and a dependent profile both produce is reported once,
+  without a label. An option error of a dependent profile, e.g. TS5095, is a configuration error, reported once per
+  compilation.
 - `websmith --project <directory>` compiles `<directory>/tsconfig.json` with its options, as `tsc` does. An explicit
   `--project` that names no tsconfig file is an error that names the absolute path: a path that does not exist, such as
   `-p missing.json` or `-p tsconfig.json` without that file (error 5058), or a directory without `tsconfig.json`, such
@@ -157,6 +163,13 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   "Cannot find module" warning for a package with types only under `exports`).
 - `compilationEnv` of `@quatico/websmith-testing` sets `rootDir` to its source directory, so output paths are the same
   on TypeScript 5 and 6 (`dist/<file>`, not `dist/src/<file>`). A caller's own `rootDir` wins.
+- An unconfigured `profile` fails a webpack loader build with a configuration error that names the available
+  profiles, e.g. `Profile 'x' is not configured in '<configFile>'. Available profiles: a, b.`, reported once per
+  compilation (once per worker under `thread-loader`) instead of a `Module build failed` stack trace per module; without a configuration file the error is
+  `Profile 'x' is passed but no websmith.config.json was found.`. A `depends` target missing from the loader's
+  `config.profiles` is a configuration error too, and the `depends` error names the available profiles. The CLI
+  reports the same errors and exits 1; before, `websmith --profile <unknown>` warned `Missing profile: …`, wrote
+  nothing and exited 0.
 
 ### Removed
 

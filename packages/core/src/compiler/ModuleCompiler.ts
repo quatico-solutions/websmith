@@ -54,6 +54,19 @@ const NODE_IMPORT_RULES: readonly ImportRule[] = [checkMissingExtension, checkDi
 type ScanEntry = Parameters<ScanCache["set"]>[1];
 
 /**
+ * Returns a copy of `diagnostic` whose message names `profile`, the way the ESM check names its profile: a chain is
+ * labelled on its head. TypeScript caches its diagnostics per Program, so the label goes on a copy.
+ */
+const labelWithProfile = (diagnostic: ts.Diagnostic, profile: string): ts.Diagnostic => {
+    const suffix = ` (profile "${profile}")`;
+    const { messageText } = diagnostic;
+    return {
+        ...diagnostic,
+        messageText: typeof messageText === "string" ? messageText + suffix : { ...messageText, messageText: messageText.messageText + suffix },
+    };
+};
+
+/**
  * A scan cache that forgets files a compilation did not check: `nextCompilation` keeps the scans used since the last
  * call as fallbacks for the next compilation and drops the others, e.g. those of deleted or renamed files.
  */
@@ -140,7 +153,10 @@ class ConfigErrorReporter implements Reporter {
  * `takeUnreportedConfigErrors` per module, and calls `refreshOptions`,
  * `refreshAddons` and `resetCompilationCaches` when its compilations start. A host that applies addons of its own
  * overrides `applyAddons`, and `prepareAddons` if they need setting up first; without that, the addons come from the
- * `AddonRegistry` of the host options.
+ * `AddonRegistry` of the host options. When `isProfileConfigured` is false, `build` emits nothing and the host finishes
+ * the module without output: the configuration error of the profile fails the build. The diagnostics of the dependent
+ * profiles come with those of `build` and `getConfigErrors`, labelled with their profile: a host reports them without
+ * work of its own.
  */
 export class ModuleCompiler extends Compiler {
     private profile?: string;
@@ -171,7 +187,7 @@ export class ModuleCompiler extends Compiler {
         this.targetCompilerOptions = targetCompilerOptions;
         this.baseOptions = options;
 
-        // The host checks the profile once its construction completes, see checkProfile
+        // Option resolution reports an unconfigured profile, see isProfileConfigured
         this.profile = this.getOptions().profile || loaderOptions.profile || undefined;
         super.createProfileContextsIfNecessary();
         this.completeResolution();
@@ -185,6 +201,11 @@ export class ModuleCompiler extends Compiler {
     /** Returns the profile whose output the host bundles. */
     public getProfile(): string | undefined {
         return this.profile;
+    }
+
+    /** Returns false if the host's profile is not configured, which option resolution reports as configuration error. */
+    public isProfileConfigured(): boolean {
+        return !this.profile || Object.hasOwn(this.getOptions().config?.profiles ?? {}, this.profile);
     }
 
     /**
@@ -204,7 +225,8 @@ export class ModuleCompiler extends Compiler {
     /**
      * Returns the configuration errors of the last option resolution, of the selected profile and its dependencies,
      * then the errors of the `tsconfig.json`, e.g. an unknown option or invalid JSON, then the TypeScript errors without
-     * a file that builds returned since, e.g. option errors such as TS5095.
+     * a file that builds returned since, e.g. option errors such as TS5095. Those of a dependent profile are labelled
+     * with the profile, unless the host's profile reports them too.
      */
     public getConfigErrors(): ts.Diagnostic[] {
         const reporter = this.getReporter();
@@ -244,7 +266,7 @@ export class ModuleCompiler extends Compiler {
         this.recreateCompilationContexts();
 
         const profileName = this.getOptions().profile || loaderOptions.profile;
-        this.profile = profileName ? this.checkProfile(profileName) : undefined;
+        this.profile = profileName || undefined;
         this.completeResolution();
     }
 
@@ -326,8 +348,11 @@ export class ModuleCompiler extends Compiler {
 
     /**
      * Compiles one module for the host: emits it with the dependent profiles, which write their files, then with the
-     * host's profile, whose files the host bundles. `moduleKind` decides how the ESM check classifies the target's
-     * output under `runtime: "bundler"`; without it the check classifies by package.json.
+     * host's profile, whose files the host bundles. The diagnostics are those of the host's profile, then those of the
+     * dependent profiles, labelled with their profile; a diagnostic that several profiles report identically is
+     * returned once, without a label if the host's profile reports it, else with the first dependent's. `moduleKind`
+     * decides how the ESM check classifies the target's output under `runtime: "bundler"`; without it the check
+     * classifies by package.json.
      */
     public build(resourcePath: string, { moduleKind }: ModuleBuildOptions = {}): ModuleBuildResult {
         // Allow both ts.sys and virtual filesystems for testing
@@ -351,8 +376,12 @@ export class ModuleCompiler extends Compiler {
             this.compilationCaches = ModuleCompiler.createCompilationCaches();
         }
         const diagnostics: ts.Diagnostic[] = [];
+        const dependentDiagnostics: [string, ts.Diagnostic][] = [];
         const dependencies = { files: new Set<string>(), missing: new Set<string>() };
         const onDependency = (fileName: string, exists: boolean) => (exists ? dependencies.files : dependencies.missing).add(fileName);
+        if (!this.isProfileConfigured()) {
+            return { fragment: { version: 0, files: [], writtenFiles: [] }, diagnostics: [], dependencies: { files: [], missing: [] } };
+        }
 
         if (this.profile) {
             const selectedProfiles = this.getOptions().getSelectedProfiles(this.profile);
@@ -363,6 +392,10 @@ export class ModuleCompiler extends Compiler {
                     // Transpile source file with other profiles (different from webpack target) and write the file
                     this.logDebug(`Emitting source file: ${filePath} with profile: ${profile}`);
                     const fragment = this.emitSourceFile(filePath, profile, true);
+                    // Merged with the target's after its emit: the target's copy of a diagnostic wins
+                    dependentDiagnostics.push(
+                        ...this.takeFileLessErrors(fragment.diagnostics ?? [], profile).map((cur): [string, ts.Diagnostic] => [profile, cur])
+                    );
                     // Dependent profiles write files that another runtime loads: checked as written, by their own esm
                     diagnostics.push(...this.checkLoaderOutput(profile, filePath, fragment.writtenFiles, undefined, onDependency));
 
@@ -388,8 +421,17 @@ export class ModuleCompiler extends Compiler {
         this.logDebug(`Emitting source file: ${filePath} with profile: ${this.profile || "default"}`);
         const result = this.emitSourceFile(filePath, this.profile, true);
         this.onTargetEmitted(filePath);
+        const targetDiagnostics = this.takeFileLessErrors(result.diagnostics ?? []);
+        // Deduplicated on the unlabelled key, so a host's message-based deduplication sees one copy per module
+        const reported = new Set(targetDiagnostics.map(cur => ModuleCompiler.getDiagnosticKey(cur)));
         diagnostics.push(
-            ...this.takeFileLessErrors(result.diagnostics ?? []),
+            ...targetDiagnostics,
+            ...dependentDiagnostics
+                .filter(([, cur]) => {
+                    const key = ModuleCompiler.getDiagnosticKey(cur);
+                    return !reported.has(key) && !!reported.add(key);
+                })
+                .map(([profile, cur]) => labelWithProfile(cur, profile)),
             ...this.checkLoaderOutput(this.profile, filePath, result.files, moduleKind, onDependency)
         );
 
@@ -434,11 +476,6 @@ export class ModuleCompiler extends Compiler {
      */
     protected prepareAddons(): void {
         // Nothing to set up without a host
-    }
-
-    /** Validates the host's profile on a new option resolution; returns the profile to build with. */
-    protected checkProfile(profile: string): string {
-        return profile;
     }
 
     /** Called after the target profile emitted `filePath` and before its output is checked. */
@@ -500,13 +537,20 @@ export class ModuleCompiler extends Compiler {
 
     /**
      * Keeps the TypeScript errors without a file of `diagnostics` as configuration errors and returns the others: every
-     * module of the fast path returns the same option errors. websmith's own diagnostics without a file (code 0) and
-     * warnings stay on the module.
+     * module of the fast path returns the same option errors, so N modules give one configuration error, not N. The
+     * errors of a dependent profile `dependentProfile` are kept labelled with it, unless the host's profile already
+     * keeps the same error, whose unlabelled copy replaces a dependent's. websmith's own diagnostics without a file
+     * (code 0) and warnings stay on the module.
      */
-    private takeFileLessErrors(diagnostics: readonly ts.Diagnostic[]): ts.Diagnostic[] {
+    private takeFileLessErrors(diagnostics: readonly ts.Diagnostic[], dependentProfile?: string): ts.Diagnostic[] {
         return diagnostics.filter(cur => {
             if (!cur.file && cur.code > 0 && cur.category === ts.DiagnosticCategory.Error) {
-                this.fileLessErrors.set(ModuleCompiler.getDiagnosticKey(cur), cur);
+                const key = ModuleCompiler.getDiagnosticKey(cur);
+                if (!dependentProfile) {
+                    this.fileLessErrors.set(key, cur);
+                } else if (!this.fileLessErrors.has(key)) {
+                    this.fileLessErrors.set(key, labelWithProfile(cur, dependentProfile));
+                }
                 return false;
             }
             return true;

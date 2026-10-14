@@ -75,7 +75,8 @@ The default configuration uses the `tsconfig.json` file in your project root to 
 - **transpileOnly** (boolean): Enable transpile-only mode for faster builds without type checking. Defaults to
   `false`, or to `true` when the webpack configuration contains a `ForkTsCheckerWebpackPlugin`.
 - **addonEmitOnly** (boolean): Only emit files that are processed by active addons. When enabled, all files are still compiled for dependencies and type checking, but only files processed by addon callbacks (generators, processors, transformers) are written to disk. This is useful for code generation workflows where you want to preserve original source files unchanged while emitting only generated or transformed files.
-- **profile** (string): Name of the compilation profile to use. Without a profile, no profile addons are applied.
+- **profile** (string): Name of the compilation profile to use. Without a profile, no profile addons are applied. A
+  name that is not configured is a configuration error.
 - **error** and **warn** (functions): Secondary sinks, called after the loader has emitted a diagnostic on the
   module: `error` receives each error, `warn` each warning, and with `debug` also each message and suggestion. Each
   gets a `WebpackError` whose message starts with the emitted file and position, `file (line,col): `. webpack
@@ -92,14 +93,19 @@ TypeScript diagnostics and ESM check diagnostics are emitted on the module that 
   information, e.g. TS4094 (property of an exported anonymous class type may not be private), TS2742 (inferred
   type cannot be named without a reference) and, under `isolatedDeclarations`, TS9xxx.
 
+With `depends`, the diagnostics of the dependent profiles' emits of the module are emitted too, labelled
+`(profile "<name>")`. A diagnostic that the selected profile or another dependent profile reports identically is
+emitted once: the selected profile's copy without a label, else the first dependent profile's.
+
 TypeScript errors without a file belong to no module, e.g. option errors such as TS5095 (`moduleResolution: "bundler"`
 with `module: "CommonJS"`): every module would report the same one. The loader reports them once per compilation like
-configuration errors, see below.
+configuration errors, see below. A dependent profile's option errors are reported the same way, labelled with the
+profile.
 
 Configuration errors in `websmith.config.json` of the selected `profile` and the profiles it depends on fail the
-build too, e.g. an unknown profile in `depends`, an unknown `esm.runtime`, or `esm` together with
-`tsConfig.module: "CommonJS"`. A `configFile` that does not exist is a configuration error as well, and so are
-errors in `tsconfig.json`: unknown options, invalid values, and invalid JSON. Errors of
+build too, e.g. an unconfigured `profile`, an unknown profile in `depends`, an unknown `esm.runtime`, or `esm`
+together with `tsConfig.module: "CommonJS"`. A `configFile` that does not exist is a configuration error as well,
+and so are errors in `tsconfig.json`: unknown options, invalid values, and invalid JSON. Errors of
 profiles the build does not use are not reported. Configuration errors belong to no module: the loader adds each one
 once per compilation to webpack's errors and passes it to `error`, also when several loader rules use the same
 configuration. A watch rebuild reports them again while they remain. Editing `websmith.config.json` triggers a
@@ -107,7 +113,8 @@ rebuild that reports its current errors and compiles the loader's modules again 
 compiler hooks, e.g. under `thread-loader`, each worker emits the configuration errors on the first module it builds
 instead, and again whenever that module is rebuilt, so they appear once per worker. With webpack's persistent cache
 (`cache: { type: "filesystem" }`), a build that restores every module from the cache runs no loader and reports
-no configuration errors.
+no configuration errors. The modules of an unconfigured `profile` stay out of the cache, so its error is reported
+in every build.
 
 #### Option resolution and addon lifetime
 
