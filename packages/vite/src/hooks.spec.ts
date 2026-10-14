@@ -305,6 +305,47 @@ describe("createWebsmithHooks", () => {
             expect(actual).toHaveBeenCalledTimes(1);
         });
 
+        it("should warn once w/ missing addons warning reported by two modules", () => {
+            let reporter: Reporter | undefined;
+            const compiler = createCompiler({
+                build: jest.fn(() => {
+                    reporter?.reportDiagnostic(new WarnMessage('Missing addons for profile "app": "nope"'));
+                    return { fragment: fragment({ "main.js": "whatever" }), diagnostics: [], dependencies: { files: [], missing: [] } };
+                }),
+            });
+            const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), compiler) });
+            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.buildStart.call(createContext());
+            const target = createContext();
+
+            testObj.transformHandler.call(target, "whatever", MAIN);
+            testObj.transformHandler.call(target, "whatever", `${ROOT}/src/b.ts`);
+            const actual = target.warn;
+
+            expect(actual).toHaveBeenCalledTimes(1);
+        });
+
+        it("should warn again w/ missing addons warning in rebuild", () => {
+            let reporter: Reporter | undefined;
+            const compiler = createCompiler({
+                build: jest.fn(() => {
+                    reporter?.reportDiagnostic(new WarnMessage('Missing addons for profile "app": "nope"'));
+                    return { fragment: fragment({ "main.js": "whatever" }), diagnostics: [], dependencies: { files: [], missing: [] } };
+                }),
+            });
+            const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), compiler) });
+            testObj.configResolved({ root: ROOT, command: "build" });
+            const target = createContext();
+            testObj.buildStart.call(target);
+            testObj.transformHandler.call(target, "whatever", MAIN);
+
+            testObj.buildStart.call(target);
+            testObj.transformHandler.call(target, "whatever", MAIN);
+            const actual = target.warn;
+
+            expect(actual).toHaveBeenCalledTimes(2);
+        });
+
         it("should raise configuration error w/ profile emitting commonjs", () => {
             const compiler = createCompiler({ getOptions: jest.fn(() => createOptions({ app: { tsConfig: { module: ts.ModuleKind.CommonJS } } }, "app")) });
             const testObj = createHooks(compiler);

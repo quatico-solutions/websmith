@@ -81,10 +81,17 @@ export const createWebsmithHooks = (
     const reporter = new DiagnosticReporter();
     // The configuration errors buildStart raised, which buildEnd does not raise again
     let raisedKeys = new Set<string>();
+    // The warnings of the current build, which later modules do not warn again, e.g. the missing addons every lookup reports
+    let warnedKeys = new Set<string>();
 
     const report = (context: HookContext, diagnostics: readonly ts.Diagnostic[]): ts.Diagnostic[] => {
         const { errors, warnings } = partitionDiagnostics(diagnostics, resolved?.loaderOptions.debug ?? false);
-        warnings.forEach(cur => context.warn(toRollupWarning(cur)));
+        warnings
+            .filter(cur => !warnedKeys.has(getDiagnosticKey(cur)))
+            .forEach(cur => {
+                warnedKeys.add(getDiagnosticKey(cur));
+                context.warn(toRollupWarning(cur));
+            });
         return errors;
     };
 
@@ -109,6 +116,7 @@ export const createWebsmithHooks = (
                 compiler.keepCachesPerCompilation();
             }
             raisedKeys = new Set();
+            warnedKeys = new Set();
             if (command !== "build") {
                 return;
             }

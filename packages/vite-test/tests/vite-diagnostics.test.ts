@@ -162,6 +162,19 @@ describe("vite build w/ websmith diagnostics", () => {
         expect(actual2).toHaveLength(1);
     }, 60000);
 
+    it("should warn once w/ missing addon and two modules", () => {
+        writeProfiles({ app: { addons: ["replacer", "nope"] } });
+        writeFile("src/b.ts", `export const b = 1;\n`);
+        writeFile("src/main.ts", `import { b } from "./b";\nexport const x = b;\n`);
+
+        const { error, warnings } = runVite({ pluginOptions: APP });
+        const actual1 = error;
+        const actual2 = warnings.filter(cur => cur.includes('"nope"'));
+
+        expect(actual1).toBeUndefined();
+        expect(actual2).toHaveLength(1);
+    }, 60000);
+
     it("should report broken config w/ watch rebuild after config change", () => {
         writeConfig({});
         const brokenConfig = JSON.stringify({ addonsDir: "./addons", profiles: { app: { addons: ["replacer"], depends: ["missing"] } } });
