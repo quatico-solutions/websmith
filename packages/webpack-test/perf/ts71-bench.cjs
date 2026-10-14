@@ -113,7 +113,10 @@ const parseOptions = argv => {
     const strings = new Set(["sizes", "versions-dir", "out"]);
     for (let i = 0; i < argv.length; i++) {
         const name = argv[i].replace(/^--/, "");
-        if (name === "keep") {
+        if (argv[i] === "--") {
+            // pnpm passes a bare "--" through: `pnpm perf:ts71 -- --sizes 20`
+            continue;
+        } else if (name === "keep") {
             options.keep = true;
         } else if (name in options) {
             const value = argv[++i];
@@ -128,13 +131,17 @@ const parseOptions = argv => {
             throw new Error(`Unknown option "${argv[i]}"`);
         }
     }
+    // (e) picks its leaves among the generated modules and needs at least two of them beside the fixtures
+    const minSize = corpusModule.FIXTURE_COUNT + 2;
     options.sizes = String(options.sizes)
         .split(",")
-        .map(cur => Number(cur.trim()))
-        .filter(cur => Number.isFinite(cur));
-    if (options.sizes.length === 0) {
-        throw new Error("--sizes needs at least one number");
-    }
+        .map(cur => {
+            const size = cur.trim() === "" ? NaN : Number(cur);
+            if (!Number.isInteger(size) || size < minSize) {
+                throw new Error(`--sizes needs integers of at least ${minSize} (${corpusModule.FIXTURE_COUNT} fixtures plus 2 generated modules), got "${cur}"`);
+            }
+            return size;
+        });
     return options;
 };
 
@@ -765,9 +772,10 @@ const decide = (summary, options) => {
         baseline: f[BASELINE].sequentialPerSecond?.median,
         inFlight: f[NATIVE].inFlight,
     });
+    // the plan multiplies by the loader instances of a multi-profile build only when one cold start exceeds 1 s
     const instances = options["loader-instances"];
     const cold = a[NATIVE].median;
-    judge("6 (a) 7.1 cold start ms x loader instances", "ms", typeof cold === "number" ? cold * instances : undefined, 2000, v => v <= 2000, {
+    judge("6 (a) 7.1 cold start ms (x loader instances above 1 s)", "ms", typeof cold === "number" ? (cold > 1000 ? cold * instances : cold) : undefined, 2000, v => v <= 2000, {
         reason: a[NATIVE].reason,
         coldStartMs: cold,
         loaderInstances: instances,
