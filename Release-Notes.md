@@ -20,6 +20,12 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 Builds that passed before can now fail: the `websmith` command reports errors it used to ignore and exits with code 1.
 
+- **Behaviour change:** the webpack loader reports the TypeScript diagnostics of the profiles the selected `profile`
+  depends on, labelled `(profile "<name>")`. Builds with an error only a dependent profile produces, e.g. a declaration
+  emit error such as TS4094 in a profile with `declaration: true`, now fail; before, the dependent profile wrote its
+  files and the error was dropped. An error that the target and a dependent profile both produce is reported once,
+  without a label. An option error of a dependent profile, e.g. TS5095, is a configuration error, reported once per
+  compilation.
 - `websmith --project <directory>` compiles `<directory>/tsconfig.json` with its options, as `tsc` does. An explicit
   `--project` that names no tsconfig file is an error that names the absolute path: a path that does not exist, such as
   `-p missing.json` or `-p tsconfig.json` without that file (error 5058), or a directory without `tsconfig.json`, such

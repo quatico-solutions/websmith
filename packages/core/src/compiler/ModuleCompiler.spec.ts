@@ -667,3 +667,158 @@ describe("ModuleCompiler option errors", () => {
         expect(actual).toEqual([]);
     });
 });
+
+describe("ModuleCompiler dependent profile diagnostics", () => {
+    const PROFILES = { target: { depends: ["dep"], tsConfig: { outDir: "/dist" } }, dep: { tsConfig: { outDir: "/lib" } } };
+    const SOURCES = { "/src/a.ts": "export const a = 1;", "/src/b.ts": "export const b = 2;" };
+    const FILE_LESS_ERROR: ts.Diagnostic = {
+        file: undefined,
+        start: undefined,
+        length: undefined,
+        code: 5095,
+        category: ts.DiagnosticCategory.Error,
+        messageText: "Option error",
+    };
+
+    class ProfileInjectingCompiler extends ModuleCompiler {
+        public injected: Record<string, ts.Diagnostic[]> = {};
+
+        protected emitSourceFile(...args: Parameters<ModuleCompiler["emitSourceFile"]>): ReturnType<ModuleCompiler["emitSourceFile"]> {
+            const fragment = super.emitSourceFile(...args);
+            return { ...fragment, diagnostics: [...(fragment.diagnostics ?? []), ...(this.injected[args[1] ?? ""] ?? [])] };
+        }
+    }
+
+    const createInjectingCompiler = (
+        injected: Record<string, ts.Diagnostic[]>,
+        profiles: Record<string, CompilationProfile> = PROFILES,
+        files: Record<string, string> = SOURCES
+    ): ProfileInjectingCompiler => {
+        const system = createSystem({ ...TS_CONFIG, ...files }, { virtual: true });
+        const testObj = new ProfileInjectingCompiler(
+            { config: { profiles }, reporter: new NoReporter(), cliArgs: { options: {}, fileNames: Object.keys(files), errors: [] } },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" },
+            system
+        );
+        testObj.injected = injected;
+        return testObj;
+    };
+
+    const createFileDiagnostic = (
+        messageText: string | ts.DiagnosticMessageChain,
+        category = ts.DiagnosticCategory.Error,
+        fileName = "/src/a.ts"
+    ): ts.Diagnostic => ({
+        file: ts.createSourceFile(fileName, "", ts.ScriptTarget.ES2020),
+        start: 0,
+        length: 1,
+        code: 4094,
+        category,
+        messageText,
+    });
+
+    const flatten = (diagnostics: ts.Diagnostic[]): string[] => diagnostics.map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n"));
+
+    it("yields error labelled w/ profile w/ error only in dependent profile", () => {
+        const testObj = createInjectingCompiler({ dep: [createFileDiagnostic("Decl error")] });
+
+        const actual = flatten(testObj.build("/src/a.ts").diagnostics);
+
+        expect(actual).toEqual(['Decl error (profile "dep")']);
+    });
+
+    it("yields error once w/o label w/ same error in dependent and target profile", () => {
+        const testObj = createInjectingCompiler({ dep: [createFileDiagnostic("Decl error")], target: [createFileDiagnostic("Decl error")] });
+
+        const actual = flatten(testObj.build("/src/a.ts").diagnostics);
+
+        expect(actual).toEqual(["Decl error"]);
+    });
+
+    it("yields error once labelled w/ first dependent profile w/ same error in two dependent profiles", () => {
+        const testObj = createInjectingCompiler(
+            { dep1: [createFileDiagnostic("Decl error")], dep2: [createFileDiagnostic("Decl error")] },
+            { target: { depends: ["dep1", "dep2"], tsConfig: { outDir: "/dist" } }, dep1: { tsConfig: { outDir: "/lib1" } }, dep2: { tsConfig: { outDir: "/lib2" } } }
+        );
+
+        const actual = flatten(testObj.build("/src/a.ts").diagnostics);
+
+        expect(actual).toEqual(['Decl error (profile "dep1")']);
+    });
+
+    it("yields warning labelled w/ profile w/ warning only in dependent profile", () => {
+        const testObj = createInjectingCompiler({ dep: [createFileDiagnostic("Decl warning", ts.DiagnosticCategory.Warning)] });
+
+        const actual = testObj.build("/src/a.ts").diagnostics.map(cur => [cur.category, cur.messageText]);
+
+        expect(actual).toEqual([[ts.DiagnosticCategory.Warning, 'Decl warning (profile "dep")']]);
+    });
+
+    it("yields chain labelled on its head w/ chained message only in dependent profile", () => {
+        const chain: ts.DiagnosticMessageChain = {
+            messageText: "Head",
+            category: ts.DiagnosticCategory.Error,
+            code: 4094,
+            next: [{ messageText: "Tail", category: ts.DiagnosticCategory.Error, code: 4094 }],
+        };
+        const testObj = createInjectingCompiler({ dep: [createFileDiagnostic(chain)] });
+
+        const actual = testObj.build("/src/a.ts").diagnostics.map(cur => cur.messageText);
+
+        expect(actual).toEqual([{ ...chain, messageText: 'Head (profile "dep")' }]);
+    });
+
+    it("leaves injected diagnostic unchanged w/ chained message only in dependent profile", () => {
+        const target = createFileDiagnostic({ messageText: "Head", category: ts.DiagnosticCategory.Error, code: 4094 });
+        const testObj = createInjectingCompiler({ dep: [target] });
+
+        testObj.build("/src/a.ts");
+        const actual = target.messageText;
+
+        expect(actual).toEqual({ messageText: "Head", category: ts.DiagnosticCategory.Error, code: 4094 });
+    });
+
+    it("yields no file-less TypeScript error in build w/ file-less error only in dependent profile and two files", () => {
+        const testObj = createInjectingCompiler({ dep: [FILE_LESS_ERROR] });
+
+        const actual = [testObj.build("/src/a.ts"), testObj.build("/src/b.ts")].flatMap(cur => cur.diagnostics);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields file-less TypeScript error once labelled as config error w/ file-less error only in dependent profile and two files", () => {
+        const testObj = createInjectingCompiler({ dep: [FILE_LESS_ERROR] });
+        testObj.build("/src/a.ts");
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.messageText);
+
+        expect(actual).toEqual(['Option error (profile "dep")']);
+    });
+
+    it("yields file-less TypeScript error once w/o label as config error w/ same file-less error in dependent and target profile and two files", () => {
+        const testObj = createInjectingCompiler({ dep: [FILE_LESS_ERROR], target: [FILE_LESS_ERROR] });
+        testObj.build("/src/a.ts");
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.messageText);
+
+        expect(actual).toEqual(["Option error"]);
+    });
+
+    it("yields websmith error labelled in build w/ file-less error w/o code only in dependent profile", () => {
+        const testObj = createInjectingCompiler({ dep: [new ErrorMessage("Websmith error")] });
+
+        const actual = testObj.build("/src/a.ts").diagnostics.map(cur => cur.messageText);
+
+        expect(actual).toEqual(['Websmith error (profile "dep")']);
+    });
+
+    it("yields syntax error once w/o label w/ syntax error in both profiles on the fast path", () => {
+        const testObj = createInjectingCompiler({}, PROFILES, { "/src/a.ts": "export const x = ;" });
+
+        const actual = flatten(testObj.build("/src/a.ts").diagnostics);
+
+        expect(actual).toEqual(["Expression expected."]);
+    });
+});

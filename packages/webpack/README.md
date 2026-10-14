@@ -93,11 +93,16 @@ TypeScript diagnostics and ESM check diagnostics are emitted on the module that 
   information, e.g. TS4094 (property of an exported anonymous class type may not be private), TS2742 (inferred
   type cannot be named without a reference) and, under `isolatedDeclarations`, TS9xxx.
 
+With `depends`, the diagnostics of the dependent profiles' emits of the module are emitted too, labelled
+`(profile "<name>")`. A diagnostic that the selected profile or another dependent profile reports identically is
+emitted once: the selected profile's copy without a label, else the first dependent profile's.
+
 TypeScript errors without a file belong to no module, e.g. option errors such as TS5095 (`moduleResolution: "bundler"`
 with `module: "CommonJS"`): every module would report the same one. The loader reports them once per compilation like
-configuration errors, see below. An error without a file that names a source file, such as TS6059 (a file outside
-`rootDir`), belongs to that file's module and is reported there, so it goes away with the module. Option errors with
-`declaration: true` are reported the same way: once per compilation, or on the module whose file they name.
+configuration errors, see below. A dependent profile's option errors are reported the same way, labelled with the
+profile. An error without a file that names a source file, such as TS6059 (a file outside `rootDir`), belongs to that
+file's module and is reported there, so it goes away with the module. Option errors with `declaration: true` are
+reported the same way: once per compilation, or on the module whose file they name.
 
 Configuration errors in `websmith.config.json` of the selected `profile` and the profiles it depends on fail the
 build too, e.g. an unconfigured `profile`, an unknown profile in `depends`, an unknown `esm.runtime`, or `esm`
