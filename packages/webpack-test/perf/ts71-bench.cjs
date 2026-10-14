@@ -23,8 +23,10 @@
  *   (b) per-file transpileModule, source text passed per call as the loader holds it; two passes, cold then warm.
  *       In process the marker modules get a `before` transformer (Compiler.ts transpileSourceCode); 7.1 cannot
  *       express that and records transformersApplied: false
- *   (c) type-checked loader path, cold: one createProgram plus one emit per file (ts.createProgram + program.emit;
- *       api.createProgram + getJavaScriptEmit)
+ *   (c) type-checked loader path, cold: one createProgram, then per file its semantic diagnostics and its emit
+ *       (ts.createProgram + getSemanticDiagnostics + program.emit; api.createProgram + getSemanticDiagnostics +
+ *       getJavaScriptEmit). The explicit check makes both sides type-check every file, as websmith's
+ *       getPreEmitDiagnostics does: in process the emit resolver would check anyway, 7.1's getJavaScriptEmit does not
  *   (d) is (b) and (c) on 5.7.3 and 6.0.3, the baseline columns
  *   (e) watch rebuild: --edits edits of different leaves on a built program; in process createProgram with
  *       oldProgram and a host serving the edited text, on 7.1 snapshot.update with fileNotifications and
@@ -41,9 +43,9 @@
  *
  * Decision rule (plan, Design → Approach → Spike), read at the largest size against in-process 6.0.3:
  *   1  (b) 7.1 median per-file transpileModule, warm pass        <= 1.5 x 6.0.3
- *   2  (c) 7.1 createProgram + all per-file emits               <= 2 x 6.0.3
+ *   2  (c) 7.1 createProgram + all per-file checks and emits    <= 2 x 6.0.3
  *   3  (e) 7.1 median per edit                                  <= 2 x 6.0.3
- *   4  7.1 p95 <= 3 x its own median, in (b warm) and (c emits)
+ *   4  7.1 p95 <= 3 x its own median, in (b warm) and (c per file, check + emit)
  *   5  (f) 7.1 throughput with --in-flight in flight            >= 1/1.5 x 6.0.3 in-process sequential throughput
  *   6  (a) 7.1 median cold start: above 1 s it is also reported x --loader-instances, and counts against speed only
  *      when that exceeds 2 s
@@ -305,6 +307,30 @@ const summarizeCalls = durations => ({
     durations,
 });
 
+// (c) in-process and 7.1 share this loop: per file a timed semantic check, then a timed emit
+const typeCheckedPass = (created, files, callsFor) => {
+    const checks = [];
+    const emits = [];
+    let diagnostics = 0;
+    files.forEach(fileName => {
+        const { check, emit } = callsFor(fileName);
+        const checked = measure(check);
+        diagnostics += checked.result;
+        checks.push(checked.ms);
+        emits.push(measure(emit).ms);
+    });
+    const perFile = checks.map((cur, i) => cur + emits[i]);
+    return {
+        status: "ok",
+        createProgramMs: created.ms,
+        checks: summarizeCalls(checks),
+        emits: summarizeCalls(emits),
+        perFile: summarizeCalls(perFile),
+        totalMs: created.ms + perFile.reduce((sum, cur) => sum + cur, 0),
+        semanticDiagnostics: diagnostics,
+    };
+};
+
 const leafIndices = (count, edits) => Array.from({ length: edits }, (_, i) => Math.floor(count / 2) + ((i * 7) % Math.floor(count / 2)));
 
 const runInProcess = ({ variant, versionsDir, corpus, edits }) => {
@@ -334,14 +360,17 @@ const runInProcess = ({ variant, versionsDir, corpus, edits }) => {
         warm: summarizeCalls(warm.durations),
     };
 
-    // (c) type-checked loader path, cold: one createProgram, then one emit per file captured in memory
+    // (c) type-checked loader path, cold: one createProgram, then per file its semantic diagnostics and its emit in memory
     const emitted = new Map();
     const created = measure(() => ts.createProgram(corpus.files, PROGRAM_OPTIONS));
-    const emits = corpus.files.map(fileName => {
+    results.c = typeCheckedPass(created, corpus.files, fileName => {
         const sourceFile = created.result.getSourceFile(fileName);
-        return measure(() => created.result.emit(sourceFile, (name, text) => emitted.set(name, text))).ms;
+        return {
+            check: () => created.result.getSemanticDiagnostics(sourceFile).length,
+            emit: () => created.result.emit(sourceFile, (name, text) => emitted.set(name, text)),
+        };
     });
-    results.c = { status: "ok", createProgramMs: created.ms, emits: summarizeCalls(emits), totalMs: created.ms + emits.reduce((sum, cur) => sum + cur, 0), emittedFiles: emitted.size };
+    results.c.emittedFiles = emitted.size;
 
     // (e) watch rebuild: createProgram with oldProgram and a host serving the edited text, then emit the edited file
     const overrides = new Map();
@@ -446,16 +475,15 @@ const runNative = async ({ versionsDir, corpus, edits, inFlight }) => {
         };
     });
 
-    // (c) one createProgram, then getJavaScriptEmit per file
+    // (c) one createProgram, then per file getSemanticDiagnostics and getJavaScriptEmit
     guard(results, "c", () => {
         const created = measure(() => api.createProgram(corpus.files, PROGRAM_OPTIONS));
         let emittedFiles = 0;
-        const emits = corpus.files.map(fileName => {
-            const { ms, result } = measure(() => created.result.getJavaScriptEmit([fileName]));
-            emittedFiles += result.outputFiles.size;
-            return ms;
-        });
-        return { status: "ok", createProgramMs: created.ms, emits: summarizeCalls(emits), totalMs: created.ms + emits.reduce((sum, cur) => sum + cur, 0), emittedFiles };
+        const result = typeCheckedPass(created, corpus.files, fileName => ({
+            check: () => created.result.getSemanticDiagnostics([fileName]).length,
+            emit: () => (emittedFiles += created.result.getJavaScriptEmit([fileName]).outputFiles.size),
+        }));
+        return { ...result, emittedFiles };
     });
 
     // (e) a snapshot with a synthetic program; per edit: write, update with fileNotifications and ensurePrograms, emit
@@ -687,8 +715,11 @@ const summarizeSize = runs => {
                 ...unmeasured("c"),
                 total: stats(pick(of("c"), variant, cur => cur.results.c.totalMs)),
                 createProgram: stats(pick(of("c"), variant, cur => cur.results.c.createProgramMs)),
+                check: stats(pick(of("c"), variant, cur => cur.results.c.checks.medianMs)),
                 emit: stats(pick(of("c"), variant, cur => cur.results.c.emits.medianMs)),
-                emitP95: stats(pick(of("c"), variant, cur => cur.results.c.emits.p95Ms)),
+                perFile: stats(pick(of("c"), variant, cur => cur.results.c.perFile.medianMs)),
+                perFileP95: stats(pick(of("c"), variant, cur => cur.results.c.perFile.p95Ms)),
+                semanticDiagnostics: of("c")[0]?.results.c.semanticDiagnostics,
             },
         };
         summary.e = { ...summary.e, [variant]: { ...unmeasured("e"), perEdit: stats(pick(of("e"), variant, cur => cur.results.e.edits.medianMs)) } };
@@ -720,8 +751,13 @@ const printSummary = (size, summary, runs) => {
     line("(b) before transformer on marker modules", v =>
         na(summary.b[v], `${summary.b[v].transformersApplied ? "applied" : "not expressible"}: ${summary.b[v].transformedWarm}/${summary.b[v].markerModules} marker modules transformed`)
     );
-    line("(c) createProgram + per-file emits, cold, total ms", v =>
-        na(summary.c[v], `${fmtStats(summary.c[v].total, 0)} (createProgram ${fmtStats(summary.c[v].createProgram, 0)}, emit ${fmtStats(summary.c[v].emit, 3)} ms/file, p95 ${fmtStats(summary.c[v].emitP95, 3)})`)
+    line("(c) createProgram + per-file semantic check and emit, cold, total ms", v =>
+        na(
+            summary.c[v],
+            `${fmtStats(summary.c[v].total, 0)} (createProgram ${fmtStats(summary.c[v].createProgram, 0)}, per file ${fmtStats(summary.c[v].perFile, 3)} ms, ` +
+                `p95 ${fmtStats(summary.c[v].perFileP95, 3)}; check ${fmtStats(summary.c[v].check, 3)}, emit ${fmtStats(summary.c[v].emit, 3)} ms/file; ` +
+                `${summary.c[v].semanticDiagnostics} semantic diagnostics)`
+        )
     );
     line("(e) watch rebuild ms per edit", v => na(summary.e[v], fmtStats(summary.e[v].perEdit, 2)));
     line("(f) throughput modules/s, sequential / in flight", v =>
@@ -757,7 +793,7 @@ const decide = (summary, options) => {
         native: b[NATIVE].warm?.median,
         baseline: b[BASELINE].warm?.median,
     });
-    judge("2 (c) createProgram + per-file emits, 7.1 / 6.0.3", "ratio", ratioOf(c[NATIVE].total?.median, c[BASELINE].total?.median), 2, v => v <= 2, {
+    judge("2 (c) createProgram + per-file checks and emits, 7.1 / 6.0.3", "ratio", ratioOf(c[NATIVE].total?.median, c[BASELINE].total?.median), 2, v => v <= 2, {
         reason: c[NATIVE].reason,
         native: c[NATIVE].total?.median,
         baseline: c[BASELINE].total?.median,
@@ -768,12 +804,12 @@ const decide = (summary, options) => {
         baseline: e[BASELINE].perEdit?.median,
     });
     const p95b = ratioOf(b[NATIVE].warmP95?.median, b[NATIVE].warm?.median);
-    const p95c = ratioOf(c[NATIVE].emitP95?.median, c[NATIVE].emit?.median);
+    const p95c = ratioOf(c[NATIVE].perFileP95?.median, c[NATIVE].perFile?.median);
     const p95 = [p95b, p95c].every(cur => typeof cur === "number") ? Math.max(p95b, p95c) : undefined;
-    judge("4 7.1 p95 / own median, max of (b warm) and (c emits)", "ratio", p95, 3, v => v <= 3, {
+    judge("4 7.1 p95 / own median, max of (b warm) and (c per file)", "ratio", p95, 3, v => v <= 3, {
         reason: b[NATIVE].reason ?? c[NATIVE].reason,
         bWarm: p95b,
-        cEmits: p95c,
+        cPerFile: p95c,
     });
     judge("5 (f) 7.1 throughput in flight / 6.0.3 sequential", "ratio", ratioOf(f[NATIVE].concurrentPerSecond?.median, f[BASELINE].sequentialPerSecond?.median), 1 / 1.5, v => v >= 1 / 1.5, {
         reason: f[NATIVE].reason,
@@ -801,7 +837,7 @@ const printDecision = (criteria, size) => {
                 : cur.metric === "ratio"
                   ? cur.native !== undefined
                       ? ` (7.1 ${fmt(cur.native, 3)} vs 6.0.3 ${fmt(cur.baseline, 3)})`
-                      : ` (b ${fmt(cur.bWarm, 3)}, c ${fmt(cur.cEmits, 3)})`
+                      : ` (b ${fmt(cur.bWarm, 3)}, c ${fmt(cur.cPerFile, 3)})`
                   : ` (cold start ${fmt(cur.coldStartMs, 0)} ms${cur.coldStartMs > 1000 ? ` x ${cur.loaderInstances} loader instances = ${fmt(cur.value, 0)} ms` : ""})`;
         const threshold = cur.metric === "ratio" ? (cur.criterion.startsWith("5") ? `>= ${fmt(cur.threshold, 3)}` : `<= ${cur.threshold}`) : `<= ${cur.threshold} ms`;
         console.log(`  ${cur.criterion}: ${cur.value === null ? "n/a" : fmt(cur.value, cur.metric === "ratio" ? 3 : 0)} ${threshold} ${cur.status}${detail}`);
