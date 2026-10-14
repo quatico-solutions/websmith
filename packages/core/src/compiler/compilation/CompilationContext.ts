@@ -72,7 +72,7 @@ export class CompilationContext implements AddonContext {
     private system: ts.System;
     private projectDir: string;
     private config: unknown;
-    private watchCallback: (filePath: string) => void;
+    private watchCallback?: (filePath: string) => void;
     private registerDependencyCb?: (filePath: string) => void;
 
     private assetAssetDependency: Map<string, string[]> = new Map();
@@ -88,7 +88,7 @@ export class CompilationContext implements AddonContext {
         this.generators = [];
         this.system = system;
         this.config = config;
-        this.watchCallback = watchCallback ?? (() => undefined);
+        this.watchCallback = watchCallback;
         this.registerDependencyCb = registerDependencyCallback;
         this.languageHost = this.createLanguageServiceHost({
             system,
@@ -169,10 +169,10 @@ export class CompilationContext implements AddonContext {
         // TODO: Should only be allowed for Generators
         if (!this.rootFiles.includes(filePath)) {
             this.rootFiles.push(filePath);
-        }
-        if (this.watchCallback) {
-            this.reporter.reportDiagnostic(new InfoMessage(`Adding ${filePath} to watch.`));
-            this.watchCallback(filePath);
+            if (this.watchCallback) {
+                this.reporter.reportDiagnostic(new InfoMessage(`Adding ${filePath} to watch.`));
+                this.watchCallback(filePath);
+            }
         }
         this.markFileAsAddedByAddon(filePath);
     }
