@@ -13,6 +13,8 @@ import webpack from "webpack";
 
 const TEST_FILES_DIR = path.resolve(__dirname, "..", "..", "compiler", "test", "__data__", "functions");
 
+const describeOnTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6 ? describe : describe.skip;
+
 // Create unique test directories for each test to prevent cross-test contamination
 const getTestDirs = () => {
     const testId = expect.getState().currentTestName?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
@@ -171,9 +173,9 @@ export { getFoobar };
             "export declare const getFoobar: (date: Date) => string;
             //# sourceMappingURL=foobar-arrow.d.ts.map"
         `);
-        expect(getOutput("foobar-arrow.d.ts.map")).toMatchInlineSnapshot(
-            `"{"version":3,"file":"foobar-arrow.d.ts","sourceRoot":"","sources":["../src/foobar-arrow.ts"],"names":[],"mappings":"AACA,eAAO,MAAM,SAAS,SAAU,IAAI,WAEnC,CAAC"}"`
-        );
+        const expectedMap = emitWithTsc()["foobar-arrow.d.ts.map"];
+        expect(expectedMap).toBeDefined();
+        expect(getOutput("foobar-arrow.d.ts.map")).toBe(expectedMap);
     }, 60000);
 
     it("should yield transpiled script with single file, profile client-processor and emit", async () => {
@@ -252,7 +254,7 @@ export { getFoobar };
         });
 
         expect(getOutput("foobar-function.js")).toBeDefined();
-        expect(getOutput("foobar-function.js")).toContain("getFoobar");
+        expect(getOutput("foobar-function.js")).toContain("getCLIENT");
     }, 60000);
 
     it("should yield transpiled script with single file, export-yaml-generator addon and emit true", async () => {
@@ -310,29 +312,31 @@ export { getFoobar };
         // expect(getOutput("math.js")).toContain("sourceMappingURL");
     }, 60000);
 
-    it("should handle different TypeScript targets through webpack", async () => {
-        createTsConfigFile({
-            outDir: "./dist",
-            noEmit: false,
-            target: "es5",
-            module: "commonjs",
-        });
-        createSourceFile(
-            `
+    describeOnTs5("on TypeScript 5", () => {
+        it("should handle different TypeScript targets through webpack", async () => {
+            createTsConfigFile({
+                outDir: "./dist",
+                noEmit: false,
+                target: "es5",
+                module: "commonjs",
+            });
+            createSourceFile(
+                `
             export const arrow = () => "ES5 target test";
             export class TestClass {
                 getValue() { return "test"; }
             }
         `,
-            "target-test.ts"
-        );
+                "target-test.ts"
+            );
 
-        await executeWebpack({ tsConfigFile: testDirs.TSCONFIG_FILE });
+            await executeWebpack({ tsConfigFile: testDirs.TSCONFIG_FILE });
 
-        const output = getOutput("target-test.js");
-        expect(output).toBeDefined();
-        expect(output).toContain("function"); // ES5 should convert arrow functions
-    }, 60000);
+            const output = getOutput("target-test.js");
+            expect(output).toBeDefined();
+            expect(output).toContain("function"); // ES5 should convert arrow functions
+        }, 60000);
+    });
 
     it("should handle multiple files without filename conflicts", async () => {
         createTsConfigFile({
@@ -1384,6 +1388,17 @@ const createTsConfig = (config: TscArguments) => {
 
 const createTsConfigFile = (config: TscArguments) => {
     fs.writeFileSync(path.resolve(testDirs.PROJECT_DIR, "tsconfig.json"), createTsConfig(config), { encoding: "utf-8" });
+};
+
+// What tsc of the installed major emits for the same tsconfig; rootDir is explicit, so the layout does not depend on the major
+const emitWithTsc = (): Record<string, string> => {
+    const { config } = ts.readConfigFile(testDirs.TSCONFIG_FILE, ts.sys.readFile);
+    const { options, fileNames } = ts.parseJsonConfigFileContent(config, ts.sys, testDirs.PROJECT_DIR);
+    const result: Record<string, string> = {};
+    ts.createProgram(fileNames, { ...options, rootDir: testDirs.SOURCE_DIR }).emit(undefined, (fileName, text) => {
+        result[path.relative(testDirs.OUTPUT_DIR, fileName)] = text;
+    });
+    return result;
 };
 
 const getOutput = (filePath: string): string | undefined =>

@@ -301,7 +301,6 @@ export class WebpackAddonService {
         const compilerOptions: ts.CompilerOptions = {
             target: ts.ScriptTarget.ES2020,
             module: ts.ModuleKind.CommonJS,
-            moduleResolution: ts.ModuleResolutionKind.Node10,
             esModuleInterop: true,
             allowSyntheticDefaultImports: true,
             skipLibCheck: true,
@@ -345,7 +344,8 @@ export class WebpackAddonService {
         const emitResult = program.emit();
         const preEmitDiagnostics = ts.getPreEmitDiagnostics(program);
 
-        // Node10 resolution ignores package.json "exports"; Node resolves such imports at runtime, so only warn
+        // TypeScript 5's default resolution (node10) ignores package.json "exports" (6.x defaults to bundler, which reads them);
+        // Node resolves such imports at runtime, so only warn
         preEmitDiagnostics
             .filter(diagnostic => MODULE_RESOLUTION_ERRORS.includes(diagnostic.code) && !isNodeBuiltinImport(diagnostic))
             .forEach(diagnostic => this.config.reporter.reportDiagnostic(new WarnMessage(`Addon compilation: ${formatDiagnostic(diagnostic)}`)));

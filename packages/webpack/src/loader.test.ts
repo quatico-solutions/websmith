@@ -97,7 +97,7 @@ afterEach(() => {
 
 describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     it("should yield script file with single file and emit true", () => {
-        createTsConfigFile({ outDir: testDirs.OUTPUT_DIR, noEmit: false });
+        createTsConfigFile({ outDir: testDirs.OUTPUT_DIR, rootDir: testDirs.SOURCE_DIR, noEmit: false });
         createSourceFile(
             `
             export const hello = "world";            
@@ -111,7 +111,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         // Test TsCompiler directly (webpack loader equivalent) - this is what this test should focus on
         const tsCompiler = new TsCompiler(
             {
-                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, rootDir: testDirs.SOURCE_DIR, noEmit: false },
                 cliArgs: {
                     options: {},
                     fileNames: [path.join(testDirs.SOURCE_DIR, "test.ts")],
@@ -139,6 +139,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     it("should yield script and declaration files with single file, declaration and emit true", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
             declaration: true,
             declarationMap: true,
@@ -163,6 +164,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             reporter: new NoReporter(),
             tsConfig: {
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 declaration: true,
                 declarationMap: true,
@@ -179,6 +181,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             {
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
+                    rootDir: testDirs.SOURCE_DIR,
                     noEmit: false,
                     declaration: true,
                     declarationMap: true,
@@ -226,8 +229,9 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     it("should yield transpiled script with single file and different target/module settings", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
-            target: "es5",
+            target: "es2015",
             module: "commonjs",
         });
         createSourceFile(
@@ -250,8 +254,9 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             reporter: new NoReporter(),
             tsConfig: {
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
-                target: ts.ScriptTarget.ES5,
+                target: ts.ScriptTarget.ES2015,
                 module: ts.ModuleKind.CommonJS,
             },
             cliArgs: {
@@ -266,8 +271,9 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             {
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
+                    rootDir: testDirs.SOURCE_DIR,
                     noEmit: false,
-                    target: ts.ScriptTarget.ES5,
+                    target: ts.ScriptTarget.ES2015,
                     module: ts.ModuleKind.CommonJS,
                 },
                 cliArgs: {
@@ -303,10 +309,11 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     it("should handle ESNext target compilation", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
             target: "esnext",
             module: "esnext",
-            moduleResolution: "node10",
+            moduleResolution: "bundler",
         });
         createSourceFile(
             `
@@ -327,10 +334,11 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             reporter: new NoReporter(),
             tsConfig: {
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
                 target: ts.ScriptTarget.ESNext,
                 module: ts.ModuleKind.ESNext,
-                moduleResolution: ts.ModuleResolutionKind.Node10,
+                moduleResolution: ts.ModuleResolutionKind.Bundler,
             },
             cliArgs: {
                 options: {},
@@ -344,10 +352,11 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             {
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
+                    rootDir: testDirs.SOURCE_DIR,
                     noEmit: false,
                     target: ts.ScriptTarget.ESNext,
                     module: ts.ModuleKind.ESNext,
-                    moduleResolution: ts.ModuleResolutionKind.Node10,
+                    moduleResolution: ts.ModuleResolutionKind.Bundler,
                 },
                 cliArgs: {
                     options: {},
@@ -383,6 +392,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     it("should handle multiple compilation targets", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -403,14 +413,15 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             "multi-file.ts"
         );
 
-        // First establish baseline with core Compiler (using ES5 as baseline)
+        // First establish baseline with core Compiler (using ES2015 as baseline)
         process.chdir(testDirs.PROJECT_DIR);
         const compilerResult = new Compiler({
             reporter: new NoReporter(),
             tsConfig: {
                 outDir: testDirs.OUTPUT_DIR,
+                rootDir: testDirs.SOURCE_DIR,
                 noEmit: false,
-                target: ts.ScriptTarget.ES5,
+                target: ts.ScriptTarget.ES2015,
                 module: ts.ModuleKind.CommonJS,
             },
             cliArgs: {
@@ -420,13 +431,14 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             },
         }).compile();
 
-        // Test with ES5/CommonJS
-        const tsCompilerES5 = new TsCompiler(
+        // Test with ES2015/CommonJS
+        const tsCompilerES2015 = new TsCompiler(
             {
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
+                    rootDir: testDirs.SOURCE_DIR,
                     noEmit: false,
-                    target: ts.ScriptTarget.ES5,
+                    target: ts.ScriptTarget.ES2015,
                     module: ts.ModuleKind.CommonJS,
                 },
                 cliArgs: {
@@ -446,6 +458,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             {
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
+                    rootDir: testDirs.SOURCE_DIR,
                     noEmit: false,
                     target: ts.ScriptTarget.ESNext,
                     module: ts.ModuleKind.ESNext,
@@ -462,7 +475,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             }
         );
 
-        const resultES5 = tsCompilerES5.build(path.join(testDirs.SOURCE_DIR, "multi-file.ts")).fragment;
+        const resultES2015 = tsCompilerES2015.build(path.join(testDirs.SOURCE_DIR, "multi-file.ts")).fragment;
         const resultESNext = tsCompilerESNext.build(path.join(testDirs.SOURCE_DIR, "multi-file.ts")).fragment;
 
         // Verify core Compiler succeeded (establishes baseline)
@@ -471,16 +484,16 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
         expect(getOutput("multi-file.js")).toBeDefined();
 
         // Verify both TsCompiler instances succeeded
-        expect(resultES5.files.length).toBeGreaterThan(0);
+        expect(resultES2015.files.length).toBeGreaterThan(0);
         expect(resultESNext.files.length).toBeGreaterThan(0);
 
-        const jsFileES5 = resultES5.files.find(f => f.name.endsWith("multi-file.js"));
+        const jsFileES2015 = resultES2015.files.find(f => f.name.endsWith("multi-file.js"));
         const jsFileESNext = resultESNext.files.find(f => f.name.endsWith("multi-file.js"));
 
-        expect(jsFileES5).toBeDefined();
+        expect(jsFileES2015).toBeDefined();
         expect(jsFileESNext).toBeDefined();
 
-        // Check baseline content (ES5 version)
+        // Check baseline content (ES2015 version)
         const baselineContent = getOutput("multi-file.js");
         expect(baselineContent).toContain("createUser");
         expect(baselineContent).toContain("formatUser");
@@ -489,6 +502,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     it("should handle source maps generation", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
             sourceMap: true,
         });
@@ -506,6 +520,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             {
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
+                    rootDir: testDirs.SOURCE_DIR,
                     noEmit: false,
                     sourceMap: true,
                 },
@@ -532,6 +547,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     it("should work with minimal configuration (demonstrating optional cliArgs/reporter)", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
         });
         createSourceFile(`export const minimal = "example";`, "minimal.ts");
@@ -560,6 +576,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
     it("should handle compilation errors gracefully", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
             strict: true,
         });
@@ -580,6 +597,7 @@ describe("loader.test.ts e2e tests (adapted from bin.test.ts)", () => {
             {
                 tsConfig: {
                     outDir: testDirs.OUTPUT_DIR,
+                    rootDir: testDirs.SOURCE_DIR,
                     noEmit: false,
                     strict: true,
                 },
@@ -603,6 +621,7 @@ describe("addonsDir configuration tests", () => {
     it("should use addonsDir from websmith.config.json", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -620,7 +639,7 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, rootDir: testDirs.SOURCE_DIR, noEmit: false },
                 configFile: path.join(testDirs.PROJECT_DIR, "websmith.config.json"),
                 cliArgs: {
                     options: {},
@@ -645,6 +664,7 @@ describe("addonsDir configuration tests", () => {
     it("should work with function-json-result-processor addon", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -663,7 +683,7 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, rootDir: testDirs.SOURCE_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["function-json-result-processor"],
@@ -692,6 +712,7 @@ describe("addonsDir configuration tests", () => {
     it("should work with multiple addons", () => {
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -708,7 +729,7 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, rootDir: testDirs.SOURCE_DIR, noEmit: false },
                 config: {
                     addonsDir: ADDONS_DIR,
                     addons: ["foobar-replace-processor", "function-json-result-processor"],
@@ -738,6 +759,7 @@ describe("addonsDir configuration tests", () => {
         jest.spyOn(process.stdout, "write").mockImplementation(() => true);
         createTsConfigFile({
             outDir: testDirs.OUTPUT_DIR,
+            rootDir: testDirs.SOURCE_DIR,
             noEmit: false,
         });
         createSourceFile(
@@ -767,7 +789,7 @@ describe("addonsDir configuration tests", () => {
 
         const tsCompiler = new TsCompiler(
             {
-                tsConfig: { outDir: testDirs.OUTPUT_DIR, noEmit: false },
+                tsConfig: { outDir: testDirs.OUTPUT_DIR, rootDir: testDirs.SOURCE_DIR, noEmit: false },
                 config: {
                     // No explicit addonsDir - should default to "./addons"
                     addons: ["test-addon"],
@@ -800,7 +822,7 @@ const createSourceFile = (fileContent: string, fileName: string) => {
 
 const createTsConfig = (config: TscArguments) => {
     const tsConfig = {
-        compilerOptions: config,
+        compilerOptions: config.outDir && !config.rootDir ? { ...config, rootDir: "src" } : config,
         include: ["src/**/*"],
         exclude: ["node_modules", "dist"],
     };

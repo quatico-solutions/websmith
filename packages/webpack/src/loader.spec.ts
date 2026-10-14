@@ -46,6 +46,7 @@ describe("TsCompiler compatibility with Compiler", () => {
                 "tsconfig.json": JSON.stringify({
                     compilerOptions: {
                         outDir: "./bin",
+                        rootDir: "./src",
                         target: "es2015",
                         module: "commonjs",
                     },
@@ -60,7 +61,7 @@ describe("TsCompiler compatibility with Compiler", () => {
         const compilerResult = new Compiler(
             {
                 reporter: new NoReporter(),
-                tsConfig: { outDir: "./bin" },
+                tsConfig: { outDir: "./bin", rootDir: "./src" },
             },
             undefined,
             target
@@ -69,10 +70,10 @@ describe("TsCompiler compatibility with Compiler", () => {
         // Test with TsCompiler (used by webpack loader)
         const tsCompiler = new TsCompiler(
             {
-                tsConfig: { outDir: "./bin", target: ts.ScriptTarget.ES2015, module: ts.ModuleKind.CommonJS },
+                tsConfig: { outDir: "./bin", rootDir: "./src", target: ts.ScriptTarget.ES2015, module: ts.ModuleKind.CommonJS },
                 reporter: new NoReporter(),
                 cliArgs: {
-                    options: { outDir: "./bin" },
+                    options: { outDir: "./bin", rootDir: "./src" },
                     fileNames: ["/src/one.ts", "/src/two.ts"],
                     errors: [],
                 },
@@ -108,6 +109,7 @@ describe("TsCompiler compatibility with Compiler", () => {
                 "tsconfig.json": JSON.stringify({
                     compilerOptions: {
                         outDir: "./bin",
+                        rootDir: "./src",
                         target: "es2015",
                         module: "commonjs",
                     },
@@ -121,7 +123,7 @@ describe("TsCompiler compatibility with Compiler", () => {
         const compilerResult = new Compiler(
             {
                 reporter: new NoReporter(),
-                tsConfig: { outDir: "./bin" },
+                tsConfig: { outDir: "./bin", rootDir: "./src" },
             },
             undefined,
             target
@@ -130,10 +132,10 @@ describe("TsCompiler compatibility with Compiler", () => {
         // Test with TsCompiler in transpileOnly mode (common webpack usage)
         const tsCompiler = new TsCompiler(
             {
-                tsConfig: { outDir: "./bin", target: ts.ScriptTarget.ES2015, module: ts.ModuleKind.CommonJS },
+                tsConfig: { outDir: "./bin", rootDir: "./src", target: ts.ScriptTarget.ES2015, module: ts.ModuleKind.CommonJS },
                 reporter: new NoReporter(),
                 cliArgs: {
-                    options: { outDir: "./bin" },
+                    options: { outDir: "./bin", rootDir: "./src" },
                     fileNames: ["/src/simple.ts"],
                     errors: [],
                 },
@@ -171,6 +173,7 @@ describe("TsCompiler compatibility with Compiler", () => {
                 "tsconfig.json": JSON.stringify({
                     compilerOptions: {
                         outDir: "./bin",
+                        rootDir: "./src",
                         target: "es2015",
                         module: "commonjs",
                     },
@@ -184,7 +187,7 @@ describe("TsCompiler compatibility with Compiler", () => {
         const compilerResult = new Compiler(
             {
                 reporter: new NoReporter(),
-                tsConfig: { outDir: "./bin" },
+                tsConfig: { outDir: "./bin", rootDir: "./src" },
             },
             undefined,
             target
@@ -193,10 +196,10 @@ describe("TsCompiler compatibility with Compiler", () => {
         // Test with TsCompiler
         const tsCompiler = new TsCompiler(
             {
-                tsConfig: { outDir: "./bin", target: ts.ScriptTarget.ES2015, module: ts.ModuleKind.CommonJS },
+                tsConfig: { outDir: "./bin", rootDir: "./src", target: ts.ScriptTarget.ES2015, module: ts.ModuleKind.CommonJS },
                 reporter: new NoReporter(),
                 cliArgs: {
-                    options: { outDir: "./bin" },
+                    options: { outDir: "./bin", rootDir: "./src" },
                     fileNames: ["/src/test.ts"],
                     errors: [],
                 },
@@ -242,7 +245,7 @@ describe("TsCompiler compatibility with Compiler", () => {
         const compilerResult = new Compiler(
             {
                 reporter: new NoReporter(),
-                tsConfig: { outDir: "./bin" },
+                tsConfig: { outDir: "./bin", rootDir: "./src" },
             },
             undefined,
             target
@@ -251,10 +254,10 @@ describe("TsCompiler compatibility with Compiler", () => {
         // Test with TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                tsConfig: { outDir: "./bin" },
+                tsConfig: { outDir: "./bin", rootDir: "./src" },
                 reporter: new NoReporter(),
                 cliArgs: {
-                    options: { outDir: "./bin" },
+                    options: { outDir: "./bin", rootDir: "./src" },
                     fileNames: ["/src/one.ts", "/src/two.ts"],
                     errors: [],
                 },

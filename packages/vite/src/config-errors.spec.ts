@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import ts from "typescript";
-import { selectConfigErrors } from "./config-errors";
+import { checkTargetModule, selectConfigErrors } from "./config-errors";
 
 const diagnostic = (category: ts.DiagnosticCategory): ts.Diagnostic => ({
     category,
@@ -41,5 +41,56 @@ describe("selectConfigErrors", () => {
         const actual = selectConfigErrors("serve", undefined, [diagnostic(ts.DiagnosticCategory.Error)]);
 
         expect(actual).toEqual([]);
+    });
+});
+
+describe("checkTargetModule", () => {
+    it.each([
+        ["CommonJS", ts.ModuleKind.CommonJS],
+        ["AMD", ts.ModuleKind.AMD],
+        ["UMD", ts.ModuleKind.UMD],
+        ["System", ts.ModuleKind.System],
+    ])("should return error naming profile and module w/ module %s", (name, module) => {
+        const actual = checkTargetModule("app", { module }, false)?.messageText;
+
+        expect(actual).toBe(
+            `Profile 'app' emits ${name} ('tsConfig.module' is '${name.toLowerCase()}'), which Vite cannot bundle as an ES module. Use "ESNext" or "ES2022".`
+        );
+    });
+
+    it("should return error w/ unset module and target ES5", () => {
+        const actual = checkTargetModule("app", { target: ts.ScriptTarget.ES5 }, false)?.messageText;
+
+        expect(actual).toBe(`Profile 'app' emits CommonJS ('tsConfig.module' is unset and 'target' is 'ES5'), which Vite cannot bundle as an ES module. Use "ESNext" or "ES2022".`);
+    });
+
+    it("should return error category w/ commonjs module", () => {
+        const actual = checkTargetModule("app", { module: ts.ModuleKind.CommonJS }, false)?.category;
+
+        expect(actual).toBe(ts.DiagnosticCategory.Error);
+    });
+
+    it("should return none w/ unset module and target ES2022", () => {
+        const actual = checkTargetModule("app", { target: ts.ScriptTarget.ES2022 }, false);
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("should return none w/ module ESNext", () => {
+        const actual = checkTargetModule("app", { module: ts.ModuleKind.ESNext }, false);
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("should return none w/ commonjs module and esm set", () => {
+        const actual = checkTargetModule("app", { module: ts.ModuleKind.CommonJS }, true);
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("should name default profile w/o profile", () => {
+        const actual = checkTargetModule(undefined, { module: ts.ModuleKind.CommonJS }, false)?.messageText;
+
+        expect(actual).toMatch(/^The default profile emits CommonJS/);
     });
 });
