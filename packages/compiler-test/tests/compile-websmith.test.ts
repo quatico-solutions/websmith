@@ -86,7 +86,8 @@ describe("compile w/ websmith", () => {
             websmith: {},
         });
 
-        expect(result).toBe(""); // errors are expected
+        // The package's tsconfig.json applies: its rootDir does not contain the test's source (TS6059, as tsc reports)
+        expect(result).toContain("is not under 'rootDir'");
         expect(getOutput("foobar-arrow.js")).toBeUndefined();
         expect(getOutput("foobar-arrow.d.ts")).toBeUndefined();
     }, 60000);

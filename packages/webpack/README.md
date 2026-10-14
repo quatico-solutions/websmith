@@ -100,7 +100,9 @@ emitted once: the selected profile's copy without a label, else the first depend
 TypeScript errors without a file belong to no module, e.g. option errors such as TS5095 (`moduleResolution: "bundler"`
 with `module: "CommonJS"`): every module would report the same one. The loader reports them once per compilation like
 configuration errors, see below. A dependent profile's option errors are reported the same way, labelled with the
-profile.
+profile. An error without a file that names a source file, such as TS6059 (a file outside `rootDir`), belongs to that
+file's module and is reported there, so it goes away with the module. Option errors with `declaration: true` are
+reported the same way: once per compilation, or on the module whose file they name.
 
 Configuration errors in `websmith.config.json` of the selected `profile` and the profiles it depends on fail the
 build too, e.g. an unconfigured `profile`, an unknown profile in `depends`, an unknown `esm.runtime`, or `esm`

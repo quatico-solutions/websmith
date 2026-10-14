@@ -600,6 +600,72 @@ describe("ModuleCompiler option errors", () => {
 
         expect(actual).toEqual([]);
     });
+
+    const createCompilerWith = (compilerOptions: object, files: Record<string, string>, transpileOnly: boolean): ModuleCompiler => {
+        const tsConfig = {
+            "/tsconfig.json": JSON.stringify({ compilerOptions: { outDir: "/dist", target: "es2020", module: "esnext", ...compilerOptions } }),
+        };
+        const system = createSystem({ ...tsConfig, ...files }, { virtual: true });
+        return new ModuleCompiler(
+            { reporter: new NoReporter(), cliArgs: { options: {}, fileNames: Object.keys(files), errors: [] } },
+            { tsConfigFile: "/tsconfig.json", transpileOnly },
+            system
+        );
+    };
+    const ROOT_DIR_SOURCES = { "/src/lib/index.ts": `import { b } from "../b";\nexport const i = b;`, "/src/b.ts": "export const b = 1;" };
+
+    it.each([
+        { name: "fast path", transpileOnly: true, declaration: false },
+        { name: "declaration", transpileOnly: false, declaration: true },
+    ])("yields rootDir violation in build of the offending file w/ $name", ({ transpileOnly, declaration }) => {
+        const testObj = createCompilerWith({ rootDir: "/src/lib", declaration }, ROOT_DIR_SOURCES, transpileOnly);
+
+        const actual = testObj.build("/src/b.ts").diagnostics.map(cur => cur.code);
+
+        expect(actual).toEqual([6059]);
+    });
+
+    it.each([
+        { name: "fast path", transpileOnly: true, declaration: false },
+        { name: "declaration", transpileOnly: false, declaration: true },
+    ])("yields no rootDir violation as config error after build of the offending file w/ $name", ({ transpileOnly, declaration }) => {
+        const testObj = createCompilerWith({ rootDir: "/src/lib", declaration }, ROOT_DIR_SOURCES, transpileOnly);
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.code);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields no missing type definition file in build w/ declaration and two files", () => {
+        const testObj = createCompilerWith({ rootDir: "/src", declaration: true, types: ["does-not-exist"] }, SOURCES, false);
+
+        const actual = [testObj.build("/src/a.ts"), testObj.build("/src/b.ts")].flatMap(cur => cur.diagnostics.map(diagnostic => diagnostic.code));
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields missing type definition file once as config error w/ declaration and two files built", () => {
+        const testObj = createCompilerWith({ rootDir: "/src", declaration: true, types: ["does-not-exist"] }, SOURCES, false);
+        testObj.build("/src/a.ts");
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.code);
+
+        expect(actual).toEqual([2688]);
+    });
+
+    it("yields no rootDir violation as config error after build of a file no longer importing the offending one", () => {
+        const testObj = createCompilerWith({ rootDir: "/src/lib" }, ROOT_DIR_SOURCES, true);
+        testObj.build("/src/lib/index.ts");
+        testObj.build("/src/b.ts");
+        testObj.getSystem().writeFile("/src/lib/index.ts", `export const i = 1;`);
+        testObj.build("/src/lib/index.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.code);
+
+        expect(actual).toEqual([]);
+    });
 });
 
 describe("ModuleCompiler dependent profile diagnostics", () => {
@@ -738,6 +804,41 @@ describe("ModuleCompiler dependent profile diagnostics", () => {
         const actual = testObj.getConfigErrors().map(cur => cur.messageText);
 
         expect(actual).toEqual(["Option error"]);
+    });
+
+    const OWN_FILE_ERROR: ts.Diagnostic = {
+        ...FILE_LESS_ERROR,
+        code: 6059,
+        messageText: "File '/src/a.ts' is not under 'rootDir' '/src/lib'. 'rootDir' is expected to contain all source files.",
+    };
+
+    it("yields file-less TypeScript error naming the module's file labelled in build w/ error only in dependent profile", () => {
+        const testObj = createInjectingCompiler({ dep: [OWN_FILE_ERROR] });
+
+        const actual = flatten(testObj.build("/src/a.ts").diagnostics);
+
+        expect(actual).toEqual(["File '/src/a.ts' is not under 'rootDir' '/src/lib'. 'rootDir' is expected to contain all source files. (profile \"dep\")"]);
+    });
+
+    it("yields no file-less TypeScript error naming the module's file as config error after rebuild w/o error in dependent profile", () => {
+        const testObj = createInjectingCompiler({ dep: [OWN_FILE_ERROR] });
+        testObj.build("/src/a.ts");
+        testObj.injected = {};
+        testObj.build("/src/a.ts");
+
+        const actual = testObj.getConfigErrors();
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields file-less TypeScript error naming '/src/a.tsx' as config error w/ build of '/src/a.ts'", () => {
+        const target: ts.Diagnostic = { ...OWN_FILE_ERROR, messageText: "File '/src/a.tsx' is not under 'rootDir' '/src/lib'." };
+        const testObj = createInjectingCompiler({ target: [target] }, { target: { tsConfig: { outDir: "/dist" } } });
+        testObj.build("/src/a.ts");
+
+        const actual = testObj.getConfigErrors().map(cur => cur.messageText);
+
+        expect(actual).toEqual(["File '/src/a.tsx' is not under 'rootDir' '/src/lib'."]);
     });
 
     it("yields websmith error labelled in build w/ file-less error w/o code only in dependent profile", () => {

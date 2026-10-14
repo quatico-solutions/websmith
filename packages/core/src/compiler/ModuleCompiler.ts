@@ -394,7 +394,10 @@ export class ModuleCompiler extends Compiler {
                     const fragment = this.emitSourceFile(filePath, profile, true);
                     // Merged with the target's after its emit: the target's copy of a diagnostic wins
                     dependentDiagnostics.push(
-                        ...this.takeFileLessErrors(fragment.diagnostics ?? [], profile).map((cur): [string, ts.Diagnostic] => [profile, cur])
+                        ...this.takeFileLessErrors(fragment.diagnostics ?? [], filePath, profile).map((cur): [string, ts.Diagnostic] => [
+                            profile,
+                            cur,
+                        ])
                     );
                     // Dependent profiles write files that another runtime loads: checked as written, by their own esm
                     diagnostics.push(...this.checkLoaderOutput(profile, filePath, fragment.writtenFiles, undefined, onDependency));
@@ -421,7 +424,7 @@ export class ModuleCompiler extends Compiler {
         this.logDebug(`Emitting source file: ${filePath} with profile: ${this.profile || "default"}`);
         const result = this.emitSourceFile(filePath, this.profile, true);
         this.onTargetEmitted(filePath);
-        const targetDiagnostics = this.takeFileLessErrors(result.diagnostics ?? []);
+        const targetDiagnostics = this.takeFileLessErrors(result.diagnostics ?? [], filePath);
         // Deduplicated on the unlabelled key, so a host's message-based deduplication sees one copy per module
         const reported = new Set(targetDiagnostics.map(cur => ModuleCompiler.getDiagnosticKey(cur)));
         diagnostics.push(
@@ -537,14 +540,20 @@ export class ModuleCompiler extends Compiler {
 
     /**
      * Keeps the TypeScript errors without a file of `diagnostics` as configuration errors and returns the others: every
-     * module of the fast path returns the same option errors, so N modules give one configuration error, not N. The
-     * errors of a dependent profile `dependentProfile` are kept labelled with it, unless the host's profile already
-     * keeps the same error, whose unlabelled copy replaces a dependent's. websmith's own diagnostics without a file
-     * (code 0) and warnings stay on the module.
+     * module of the fast path returns the same option errors, so N modules give one configuration error, not N. An
+     * error that names the module's own file `filePath` in quotes, as TypeScript names paths, e.g. TS6059 for a file
+     * outside `rootDir`, stays on the module and lives as long as it, like an error with a file; for a dependent profile
+     * `dependentProfile` the caller labels it. The other errors of a dependent profile are kept labelled with it, unless
+     * the host's profile already keeps the same error, whose unlabelled copy replaces a dependent's. websmith's own
+     * diagnostics without a file (code 0) and warnings stay on the module.
      */
-    private takeFileLessErrors(diagnostics: readonly ts.Diagnostic[], dependentProfile?: string): ts.Diagnostic[] {
+    private takeFileLessErrors(diagnostics: readonly ts.Diagnostic[], filePath: string, dependentProfile?: string): ts.Diagnostic[] {
+        const ownPath = `'${filePath.replace(/\\/g, "/")}'`;
         return diagnostics.filter(cur => {
             if (!cur.file && cur.code > 0 && cur.category === ts.DiagnosticCategory.Error) {
+                if (ts.flattenDiagnosticMessageText(cur.messageText, "\n").replace(/\\/g, "/").includes(ownPath)) {
+                    return true;
+                }
                 const key = ModuleCompiler.getDiagnosticKey(cur);
                 if (!dependentProfile) {
                     this.fileLessErrors.set(key, cur);

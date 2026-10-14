@@ -49,6 +49,10 @@ class CompilerTestClass extends Compiler {
         return super.createProgram(tsConfig);
     }
 
+    public getOwnOptionsDiagnostics(program: ts.Program, sourceFile: ts.SourceFile): ts.Diagnostic[] {
+        return super.getOwnOptionsDiagnostics(program, sourceFile);
+    }
+
     public getSystem(): ts.System {
         return super.getSystem();
     }
@@ -110,6 +114,31 @@ const describeOnTs6 = isTs5 ? describe.skip : describe;
 beforeEach(() => {
     jest.spyOn(console, "log").mockImplementation(() => {});
 });
+
+/**
+ * Compiles with a Program over the virtual file system: Compiler's Program reads the real disk, where the test's root
+ * files do not exist (code 6053). Generator-added virtual files are not root files when the Program is created.
+ */
+class VirtualProgramCompiler extends CompilerTestClass {
+    public createProgram(tsConfig?: ts.CompilerOptions): ts.Program {
+        const options = tsConfig ?? {};
+        const system = this.getSystem();
+        const base = ts.createCompilerHost(options);
+        const host: ts.CompilerHost = {
+            ...base,
+            fileExists: fileName => system.fileExists(fileName) || base.fileExists(fileName),
+            readFile: fileName => system.readFile(fileName) ?? base.readFile(fileName),
+            directoryExists: dirName => system.directoryExists(dirName) || !!base.directoryExists?.(dirName),
+            getSourceFile: (fileName, languageVersion, ...rest) => {
+                const text = system.readFile(fileName);
+                return text !== undefined
+                    ? ts.createSourceFile(fileName, text, languageVersion)
+                    : base.getSourceFile(fileName, languageVersion, ...rest);
+            },
+        };
+        return ts.createProgram(this.getOptions().cliArgs?.fileNames ?? [], options, host);
+    }
+}
 
 describe("constructor", () => {
     it("uses options.reporter when provided", () => {
@@ -1321,6 +1350,186 @@ describe("compile", () => {
 
         expect(actual.diagnostics.map(cur => cur.code)).not.toContain(6046);
     });
+
+    it("reports a missing type definition file once w/ declaration and two files", () => {
+        const fileSystem = createSystem({ "src/a.ts": `export const a = 1;`, "src/b.ts": `export const b = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { declaration: true, types: ["does-not-exist"], outDir: "/out", rootDir: "/src", target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = target.message.split("Cannot find type definition file for 'does-not-exist'").length - 1;
+
+        expect(actual).toBe(1);
+    });
+
+    it("reports a rootDir violation once per offending file w/ declaration", () => {
+        const fileSystem = createSystem(
+            {
+                "src/lib/a.ts": `import { b } from "../b";\nexport const a = b;`,
+                "src/b.ts": `export const b = 1;`,
+                "src/c.ts": `export const c = 1;`,
+            },
+            { virtual: true }
+        );
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { declaration: true, outDir: "/out", rootDir: "/src/lib", types: [], target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/lib/a.ts", "/src/b.ts", "/src/c.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = target.message.split("\n").filter(cur => cur.includes("is not under 'rootDir'"));
+
+        expect(actual).toHaveLength(2);
+        expect(actual[0]).toContain("/src/b.ts");
+        expect(actual[1]).toContain("/src/c.ts");
+    });
+
+    it("yields no rootDir violation in the importer's fragment w/ declaration and real per-file Program importing a file outside rootDir", () => {
+        const fileSystem = createSystem(
+            { "src/lib/a.ts": `import { b } from "../b";\nexport const a = b;`, "src/b.ts": `export const b = 1;` },
+            { virtual: true }
+        );
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { declaration: true, outDir: "/out", rootDir: "/src/lib", types: [], target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/lib/a.ts", "/src/b.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("/src/lib/a.ts").diagnostics?.map(cur => cur.code);
+
+        expect(actual).toEqual([]);
+    });
+
+    const createOptionsDiagnostic = (code: number, messageText: string): ts.Diagnostic => ({
+        file: undefined,
+        start: undefined,
+        length: undefined,
+        code,
+        category: ts.DiagnosticCategory.Error,
+        messageText,
+    });
+
+    const createProgramMock = (sourceFiles: ts.SourceFile[], optionsDiagnostics: ts.Diagnostic[]): ts.Program =>
+        ({ getSourceFiles: () => sourceFiles, getOptionsDiagnostics: () => optionsDiagnostics }) as unknown as ts.Program;
+
+    it("yields only own options diagnostics w/ per-file Program naming its root and another source file", () => {
+        const own = ts.createSourceFile("/src/lib/a.ts", "", ts.ScriptTarget.ESNext);
+        const other = ts.createSourceFile("/src/b.ts", "", ts.ScriptTarget.ESNext);
+        const program = createProgramMock(
+            [own, other],
+            [
+                createOptionsDiagnostic(6059, "File '/src/b.ts' is not under 'rootDir' '/src/lib'."),
+                createOptionsDiagnostic(6059, "File '/src/lib/a.ts' is not under 'rootDir' '/src/lib/x'."),
+            ]
+        );
+        const testObj = new CompilerTestClass({ reporter: new NoReporter() }, undefined, createSystem({}, { virtual: true }));
+
+        const actual = testObj.getOwnOptionsDiagnostics(program, own).map(cur => cur.messageText);
+
+        expect(actual).toEqual(["File '/src/lib/a.ts' is not under 'rootDir' '/src/lib/x'."]);
+    });
+
+    it("yields own options diagnostic w/ per-file Program of '/src/b.tsx' and another source file '/src/b.ts'", () => {
+        const own = ts.createSourceFile("/src/b.tsx", "", ts.ScriptTarget.ESNext);
+        const other = ts.createSourceFile("/src/b.ts", "", ts.ScriptTarget.ESNext);
+        const program = createProgramMock([own, other], [createOptionsDiagnostic(6059, "File '/src/b.tsx' is not under 'rootDir' '/src/lib'.")]);
+        const testObj = new CompilerTestClass({ reporter: new NoReporter() }, undefined, createSystem({}, { virtual: true }));
+
+        const actual = testObj.getOwnOptionsDiagnostics(program, own).map(cur => cur.code);
+
+        expect(actual).toEqual([6059]);
+    });
+
+    it("reports a missing type definition file once w/ addon needing type information", () => {
+        const fileSystem = createSystem({ "src/a.ts": `export const a = 1;`, "src/b.ts": `export const b = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        fileSystem.createDirectory("./addons");
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter: target, system: fileSystem });
+        // Legacy addon: needsTypeInfo is undefined, so the compilation creates the big Program
+        addons.getAvailableAddons = jest.fn().mockReturnValue([{ getName: () => "type-info-addon", activate: () => {} }]);
+        const testObj = new VirtualProgramCompiler(
+            {
+                reporter: target,
+                config: { addons: ["type-info-addon"] },
+                tsConfig: { types: ["does-not-exist"], outDir: "/out", rootDir: "/src", target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).setAddonRegistry(addons);
+
+        testObj.compile();
+        const actual = target.message.split("Cannot find type definition file for 'does-not-exist'").length - 1;
+
+        expect(actual).toBe(1);
+    });
+
+    it("reports an unknown tsconfig.json option once w/ declaration", () => {
+        const fileSystem = createSystem({ "src/a.ts": `export const a = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const { errors } = ts.parseJsonConfigFileContent({ compilerOptions: { bogusOption: true } }, fileSystem, "/");
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: { declaration: true, outDir: "/out", rootDir: "/src", types: [], target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/a.ts"], options: {}, errors },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = target.message.split("Unknown compiler option 'bogusOption'").length - 1;
+
+        expect(actual).toBe(1);
+    });
+});
+
+describeOnTs5("compile w/ option error of the per-file declaration Program", () => {
+    it("reports the option error once w/ declaration, CommonJS and bundler resolution", () => {
+        const fileSystem = createSystem({ "src/a.ts": `export const a = 1;`, "src/b.ts": `export const b = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                tsConfig: {
+                    declaration: true,
+                    module: ts.ModuleKind.CommonJS,
+                    moduleResolution: ts.ModuleResolutionKind.Bundler,
+                    outDir: "/out",
+                    rootDir: "/src",
+                    types: [],
+                    target: ts.ScriptTarget.ESNext,
+                },
+                cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = target.message.split("Option 'bundler' can only be used").length - 1;
+
+        expect(actual).toBe(1);
+    });
 });
 
 describe("emitSourceFile", () => {
@@ -2114,6 +2323,52 @@ describe("report", () => {
 
         expect(actual.emitSkipped).toBe(true);
     });
+
+    it.each([
+        { name: "result w/o diagnostics", resultHoldsIt: false },
+        { name: "result holding the same one", resultHoldsIt: true },
+    ])("reports program's file-less option error once w/ $name", ({ resultHoldsIt }) => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const optionError = {
+            code: 2688,
+            category: ts.DiagnosticCategory.Error,
+            messageText: "Cannot find type definition file for 'does-not-exist'.",
+        };
+
+        new CompilerTestClass({ reporter: target }, undefined, fileSystem).report(
+            {
+                getCompilerOptions: () => ({}),
+                getConfigFileParsingDiagnostics: () => [],
+                getGlobalDiagnostics: () => [],
+                getOptionsDiagnostics: () => [optionError],
+                getSemanticDiagnostics: () => [],
+                getSyntacticDiagnostics: () => [],
+            } as any,
+            { diagnostics: resultHoldsIt ? [{ ...optionError }] : [] } as any
+        );
+
+        expect(target.message).toBe("Error: 2688: Cannot find type definition file for 'does-not-exist'.\n");
+    });
+
+    it("reports no file-less rootDir inference error (TS5011) of the program", () => {
+        const fileSystem = createSystem({}, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+
+        new CompilerTestClass({ reporter: target }, undefined, fileSystem).report(
+            {
+                getCompilerOptions: () => ({}),
+                getConfigFileParsingDiagnostics: () => [],
+                getGlobalDiagnostics: () => [],
+                getOptionsDiagnostics: () => [{ code: 5011, category: ts.DiagnosticCategory.Error, messageText: "Cannot infer rootDir" }],
+                getSemanticDiagnostics: () => [],
+                getSyntacticDiagnostics: () => [],
+            } as any,
+            { diagnostics: [] } as any
+        );
+
+        expect(target.message).toBe("");
+    });
 });
 
 describe("watch", () => {
@@ -2239,6 +2494,55 @@ describe("watch", () => {
 
         fileSystem.writeFile("/src/a.ts", `export const a = 2;`);
         const actual = target.message.split("Option '--resolveJsonModule' cannot be specified").length - 1;
+
+        expect(actual).toBe(1);
+        testObj.closeAllWatchers();
+    });
+
+    it("reports a missing type definition file once w/ declaration, initial watch build and rebuild", () => {
+        const fileSystem = createSystem({ "src/a.ts": `export const a = 1;`, "src/b.ts": `export const b = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                watch: true,
+                tsConfig: { declaration: true, types: ["does-not-exist"], outDir: "/out", rootDir: "/src", target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).watch();
+
+        fileSystem.writeFile("/src/a.ts", `export const a = 2;`);
+        const actual = target.message.split("Cannot find type definition file for 'does-not-exist'").length - 1;
+
+        expect(actual).toBe(1);
+        testObj.closeAllWatchers();
+    });
+
+    it("reports a missing type definition file once w/ addon needing type information, initial watch build and rebuild", () => {
+        const fileSystem = createSystem({ "src/a.ts": `export const a = 1;`, "src/b.ts": `export const b = 1;` }, { virtual: true });
+        const target = new ReporterMock(fileSystem);
+        fileSystem.createDirectory("./addons");
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter: target, system: fileSystem });
+        // Legacy addon: needsTypeInfo is undefined, so the watch build uses the language service
+        addons.getAvailableAddons = jest.fn().mockReturnValue([{ getName: () => "type-info-addon", activate: () => {} }]);
+        const testObj = new CompilerTestClass(
+            {
+                reporter: target,
+                watch: true,
+                config: { addons: ["type-info-addon"] },
+                tsConfig: { types: ["does-not-exist"], outDir: "/out", rootDir: "/src", target: ts.ScriptTarget.ESNext },
+                cliArgs: { fileNames: ["/src/a.ts", "/src/b.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        )
+            .setAddonRegistry(addons)
+            .watch();
+
+        fileSystem.writeFile("/src/a.ts", `export const a = 2;`);
+        const actual = target.message.split("Cannot find type definition file for 'does-not-exist'").length - 1;
 
         expect(actual).toBe(1);
         testObj.closeAllWatchers();
@@ -5127,7 +5431,7 @@ describe("compile w/ syntax error and addon needing type information", () => {
         // Legacy addon: needsTypeInfo is undefined, so the compilation creates the big Program
         const typeInfoAddon = { getName: () => "type-info-addon", activate };
         addons.getAvailableAddons = jest.fn().mockReturnValue([typeInfoAddon]);
-        return new CompilerTestClass(
+        return new VirtualProgramCompiler(
             {
                 reporter,
                 config: { transpileOnly: options.transpileOnly, addons: ["type-info-addon"] },
