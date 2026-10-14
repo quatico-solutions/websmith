@@ -8,7 +8,7 @@ import { createProject, removeProject, runVite, runViteWatch, writeConfig, write
 
 const APP = { profile: "app" };
 
-const countOf = (text: string | undefined, part: string): number => text?.split(part).length ?? 0;
+const countOf = (text: string | undefined, part: string): number => (text?.split(part).length ?? 1) - 1;
 
 beforeEach(() => {
     createProject("vite-diagnostics");
@@ -87,7 +87,7 @@ describe("vite build w/ websmith diagnostics", () => {
         const actual1 = countOf(error?.message, "Unknown profile 'missing'");
         const actual2 = error?.hook;
 
-        expect(actual1).toBe(2);
+        expect(actual1).toBe(1);
         expect(actual2).toBe("buildStart");
     }, 60000);
 
@@ -100,7 +100,7 @@ describe("vite build w/ websmith diagnostics", () => {
         const actual1 = countOf(error?.message, "Profile 'nope' is not configured");
         const actual2 = error?.hook;
 
-        expect(actual1).toBe(2);
+        expect(actual1).toBe(1);
         expect(actual2).toBe("buildStart");
     }, 60000);
 
