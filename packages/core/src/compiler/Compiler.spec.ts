@@ -18,6 +18,11 @@ import { DefaultReporter } from "./DefaultReporter";
 import { NoReporter } from "./NoReporter";
 import { type ResolvedCompilerOptions } from "./options";
 
+// The node module kinds of the installed TypeScript; Node18 and Node20 exist only in TypeScript 6
+const NODE_MODULE_KINDS = ["Node16", "Node18", "Node20", "NodeNext"]
+    .filter(name => name in ts.ModuleKind)
+    .map(name => ({ name, module: (ts.ModuleKind as unknown as Record<string, number>)[name] as ts.ModuleKind }));
+
 class CompilerTestClass extends Compiler {
     constructor(
         options: Partial<CompilerOptions>,
@@ -1773,6 +1778,31 @@ describe("emitSourceFile", () => {
         expect(getText("target.js", actual)).toContain(`const fs = __require("fs");`);
     });
 
+    describe.each(NODE_MODULE_KINDS)("w/ module $name", ({ module }) => {
+        it.each([
+            { type: "module", declaration: false, expected: "export const hello" },
+            { type: "commonjs", declaration: false, expected: "exports.hello" },
+            { type: "module", declaration: true, expected: "export const hello" },
+            { type: "commonjs", declaration: true, expected: "exports.hello" },
+        ])("yields $expected w/ package.json type $type and declaration $declaration", ({ type, declaration, expected }) => {
+            const fileSystem = createSystem(
+                { "package.json": JSON.stringify({ type }), "src/target.ts": `export const hello: string = "world";` },
+                { virtual: true }
+            );
+            const target = {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { declaration, target: ts.ScriptTarget.ESNext, module },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            };
+
+            const actual = new CompilerTestClass(target, undefined, fileSystem)
+                .createProfileContextsIfNecessary()
+                .emitSourceFile("/src/target.ts", undefined, false);
+
+            expect(getText("target.js", actual)).toContain(expected);
+        });
+    });
+
     it.each([
         { name: "ESNext", module: ts.ModuleKind.ESNext },
         { name: "NodeNext", module: ts.ModuleKind.NodeNext },
@@ -3082,6 +3112,31 @@ describe("watch", () => {
             {
                 reporter: new ReporterMock(fileSystem),
                 tsConfig: { outDir: "/build", rootDir: "/src", target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.NodeNext },
+                cliArgs: { fileNames: ["/src/target.ts"], options: { outDir: "/build" }, errors: [] },
+                watch: true,
+            },
+            undefined,
+            fileSystem
+        );
+        testObj.watch();
+
+        fileSystem.writeFile("/package.json", JSON.stringify({ type: "commonjs" }));
+
+        const actual = fileSystem.readFile("/build/target.js");
+        expect(actual).toContain(`exports.hello = "world";`);
+
+        testObj.closeAllWatchers();
+    });
+
+    it.each(NODE_MODULE_KINDS)("should re-emit CommonJS w/ module $name and package.json type changed from module to commonjs", ({ module }) => {
+        const fileSystem = createSystem(
+            { "package.json": JSON.stringify({ type: "module" }), "src/target.ts": `export const hello = "world";` },
+            { virtual: true }
+        );
+        const testObj = new Compiler(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { outDir: "/build", rootDir: "/src", target: ts.ScriptTarget.ESNext, module },
                 cliArgs: { fileNames: ["/src/target.ts"], options: { outDir: "/build" }, errors: [] },
                 watch: true,
             },

@@ -10,6 +10,9 @@ import { checkModuleFormat, checkTargetModule, selectConfigErrors } from "./conf
 
 const NODENEXT: ts.CompilerOptions = { module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext };
 
+// The node module kinds of the installed TypeScript; Node18 and Node20 exist only in TypeScript 6
+const NODE_MODULE_KINDS = ["Node16", "Node18", "Node20", "NodeNext"].filter(name => name in ts.ModuleKind);
+
 const createModuleSystem = (files: Record<string, string>): ts.System => createSystem(files, { virtual: true });
 
 const createCache = (): ts.PackageJsonInfoCache => ts.createModuleResolutionCache("/", cur => cur).getPackageJsonInfoCache();
@@ -168,6 +171,25 @@ describe("checkModuleFormat", () => {
             ?.messageText;
 
         expect(actual).toMatch(/^Profile 'app' emits CommonJS for '\/project\/src\/main.ts' \('tsConfig.module' is 'node16' and/);
+    });
+
+    it.each(NODE_MODULE_KINDS)("should return error naming module w/ %s and no type in package.json", name => {
+        const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
+        const module = ts.ModuleKind[name as keyof typeof ts.ModuleKind];
+
+        const actual = checkModuleFormat("app", "/project/src/main.ts", { module }, false, system, createCache()).error?.messageText;
+
+        expect(actual).toMatch(
+            new RegExp(`^Profile 'app' emits CommonJS for '/project/src/main.ts' \\('tsConfig.module' is '${name.toLowerCase()}' and`)
+        );
+    });
+
+    it("should return none w/ module value the installed TypeScript does not have", () => {
+        const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
+
+        const actual = checkModuleFormat("app", "/project/src/main.ts", { module: 150 as ts.ModuleKind }, false, system, createCache());
+
+        expect(actual).toEqual({});
     });
 
     it("should name default profile w/o profile", () => {

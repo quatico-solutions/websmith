@@ -982,6 +982,22 @@ describe("ModuleCompiler package types", () => {
         expect(actual).toEqual({ files: [], missing: ["/src/package.json"], packageTypes: { "/package.json": "module" } });
     });
 
+    // Node18 and Node20 exist only in TypeScript 6
+    it.each(["Node16", "Node18", "Node20", "NodeNext"].filter(name => name in ts.ModuleKind))(
+        "yields type of nearest package.json w/ module %s target",
+        name => {
+            const module = (ts.ModuleKind as unknown as Record<string, number>)[name] as ts.ModuleKind;
+            const testObj = createModuleCompiler(
+                { ...MODULE_PACKAGE, "/src/a.ts": "export const a = 1;" },
+                { target: { tsConfig: { module, outDir: "/dist" } } }
+            );
+
+            const actual = testObj.build("/src/a.ts").dependencies.packageTypes;
+
+            expect(actual).toEqual({ "/package.json": "module" });
+        }
+    );
+
     it("yields null type w/ nodenext target and package.json w/o type", () => {
         const testObj = createModuleCompiler(
             { "/package.json": JSON.stringify({ name: "whatever" }), "/src/a.ts": "export const a = 1;" },

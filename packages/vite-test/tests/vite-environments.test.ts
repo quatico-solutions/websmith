@@ -6,11 +6,15 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 import { createProject, getProjectDir, removeProject, runVite, runViteApp, writeFile, writeProfiles, writeTsConfig } from "./vite-project";
 
 const VITES = ["vite", "vite6"];
 const MAGELLAN = { profile: { client: "client", ssr: "server" } };
 const NODENEXT = { module: "NodeNext", moduleResolution: "NodeNext" };
+
+// Node18 and Node20 exist only in TypeScript 6
+const describeOnTs6 = Number(ts.versionMajorMinor.split(".")[0]) >= 6 ? describe : describe.skip;
 
 const ENVIRONMENTS = {
     client: { build: { outDir: "dist/client", rollupOptions: { input: "src/main.ts", preserveEntrySignatures: "strict" } } },
@@ -241,4 +245,19 @@ describe("vite build w/ websmith in Vite environments", () => {
         },
         60000
     );
+
+    describeOnTs6("on TypeScript 6", () => {
+        it.each(VITES.flatMap(vite => ["node18", "node20"].map(module => ({ vite, module }))))(
+            "should fail w/ $module profile and package.json without type module and $vite",
+            ({ vite, module }) => {
+                writeProfiles({ app: { addons: ["replacer"], tsConfig: { module, moduleResolution: "NodeNext" } } });
+
+                const actual = runVite({ vite, pluginOptions: { profile: "app" } }).error?.message ?? "";
+
+                expect(actual).toContain(`'tsConfig.module' is '${module}'`);
+                expect(actual).toContain(`"type": "module"`);
+            },
+            60000
+        );
+    });
 });

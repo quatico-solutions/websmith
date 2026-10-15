@@ -170,6 +170,15 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().tsConfig!.configFilePath).toEqual(expect.stringContaining("/expected/tsconfig.json"));
     });
 
+    it("should yield ignoreDeprecations option w/ --ignoreDeprecations cli argument", () => {
+        const testSystem = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+
+        addCompileCommand(new Command(), target).parse(["--project", "expected/tsconfig.json", "--ignoreDeprecations", "5.0"], { from: "user" });
+
+        expect(target.getOptions().cliArgs.options.ignoreDeprecations).toBe("5.0");
+    });
+
     it("should yield normalised project w/ --project directory cli argument", () => {
         const testSystem = createSystem(
             { "/expected/tsconfig.json": JSON.stringify({ include: ["src/**/*"] }), "/expected/src/index.ts": "export {};" },

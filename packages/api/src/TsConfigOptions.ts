@@ -92,12 +92,31 @@ export interface TsConfigCompilerOptions {
         | "ES2022"
         | "ES2023"
         | "ES2024"
+        /** TypeScript 6 */
+        | "ES2025"
         | "ESNext";
 
     /**
      * Specify module code generation.
      */
-    module?: "None" | "CommonJS" | "AMD" | "UMD" | "System" | "ES6" | "ES2015" | "ES2020" | "ES2022" | "ESNext" | "Node16" | "NodeNext";
+    module?:
+        | "None"
+        | "CommonJS"
+        | "AMD"
+        | "UMD"
+        | "System"
+        | "ES6"
+        | "ES2015"
+        | "ES2020"
+        | "ES2022"
+        | "ESNext"
+        | "Node16"
+        /** TypeScript 6 */
+        | "Node18"
+        /** TypeScript 6 */
+        | "Node20"
+        | "NodeNext"
+        | "Preserve";
 
     /**
      * Specify library files to be included in the compilation.
@@ -508,6 +527,12 @@ export interface TsConfigCompilerOptions {
      * The character set of the input files.
      */
     charset?: string;
+
+    /**
+     * Silence the deprecation errors of a TypeScript version: `5.0` on TypeScript 5.x, `5.0` or `6.0` on 6.x; only `6.0`
+     * silences 6.0's deprecations. TypeScript reports a value its version does not accept (TS5103).
+     */
+    ignoreDeprecations?: "5.0" | "6.0";
 
     /**
      * When type checking, take into account 'null' and 'undefined'.

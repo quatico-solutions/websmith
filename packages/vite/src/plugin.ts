@@ -22,9 +22,9 @@ export type { WebsmithViteOptions } from "./options";
  *   between environments. Paths of `addVirtualFile` and `removeOutputFile` are relative to the `build.outDir` of the
  *   environment. A worker that `worker.plugins` bundles with the same plugin object has its own as well.
  * - Two `websmith()` plugins do not chain: the second compiles the TypeScript source, not the first one's output.
- * - Under `node16` or `nodenext`, a module TypeScript emits as CommonJS fails its transform, before any addon runs on
- *   it: a `.cts` file, or a file whose nearest `package.json` has no `"type": "module"`. With `esm`, core's ESM check
- *   reports it instead.
+ * - Under a node module kind (`node16`, `node18`, `node20`, `nodenext`), a module TypeScript emits as CommonJS fails its
+ *   transform, before any addon runs on it: a `.cts` file, or a file whose nearest `package.json` has no
+ *   `"type": "module"`. With `esm`, core's ESM check reports it instead.
  *
  * Diagnostics go through Vite, not to the console:
  * - The errors of a module fail its transform with one error, `file (line,column): message` per diagnostic, and

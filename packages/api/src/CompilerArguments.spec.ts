@@ -31,6 +31,10 @@ describe("CompilerArguments", () => {
             expect(TSC_ARGUMENT_KEYS).toContain("emitDecoratorMetadata");
         });
 
+        it("should contain ignoreDeprecations", () => {
+            expect(TSC_ARGUMENT_KEYS).toContain("ignoreDeprecations");
+        });
+
         it("should contain JSX options", () => {
             expect(TSC_ARGUMENT_KEYS).toContain("jsx");
             expect(TSC_ARGUMENT_KEYS).toContain("jsxFactory");
@@ -82,7 +86,7 @@ describe("CompilerArguments", () => {
             }
 
             // The actual length should be the unique keys length
-            expect(COMPILER_ARGUMENT_KEYS).toHaveLength(149);
+            expect(COMPILER_ARGUMENT_KEYS).toHaveLength(150);
         });
 
         it("should contain keys from all categories", () => {

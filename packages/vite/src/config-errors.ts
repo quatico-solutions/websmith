@@ -5,7 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { ErrorMessage } from "@quatico/websmith-api";
-import { getEffectiveTarget, getEmittedModuleKind, isEsmModuleKind } from "@quatico/websmith-core";
+import { getEffectiveTarget, getEmittedModuleKind, isEsmModuleKind, isNodeModuleKind } from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
 
@@ -36,7 +36,7 @@ export const checkTargetModule = (profile: string | undefined, tsConfig: ts.Comp
     return new ErrorMessage(`${subject} emits ${emitted} (${cause}), which Vite cannot bundle as an ES module. Use "ESNext" or "ES2022".`);
 };
 
-// The nearest package.json above `fileName`, which decides the format of a .ts or .js file under node16 and nodenext
+// The nearest package.json above `fileName`, which decides the format of a .ts or .js file under a node module kind
 const findPackageJson = (fileName: string, system: ts.System): string | undefined => {
     for (let dir = path.dirname(fileName); ; dir = path.dirname(dir)) {
         const candidate = path.join(dir, "package.json");
@@ -50,9 +50,9 @@ const findPackageJson = (fileName: string, system: ts.System): string | undefine
 };
 
 /**
- * Returns a configuration error when the profile's `module` is `node16` or `nodenext` and TypeScript emits the module
- * `fileName` as CommonJS, which Vite cannot bundle as an ES module: a `.cts` file, or a file whose nearest
- * `package.json` has no `"type": "module"`. Returns that `package.json`, which decides the format, for the caller to
+ * Returns a configuration error when the profile's `module` is a node module kind (`node16`, `node18`, `node20`,
+ * `nodenext`) and TypeScript emits the module `fileName` as CommonJS, which Vite cannot bundle as an ES module: a
+ * `.cts` file, or a file whose nearest `package.json` has no `"type": "module"`. Returns that `package.json`, which decides the format, for the caller to
  * watch. Returns nothing when the profile sets `esm`, which core reports for that case already.
  */
 export const checkModuleFormat = (
@@ -64,8 +64,7 @@ export const checkModuleFormat = (
     cache: ts.PackageJsonInfoCache
 ): { error?: ts.Diagnostic; packageJson?: string } => {
     const { module } = tsConfig;
-    // A numeric range, since TypeScript 5.8 adds Node18 and Node20 between Node16 and NodeNext
-    if (hasEsm || module === undefined || module < ts.ModuleKind.Node16 || module > ts.ModuleKind.NodeNext) {
+    if (hasEsm || module === undefined || !isNodeModuleKind(module)) {
         return {};
     }
     const isCts = /\.cts$/i.test(fileName);
