@@ -77,11 +77,14 @@ The `websmith` command supports the same command line parameters as the `tsc` co
 * `--addonsDir <directoryPath>`: Directory path to the "addons" folder, resolved against the current working directory. There is no default: without this parameter and without `addonsDir` in the `websmith.config.json` passed with `--configFile`, no addons directory is set and `--addons` loads nothing.
 * `--configFile <filePath>`: File path to the "websmith.config.json". There is no default and no automatic lookup: the file is only read when you pass this parameter. Without it, only the command line parameters apply.
 * `--debug`: Enable the output of debug information.
+* `--ignoreDeprecations <version>`: Silence the deprecation errors of a TypeScript version, as with `tsc`: `5.0` on TypeScript 5, `5.0` or `6.0` on TypeScript 6. Only `6.0` silences the deprecations of TypeScript 6. TypeScript reports a value its version does not accept (error 5103).
 * `--profile <profileName>`: Name of the profile to use with a specific compiler configuration and list of addons. No profile is applied by default. An unknown name is a configuration error: websmith reports it and exits 1.
 * `--project <projectPath>` (`-p`): Path to a tsconfig file or to a directory that contains a `tsconfig.json`, as with `tsc`. A directory compiles `<directory>/tsconfig.json` and resolves relative paths in it, like `outDir`, against that directory. An explicit `--project` that names no tsconfig file fails the build with the absolute path in the message: a path that does not exist, like `-p missing.json` or `-p tsconfig.json` without that file (error 5058), or a directory without `tsconfig.json`, like `-p .` (error 5057). Without `--project`, websmith uses `./tsconfig.json` in the current working directory and does not look for it in parent directories; a missing `./tsconfig.json` is not an error then.
 * `--transpileOnly`: Enable the transpile only mode.
 
 See all available parameters with the `websmith --help` command.
+
+TypeScript 6 deprecates `outFile` (error 5101) and the `module` kinds it works with, `amd`, `system` and `none` (error 5107), so a build with `outFile` on TypeScript 6 fails until `"ignoreDeprecations": "6.0"` is set.
 
 Unlike `tsc`, websmith accepts `--project` together with file names: `websmith -p tsconfig.json src/a.ts` compiles only `src/a.ts` with the options of the tsconfig file, where `tsc` refuses the combination with error TS5042.
 
@@ -96,7 +99,7 @@ A compilation profile is a set of options that specify the environment for a com
 You can define a compilation profile by adding a `profiles` section to the `websmith.config.json` file. The `profiles` section contains a unique profile `name` and a set of options. The `name` is used to specify the profile when calling the websmith compiler. The options are used to configure the compilation output. The options contain the following sections:
 
 * `addons`: A list of addon names to apply for this profile
-* `tsConfig`: The TypeScript compiler options for this profile, with option names such as `"module": "NodeNext"` or `"lib": ["ES2022"]` accepted as in `tsconfig.json`
+* `tsConfig`: The TypeScript compiler options for this profile, with option names such as `"module": "NodeNext"` or `"lib": ["ES2022"]` accepted as in `tsconfig.json`. `"module": "Node18"`, `"module": "Node20"` and `"target": "ES2025"` are accepted on TypeScript 6 only
 * `config`: Profile specific properties provided to profile addons
 * `depends`: The list of profiles to be applied before this profile
 * `esm`: Checks that the JavaScript this profile emits loads as ES modules, see [ESM check](#esm-check)

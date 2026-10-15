@@ -97,8 +97,8 @@ With `depends`, the diagnostics of the dependent profiles' emits of the module a
 `(profile "<name>")`. A diagnostic that the selected profile or another dependent profile reports identically is
 emitted once: the selected profile's copy without a label, else the first dependent profile's.
 
-TypeScript errors without a file belong to no module, e.g. option errors such as TS5095 (`moduleResolution: "bundler"`
-with `module: "CommonJS"`): every module would report the same one. The loader reports them once per compilation like
+TypeScript errors without a file belong to no module, e.g. option errors such as TS5110 (`moduleResolution: "node16"`
+with `module: "commonjs"`): every module would report the same one. The loader reports them once per compilation like
 configuration errors, see below. A dependent profile's option errors are reported the same way, labelled with the
 profile. An error without a file that names a source file, such as TS6059 (a file outside `rootDir`), belongs to that
 file's module and is reported there, so it goes away with the module. Option errors with `declaration: true` are
@@ -134,9 +134,10 @@ a compilation and across watch rebuilds while its files and the options are unch
 worker looks for edits in `addonsDir` once per watch compilation, and at most once a second without watch. Addons
 must not rely on being activated again for each module.
 
-#### `package.json` `"type"` under `node16` and `nodenext`
+#### `package.json` `"type"` under the node module kinds
 
-Under `module: node16` or `nodenext`, in the selected `profile` or a profile it depends on, the `"type"` of a
+Under `module: node16`, `node18`, `node20` or `nodenext` (`node18` and `node20` exist only in TypeScript 6), in the
+selected `profile` or a profile it depends on, the `"type"` of a
 module's nearest `package.json` decides the module format TypeScript emits. The loader tracks that `"type"` for every
 module, with or without `esm`: a `"type"` change rebuilds the module, other edits of that `package.json` do not.
 Under `thread-loader` or with webpack's persistent filesystem cache, the loader cannot compare the `"type"` before a
