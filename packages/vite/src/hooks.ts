@@ -74,16 +74,18 @@ export const createModuleCompiler = (loaderOptions: Partial<WebpackLoaderOptions
         createContext: options => new ViteAddonContext(options, outputs),
     });
 
-// The target profile, its merged tsConfig, with module and target as enums, and whether the profile itself sets esm
-const getProfileModule = (compiler: HookCompiler): { profile?: string; tsConfig: ts.CompilerOptions; hasEsm: boolean } => {
+/** The target profile, its merged tsConfig, with module and target as enums, and whether the profile itself sets esm. */
+type ProfileModule = { profile?: string; tsConfig: ts.CompilerOptions; hasEsm: boolean };
+
+// Reads the tsconfig.json of the profile and discovers its files, so an environment's build calls it once
+const getProfileModule = (compiler: HookCompiler): ProfileModule => {
     const profile = compiler.getProfile();
     const options = compiler.getOptions();
     const hasEsm = profile !== undefined && options.config?.profiles?.[profile]?.esm !== undefined;
     return { profile, tsConfig: options.getOptions(profile).tsConfig ?? {}, hasEsm };
 };
 
-const checkProfileModule = (compiler: HookCompiler): ts.Diagnostic[] => {
-    const { profile, tsConfig, hasEsm } = getProfileModule(compiler);
+const checkProfileModule = ({ profile, tsConfig, hasEsm }: ProfileModule): ts.Diagnostic[] => {
     const error = checkTargetModule(profile, tsConfig, hasEsm);
     return error ? [error] : [];
 };
@@ -95,6 +97,8 @@ const checkProfileModule = (compiler: HookCompiler): ts.Diagnostic[] => {
 type EnvironmentState = {
     resolved: ResolvedViteOptions;
     compiler?: HookCompiler;
+    // The profile module of the compiler's current options, looked up once per build and again after a refresh
+    profileModule?: ProfileModule;
     // The environment object of the build between its buildStart and buildEnd, which a nested build does not share
     building?: EnvironmentInfo;
     reporter: DiagnosticReporter;
@@ -225,6 +229,7 @@ export const createWebsmithHooks = (
                         compiler.resetCompilationCaches();
                     });
                 }
+                state.profileModule = undefined;
             }
             state.raisedKeys = new Set();
             state.warnedKeys = new Set();
@@ -241,7 +246,8 @@ export const createWebsmithHooks = (
             }
             const { files, missing } = current.getOptionsFiles();
             [...files, ...missing].forEach(cur => this.addWatchFile(cur));
-            const errors = report(this, state, [...current.getConfigErrors(), ...checkProfileModule(current), ...state.reporter.take()]);
+            state.profileModule = getProfileModule(current);
+            const errors = report(this, state, [...current.getConfigErrors(), ...checkProfileModule(state.profileModule), ...state.reporter.take()]);
             if (errors.length > 0) {
                 state.raisedKeys = new Set(errors.map(getDiagnosticKey));
                 this.error(toRollupError(errors));
@@ -261,7 +267,8 @@ export const createWebsmithHooks = (
             if (!current) {
                 return null;
             }
-            const { profile, tsConfig, hasEsm } = getProfileModule(current);
+            state.profileModule ??= getProfileModule(current);
+            const { profile, tsConfig, hasEsm } = state.profileModule;
             const { error, packageJson } = checkModuleFormat(profile, id, tsConfig, hasEsm, ts.sys, state.packageJsonCache);
             if (packageJson) {
                 this.addWatchFile(packageJson);

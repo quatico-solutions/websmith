@@ -1042,6 +1042,52 @@ describe("createWebsmithHooks", () => {
             expect(actual).toBe(1);
         });
 
+        it("should look up tsConfig of profile once per build w/ two modules", () => {
+            const target = jest.fn(() => ({ tsConfig: { module: ts.ModuleKind.ESNext } }));
+            const compiler = createCompiler({
+                getOptions: jest.fn(() => ({ config: { profiles: {} }, getOptions: target }) as unknown as ReturnType<HookCompiler["getOptions"]>),
+            });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+
+            testObj.transformHandler.call(createContext(), "whatever", MAIN);
+            testObj.transformHandler.call(createContext(), "whatever", B);
+            const actual = target;
+
+            expect(actual).toHaveBeenCalledTimes(1);
+        });
+
+        it("should look up tsConfig of profile again w/ rebuild", () => {
+            const target = jest.fn(() => ({ tsConfig: { module: ts.ModuleKind.ESNext } }));
+            const compiler = createCompiler({
+                getOptions: jest.fn(() => ({ config: { profiles: {} }, getOptions: target }) as unknown as ReturnType<HookCompiler["getOptions"]>),
+            });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+            testObj.transformHandler.call(createContext(), "whatever", MAIN);
+            testObj.buildEnd.call(createContext([MAIN]), undefined);
+
+            testObj.buildStart.call(createContext());
+            testObj.transformHandler.call(createContext(), "whatever", MAIN);
+            const actual = target;
+
+            expect(actual).toHaveBeenCalledTimes(2);
+        });
+
+        it("should look up tsConfig of profile once w/ two modules in serve mode", () => {
+            const target = jest.fn(() => ({ tsConfig: { module: ts.ModuleKind.ESNext } }));
+            const compiler = createCompiler({
+                getOptions: jest.fn(() => ({ config: { profiles: {} }, getOptions: target }) as unknown as ReturnType<HookCompiler["getOptions"]>),
+            });
+            const testObj = createHooks(compiler, "serve");
+
+            testObj.transformHandler.call(createContext(), "whatever", MAIN);
+            testObj.transformHandler.call(createContext(), "whatever", B);
+            const actual = target;
+
+            expect(actual).toHaveBeenCalledTimes(1);
+        });
+
         it("should raise commonjs error before build w/ nodenext profile and package.json without type", () => {
             const dir = createNodeProject();
             const compiler = createCompiler({
