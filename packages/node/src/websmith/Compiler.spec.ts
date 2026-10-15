@@ -54,6 +54,7 @@ describe("Compiler#compile", () => {
 
         const stdout = await testObj.compile();
 
+        // the imported and the spawned typescript both resolve from packages/node
         expect(stdout).toContain(`tsc: The TypeScript Compiler - Version ${ts.version}`);
     }, 60000);
 

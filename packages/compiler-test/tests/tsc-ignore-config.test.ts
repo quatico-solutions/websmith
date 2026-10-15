@@ -20,6 +20,12 @@ afterEach(() => {
     fs.rmSync(outDir, { recursive: true, force: true });
 });
 
+// websmith-node spawns the tsc of the typescript it resolves, which may differ from this package's typescript
+const spawnedTypeScriptVersion = (): string => {
+    const manifestPath = require.resolve("typescript/package.json", { paths: [path.dirname(require.resolve("@quatico/websmith-node"))] });
+    return (JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as { version: string }).version;
+};
+
 const writeSource = (): string => {
     const srcDir = path.join(outDir, "src");
     fs.mkdirSync(srcDir, { recursive: true });
@@ -49,7 +55,7 @@ describe("compile w/ tsc and a tsconfig.json in the working directory", () => {
 
         const actual = compile([file], { tsConfig: { noEmit: true, module: ts.ModuleKind.CommonJS, target: 12 as ts.ScriptTarget } });
 
-        if (Number(ts.versionMajorMinor.split(".")[0]) >= 6) {
+        if (Number(spawnedTypeScriptVersion().split(".")[0]) >= 6) {
             await expect(actual).resolves.toBeDefined();
         } else {
             await expect(actual).rejects.toThrow(/TS6046.*'--target'/);
