@@ -90,6 +90,16 @@ describe("TsConfigOptions", () => {
         expect(compilerOptions.jsxFactory).toBe("React.createElement");
     });
 
+    it("should allow target ES2025, module kinds Node18, Node20 and Preserve, and ignoreDeprecations", () => {
+        const actual: TsConfigCompilerOptions[] = [
+            { target: "ES2025", module: "Node18", ignoreDeprecations: "6.0" },
+            { module: "Node20", ignoreDeprecations: "5.0" },
+            { module: "Preserve" },
+        ];
+
+        expect(actual.map(cur => cur.module)).toEqual(["Node18", "Node20", "Preserve"]);
+    });
+
     it("should provide correct type keys", () => {
         // Test that the key types are working
         const compilerOptionKey: CompilerOptionKey = "target";

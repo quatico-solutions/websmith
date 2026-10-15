@@ -476,6 +476,18 @@ describe("parsedCommandLine w/ extra args", () => {
         expect(actual.raw).toEqual(DEFAULT_RAW);
     });
 
+    it("returns empty array with valid tsconfig.json and ignoreDeprecations args", () => {
+        const actual = parsedCommandLine("tsconfig.json", { ignoreDeprecations: "5.0" }, target);
+
+        expect(actual).toMatchObject({
+            errors: [],
+            options: {
+                ignoreDeprecations: "5.0",
+            },
+        });
+        expect(actual.raw).toEqual(DEFAULT_RAW);
+    });
+
     it("returns empty array with valid tsconfig.json and pretty args", () => {
         const actual = parsedCommandLine("tsconfig.json", { pretty: true }, target);
 
