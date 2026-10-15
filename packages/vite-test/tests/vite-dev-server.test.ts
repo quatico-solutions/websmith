@@ -54,6 +54,9 @@ const pluginLogs = ({ logs }: ViteDevResult, level: "warn" | "error"): string[] 
 
 const errorMessages = ({ messages }: ViteDevResult): string[] => messages.filter(cur => cur.type === "error").map(cur => cur.err?.message ?? "");
 
+// Matches a string that contains `text`
+const containing = (text: string): string => expect.stringContaining(text) as string;
+
 // Requests `url` and waits for the error payload of its failure, since the payload and the response race
 const GET_FAILING = (url: string): string => `await get(${JSON.stringify(url)}); await waitForMessage(cur => cur.type === "error");`;
 
@@ -93,7 +96,7 @@ describe("vite dev server w/ websmith plugin", () => {
             const actual = runViteDev({ vite, pluginOptions: APP, steps: [`await get("/src/main.ts");`] });
 
             expect(actual.listening).toBe(true);
-            expect(actual.responses).toEqual([expect.objectContaining({ url: "/src/main.ts", status: 200, body: expect.stringContaining("MARK_OUT") })]);
+            expect(actual.responses).toEqual([expect.objectContaining({ url: "/src/main.ts", status: 200, body: containing("MARK_OUT") })]);
         },
         60000
     );
@@ -114,7 +117,7 @@ describe("vite dev server w/ websmith plugin", () => {
 
             expect(actual.timeouts).toEqual([]);
             expect(actual.messages.filter(cur => cur.type === "full-reload")).not.toEqual([]);
-            expect(actual.responses[2]).toEqual(expect.objectContaining({ status: 200, body: expect.stringContaining("MARK_OUT2") }));
+            expect(actual.responses[2]).toEqual(expect.objectContaining({ status: 200, body: containing("MARK_OUT2") }));
         },
         60000
     );
@@ -146,13 +149,13 @@ describe("vite dev server w/ websmith plugin", () => {
 
             expect(actual.listening).toBe(true);
             expect(actual.timeouts).toEqual([]);
-            expect(pluginLogs(actual, "error")).toEqual(expected.map(cur => expect.stringContaining(cur)));
+            expect(pluginLogs(actual, "error")).toEqual(expected.map(cur => containing(cur)));
             expect(actual.responses.map(cur => [cur.url, cur.status])).toEqual([
                 ["/src/main.ts", 500],
                 ["/src/shared.ts", 500],
                 ["/src/main.ts", 500],
             ]);
-            expect(errorMessages(actual)).toEqual([0, 1, 2].map(() => expect.stringContaining(expected[0])));
+            expect(errorMessages(actual)).toEqual([0, 1, 2].map(() => containing(expected[0])));
             expect(readLog().filter(cur => cur.startsWith("replacer "))).toEqual([]);
         },
         60000
@@ -167,8 +170,8 @@ describe("vite dev server w/ websmith plugin", () => {
 
             expect(actual.responses).toEqual([expect.objectContaining({ status: 500 })]);
             expect(actual.responses[0].body).not.toContain("__esModule");
-            expect(errorMessages(actual)).toEqual([expect.stringContaining("emits CommonJS")]);
-            expect(pluginLogs(actual, "error")).toEqual([expect.stringContaining("emits CommonJS")]);
+            expect(errorMessages(actual)).toEqual([containing("emits CommonJS")]);
+            expect(pluginLogs(actual, "error")).toEqual([containing("emits CommonJS")]);
         },
         60000
     );
@@ -187,11 +190,11 @@ describe("vite dev server w/ websmith plugin", () => {
             expect(actual.timeouts).toEqual([]);
             expect(actual.responses.map(cur => cur.status)).toEqual([500, 500, 500]);
             expect(errorMessages(actual)).toEqual([
-                expect.stringContaining("ACTIVATE_BOOM"),
-                expect.stringContaining("ACTIVATE_BOOM"),
-                expect.stringContaining("ACTIVATE_BOOM"),
+                containing("ACTIVATE_BOOM"),
+                containing("ACTIVATE_BOOM"),
+                containing("ACTIVATE_BOOM"),
             ]);
-            expect(pluginLogs(actual, "error")).toEqual([expect.stringContaining("ACTIVATE_BOOM")]);
+            expect(pluginLogs(actual, "error")).toEqual([containing("ACTIVATE_BOOM")]);
         },
         60000
     );
@@ -210,7 +213,7 @@ describe("vite dev server w/ websmith plugin", () => {
             expect(actual.timeouts).toEqual([]);
             expect(actual.responses[0]).toEqual(expect.objectContaining({ url: "/src/main.ts", status: 500 }));
             expect(errorMessages(actual)[0]).toContain(OPTION_ERROR);
-            expect(pluginLogs(actual, "error")).toEqual([expect.stringContaining(OPTION_ERROR)]);
+            expect(pluginLogs(actual, "error")).toEqual([containing(OPTION_ERROR)]);
         },
         60000
     );
@@ -221,8 +224,8 @@ describe("vite dev server w/ websmith plugin", () => {
             const actual = runViteDev({ vite, pluginOptions: { profile: { client: "app" } }, steps: [`await ssr("/src/server.ts");`, `await get("/src/main.ts");`] });
 
             expect(actual.responses[0].error).toContain("'ssr'");
-            expect(pluginLogs(actual, "error")).toEqual([expect.stringContaining("'ssr'")]);
-            expect(actual.responses[1]).toEqual(expect.objectContaining({ status: 200, body: expect.stringContaining("MARK_OUT") }));
+            expect(pluginLogs(actual, "error")).toEqual([containing("'ssr'")]);
+            expect(actual.responses[1]).toEqual(expect.objectContaining({ status: 200, body: containing("MARK_OUT") }));
         },
         60000
     );
