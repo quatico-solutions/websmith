@@ -171,6 +171,64 @@ export const runVite = ({
     return JSON.parse(runScript("build.mjs", cwd)) as ViteBuildResult;
 };
 
+/** The options of `runViteApp`: the Vite package, the plugin options, Vite's `environments` and `builder` options. */
+export type RunViteAppOptions = {
+    vite?: string;
+    pluginOptions: Record<string, unknown>;
+    environments: Record<string, unknown>;
+    builder?: Record<string, unknown>;
+};
+
+/** The result of one environment's build in `runViteApp`: the code of its chunks, its assets and its failure. */
+export type ViteEnvironmentResult = Pick<ViteBuildResult, "code" | "assets" | "error">;
+
+/**
+ * Runs Vite's `createBuilder` with one plugin object in a separate Node process and builds each environment of
+ * `environments`, in order, as `vite build --app` does with an inline config. Returns the result per environment name.
+ */
+export const runViteApp = ({ vite = "vite", pluginOptions, environments, builder }: RunViteAppOptions): Record<string, ViteEnvironmentResult> => {
+    writeFile(
+        "build-app.mjs",
+        `
+        import { createBuilder } from ${JSON.stringify(vite)};
+        import websmith from "@quatico/websmith-vite";
+
+        const environments = ${JSON.stringify(environments)};
+        const builder = await createBuilder({
+            root: ${JSON.stringify(projectDir)},
+            configFile: false,
+            logLevel: "warn",
+            plugins: [websmith(${toSource(pluginOptions)})],
+            builder: ${JSON.stringify(builder)},
+            environments,
+            build: { write: false, minify: false },
+        });
+        const results = {};
+        for (const name of Object.keys(environments)) {
+            let code = "";
+            let assets = [];
+            let error;
+            try {
+                const result = await builder.build(builder.environments[name]);
+                const outputs = (Array.isArray(result) ? result : [result]).flatMap(cur => cur.output);
+                code = outputs.filter(cur => cur.type === "chunk").map(cur => cur.code).join("\\n");
+                assets = outputs
+                    .filter(cur => cur.type === "asset")
+                    .map(cur => ({
+                        fileName: cur.fileName,
+                        source: typeof cur.source === "string" ? cur.source : Buffer.from(cur.source).toString("utf-8"),
+                    }));
+            } catch (cause) {
+                error = { message: cause.message, loc: cause.loc, hook: cause.hook, plugin: cause.plugin };
+            }
+            results[name] = { code, assets, error };
+        }
+        console.log(JSON.stringify(results));
+        `
+    );
+    return JSON.parse(runScript("build-app.mjs", projectDir)) as Record<string, ViteEnvironmentResult>;
+};
+
 /** Runs `vite build` and returns the code of the bundle; throws with the error's message when the build fails. */
 export const runViteBuild = (options: RunViteOptions): string => {
     const { code, error } = runVite(options);
