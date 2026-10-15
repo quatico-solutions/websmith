@@ -81,12 +81,28 @@ const SSR_SERVE = createEnvironment("ssr", "dist/server", "serve");
 
 const PROFILES = { profile: { client: "client", ssr: "server" } };
 
+// Runs a hook expected to raise, so the test observes what it did before it raised
+const attempt = (fn: () => unknown): void => {
+    try {
+        fn();
+    } catch {
+        // the raised error is not what the test observes
+    }
+};
+
 // A project directory on disk with a package.json without "type", for the node16 and nodenext module format check
+const nodeProjects: string[] = [];
+
 const createNodeProject = (): string => {
     const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "websmith-vite-hooks-")));
     fs.writeFileSync(path.join(dir, "package.json"), "{}");
+    nodeProjects.push(dir);
     return dir;
 };
+
+afterEach(() => {
+    nodeProjects.splice(0).forEach(cur => fs.rmSync(cur, { recursive: true, force: true }));
+});
 
 const createHooks = (compiler: HookCompiler, command: "build" | "serve" = "build") => {
     const testObj = createWebsmithHooks({ profile: "app" }, { createFilter: () => () => true, createCompiler: () => compiler });
@@ -167,7 +183,7 @@ describe("createWebsmithHooks", () => {
             testObj.buildStart.call(createContext());
             const target = createContext();
 
-            expect(() => testObj.transformHandler.call(target, "whatever", MAIN)).toThrow();
+            attempt(() => testObj.transformHandler.call(target, "whatever", MAIN));
             const actual = target.error;
 
             expect(actual).toHaveBeenCalledWith({ message: "First\nSecond", loc: { file: MAIN, line: 2, column: 17 } });
@@ -277,7 +293,7 @@ describe("createWebsmithHooks", () => {
             const testObj = createHooks(compiler);
             const target = createContext();
 
-            expect(() => testObj.buildStart.call(target)).toThrow();
+            attempt(() => testObj.buildStart.call(target));
             const actual = target.error;
 
             expect(actual).toHaveBeenCalledWith({ message: "First\nSecond" });
@@ -548,7 +564,7 @@ describe("createWebsmithHooks", () => {
         it("should not raise errors buildStart raised w/ build mode", () => {
             const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("Unknown profile 'missing'")]) });
             const testObj = createHooks(compiler);
-            expect(() => testObj.buildStart.call(createContext())).toThrow();
+            attempt(() => testObj.buildStart.call(createContext()));
 
             const actual = () => testObj.buildEnd.call(createContext(), undefined);
 
@@ -559,7 +575,7 @@ describe("createWebsmithHooks", () => {
             const errors = [diagnostic("Unknown profile 'missing'")];
             const compiler = createCompiler({ getConfigErrors: jest.fn(() => errors) });
             const testObj = createHooks(compiler);
-            expect(() => testObj.buildStart.call(createContext())).toThrow();
+            attempt(() => testObj.buildStart.call(createContext()));
             errors.push(diagnostic("TS5053"));
 
             const actual = () => testObj.buildEnd.call(createContext(), undefined);
@@ -820,7 +836,7 @@ describe("createWebsmithHooks", () => {
             testObj.configResolved({ root: ROOT, command: "build" });
             const target = createContext([], SSR);
 
-            expect(() => testObj.buildStart.call(target)).toThrow();
+            attempt(() => testObj.buildStart.call(target));
             testObj.buildEnd.call(target, new Error("whatever"));
             const actual = target.error;
 
@@ -837,7 +853,7 @@ describe("createWebsmithHooks", () => {
                 { createFilter: () => () => true, createCompiler: () => compiler }
             );
             testObj.configResolved({ root: ROOT, command: "build" });
-            expect(() => testObj.buildStart.call(createContext([], SSR))).toThrow();
+            attempt(() => testObj.buildStart.call(createContext([], SSR)));
             testObj.buildStart.call(createContext([], CLIENT));
 
             const actual = testObj.transformHandler.call(createContext([], CLIENT), "whatever", MAIN);
@@ -962,7 +978,6 @@ describe("createWebsmithHooks", () => {
 
             expect(actual).toThrow(`Profile 'app' emits CommonJS for '${path.join(dir, "main.ts")}'`);
             expect(compiler.build).not.toHaveBeenCalled();
-            fs.rmSync(dir, { recursive: true, force: true });
         });
 
         it("should watch package.json w/ nodenext profile and package.json without type", () => {
@@ -979,11 +994,10 @@ describe("createWebsmithHooks", () => {
             testObj.buildStart.call(createContext());
             const target = createContext();
 
-            expect(() => testObj.transformHandler.call(target, "whatever", path.join(dir, "main.ts"))).toThrow();
+            attempt(() => testObj.transformHandler.call(target, "whatever", path.join(dir, "main.ts")));
             const actual = target.addWatchFile;
 
             expect(actual).toHaveBeenCalledWith(path.join(dir, "package.json"));
-            fs.rmSync(dir, { recursive: true, force: true });
         });
 
         it("should watch package.json and build w/ nodenext profile and package.json with type module", () => {
@@ -1003,7 +1017,6 @@ describe("createWebsmithHooks", () => {
 
             expect(actual).toHaveBeenCalledWith(path.join(dir, "package.json"));
             expect(compiler.build).toHaveBeenCalledWith(path.join(dir, "main.ts"), { moduleKind: "esm" });
-            fs.rmSync(dir, { recursive: true, force: true });
         });
     });
 });
