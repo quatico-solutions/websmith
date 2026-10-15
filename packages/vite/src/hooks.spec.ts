@@ -35,6 +35,13 @@ const diagnostic = (messageText: string, category = ts.DiagnosticCategory.Error,
     messageText,
 });
 
+// The fragment of a module that compiles `id` to its .js file next to it
+const buildModule = (id: string): ReturnType<HookCompiler["build"]> => ({
+    fragment: fragment({ [id.replace(/\.ts$/, ".js")]: "whatever" }),
+    diagnostics: [],
+    dependencies: { files: [], missing: [] },
+});
+
 const build = (diagnostics: ts.Diagnostic[], files: Record<string, string> = {}): HookCompiler["build"] =>
     jest.fn(() => ({ fragment: fragment(files), diagnostics, dependencies: { files: [], missing: [] } }));
 
@@ -59,9 +66,13 @@ const createCompiler = (overrides: Partial<HookCompiler> = {}): HookCompiler => 
     ...overrides,
 });
 
+// A new environment object, as Vite creates one per environment and one per bundled worker
 const createEnvironment = (name = "client", outDir = "dist"): EnvironmentInfo => ({ name, config: { root: ROOT, build: { outDir } } });
 
-const createContext = (moduleIds: string[] = [], environment: EnvironmentInfo = createEnvironment()): HookContext => ({
+// The environment of the hooks of one build, which Vite passes to every hook of that build as the same object
+const DEFAULT_ENVIRONMENT = createEnvironment();
+
+const createContext = (moduleIds: string[] = [], environment: EnvironmentInfo = DEFAULT_ENVIRONMENT): HookContext => ({
     error: jest.fn((error: unknown) => {
         throw new Error(typeof error === "string" ? error : (error as { message: string }).message);
     }),
@@ -891,7 +902,9 @@ describe("createWebsmithHooks", () => {
                 createCompiler: (_options, _reporter, cur) => (outputs.push(cur), createCompiler()),
             });
             testObj.configResolved({ root: ROOT, command: "build" });
-            testObj.buildStart.call(createContext([], createEnvironment("client", "dist/a")));
+            const first = createEnvironment("client", "dist/a");
+            testObj.buildStart.call(createContext([], first));
+            testObj.buildEnd.call(createContext([], first), undefined);
 
             testObj.buildStart.call(createContext([], createEnvironment("client", "dist/b")));
             const actual = outputs[0].toBundleFileName(`${ROOT}/dist/b/x.json`, "addVirtualFile", "probe");
@@ -956,6 +969,77 @@ describe("createWebsmithHooks", () => {
             const actual = jest.mocked(compiler.runResultProcessors).mock.calls[0][0];
 
             expect(actual).toEqual([`${ROOT}/src/main.js`, `${ROOT}/src/b.js`]);
+        });
+
+        it("should keep output files of outer build w/ nested build of same environment name", () => {
+            const compiler = createCompiler({ build: jest.fn((id: string) => buildModule(id)) });
+            const testObj = createHooks(compiler);
+            const outer = createEnvironment("client");
+            const nested = createEnvironment("client");
+            testObj.buildStart.call(createContext([], outer));
+            testObj.transformHandler.call(createContext([], outer), "whatever", MAIN);
+            testObj.buildStart.call(createContext([], nested));
+            testObj.transformHandler.call(createContext([], nested), "whatever", B);
+            testObj.buildEnd.call(createContext([B], nested), undefined);
+
+            testObj.buildEnd.call(createContext([MAIN], outer), undefined);
+            const actual = jest.mocked(compiler.runResultProcessors).mock.calls.map(([cur]) => cur);
+
+            expect(actual).toEqual([[`${ROOT}/src/b.js`], [`${ROOT}/src/main.js`]]);
+        });
+
+        it("should create compiler of nested build w/ nested build of same environment name", () => {
+            const target = jest.fn(() => createCompiler());
+            const testObj = createWebsmithHooks({ profile: "app" }, { createFilter: () => () => true, createCompiler: target });
+            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.buildStart.call(createContext([], createEnvironment("client")));
+
+            testObj.buildStart.call(createContext([], createEnvironment("client")));
+            const actual = target.mock.calls.length;
+
+            expect(actual).toBe(2);
+        });
+
+        it("should emit virtual files of outer build w/ nested build of same environment name", () => {
+            const outputs: AddonOutputs[] = [];
+            const compiler = createCompiler({
+                build: jest.fn((id: string) => {
+                    outputs.at(-1)?.addVirtualFile(`${path.basename(id)}.json`, "{}", "probe");
+                    return buildModule(id);
+                }),
+            });
+            const testObj = createWebsmithHooks(
+                { profile: "app" },
+                { createFilter: () => () => true, createCompiler: (_options, _reporter, cur) => (outputs.push(cur), compiler) }
+            );
+            testObj.configResolved({ root: ROOT, command: "build" });
+            const outer = createEnvironment("client");
+            const nested = createEnvironment("client");
+            testObj.buildStart.call(createContext([], outer));
+            testObj.transformHandler.call(createContext([], outer), "whatever", MAIN);
+            testObj.buildStart.call(createContext([], nested));
+            testObj.buildEnd.call(createContext([], nested), undefined);
+            testObj.buildEnd.call(createContext([MAIN], outer), undefined);
+            const target = createContext([MAIN], outer);
+
+            testObj.generateBundle.call(target, {}, {});
+            const actual = target.emitFile;
+
+            expect(actual).toHaveBeenCalledWith({ type: "asset", fileName: "main.ts.json", source: "{}" });
+        });
+
+        it("should share state w/ later build of same environment name", () => {
+            const target = jest.fn(() => createCompiler());
+            const testObj = createWebsmithHooks({ profile: "app" }, { createFilter: () => () => true, createCompiler: target });
+            testObj.configResolved({ root: ROOT, command: "build" });
+            const first = createEnvironment("client");
+            testObj.buildStart.call(createContext([], first));
+            testObj.buildEnd.call(createContext([], first), undefined);
+
+            testObj.buildStart.call(createContext([], createEnvironment("client")));
+            const actual = target.mock.calls.length;
+
+            expect(actual).toBe(1);
         });
 
         it("should raise commonjs error before build w/ nodenext profile and package.json without type", () => {

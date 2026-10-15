@@ -19,7 +19,10 @@ import { pickOutput } from "./output";
 import { ViteAddonContext } from "./vite-addon-context";
 import { createDeduplicatingSystem } from "./write-record";
 
-/** The part of Vite's environment the hooks use: its name, which keys the plugin's state, and its resolved config. */
+/**
+ * The part of Vite's environment the hooks use: its name, which keys the plugin's state, and its resolved config. Vite
+ * passes the same object to every hook of one build; a worker bundle gets a new object, named like its environment.
+ */
 export type EnvironmentInfo = { name: string; config: { root: string; build: { outDir: string } } };
 
 /** The part of Rollup's plugin context the hooks use, with the Vite environment the hook runs in. */
@@ -92,6 +95,8 @@ const checkProfileModule = (compiler: HookCompiler): ts.Diagnostic[] => {
 type EnvironmentState = {
     resolved: ResolvedViteOptions;
     compiler?: HookCompiler;
+    // The environment object of the build between its buildStart and buildEnd, which a nested build does not share
+    building?: EnvironmentInfo;
     reporter: DiagnosticReporter;
     outputs: AddonOutputs;
     // The output files of each compiled module, which the result processors receive for the modules of the build
@@ -108,7 +113,9 @@ type EnvironmentState = {
 /**
  * Creates the hooks of the websmith plugin for `options`. Each Vite environment, by `this.environment.name`, gets its
  * own state on its first `buildStart` or `transform`, with the profile selected for it and its `build.outDir`, since
- * Vite may share one plugin object between environments, and the dev server runs no `buildStart` for `ssr`.
+ * Vite may share one plugin object between environments, and the dev server runs no `buildStart` for `ssr`. A build
+ * that starts while another build of the same name runs, e.g. a worker that `worker.plugins` bundles with the same
+ * plugin object as environment `client`, gets a state of its own, keyed by its environment object.
  * `configResolved` keeps what the environments share: the command and the module id filter. `buildStart` creates the
  * environment's compiler and raises its configuration errors, `transformHandler` compiles one module, `buildEnd`
  * raises the file-less TypeScript errors the modules returned and runs the result processors, and `generateBundle`
@@ -121,6 +128,8 @@ export const createWebsmithHooks = (
     let filter: (id: string) => boolean = () => false;
     let command: "build" | "serve" = "build";
     const environments = new Map<string, EnvironmentState>();
+    // The state of each environment object a build started with, including those of nested builds
+    const instances = new WeakMap<EnvironmentInfo, EnvironmentState>();
 
     const report = (context: HookContext, state: EnvironmentState, diagnostics: readonly ts.Diagnostic[]): ts.Diagnostic[] => {
         const { errors, warnings } = partitionDiagnostics(diagnostics, state.resolved.loaderOptions.debug ?? false);
@@ -140,14 +149,10 @@ export const createWebsmithHooks = (
         return resolveViteOptions(options, config.root, name, createFilter);
     };
 
-    // Returns the state of the environment the hook runs in, creating it and its compiler on first use; addons
-    // activate here, as their addon. An environment the profile map does not name gets no compiler.
-    const getEnvironmentState = (context: HookContext): EnvironmentState => {
+    // Creates the state of the environment the hook runs in and its compiler; addons activate here, as their addon. An
+    // environment the profile map does not name gets no compiler.
+    const createEnvironmentState = (context: HookContext): EnvironmentState => {
         const { name, config } = context.environment;
-        const existing = environments.get(name);
-        if (existing) {
-            return existing;
-        }
         const reporter = new DiagnosticReporter();
         const outputs = new AddonOutputs(reporter);
         const state: EnvironmentState = {
@@ -167,8 +172,32 @@ export const createWebsmithHooks = (
                 return created;
             });
         }
+        return state;
+    };
+
+    // Returns the state of the build the hook runs in, by its environment object, or else by its environment name,
+    // creating it on first use
+    const getEnvironmentState = (context: HookContext): EnvironmentState => {
+        const { name } = context.environment;
+        const existing = instances.get(context.environment) ?? environments.get(name);
+        if (existing) {
+            return existing;
+        }
+        const state = createEnvironmentState(context);
         environments.set(name, state);
         return state;
+    };
+
+    // Returns the state of the build that starts: a new one for a build nested in a running build of the same name
+    const startEnvironmentState = (context: HookContext): { state: EnvironmentState; existing: boolean } => {
+        const { environment } = context;
+        const named = environments.get(environment.name);
+        const nested = named?.building !== undefined && named.building !== environment && !instances.has(environment);
+        const existing = nested ? undefined : (instances.get(environment) ?? named);
+        const state = existing ?? (nested ? createEnvironmentState(context) : getEnvironmentState(context));
+        instances.set(environment, state);
+        state.building = environment;
+        return { state, existing: existing !== undefined };
     };
 
     return {
@@ -181,8 +210,7 @@ export const createWebsmithHooks = (
         // server; the reporter buffer stays for the first transform, and reporting the configuration errors of the dev
         // server belongs to the feature/vite-plugin-dev-server slice.
         buildStart() {
-            const existing = environments.get(this.environment.name);
-            const state = existing ?? getEnvironmentState(this);
+            const { state, existing } = startEnvironmentState(this);
             if (existing) {
                 state.resolved = configureEnvironment(this.environment, state.outputs);
                 state.outputs.startBuild();
@@ -263,7 +291,10 @@ export const createWebsmithHooks = (
         // of every module of the environment's build, including those Rollup's watch cache did not transform again,
         // and drops the entries of the modules that left the graph.
         buildEnd(error) {
-            const state = environments.get(this.environment.name);
+            const state = instances.get(this.environment) ?? environments.get(this.environment.name);
+            if (state?.building === this.environment) {
+                state.building = undefined;
+            }
             const current = state?.compiler;
             if (!state || !current) {
                 return;
@@ -290,7 +321,7 @@ export const createWebsmithHooks = (
         },
         // Emits the virtual files of the bundle's modules and of the build as assets, then deletes the removed files
         generateBundle(_options, bundle) {
-            const state = environments.get(this.environment.name);
+            const state = instances.get(this.environment) ?? environments.get(this.environment.name);
             if (command !== "build" || !state) {
                 return;
             }

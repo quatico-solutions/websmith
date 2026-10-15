@@ -20,7 +20,7 @@ export type { WebsmithViteOptions } from "./options";
  *   that names it; the other environments build.
  * - Every environment has its own compiler, addons, diagnostics and outputs, also when Vite shares one plugin object
  *   between environments. Paths of `addVirtualFile` and `removeOutputFile` are relative to the `build.outDir` of the
- *   environment.
+ *   environment. A worker that `worker.plugins` bundles with the same plugin object has its own as well.
  * - Under `node16` or `nodenext`, a module TypeScript emits as CommonJS fails its transform, before any addon runs on
  *   it: a `.cts` file, or a file whose nearest `package.json` has no `"type": "module"`. With `esm`, core's ESM check
  *   reports it instead.

@@ -157,6 +157,36 @@ describe("vite build w/ websmith in Vite environments", () => {
     );
 
     it.each(VITES)(
+        "should run result processors and emit virtual files of every client module w/ same plugin object in worker.plugins and %s",
+        vite => {
+            writeLoggingAddon(
+                "clientx",
+                [
+                    `ctx.registerGenerator(file => ctx.addVirtualFile(path.basename(file) + ".json", "{}"));`,
+                    `ctx.registerResultProcessor(files => log("clientrp " + files.map(cur => path.basename(cur)).filter(cur => cur.endsWith(".js")).sort().join(",")));`,
+                ].join("\n    ")
+            );
+            writeFile("src/w.ts", `import { shared } from "./shared";\nself.postMessage(shared);\n`);
+            writeFile(
+                "src/mainw.ts",
+                `import { shared } from "./shared";\nexport const worker = new Worker(new URL("./w.ts", import.meta.url), { type: "module" });\nexport const greeting: string = shared;\n`
+            );
+
+            const actual = runViteApp({
+                vite,
+                pluginOptions: { profile: "client" },
+                environments: { client: { build: { outDir: "dist/client", rollupOptions: { input: "src/mainw.ts" } } } },
+                workerPlugin: true,
+            }).client;
+
+            expect(actual.error).toBeUndefined();
+            expect(actual.assets.map(cur => cur.fileName)).toEqual(expect.arrayContaining(["mainw.ts.json", "shared.ts.json"]));
+            expect(readLog().filter(cur => cur.startsWith("clientrp ")).sort()).toEqual(["clientrp mainw.js,shared.js", "clientrp shared.js,w.js"]);
+        },
+        60000
+    );
+
+    it.each(VITES)(
         "should select profile of client environment w/ profile map in lib build and %s",
         vite => {
             const actual = runVite({ vite, pluginOptions: { profile: { client: "app" } } });

@@ -171,12 +171,16 @@ export const runVite = ({
     return JSON.parse(runScript("build.mjs", cwd)) as ViteBuildResult;
 };
 
-/** The options of `runViteApp`: the Vite package, the plugin options, Vite's `environments` and `builder` options. */
+/**
+ * The options of `runViteApp`: the Vite package, the plugin options, Vite's `environments` and `builder` options, and
+ * whether `worker.plugins` returns the same plugin object, which then also bundles the workers.
+ */
 export type RunViteAppOptions = {
     vite?: string;
     pluginOptions: Record<string, unknown>;
     environments: Record<string, unknown>;
     builder?: Record<string, unknown>;
+    workerPlugin?: boolean;
 };
 
 /** The result of one environment's build in `runViteApp`: the code of its chunks, its assets and its failure. */
@@ -186,7 +190,13 @@ export type ViteEnvironmentResult = Pick<ViteBuildResult, "code" | "assets" | "e
  * Runs Vite's `createBuilder` with one plugin object in a separate Node process and builds each environment of
  * `environments`, in order, as `vite build --app` does with an inline config. Returns the result per environment name.
  */
-export const runViteApp = ({ vite = "vite", pluginOptions, environments, builder }: RunViteAppOptions): Record<string, ViteEnvironmentResult> => {
+export const runViteApp = ({
+    vite = "vite",
+    pluginOptions,
+    environments,
+    builder,
+    workerPlugin = false,
+}: RunViteAppOptions): Record<string, ViteEnvironmentResult> => {
     writeFile(
         "build-app.mjs",
         `
@@ -194,11 +204,13 @@ export const runViteApp = ({ vite = "vite", pluginOptions, environments, builder
         import websmith from "@quatico/websmith-vite";
 
         const environments = ${JSON.stringify(environments)};
+        const plugin = websmith(${toSource(pluginOptions)});
         const builder = await createBuilder({
             root: ${JSON.stringify(projectDir)},
             configFile: false,
             logLevel: "warn",
-            plugins: [websmith(${toSource(pluginOptions)})],
+            plugins: [plugin],
+            ...(${workerPlugin} ? { worker: { format: "es", plugins: () => [plugin] } } : {}),
             builder: ${JSON.stringify(builder)},
             environments,
             build: { write: false, minify: false },
