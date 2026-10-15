@@ -634,6 +634,53 @@ describe("ModuleCompiler option errors", () => {
 
         expect(actual).toEqual([5053]);
     });
+
+    it("yields config errors to second module w/ compilation token changed", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.takeUnreportedConfigErrors("/src/a.ts", 1);
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.takeUnreportedConfigErrors("/src/b.ts", 2).map(cur => cur.code);
+
+        expect(actual).toEqual([5053]);
+    });
+
+    it("yields no config errors to second module w/ same compilation token", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.takeUnreportedConfigErrors("/src/a.ts", 1);
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.takeUnreportedConfigErrors("/src/b.ts", 1);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields no config errors to other modules w/o compilation token", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.takeUnreportedConfigErrors("/src/a.ts");
+        testObj.build("/src/b.ts");
+        testObj.takeUnreportedConfigErrors("/src/b.ts");
+
+        const actual = testObj.takeUnreportedConfigErrors("/src/c.ts");
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields config errors to next module w/ previous compilation token after options update", () => {
+        const testObj = createModuleCompiler({ ...INVALID_TS_CONFIG, ...SOURCES }, { target: {} });
+        testObj.build("/src/a.ts");
+        testObj.takeUnreportedConfigErrors("/src/a.ts", 1);
+        testObj.updateLoaderConfig(LOADER_OPTIONS);
+        testObj.build("/src/b.ts");
+
+        const actual = testObj.takeUnreportedConfigErrors("/src/b.ts", 1).map(cur => cur.code);
+
+        expect(actual).toEqual([5053]);
+    });
+
     it("yields tsconfig.json error once as config error w/ unknown option", () => {
         const testObj = createModuleCompiler({ ...BOGUS_TS_CONFIG, ...SOURCES }, { target: {} });
         testObj.build("/src/a.ts");

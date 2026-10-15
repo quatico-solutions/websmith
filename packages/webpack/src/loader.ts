@@ -42,8 +42,9 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
     reportDiagnostics(this, diagnostics, options, instance.getOptions().debug ?? false);
     // Without compilation hooks, e.g. under thread-loader, which passes a compiler stub, the first module reports them
     if (!instance.hasCompilationHooks()) {
-        reportDiagnostics(this, instance.takeUnreportedConfigErrors(this.resourcePath), options, false);
+        reportDiagnostics(this, instance.takeUnreportedConfigErrors(this.resourcePath, this._compiler?.fsStartTime), options, false);
     }
+    keepConfigErrorsOutOfCache(this, instance);
     // The configuration error of the profile fails the build: the module has no output. It stays out of the
     // persistent cache, else the next build restores it without running the loader and reports no error
     if (!instance.isProfileConfigured()) {
@@ -58,6 +59,31 @@ export function loader(this: LoaderContext<WebsmithLoaderConfig>): void {
 
     processResultAndFinish(this, fragment, instance.getProfile());
 }
+
+/** The compiler instances that marked a module of a compilation as not cacheable for their configuration errors. */
+const configErrorCarriers = new WeakMap<object, WeakSet<TsCompiler>>();
+
+/**
+ * Keeps configuration errors out of webpack's persistent cache: a build that restores every module runs no loader and
+ * reports none. With compilation hooks, the first module of a compilation that the instance builds is not cached, so
+ * the next build compiles it again and reports them. Without, e.g. under thread-loader, no module is cached: only the
+ * modules a worker builds report them.
+ */
+const keepConfigErrorsOutOfCache = (context: LoaderContext<WebsmithLoaderConfig>, instance: TsCompiler): void => {
+    if (instance.getConfigErrors().length === 0) {
+        return;
+    }
+    const compilation = context._compilation;
+    if (instance.hasCompilationHooks() && compilation) {
+        const carriers = configErrorCarriers.get(compilation) ?? new WeakSet<TsCompiler>();
+        configErrorCarriers.set(compilation, carriers);
+        if (carriers.has(instance)) {
+            return;
+        }
+        carriers.add(instance);
+    }
+    context.cacheable?.(false);
+};
 
 /**
  * Lets a module depend on the "type" of its package.json files only: their type is recorded in the module's build info,

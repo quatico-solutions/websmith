@@ -162,7 +162,7 @@ class ConfigErrorReporter implements Reporter {
 /**
  * Compiles one module at a time for a bundler host, without depending on a bundler. The host calls `build` per module
  * and reports its diagnostics, reports `getConfigErrors` once per compilation, or without compilation hooks
- * `takeUnreportedConfigErrors` per module, and calls `refreshOptions`,
+ * `takeUnreportedConfigErrors` per module with a token of its compilation, and calls `refreshOptions`,
  * `refreshAddons` and `resetCompilationCaches` when its compilations start. A host that applies addons of its own
  * overrides `applyAddons`, and `prepareAddons` if they need setting up first; without that, the addons come from the
  * `AddonRegistry` of the host options. When `isProfileConfigured` is false, `build` emits nothing and the host finishes
@@ -187,6 +187,7 @@ export class ModuleCompiler extends Compiler {
     // Until the next option resolution: Compiler's constructor resolves the options before these fields exist
     private readonly fileLessErrors = new Map<string, ts.Diagnostic>();
     private readonly configErrorCarriers = new Map<string, string>();
+    private configErrorCompilation?: unknown;
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -236,6 +237,7 @@ export class ModuleCompiler extends Compiler {
         // Undefined while Compiler's constructor resolves the options
         this.fileLessErrors?.clear();
         this.configErrorCarriers?.clear();
+        this.configErrorCompilation = undefined;
         const reporter = this.getReporter();
         return reporter instanceof ConfigErrorReporter
             ? reporter.collect(() => super.setOptions(options, loaderOptions))
@@ -258,22 +260,31 @@ export class ModuleCompiler extends Compiler {
     }
 
     /**
-     * Returns the configuration errors that no other module received since the last option resolution, for a host
-     * without compilation hooks to report on the module `resourcePath`. The first module to receive an error carries it:
-     * it receives the error again on every build, since a host replaces the errors of a rebuilt module.
+     * Returns the configuration errors that no other module received since the last option resolution, or since the
+     * last change of `compilation`, for a host without compilation hooks to report on the module `resourcePath`. The
+     * first module to receive an error carries it: it receives the error again on every build, since a host replaces
+     * the errors of a rebuilt module. A host passes a token of its compilation, e.g. its start time, so that the first
+     * module it builds in each compilation carries the errors again; without a token, the carrier stays until the next
+     * option resolution.
      */
-    public takeUnreportedConfigErrors(resourcePath: string): ts.Diagnostic[] {
+    public takeUnreportedConfigErrors(resourcePath: string, compilation?: unknown): ts.Diagnostic[] {
+        if (compilation !== undefined && compilation !== this.configErrorCompilation) {
+            this.configErrorCarriers.clear();
+            this.configErrorCompilation = compilation;
+        }
         const taken = new Set<string>();
-        return this.getConfigErrors().filter(cur => {
+        const result: ts.Diagnostic[] = [];
+        for (const cur of this.getConfigErrors()) {
             const key = ModuleCompiler.getDiagnosticKey(cur);
-            const carrier = this.configErrorCarriers.get(key) ?? resourcePath;
-            this.configErrorCarriers.set(key, carrier);
-            if (carrier !== resourcePath || taken.has(key)) {
-                return false;
+            if (!this.configErrorCarriers.has(key)) {
+                this.configErrorCarriers.set(key, resourcePath);
             }
-            taken.add(key);
-            return true;
-        });
+            if (this.configErrorCarriers.get(key) === resourcePath && !taken.has(key)) {
+                taken.add(key);
+                result.push(cur);
+            }
+        }
+        return result;
     }
 
     /**

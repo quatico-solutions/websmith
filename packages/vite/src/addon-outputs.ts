@@ -89,6 +89,13 @@ export class AddonOutputs {
         this.entries.delete(moduleId);
     }
 
+    /** Drops the entries of the modules not in `moduleIds`, which left the module graph; keeps those of the activation and the build. */
+    public retainModules(moduleIds: ReadonlySet<string>): void {
+        [...this.entries.keys()]
+            .filter(cur => cur !== ACTIVATION_ENTRIES && cur !== BUILD_ENTRIES && !moduleIds.has(cur))
+            .forEach(cur => this.entries.delete(cur));
+    }
+
     /** Drops the entries made outside a transform and outside an activation before a build starts. */
     public startBuild(): void {
         this.entries.delete(BUILD_ENTRIES);

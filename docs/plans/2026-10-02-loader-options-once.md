@@ -14,7 +14,7 @@
 
 ## Status
 
-- **State:** Approved
+- **State:** Delivered
 - **Type:** bug
 - **Story:** node24-esm-support
 - **Review:** pr
@@ -25,6 +25,7 @@
 - **Started:** 2026-10-02, Jan Wloka, `bug/loader-resolve-options-once`
 - **Started:** 2026-10-03, Jan Wloka, `bug/depends-closure-core`
 - **Started:** 2026-10-03, Jan Wloka, `bug/loader-tsconfig-enum-options`
+- **Delivered:** 2026-10-15
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
@@ -260,7 +261,7 @@ first, right after the benchmark that measures it is trustworthy.
 
 ### Cached builds
 
-- `bug/loader-cached-config-errors` — to reproduce first: a build restored from the persistent cache reports config errors, and a config or `tsconfig.json` edit between two runs invalidates it; config errors carried as module errors of a carrier module; e2e with `cache: { type: "filesystem" }` built twice, and edited between runs <!-- builds: config errors restored from the persistent cache --> <!-- waits: bug/loader-resolve-options-once --> <!-- waits: bug/loader-option-errors-once -->
+- `bug/loader-cached-config-errors` — to reproduce first: a build restored from the persistent cache reports config errors, and a config or `tsconfig.json` edit between two runs invalidates it; config errors carried as module errors of a carrier module; e2e with `cache: { type: "filesystem" }` built twice, and edited between runs → #201 <!-- builds: config errors restored from the persistent cache --> <!-- waits: bug/loader-resolve-options-once --> <!-- waits: bug/loader-option-errors-once -->
 
 ## Notes
 

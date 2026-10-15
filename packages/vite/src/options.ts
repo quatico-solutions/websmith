@@ -4,8 +4,9 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type WebpackLoaderOptions } from "@quatico/websmith-api";
+import { ErrorMessage, type WebpackLoaderOptions } from "@quatico/websmith-api";
 import path from "node:path";
+import type ts from "typescript";
 import type { createFilter, FilterPattern } from "vite";
 
 /** The options of the websmith Vite plugin. */
@@ -13,8 +14,11 @@ export type WebsmithViteOptions = Pick<
     WebpackLoaderOptions,
     "configFile" | "config" | "tsConfigFile" | "tsConfig" | "debug" | "transpileOnly" | "addonEmitOnly"
 > & {
-    /** Name of the profile whose output Vite bundles. */
-    profile?: string;
+    /**
+     * Name of the profile whose output Vite bundles. A string applies to every Vite environment; a map selects the
+     * profile by environment name, e.g. `{ client: "client", ssr: "server" }`.
+     */
+    profile?: string | Record<string, string>;
     /** The module ids websmith compiles, by default TypeScript files. A relative glob is relative to Vite's root. */
     include?: FilterPattern;
     /** The module ids websmith does not compile, by default those in `node_modules`. A relative glob is relative to Vite's root. */
@@ -32,7 +36,7 @@ export const DEFAULT_INCLUDE = /\.(c|m)?tsx?$/;
 /** The module ids websmith does not compile without `exclude`. */
 export const DEFAULT_EXCLUDE = /node_modules/;
 
-const PASS_THROUGH_KEYS = ["config", "tsConfig", "debug", "transpileOnly", "addonEmitOnly", "profile"] as const;
+const PASS_THROUGH_KEYS = ["config", "tsConfig", "debug", "transpileOnly", "addonEmitOnly"] as const;
 
 const isRegExp = (pattern: string | RegExp): pattern is RegExp => pattern instanceof RegExp;
 
@@ -40,12 +44,39 @@ const toPatterns = (pattern: FilterPattern): Array<string | RegExp> =>
     pattern === null ? [] : typeof pattern === "string" || pattern instanceof RegExp ? [pattern] : [...pattern];
 
 /**
- * Resolves `options` against Vite's `root`: `configFile` defaults to `websmith.config.json` in `root`, and a relative
- * `configFile` or `tsConfigFile` is relative to `root`. Without `tsConfigFile`, the compiler takes the `tsconfig.json`
- * next to the config file. The module id filter comes from Vite's `createFilter`, resolving relative globs of `include`
- * and `exclude` against `root`; a `null` `include` or `exclude` takes the default, as in `createHookFilter`.
+ * Selects the profile of the Vite environment `environmentName`: a string profile applies to every environment, a map
+ * names the profile per environment. Returns an error for a map that does not name the environment.
  */
-export const resolveViteOptions = (options: WebsmithViteOptions, root: string, create: typeof createFilter): ResolvedViteOptions => {
+export const selectProfile = (profile: WebsmithViteOptions["profile"], environmentName: string): { profile?: string; error?: ts.Diagnostic } => {
+    if (profile === undefined) {
+        return {};
+    }
+    if (typeof profile === "string") {
+        return { profile };
+    }
+    if (Object.hasOwn(profile, environmentName)) {
+        return { profile: profile[environmentName] };
+    }
+    const names = Object.keys(profile).join(", ") || "none";
+    return {
+        error: new ErrorMessage(
+            `The websmith plugin's 'profile' map names no profile for the Vite environment '${environmentName}'. It names: ${names}.`
+        ),
+    };
+};
+
+/**
+ * Resolves `options` against Vite's `root` for the Vite environment `environmentName`: `configFile` defaults to
+ * `websmith.config.json` in `root`, and a relative `configFile` or `tsConfigFile` is relative to `root`. Without
+ * `tsConfigFile`, the compiler takes the `tsconfig.json` next to the config file. The profile is the one
+ * `selectProfile` selects for the environment, never a map. The module id filter is that of `createModuleFilter`.
+ */
+export const resolveViteOptions = (
+    options: WebsmithViteOptions,
+    root: string,
+    environmentName: string,
+    create: typeof createFilter
+): ResolvedViteOptions => {
     const { configFile = "websmith.config.json", tsConfigFile } = options;
     const loaderOptions: Partial<WebpackLoaderOptions> = {
         configFile: path.resolve(root, configFile),
@@ -56,8 +87,19 @@ export const resolveViteOptions = (options: WebsmithViteOptions, root: string, c
             Object.assign(loaderOptions, { [key]: options[key] });
         }
     }
-    return { loaderOptions, filter: create(options.include ?? DEFAULT_INCLUDE, options.exclude ?? DEFAULT_EXCLUDE, { resolve: root }) };
+    const { profile } = selectProfile(options.profile, environmentName);
+    if (profile !== undefined) {
+        loaderOptions.profile = profile;
+    }
+    return { loaderOptions, filter: createModuleFilter(options, root, create) };
 };
+
+/**
+ * Returns the module id filter of `options` from Vite's `createFilter`, resolving relative globs of `include` and
+ * `exclude` against `root`; a `null` `include` or `exclude` takes the default, as in `createHookFilter`.
+ */
+export const createModuleFilter = (options: WebsmithViteOptions, root: string, create: typeof createFilter): ((id: string) => boolean) =>
+    create(options.include ?? DEFAULT_INCLUDE, options.exclude ?? DEFAULT_EXCLUDE, { resolve: root });
 
 /**
  * Returns the module id filter for Vite's hook filter, which Vite creates with the plugin, before `root` is known, and

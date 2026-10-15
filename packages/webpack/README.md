@@ -111,12 +111,15 @@ and so are errors in `tsconfig.json`: unknown options, invalid values, and inval
 profiles the build does not use are not reported. Configuration errors belong to no module: the loader adds each one
 once per compilation to webpack's errors and passes it to `error`, also when several loader rules use the same
 configuration. A watch rebuild reports them again while they remain. Editing `websmith.config.json` triggers a
-rebuild that reports its current errors and compiles the loader's modules again with the new configuration. Without
-compiler hooks, e.g. under `thread-loader`, each worker emits the configuration errors on the first module it builds
-instead, and again whenever that module is rebuilt, so they appear once per worker. With webpack's persistent cache
-(`cache: { type: "filesystem" }`), a build that restores every module from the cache runs no loader and reports
-no configuration errors. The modules of an unconfigured `profile` stay out of the cache, so its error is reported
-in every build.
+rebuild that reports its current errors and compiles the loader's modules again with the new configuration. With
+webpack's persistent cache (`cache: { type: "filesystem" }`), the first module the loader compiles in a build is not
+cached while there are configuration errors, so the next build compiles it again and reports them, also when every
+other module is restored. Without compiler hooks, e.g. under `thread-loader`, each worker emits the configuration
+errors instead on the first module it builds in each compilation, so they appear at most once per worker. While they
+remain, none of the loader's modules is cached, because only the workers can report them. `thread-loader`'s default
+`poolTimeout` ends its workers after 500 ms idle; the loader then runs in webpack's process, where the errors are
+reported once per compilation. The modules of an unconfigured `profile` stay out of the cache, so its error is
+reported in every build.
 
 #### Option resolution and addon lifetime
 

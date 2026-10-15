@@ -23,6 +23,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   TypeScript 6), target `ES2025`, and module kinds `Node18`, `Node20` and `Preserve`. On TypeScript 5, TypeScript
   reports the values that exist only in TypeScript 6; websmith does not drop them silently. Exhaustive `switch` or
   `Record` code over these unions sees the new members.
+- The Vite plugin (`@quatico/websmith-vite`, not yet published) selects a websmith profile per Vite environment:
+  `profile` takes a profile name or a map from environment name to profile, e.g. `{ client: "client", ssr: "server" }`,
+  and each environment compiles with its own compiler and addons, as does a worker that `worker.plugins` bundles with
+  the same plugin object.
 
 ### Changed
 
@@ -153,6 +157,13 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 
 ### Fixed
 
+- With webpack's persistent cache (`cache: { type: "filesystem" }`), the webpack loader reports configuration
+  errors, `tsconfig.json` errors and TypeScript option errors, also of dependent profiles, in every build while
+  they remain. Before, a build that restored every module from the cache reported none and passed. While such an
+  error remains, one module per build is not cached. Under `thread-loader`, a configuration error is no longer
+  lost when the module that reported it leaves the build, or when several workers rebuild modules: while it
+  remains, the loader's modules are not cached, and each worker reports it on the first module it builds in each
+  watch compilation.
 - Under watch, the webpack loader picks up edits of `tsconfig.json` and of the files it extends, and webpack's
   persistent cache no longer restores modules compiled with an older `websmith.config.json`, `tsconfig.json` or
   extended file. Before, edits of these files were not watched or did not change the compiled modules.

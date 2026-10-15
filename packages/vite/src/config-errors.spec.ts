@@ -4,8 +4,15 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { createSystem } from "@quatico/websmith-core";
 import ts from "typescript";
-import { checkTargetModule, selectConfigErrors } from "./config-errors";
+import { checkModuleFormat, checkTargetModule, selectConfigErrors } from "./config-errors";
+
+const NODENEXT: ts.CompilerOptions = { module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext };
+
+const createModuleSystem = (files: Record<string, string>): ts.System => createSystem(files, { virtual: true });
+
+const createCache = (): ts.PackageJsonInfoCache => ts.createModuleResolutionCache("/", cur => cur).getPackageJsonInfoCache();
 
 const diagnostic = (category: ts.DiagnosticCategory): ts.Diagnostic => ({
     category,
@@ -92,5 +99,94 @@ describe("checkTargetModule", () => {
         const actual = checkTargetModule(undefined, { module: ts.ModuleKind.CommonJS }, false)?.messageText;
 
         expect(actual).toMatch(/^The default profile emits CommonJS/);
+    });
+});
+
+describe("checkModuleFormat", () => {
+    it("should return error naming file and package.json w/ nodenext and no type in package.json", () => {
+        const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
+
+        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, createCache());
+
+        expect([actual.error?.category, actual.error?.messageText, actual.packageJson]).toEqual([
+            ts.DiagnosticCategory.Error,
+            `Profile 'app' emits CommonJS for '/project/src/main.ts' ('tsConfig.module' is 'nodenext' and the nearest package.json ` +
+                `'/project/package.json' has no "type": "module"), which Vite cannot bundle as an ES module. ` +
+                `Set "type": "module", use the .mts extension, or use "ESNext".`,
+            "/project/package.json",
+        ]);
+    });
+
+    it("should return package.json only w/ nodenext and type module", () => {
+        const system = createModuleSystem({ "/project/package.json": `{"type":"module"}`, "/project/src/main.ts": "export {};" });
+
+        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, createCache());
+
+        expect(actual).toEqual({ packageJson: "/project/package.json" });
+    });
+
+    it("should return none w/ nodenext and mts file", () => {
+        const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.mts": "export {};" });
+
+        const actual = checkModuleFormat("app", "/project/src/main.mts", NODENEXT, false, system, createCache()).error;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("should return error naming extension w/ nodenext and cts file", () => {
+        const system = createModuleSystem({ "/project/package.json": `{"type":"module"}`, "/project/src/main.cts": "export {};" });
+
+        const actual = checkModuleFormat("app", "/project/src/main.cts", NODENEXT, false, system, createCache());
+
+        expect([actual.error?.messageText, actual.packageJson]).toEqual([
+            `Profile 'app' emits CommonJS for '/project/src/main.cts' ('tsConfig.module' is 'nodenext' and the file has the .cts extension), ` +
+                `which Vite cannot bundle as an ES module. Set "type": "module", use the .mts extension, or use "ESNext".`,
+            undefined,
+        ]);
+    });
+
+    it("should return none w/ module ESNext", () => {
+        const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
+
+        const actual = checkModuleFormat("app", "/project/src/main.ts", { module: ts.ModuleKind.ESNext }, false, system, createCache());
+
+        expect(actual).toEqual({});
+    });
+
+    it("should return none w/ nodenext and esm set", () => {
+        const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
+
+        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, true, system, createCache());
+
+        expect(actual).toEqual({});
+    });
+
+    it("should return error naming module w/ node16 and no type in package.json", () => {
+        const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
+
+        const actual = checkModuleFormat("app", "/project/src/main.ts", { module: ts.ModuleKind.Node16 }, false, system, createCache()).error
+            ?.messageText;
+
+        expect(actual).toMatch(/^Profile 'app' emits CommonJS for '\/project\/src\/main.ts' \('tsConfig.module' is 'node16' and/);
+    });
+
+    it("should name default profile w/o profile", () => {
+        const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
+
+        const actual = checkModuleFormat(undefined, "/project/src/main.ts", NODENEXT, false, system, createCache()).error?.messageText;
+
+        expect(actual).toMatch(/^The default profile emits CommonJS for/);
+    });
+
+    it("should return error naming no package.json w/ nodenext and no package.json", () => {
+        const system = createModuleSystem({ "/project/src/main.ts": "export {};" });
+
+        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, createCache());
+
+        expect([actual.error?.messageText, actual.packageJson]).toEqual([
+            `Profile 'app' emits CommonJS for '/project/src/main.ts' ('tsConfig.module' is 'nodenext' and no package.json above it has ` +
+                `"type": "module"), which Vite cannot bundle as an ES module. Set "type": "module", use the .mts extension, or use "ESNext".`,
+            undefined,
+        ]);
     });
 });
