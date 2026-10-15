@@ -578,7 +578,9 @@ describe("addCompileCommand#profile", () => {
             from: "user",
         });
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(new ErrorMessage("Profile 'unknown' is passed but no websmith.config.json was found."));
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(
+            new ErrorMessage("Profile 'unknown' is passed but no websmith.config.json was found.")
+        );
     });
 
     it("should not yield no profile provided warning w/ --profile cli argument and known name depending on unknown profile", () => {
