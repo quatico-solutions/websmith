@@ -20,7 +20,7 @@ import { ViteAddonContext } from "./vite-addon-context";
 import { createDeduplicatingSystem } from "./write-record";
 
 /** The part of Vite's environment the hooks use: its name, which keys the plugin's state, and its resolved config. */
-export type EnvironmentInfo = { name: string; config: { root: string; command: "build" | "serve"; build: { outDir: string } } };
+export type EnvironmentInfo = { name: string; config: { root: string; build: { outDir: string } } };
 
 /** The part of Rollup's plugin context the hooks use, with the Vite environment the hook runs in. */
 export type HookContext = Pick<Rollup.PluginContext, "error" | "warn" | "addWatchFile" | "emitFile" | "getModuleIds"> & {

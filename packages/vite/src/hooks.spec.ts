@@ -59,10 +59,7 @@ const createCompiler = (overrides: Partial<HookCompiler> = {}): HookCompiler => 
     ...overrides,
 });
 
-const createEnvironment = (name = "client", outDir = "dist", command: "build" | "serve" = "build"): EnvironmentInfo => ({
-    name,
-    config: { root: ROOT, command, build: { outDir } },
-});
+const createEnvironment = (name = "client", outDir = "dist"): EnvironmentInfo => ({ name, config: { root: ROOT, build: { outDir } } });
 
 const createContext = (moduleIds: string[] = [], environment: EnvironmentInfo = createEnvironment()): HookContext => ({
     error: jest.fn((error: unknown) => {
@@ -77,7 +74,7 @@ const createContext = (moduleIds: string[] = [], environment: EnvironmentInfo = 
 
 const CLIENT = createEnvironment("client", "dist/client");
 const SSR = createEnvironment("ssr", "dist/server");
-const SSR_SERVE = createEnvironment("ssr", "dist/server", "serve");
+const SSR_SERVE = createEnvironment("ssr", "dist/server");
 
 const PROFILES = { profile: { client: "client", ssr: "server" } };
 
@@ -820,7 +817,7 @@ describe("createWebsmithHooks", () => {
             const target = jest.fn(() => createCompiler());
             const testObj = createWebsmithHooks(PROFILES, { createFilter: () => () => true, createCompiler: target });
             testObj.configResolved({ root: ROOT, command: "serve" });
-            testObj.buildStart.call(createContext([], createEnvironment("client", "dist/client", "serve")));
+            testObj.buildStart.call(createContext([], createEnvironment("client", "dist/client")));
 
             testObj.transformHandler.call(createContext([], SSR_SERVE), "whatever", MAIN);
             const actual = target.mock.calls.map(([cur]: [{ profile?: string }]) => cur.profile);
