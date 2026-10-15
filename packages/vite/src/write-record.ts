@@ -7,30 +7,59 @@
 import { createHash } from "node:crypto";
 import type ts from "typescript";
 
-const hashOf = (text: string, writeByteOrderMark?: boolean): string =>
-    createHash("sha1")
-        .update(`${writeByteOrderMark ? 1 : 0}${text}`)
-        .digest("hex");
+const BYTE_ORDER_MARK = "﻿";
+
+const hashOf = (text: string): string => createHash("sha1").update(text).digest("hex");
+
+// Vite reports files with forward slashes, TypeScript's system may write them with backslashes
+const toKey = (filePath: string): string => filePath.replace(/\\/g, "/");
 
 /**
- * Returns a copy of `system` with a `writeFile` that skips a write when the last write of this system to the same path had the
- * same text and the file still exists, e.g. a dependent profile's output of an unchanged source written again by a
- * later build of the same plugin instance. Output paths differ per profile, so writes are deduplicated per profile and
- * file version. `system` itself is not changed.
+ * The files the plugin instance wrote and the hash of the text it wrote last, shared by the compilers of all its
+ * environments, so that each environment recognises a write of another environment's compiler as the plugin's own.
  */
-export const createDeduplicatingSystem = (system: ts.System): ts.System => {
-    const written = new Map<string, string>();
+export class WriteRecord {
+    private readonly written = new Map<string, string>();
+
+    /** Records that the plugin wrote `text` to `filePath`, with a byte order mark if `writeByteOrderMark` is set. */
+    public record(filePath: string, text: string, writeByteOrderMark?: boolean): void {
+        this.written.set(toKey(filePath), hashOf(writeByteOrderMark ? BYTE_ORDER_MARK + text : text));
+    }
+
+    /** Returns whether the plugin wrote `filePath`, and has not seen other text in it since. */
+    public has(filePath: string): boolean {
+        return this.written.has(toKey(filePath));
+    }
+
+    /**
+     * Returns whether `text`, read from `filePath`, is what the plugin wrote there last. Forgets `filePath` otherwise,
+     * so that another writer's later write of the same text is not taken for the plugin's own.
+     */
+    public isOwnWrite(filePath: string, text: string): boolean {
+        const key = toKey(filePath);
+        if (this.written.get(key) === hashOf(text)) {
+            return true;
+        }
+        this.written.delete(key);
+        return false;
+    }
+}
+
+/**
+ * Returns a copy of `system` with a `writeFile` that skips a write when the file on disk already has the same text,
+ * e.g. a dependent profile's output of an unchanged source written again, or a generator's output after a restart.
+ * Every write it does goes into `record`. A write with a byte order mark is never skipped, since `readFile` strips it.
+ * `system` itself is not changed.
+ */
+export const createDeduplicatingSystem = (system: ts.System, record: WriteRecord): ts.System => ({
     // A copy with own members, since the compiler spreads the system into its hosts, which drops inherited members
-    return {
-        ...system,
-        writeFile: (fileName: string, text: string, writeByteOrderMark?: boolean): void => {
-            const filePath = system.resolvePath(fileName);
-            const hash = hashOf(text, writeByteOrderMark);
-            if (written.get(filePath) === hash && system.fileExists(filePath)) {
-                return;
-            }
-            system.writeFile(fileName, text, writeByteOrderMark);
-            written.set(filePath, hash);
-        },
-    };
-};
+    ...system,
+    writeFile: (fileName: string, text: string, writeByteOrderMark?: boolean): void => {
+        const filePath = system.resolvePath(fileName);
+        if (!writeByteOrderMark && system.fileExists(filePath) && system.readFile(filePath) === text) {
+            return;
+        }
+        system.writeFile(fileName, text, writeByteOrderMark);
+        record.record(filePath, text, writeByteOrderMark);
+    },
+});

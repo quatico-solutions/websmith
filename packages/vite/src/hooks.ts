@@ -17,7 +17,7 @@ import { isCompiledId } from "./module-ids";
 import { createModuleFilter, resolveViteOptions, selectProfile, type ResolvedViteOptions, type WebsmithViteOptions } from "./options";
 import { pickOutput } from "./output";
 import { ViteAddonContext } from "./vite-addon-context";
-import { createDeduplicatingSystem } from "./write-record";
+import { createDeduplicatingSystem, WriteRecord } from "./write-record";
 
 /** The part of Vite's logger of an environment the hooks use, in serve mode only. */
 export type EnvironmentLogger = {
@@ -80,7 +80,7 @@ const CLIENT_ENVIRONMENT = "client";
 /** The dependencies of the hooks that need Vite or the file system, injected so a spec can stub them. */
 export type HookDependencies = {
     createFilter: typeof createFilter;
-    createCompiler?: (loaderOptions: Partial<WebpackLoaderOptions>, reporter: Reporter, outputs: AddonOutputs) => HookCompiler;
+    createCompiler?: (loaderOptions: Partial<WebpackLoaderOptions>, reporter: Reporter, outputs: AddonOutputs, record: WriteRecord) => HookCompiler;
 };
 
 // Keeps JSX for Vite's own JSX handling, in the fragment returned to Vite only
@@ -88,15 +88,21 @@ const TARGET_COMPILER_OPTIONS: ts.CompilerOptions = { jsx: ts.JsxEmit.Preserve, 
 
 /**
  * Creates the module compiler of a plugin instance, with the addons of its `AddonRegistry`, reporting to `reporter`.
- * The addons of its profile get a `ViteAddonContext` that maps to `outputs`, and identical rewrites of a file are skipped.
+ * The addons of its profile get a `ViteAddonContext` that maps to `outputs`. A write of a file whose text on disk is the
+ * same is skipped, and every other write goes into `record`.
  * An addon needs type information unless it sets `needsTypeInfo` to false.
  */
-export const createModuleCompiler = (loaderOptions: Partial<WebpackLoaderOptions>, reporter: Reporter, outputs: AddonOutputs): HookCompiler => {
+export const createModuleCompiler = (
+    loaderOptions: Partial<WebpackLoaderOptions>,
+    reporter: Reporter,
+    outputs: AddonOutputs,
+    record: WriteRecord
+): HookCompiler => {
     const addons = new AddonRegistry({ reporter, system: ts.sys });
     const compiler = new ModuleCompiler(
         { reporter, cliArgs: { options: {}, fileNames: [], errors: [] } },
         loaderOptions,
-        createDeduplicatingSystem(ts.sys),
+        createDeduplicatingSystem(ts.sys, record),
         {
             addons,
             targetCompilerOptions: TARGET_COMPILER_OPTIONS,
@@ -180,6 +186,8 @@ export const createWebsmithHooks = (
     const environments = new Map<string, EnvironmentState>();
     // The state of each environment object a build started with, including those of nested builds
     const instances = new WeakMap<EnvironmentInfo, EnvironmentState>();
+    // The files the compilers of every environment wrote, since a write of one fires hotUpdate in all of them
+    const record = new WriteRecord();
 
     const report = (context: HookContext, state: EnvironmentState, diagnostics: readonly ts.Diagnostic[]): ts.Diagnostic[] => {
         const { errors, warnings } = partitionDiagnostics(diagnostics, state.resolved.loaderOptions.debug ?? false);
@@ -280,7 +288,7 @@ export const createWebsmithHooks = (
         };
         if (!state.profileError) {
             state.compiler = outputs.runActivation(context, () => {
-                const created = createCompiler(state.resolved.loaderOptions, reporter, outputs);
+                const created = createCompiler(state.resolved.loaderOptions, reporter, outputs, record);
                 created.keepCachesPerCompilation();
                 return created;
             });
