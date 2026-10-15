@@ -14,6 +14,17 @@ export type { WebsmithViteOptions } from "./options";
  * Creates the websmith Vite plugin: it compiles the TypeScript modules of the bundle with websmith and the addons of
  * the selected `profile`, and returns their JavaScript and source map to Vite.
  *
+ * Each Vite environment, e.g. `client` and `ssr`, compiles with its own instance:
+ * - `profile` is a profile name for every environment, or a map from environment name to profile, e.g.
+ *   `{ client: "client", ssr: "server" }`. An environment the map does not name fails its own build with an error
+ *   that names it; the other environments build.
+ * - Every environment has its own compiler, addons, diagnostics and outputs, also when Vite shares one plugin object
+ *   between environments. Paths of `addVirtualFile` and `removeOutputFile` are relative to the `build.outDir` of the
+ *   environment.
+ * - Under `node16` or `nodenext`, a module TypeScript emits as CommonJS fails its transform, before any addon runs on
+ *   it: a `.cts` file, or a file whose nearest `package.json` has no `"type": "module"`. With `esm`, core's ESM check
+ *   reports it instead.
+ *
  * Diagnostics go through Vite, not to the console:
  * - The errors of a module fail its transform with one error, `file (line,column): message` per diagnostic, and
  *   the first position as `loc`. Its warnings go to `this.warn`, with their position when they have one; messages
@@ -38,8 +49,8 @@ export type { WebsmithViteOptions } from "./options";
  *   hold is a warning. The dev server keeps virtual files in memory and does not serve them yet.
  * - A file an addon writes through `getSystem().writeFile` goes to disk only, not into the bundle. A rebuild by the
  *   same plugin instance does not rewrite a file with the same text, e.g. the output of a profile in `depends`.
- * - The result processors of the profile run once per `vite build`, in `buildEnd` and only for a build without
- *   errors, with the output files of every module of the bundle.
+ * - The result processors of the profile run once per environment of a `vite build`, in `buildEnd` and only for a
+ *   build without errors, with the output files of every module of the environment's bundle.
  * - The profiles in `depends` keep the CLI's context: their files go to their own `outDir`, not into the bundle.
  */
 export const websmith = (options: WebsmithViteOptions = {}): Plugin => {

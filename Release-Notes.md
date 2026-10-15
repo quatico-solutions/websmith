@@ -16,6 +16,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - The `AddonContext` docs describe what `addInputFile`, `addAssetDependency`, `addVirtualFile` and `removeOutputFile`
   do in each host: the `websmith` CLI, the webpack loader and the Vite plugin.
+- The Vite plugin (`@quatico/websmith-vite`, not yet published) selects a websmith profile per Vite environment:
+  `profile` takes a profile name or a map from environment name to profile, e.g. `{ client: "client", ssr: "server" }`,
+  and each environment compiles with its own compiler and addons.
 
 ### Changed
 
