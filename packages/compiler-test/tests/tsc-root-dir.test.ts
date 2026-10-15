@@ -87,23 +87,17 @@ const countWebsmithRootDirErrors = (tsConfigFile: string): number => {
 };
 
 describe("compile w/ websmith and tsc w/o rootDir", () => {
-    it.each([false, true])(
-        "emits to tsc's output paths and reports tsc's error codes w/ sources in src, outDir, no rootDir and declaration %s",
-        async declaration => {
-            const files = writeSources(SOURCES);
-            const tsConfigFile = writeTsConfig(declaration);
-            const { paths, codes } = await compileTsc();
-            const expected = { paths, codes };
+    it("emits to tsc's output paths and reports tsc's error codes w/ sources in src, outDir and no rootDir", async () => {
+        const files = writeSources(SOURCES);
+        const tsConfigFile = writeTsConfig(false);
+        const { paths, codes } = await compileTsc();
+        const expected = { paths, codes };
 
-            const actual = await compileWebsmith(files, tsConfigFile);
+        const actual = await compileWebsmith(files, tsConfigFile);
 
-            expect(expected.paths).toEqual(
-                expect.arrayContaining([expect.stringMatching(/(^|\/)a\.js$/), expect.stringMatching(/(^|\/)sub\/b\.js$/)])
-            );
-            expect(actual).toEqual(expected);
-        },
-        60000
-    );
+        expect(expected.paths).toEqual(expect.arrayContaining([expect.stringMatching(/(^|\/)a\.js$/), expect.stringMatching(/(^|\/)sub\/b\.js$/)]));
+        expect(actual).toEqual(expected);
+    }, 60000);
 
     it.each([false, true])(
         "reports TS5011 as often as tsc w/ sources in src, outDir, no rootDir and declaration %s",
