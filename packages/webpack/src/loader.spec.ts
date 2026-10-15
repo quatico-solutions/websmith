@@ -496,11 +496,11 @@ describe("loader", () => {
             [],
             true
         );
-        const target = { type: "javascript/auto", buildInfo: {} };
-        const context = createLoaderContext(target, { options: {} });
+        const module = { type: "javascript/auto", buildInfo: {} };
+        const target = createLoaderContext(module, { options: {} });
 
-        loader.call(context);
-        const actual = target.buildInfo;
+        loader.call(target);
+        const actual = module.buildInfo;
 
         expect(actual).toEqual({ [PACKAGE_TYPES_KEY]: { "/package.json": "module" } });
     });

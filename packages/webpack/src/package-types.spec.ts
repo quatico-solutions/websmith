@@ -20,8 +20,9 @@ describe("recordPackageTypes", () => {
         const target: Record<string, unknown> = {};
 
         recordPackageTypes(target, {});
+        const actual = Object.keys(target);
 
-        expect(target).toEqual({});
+        expect(actual).toEqual([]);
     });
 
     it("records package types as plain object", () => {
