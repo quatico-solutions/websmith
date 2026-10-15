@@ -375,7 +375,7 @@ const setUpLoader = (
         getOptions: () => ({ debug }),
         getConfigErrors: () => configErrors,
         // The first module carries the config errors, see ModuleCompiler
-        takeUnreportedConfigErrors: (resourcePath: string) => (resourcePath === "/src/a.ts" ? configErrors : []),
+        takeUnreportedConfigErrors: jest.fn((resourcePath: string, _compilation?: unknown) => (resourcePath === "/src/a.ts" ? configErrors : [])),
         hasCompilationHooks: () => compilationHooks,
         isProfileConfigured: () => profileConfigured,
         getOptionsFiles: () => ({ files: ["/websmith.config.json", "/tsconfig.json", "/tsconfig.base.json"], missing: ["/tsconfig.gone.json"] }),
@@ -385,9 +385,10 @@ const setUpLoader = (
     return build;
 };
 
-const createLoaderContext = (module?: { type: string; buildInfo?: object }, compiler?: object, resourcePath = "/src/a.ts") =>
+const createLoaderContext = (module?: { type: string; buildInfo?: object }, compiler?: object, resourcePath = "/src/a.ts", compilation?: object) =>
     ({
         ...(compiler && { _compiler: compiler }),
+        ...(compilation && { _compilation: compilation }),
         resourcePath,
         cacheable: jest.fn(),
         callback: jest.fn(),
@@ -693,5 +694,74 @@ describe("loader", () => {
         const actual = jest.mocked(target.emitError).mock.calls;
 
         expect(actual).toEqual([]);
+    });
+
+    it("marks first module of compilation as not cacheable w/ config errors w/ compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")], true);
+        const target = createLoaderContext(undefined, {}, "/src/a.ts", {});
+
+        loader.call(target);
+
+        expect(target.cacheable).toHaveBeenCalledWith(false);
+    });
+
+    it("keeps second module of same compilation cacheable w/ config errors w/ compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")], true);
+        const compilation = {};
+        const target = createLoaderContext(undefined, {}, "/src/b.ts", compilation);
+        loader.call(createLoaderContext(undefined, {}, "/src/a.ts", compilation));
+
+        loader.call(target);
+
+        expect(target.cacheable).not.toHaveBeenCalledWith(false);
+    });
+
+    it("marks first module of new compilation as not cacheable w/ config errors w/ compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")], true);
+        const target = createLoaderContext(undefined, {}, "/src/b.ts", {});
+        loader.call(createLoaderContext(undefined, {}, "/src/a.ts", {}));
+
+        loader.call(target);
+
+        expect(target.cacheable).toHaveBeenCalledWith(false);
+    });
+
+    it("keeps module cacheable w/o config errors w/ compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [], true);
+        const target = createLoaderContext(undefined, {}, "/src/a.ts", {});
+
+        loader.call(target);
+
+        expect(target.cacheable).not.toHaveBeenCalledWith(false);
+    });
+
+    it("marks every module as not cacheable w/ config errors w/o compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")]);
+        const compilation = {};
+        const target = createLoaderContext(undefined, {}, "/src/b.ts", compilation);
+        loader.call(createLoaderContext(undefined, {}, "/src/a.ts", compilation));
+
+        loader.call(target);
+
+        expect(target.cacheable).toHaveBeenCalledWith(false);
+    });
+
+    it("passes compiler start time to unreported config errors w/o compilation hooks", () => {
+        setUpLoader(createBuildResult(), {}, false, [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")]);
+        const target = createLoaderContext(undefined, { fsStartTime: 42 });
+
+        loader.call(target);
+        const actual = (jest.mocked(getCompilerInstance).mock.results[0].value as TsCompiler).takeUnreportedConfigErrors;
+
+        expect(actual).toHaveBeenCalledWith("/src/a.ts", 42);
+    });
+
+    it("keeps module cacheable w/o config errors w/o compilation hooks", () => {
+        setUpLoader(createBuildResult());
+        const target = createLoaderContext(undefined, {});
+
+        loader.call(target);
+
+        expect(target.cacheable).not.toHaveBeenCalledWith(false);
     });
 });
