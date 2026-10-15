@@ -20,6 +20,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   `profile` takes a profile name or a map from environment name to profile, e.g. `{ client: "client", ssr: "server" }`,
   and each environment compiles with its own compiler and addons, as does a worker that `worker.plugins` bundles with
   the same plugin object.
+- The Vite plugin (`@quatico/websmith-vite`, not yet published) runs in the Vite dev server: configuration errors are
+  logged at startup and shown as the error overlay on every module without stopping the server, `addVirtualFile` files
+  are served from memory, result processors run after each transform, and `transpileOnly` warns which addons lose type
+  information.
 
 ### Changed
 

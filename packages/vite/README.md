@@ -55,6 +55,26 @@ export default defineConfig({
   `"type": "module"`, use the `.mts` extension, or use `module: "ESNext"`. With `esm` set, the profile's ESM check
   reports the case instead.
 
+## Dev server
+
+`vite dev` compiles with the plugin as `vite build` does, with the same profile per environment.
+
+- **Configuration errors**, e.g. an unconfigured profile, a missing or invalid `websmith.config.json`, a throwing
+  `activate` or a profile that emits CommonJS, go to Vite's logger once when the environment starts: `client` at server
+  start, `ssr` on its first module. They do not stop the server: every module of that environment fails with them, as
+  the error overlay, until the configuration is fixed. Fixing it currently needs a restart of the server.
+  TypeScript's errors without a file, e.g. an option error, exist only after a module was emitted; they join the errors
+  of every module.
+- **Module diagnostics** show as the error overlay of the module, as Vite's own errors do.
+- **`addVirtualFile`** files are served from memory at `base` + their bundle path, e.g. `/virt/data.json` for
+  `addVirtualFile("virt/data.json", …)`, and shadow a real file at the same URL. The server serves those of environment
+  `client`. A virtual file stays until its module is transformed again, also after the module was deleted.
+- **Result processors** run after each transform without errors, with that module's output files.
+- **`transpileOnly`** is never set automatically. An explicit `transpileOnly` warns once per environment and names the
+  addons of the profile that need type information; set `needsTypeInfo` to `false` in an addon that needs none.
+- **An edit to a type-only import**, e.g. `import type { Props } from "./types"`, does not reload its importer. An edit
+  to a value import reloads it through Vite's module graph.
+
 ## Addon context
 
 The addons of the selected profile receive an `AddonContext` whose file methods map to Vite. The other methods,
@@ -64,7 +84,7 @@ The addons of the selected profile receive an `AddonContext` whose file methods 
 |-----------------------|----------------|-------------|
 | `addInputFile` | `loaderContext.addDependency` | adds the code file to the compilation and watches it (`this.addWatchFile`) |
 | `addAssetDependency` | `loaderContext.addDependency` (child) | watches the child (`this.addWatchFile`); editing it rebuilds under `vite build --watch` |
-| `addVirtualFile` | `compilation.emitAsset` | `vite build`: an asset of the bundle (`this.emitFile` in `generateBundle`), any extension; dev server: kept in memory |
+| `addVirtualFile` | `compilation.emitAsset` | `vite build`: an asset of the bundle (`this.emitFile` in `generateBundle`), any extension; dev server: served from memory |
 | `removeOutputFile` | asset removed | `vite build`: deleted from the bundle in `generateBundle`; dev server: dropped from memory |
 
 - **Paths of `addVirtualFile` and `removeOutputFile`** are bundle file names: a relative path is relative to Vite's
@@ -81,4 +101,4 @@ The addons of the selected profile receive an `AddonContext` whose file methods 
   activate again only after an edit of their files, of `websmith.config.json` or of `tsconfig.json`. The files an
   addon adds or watches in `activate` apply to every rebuild until it activates again.
 
-The options, the dev server and the remaining documentation follow with the plugin's release.
+The options and the remaining documentation follow with the plugin's release.
