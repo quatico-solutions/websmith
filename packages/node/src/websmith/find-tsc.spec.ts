@@ -10,6 +10,12 @@ import path from "node:path";
 import { Logger } from "../Logger";
 import { findTsc, readTscVersion } from "./find-tsc";
 
+let mockNothingExists = false;
+
+jest.mock("path-exists", () => ({
+    pathExists: (candidate: string) => (mockNothingExists ? Promise.resolve(false) : jest.requireActual("path-exists").pathExists(candidate)),
+}));
+
 let tempDir: string;
 
 beforeEach(() => {
@@ -19,6 +25,7 @@ beforeEach(() => {
 
 afterEach(() => {
     jest.restoreAllMocks();
+    mockNothingExists = false;
     fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
@@ -73,6 +80,18 @@ describe("findTsc", () => {
         const actual = await findTsc(new Logger(), fromDir);
 
         expect(actual).toBe(path.join(cwd, "node_modules", "typescript", "bin", "tsc"));
+    });
+
+    it("should name the unresolvable typescript in the error message w/o any tsc", async () => {
+        const fromDir = path.join(tempDir, "unresolvable");
+        fs.mkdirSync(fromDir, { recursive: true });
+        mockNothingExists = true;
+        const logger = new Logger();
+        const target = jest.spyOn(logger, "error").mockImplementation(() => undefined);
+
+        await findTsc(logger, fromDir).catch(() => undefined);
+
+        expect(target.mock.calls[0][0]).toContain(`- typescript not resolvable from ${fromDir} ✖ not found`);
     });
 });
 

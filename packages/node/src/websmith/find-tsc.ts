@@ -47,7 +47,7 @@ export const findTsc = async (logger = new Logger(), fromDir = __dirname) => {
         .catch(() => getTscPathIfExists(tscFromGlobalNvmScope))
         .catch(() => {
             logger.error(`✖ Couldn’t find a typescript compiler ("${TSC_EXECUTABLE}") in any expected locations. Unsuccessfully tested locations, by priority:
-- ${tscFromImportedModule} (resolved from ${fromDir}) ✖ not found
+- ${tscFromImportedModule ? `${tscFromImportedModule} (resolved from ${fromDir})` : `typescript not resolvable from ${fromDir}`} ✖ not found
 - ${tscFromCallerModule} ✖ not found
 - ${tscFromRequire} (from require('typescript')) ✖ not found
 - ${tscFromGlobalNvmScope} ✖ not found
