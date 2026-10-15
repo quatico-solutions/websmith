@@ -1616,6 +1616,22 @@ exports.activate = ctx => ctx.registerTransformer({
             }
         };
 
+        // Repeats the edit until the output shows it: an edit right after the first emit can precede the file's watcher
+        const editUntil = async (edit: () => void, predicate: () => boolean, timeoutMs: number, getOutput: () => string): Promise<void> => {
+            const start = Date.now();
+            for (;;) {
+                edit();
+                try {
+                    await waitFor(predicate, 2000, getOutput);
+                    return;
+                } catch (err) {
+                    if (Date.now() - start > timeoutMs) {
+                        throw err;
+                    }
+                }
+            }
+        };
+
         // Waits for the exit, so the next test's cleanup does not race the watcher of this one
         const stopChild = async (child: ChildProcess): Promise<void> => {
             if (child.exitCode !== null || child.signalCode !== null) {
@@ -1678,8 +1694,12 @@ exports.activate = ctx => ctx.registerTransformer({
             try {
                 await waitFor(() => fs.existsSync(path.join(testDirs.OUTPUT_DIR, "a.js")), 30000, getOutput);
                 for (const value of [2, 3]) {
-                    createSourceFile(`export const a = ${value};`, "a.ts");
-                    await waitFor(() => fs.readFileSync(path.join(testDirs.OUTPUT_DIR, "a.js"), "utf-8").includes(`a = ${value}`), 10000, getOutput);
+                    await editUntil(
+                        () => createSourceFile(`export const a = ${value};`, "a.ts"),
+                        () => fs.readFileSync(path.join(testDirs.OUTPUT_DIR, "a.js"), "utf-8").includes(`a = ${value}`),
+                        10000,
+                        getOutput
+                    );
                 }
                 createSourceFile(`export const g = ;`, "gen.ts");
                 await waitFor(() => getOutput().includes("Expression expected."), 10000, getOutput);
