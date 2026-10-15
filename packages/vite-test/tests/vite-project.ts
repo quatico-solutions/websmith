@@ -334,7 +334,8 @@ export type ViteDevResult = {
 /**
  * Starts Vite's dev server with the plugin in a separate Node process, connects to its HMR socket and runs `steps`, code
  * in an async function of the server process, in order. The steps have these helpers in scope:
- * - `get(url)` requests `url` from the server and records `{ url, status, body }`;
+ * - `get(url, headers)` requests `url` from the server, with `headers` if given, e.g. `{ host }`, and records
+ *   `{ url, status, body }`;
  * - `ssr(url)` records the code or the error of `server.environments.ssr.transformRequest(url)`;
  * - `waitForMessage(predicate, ms)` waits for the next HMR payload after the last one a wait matched, polling every
  *   25 ms, and records a timeout instead of throwing;
@@ -353,6 +354,7 @@ export const runViteDev = ({
         import { createLogger, createServer } from ${JSON.stringify(vite)};
         import websmith from "@quatico/websmith-vite";
         import fs from "node:fs";
+        import http from "node:http";
         import path from "node:path";
 
         const root = ${JSON.stringify(projectDir)};
@@ -411,9 +413,19 @@ export const runViteDev = ({
         }
 
         const port = listening ? server.httpServer.address().port : 0;
-        const get = async url => {
-            const response = await fetch("http://localhost:" + port + url);
-            const result = { url, status: response.status, body: await response.text() };
+        // node:http, since fetch does not send a Host header of the caller
+        const request = (url, headers) =>
+            new Promise((resolve, reject) => {
+                http.get({ host: "localhost", port, path: url, headers }, response => {
+                    let body = "";
+                    response.setEncoding("utf-8");
+                    response.on("data", chunk => (body += chunk));
+                    response.on("end", () => resolve({ status: response.statusCode, body }));
+                }).on("error", reject);
+            });
+        const get = async (url, headers) => {
+            const response = headers ? await request(url, headers) : await fetch("http://localhost:" + port + url);
+            const result = { url, status: response.status, body: typeof response.body === "string" ? response.body : await response.text() };
             responses.push(result);
             return result;
         };

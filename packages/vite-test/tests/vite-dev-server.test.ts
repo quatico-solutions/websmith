@@ -241,6 +241,42 @@ describe("vite dev server w/ websmith plugin", () => {
     );
 
     it.each(VITES)(
+        "should refuse a virtual file as Vite refuses a module w/ host not allowed w/ %s",
+        vite => {
+            const actual = runViteDev({
+                vite,
+                pluginOptions: APP,
+                steps: [
+                    `await get("/src/main.ts");`,
+                    `await get("/virt/main.ts.json", { host: "evil.example" });`,
+                    `await get("/src/main.ts", { host: "evil.example" });`,
+                ],
+            });
+
+            expect(actual.responses.slice(1).map(cur => [cur.url, cur.status])).toEqual([
+                ["/virt/main.ts.json", 403],
+                ["/src/main.ts", 403],
+            ]);
+        },
+        60000
+    );
+
+    it.each(VITES)(
+        "should serve a virtual file w/ host in allowedHosts w/ %s",
+        vite => {
+            const actual = runViteDev({
+                vite,
+                pluginOptions: APP,
+                viteOptions: { server: { port: 5273, strictPort: false, allowedHosts: ["app.example"] } },
+                steps: [`await get("/src/main.ts");`, `await get("/virt/main.ts.json", { host: "app.example" });`],
+            });
+
+            expect(actual.responses[1]).toEqual({ url: "/virt/main.ts.json", status: 200, body: '{"v":1}' });
+        },
+        60000
+    );
+
+    it.each(VITES)(
         "should run result processors after each transform w/ %s",
         vite => {
             runViteDev({

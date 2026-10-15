@@ -6,6 +6,7 @@
  */
 import { createFilter, type Plugin, type ViteDevServer } from "vite";
 import { createWebsmithHooks } from "./hooks";
+import { createHostCheck } from "./host-check";
 import { createHookFilter, type WebsmithViteOptions } from "./options";
 import { createVirtualFileMiddleware } from "./virtual-file-middleware";
 
@@ -52,7 +53,7 @@ export type { WebsmithViteOptions } from "./options";
  *   from the bundle, e.g. an asset Vite emits itself; both apply in `generateBundle`. Their paths are relative to
  *   `build.outDir`, or absolute inside it; a path outside it fails the build. Removing a file the bundle does not
  *   hold is a warning. The dev server serves the virtual files of environment `client` from memory, at `base` + their
- *   bundle path, in front of any real file at that URL.
+ *   bundle path, in front of any real file at that URL, and only to a host `server.allowedHosts` allows, as Vite does.
  * - A file an addon writes through `getSystem().writeFile` goes to disk only, not into the bundle. A rebuild by the
  *   same plugin instance does not rewrite a file with the same text, e.g. the output of a profile in `depends`.
  * - The result processors of the profile run once per environment of a `vite build`, in `buildEnd` and only for a
@@ -71,7 +72,7 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
         configResolved: hooks.configResolved,
         // Without a returned function, the middleware runs before Vite's own, so a virtual file shadows a real one
         configureServer(server: ViteDevServer) {
-            server.middlewares.use(createVirtualFileMiddleware(hooks.findVirtualFile, server.config.base));
+            server.middlewares.use(createVirtualFileMiddleware(hooks.findVirtualFile, server.config.base, createHostCheck(server.config)));
         },
         buildStart: hooks.buildStart,
         transform: { filter: { id: createHookFilter(options) }, handler: hooks.transformHandler },
