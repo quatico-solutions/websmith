@@ -110,7 +110,7 @@ type EnvironmentState = {
     // The warnings of the current build, which later modules do not warn again, e.g. the missing addons every lookup reports
     warnedKeys: Set<string>;
     profileError?: ts.Diagnostic;
-    // The package.json files that decide the module format under node16 and nodenext, cleared for every build
+    // The package.json files that decide the module format under a node module kind, cleared for every build
     packageJsonCache: ts.PackageJsonInfoCache;
 };
 
@@ -253,8 +253,8 @@ export const createWebsmithHooks = (
                 this.error(toRollupError(errors));
             }
         },
-        // A node16 or nodenext module that TypeScript emits as CommonJS fails before it is compiled, so no generator runs
-        // on output Vite rejects; the package.json that decides its format is watched either way.
+        // A module under a node module kind that TypeScript emits as CommonJS fails before it is compiled, so no generator
+        // runs on output Vite rejects; the package.json that decides its format is watched either way.
         transformHandler(_code, id) {
             if (!isCompiledId(id, filter)) {
                 return null;
