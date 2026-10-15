@@ -23,7 +23,7 @@ beforeEach(() => {
     testDirs = getTestDirs();
 
     writeSourceFile("package.json", JSON.stringify({ type: "module" }), testDirs.PROJECT_DIR);
-    writeTsConfig({ target: ts.ScriptTarget.ES2022, outDir: testDirs.OUTPUT_DIR }, testDirs.PROJECT_DIR);
+    writeTsConfig({ target: ts.ScriptTarget.ES2022, outDir: testDirs.OUTPUT_DIR, rootDir: testDirs.SOURCE_DIR }, testDirs.PROJECT_DIR);
 });
 
 afterEach(() => {

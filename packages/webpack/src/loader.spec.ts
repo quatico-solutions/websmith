@@ -303,10 +303,10 @@ describe("TsCompiler compatibility with Compiler", () => {
         // Test with TsCompiler (webpack loader equivalent)
         const tsCompiler = new TsCompiler(
             {
-                tsConfig: { noEmit: false, outDir: "./bin", declaration: true },
+                tsConfig: { noEmit: false, outDir: "./bin", rootDir: "./src", declaration: true },
                 debug: true,
                 cliArgs: {
-                    options: { noEmit: false, outDir: "./bin", declaration: true },
+                    options: { noEmit: false, outDir: "./bin", rootDir: "./src", declaration: true },
                     fileNames: ["/src/one.ts", "/src/two.ts"],
                     errors: [],
                 },

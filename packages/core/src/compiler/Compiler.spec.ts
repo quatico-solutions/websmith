@@ -1532,6 +1532,176 @@ describeOnTs5("compile w/ option error of the per-file declaration Program", () 
     });
 });
 
+describe("compile w/ outDir and no rootDir", () => {
+    const ROOT_DIR_SOURCES = { "src/a.ts": `import { b } from "./sub/b";\nexport const a = b + 1;`, "src/sub/b.ts": `export const b = 1;` };
+    const ROOT_DIR_FILES = ["/src/a.ts", "/src/sub/b.ts"];
+
+    // tsc's TS5011 of the running TypeScript: a Program over the sources as they are, without websmith
+    const getTscRootDirErrors = (fileSystem: ts.System, options: ts.CompilerOptions, rootNames = ROOT_DIR_FILES): string[] => {
+        const base = ts.createCompilerHost(options);
+        const host: ts.CompilerHost = {
+            ...base,
+            getCurrentDirectory: () => fileSystem.getCurrentDirectory(),
+            fileExists: fileName => fileSystem.fileExists(fileName),
+            readFile: fileName => fileSystem.readFile(fileName),
+            directoryExists: directoryName => fileSystem.directoryExists(directoryName),
+            realpath: fileName => fileName,
+            getSourceFile: (fileName, languageVersion) => {
+                const text = fileSystem.readFile(fileName);
+                return text !== undefined ? ts.createSourceFile(fileName, text, languageVersion) : undefined;
+            },
+        };
+        return ts
+            .createProgram(rootNames, { ...options, noLib: true, types: [] }, host)
+            .getOptionsDiagnostics()
+            .filter(cur => cur.code === 5011)
+            .map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n"));
+    };
+
+    const getReportedRootDirErrors = (target: Reporter): string[] =>
+        jest
+            .mocked(target.reportDiagnostic)
+            .mock.calls.map(([cur]) => cur)
+            .filter(cur => cur.code === 5011)
+            .map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n"));
+
+    it.each([
+        { path: "fast path", declaration: false },
+        { path: "per-file declaration Programs", declaration: true },
+    ])("reports tsc's rootDir inference error once w/ $path and sources in two directories", ({ declaration }) => {
+        const fileSystem = createSystem(ROOT_DIR_SOURCES, { virtual: true });
+        const options = { declaration, outDir: "/out", configFilePath: "/tsconfig.json", target: ts.ScriptTarget.ESNext };
+        const expected = getTscRootDirErrors(fileSystem, options);
+        const target = new ReporterMock(fileSystem);
+        jest.spyOn(target, "reportDiagnostic");
+        const testObj = new CompilerTestClass(
+            { reporter: target, tsConfig: { ...options, types: [] }, cliArgs: { fileNames: ROOT_DIR_FILES, options, errors: [] } },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = getReportedRootDirErrors(target);
+
+        expect(actual).toHaveLength(isTs5 ? 0 : 1);
+        expect(actual).toEqual(expected);
+    });
+
+    it("reports tsc's rootDir inference error once w/ addon needing type information and sources in two directories", () => {
+        const fileSystem = createSystem(ROOT_DIR_SOURCES, { virtual: true });
+        const options = { outDir: "/out", configFilePath: "/tsconfig.json", target: ts.ScriptTarget.ESNext };
+        const expected = getTscRootDirErrors(fileSystem, options);
+        const target = new ReporterMock(fileSystem);
+        jest.spyOn(target, "reportDiagnostic");
+        fileSystem.createDirectory("./addons");
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter: target, system: fileSystem });
+        // Legacy addon: needsTypeInfo is undefined, so the compilation creates the big Program
+        addons.getAvailableAddons = jest.fn().mockReturnValue([{ getName: () => "type-info-addon", activate: () => {} }]);
+        const testObj = new VirtualProgramCompiler(
+            {
+                reporter: target,
+                config: { addons: ["type-info-addon"] },
+                tsConfig: { ...options, types: [] },
+                cliArgs: { fileNames: ROOT_DIR_FILES, options, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).setAddonRegistry(addons);
+
+        testObj.compile();
+        const actual = getReportedRootDirErrors(target);
+
+        expect(actual).toHaveLength(isTs5 ? 0 : 1);
+        expect(actual).toEqual(expected);
+    });
+
+    it.each([
+        { path: "fast path", declaration: false },
+        { path: "per-file declaration Programs", declaration: true },
+    ])("reports no rootDir inference error w/ $path and rootDir", ({ declaration }) => {
+        const fileSystem = createSystem(ROOT_DIR_SOURCES, { virtual: true });
+        const options = { declaration, outDir: "/out", rootDir: "/src", configFilePath: "/tsconfig.json", target: ts.ScriptTarget.ESNext };
+        const target = new ReporterMock(fileSystem);
+        jest.spyOn(target, "reportDiagnostic");
+        const testObj = new CompilerTestClass(
+            { reporter: target, tsConfig: { ...options, types: [] }, cliArgs: { fileNames: ROOT_DIR_FILES, options, errors: [] } },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = getReportedRootDirErrors(target);
+
+        expect(actual).toEqual([]);
+    });
+
+    it.each([
+        { path: "fast path", declaration: false },
+        { path: "per-file declaration Programs", declaration: true },
+    ])("reports tsc's rootDir inference errors w/ $path and a source importing a file outside the root files' directory", ({ declaration }) => {
+        const fileSystem = createSystem(
+            { "src/a.ts": `import { b } from "../lib/b";\nexport const a = b + 1;`, "lib/b.ts": `export const b = 1;` },
+            { virtual: true }
+        );
+        const options = { declaration, outDir: "/out", configFilePath: "/tsconfig.json", target: ts.ScriptTarget.ESNext };
+        const expected = getTscRootDirErrors(fileSystem, options, ["/src/a.ts"]);
+        const target = new ReporterMock(fileSystem);
+        jest.spyOn(target, "reportDiagnostic");
+        const testObj = new CompilerTestClass(
+            { reporter: target, tsConfig: { ...options, types: [] }, cliArgs: { fileNames: ["/src/a.ts"], options, errors: [] } },
+            undefined,
+            fileSystem
+        );
+
+        testObj.compile();
+        const actual = getReportedRootDirErrors(target);
+
+        expect(expected).toEqual([]);
+        expect(actual).toEqual(expected);
+    });
+
+    it("reports tsc's rootDir inference error once w/ every file skipped by addon filter", () => {
+        const fileSystem = createSystem(ROOT_DIR_SOURCES, { virtual: true });
+        const options = { outDir: "/out", configFilePath: "/tsconfig.json", target: ts.ScriptTarget.ESNext };
+        const expected = getTscRootDirErrors(fileSystem, options);
+        const target = new ReporterMock(fileSystem);
+        jest.spyOn(target, "reportDiagnostic");
+        const addons = new AddonRegistry({ addonsDir: "./addons", reporter: target, system: fileSystem });
+        addons.getAvailableAddons = jest.fn().mockReturnValue([{ getName: () => "whatever", activate: jest.fn(), shouldProcessFile: () => false }]);
+        const testObj = new CompilerTestClass(
+            { reporter: target, tsConfig: { ...options, types: [] }, cliArgs: { fileNames: ROOT_DIR_FILES, options, errors: [] } },
+            undefined,
+            fileSystem,
+            addons
+        );
+
+        testObj.compile();
+        const actual = getReportedRootDirErrors(target);
+
+        expect(actual).toHaveLength(isTs5 ? 0 : 1);
+        expect(actual).toEqual(expected);
+    });
+
+    it("yields the rootDir inference error without file in the fragment of every emitted file", () => {
+        const fileSystem = createSystem(ROOT_DIR_SOURCES, { virtual: true });
+        const options = { outDir: "/out", configFilePath: "/tsconfig.json", target: ts.ScriptTarget.ESNext };
+        const expected = getTscRootDirErrors(fileSystem, options);
+        const testObj = new CompilerTestClass(
+            { reporter: new NoReporter(), tsConfig: { ...options, types: [] }, cliArgs: { fileNames: ROOT_DIR_FILES, options, errors: [] } },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+
+        const actual = ROOT_DIR_FILES.map(fileName =>
+            (testObj.emitSourceFile(fileName, undefined, false).diagnostics ?? [])
+                .filter(cur => cur.code === 5011)
+                .map(cur => [cur.file, ts.flattenDiagnosticMessageText(cur.messageText, "\n")])
+        );
+
+        expect(actual).toEqual(ROOT_DIR_FILES.map(() => expected.map(cur => [undefined, cur])));
+    });
+});
+
 describe("emitSourceFile", () => {
     it.each([
         { type: "module", declaration: false, expected: "export const hello" },
@@ -1989,6 +2159,7 @@ describe("emitSourceFile", () => {
                 sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
+                rootDir: "/src",
                 allowJs: true,
             },
             cliArgs: { fileNames: ["src/config.json"], options: {}, errors: [] },
@@ -2147,7 +2318,7 @@ describe("emitSourceFile", () => {
             const fileSystem = createSystem({ [fileName]: source }, { virtual: true });
             const target = {
                 reporter: new ReporterMock(fileSystem),
-                tsConfig: { target: ts.ScriptTarget.ESNext, module, allowJs: true, outDir: "/build" },
+                tsConfig: { target: ts.ScriptTarget.ESNext, module, allowJs: true, outDir: "/build", rootDir: "/src" },
                 cliArgs: { fileNames: [fileName], options: {}, errors: [] },
             };
 
@@ -2172,7 +2343,14 @@ describe("emitSourceFile", () => {
         const fileSystem = createSystem({ "src/d.jsx": source }, { virtual: true });
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX, allowJs: true, outDir: "/build" },
+            tsConfig: {
+                target: ts.ScriptTarget.ESNext,
+                module: ts.ModuleKind.ESNext,
+                jsx: ts.JsxEmit.ReactJSX,
+                allowJs: true,
+                outDir: "/build",
+                rootDir: "/src",
+            },
             cliArgs: { fileNames: ["/src/d.jsx"], options: {}, errors: [] },
         };
 
@@ -2197,6 +2375,7 @@ describe("emitSourceFile", () => {
                 moduleResolution: ts.ModuleResolutionKind.Bundler,
                 allowJs: true,
                 outDir: "/build",
+                rootDir: "/src",
             },
             cliArgs: { fileNames: ["/src/b.js"], options: {}, errors: [] },
         };
@@ -2228,7 +2407,7 @@ describe("emitSourceFile", () => {
         const fileSystem = createSystem({ "src/b.js": `export const b = ;` }, { virtual: true });
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, noEmitOnError: true, outDir: "/build" },
+            tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, noEmitOnError: true, outDir: "/build", rootDir: "/src" },
             cliArgs: { fileNames: ["/src/b.js"], options: {}, errors: [] },
         };
 
@@ -2244,7 +2423,7 @@ describe("emitSourceFile", () => {
         const fileSystem = createSystem({ "src/b.js": `export const b = 1;` }, { virtual: true });
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, noEmitOnError: true, outDir: "/build" },
+            tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, noEmitOnError: true, outDir: "/build", rootDir: "/src" },
             cliArgs: { fileNames: ["/src/b.js"], options: {}, errors: [] },
         };
 
@@ -3061,8 +3240,14 @@ describe("watch", () => {
         });
 
         it.each([
-            { name: "generator in deepest profile", config: { profiles: { a: { addons: ["gen-addon"] }, b: { depends: ["a"] }, c: { depends: ["b"] } } } },
-            { name: "generator in config addons", config: { addons: ["gen-addon"], profiles: { a: {}, b: { depends: ["a"] }, c: { depends: ["b"] } } } },
+            {
+                name: "generator in deepest profile",
+                config: { profiles: { a: { addons: ["gen-addon"] }, b: { depends: ["a"] }, c: { depends: ["b"] } } },
+            },
+            {
+                name: "generator in config addons",
+                config: { addons: ["gen-addon"], profiles: { a: {}, b: { depends: ["a"] }, c: { depends: ["b"] } } },
+            },
         ])("reports syntax error in generator-added file once per watched profile w/ two levels of depends and $name", ({ config }) => {
             const fileSystem = createSystem({ "src/target.ts": `export const a = 1;`, "src/added.ts": `export const b = 1;` }, { virtual: true });
             const target = new ReporterMock(fileSystem);

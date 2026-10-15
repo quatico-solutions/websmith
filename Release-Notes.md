@@ -21,6 +21,11 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 Builds that passed before can now fail: the `websmith` command reports errors it used to ignore and exits with code 1.
 
+- **Behaviour change:** on TypeScript 6, a TS5011 (rootDir) error fails the build with exit code 1 also with
+  `declaration: true` or an addon that needs type information, as `tsc` 6 does; before, websmith reported nothing on
+  these paths and exited with code 0. It affects a project with `outDir` (or `declarationDir`) and no `rootDir` whose
+  emitted files share a subdirectory of the tsconfig's directory, e.g. all in `src/`. Set `"rootDir"` in
+  `tsconfig.json` to fix it.
 - Under `module: node16`/`nodenext`, the webpack loader rebuilds a module in watch mode when the `"type"` of its
   nearest `package.json` changes, also without the ESM check; before, its output kept the old module format until
   the module itself changed. The `package.json` files the ESM check reads only for `"type"` no longer rebuild their
@@ -176,6 +181,11 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   "Cannot find module" warning for a package with types only under `exports`).
 - `compilationEnv` of `@quatico/websmith-testing` sets `rootDir` to its source directory, so output paths are the same
   on TypeScript 5 and 6 (`dist/<file>`, not `dist/src/<file>`). A caller's own `rootDir` wins.
+- On TypeScript 6, the CLI and the webpack loader report TS5011 ("The common source directory of 'tsconfig.json' is
+  './src'. The 'rootDir' setting must be explicitly set …") once per compilation, naming the directory `tsc` names.
+  Before, they reported it once per source directory, naming each. Files imported from outside `include` count
+  towards that directory, as with `tsc`, so a project whose imports reach the tsconfig's directory gets no TS5011.
+  TypeScript 5 does not report TS5011.
 - An unconfigured `profile` fails a webpack loader build with a configuration error that names the available
   profiles, e.g. `Profile 'x' is not configured in '<configFile>'. Available profiles: a, b.`, reported once per
   compilation (once per worker under `thread-loader`) instead of a `Module build failed` stack trace per module; without a configuration file the error is
