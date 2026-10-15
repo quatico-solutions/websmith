@@ -23,7 +23,7 @@ import type { AddonRegistry } from "./addons";
 import type { CompilerAddon } from "./addons/CompilerAddon";
 import type { FileCache } from "./cache";
 import { concat } from "./collections";
-import { CompilationContext } from "./compilation";
+import { CompilationContext, type CompilationContextOptions } from "./compilation";
 import { getEffectiveTarget, scriptTargetToString, TS_ERROR_CODE_INVALID_OPTION_VALUE } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import { checkEsm, createCjsNamesCache, getEmittedModuleKind, isEsmModuleKind, type EsmCheckContext } from "./esm";
@@ -464,19 +464,27 @@ export class Compiler {
             options: this.normalizeCompilerOptions({ ...profileCliArgs.options, ...contextOptions }),
         };
 
-        return new CompilationContext({
-            tsConfig: { ...profileOptions.tsConfig, ...contextOptions },
-            projectDir: path.dirname(configFile ?? tsConfigFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
-            system: this.system,
-            cliArgs: normalizedCliArgs,
-            rootFiles: this.getRootFiles(),
-            reporter: this.reporter,
-            ...(profile && { config: this.options.config?.profiles?.[profile]?.config }),
-            profile,
-            // Register with the profiles watch() registers root files with, so every context shares one watcher per file
-            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.getWatchedProfiles()) }),
-            registerDependencyCallback: this.dependencyCallback,
-        });
+        return this.instantiateCompilationContext(
+            {
+                tsConfig: { ...profileOptions.tsConfig, ...contextOptions },
+                projectDir: path.dirname(configFile ?? tsConfigFile ?? cliArgs?.raw?.configFilePath ?? this.system.getCurrentDirectory()),
+                system: this.system,
+                cliArgs: normalizedCliArgs,
+                rootFiles: this.getRootFiles(),
+                reporter: this.reporter,
+                ...(profile && { config: this.options.config?.profiles?.[profile]?.config }),
+                profile,
+                // Register with the profiles watch() registers root files with, so every context shares one watcher per file
+                ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.getWatchedProfiles()) }),
+                registerDependencyCallback: this.dependencyCallback,
+            },
+            profile
+        );
+    }
+
+    /** Creates the compilation context of `profile` from `options`, which are resolved for that profile. */
+    protected instantiateCompilationContext(options: CompilationContextOptions, _profile?: string): CompilationContext {
+        return new CompilationContext(options);
     }
 
     protected emitSourceFile(fileName: string, profile?: string, writeFile = true, skipCache = false): CompileFragment {

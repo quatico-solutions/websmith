@@ -52,10 +52,13 @@ export const toRollupError = (errors: readonly ts.Diagnostic[]): RollupErrorLog 
     return { message, ...(loc && { loc }) };
 };
 
-/** Returns the Rollup warning for `warning`: with its position as `loc` when it has one. */
+/**
+ * Returns the Rollup warning for `warning`: with its position as `loc` when it has one, and then without the position
+ * in the message, since Rollup prints `loc` in front of the message.
+ */
 export const toRollupWarning = (warning: ts.Diagnostic): RollupWarningLog => {
     const loc = getLocation(warning);
-    return loc ? { message: formatDiagnostic(warning), loc } : formatDiagnostic(warning);
+    return loc ? { message: ts.flattenDiagnosticMessageText(warning.messageText, "\n"), loc } : formatDiagnostic(warning);
 };
 
 /**

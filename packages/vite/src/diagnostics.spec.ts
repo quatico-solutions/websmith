@@ -75,10 +75,10 @@ describe("toRollupError", () => {
 });
 
 describe("toRollupWarning", () => {
-    it("should return message and loc w/ position", () => {
+    it("should return message without position and loc w/ position", () => {
         const actual = toRollupWarning(diagnostic("ESM91001", ts.DiagnosticCategory.Warning, { file: FILE, start: START }));
 
-        expect(actual).toEqual({ message: "/project/src/main.ts (2,18): ESM91001", loc: { file: "/project/src/main.ts", line: 2, column: 17 } });
+        expect(actual).toEqual({ message: "ESM91001", loc: { file: "/project/src/main.ts", line: 2, column: 17 } });
     });
 
     it("should return string w/o position", () => {
