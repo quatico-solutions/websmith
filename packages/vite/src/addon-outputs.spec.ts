@@ -157,6 +157,22 @@ describe("AddonOutputs", () => {
         });
     });
 
+    describe("retainModules", () => {
+        it("should keep entries of activation, build and given ids w/ entries of other module", () => {
+            const context = createContext();
+            const testObj = createOutputs();
+            testObj.runActivation(context, () => testObj.addVirtualFile("activation.json", "A", "probe"));
+            testObj.run(context, undefined, () => testObj.addVirtualFile("build.json", "B", "probe"));
+            testObj.run(context, "/project/src/a.ts", () => testObj.addVirtualFile("a.json", "A", "probe"));
+            testObj.run(context, "/project/src/b.ts", () => testObj.addVirtualFile("b.json", "B", "probe"));
+
+            testObj.retainModules(new Set(["/project/src/b.ts"]));
+            testObj.generateBundle(context, {}, ["/project/src/a.ts", "/project/src/b.ts"]);
+
+            expect(emitted(context).map(cur => (cur as { fileName: string }).fileName)).toEqual(["activation.json", "b.json", "build.json"]);
+        });
+    });
+
     describe("startBuild", () => {
         it("should drop entries made outside a transform", () => {
             const context = createContext();
