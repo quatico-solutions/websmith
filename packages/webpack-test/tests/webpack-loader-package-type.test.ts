@@ -22,7 +22,7 @@ type BuildReport = {
     built: string[];
     /** Module format of dist/main.js. */
     format: "commonjs" | "esm";
-    /** package.json files among the build info dependencies of the a.ts module, relative to the project. */
+    /** package.json files in the build snapshot of the a.ts module, relative to the project. */
     dependencies: { files: string[]; missing: string[] };
     /** package.json types recorded in the build info of the a.ts module. */
     recorded: Record<string, string | null> | null;
@@ -176,6 +176,10 @@ const runWebpack = ({ threadLoader, cache, edit }: RunOptions): BuildReport[] =>
         });
         const packageJsons = files =>
             [...(files || [])].filter(cur => path.basename(cur) === "package.json").map(cur => path.relative(projectDir, cur)).sort();
+        const snapshotDependencies = snapshot => ({
+            files: packageJsons(snapshot && snapshot.getFileIterable()),
+            missing: packageJsons(snapshot && snapshot.getMissingIterable()),
+        });
         const report = stats => {
             const { compilation } = stats;
             const module = [...compilation.modules].find(cur => cur.resource === moduleFile);
@@ -184,7 +188,8 @@ const runWebpack = ({ threadLoader, cache, edit }: RunOptions): BuildReport[] =>
             console.log("RESULT " + JSON.stringify({
                 built: [...compilation.modules].filter(cur => compilation.builtModules.has(cur)).map(cur => cur.resource).filter(Boolean),
                 format: /exports\\.a = /.test(output) ? "commonjs" : "esm",
-                dependencies: { files: packageJsons(buildInfo.fileDependencies), missing: packageJsons(buildInfo.missingDependencies) },
+                // webpack moves a module's file and missing dependencies into its snapshot and clears them after the build
+                dependencies: snapshotDependencies(buildInfo.snapshot),
                 recorded: buildInfo.websmithPackageTypes || null,
             }));
         };
