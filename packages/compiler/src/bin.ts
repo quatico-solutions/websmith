@@ -5,8 +5,20 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { checkTypeScript } from "@quatico/websmith-core/lib/check-typescript";
 import { Command } from "commander";
-import { addCompileCommand } from "./command";
+import type * as CommandModule from "./command";
+
+try {
+    checkTypeScript(__dirname);
+} catch (err) {
+    process.stderr.write(`${(err as Error).message}\n`);
+    process.exit(1);
+}
+
+// Loaded after the check: the command loads typescript, which fails at load with an unsupported version
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+const { addCompileCommand } = require("./command") as typeof CommandModule;
 
 let exitCode = 0;
 const originalExit = process.exit;
