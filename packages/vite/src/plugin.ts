@@ -4,9 +4,10 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { createFilter, type Plugin } from "vite";
+import { createFilter, type Plugin, type ViteDevServer } from "vite";
 import { createWebsmithHooks } from "./hooks";
 import { createHookFilter, type WebsmithViteOptions } from "./options";
+import { createVirtualFileMiddleware } from "./virtual-file-middleware";
 
 export type { WebsmithViteOptions } from "./options";
 
@@ -37,7 +38,10 @@ export type { WebsmithViteOptions } from "./options";
  *   effective `module` emits CommonJS, which Vite cannot bundle. A `vite build --watch` resolves the options again
  *   when `websmith.config.json` or `tsconfig.json` changes. TypeScript's errors without a file, e.g. an option
  *   error, exist only after a module was emitted and fail the build in `buildEnd`, once.
- * - The dev server raises module diagnostics the same way; its configuration errors are not reported yet.
+ * - The dev server raises module diagnostics the same way. Its configuration errors go to Vite's logger once, when the
+ *   environment starts (`client` at server start, any other environment on its first module), and fail every module
+ *   of that environment as the error overlay, without stopping the server. TypeScript's errors without a file join
+ *   the errors of every module.
  *
  * Addons activate once for every module of a build and, under `vite build --watch`, again only after an edit of their
  * files or of the configuration; the files an addon adds or watches in `activate` apply to every rebuild until then.
@@ -47,12 +51,17 @@ export type { WebsmithViteOptions } from "./options";
  * - `addVirtualFile` adds a file of any extension to the bundle as an asset, and `removeOutputFile` deletes a file
  *   from the bundle, e.g. an asset Vite emits itself; both apply in `generateBundle`. Their paths are relative to
  *   `build.outDir`, or absolute inside it; a path outside it fails the build. Removing a file the bundle does not
- *   hold is a warning. The dev server keeps virtual files in memory and does not serve them yet.
+ *   hold is a warning. The dev server serves the virtual files of environment `client` from memory, at `base` + their
+ *   bundle path, in front of any real file at that URL.
  * - A file an addon writes through `getSystem().writeFile` goes to disk only, not into the bundle. A rebuild by the
  *   same plugin instance does not rewrite a file with the same text, e.g. the output of a profile in `depends`.
  * - The result processors of the profile run once per environment of a `vite build`, in `buildEnd` and only for a
- *   build without errors, with the output files of every module of the environment's bundle.
+ *   build without errors, with the output files of every module of the environment's bundle. The dev server runs
+ *   them after each transform without errors, with that module's output files.
  * - The profiles in `depends` keep the CLI's context: their files go to their own `outDir`, not into the bundle.
+ *
+ * The dev server uses the build's profile and does not set `transpileOnly`. With an explicit `transpileOnly`, it warns
+ * once per environment and names the addons of the profile that need type information.
  */
 export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
     const hooks = createWebsmithHooks(options, { createFilter });
@@ -60,6 +69,10 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
         name: "websmith",
         enforce: "pre",
         configResolved: hooks.configResolved,
+        // Without a returned function, the middleware runs before Vite's own, so a virtual file shadows a real one
+        configureServer(server: ViteDevServer) {
+            server.middlewares.use(createVirtualFileMiddleware(hooks.findVirtualFile, server.config.base));
+        },
         buildStart: hooks.buildStart,
         transform: { filter: { id: createHookFilter(options) }, handler: hooks.transformHandler },
         buildEnd: hooks.buildEnd,

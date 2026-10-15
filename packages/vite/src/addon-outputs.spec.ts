@@ -243,6 +243,81 @@ describe("AddonOutputs", () => {
         });
     });
 
+    describe("getVirtualFile", () => {
+        it("should return virtual file added on activation", () => {
+            const context = createContext();
+            const testObj = createOutputs(createReporter(), "serve");
+            testObj.runActivation(context, () => testObj.addVirtualFile("activation.json", "A", "probe"));
+
+            const actual = testObj.getVirtualFile("activation.json");
+
+            expect(actual).toBe("A");
+        });
+
+        it("should return virtual file added in transform", () => {
+            const testObj = createOutputs(createReporter(), "serve");
+            testObj.run(createContext(), "/project/src/a.ts", () => testObj.addVirtualFile("a.json", "A", "probe"));
+
+            const actual = testObj.getVirtualFile("a.json");
+
+            expect(actual).toBe("A");
+        });
+
+        it("should return virtual file added outside a transform", () => {
+            const testObj = createOutputs(createReporter(), "serve");
+            testObj.run(createContext(), undefined, () => testObj.addVirtualFile("build.json", "B", "probe"));
+
+            const actual = testObj.getVirtualFile("build.json");
+
+            expect(actual).toBe("B");
+        });
+
+        it("should return content of later entry w/ same file name", () => {
+            const context = createContext();
+            const testObj = createOutputs(createReporter(), "serve");
+            testObj.run(context, undefined, () => testObj.addVirtualFile("v.json", "BUILD", "probe"));
+            testObj.run(context, "/project/src/a.ts", () => testObj.addVirtualFile("v.json", "A", "probe"));
+            testObj.runActivation(context, () => testObj.addVirtualFile("v.json", "ACTIVATION", "probe"));
+            testObj.run(context, "/project/src/b.ts", () => testObj.addVirtualFile("v.json", "B", "probe"));
+
+            const actual = testObj.getVirtualFile("v.json");
+
+            expect(actual).toBe("BUILD");
+        });
+
+        it("should return content of later module w/ same file name", () => {
+            const context = createContext();
+            const testObj = createOutputs(createReporter(), "serve");
+            testObj.runActivation(context, () => testObj.addVirtualFile("v.json", "ACTIVATION", "probe"));
+            testObj.run(context, "/project/src/a.ts", () => testObj.addVirtualFile("v.json", "A", "probe"));
+            testObj.run(context, "/project/src/b.ts", () => testObj.addVirtualFile("v.json", "B", "probe"));
+
+            const actual = testObj.getVirtualFile("v.json");
+
+            expect(actual).toBe("B");
+        });
+
+        it("should return undefined w/ removal of that file name", () => {
+            const context = createContext();
+            const testObj = createOutputs(createReporter(), "serve");
+            testObj.run(context, "/project/src/a.ts", () => testObj.addVirtualFile("v.json", "A", "probe"));
+            testObj.run(context, "/project/src/b.ts", () => testObj.removeOutputFile("v.json", "probe"));
+
+            const actual = testObj.getVirtualFile("v.json");
+
+            expect(actual).toBeUndefined();
+        });
+
+        it("should return undefined w/ unknown file name", () => {
+            const testObj = createOutputs(createReporter(), "serve");
+            testObj.run(createContext(), "/project/src/a.ts", () => testObj.addVirtualFile("a.json", "A", "probe"));
+
+            const actual = testObj.getVirtualFile("b.json");
+
+            expect(actual).toBeUndefined();
+        });
+    });
+
     describe("generateBundle", () => {
         it("should emit virtual files as assets w/ last content", () => {
             const context = createContext();
