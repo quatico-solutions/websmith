@@ -1181,6 +1181,14 @@ describe("createWebsmithHooks", () => {
             expect(actual).toBeUndefined();
         });
 
+        it.each([["/virt%2Fmain.json"], ["/virt%2fmain.json"], ["/virt%5Cmain.json"]])("should return undefined w/ encoded slash in %s", url => {
+            const testObj = createServingHooks();
+
+            const actual = testObj.findVirtualFile(url, "/");
+
+            expect(actual).toBeUndefined();
+        });
+
         it("should return undefined w/ malformed encoding", () => {
             const testObj = createServingHooks();
 

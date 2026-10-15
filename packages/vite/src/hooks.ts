@@ -481,12 +481,17 @@ export const createWebsmithHooks = (
                 this.error(toRollupError(errors));
             }
         },
-        // Serves the virtual files of the client environment, which serves the browser, at base + their bundle path
+        // Serves the virtual files of the client environment, which serves the browser, at base + their bundle path. Each
+        // path segment is decoded on its own, and a segment holding an encoded slash matches no file.
         findVirtualFile(url, base) {
             const state = environments.get(CLIENT_ENVIRONMENT);
             let pathname: string;
             try {
-                pathname = decodeURIComponent(url.replace(/[?#].*$/s, ""));
+                const segments = url.replace(/[?#].*$/s, "").split("/").map(cur => decodeURIComponent(cur));
+                if (segments.some(cur => /[/\\]/.test(cur))) {
+                    return undefined;
+                }
+                pathname = segments.join("/");
             } catch {
                 return undefined;
             }
