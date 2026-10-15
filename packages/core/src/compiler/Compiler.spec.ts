@@ -3201,14 +3201,8 @@ describe("watch", () => {
         });
 
         it.each([
-            {
-                name: "generator in deepest profile",
-                config: { profiles: { a: { addons: ["gen-addon"] }, b: { depends: ["a"] }, c: { depends: ["b"] } } },
-            },
-            {
-                name: "generator in config addons",
-                config: { addons: ["gen-addon"], profiles: { a: {}, b: { depends: ["a"] }, c: { depends: ["b"] } } },
-            },
+            { name: "generator in deepest profile", config: { profiles: { a: { addons: ["gen-addon"] }, b: { depends: ["a"] }, c: { depends: ["b"] } } } },
+            { name: "generator in config addons", config: { addons: ["gen-addon"], profiles: { a: {}, b: { depends: ["a"] }, c: { depends: ["b"] } } } },
         ])("reports syntax error in generator-added file once per watched profile w/ two levels of depends and $name", ({ config }) => {
             const fileSystem = createSystem({ "src/target.ts": `export const a = 1;`, "src/added.ts": `export const b = 1;` }, { virtual: true });
             const target = new ReporterMock(fileSystem);
