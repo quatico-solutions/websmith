@@ -11,18 +11,30 @@ import path from "node:path";
 /** The failure of a `vite build`, as Rollup augments the error the plugin raised. */
 export type ViteBuildError = { message: string; loc?: { file?: string; line: number; column: number }; hook?: string; plugin?: string };
 
-/** The result of a `vite build`: the code of its chunks, its failure, and the warnings of `onwarn`. */
-export type ViteBuildResult = { code: string; error?: ViteBuildError; warnings: string[] };
+/** An asset of the bundle, with its source as text. */
+export type ViteAsset = { fileName: string; source: string };
+
+/**
+ * The result of a `vite build`: the code of its chunks, its failure, the warnings of `onwarn`, the assets of the
+ * bundle and, with `probe`, the watch files at `generateBundle`, relative to the project.
+ */
+export type ViteBuildResult = { code: string; error?: ViteBuildError; warnings: string[]; assets: ViteAsset[]; watchFiles?: string[] };
 
 /** One event of a `vite build --watch`, with the message and hook of an `ERROR` event. */
 export type ViteWatchEvent = { code: string; message?: string; hook?: string };
 
-/** The options of the runners: the Vite package to import, the plugin options, Vite options and the working directory. */
+/**
+ * The options of the runners: the Vite package to import, the plugin options, Vite options and the working directory.
+ * `probe` adds a plugin that records the watch files; `betweenBuilds`, code run in the build process, runs a first
+ * build with the same plugin object before it, and the result is that of the second build.
+ */
 export type RunViteOptions = {
     vite?: string;
     pluginOptions: Record<string, unknown>;
     viteOptions?: Record<string, unknown>;
     cwd?: string;
+    probe?: boolean;
+    betweenBuilds?: string;
 };
 
 let projectDir = "";
@@ -94,22 +106,39 @@ const runScript = (fileName: string, cwd: string, timeout?: number): string => {
  * Runs `vite build` with the plugin in a separate Node process, since Vite is ESM only, and returns the code of the
  * bundle, the error that failed the build, and the warnings Rollup's `onwarn` received.
  */
-export const runVite = ({ vite = "vite", pluginOptions, viteOptions = {}, cwd = projectDir }: RunViteOptions): ViteBuildResult => {
+export const runVite = ({
+    vite = "vite",
+    pluginOptions,
+    viteOptions = {},
+    cwd = projectDir,
+    probe = false,
+    betweenBuilds,
+}: RunViteOptions): ViteBuildResult => {
     writeFile(
         "build.mjs",
         `
         import { build } from ${JSON.stringify(vite)};
         import websmith from "@quatico/websmith-vite";
+        import fs from "node:fs";
+        import path from "node:path";
 
-        const warnings = [];
-        let code = "";
-        let error;
-        try {
-            const result = await build({
-                root: ${JSON.stringify(projectDir)},
+        const root = ${JSON.stringify(projectDir)};
+        const plugin = websmith(${toSource(pluginOptions)});
+        let warnings = [];
+        let watchFiles;
+        const probe = {
+            name: "probe",
+            generateBundle() {
+                watchFiles = this.getWatchFiles().map(cur => path.relative(root, cur).split(path.sep).join("/"));
+            },
+        };
+        const runBuild = () => {
+            warnings = [];
+            return build({
+                root,
                 configFile: false,
                 logLevel: "warn",
-                plugins: [websmith(${toSource(pluginOptions)})],
+                plugins: [plugin, ...(${probe} ? [probe] : [])],
                 ...${JSON.stringify(viteOptions)},
                 build: {
                     write: false,
@@ -118,12 +147,25 @@ export const runVite = ({ vite = "vite", pluginOptions, viteOptions = {}, cwd = 
                     rollupOptions: { onwarn: warning => warnings.push(warning.message) },
                 },
             });
+        };
+        let code = "";
+        let assets = [];
+        let error;
+        try {
+            ${betweenBuilds === undefined ? "" : `await runBuild();\n${betweenBuilds}`}
+            const result = await runBuild();
             const outputs = (Array.isArray(result) ? result : [result]).flatMap(cur => cur.output);
             code = outputs.filter(cur => cur.type === "chunk").map(cur => cur.code).join("\\n");
+            assets = outputs
+                .filter(cur => cur.type === "asset")
+                .map(cur => ({
+                    fileName: cur.fileName,
+                    source: typeof cur.source === "string" ? cur.source : Buffer.from(cur.source).toString("utf-8"),
+                }));
         } catch (cause) {
             error = { message: cause.message, loc: cause.loc, hook: cause.hook, plugin: cause.plugin };
         }
-        console.log(JSON.stringify({ code, error, warnings }));
+        console.log(JSON.stringify({ code, error, warnings, assets, watchFiles }));
         `
     );
     return JSON.parse(runScript("build.mjs", cwd)) as ViteBuildResult;

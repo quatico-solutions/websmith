@@ -49,6 +49,7 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
         buildStart: hooks.buildStart,
         transform: { filter: { id: createHookFilter(options) }, handler: hooks.transformHandler },
         buildEnd: hooks.buildEnd,
-        generateBundle: hooks.generateBundle,
+        // After Vite's own plugins, so a removal sees the assets they emit there, e.g. the CSS of the bundle
+        generateBundle: { order: "post", handler: hooks.generateBundle },
     };
 };

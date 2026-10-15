@@ -52,4 +52,13 @@ describe("createDeduplicatingSystem", () => {
 
         expect(writeFile).toHaveBeenCalledTimes(2);
     });
+
+    it("should keep members of system in spread copy", () => {
+        const { system: target } = createTarget();
+        target.writeFile("/out/a.js", "A");
+
+        const actual = { ...createDeduplicatingSystem(target) }.readFile("/out/a.js");
+
+        expect(actual).toBe("A");
+    });
 });
