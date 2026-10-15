@@ -139,6 +139,8 @@ must not rely on being activated again for each module.
 Under `module: node16` or `nodenext`, in the selected `profile` or a profile it depends on, the `"type"` of a
 module's nearest `package.json` decides the module format TypeScript emits. The loader tracks that `"type"` for every
 module, with or without `esm`: a `"type"` change rebuilds the module, other edits of that `package.json` do not.
+Under `thread-loader` or with webpack's persistent filesystem cache, the loader cannot compare the `"type"` before a
+module is restored, so any edit of that `package.json` rebuilds the module.
 
 #### `.mts` and `.cts` files
 

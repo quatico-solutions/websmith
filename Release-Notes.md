@@ -24,7 +24,8 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   nearest `package.json` changes, also without the ESM check; before, its output kept the old module format until
   the module itself changed. The `package.json` files the ESM check reads only for `"type"` no longer rebuild their
   modules on other edits, e.g. by `npm install`. Under `thread-loader` and with webpack's persistent cache, any edit
-  of such a `package.json` still rebuilds the modules that depend on it.
+  of such a `package.json` rebuilds the modules that depend on it: as before with the ESM check, and newly for
+  `node16`/`nodenext` profiles without `esm`, whose modules no edit of their `package.json` rebuilt before.
 - **Behaviour change:** the webpack loader reports the TypeScript diagnostics of the profiles the selected `profile`
   depends on, labelled `(profile "<name>")`. Builds with an error only a dependent profile produces, e.g. a declaration
   emit error such as TS4094 in a profile with `declaration: true`, now fail; before, the dependent profile wrote its
