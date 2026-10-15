@@ -211,7 +211,10 @@ describe("vite dev server w/ websmith plugin", () => {
             });
 
             expect(actual.timeouts).toEqual([]);
-            expect(actual.responses[0]).toEqual(expect.objectContaining({ url: "/src/main.ts", status: 500 }));
+            expect(actual.responses.map(cur => [cur.url, cur.status])).toEqual([
+                ["/src/main.ts", 500],
+                ["/src/shared.ts", 500],
+            ]);
             expect(errorMessages(actual)[0]).toContain(OPTION_ERROR);
             expect(pluginLogs(actual, "error")).toEqual([containing(OPTION_ERROR)]);
         },
