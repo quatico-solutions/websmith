@@ -34,8 +34,8 @@ type RunOptions = {
 
 const CONFIG_ERROR = "Unknown 'esm.runtime' value 'bogus'";
 const TSCONFIG_ERROR = "Unknown compiler option 'nope'";
-// TS5095; the loader reports TypeScript's message without its code
-const OPTION_ERROR = "Option 'bundler' can only be used when";
+// TS5053 prefix: jsxFactory excludes reactNamespace, a file-less option error TypeScript 5 and 6 report; the loader drops the code
+const OPTION_ERROR = "Option 'reactNamespace' cannot be specified with option 'jsxFactory'";
 const DEPENDENT_LABEL = '(profile "dep")';
 const TSCONFIG = { target: "es2020", module: "esnext", moduleResolution: "bundler", rootDir: "src", outDir: "tsout" };
 const BOGUS_CONFIG = { profiles: { target: { esm: { runtime: "bogus" } } } };
@@ -80,7 +80,7 @@ describe("webpack w/ websmith-loader and config errors w/ persistent cache", () 
     }, 90000);
 
     it("should report option error in second run w/ persistent cache", async () => {
-        writeTsConfig({ ...TSCONFIG, module: "commonjs" });
+        writeTsConfig({ ...TSCONFIG, jsx: "react", jsxFactory: "h", reactNamespace: "R" });
         runWebpack({ cache: true });
         await waitForNewModificationTime();
 
