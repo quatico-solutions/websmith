@@ -5,26 +5,27 @@
  * ---------------------------------------------------------------------------------------------
  */
 import path from "node:path";
-import { createHookFilter, resolveViteOptions } from "./options";
+import ts from "typescript";
+import { createHookFilter, resolveViteOptions, selectProfile } from "./options";
 
 const ROOT = path.resolve("/project/app");
 const whatever = (): (() => boolean) => () => true;
 
 describe("resolveViteOptions", () => {
     it("should return config file in root w/o config file", () => {
-        const actual = resolveViteOptions({}, ROOT, whatever).loaderOptions.configFile;
+        const actual = resolveViteOptions({}, ROOT, "client", whatever).loaderOptions.configFile;
 
         expect(actual).toBe(path.join(ROOT, "websmith.config.json"));
     });
 
     it("should return config file resolved against root w/ relative config file", () => {
-        const actual = resolveViteOptions({ configFile: "./config/websmith.json" }, ROOT, whatever).loaderOptions.configFile;
+        const actual = resolveViteOptions({ configFile: "./config/websmith.json" }, ROOT, "client", whatever).loaderOptions.configFile;
 
         expect(actual).toBe(path.join(ROOT, "config", "websmith.json"));
     });
 
     it("should return tsconfig file resolved against root w/ relative tsconfig file", () => {
-        const actual = resolveViteOptions({ tsConfigFile: "tsconfig.app.json" }, ROOT, whatever).loaderOptions.tsConfigFile;
+        const actual = resolveViteOptions({ tsConfigFile: "tsconfig.app.json" }, ROOT, "client", whatever).loaderOptions.tsConfigFile;
 
         expect(actual).toBe(path.join(ROOT, "tsconfig.app.json"));
     });
@@ -32,13 +33,13 @@ describe("resolveViteOptions", () => {
     it("should keep config file w/ absolute config file", () => {
         const expected = path.resolve("/elsewhere/websmith.config.json");
 
-        const actual = resolveViteOptions({ configFile: expected }, ROOT, whatever).loaderOptions.configFile;
+        const actual = resolveViteOptions({ configFile: expected }, ROOT, "client", whatever).loaderOptions.configFile;
 
         expect(actual).toBe(expected);
     });
 
     it("should leave tsconfig file unset w/o tsconfig file", () => {
-        const actual = resolveViteOptions({}, ROOT, whatever).loaderOptions;
+        const actual = resolveViteOptions({}, ROOT, "client", whatever).loaderOptions;
 
         expect(actual).not.toHaveProperty("tsConfigFile");
     });
@@ -53,7 +54,7 @@ describe("resolveViteOptions", () => {
             profile: "app",
         };
 
-        const actual = resolveViteOptions(options, ROOT, whatever).loaderOptions;
+        const actual = resolveViteOptions(options, ROOT, "client", whatever).loaderOptions;
 
         expect(actual).toEqual({ ...options, configFile: path.join(ROOT, "websmith.config.json") });
     });
@@ -61,7 +62,7 @@ describe("resolveViteOptions", () => {
     it("should create filter w/ default include and exclude w/o include and exclude", () => {
         const target = jest.fn();
 
-        resolveViteOptions({}, ROOT, target);
+        resolveViteOptions({}, ROOT, "client", target);
 
         expect(target).toHaveBeenCalledWith(/\.(c|m)?tsx?$/, /node_modules/, { resolve: ROOT });
     });
@@ -69,7 +70,7 @@ describe("resolveViteOptions", () => {
     it("should create filter w/ default include and exclude w/ null include and exclude", () => {
         const target = jest.fn();
 
-        resolveViteOptions({ include: null, exclude: null }, ROOT, target);
+        resolveViteOptions({ include: null, exclude: null }, ROOT, "client", target);
 
         expect(target).toHaveBeenCalledWith(/\.(c|m)?tsx?$/, /node_modules/, { resolve: ROOT });
     });
@@ -77,7 +78,7 @@ describe("resolveViteOptions", () => {
     it("should create filter resolving against root w/ relative include and exclude", () => {
         const target = jest.fn();
 
-        resolveViteOptions({ include: "src/**/*.ts", exclude: ["src/legacy/**"] }, ROOT, target);
+        resolveViteOptions({ include: "src/**/*.ts", exclude: ["src/legacy/**"] }, ROOT, "client", target);
 
         expect(target).toHaveBeenCalledWith("src/**/*.ts", ["src/legacy/**"], { resolve: ROOT });
     });
@@ -85,15 +86,68 @@ describe("resolveViteOptions", () => {
     it("should return created filter w/ include and exclude", () => {
         const expected = jest.fn();
 
-        const actual = resolveViteOptions({ include: "src/**/*.ts" }, ROOT, () => expected).filter;
+        const actual = resolveViteOptions({ include: "src/**/*.ts" }, ROOT, "client", () => expected).filter;
 
         expect(actual).toBe(expected);
     });
 
     it("should not pass include and exclude to compiler options w/ include and exclude", () => {
-        const actual = resolveViteOptions({ include: "src/**/*.ts", exclude: "src/legacy/**" }, ROOT, whatever).loaderOptions;
+        const actual = resolveViteOptions({ include: "src/**/*.ts", exclude: "src/legacy/**" }, ROOT, "client", whatever).loaderOptions;
 
         expect(Object.keys(actual)).toEqual(["configFile"]);
+    });
+
+    it("should pass selected profile w/ profile map naming environment", () => {
+        const actual = resolveViteOptions({ profile: { client: "client", ssr: "server" } }, ROOT, "ssr", whatever).loaderOptions.profile;
+
+        expect(actual).toBe("server");
+    });
+
+    it("should leave profile unset w/ profile map not naming environment", () => {
+        const actual = resolveViteOptions({ profile: { client: "client" } }, ROOT, "ssr", whatever).loaderOptions;
+
+        expect(actual).not.toHaveProperty("profile");
+    });
+});
+
+describe("selectProfile", () => {
+    it("should return string w/ string profile", () => {
+        const actual = selectProfile("app", "ssr");
+
+        expect(actual).toEqual({ profile: "app" });
+    });
+
+    it("should return profile of environment w/ map naming environment", () => {
+        const actual = selectProfile({ client: "client", ssr: "server" }, "ssr");
+
+        expect(actual).toEqual({ profile: "server" });
+    });
+
+    it("should return error naming environment and map keys w/ map not naming environment", () => {
+        const actual = selectProfile({ client: "client", server: "server" }, "ssr").error;
+
+        expect(actual && [actual.category, actual.messageText]).toEqual([
+            ts.DiagnosticCategory.Error,
+            "The websmith plugin's 'profile' map names no profile for the Vite environment 'ssr'. It names: client, server.",
+        ]);
+    });
+
+    it("should return error naming none w/ empty map", () => {
+        const actual = selectProfile({}, "client").error?.messageText;
+
+        expect(actual).toBe("The websmith plugin's 'profile' map names no profile for the Vite environment 'client'. It names: none.");
+    });
+
+    it("should not select inherited key w/ map", () => {
+        const actual = selectProfile({}, "toString").profile;
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("should return no profile w/o profile", () => {
+        const actual = selectProfile(undefined, "client");
+
+        expect(actual).toEqual({});
     });
 });
 
