@@ -109,7 +109,7 @@ describe("checkModuleFormat", () => {
     it("should return error naming file and package.json w/ nodenext and no type in package.json", () => {
         const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
 
-        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, createCache());
+        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, createCache(), new Map());
 
         expect([actual.error?.category, actual.error?.messageText, actual.packageJson]).toEqual([
             ts.DiagnosticCategory.Error,
@@ -123,7 +123,7 @@ describe("checkModuleFormat", () => {
     it("should return package.json only w/ nodenext and type module", () => {
         const system = createModuleSystem({ "/project/package.json": `{"type":"module"}`, "/project/src/main.ts": "export {};" });
 
-        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, createCache());
+        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, createCache(), new Map());
 
         expect(actual).toEqual({ packageJson: "/project/package.json" });
     });
@@ -131,7 +131,7 @@ describe("checkModuleFormat", () => {
     it("should return none w/ nodenext and mts file", () => {
         const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.mts": "export {};" });
 
-        const actual = checkModuleFormat("app", "/project/src/main.mts", NODENEXT, false, system, createCache()).error;
+        const actual = checkModuleFormat("app", "/project/src/main.mts", NODENEXT, false, system, createCache(), new Map()).error;
 
         expect(actual).toBeUndefined();
     });
@@ -139,7 +139,7 @@ describe("checkModuleFormat", () => {
     it("should return error naming extension w/ nodenext and cts file", () => {
         const system = createModuleSystem({ "/project/package.json": `{"type":"module"}`, "/project/src/main.cts": "export {};" });
 
-        const actual = checkModuleFormat("app", "/project/src/main.cts", NODENEXT, false, system, createCache());
+        const actual = checkModuleFormat("app", "/project/src/main.cts", NODENEXT, false, system, createCache(), new Map());
 
         expect([actual.error?.messageText, actual.packageJson]).toEqual([
             `Profile 'app' emits CommonJS for '/project/src/main.cts' ('tsConfig.module' is 'nodenext' and the file has the .cts extension), ` +
@@ -151,7 +151,7 @@ describe("checkModuleFormat", () => {
     it("should return none w/ module ESNext", () => {
         const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
 
-        const actual = checkModuleFormat("app", "/project/src/main.ts", { module: ts.ModuleKind.ESNext }, false, system, createCache());
+        const actual = checkModuleFormat("app", "/project/src/main.ts", { module: ts.ModuleKind.ESNext }, false, system, createCache(), new Map());
 
         expect(actual).toEqual({});
     });
@@ -159,7 +159,7 @@ describe("checkModuleFormat", () => {
     it("should return none w/ nodenext and esm set", () => {
         const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
 
-        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, true, system, createCache());
+        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, true, system, createCache(), new Map());
 
         expect(actual).toEqual({});
     });
@@ -167,7 +167,7 @@ describe("checkModuleFormat", () => {
     it("should return error naming module w/ node16 and no type in package.json", () => {
         const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
 
-        const actual = checkModuleFormat("app", "/project/src/main.ts", { module: ts.ModuleKind.Node16 }, false, system, createCache()).error
+        const actual = checkModuleFormat("app", "/project/src/main.ts", { module: ts.ModuleKind.Node16 }, false, system, createCache(), new Map()).error
             ?.messageText;
 
         expect(actual).toMatch(/^Profile 'app' emits CommonJS for '\/project\/src\/main.ts' \('tsConfig.module' is 'node16' and/);
@@ -177,7 +177,7 @@ describe("checkModuleFormat", () => {
         const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
         const module = ts.ModuleKind[name as keyof typeof ts.ModuleKind];
 
-        const actual = checkModuleFormat("app", "/project/src/main.ts", { module }, false, system, createCache()).error?.messageText;
+        const actual = checkModuleFormat("app", "/project/src/main.ts", { module }, false, system, createCache(), new Map()).error?.messageText;
 
         expect(actual).toMatch(
             new RegExp(`^Profile 'app' emits CommonJS for '/project/src/main.ts' \\('tsConfig.module' is '${name.toLowerCase()}' and`)
@@ -187,7 +187,7 @@ describe("checkModuleFormat", () => {
     it("should return none w/ module value the installed TypeScript does not have", () => {
         const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
 
-        const actual = checkModuleFormat("app", "/project/src/main.ts", { module: 150 as ts.ModuleKind }, false, system, createCache());
+        const actual = checkModuleFormat("app", "/project/src/main.ts", { module: 150 as ts.ModuleKind }, false, system, createCache(), new Map());
 
         expect(actual).toEqual({});
     });
@@ -195,7 +195,7 @@ describe("checkModuleFormat", () => {
     it("should name default profile w/o profile", () => {
         const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
 
-        const actual = checkModuleFormat(undefined, "/project/src/main.ts", NODENEXT, false, system, createCache()).error?.messageText;
+        const actual = checkModuleFormat(undefined, "/project/src/main.ts", NODENEXT, false, system, createCache(), new Map()).error?.messageText;
 
         expect(actual).toMatch(/^The default profile emits CommonJS for/);
     });
@@ -203,12 +203,39 @@ describe("checkModuleFormat", () => {
     it("should return error naming no package.json w/ nodenext and no package.json", () => {
         const system = createModuleSystem({ "/project/src/main.ts": "export {};" });
 
-        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, createCache());
+        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, createCache(), new Map());
 
         expect([actual.error?.messageText, actual.packageJson]).toEqual([
             `Profile 'app' emits CommonJS for '/project/src/main.ts' ('tsConfig.module' is 'nodenext' and no package.json above it has ` +
                 `"type": "module"), which Vite cannot bundle as an ES module. Set "type": "module", use the .mts extension, or use "ESNext".`,
             undefined,
         ]);
+    });
+
+    it("should not look up package.json w/ second module in same directory", () => {
+        const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};", "/project/src/b.ts": "export {};" });
+        const cache = createCache();
+        const found = new Map<string, string | undefined>();
+        checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, cache, found);
+        const target = jest.spyOn(system, "fileExists");
+
+        const actual = checkModuleFormat("app", "/project/src/b.ts", NODENEXT, false, system, cache, found).packageJson;
+
+        expect(actual).toBe("/project/package.json");
+        expect(target).not.toHaveBeenCalled();
+    });
+
+    it("should find package.json created later w/ cleared caches", () => {
+        const system = createModuleSystem({ "/project/package.json": "{}", "/project/src/main.ts": "export {};" });
+        const cache = createCache();
+        const found = new Map<string, string | undefined>();
+        checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, cache, found);
+        system.writeFile("/project/src/package.json", `{"type":"module"}`);
+        cache.clear();
+        found.clear();
+
+        const actual = checkModuleFormat("app", "/project/src/main.ts", NODENEXT, false, system, cache, found);
+
+        expect(actual).toEqual({ packageJson: "/project/src/package.json" });
     });
 });

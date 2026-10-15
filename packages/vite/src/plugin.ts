@@ -78,6 +78,8 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
         buildStart: hooks.buildStart,
         transform: { filter: { id: createHookFilter(options) }, handler: hooks.transformHandler },
         buildEnd: hooks.buildEnd,
+        // In the dev server only: reloads with the new configuration, and sends no reload for the plugin's own writes
+        hotUpdate: hooks.hotUpdate,
         // After Vite's own plugins, so a removal sees the assets they emit there, e.g. the CSS of the bundle
         generateBundle: { order: "post", handler: hooks.generateBundle },
     };

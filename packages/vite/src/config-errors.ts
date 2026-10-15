@@ -36,24 +36,36 @@ export const checkTargetModule = (profile: string | undefined, tsConfig: ts.Comp
     return new ErrorMessage(`${subject} emits ${emitted} (${cause}), which Vite cannot bundle as an ES module. Use "ESNext" or "ES2022".`);
 };
 
-// The nearest package.json above `fileName`, which decides the format of a .ts or .js file under a node module kind
-const findPackageJson = (fileName: string, system: ts.System): string | undefined => {
+// The nearest package.json above `fileName`, which decides the format of a .ts or .js file under a node module kind.
+// Remembers the answer for each directory it walked in `found`, so a second module of the directory looks up nothing.
+const findPackageJson = (fileName: string, system: ts.System, found: Map<string, string | undefined>): string | undefined => {
+    const walked: string[] = [];
+    let result: string | undefined;
     for (let dir = path.dirname(fileName); ; dir = path.dirname(dir)) {
+        if (found.has(dir)) {
+            result = found.get(dir);
+            break;
+        }
+        walked.push(dir);
         const candidate = path.join(dir, "package.json");
         if (system.fileExists(candidate)) {
-            return candidate;
+            result = candidate;
+            break;
         }
         if (path.dirname(dir) === dir) {
-            return undefined;
+            break;
         }
     }
+    walked.forEach(cur => found.set(cur, result));
+    return result;
 };
 
 /**
  * Returns a configuration error when the profile's `module` is a node module kind (`node16`, `node18`, `node20`,
  * `nodenext`) and TypeScript emits the module `fileName` as CommonJS, which Vite cannot bundle as an ES module: a
  * `.cts` file, or a file whose nearest `package.json` has no `"type": "module"`. Returns that `package.json`, which decides the format, for the caller to
- * watch. Returns nothing when the profile sets `esm`, which core reports for that case already.
+ * watch. Returns nothing when the profile sets `esm`, which core reports for that case already. `cache` and `found`
+ * keep what was read from disk; clear both when a `package.json` changes.
  */
 export const checkModuleFormat = (
     profile: string | undefined,
@@ -61,14 +73,15 @@ export const checkModuleFormat = (
     tsConfig: ts.CompilerOptions,
     hasEsm: boolean,
     system: ts.System,
-    cache: ts.PackageJsonInfoCache
+    cache: ts.PackageJsonInfoCache,
+    found: Map<string, string | undefined>
 ): { error?: ts.Diagnostic; packageJson?: string } => {
     const { module } = tsConfig;
     if (hasEsm || module === undefined || !isNodeModuleKind(module)) {
         return {};
     }
     const isCts = /\.cts$/i.test(fileName);
-    const packageJson = isCts ? undefined : findPackageJson(fileName, system);
+    const packageJson = isCts ? undefined : findPackageJson(fileName, system, found);
     if (ts.getImpliedNodeFormatForFile(fileName, cache, system, tsConfig) !== ts.ModuleKind.CommonJS) {
         return packageJson ? { packageJson } : {};
     }

@@ -11,8 +11,8 @@ const BYTE_ORDER_MARK = "﻿";
 
 const hashOf = (text: string): string => createHash("sha1").update(text).digest("hex");
 
-// Vite reports files with forward slashes, TypeScript's system may write them with backslashes
-const toKey = (filePath: string): string => filePath.replace(/\\/g, "/");
+/** Returns `filePath` with forward slashes, as Vite reports files, since TypeScript's system may use backslashes. */
+export const toFileKey = (filePath: string): string => filePath.replace(/\\/g, "/");
 
 /**
  * The files the plugin instance wrote and the hash of the text it wrote last, shared by the compilers of all its
@@ -23,12 +23,12 @@ export class WriteRecord {
 
     /** Records that the plugin wrote `text` to `filePath`, with a byte order mark if `writeByteOrderMark` is set. */
     public record(filePath: string, text: string, writeByteOrderMark?: boolean): void {
-        this.written.set(toKey(filePath), hashOf(writeByteOrderMark ? BYTE_ORDER_MARK + text : text));
+        this.written.set(toFileKey(filePath), hashOf(writeByteOrderMark ? BYTE_ORDER_MARK + text : text));
     }
 
     /** Returns whether the plugin wrote `filePath`, and has not seen other text in it since. */
     public has(filePath: string): boolean {
-        return this.written.has(toKey(filePath));
+        return this.written.has(toFileKey(filePath));
     }
 
     /**
@@ -36,7 +36,7 @@ export class WriteRecord {
      * so that another writer's later write of the same text is not taken for the plugin's own.
      */
     public isOwnWrite(filePath: string, text: string): boolean {
-        const key = toKey(filePath);
+        const key = toFileKey(filePath);
         if (this.written.get(key) === hashOf(text)) {
             return true;
         }
