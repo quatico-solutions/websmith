@@ -221,6 +221,7 @@ describe("createWebsmithHooks", () => {
 
             expect(actual).toHaveBeenCalledWith("ADDON_WARNING");
         });
+
         it("should add dependencies as watch files", () => {
             const compiler = createCompiler({
                 build: jest.fn(() => ({

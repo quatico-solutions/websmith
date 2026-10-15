@@ -119,8 +119,22 @@ describe("AddonOutputs", () => {
 
         it("should report error after running hook returned", () => {
             const reporter = createReporter();
-            const context = createContext();
             const testObj = createOutputs(reporter);
+            testObj.run(createContext(), undefined, () => undefined);
+
+            testObj.addWatchFile("/project/src/extra.ts", "addInputFile", "probe");
+
+            expect(messages(reporter)).toEqual([
+                [
+                    ts.DiagnosticCategory.Error,
+                    `addInputFile of addon "probe" was called outside a Vite build hook: '/project/src/extra.ts' is not watched`,
+                ],
+            ]);
+        });
+
+        it("should not add watch file to context of returned hook", () => {
+            const context = createContext();
+            const testObj = createOutputs();
             testObj.run(context, undefined, () => undefined);
 
             testObj.addWatchFile("/project/t.html", "addInputFile", "probe");
