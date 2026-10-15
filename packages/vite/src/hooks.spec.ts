@@ -7,10 +7,13 @@
 import { ErrorMessage, type Reporter, WarnMessage } from "@quatico/websmith-api";
 import { type CompileFragment } from "@quatico/websmith-core";
 import ts from "typescript";
+import { type AddonOutputs } from "./addon-outputs";
 import { createWebsmithHooks, type HookCompiler, type HookContext } from "./hooks";
 
 const ROOT = "/project";
 const MAIN = `${ROOT}/src/main.ts`;
+const B = `${ROOT}/src/b.ts`;
+const BUILD = { outDir: "dist" };
 
 const fragment = (files: Record<string, string> = {}): CompileFragment => ({
     version: 0,
@@ -45,6 +48,7 @@ const createCompiler = (overrides: Partial<HookCompiler> = {}): HookCompiler => 
     getProfile: jest.fn(() => "app"),
     build: jest.fn(() => ({ fragment: fragment({ "main.js": "export const x = 1;" }), diagnostics: [], dependencies: { files: [], missing: [] } })),
     getConfigErrors: jest.fn(() => []),
+    runResultProcessors: jest.fn(() => []),
     getOptionsFiles: jest.fn(() => ({ files: [], missing: [] })),
     refreshOptions: jest.fn(() => false),
     refreshAddons: jest.fn(),
@@ -53,17 +57,19 @@ const createCompiler = (overrides: Partial<HookCompiler> = {}): HookCompiler => 
     ...overrides,
 });
 
-const createContext = (): HookContext => ({
+const createContext = (moduleIds: string[] = []): HookContext => ({
     error: jest.fn((error: unknown) => {
         throw new Error(typeof error === "string" ? error : (error as { message: string }).message);
     }),
     warn: jest.fn(),
     addWatchFile: jest.fn(),
+    emitFile: jest.fn(() => "whatever"),
+    getModuleIds: jest.fn(() => moduleIds.values()),
 });
 
 const createHooks = (compiler: HookCompiler, command: "build" | "serve" = "build") => {
     const testObj = createWebsmithHooks({ profile: "app" }, { createFilter: () => () => true, createCompiler: () => compiler });
-    testObj.configResolved({ root: ROOT, command });
+    testObj.configResolved({ root: ROOT, command, build: BUILD });
     return testObj;
 };
 
@@ -71,7 +77,7 @@ describe("createWebsmithHooks", () => {
     describe("transformHandler", () => {
         it("should return null w/ id rejected by filter", () => {
             const testObj = createWebsmithHooks({}, { createFilter: () => () => false, createCompiler: () => createCompiler() });
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
             testObj.buildStart.call(createContext());
 
             const actual = testObj.transformHandler.call(createContext(), "whatever", MAIN);
@@ -167,7 +173,7 @@ describe("createWebsmithHooks", () => {
             testObj.transformHandler.call(target, "whatever", MAIN);
             const actual = target.warn;
 
-            expect(actual).toHaveBeenCalledWith({ message: `${MAIN} (2,18): ESM91001`, loc: { file: MAIN, line: 2, column: 17 } });
+            expect(actual).toHaveBeenCalledWith({ message: "ESM91001", loc: { file: MAIN, line: 2, column: 17 } });
         });
 
         it("should return output w/ warning only", () => {
@@ -189,7 +195,7 @@ describe("createWebsmithHooks", () => {
                 }),
             });
             const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), compiler) });
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
             testObj.buildStart.call(createContext());
 
             const actual = () => testObj.transformHandler.call(createContext(), "whatever", MAIN);
@@ -206,7 +212,7 @@ describe("createWebsmithHooks", () => {
                 }),
             });
             const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), compiler) });
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
             testObj.buildStart.call(createContext());
             const target = createContext();
 
@@ -214,6 +220,24 @@ describe("createWebsmithHooks", () => {
             const actual = target.warn;
 
             expect(actual).toHaveBeenCalledWith("ADDON_WARNING");
+        });
+
+        it("should add dependencies as watch files", () => {
+            const compiler = createCompiler({
+                build: jest.fn(() => ({
+                    fragment: fragment({ "main.js": "whatever" }),
+                    diagnostics: [],
+                    dependencies: { files: [`${ROOT}/package.json`], missing: [`${ROOT}/src/package.json`] },
+                })),
+            });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+            const target = createContext();
+
+            testObj.transformHandler.call(target, "whatever", MAIN);
+            const actual = (target.addWatchFile as jest.Mock).mock.calls.map(([cur]: [string]) => cur);
+
+            expect(actual).toEqual([`${ROOT}/package.json`, `${ROOT}/src/package.json`]);
         });
     });
 
@@ -258,7 +282,7 @@ describe("createWebsmithHooks", () => {
                     },
                 }
             );
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
 
             const actual = () => testObj.buildStart.call(createContext());
 
@@ -276,7 +300,7 @@ describe("createWebsmithHooks", () => {
                     },
                 }
             );
-            testObj.configResolved({ root: ROOT, command: "serve" });
+            testObj.configResolved({ root: ROOT, command: "serve", build: BUILD });
             testObj.buildStart.call(createContext());
 
             const actual = () => testObj.transformHandler.call(createContext(), "whatever", MAIN);
@@ -296,7 +320,7 @@ describe("createWebsmithHooks", () => {
                     },
                 }
             );
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
             const target = createContext();
 
             testObj.buildStart.call(target);
@@ -314,7 +338,7 @@ describe("createWebsmithHooks", () => {
                 }),
             });
             const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), compiler) });
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
             testObj.buildStart.call(createContext());
             const target = createContext();
 
@@ -334,7 +358,7 @@ describe("createWebsmithHooks", () => {
                 }),
             });
             const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), compiler) });
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
             const target = createContext();
             testObj.buildStart.call(target);
             testObj.transformHandler.call(target, "whatever", MAIN);
@@ -391,7 +415,7 @@ describe("createWebsmithHooks", () => {
         it("should create compiler once w/ two builds", () => {
             const target = jest.fn(() => createCompiler());
             const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: target });
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
 
             testObj.buildStart.call(createContext());
             testObj.buildStart.call(createContext());
@@ -403,7 +427,7 @@ describe("createWebsmithHooks", () => {
         it("should create compiler w/ loader options resolved against root", () => {
             const target = jest.fn(() => createCompiler());
             const testObj = createWebsmithHooks({ profile: "app" }, { createFilter: () => () => true, createCompiler: target });
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
 
             testObj.buildStart.call(createContext());
             const actual = target.mock.calls[0][0];
@@ -469,6 +493,24 @@ describe("createWebsmithHooks", () => {
             expect(actual).toEqual(["refreshOptions", "refreshAddons", "resetCompilationCaches"]);
         });
 
+        it("should add watch file added on activation again w/ rebuild", () => {
+            const testObj = createWebsmithHooks(
+                {},
+                {
+                    createFilter: () => () => true,
+                    createCompiler: (_options, _reporter, outputs) => (outputs.addWatchFile(`${ROOT}/t.html`, "addAssetDependency", "probe"), createCompiler()),
+                }
+            );
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
+            testObj.buildStart.call(createContext());
+            const target = createContext();
+
+            testObj.buildStart.call(target);
+            const actual = target.addWatchFile;
+
+            expect(actual).toHaveBeenCalledWith(`${ROOT}/t.html`);
+        });
+
         it("should reset compilation caches w/ rebuild", () => {
             const compiler = createCompiler();
             const testObj = createHooks(compiler);
@@ -507,7 +549,7 @@ describe("createWebsmithHooks", () => {
         it("should warn w/ warning reported after the last transform", () => {
             let reporter: Reporter | undefined;
             const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), createCompiler()) });
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
             testObj.buildStart.call(createContext());
             reporter?.reportDiagnostic(new WarnMessage("LATE_WARNING"));
             const target = createContext();
@@ -554,11 +596,147 @@ describe("createWebsmithHooks", () => {
 
         it("should not raise w/o buildStart", () => {
             const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: () => createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("TS5053")]) }) });
-            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
 
             const actual = () => testObj.buildEnd.call(createContext(), undefined);
 
             expect(actual).not.toThrow();
+        });
+
+        it("should run result processors once w/ outputs of module ids", () => {
+            const compiler = createCompiler({
+                build: jest.fn((id: string) => ({
+                    fragment: fragment(id === MAIN ? { "/dist/main.js": "whatever", "/dist/main.js.map": "{}" } : { "/dist/b.js": "whatever" }),
+                    diagnostics: [],
+                    dependencies: { files: [], missing: [] },
+                })),
+            });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+            testObj.transformHandler.call(createContext(), "whatever", MAIN);
+            testObj.transformHandler.call(createContext(), "whatever", B);
+            testObj.transformHandler.call(createContext(), "whatever", `${ROOT}/src/gone.ts`);
+
+            testObj.buildEnd.call(createContext([MAIN, B]), undefined);
+            const actual = (compiler.runResultProcessors as jest.Mock).mock.calls;
+
+            expect(actual).toEqual([[["/dist/main.js", "/dist/main.js.map", "/dist/b.js"]]]);
+        });
+
+        it("should not run result processors w/ serve mode", () => {
+            const compiler = createCompiler();
+            const testObj = createHooks(compiler, "serve");
+            testObj.buildStart.call(createContext());
+
+            testObj.buildEnd.call(createContext([MAIN]), undefined);
+            const actual = compiler.runResultProcessors;
+
+            expect(actual).not.toHaveBeenCalled();
+        });
+
+        it("should not run result processors w/ earlier build error", () => {
+            const compiler = createCompiler();
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+
+            testObj.buildEnd.call(createContext([MAIN]), new Error("whatever"));
+            const actual = compiler.runResultProcessors;
+
+            expect(actual).not.toHaveBeenCalled();
+        });
+
+        it("should raise result processor error", () => {
+            const compiler = createCompiler({ runResultProcessors: jest.fn(() => [diagnostic(`Error in result processor "probe": Error: BOOM_RESULT`)]) });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+
+            const actual = () => testObj.buildEnd.call(createContext([MAIN]), undefined);
+
+            expect(actual).toThrow("BOOM_RESULT");
+        });
+
+        it("should raise error reported by result processor through reporter", () => {
+            let reporter: Reporter | undefined;
+            const compiler = createCompiler({
+                runResultProcessors: jest.fn(() => {
+                    reporter?.reportDiagnostic(new ErrorMessage("ADDON_CONTEXT_ERROR"));
+                    return [];
+                }),
+            });
+            const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), compiler) });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
+            testObj.buildStart.call(createContext());
+
+            const actual = () => testObj.buildEnd.call(createContext([MAIN]), undefined);
+
+            expect(actual).toThrow("ADDON_CONTEXT_ERROR");
+        });
+    });
+
+    describe("generateBundle", () => {
+        it("should emit virtual file added in transform", () => {
+            let outputs: AddonOutputs | undefined;
+            const compiler = createCompiler({
+                build: jest.fn(() => {
+                    outputs?.addVirtualFile("virtual.json", "{}", "probe");
+                    return { fragment: fragment({ "main.js": "whatever" }), diagnostics: [], dependencies: { files: [], missing: [] } };
+                }),
+            });
+            const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, _reporter, cur) => ((outputs = cur), compiler) });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
+            testObj.buildStart.call(createContext());
+            testObj.transformHandler.call(createContext(), "whatever", MAIN);
+            const target = createContext([MAIN]);
+
+            testObj.generateBundle.call(target, {}, {});
+            const actual = target.emitFile;
+
+            expect(actual).toHaveBeenCalledWith({ type: "asset", fileName: "virtual.json", source: "{}" });
+        });
+
+        it("should emit virtual file added on activation w/ rebuild", () => {
+            const testObj = createWebsmithHooks(
+                {},
+                {
+                    createFilter: () => () => true,
+                    createCompiler: (_options, _reporter, outputs) => (outputs.addVirtualFile("activation.json", "{}", "probe"), createCompiler()),
+                }
+            );
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
+            testObj.buildStart.call(createContext());
+            testObj.buildStart.call(createContext());
+            const target = createContext([MAIN]);
+
+            testObj.generateBundle.call(target, {}, {});
+            const actual = target.emitFile;
+
+            expect(actual).toHaveBeenCalledWith({ type: "asset", fileName: "activation.json", source: "{}" });
+        });
+
+        it("should raise error an addon context reported", () => {
+            let reporter: Reporter | undefined;
+            const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), createCompiler()) });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
+            testObj.buildStart.call(createContext());
+            reporter?.reportDiagnostic(new ErrorMessage("ADDON_CONTEXT_ERROR"));
+
+            const actual = () => testObj.generateBundle.call(createContext([MAIN]), {}, {});
+
+            expect(actual).toThrow("ADDON_CONTEXT_ERROR");
+        });
+
+        it("should warn w/ removal of file absent from bundle", () => {
+            let outputs: AddonOutputs | undefined;
+            const testObj = createWebsmithHooks({}, { createFilter: () => () => true, createCompiler: (_options, _reporter, cur) => ((outputs = cur), createCompiler()) });
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
+            testObj.buildStart.call(createContext());
+            outputs?.removeOutputFile("absent.js", "probe");
+            const target = createContext([MAIN]);
+
+            testObj.generateBundle.call(target, {}, {});
+            const actual = target.warn;
+
+            expect(actual).toHaveBeenCalledWith(`removeOutputFile of addon "probe" found no 'absent.js' in the bundle`);
         });
     });
 });

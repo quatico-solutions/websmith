@@ -177,6 +177,21 @@ describe("vite build w/ websmith diagnostics", () => {
         60000
     );
 
+    it.each(["vite", "vite6"])(
+        "should warn w/ position once w/ %s",
+        vite => {
+            writeProfiles({ app: { addons: ["replacer"], esm: { runtime: "bundler", check: "warn" } } });
+            writeFile("src/main.ts", `declare const require: (id: string) => unknown;\nexport const x = require("./x");\n`);
+
+            const { warnings } = runVite({ vite, pluginOptions: APP });
+            const actual = warnings.filter(cur => cur.includes("ESM91001"));
+
+            expect(actual).toHaveLength(1);
+            expect(actual[0]).not.toMatch(/\(\d+,\d+\)/);
+        },
+        60000
+    );
+
     it("should fail in buildStart w/ profile emitting commonjs", () => {
         writeProfiles({ app: { addons: ["replacer"], tsConfig: { module: "commonjs", moduleResolution: "node10" } } });
 

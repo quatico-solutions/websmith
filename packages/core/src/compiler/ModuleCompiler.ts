@@ -8,6 +8,7 @@ import { type CompilerOptions, ErrorMessage, InfoMessage, type Reporter, type We
 import path from "node:path";
 import ts from "typescript";
 import { type AddonRegistry } from "./addons";
+import { type CompilationContext, type CompilationContextOptions } from "./compilation";
 import { type CompileFragment, Compiler } from "./Compiler";
 import { resolvePath } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
@@ -50,6 +51,11 @@ export type ModuleCompilerHost = {
     debug?: (message: string) => void;
     /** Compiler options that apply to the host's profile only, i.e. the fragment `build` returns, not to its dependent profiles. */
     targetCompilerOptions?: ts.CompilerOptions;
+    /**
+     * Creates the compilation context of the host's profile, e.g. one whose `AddonContext` methods map to the bundler.
+     * Dependent profiles keep the core context.
+     */
+    createContext?: (options: CompilationContextOptions) => CompilationContext;
 };
 
 export const MISSING_SYSTEM_ERROR = "TsCompiler.build() called without a valid ts.System";
@@ -168,6 +174,7 @@ export class ModuleCompiler extends Compiler {
     private profile?: string;
     private readonly debugSink?: (message: string) => void;
     private readonly targetCompilerOptions: ts.CompilerOptions;
+    private contextFactory?: (options: CompilationContextOptions) => CompilationContext;
     private compilationCaches: Pick<EsmCheckContext, "packageTypeCache" | "cjsNamesCache"> = ModuleCompiler.createCompilationCaches();
     private readonly scanCache = new CompilationScanCache();
     private esmCheckTime = 0;
@@ -185,13 +192,15 @@ export class ModuleCompiler extends Compiler {
         options: Partial<CompilerOptions>,
         loaderOptions: Partial<WebpackLoaderOptions> = {},
         system: ts.System = ts.sys,
-        { addons, dependencyCallback, debug, targetCompilerOptions = {} }: ModuleCompilerHost = {}
+        { addons, dependencyCallback, debug, targetCompilerOptions = {}, createContext }: ModuleCompilerHost = {}
     ) {
         const reporter = new ConfigErrorReporter(options.reporter ?? new DefaultReporter(system));
         super({ ...options, reporter }, loaderOptions, system, addons, dependencyCallback);
         this.debugSink = debug;
         this.targetCompilerOptions = targetCompilerOptions;
         this.baseOptions = options;
+        // Before createProfileContextsIfNecessary below, which creates the contexts through the factory
+        this.contextFactory = createContext;
 
         // Option resolution reports an unconfigured profile, see isProfileConfigured
         this.profile = this.getOptions().profile || loaderOptions.profile || undefined;
@@ -202,6 +211,11 @@ export class ModuleCompiler extends Compiler {
     /** Returns the host's target compiler options for its profile, where no profile is the default context. */
     protected getContextCompilerOptions(profile?: string): ts.CompilerOptions {
         return profile === this.profile ? this.targetCompilerOptions : {};
+    }
+
+    /** Creates the host's context for its profile with the host's factory, where no profile is the default context. */
+    protected instantiateCompilationContext(options: CompilationContextOptions, profile?: string): CompilationContext {
+        return profile === this.profile && this.contextFactory ? this.contextFactory(options) : super.instantiateCompilationContext(options, profile);
     }
 
     /** Returns the profile whose output the host bundles. */
@@ -475,8 +489,13 @@ export class ModuleCompiler extends Compiler {
         const ctx = this.getContext(this.profile);
         const diagnostics: ts.Diagnostic[] = [];
         ctx?.getResultProcessors().forEach(cur => {
+            const addonName = ctx.findAddonName(cur);
             try {
-                cur(files, ctx);
+                if (addonName) {
+                    ctx.runAsAddon(addonName, () => cur(files, ctx));
+                } else {
+                    cur(files, ctx);
+                }
             } catch (err) {
                 diagnostics.push(new ErrorMessage(`Error in result processor "${ctx.getAddonName(cur)}": ${err}`));
             }

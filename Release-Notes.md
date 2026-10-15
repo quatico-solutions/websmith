@@ -14,7 +14,8 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Added
 
-- TBA
+- The `AddonContext` docs describe what `addInputFile`, `addAssetDependency`, `addVirtualFile` and `removeOutputFile`
+  do in each host: the `websmith` CLI, the webpack loader and the Vite plugin.
 
 ### Changed
 
