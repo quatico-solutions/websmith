@@ -311,7 +311,7 @@ describe("ModuleCompiler unconfigured profile", () => {
         expect(actual).toEqual({
             fragment: { version: 0, files: [], writtenFiles: [] },
             diagnostics: [],
-            dependencies: { files: [], missing: [] },
+            dependencies: { files: [], missing: [], packageTypes: {} },
         });
     });
 
@@ -855,5 +855,71 @@ describe("ModuleCompiler dependent profile diagnostics", () => {
         const actual = flatten(testObj.build("/src/a.ts").diagnostics);
 
         expect(actual).toEqual(["Expression expected."]);
+    });
+});
+
+describe("ModuleCompiler package types", () => {
+    const NODENEXT = { module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext, outDir: "/dist" };
+
+    it("yields type of nearest package.json and missing candidates w/ nodenext target w/o esm", () => {
+        const testObj = createModuleCompiler({ ...MODULE_PACKAGE, "/src/a.ts": "export const a = 1;" }, { target: { tsConfig: NODENEXT } });
+
+        const actual = testObj.build("/src/a.ts").dependencies;
+
+        expect(actual).toEqual({ files: [], missing: ["/src/package.json"], packageTypes: { "/package.json": "module" } });
+    });
+
+    it("yields null type w/ nodenext target and package.json w/o type", () => {
+        const testObj = createModuleCompiler(
+            { "/package.json": JSON.stringify({ name: "whatever" }), "/src/a.ts": "export const a = 1;" },
+            { target: { tsConfig: NODENEXT } }
+        );
+
+        const actual = testObj.build("/src/a.ts").dependencies.packageTypes;
+
+        expect(actual).toEqual({ "/package.json": null });
+    });
+
+    it("yields type of nearest package.json w/ esnext target and nodenext dependent profile", () => {
+        const testObj = createModuleCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": "export const a = 1;" },
+            { target: { depends: ["node"] }, node: { tsConfig: { ...NODENEXT, outDir: "/lib" } } }
+        );
+
+        const actual = testObj.build("/src/a.ts").dependencies.packageTypes;
+
+        expect(actual).toEqual({ "/package.json": "module" });
+    });
+
+    it("yields no package.json dependency w/ esnext target w/o esm", () => {
+        const testObj = createModuleCompiler({ ...MODULE_PACKAGE, "/src/a.ts": "export const a = 1;" }, { target: {} });
+
+        const actual = testObj.build("/src/a.ts").dependencies;
+
+        expect(actual).toEqual({ files: [], missing: [], packageTypes: {} });
+    });
+
+    it("yields package.json as package type only w/ nodenext target w/ esm check", () => {
+        const testObj = createModuleCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": "export const a = 1;" },
+            { target: { tsConfig: NODENEXT, esm: { runtime: "node" } } }
+        );
+
+        const { files, packageTypes } = testObj.build("/src/a.ts").dependencies;
+        const actual = { files, packageTypes };
+
+        expect(actual).toEqual({ files: [], packageTypes: { "/package.json": "module" } });
+    });
+
+    it("yields new type w/ type changed between compilations", () => {
+        const testObj = createModuleCompiler({ ...MODULE_PACKAGE, "/src/a.ts": "export const a = 1;" }, { target: { tsConfig: NODENEXT } });
+        testObj.keepCachesPerCompilation();
+        testObj.build("/src/a.ts");
+        testObj.getSystem().writeFile("/package.json", JSON.stringify({ type: "commonjs" }));
+        testObj.resetCompilationCaches();
+
+        const actual = testObj.build("/src/a.ts").dependencies.packageTypes;
+
+        expect(actual).toEqual({ "/package.json": "commonjs" });
     });
 });

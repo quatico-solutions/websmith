@@ -15,6 +15,7 @@ import {
     type DependencyCallback,
     type ModuleClassification,
     type PackageTypeCache,
+    type PackageTypeCallback,
 } from "./classify-module";
 import { IMPORT_RULES, type ImportRule, type ImportRuleContext } from "./import-rules";
 import { checkPackageType, PackageTypeCode } from "./package-type-rules";
@@ -41,6 +42,8 @@ export type EsmCheckContext = {
     sources?: ReadonlyMap<string, string>;
     /** Receives every package.json path the classification depends on, `exists` false for missing candidates. */
     onDependency?: DependencyCallback;
+    /** Receives the package.json files whose `"type"` alone the classification read; without it they go to `onDependency`. */
+    onPackageType?: PackageTypeCallback;
     /** Platform whose file name rules `esm.ignore` follows, defaults to `process.platform`. */
     platform?: NodeJS.Platform;
     /** Per-build memo of package resolution and CommonJS export detection, created per call when absent. */
@@ -113,7 +116,7 @@ export const checkEsm = (files: readonly ts.OutputFile[], esm: EsmProfileOptions
         return [];
     }
     const category = esm.check === "warn" ? ts.DiagnosticCategory.Warning : ts.DiagnosticCategory.Error;
-    const lookupPackageType = createPackageTypeLookup(context.system, context.onDependency, context.packageTypeCache);
+    const lookupPackageType = createPackageTypeLookup(context.system, context.onDependency, context.packageTypeCache, context.onPackageType);
     const importRules = context.importRules ?? IMPORT_RULES;
     const isIgnored = createIgnoreMatcher(esm.ignore, context);
     const checkCjsNames = createCjsNamesCheck(esm.runtime, context);

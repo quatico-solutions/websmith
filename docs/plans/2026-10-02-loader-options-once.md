@@ -256,7 +256,7 @@ first, right after the benchmark that measures it is trustworthy.
 
 ### package.json "type"
 
-- `bug/loader-package-type-deps` — first step: the red e2e that a `"type"` flip under watch rebuilds through a `needBuild` tap (stamp-file fallback only if it fails); then the nearest `package.json` and its `"type"` recorded in `buildInfo` for every node16/nodenext profile, rebuild only when `"type"` changes (reproduce the non-`esm` nodenext case first); unit tests; e2e in watch mode: a `"type"` flip rebuilds, a `"version"` edit does not, a project without node16/nodenext gets no `package.json` dependency <!-- builds: package type tracking in buildInfo with a needBuild tap --> <!-- waits: bug/loader-resolve-options-once -->
+- `bug/loader-package-type-deps` — first step: the red e2e that a `"type"` flip under watch rebuilds through a `needBuild` tap (stamp-file fallback only if it fails); then the nearest `package.json` and its `"type"` recorded in `buildInfo` for every node16/nodenext profile, rebuild only when `"type"` changes (reproduce the non-`esm` nodenext case first); unit tests; e2e in watch mode: a `"type"` flip rebuilds, a `"version"` edit does not, a project without node16/nodenext gets no `package.json` dependency → #197 <!-- builds: package type tracking in buildInfo with a needBuild tap --> <!-- waits: bug/loader-resolve-options-once -->
 
 ### Cached builds
 

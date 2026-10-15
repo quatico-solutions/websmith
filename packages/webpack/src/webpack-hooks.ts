@@ -5,8 +5,11 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import { type Compilation, type Compiler, type Stats, WebpackError } from "webpack";
+import { type PackageType, readPackageType } from "@quatico/websmith-core";
+import ts from "typescript";
+import { type Compilation, type Compiler, NormalModule, type Stats, WebpackError } from "webpack";
 import { type WebpackLoaderContext } from "./loader";
+import { getRecordedPackageJsons, hasPackageTypeChanged } from "./package-types";
 import { formatDiagnostic } from "./WebpackAddonService";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
@@ -14,6 +17,9 @@ const LOADER_NAME = "websmith-loader";
 
 // Config errors already pushed per compilation: instances of several loader rules may share a config file and profile
 const reportedConfigErrors = new WeakMap<Compilation, Set<string>>();
+
+// Compilers whose modules' package.json types are tracked: instances of several loader rules share one compiler
+const packageTypeCompilers = new WeakSet<Compiler>();
 
 export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderConfig, context: WebpackLoaderContext) => {
     if (compiler.hooks) {
@@ -68,6 +74,8 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
             });
         });
 
+        addPackageTypeHooks(compiler);
+
         compiler.hooks.done.tapAsync(LOADER_NAME, (stats, callback) => {
             callback();
             if (compiler.options.watch) {
@@ -75,6 +83,40 @@ export const addCompilationHooks = (compiler: Compiler, options: WebsmithLoaderC
             }
         });
     }
+};
+
+/**
+ * Rebuilds a module restored from webpack's cache when the "type" of a package.json recorded in its build info
+ * changed, and watches the recorded package.json files.
+ */
+const addPackageTypeHooks = (compiler: Compiler): void => {
+    if (packageTypeCompilers.has(compiler)) {
+        return;
+    }
+    packageTypeCompilers.add(compiler);
+    compiler.hooks.thisCompilation.tap(LOADER_NAME, compilation => {
+        // Each package.json is read once per compilation
+        const types = new Map<string, PackageType | null>();
+        const readType = (packageJson: string): PackageType | null => {
+            if (!types.has(packageJson)) {
+                types.set(packageJson, readPackageType(ts.sys, packageJson) ?? null);
+            }
+            return types.get(packageJson) ?? null;
+        };
+        // Returns undefined, never false, which would skip the taps after this one; tapable types the bail value as boolean
+        NormalModule.getCompilationHooks(compilation).needBuild.tap(LOADER_NAME, module =>
+            hasPackageTypeChanged(module.buildInfo, readType) ? true : (undefined as unknown as boolean)
+        );
+    });
+    // webpack watches the project's package.json as a description file, but not e.g. one in a dependent's output
+    compiler.hooks.afterCompile.tap(LOADER_NAME, compilation => {
+        if (compilation.compiler !== compiler) {
+            return;
+        }
+        for (const module of compilation.modules) {
+            getRecordedPackageJsons(module.buildInfo).forEach(cur => compilation.fileDependencies.add(cur));
+        }
+    });
 };
 
 const displayDone = (stats: Stats) => {

@@ -18,8 +18,9 @@ export {
     EsmDiagnosticCode,
     getEmittedModuleKind,
     isEsmModuleKind,
+    readPackageType,
 } from "./esm";
-export type { EsmCheckContext, ImportRule, ModuleClassification, ScanCache } from "./esm";
+export type { EsmCheckContext, ImportRule, ModuleClassification, PackageType, PackageTypeCallback, ScanCache } from "./esm";
 export { CompilationScanCache, MISSING_SYSTEM_ERROR, ModuleCompiler } from "./ModuleCompiler";
 export type { ModuleBuildOptions, ModuleBuildResult, ModuleCompilerHost } from "./ModuleCompiler";
 export { NoReporter } from "./NoReporter";
