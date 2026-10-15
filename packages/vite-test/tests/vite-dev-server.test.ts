@@ -78,7 +78,7 @@ beforeEach(() => {
             `    });`,
         ].join("\n")
     );
-    writeLoggingAddon("rp", `ctx.registerResultProcessor(files => log("rp " + files.map(cur => path.basename(cur)).join(",")));`);
+    writeLoggingAddon("rp", `ctx.registerResultProcessor(files => log("rp " + files.map(cur => path.basename(cur)).sort().join(",")));`);
     writeProfiles({ app: { addons: ["replacer", "gen", "rp"] } });
     writeFile("src/shared.ts", `export const shared: string = "MARK_IN";\n`);
     writeFile("src/main.ts", `import { shared } from "./shared";\nexport const greeting: string = "MAIN " + shared + " MARK_IN";\n`);
@@ -295,7 +295,7 @@ describe("vite dev server w/ websmith plugin", () => {
 
             const actual = readLog().filter(cur => cur === "after first" || (cur.startsWith("rp ") && cur.includes("main.js")));
 
-            expect(actual).toEqual(["rp main.js.map,main.js", "after first", "rp main.js.map,main.js"]);
+            expect(actual).toEqual(["rp main.js,main.js.map", "after first", "rp main.js,main.js.map"]);
         },
         60000
     );
