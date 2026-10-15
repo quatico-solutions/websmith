@@ -221,7 +221,7 @@ string. This plan writes the package fresh off `develop` and keeps only the atte
 
 ### Environments
 
-- `feature/vite-plugin-environments` — one compiler instance per Vite environment, `profile` as string or environment-name map, unnamed environment as a configuration error; unit tests for instance keying and profile selection; e2e: a Magellan-shaped fixture (client transform profile, server generator profile) in a `vite build` with an SSR environment, each addon running only in its environment <!-- builds: per-environment compiler instances and profile map -->
+- `feature/vite-plugin-environments` — one compiler instance per Vite environment, `profile` as string or environment-name map, unnamed environment as a configuration error; unit tests for instance keying and profile selection; e2e: a Magellan-shaped fixture (client transform profile, server generator profile) in a `vite build` with an SSR environment, each addon running only in its environment → #202 <!-- builds: per-environment compiler instances and profile map -->
 
 ### Dev server
 
