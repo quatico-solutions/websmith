@@ -126,8 +126,8 @@ export class Compiler {
     private packageJsonInfoCache?: ts.PackageJsonInfoCache;
     // TypeScript diagnostics without a file a watch build reported, such as option errors that every fast path file returns
     private reportedWatchDiagnostics = new Set<string>();
-    // TS5011 of each compilation context, by profile and options
-    private rootDirInferenceErrors = new Map<string, ts.Diagnostic[]>();
+    // TS5011 of each compilation context
+    private rootDirInferenceErrors = new WeakMap<CompilationContext, ts.Diagnostic[]>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -351,7 +351,7 @@ export class Compiler {
         this.baselineEmitCache.clear();
         this.baselineEmitCacheFileTimes.clear();
         this.reportedWatchDiagnostics.clear();
-        this.rootDirInferenceErrors.clear();
+        this.rootDirInferenceErrors = new WeakMap();
     }
 
     /** Creates the compilation contexts again, so they use the current options and activate the addons again. */
@@ -488,6 +488,21 @@ export class Compiler {
     }
 
     protected emitSourceFile(fileName: string, profile?: string, writeFile = true, skipCache = false): CompileFragment {
+        const fragment = this.emitSourceFileOutput(fileName, profile, writeFile, skipCache);
+        const ctx = this.getContext(profile);
+        // Skipped, cached and failed files carry it too, so a build whose files an addon filters out still reports it
+        return ctx
+            ? {
+                  ...fragment,
+                  diagnostics: [
+                      ...(fragment.diagnostics ?? []).filter(cur => cur.code !== ROOT_DIR_INFERENCE_ERROR),
+                      ...this.getRootDirInferenceErrors(ctx),
+                  ],
+              }
+            : fragment;
+    }
+
+    private emitSourceFileOutput(fileName: string, profile: string | undefined, writeFile: boolean, skipCache: boolean): CompileFragment {
         const filePath = this.system.resolvePath(fileName);
         const ctx = this.getContext(profile);
         const cache = ctx?.getCache();
@@ -572,20 +587,13 @@ export class Compiler {
             const addonNeedsBigProgram = this.anyAddonNeedsTypeInfo(profile);
 
             try {
-                const fragment = this.processOutput(
+                return this.processOutput(
                     cache,
                     this.transpile({ fileName, ctx, content, profile, useFastPath, addonNeedsBigProgram }),
                     writeFile,
                     fileName,
                     ctx
                 );
-                return {
-                    ...fragment,
-                    diagnostics: [
-                        ...(fragment.diagnostics ?? []).filter(cur => cur.code !== ROOT_DIR_INFERENCE_ERROR),
-                        ...this.getRootDirInferenceErrors(ctx, profile),
-                    ],
-                };
             } catch (err) {
                 this.reporter.reportDiagnostic(new ErrorMessage(`Error during transpilation of "${fileName}": ${err}`));
                 // Return a minimal result to allow compilation to continue
@@ -611,53 +619,65 @@ export class Compiler {
     }
 
     /**
-     * Returns TypeScript's TS5011 for the root files of the context, as tsc reports it once for its Program: a Program
-     * over empty source files gives the common source directory of all root files. Without a file and position, the
-     * deduplication of report(), of watch builds and of the loader prints it once.
+     * Returns TypeScript's TS5011 for the context, as tsc reports it once for its Program. tsc computes the common source
+     * directory over every emitted file, imported ones outside the root files included. A Program over empty root files
+     * is cheap and reports nothing where TypeScript has no TS5011 (TypeScript 5) or the root files share the config
+     * file's directory; only where it reports one does a Program that resolves the imports decide. An import that
+     * leaves the config file's directory, from root files that share it, is not detected.
+     * Without a file and position, the deduplication of report(), of watch builds and of the loader prints it once.
      */
-    private getRootDirInferenceErrors(ctx: CompilationContext, profile?: string): ts.Diagnostic[] {
-        const options = ctx.getCompilerOptions();
-        const { configFilePath } = options;
-        if (options.rootDir || !(options.outDir || options.declarationDir) || typeof configFilePath !== "string") {
-            return [];
-        }
-        // The parsed tsconfig.json source file links to its parents, which JSON cannot serialize
-        const key = `${profile ?? ""}\0${JSON.stringify({ ...options, configFile: undefined })}`;
-        const cached = this.rootDirInferenceErrors.get(key);
+    private getRootDirInferenceErrors(ctx: CompilationContext): ts.Diagnostic[] {
+        const cached = this.rootDirInferenceErrors.get(ctx);
         if (cached) {
             return cached;
         }
+        const options = ctx.getCompilerOptions();
+        const { configFilePath } = options;
         const system = ctx.getSystem();
-        const host: ts.CompilerHost = {
-            getSourceFile: fileName => ts.createSourceFile(fileName, "", ts.ScriptTarget.Latest),
+        const rootNames = ctx.getFileNames().map(cur => system.resolvePath(cur));
+        // TypeScript needs absolute paths for the root files and the config file to relate them
+        const programOptions: ts.CompilerOptions = {
+            ...options,
+            configFile: undefined,
+            configFilePath: typeof configFilePath === "string" ? system.resolvePath(configFilePath) : undefined,
+            noLib: true,
+            types: [],
+        };
+        const getErrors = (resolveImports: boolean): ts.Diagnostic[] =>
+            ts
+                .createProgram({
+                    rootNames,
+                    options: { ...programOptions, noResolve: !resolveImports },
+                    host: this.createRootDirInferenceHost(system, resolveImports),
+                })
+                .getOptionsDiagnostics()
+                .filter(cur => cur.code === ROOT_DIR_INFERENCE_ERROR)
+                .map(cur => ({ ...cur, file: undefined, start: undefined, length: undefined }));
+        const needed = !options.rootDir && !!(options.outDir || options.declarationDir) && typeof configFilePath === "string";
+        const result = needed && getErrors(false).length > 0 ? getErrors(true) : [];
+        this.rootDirInferenceErrors.set(ctx, result);
+        return result;
+    }
+
+    /** Returns a host whose source files are empty, or read from `system` when the Program resolves imports. */
+    private createRootDirInferenceHost(system: ts.System, readSources: boolean): ts.CompilerHost {
+        const { realpath } = system;
+        return {
+            getSourceFile: (fileName, languageVersion) => {
+                const text = readSources ? system.readFile(fileName) : "";
+                return text !== undefined ? ts.createSourceFile(fileName, text, languageVersion) : undefined;
+            },
             getDefaultLibFileName: () => "lib.d.ts",
             writeFile: () => undefined,
             getCurrentDirectory: () => system.getCurrentDirectory(),
             getCanonicalFileName: fileName => (system.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase()),
             useCaseSensitiveFileNames: () => system.useCaseSensitiveFileNames,
             getNewLine: () => system.newLine,
-            fileExists: () => false,
-            readFile: () => undefined,
+            fileExists: fileName => readSources && system.fileExists(fileName),
+            readFile: fileName => (readSources ? system.readFile(fileName) : undefined),
+            directoryExists: directoryName => readSources && system.directoryExists(directoryName),
+            ...(readSources && realpath && { realpath: (fileName: string) => realpath(fileName) }),
         };
-        // TypeScript needs absolute paths for the root files and the config file to relate them
-        const program = ts.createProgram({
-            rootNames: ctx.getFileNames().map(cur => system.resolvePath(cur)),
-            options: {
-                ...options,
-                configFile: undefined,
-                configFilePath: system.resolvePath(configFilePath),
-                noResolve: true,
-                noLib: true,
-                types: [],
-            },
-            host,
-        });
-        const result = program
-            .getOptionsDiagnostics()
-            .filter(cur => cur.code === ROOT_DIR_INFERENCE_ERROR)
-            .map(cur => ({ ...cur, file: undefined, start: undefined, length: undefined }));
-        this.rootDirInferenceErrors.set(key, result);
-        return result;
     }
 
     /**
