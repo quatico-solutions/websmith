@@ -91,8 +91,8 @@ const ESM_LABELLED_TS_CODES: ReadonlySet<number> = new Set([2835, 2834, 1543, 14
 
 /**
  * TS5011, "Cannot infer rootDir": TypeScript 6 reports it per Program with that Program's source directory, so the
- * per-file Programs and the Program of a watch build would each print their own. `bug/typescript-6-root-dir-once`
- * reports it once per compilation.
+ * fast path and the per-file Programs would each print their own. Every fragment carries its compilation context's
+ * instead, see getRootDirInferenceErrors.
  */
 const ROOT_DIR_INFERENCE_ERROR = 5011;
 
@@ -126,6 +126,8 @@ export class Compiler {
     private packageJsonInfoCache?: ts.PackageJsonInfoCache;
     // TypeScript diagnostics without a file a watch build reported, such as option errors that every fast path file returns
     private reportedWatchDiagnostics = new Set<string>();
+    // TS5011 of each compilation context, by profile and options
+    private rootDirInferenceErrors = new Map<string, ts.Diagnostic[]>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -349,6 +351,7 @@ export class Compiler {
         this.baselineEmitCache.clear();
         this.baselineEmitCacheFileTimes.clear();
         this.reportedWatchDiagnostics.clear();
+        this.rootDirInferenceErrors.clear();
     }
 
     /** Creates the compilation contexts again, so they use the current options and activate the addons again. */
@@ -561,13 +564,20 @@ export class Compiler {
             const addonNeedsBigProgram = this.anyAddonNeedsTypeInfo(profile);
 
             try {
-                return this.processOutput(
+                const fragment = this.processOutput(
                     cache,
                     this.transpile({ fileName, ctx, content, profile, useFastPath, addonNeedsBigProgram }),
                     writeFile,
                     fileName,
                     ctx
                 );
+                return {
+                    ...fragment,
+                    diagnostics: [
+                        ...(fragment.diagnostics ?? []).filter(cur => cur.code !== ROOT_DIR_INFERENCE_ERROR),
+                        ...this.getRootDirInferenceErrors(ctx, profile),
+                    ],
+                };
             } catch (err) {
                 this.reporter.reportDiagnostic(new ErrorMessage(`Error during transpilation of "${fileName}": ${err}`));
                 // Return a minimal result to allow compilation to continue
@@ -590,6 +600,55 @@ export class Compiler {
         }
 
         throw new Error(`No profile with name "${profile}" configured.`);
+    }
+
+    /**
+     * Returns TypeScript's TS5011 for the root files of the context, as tsc reports it once for its Program: a Program
+     * over empty source files gives the common source directory of all root files. Without a file and position, the
+     * deduplication of report(), of watch builds and of the loader prints it once.
+     */
+    private getRootDirInferenceErrors(ctx: CompilationContext, profile?: string): ts.Diagnostic[] {
+        const options = ctx.getCompilerOptions();
+        if (options.rootDir || !(options.outDir || options.declarationDir) || !options.configFilePath) {
+            return [];
+        }
+        // The parsed tsconfig.json source file links to its parents, which JSON cannot serialize
+        const key = `${profile ?? ""}\0${JSON.stringify({ ...options, configFile: undefined })}`;
+        const cached = this.rootDirInferenceErrors.get(key);
+        if (cached) {
+            return cached;
+        }
+        const system = ctx.getSystem();
+        const host: ts.CompilerHost = {
+            getSourceFile: fileName => ts.createSourceFile(fileName, "", ts.ScriptTarget.Latest),
+            getDefaultLibFileName: () => "lib.d.ts",
+            writeFile: () => undefined,
+            getCurrentDirectory: () => system.getCurrentDirectory(),
+            getCanonicalFileName: fileName => (system.useCaseSensitiveFileNames ? fileName : fileName.toLowerCase()),
+            useCaseSensitiveFileNames: () => system.useCaseSensitiveFileNames,
+            getNewLine: () => system.newLine,
+            fileExists: () => false,
+            readFile: () => undefined,
+        };
+        // TypeScript needs absolute paths for the root files and the config file to relate them
+        const program = ts.createProgram({
+            rootNames: ctx.getFileNames().map(cur => system.resolvePath(cur)),
+            options: {
+                ...options,
+                configFile: undefined,
+                configFilePath: system.resolvePath(options.configFilePath),
+                noResolve: true,
+                noLib: true,
+                types: [],
+            },
+            host,
+        });
+        const result = program
+            .getOptionsDiagnostics()
+            .filter(cur => cur.code === ROOT_DIR_INFERENCE_ERROR)
+            .map(cur => ({ ...cur, file: undefined, start: undefined, length: undefined }));
+        this.rootDirInferenceErrors.set(key, result);
+        return result;
     }
 
     /**
