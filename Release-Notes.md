@@ -86,6 +86,14 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   without `strict` in `tsconfig.json` can fail its build on 6.x. Set `"strict": false` to keep the old behaviour. This
   is the same rule as the `target` / `esModuleInterop` entry above: options a project leaves unset follow the
   installed TypeScript.
+- **Breaking:** `@quatico/websmith-compiler` no longer installs its own `typescript` 5.7.3. `typescript` `>=5.7 <7` is
+  now a peer dependency, and the `websmith` command compiles with the project's `typescript`, the one its addons
+  already use. Projects on TypeScript 6 therefore build with TypeScript 6 and its defaults (see the `strict` and the
+  `target` / `esModuleInterop` entries above). npm 7+ and pnpm install a missing `typescript` themselves; with Yarn 1
+  or `--legacy-peer-deps`, add it to the project. Without `typescript`, `websmith` exits with code 1 and
+  `websmith needs typescript >=5.7 <7; none was found. Add typescript to your project.`; with TypeScript 7 it exits
+  with code 1 and `websmith needs typescript >=5.7 <7; found 7.x. …`. The webpack loader, `@quatico/websmith-node` and
+  `@quatico/websmith-testing` throw the same errors when they are loaded.
 - Builds that passed 0.10.x may now fail. The ESM check now reports these imports, each of which the build passed but
   the runtime rejects:
   - under `esm: { runtime: "node" }`, the ESM check tests the path that Node derives from a relative specifier, so a
@@ -200,6 +208,8 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   entries of the list are kept, as `tsc` does. Loader-option `tsConfig` and inline profiles too.
 - `@quatico/websmith-node` works with TypeScript 6's `tsc`, which rejects file arguments next to a `tsconfig.json`
   (TS5112), and passes `--target ES2025` by its name.
+- `@quatico/websmith-node` spawns the `tsc` of the `typescript` it imports. Before, a `typescript` in the working
+  directory's `node_modules` took precedence, so it could spawn another version than the one it imports.
 - On TypeScript 6, websmith no longer fails with deprecation errors (TS5107) for options it sets itself:
   `moduleResolution` `classic` / `node10` when it compiles addons (CLI and webpack loader), and `target: ES5` /
   `moduleResolution: node10` in `@quatico/websmith-testing`. These compilations now leave `moduleResolution` to
