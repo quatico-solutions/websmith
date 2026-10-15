@@ -142,6 +142,13 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 
 ### Fixed
 
+- With webpack's persistent cache (`cache: { type: "filesystem" }`), the webpack loader reports configuration
+  errors, `tsconfig.json` errors and TypeScript option errors, also of dependent profiles, in every build while
+  they remain. Before, a build that restored every module from the cache reported none and passed. While such an
+  error remains, one module per build is not cached. Under `thread-loader`, a configuration error is no longer
+  lost when the module that reported it leaves the build, or when several workers rebuild modules: while it
+  remains, the loader's modules are not cached, and each worker reports it on the first module it builds in each
+  watch compilation.
 - Under watch, the webpack loader picks up edits of `tsconfig.json` and of the files it extends, and webpack's
   persistent cache no longer restores modules compiled with an older `websmith.config.json`, `tsconfig.json` or
   extended file. Before, edits of these files were not watched or did not change the compiled modules.
