@@ -133,6 +133,13 @@ export const createWebsmithHooks = (
         return errors;
     };
 
+    // Resolves the options for the environment and points its outputs to its build.outDir, which a later build() with
+    // the same plugin object may change
+    const configureEnvironment = ({ name, config }: EnvironmentInfo, outputs: AddonOutputs): ResolvedViteOptions => {
+        outputs.configure({ outDir: path.resolve(config.root, config.build.outDir), command });
+        return resolveViteOptions(options, config.root, name, createFilter);
+    };
+
     // Returns the state of the environment the hook runs in, creating it and its compiler on first use; addons
     // activate here, as their addon. An environment the profile map does not name gets no compiler.
     const getEnvironmentState = (context: HookContext): EnvironmentState => {
@@ -143,9 +150,8 @@ export const createWebsmithHooks = (
         }
         const reporter = new DiagnosticReporter();
         const outputs = new AddonOutputs(reporter);
-        outputs.configure({ outDir: path.resolve(config.root, config.build.outDir), command });
         const state: EnvironmentState = {
-            resolved: resolveViteOptions(options, config.root, name, createFilter),
+            resolved: configureEnvironment(context.environment, outputs),
             reporter,
             outputs,
             outputFiles: new Map(),
@@ -178,6 +184,7 @@ export const createWebsmithHooks = (
             const existing = environments.get(this.environment.name);
             const state = existing ?? getEnvironmentState(this);
             if (existing) {
+                state.resolved = configureEnvironment(this.environment, state.outputs);
                 state.outputs.startBuild();
                 state.packageJsonCache.clear();
                 const { compiler } = state;

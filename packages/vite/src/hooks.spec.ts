@@ -849,7 +849,6 @@ describe("createWebsmithHooks", () => {
             const target = jest.fn(() => createCompiler());
             const testObj = createWebsmithHooks({ profile: { client: "client" } }, { createFilter: () => () => true, createCompiler: target });
             testObj.configResolved({ root: ROOT, command: "serve" });
-            testObj.buildStart.call(createContext([], SSR_SERVE));
 
             const actual = () => testObj.transformHandler.call(createContext([], SSR_SERVE), "whatever", MAIN);
 
@@ -870,6 +869,21 @@ describe("createWebsmithHooks", () => {
             const actual = outputs.map(cur => cur.toBundleFileName(`${ROOT}/dist/client/abs.json`, "addVirtualFile", "probe"));
 
             expect(actual).toEqual(["abs.json", undefined]);
+        });
+
+        it("should place virtual file relative to outDir of later build w/ second build of same environment", () => {
+            const outputs: AddonOutputs[] = [];
+            const testObj = createWebsmithHooks(PROFILES, {
+                createFilter: () => () => true,
+                createCompiler: (_options, _reporter, cur) => (outputs.push(cur), createCompiler()),
+            });
+            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.buildStart.call(createContext([], createEnvironment("client", "dist/a")));
+
+            testObj.buildStart.call(createContext([], createEnvironment("client", "dist/b")));
+            const actual = outputs[0].toBundleFileName(`${ROOT}/dist/b/x.json`, "addVirtualFile", "probe");
+
+            expect(actual).toBe("x.json");
         });
 
         it("should run result processors of environment compiler only in buildEnd", () => {
@@ -969,6 +983,26 @@ describe("createWebsmithHooks", () => {
             const actual = target.addWatchFile;
 
             expect(actual).toHaveBeenCalledWith(path.join(dir, "package.json"));
+            fs.rmSync(dir, { recursive: true, force: true });
+        });
+
+        it("should watch package.json and build w/ nodenext profile and package.json with type module", () => {
+            const dir = createNodeProject();
+            fs.writeFileSync(path.join(dir, "package.json"), `{"type":"module"}`);
+            const compiler = createCompiler({
+                getOptions: jest.fn(() =>
+                    createOptions({ app: { tsConfig: { module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext } } }, "app")
+                ),
+            });
+            const testObj = createHooks(compiler);
+            testObj.buildStart.call(createContext());
+            const target = createContext();
+
+            testObj.transformHandler.call(target, "whatever", path.join(dir, "main.ts"));
+            const actual = target.addWatchFile;
+
+            expect(actual).toHaveBeenCalledWith(path.join(dir, "package.json"));
+            expect(compiler.build).toHaveBeenCalledWith(path.join(dir, "main.ts"), { moduleKind: "esm" });
             fs.rmSync(dir, { recursive: true, force: true });
         });
     });
