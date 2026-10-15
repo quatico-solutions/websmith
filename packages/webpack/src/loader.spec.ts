@@ -13,6 +13,7 @@ import { type LoaderContext } from "webpack";
 import { getCompilerInstance } from "./compiler-instances";
 import { loader } from "./loader";
 import { getLoaderOptions } from "./loader-options";
+import { PACKAGE_TYPES_KEY } from "./package-types";
 import { type LoaderBuildResult, TsCompiler } from "./TsCompiler";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
@@ -355,7 +356,7 @@ const diagnostic = (category: ts.DiagnosticCategory): ts.Diagnostic => ({
 const createBuildResult = (result: Partial<LoaderBuildResult> = {}): LoaderBuildResult => ({
     fragment: { version: 1, files: [OUTPUT], writtenFiles: [] },
     diagnostics: [],
-    dependencies: { files: [], missing: [] },
+    dependencies: { files: [], missing: [], packageTypes: {} },
     ...result,
 });
 
@@ -384,7 +385,7 @@ const setUpLoader = (
     return build;
 };
 
-const createLoaderContext = (module?: { type: string }, compiler?: object, resourcePath = "/src/a.ts") =>
+const createLoaderContext = (module?: { type: string; buildInfo?: object }, compiler?: object, resourcePath = "/src/a.ts") =>
     ({
         ...(compiler && { _compiler: compiler }),
         resourcePath,
@@ -478,13 +479,105 @@ describe("loader", () => {
     });
 
     it("registers found and missing dependencies through loader context", () => {
-        setUpLoader(createBuildResult({ dependencies: { files: ["/package.json"], missing: ["/dist/package.json"] } }));
+        setUpLoader(createBuildResult({ dependencies: { files: ["/package.json"], missing: ["/dist/package.json"], packageTypes: {} } }));
         const target = createLoaderContext();
 
         loader.call(target);
         const actual = [jest.mocked(target.addDependency).mock.calls, jest.mocked(target.addMissingDependency).mock.calls];
 
         expect(actual).toEqual([expect.arrayContaining([["/package.json"]]), expect.arrayContaining([["/dist/package.json"]])]);
+    });
+
+    it("records package types in build info w/ compilation hooks and module w/o cache option", () => {
+        setUpLoader(
+            createBuildResult({ dependencies: { files: [], missing: [], packageTypes: { "/package.json": "module" } } }),
+            {},
+            false,
+            [],
+            true
+        );
+        const target = { type: "javascript/auto", buildInfo: {} };
+        const context = createLoaderContext(target, { options: {} });
+
+        loader.call(context);
+        const actual = target.buildInfo;
+
+        expect(actual).toEqual({ [PACKAGE_TYPES_KEY]: { "/package.json": "module" } });
+    });
+
+    it("registers no package type only package.json w/ compilation hooks and module w/ memory cache", () => {
+        setUpLoader(
+            createBuildResult({ dependencies: { files: [], missing: [], packageTypes: { "/package.json": "module" } } }),
+            {},
+            false,
+            [],
+            true
+        );
+        const target = createLoaderContext({ type: "javascript/auto", buildInfo: {} }, { options: { cache: { type: "memory" } } });
+
+        loader.call(target);
+        const actual = jest.mocked(target.addDependency).mock.calls.map(([cur]) => cur);
+
+        expect(actual).not.toContain("/package.json");
+    });
+
+    it("registers package type only package.json as dependency w/o compilation hooks", () => {
+        setUpLoader(createBuildResult({ dependencies: { files: [], missing: [], packageTypes: { "/package.json": "module" } } }));
+        const target = createLoaderContext({ type: "javascript/auto", buildInfo: {} }, { options: {} });
+
+        loader.call(target);
+        const actual = jest.mocked(target.addDependency).mock.calls.map(([cur]) => cur);
+
+        expect(actual).toContain("/package.json");
+    });
+
+    it("registers package type only package.json as dependency w/ filesystem cache", () => {
+        setUpLoader(
+            createBuildResult({ dependencies: { files: [], missing: [], packageTypes: { "/package.json": "module" } } }),
+            {},
+            false,
+            [],
+            true
+        );
+        const module = { type: "javascript/auto", buildInfo: {} };
+        const target = createLoaderContext(module, { options: { cache: { type: "filesystem" } } });
+
+        loader.call(target);
+        const actual = [jest.mocked(target.addDependency).mock.calls.map(([cur]) => cur), module.buildInfo];
+
+        expect(actual).toEqual([expect.arrayContaining(["/package.json"]), {}]);
+    });
+
+    it("registers package type only package.json as dependency w/o module in loader context", () => {
+        setUpLoader(
+            createBuildResult({ dependencies: { files: [], missing: [], packageTypes: { "/package.json": "module" } } }),
+            {},
+            false,
+            [],
+            true
+        );
+        const target = createLoaderContext(undefined, { options: {} });
+
+        loader.call(target);
+        const actual = jest.mocked(target.addDependency).mock.calls.map(([cur]) => cur);
+
+        expect(actual).toContain("/package.json");
+    });
+
+    it("registers package.json as dependency w/ package.json in files and package types", () => {
+        setUpLoader(
+            createBuildResult({ dependencies: { files: ["/package.json"], missing: [], packageTypes: { "/package.json": "module" } } }),
+            {},
+            false,
+            [],
+            true
+        );
+        const target = createLoaderContext({ type: "javascript/auto", buildInfo: {} }, { options: {} });
+
+        loader.call(target);
+        const actual = jest.mocked(target.addDependency).mock.calls.map(([cur]) => cur);
+
+        expect(actual).toContain("/package.json");
     });
 
     it("registers options files as module dependencies through loader context", () => {

@@ -352,7 +352,7 @@ describe("TsCompiler ESM check", () => {
 
         const actual = testObj.build("/src/a.ts", "javascript/auto").dependencies;
 
-        expect(actual).toEqual({ files: ["/package.json"], missing: ["/lib/package.json"] });
+        expect(actual).toEqual({ files: [], missing: ["/lib/package.json"], packageTypes: { "/package.json": "module" } });
     });
 
     it("reports same dependencies for second module in same directory", () => {
@@ -364,7 +364,7 @@ describe("TsCompiler ESM check", () => {
 
         const actual = testObj.build("/src/b.ts", "javascript/auto").dependencies;
 
-        expect(actual).toEqual({ files: ["/package.json"], missing: ["/lib/package.json"] });
+        expect(actual).toEqual({ files: [], missing: ["/lib/package.json"], packageTypes: { "/package.json": "module" } });
     });
 
     it("reads package.json once for two modules in same directory w/ caches kept per compilation", () => {

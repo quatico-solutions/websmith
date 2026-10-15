@@ -20,6 +20,11 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 Builds that passed before can now fail: the `websmith` command reports errors it used to ignore and exits with code 1.
 
+- Under `module: node16`/`nodenext`, the webpack loader rebuilds a module in watch mode when the `"type"` of its
+  nearest `package.json` changes, also without the ESM check; before, its output kept the old module format until
+  the module itself changed. The `package.json` files the ESM check reads only for `"type"` no longer rebuild their
+  modules on other edits, e.g. by `npm install`. Under `thread-loader` and with webpack's persistent cache, any edit
+  of such a `package.json` still rebuilds the modules that depend on it.
 - **Behaviour change:** the webpack loader reports the TypeScript diagnostics of the profiles the selected `profile`
   depends on, labelled `(profile "<name>")`. Builds with an error only a dependent profile produces, e.g. a declaration
   emit error such as TS4094 in a profile with `declaration: true`, now fail; before, the dependent profile wrote its

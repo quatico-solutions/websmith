@@ -134,6 +134,12 @@ a compilation and across watch rebuilds while its files and the options are unch
 worker looks for edits in `addonsDir` once per watch compilation, and at most once a second without watch. Addons
 must not rely on being activated again for each module.
 
+#### `package.json` `"type"` under `node16` and `nodenext`
+
+Under `module: node16` or `nodenext`, in the selected `profile` or a profile it depends on, the `"type"` of a
+module's nearest `package.json` decides the module format TypeScript emits. The loader tracks that `"type"` for every
+module, with or without `esm`: a `"type"` change rebuilds the module, other edits of that `package.json` do not.
+
 #### `.mts` and `.cts` files
 
 The loader compiles `.mts` and `.cts` files to `.mjs` and `.cjs` output and attaches their source maps. Add the
@@ -179,10 +185,14 @@ These rules run in the loader:
 
 The `package.json` files the check reads, and the nearer ones it looked for but did not find, are registered as
 dependencies of the module: in watch mode, changing a `"type"` or adding a `package.json` rebuilds the modules whose
-classification depends on it. The `package.json` lookups are memoized per compilation; where the loader gets no
-webpack compiler (e.g. under `thread-loader`), they are repeated for every module. webpack does not look at what changed, so **any** edit of such a `package.json`, e.g.
-by `npm install`, rebuilds every module that depends on it; under `runtime: "node"` that is usually every module
-below the project's `package.json`. Each rebuilt module costs what a changed module costs, which is dominated by
+classification depends on it. The `package.json` files it reads only for their `"type"` are tracked by that type: a
+`"type"` change rebuilds the module, other edits, e.g. by `npm install`, do not. Those it reads for more, e.g. to
+resolve a package or its `"exports"`, are plain dependencies. The `package.json` lookups are memoized per
+compilation; where the loader gets no webpack compiler (e.g. under `thread-loader`), they are repeated for every
+module. Under `thread-loader` and with `cache: { type: "filesystem" }`, no loader code runs in webpack's process
+before webpack checks whether a module is up to date, so there **any** edit of such a `package.json` rebuilds every
+module that depends on it; under `runtime: "node"` that is usually every module below the project's `package.json`.
+Each rebuilt module costs what a changed module costs, which is dominated by
 compiling the module, not by the check: in a benchmark of 1000 modules, a `"type"` flip rebuilt 701 modules in about
 9.5 s, of which the check took about 110 ms. 91020 and 91021 resolve packages with Node's conditions (`node`, `import`,
 `module-sync`, `default`), not webpack's `resolve.conditionNames`, so a package that webpack resolves to another
