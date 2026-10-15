@@ -193,7 +193,7 @@ export class ModuleCompiler extends Compiler {
         this.debugSink = debug;
         this.targetCompilerOptions = targetCompilerOptions;
         this.baseOptions = options;
-        // Before the contexts below are created; a context created earlier, in Compiler's constructor, is a core one
+        // Before createProfileContextsIfNecessary below, which creates the contexts through the factory
         this.contextFactory = createContext;
 
         // Option resolution reports an unconfigured profile, see isProfileConfigured

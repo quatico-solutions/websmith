@@ -27,7 +27,8 @@ export type { WebsmithViteOptions } from "./options";
  *   error, exist only after a module was emitted and fail the build in `buildEnd`, once.
  * - The dev server raises module diagnostics the same way; its configuration errors are not reported yet.
  *
- * Addons activate once per build. The addons of the profile receive an `AddonContext` whose methods map to Vite:
+ * Addons activate once for every module of a build and, under `vite build --watch`, again only after an edit of their
+ * files or of the configuration. The addons of the profile receive an `AddonContext` whose methods map to Vite:
  * - `addInputFile` adds a code file to the compilation and watches it; `addAssetDependency` watches a non-code file,
  *   so that editing it rebuilds under `vite build --watch`.
  * - `addVirtualFile` adds a file of any extension to the bundle as an asset, and `removeOutputFile` deletes a file

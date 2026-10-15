@@ -62,6 +62,28 @@ describe("AddonOutputs", () => {
             ]);
         });
 
+        it("should return undefined w/ relative path naming outDir itself", () => {
+            const testObj = createOutputs();
+
+            const actual = testObj.toBundleFileName("nested/..", "addVirtualFile", "probe");
+
+            expect(actual).toBeUndefined();
+        });
+
+        it("should report removal error w/ absolute path outside outDir", () => {
+            const reporter = createReporter();
+            const testObj = createOutputs(reporter);
+
+            testObj.toBundleFileName("/project/src/main.js", "removeOutputFile", "probe");
+
+            expect(messages(reporter)).toEqual([
+                [
+                    ts.DiagnosticCategory.Error,
+                    `removeOutputFile of addon "probe" cannot remove '/project/src/main.js' from the bundle: it is outside build.outDir '${OUT_DIR}'`,
+                ],
+            ]);
+        });
+
         it("should return undefined w/ relative path leaving outDir", () => {
             const testObj = createOutputs();
 

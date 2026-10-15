@@ -101,11 +101,11 @@ export class AddonOutputs {
     public toBundleFileName(filePath: string, method: AddonOutputMethod, addon: string): string | undefined {
         const normalized = filePath.replace(/\\/g, "/");
         const fileName = path.isAbsolute(normalized) ? path.relative(this.outDir, normalized).replace(/\\/g, "/") : path.posix.normalize(normalized);
-        if (fileName === "" || fileName === ".." || fileName.startsWith("../") || path.isAbsolute(fileName)) {
+        // "" and "." name build.outDir itself, which is no file of the bundle
+        if (["", ".", ".."].includes(fileName) || fileName.startsWith("../") || path.isAbsolute(fileName)) {
+            const action = method === "removeOutputFile" ? `remove '${filePath}' from` : `place '${filePath}' in`;
             this.reporter.reportDiagnostic(
-                new ErrorMessage(
-                    `${method} of addon "${addon}" cannot place '${filePath}' in the bundle: it is outside build.outDir '${this.outDir}'`
-                )
+                new ErrorMessage(`${method} of addon "${addon}" cannot ${action} the bundle: it is outside build.outDir '${this.outDir}'`)
             );
             return undefined;
         }

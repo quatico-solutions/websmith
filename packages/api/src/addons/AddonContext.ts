@@ -18,8 +18,9 @@ import { type ResultProcessor } from "./ResultProcessor";
  * An addon is activated once per context, not per file. In the webpack loader, an addon stays active for every module
  * of a compilation and across watch rebuilds while its files and the loader options are unchanged; it is loaded and
  * activated again on the next rebuild after an edit of its files, of `websmith.config.json`, of `tsconfig.json` or of
- * a file that `tsconfig.json` extends. The Vite plugin activates its addons once per build in the same way, and again
- * after such an edit under `vite build --watch`. Addons must not rely on being activated again for each module.
+ * a file that `tsconfig.json` extends. The Vite plugin activates its addons in the same way: once for every module of a
+ * build, and under `vite build --watch` again only after such an edit. Addons must not rely on being activated again
+ * for each module.
  *
  * Generators, processors, transformers and result processors behave alike in every host. The methods that add or
  * remove files depend on the host, the `websmith` CLI, the webpack loader or the Vite plugin; see each method.
