@@ -225,7 +225,7 @@ string. This plan writes the package fresh off `develop` and keeps only the atte
 
 ### Dev server
 
-- `feature/vite-plugin-dev-server` — modules compile through the plugin in `createServer`, dependencies via `addWatchFile` from `transform`, configuration errors to the logger plus per-module overlay, `addVirtualFile` served from memory, result processors after each transform, a startup warning when `transpileOnly` drops type information; per-request cost of a type-info addon measured and recorded in the PR; unit tests; e2e: dev server serves a transformed module, an edit to an imported file reloads its importer, a broken config shows the overlay without stopping the server <!-- builds: websmith compile in the Vite dev server -->
+- `feature/vite-plugin-dev-server` — modules compile through the plugin in `createServer`, dependencies via `addWatchFile` from `transform`, configuration errors to the logger plus per-module overlay, `addVirtualFile` served from memory, result processors after each transform, a startup warning when `transpileOnly` drops type information; per-request cost of a type-info addon measured and recorded in the PR; unit tests; e2e: dev server serves a transformed module, an edit to an imported file reloads its importer, a broken config shows the overlay without stopping the server → #205 <!-- builds: websmith compile in the Vite dev server -->
 
 ### Dev invalidation
 
