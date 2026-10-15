@@ -14,7 +14,7 @@
 
 ## Status
 
-- **State:** Approved
+- **State:** Delivered
 - **Type:** bug
 - **Story:** node24-esm-support
 - **Review:** pr
@@ -25,6 +25,7 @@
 - **Started:** 2026-10-02, Jan Wloka, `bug/loader-resolve-options-once`
 - **Started:** 2026-10-03, Jan Wloka, `bug/depends-closure-core`
 - **Started:** 2026-10-03, Jan Wloka, `bug/loader-tsconfig-enum-options`
+- **Delivered:** 2026-10-15
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
