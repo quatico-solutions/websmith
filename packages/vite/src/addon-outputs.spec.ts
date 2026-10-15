@@ -170,6 +170,63 @@ describe("AddonOutputs", () => {
         });
     });
 
+    describe("runActivation", () => {
+        it("should keep virtual file added on activation w/ next build", () => {
+            const context = createContext();
+            const testObj = createOutputs();
+            testObj.runActivation(context, () => testObj.addVirtualFile("activation.json", "A", "probe"));
+
+            testObj.startBuild();
+            testObj.generateBundle(context, {}, []);
+
+            expect(emitted(context)).toEqual([{ type: "asset", fileName: "activation.json", source: "A" }]);
+        });
+
+        it("should add watch file of last activation to next hook context", () => {
+            const target = createContext();
+            const testObj = createOutputs();
+            testObj.runActivation(createContext(), () => testObj.addWatchFile("/project/t.html", "addAssetDependency", "probe"));
+
+            testObj.runActivation(target, () => undefined);
+
+            expect(target.addWatchFile).toHaveBeenCalledWith("/project/t.html");
+        });
+
+        it("should not keep watch file added in transform", () => {
+            const target = createContext();
+            const testObj = createOutputs();
+            testObj.run(createContext(), "/project/src/a.ts", () => testObj.addWatchFile("/project/t.html", "addAssetDependency", "probe"));
+
+            testObj.runActivation(target, () => undefined);
+
+            expect(target.addWatchFile).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("startActivation", () => {
+        it("should drop virtual files added on last activation", () => {
+            const context = createContext();
+            const testObj = createOutputs();
+            testObj.runActivation(context, () => testObj.addVirtualFile("activation.json", "A", "probe"));
+
+            testObj.startActivation();
+            testObj.generateBundle(context, {}, []);
+
+            expect(emitted(context)).toEqual([]);
+        });
+
+        it("should drop watch files added on last activation", () => {
+            const target = createContext();
+            const testObj = createOutputs();
+            testObj.runActivation(createContext(), () => testObj.addWatchFile("/project/t.html", "addAssetDependency", "probe"));
+
+            testObj.startActivation();
+            testObj.runActivation(target, () => undefined);
+
+            expect(target.addWatchFile).not.toHaveBeenCalled();
+        });
+    });
+
     describe("generateBundle", () => {
         it("should emit virtual files as assets w/ last content", () => {
             const context = createContext();

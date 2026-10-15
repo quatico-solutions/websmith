@@ -19,22 +19,27 @@ export type AddonOutputMethod = "addInputFile" | "addAssetDependency" | "addVirt
 
 type ModuleEntries = { virtualFiles: Map<string, string>; removals: Map<string, string> };
 
-// The key of the entries made outside a transform, e.g. on activation or by a result processor
+// The key of the entries made outside a transform and outside an activation, e.g. by a result processor
 const BUILD_ENTRIES = "\0build";
+// The key of the entries made on activation, which stay until the addons activate again
+const ACTIVATION_ENTRIES = "\0activation";
 
 const createEntries = (): ModuleEntries => ({ virtualFiles: new Map(), removals: new Map() });
 
 /**
  * Bridges the addon contexts and Rollup: forwards watch files to the hook that runs, and keeps the virtual files and
  * removals of the addons per module until `generateBundle` applies them. Rollup's watch cache skips modules that did
- * not change, so a module's entries stay until it is built again.
+ * not change, so a module's entries stay until it is built again. Addons stay active across watch rebuilds, so what
+ * they add on activation stays until they activate again, and its watch files are added to every build.
  */
 export class AddonOutputs {
     private context?: OutputsContext;
     private moduleId?: string;
+    private activating = false;
     private outDir = "";
     private command: "build" | "serve" = "build";
     private readonly entries = new Map<string, ModuleEntries>();
+    private readonly activationWatchFiles = new Set<string>();
 
     constructor(private readonly reporter: Reporter) {}
 
@@ -57,12 +62,34 @@ export class AddonOutputs {
         }
     }
 
+    /**
+     * Runs `fn`, which creates the compiler or refreshes its addons, while `context` is the running hook: what the
+     * addons add while they activate stays until `startActivation`. Then adds the watch files of the last activation
+     * to `context`, since a watch rebuild that activates no addon would drop them.
+     */
+    public runActivation<T>(context: OutputsContext, fn: () => T): T {
+        const previous = this.activating;
+        try {
+            this.activating = true;
+            return this.run(context, undefined, fn);
+        } finally {
+            this.activating = previous;
+            this.activationWatchFiles.forEach(cur => context.addWatchFile(cur));
+        }
+    }
+
+    /** Drops the entries and watch files of the last activation, before the addons activate again. */
+    public startActivation(): void {
+        this.entries.delete(ACTIVATION_ENTRIES);
+        this.activationWatchFiles.clear();
+    }
+
     /** Drops the entries of `moduleId` before it is built again. */
     public startModule(moduleId: string): void {
         this.entries.delete(moduleId);
     }
 
-    /** Drops the entries made outside a transform before a build starts. */
+    /** Drops the entries made outside a transform and outside an activation before a build starts. */
     public startBuild(): void {
         this.entries.delete(BUILD_ENTRIES);
     }
@@ -74,6 +101,9 @@ export class AddonOutputs {
                 new ErrorMessage(`${method} of addon "${addon}" was called outside a Vite build hook: '${filePath}' is not watched`)
             );
             return;
+        }
+        if (this.activating) {
+            this.activationWatchFiles.add(filePath);
         }
         this.context.addWatchFile(filePath);
     }
@@ -113,9 +143,9 @@ export class AddonOutputs {
     }
 
     /**
-     * Applies the entries of `moduleIds` and those made outside a transform to `bundle` in a build: emits the virtual
-     * files as assets, then deletes the removed files, warning for a file the bundle does not hold. The dev server
-     * keeps them in memory only.
+     * Applies the entries of `moduleIds`, of the last activation and those made outside a transform to `bundle` in a
+     * build: emits the virtual files as assets, then deletes the removed files, warning for a file the bundle does not
+     * hold. The dev server keeps them in memory only.
      */
     public generateBundle(context: BundleContext, bundle: Record<string, unknown>, moduleIds: Iterable<string>): void {
         if (this.command !== "build") {
@@ -123,7 +153,7 @@ export class AddonOutputs {
         }
         const virtualFiles = new Map<string, string>();
         const removals = new Map<string, string>();
-        [...moduleIds, BUILD_ENTRIES]
+        [ACTIVATION_ENTRIES, ...moduleIds, BUILD_ENTRIES]
             .map(cur => this.entries.get(cur))
             .filter(cur => cur !== undefined)
             .forEach(cur => {
@@ -142,7 +172,7 @@ export class AddonOutputs {
     }
 
     private getEntries(): ModuleEntries {
-        const key = this.moduleId ?? BUILD_ENTRIES;
+        const key = this.activating ? ACTIVATION_ENTRIES : (this.moduleId ?? BUILD_ENTRIES);
         let entries = this.entries.get(key);
         if (!entries) {
             entries = createEntries();

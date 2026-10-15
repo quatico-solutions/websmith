@@ -43,6 +43,7 @@ The addons of the selected profile receive an `AddonContext` whose file methods 
 - **Profiles in `depends`** keep the CLI's context: their files go to their own `outDir`, not into the bundle. A rebuild
   by the same plugin instance does not rewrite a file whose text did not change.
 - Addons activate once for every module of a build. Under `vite build --watch` they stay active across rebuilds and
-  activate again only after an edit of their files, of `websmith.config.json` or of `tsconfig.json`.
+  activate again only after an edit of their files, of `websmith.config.json` or of `tsconfig.json`. The files an
+  addon adds or watches in `activate` apply to every rebuild until it activates again.
 
 The options, environments, the dev server and the remaining documentation follow with the plugin's release.

@@ -493,6 +493,24 @@ describe("createWebsmithHooks", () => {
             expect(actual).toEqual(["refreshOptions", "refreshAddons", "resetCompilationCaches"]);
         });
 
+        it("should add watch file added on activation again w/ rebuild", () => {
+            const testObj = createWebsmithHooks(
+                {},
+                {
+                    createFilter: () => () => true,
+                    createCompiler: (_options, _reporter, outputs) => (outputs.addWatchFile(`${ROOT}/t.html`, "addAssetDependency", "probe"), createCompiler()),
+                }
+            );
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
+            testObj.buildStart.call(createContext());
+            const target = createContext();
+
+            testObj.buildStart.call(target);
+            const actual = target.addWatchFile;
+
+            expect(actual).toHaveBeenCalledWith(`${ROOT}/t.html`);
+        });
+
         it("should reset compilation caches w/ rebuild", () => {
             const compiler = createCompiler();
             const testObj = createHooks(compiler);
@@ -674,6 +692,25 @@ describe("createWebsmithHooks", () => {
             const actual = target.emitFile;
 
             expect(actual).toHaveBeenCalledWith({ type: "asset", fileName: "virtual.json", source: "{}" });
+        });
+
+        it("should emit virtual file added on activation w/ rebuild", () => {
+            const testObj = createWebsmithHooks(
+                {},
+                {
+                    createFilter: () => () => true,
+                    createCompiler: (_options, _reporter, outputs) => (outputs.addVirtualFile("activation.json", "{}", "probe"), createCompiler()),
+                }
+            );
+            testObj.configResolved({ root: ROOT, command: "build", build: BUILD });
+            testObj.buildStart.call(createContext());
+            testObj.buildStart.call(createContext());
+            const target = createContext([MAIN]);
+
+            testObj.generateBundle.call(target, {}, {});
+            const actual = target.emitFile;
+
+            expect(actual).toHaveBeenCalledWith({ type: "asset", fileName: "activation.json", source: "{}" });
         });
 
         it("should raise error an addon context reported", () => {

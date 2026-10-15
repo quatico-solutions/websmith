@@ -23,6 +23,8 @@ export class ViteAddonContext extends CompilationContext {
         private readonly outputs: AddonOutputs
     ) {
         super(options);
+        // A new context activates its addons again, which replaces what they added on their last activation
+        outputs.startActivation();
     }
 
     /** Adds a code file to the root files, as in the CLI, and watches it. */

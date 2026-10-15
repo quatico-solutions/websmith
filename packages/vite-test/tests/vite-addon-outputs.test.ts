@@ -84,6 +84,44 @@ describe("vite build w/ websmith addon outputs", () => {
         expect(actual[actual.length - 1]).toBe("BUNDLE_END");
     }, 60000);
 
+    it("should bundle virtual file added on activation w/ rebuild under watch", () => {
+        writeFile("addons/activation/addon.js", `exports.activate = ctx => ctx.addVirtualFile("activation.json", '{"activation":true}');\n`);
+        writeProfiles({ app: { addons: ["replacer", "activation"] } });
+        const virtualFile = projectPath("dist/activation.json");
+
+        const events = runViteWatch({
+            pluginOptions: APP,
+            afterBuilds: [
+                `fs.rmSync(${JSON.stringify(virtualFile)}, { force: true }); fs.writeFileSync(${JSON.stringify(projectPath("src/b.ts"))}, "export const b: string = \\"C\\";\\n");`,
+            ],
+        }).map(cur => cur.code);
+        const actual = fs.readFileSync(virtualFile, "utf-8");
+
+        expect(events.filter(cur => cur === "START")).toHaveLength(2);
+        expect(events[events.length - 1]).toBe("BUNDLE_END");
+        expect(actual).toBe('{"activation":true}');
+    }, 60000);
+
+    it("should rebuild w/ edit of asset dependency added on activation after rebuild under watch", () => {
+        writeFile("templates/t.html", "<p>template</p>\n");
+        writeFile(
+            "addons/activation/addon.js",
+            `exports.activate = ctx => ctx.addAssetDependency(ctx.resolvePath("templates/t.html"), ctx.resolvePath("src/main.ts"));\n`
+        );
+        writeProfiles({ app: { addons: ["replacer", "activation"] } });
+
+        const actual = runViteWatch({
+            pluginOptions: APP,
+            afterBuilds: [
+                `fs.writeFileSync(${JSON.stringify(projectPath("src/b.ts"))}, "export const b: string = \\"C\\";\\n");`,
+                `fs.writeFileSync(${JSON.stringify(projectPath("templates/t.html"))}, "<p>changed</p>\\n");`,
+            ],
+        }).map(cur => cur.code);
+
+        expect(actual.filter(cur => cur === "START")).toHaveLength(3);
+        expect(actual[actual.length - 1]).toBe("BUNDLE_END");
+    }, 60000);
+
     it.each(VITES)(
         "should run result processor once w/ outputs of both modules w/ %s",
         vite => {

@@ -122,7 +122,7 @@ export const createWebsmithHooks = (
         buildStart() {
             outputs.startBuild();
             // Addons activate here, as their addon, when the compiler is created or reloads them
-            const current = outputs.run(this, undefined, () => {
+            const current = outputs.runActivation(this, () => {
                 if (compiler) {
                     // A rebuild of vite build --watch resolves the options again when one of their files changed, so the
                     // configuration errors raised below are those of the current config, and loads changed addons again

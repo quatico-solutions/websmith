@@ -10,10 +10,11 @@ import ts from "typescript";
 import { type AddonOutputs } from "./addon-outputs";
 import { ViteAddonContext } from "./vite-addon-context";
 
-type OutputsStub = Pick<AddonOutputs, "addWatchFile" | "addVirtualFile" | "removeOutputFile"> & {
+type OutputsStub = Pick<AddonOutputs, "addWatchFile" | "addVirtualFile" | "removeOutputFile" | "startActivation"> & {
     addWatchFile: jest.Mock;
     addVirtualFile: jest.Mock;
     removeOutputFile: jest.Mock;
+    startActivation: jest.Mock;
 };
 
 const createReporter = (): Reporter & { reportDiagnostic: jest.Mock } => ({
@@ -23,7 +24,12 @@ const createReporter = (): Reporter & { reportDiagnostic: jest.Mock } => ({
     unindent: jest.fn(),
 });
 
-const createOutputs = (): OutputsStub => ({ addWatchFile: jest.fn(), addVirtualFile: jest.fn(), removeOutputFile: jest.fn() });
+const createOutputs = (): OutputsStub => ({
+    addWatchFile: jest.fn(),
+    addVirtualFile: jest.fn(),
+    removeOutputFile: jest.fn(),
+    startActivation: jest.fn(),
+});
 
 const createTestObj = (outputs: OutputsStub = createOutputs(), reporter: Reporter = createReporter()): ViteAddonContext => {
     const system = createSystem({}, { virtual: true });
@@ -37,6 +43,16 @@ const errors = (reporter: { reportDiagnostic: jest.Mock }): string[] =>
         .map(cur => ts.flattenDiagnosticMessageText(cur.messageText, "\n"));
 
 describe("ViteAddonContext", () => {
+    describe("constructor", () => {
+        it("should drop outputs of last activation", () => {
+            const outputs = createOutputs();
+
+            createTestObj(outputs);
+
+            expect(outputs.startActivation).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe("addInputFile", () => {
         it("should add resolved code file as watch file", () => {
             const outputs = createOutputs();
