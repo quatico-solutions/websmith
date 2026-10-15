@@ -12,6 +12,7 @@ import path from "node:path";
 import ts from "typescript";
 import { type AddonOutputs } from "./addon-outputs";
 import { createWebsmithHooks, type EnvironmentInfo, type HookCompiler, type HookContext } from "./hooks";
+import { type WebsmithViteOptions } from "./options";
 
 const ROOT = "/project";
 const MAIN = `${ROOT}/src/main.ts`;
@@ -63,11 +64,16 @@ const createCompiler = (overrides: Partial<HookCompiler> = {}): HookCompiler => 
     refreshAddons: jest.fn(),
     resetCompilationCaches: jest.fn(),
     keepCachesPerCompilation: jest.fn(),
+    getTypeInfoAddons: jest.fn(() => []),
     ...overrides,
 });
 
 // A new environment object, as Vite creates one per environment and one per bundled worker
-const createEnvironment = (name = "client", outDir = "dist"): EnvironmentInfo => ({ name, config: { root: ROOT, build: { outDir } } });
+const createEnvironment = (name = "client", outDir = "dist"): EnvironmentInfo => ({
+    name,
+    config: { root: ROOT, build: { outDir } },
+    logger: { error: jest.fn(), warn: jest.fn() },
+});
 
 // The environment of the hooks of one build, which Vite passes to every hook of that build as the same object
 const DEFAULT_ENVIRONMENT = createEnvironment();
@@ -88,6 +94,13 @@ const SSR = createEnvironment("ssr", "dist/server");
 const SSR_SERVE = createEnvironment("ssr", "dist/server");
 
 const PROFILES = { profile: { client: "client", ssr: "server" } };
+
+// The lines the plugin logged through `logger` of `environment`, by level
+const logged = (environment: EnvironmentInfo, level: "error" | "warn"): unknown[][] => jest.mocked(environment.logger[level]).mock.calls;
+
+const TRANSPILE_ONLY_WARNING =
+    "[plugin websmith] 'transpileOnly' drops type information in the Vite dev server for the addons of profile 'app' that need it: " +
+    "first, second. Remove 'transpileOnly', or set needsTypeInfo to false in an addon that needs none.";
 
 // Runs a hook expected to raise, so the test observes what it did before it raised
 const attempt = (fn: () => unknown): void => {
@@ -112,8 +125,8 @@ afterEach(() => {
     nodeProjects.splice(0).forEach(cur => fs.rmSync(cur, { recursive: true, force: true }));
 });
 
-const createHooks = (compiler: HookCompiler, command: "build" | "serve" = "build") => {
-    const testObj = createWebsmithHooks({ profile: "app" }, { createFilter: () => () => true, createCompiler: () => compiler });
+const createHooks = (compiler: HookCompiler, command: "build" | "serve" = "build", options: WebsmithViteOptions = { profile: "app" }) => {
+    const testObj = createWebsmithHooks(options, { createFilter: () => () => true, createCompiler: () => compiler });
     testObj.configResolved({ root: ROOT, command });
     return testObj;
 };
@@ -332,6 +345,23 @@ describe("createWebsmithHooks", () => {
             const actual = () => testObj.buildStart.call(createContext());
 
             expect(actual).toThrow("BOOM_ACTIVATE");
+        });
+
+        it("should raise activation error of refreshed addons w/ rebuild in build mode", () => {
+            let reporter: Reporter | undefined;
+            const compiler = createCompiler({
+                refreshAddons: jest.fn(() => reporter?.reportDiagnostic(new ErrorMessage('Error activating addon "thrower": Error: BOOM_REFRESH'))),
+            });
+            const testObj = createWebsmithHooks(
+                {},
+                { createFilter: () => () => true, createCompiler: (_options, cur) => ((reporter = cur), compiler) }
+            );
+            testObj.configResolved({ root: ROOT, command: "build" });
+            testObj.buildStart.call(createContext());
+
+            const actual = () => testObj.buildStart.call(createContext());
+
+            expect(actual).toThrow("BOOM_REFRESH");
         });
 
         it("should leave activation error to the handler w/ serve mode", () => {
@@ -782,6 +812,397 @@ describe("createWebsmithHooks", () => {
             const actual = target.warn;
 
             expect(actual).toHaveBeenCalledWith(`removeOutputFile of addon "probe" found no 'absent.js' in the bundle`);
+        });
+    });
+
+    describe("serve mode", () => {
+        it("should log each configuration error once and not raise w/ buildStart", () => {
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("First"), diagnostic("Second")]) });
+            const testObj = createHooks(compiler, "serve");
+            const environment = createEnvironment();
+            const target = createContext([], environment);
+
+            testObj.buildStart.call(target);
+            attempt(() => testObj.transformHandler.call(createContext([], environment), "whatever", MAIN));
+            attempt(() => testObj.transformHandler.call(createContext([], environment), "whatever", B));
+            const actual = logged(environment, "error");
+
+            expect(target.error).not.toHaveBeenCalled();
+            expect(actual).toEqual([
+                ["[plugin websmith] First", { timestamp: true }],
+                ["[plugin websmith] Second", { timestamp: true }],
+            ]);
+        });
+
+        it("should log configuration errors again and raise those of refreshed options w/ restart of server", () => {
+            const errors = [diagnostic("Unknown profile 'missing'")];
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => errors) });
+            const testObj = createHooks(compiler, "serve");
+            const environment = createEnvironment();
+            testObj.buildStart.call(createContext([], environment));
+            errors.splice(0, errors.length, diagnostic("Unknown profile 'other'"));
+            testObj.buildStart.call(createContext([], environment));
+            const target = createContext([], environment);
+
+            attempt(() => testObj.transformHandler.call(target, "whatever", MAIN));
+            const actual = logged(environment, "error");
+
+            expect(actual).toEqual([
+                ["[plugin websmith] Unknown profile 'missing'", { timestamp: true }],
+                ["[plugin websmith] Unknown profile 'other'", { timestamp: true }],
+            ]);
+            expect(target.error).toHaveBeenCalledWith({ message: "Unknown profile 'other'" });
+        });
+
+        it("should log configuration errors of other environment again w/ restart of server", () => {
+            const errors = [diagnostic("Unknown profile 'missing'")];
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => errors) });
+            const testObj = createHooks(compiler, "serve");
+            const client = createEnvironment();
+            const ssr = createEnvironment("ssr", "dist/server");
+            testObj.buildStart.call(createContext([], client));
+            attempt(() => testObj.transformHandler.call(createContext([], ssr), "whatever", MAIN));
+            testObj.buildEnd.call(createContext([], client), undefined);
+            errors.splice(0, errors.length, diagnostic("Unknown profile 'other'"));
+            testObj.buildStart.call(createContext([], createEnvironment()));
+            const target = createContext([], ssr);
+
+            attempt(() => testObj.transformHandler.call(target, "whatever", MAIN));
+            const actual = logged(ssr, "error");
+
+            expect(actual).toEqual([
+                ["[plugin websmith] Unknown profile 'missing'", { timestamp: true }],
+                ["[plugin websmith] Unknown profile 'other'", { timestamp: true }],
+            ]);
+            expect(target.error).toHaveBeenCalledWith({ message: "Unknown profile 'other'" });
+        });
+
+        it("should raise configuration errors on every module and not build w/ transform", () => {
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("Unknown profile 'missing'")]) });
+            const testObj = createHooks(compiler, "serve");
+            const environment = createEnvironment();
+            testObj.buildStart.call(createContext([], environment));
+            const target = createContext([], environment);
+
+            attempt(() => testObj.transformHandler.call(target, "whatever", MAIN));
+            attempt(() => testObj.transformHandler.call(target, "whatever", B));
+            attempt(() => testObj.transformHandler.call(target, "whatever", MAIN));
+            const actual = target.error;
+
+            expect(actual).toHaveBeenCalledTimes(3);
+            expect(actual).toHaveBeenCalledWith({ message: "Unknown profile 'missing'" });
+            expect(compiler.build).not.toHaveBeenCalled();
+        });
+
+        it("should raise configuration error w/ profile emitting commonjs", () => {
+            const compiler = createCompiler({
+                getOptions: jest.fn(() => createOptions({ app: { tsConfig: { module: ts.ModuleKind.CommonJS } } }, "app")),
+            });
+            const testObj = createHooks(compiler, "serve");
+            const environment = createEnvironment();
+            testObj.buildStart.call(createContext([], environment));
+
+            const actual = () => testObj.transformHandler.call(createContext([], environment), "whatever", MAIN);
+
+            expect(actual).toThrow("emits CommonJS");
+            expect(logged(environment, "error")).toHaveLength(1);
+        });
+
+        it("should raise activation error w/ second module", () => {
+            const testObj = createWebsmithHooks(
+                {},
+                {
+                    createFilter: () => () => true,
+                    createCompiler: (_options, reporter) => {
+                        reporter.reportDiagnostic(new ErrorMessage('Error activating addon "thrower": Error: BOOM_ACTIVATE'));
+                        return createCompiler();
+                    },
+                }
+            );
+            testObj.configResolved({ root: ROOT, command: "serve" });
+            const environment = createEnvironment();
+            testObj.buildStart.call(createContext([], environment));
+            attempt(() => testObj.transformHandler.call(createContext([], environment), "whatever", MAIN));
+
+            const actual = () => testObj.transformHandler.call(createContext([], environment), "whatever", B);
+
+            expect(actual).toThrow("BOOM_ACTIVATE");
+            expect(logged(environment, "error")).toEqual([
+                ['[plugin websmith] Error activating addon "thrower": Error: BOOM_ACTIVATE', { timestamp: true }],
+            ]);
+        });
+
+        it("should log configuration errors once w/ state created by transform", () => {
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("Unknown profile 'missing'")]) });
+            const testObj = createHooks(compiler, "serve");
+            const environment = createEnvironment("ssr", "dist/server");
+
+            attempt(() => testObj.transformHandler.call(createContext([], environment), "whatever", MAIN));
+            attempt(() => testObj.transformHandler.call(createContext([], environment), "whatever", B));
+            const actual = logged(environment, "error");
+
+            expect(actual).toEqual([["[plugin websmith] Unknown profile 'missing'", { timestamp: true }]]);
+        });
+
+        it("should log profile error once and raise it on every module w/ environment not in profile map", () => {
+            const testObj = createWebsmithHooks(
+                { profile: { client: "client" } },
+                { createFilter: () => () => true, createCompiler: () => createCompiler() }
+            );
+            testObj.configResolved({ root: ROOT, command: "serve" });
+            const environment = createEnvironment("ssr", "dist/server");
+            const target = createContext([], environment);
+
+            attempt(() => testObj.transformHandler.call(target, "whatever", MAIN));
+            attempt(() => testObj.transformHandler.call(target, "whatever", B));
+            const actual = logged(environment, "error");
+
+            expect(actual).toEqual([
+                [
+                    "[plugin websmith] The websmith plugin's 'profile' map names no profile for the Vite environment 'ssr'. It names: client.",
+                    { timestamp: true },
+                ],
+            ]);
+            expect(target.error).toHaveBeenCalledTimes(2);
+        });
+
+        it("should raise file-less error on every module and log it once w/ config error returned after build", () => {
+            const errors: ts.Diagnostic[] = [];
+            const compiler = createCompiler({
+                getConfigErrors: jest.fn(() => errors),
+                build: jest.fn((id: string) => (errors.splice(0, errors.length, diagnostic("TS5053")), buildModule(id))),
+            });
+            const testObj = createHooks(compiler, "serve");
+            const environment = createEnvironment();
+            testObj.buildStart.call(createContext([], environment));
+            const target = createContext([], environment);
+
+            attempt(() => testObj.transformHandler.call(target, "whatever", MAIN));
+            attempt(() => testObj.transformHandler.call(target, "whatever", B));
+            const actual = logged(environment, "error");
+
+            expect(actual).toEqual([["[plugin websmith] TS5053", { timestamp: true }]]);
+            expect(target.error).toHaveBeenCalledTimes(2);
+            expect(target.error).toHaveBeenCalledWith({ message: "TS5053" });
+            expect(compiler.build).toHaveBeenCalledTimes(2);
+        });
+
+        it("should raise file-less error once per module w/ same error in module diagnostics", () => {
+            const compiler = createCompiler({
+                getConfigErrors: jest.fn(() => [diagnostic("TS5053")]),
+                build: jest.fn(() => ({
+                    fragment: fragment({ "main.js": "whatever" }),
+                    diagnostics: [diagnostic("TS5053")],
+                    dependencies: { files: [], missing: [] },
+                })),
+            });
+            const testObj = createHooks(compiler, "serve");
+            const target = createContext();
+            jest.mocked(compiler.getConfigErrors).mockReturnValueOnce([]);
+            testObj.buildStart.call(target);
+
+            attempt(() => testObj.transformHandler.call(target, "whatever", MAIN));
+            const actual = target.error;
+
+            expect(actual).toHaveBeenCalledWith({ message: "TS5053" });
+        });
+
+        it("should run result processors with output files of module w/ transform", () => {
+            const compiler = createCompiler({ build: jest.fn(buildModule) });
+            const testObj = createHooks(compiler, "serve");
+            testObj.buildStart.call(createContext());
+
+            testObj.transformHandler.call(createContext(), "whatever", MAIN);
+            testObj.transformHandler.call(createContext(), "whatever", B);
+            const actual = jest.mocked(compiler.runResultProcessors).mock.calls;
+
+            expect(actual).toEqual([[[`${ROOT}/src/main.js`]], [[`${ROOT}/src/b.js`]]]);
+        });
+
+        it("should not run result processors w/ failed module", () => {
+            const compiler = createCompiler({ build: build([diagnostic("BOOM")]) });
+            const testObj = createHooks(compiler, "serve");
+            testObj.buildStart.call(createContext());
+
+            attempt(() => testObj.transformHandler.call(createContext(), "whatever", MAIN));
+            const actual = compiler.runResultProcessors;
+
+            expect(actual).not.toHaveBeenCalled();
+        });
+
+        it("should raise result processor error w/ transform", () => {
+            const compiler = createCompiler({
+                runResultProcessors: jest.fn(() => [diagnostic(`Error in result processor "probe": Error: BOOM_RESULT`)]),
+            });
+            const testObj = createHooks(compiler, "serve");
+            testObj.buildStart.call(createContext());
+
+            const actual = () => testObj.transformHandler.call(createContext(), "whatever", MAIN);
+
+            expect(actual).toThrow("BOOM_RESULT");
+        });
+
+        it("should key virtual file of result processor by module w/ transform", () => {
+            let outputs: AddonOutputs | undefined;
+            const compiler = createCompiler({ runResultProcessors: jest.fn(() => (outputs?.addVirtualFile("index.json", "INDEX", "probe"), [])) });
+            const testObj = createWebsmithHooks(
+                {},
+                { createFilter: () => () => true, createCompiler: (_options, _reporter, cur) => ((outputs = cur), compiler) }
+            );
+            testObj.configResolved({ root: ROOT, command: "serve" });
+            testObj.buildStart.call(createContext());
+            testObj.transformHandler.call(createContext(), "whatever", MAIN);
+            jest.mocked(compiler.runResultProcessors).mockReturnValue([]);
+
+            testObj.transformHandler.call(createContext(), "whatever", MAIN);
+            const actual = testObj.findVirtualFile("/index.json", "/");
+
+            expect(actual).toBeUndefined();
+        });
+
+        it("should warn once w/ transpileOnly and addons that need type information", () => {
+            const compiler = createCompiler({ getTypeInfoAddons: jest.fn(() => ["first", "second"]) });
+            const testObj = createHooks(compiler, "serve", { profile: "app", transpileOnly: true });
+            const environment = createEnvironment();
+            testObj.buildStart.call(createContext([], environment));
+
+            testObj.transformHandler.call(createContext([], environment), "whatever", MAIN);
+            const actual = logged(environment, "warn");
+
+            expect(actual).toEqual([[TRANSPILE_ONLY_WARNING, { timestamp: true }]]);
+        });
+
+        it("should name the default profile in warning w/ transpileOnly and no profile", () => {
+            const compiler = createCompiler({ getProfile: jest.fn(() => undefined), getTypeInfoAddons: jest.fn(() => ["first"]) });
+            const testObj = createHooks(compiler, "serve", { transpileOnly: true });
+            const environment = createEnvironment();
+
+            testObj.buildStart.call(createContext([], environment));
+            const actual = logged(environment, "warn");
+
+            expect(actual).toEqual([
+                [
+                    "[plugin websmith] 'transpileOnly' drops type information in the Vite dev server for the addons of the default profile that need it: " +
+                        "first. Remove 'transpileOnly', or set needsTypeInfo to false in an addon that needs none.",
+                    { timestamp: true },
+                ],
+            ]);
+        });
+
+        it("should not warn w/ transpileOnly and no addon that needs type information", () => {
+            const compiler = createCompiler({ getTypeInfoAddons: jest.fn(() => []) });
+            const testObj = createHooks(compiler, "serve", { profile: "app", transpileOnly: true });
+            const environment = createEnvironment();
+
+            testObj.buildStart.call(createContext([], environment));
+            const actual = logged(environment, "warn");
+
+            expect(actual).toEqual([]);
+        });
+
+        it("should not warn w/o transpileOnly", () => {
+            const compiler = createCompiler({ getTypeInfoAddons: jest.fn(() => ["first"]) });
+            const testObj = createHooks(compiler, "serve");
+            const environment = createEnvironment();
+
+            testObj.buildStart.call(createContext([], environment));
+            const actual = logged(environment, "warn");
+
+            expect(actual).toEqual([]);
+        });
+
+        it("should not warn w/ transpileOnly in build mode", () => {
+            const compiler = createCompiler({ getTypeInfoAddons: jest.fn(() => ["first"]) });
+            const testObj = createHooks(compiler, "build", { profile: "app", transpileOnly: true });
+            const environment = createEnvironment();
+
+            testObj.buildStart.call(createContext([], environment));
+            testObj.transformHandler.call(createContext([], environment), "whatever", MAIN);
+            const actual = [logged(environment, "warn"), jest.mocked(compiler.getTypeInfoAddons).mock.calls];
+
+            expect(actual).toEqual([[], []]);
+        });
+    });
+
+    describe("findVirtualFile", () => {
+        // Hooks whose client state holds the virtual file `virt/main.json`, added by the transform of main.ts
+        const createServingHooks = (environment = createEnvironment()) => {
+            let outputs: AddonOutputs | undefined;
+            const compiler = createCompiler({
+                build: jest.fn((id: string) => (outputs?.addVirtualFile("virt/main.json", "VIRTUAL", "probe"), buildModule(id))),
+            });
+            const testObj = createWebsmithHooks(
+                {},
+                { createFilter: () => () => true, createCompiler: (_options, _reporter, cur) => ((outputs = cur), compiler) }
+            );
+            testObj.configResolved({ root: ROOT, command: "serve" });
+            testObj.buildStart.call(createContext([], environment));
+            testObj.transformHandler.call(createContext([], environment), "whatever", MAIN);
+            return testObj;
+        };
+
+        it("should return virtual file of client w/ url at root base", () => {
+            const testObj = createServingHooks();
+
+            const actual = testObj.findVirtualFile("/virt/main.json", "/");
+
+            expect(actual).toEqual({ fileName: "virt/main.json", content: "VIRTUAL" });
+        });
+
+        it("should return virtual file w/ url under base", () => {
+            const testObj = createServingHooks();
+
+            const actual = testObj.findVirtualFile("/app/virt/main.json", "/app/");
+
+            expect(actual).toEqual({ fileName: "virt/main.json", content: "VIRTUAL" });
+        });
+
+        it("should return undefined w/ url outside base", () => {
+            const testObj = createServingHooks();
+
+            const actual = testObj.findVirtualFile("/virt/main.json", "/app/");
+
+            expect(actual).toBeUndefined();
+        });
+
+        it("should return virtual file w/ query, hash and encoded path", () => {
+            const testObj = createServingHooks();
+
+            const actual = testObj.findVirtualFile("/virt/%6Dain.json?import&t=1#top", "/");
+
+            expect(actual).toEqual({ fileName: "virt/main.json", content: "VIRTUAL" });
+        });
+
+        it("should return undefined w/ unknown path", () => {
+            const testObj = createServingHooks();
+
+            const actual = testObj.findVirtualFile("/virt/other.json", "/");
+
+            expect(actual).toBeUndefined();
+        });
+
+        it.each([["/virt%2Fmain.json"], ["/virt%2fmain.json"], ["/virt%5Cmain.json"]])("should return undefined w/ encoded slash in %s", url => {
+            const testObj = createServingHooks();
+
+            const actual = testObj.findVirtualFile(url, "/");
+
+            expect(actual).toBeUndefined();
+        });
+
+        it("should return undefined w/ malformed encoding", () => {
+            const testObj = createServingHooks();
+
+            const actual = testObj.findVirtualFile("/virt/%E0%A4%A.json", "/");
+
+            expect(actual).toBeUndefined();
+        });
+
+        it("should return undefined w/ virtual file of other environment than client", () => {
+            const testObj = createServingHooks(createEnvironment("ssr", "dist/server"));
+
+            const actual = testObj.findVirtualFile("/virt/main.json", "/");
+
+            expect(actual).toBeUndefined();
         });
     });
 

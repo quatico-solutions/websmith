@@ -95,8 +95,8 @@ export interface AddonContext<O = unknown> {
      * - Webpack loader: the file is emitted as an asset of the compilation (`compilation.emitAsset`), for any extension.
      * - Vite plugin: the file is emitted as an asset of the bundle in `generateBundle` (`this.emitFile`), for any
      *   extension and without compiling it. A relative path is relative to Vite's `build.outDir`, an absolute path must
-     *   be inside it; a path outside it is an error diagnostic that fails the build. The dev server keeps the file in
-     *   memory and does not serve it yet.
+     *   be inside it; a path outside it is an error diagnostic that fails the build. The dev server serves the file from
+     *   memory at the same path.
      */
     addVirtualFile(filePath: string, fileContent: string): void;
 

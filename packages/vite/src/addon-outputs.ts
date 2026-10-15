@@ -152,7 +152,7 @@ export class AddonOutputs {
     /**
      * Applies the entries of `moduleIds`, of the last activation and those made outside a transform to `bundle` in a
      * build: emits the virtual files as assets, then deletes the removed files, warning for a file the bundle does not
-     * hold. The dev server keeps them in memory only.
+     * hold. The dev server serves them from memory instead, through `getVirtualFile`.
      */
     public generateBundle(context: BundleContext, bundle: Record<string, unknown>, moduleIds: Iterable<string>): void {
         if (this.command !== "build") {
@@ -176,6 +176,20 @@ export class AddonOutputs {
                 this.reporter.reportDiagnostic(new WarnMessage(`removeOutputFile of addon "${addon}" found no '${fileName}' in the bundle`));
             }
         });
+    }
+
+    /**
+     * Returns the content of the virtual file `fileName` for the dev server: the entries of the last activation, of
+     * every module in the order they were built, and those made outside a transform, the last one winning, as
+     * `generateBundle` merges them. A removal of `fileName` hides it.
+     */
+    public getVirtualFile(fileName: string): string | undefined {
+        const moduleIds = [...this.entries.keys()].filter(cur => cur !== ACTIVATION_ENTRIES && cur !== BUILD_ENTRIES);
+        const entries = [ACTIVATION_ENTRIES, ...moduleIds, BUILD_ENTRIES].map(cur => this.entries.get(cur)).filter(cur => cur !== undefined);
+        if (entries.some(cur => cur.removals.has(fileName))) {
+            return undefined;
+        }
+        return entries.reduce<string | undefined>((found, cur) => cur.virtualFiles.get(fileName) ?? found, undefined);
     }
 
     private getEntries(): ModuleEntries {

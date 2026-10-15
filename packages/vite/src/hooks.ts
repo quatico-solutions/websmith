@@ -12,25 +12,39 @@ import type { createFilter, ResolvedConfig, Rollup } from "vite";
 import { AddonOutputs } from "./addon-outputs";
 import { checkModuleFormat, checkTargetModule, selectConfigErrors } from "./config-errors";
 import { DiagnosticReporter } from "./diagnostic-reporter";
-import { getDiagnosticKey, partitionDiagnostics, toRollupError, toRollupWarning } from "./diagnostics";
+import { formatDiagnostic, getDiagnosticKey, partitionDiagnostics, toRollupError, toRollupWarning } from "./diagnostics";
 import { isCompiledId } from "./module-ids";
 import { createModuleFilter, resolveViteOptions, selectProfile, type ResolvedViteOptions, type WebsmithViteOptions } from "./options";
 import { pickOutput } from "./output";
 import { ViteAddonContext } from "./vite-addon-context";
 import { createDeduplicatingSystem } from "./write-record";
 
+/** The part of Vite's logger of an environment the hooks use, in serve mode only. */
+export type EnvironmentLogger = {
+    error(msg: string, options?: { timestamp?: boolean }): void;
+    warn(msg: string, options?: { timestamp?: boolean }): void;
+};
+
 /**
- * The part of Vite's environment the hooks use: its name, which keys the plugin's state, and its resolved config. Vite
- * passes the same object to every hook of one build; a worker bundle gets a new object, named like its environment.
+ * The part of Vite's environment the hooks use: its name, which keys the plugin's state, its resolved config and its
+ * logger. Vite passes the same object to every hook of one build; a worker bundle gets a new object, named like its
+ * environment.
  */
-export type EnvironmentInfo = { name: string; config: { root: string; build: { outDir: string } } };
+export type EnvironmentInfo = {
+    name: string;
+    config: { root: string; build: { outDir: string } };
+    logger: EnvironmentLogger;
+};
 
 /** The part of Rollup's plugin context the hooks use, with the Vite environment the hook runs in. */
 export type HookContext = Pick<Rollup.PluginContext, "error" | "warn" | "addWatchFile" | "emitFile" | "getModuleIds"> & {
     environment: EnvironmentInfo;
 };
 
-/** The part of the module compiler the hooks use, so a spec can stub it. */
+/**
+ * The part of the module compiler the hooks use, so a spec can stub it, and the names of the addons of its profile
+ * that need type information.
+ */
 export type HookCompiler = Pick<
     ModuleCompiler,
     | "build"
@@ -43,7 +57,7 @@ export type HookCompiler = Pick<
     | "refreshAddons"
     | "resetCompilationCaches"
     | "keepCachesPerCompilation"
->;
+> & { getTypeInfoAddons: () => string[] };
 
 /** The hooks of the websmith plugin, called with Rollup's plugin context as `this`. */
 export type WebsmithHooks = {
@@ -52,7 +66,16 @@ export type WebsmithHooks = {
     transformHandler: (this: HookContext, code: string, id: string) => Rollup.TransformResult;
     buildEnd: (this: HookContext, error?: Error) => void;
     generateBundle: (this: HookContext, options: unknown, bundle: Record<string, unknown>) => void;
+    findVirtualFile: (url: string, base: string) => VirtualFile | undefined;
 };
+
+/** A virtual file an addon added, by its bundle file name. */
+export type VirtualFile = { fileName: string; content: string };
+
+const LOG_PREFIX = "[plugin websmith] ";
+
+// The environment whose virtual files the dev server serves to the browser
+const CLIENT_ENVIRONMENT = "client";
 
 /** The dependencies of the hooks that need Vite or the file system, injected so a spec can stub them. */
 export type HookDependencies = {
@@ -66,13 +89,28 @@ const TARGET_COMPILER_OPTIONS: ts.CompilerOptions = { jsx: ts.JsxEmit.Preserve, 
 /**
  * Creates the module compiler of a plugin instance, with the addons of its `AddonRegistry`, reporting to `reporter`.
  * The addons of its profile get a `ViteAddonContext` that maps to `outputs`, and identical rewrites of a file are skipped.
+ * An addon needs type information unless it sets `needsTypeInfo` to false.
  */
-export const createModuleCompiler = (loaderOptions: Partial<WebpackLoaderOptions>, reporter: Reporter, outputs: AddonOutputs): HookCompiler =>
-    new ModuleCompiler({ reporter, cliArgs: { options: {}, fileNames: [], errors: [] } }, loaderOptions, createDeduplicatingSystem(ts.sys), {
-        addons: new AddonRegistry({ reporter, system: ts.sys }),
-        targetCompilerOptions: TARGET_COMPILER_OPTIONS,
-        createContext: options => new ViteAddonContext(options, outputs),
+export const createModuleCompiler = (loaderOptions: Partial<WebpackLoaderOptions>, reporter: Reporter, outputs: AddonOutputs): HookCompiler => {
+    const addons = new AddonRegistry({ reporter, system: ts.sys });
+    const compiler = new ModuleCompiler(
+        { reporter, cliArgs: { options: {}, fileNames: [], errors: [] } },
+        loaderOptions,
+        createDeduplicatingSystem(ts.sys),
+        {
+            addons,
+            targetCompilerOptions: TARGET_COMPILER_OPTIONS,
+            createContext: options => new ViteAddonContext(options, outputs),
+        }
+    );
+    return Object.assign(compiler, {
+        getTypeInfoAddons: () =>
+            addons
+                .getAvailableAddons(compiler.getProfile())
+                .filter(cur => cur.needsTypeInfo !== false)
+                .map(cur => cur.getName()),
     });
+};
 
 /** The target profile, its merged tsConfig, with module and target as enums, and whether the profile itself sets esm. */
 type ProfileModule = { profile?: string; tsConfig: ts.CompilerOptions; hasEsm: boolean };
@@ -110,6 +148,14 @@ type EnvironmentState = {
     // The warnings of the current build, which later modules do not warn again, e.g. the missing addons every lookup reports
     warnedKeys: Set<string>;
     profileError?: ts.Diagnostic;
+    // The errors the addons reported while they activated, kept for every module of the dev server
+    activationErrors: ts.Diagnostic[];
+    // Whether the dev server started the environment, i.e. logged its configuration errors
+    serving: boolean;
+    // The configuration errors that fail every module of the environment in the dev server
+    serveErrors: ts.Diagnostic[];
+    // The errors logged to the environment's logger, which are not logged again
+    loggedKeys: Set<string>;
     // The package.json files that decide the module format under a node module kind, cleared for every build
     packageJsonCache: ts.PackageJsonInfoCache;
 };
@@ -146,6 +192,65 @@ export const createWebsmithHooks = (
         return errors;
     };
 
+    // Moves the errors the addons reported while they activated out of the reporter buffer, so every module of the dev
+    // server raises them, not only the first; their warnings stay in the buffer
+    const keepActivationErrors = (state: EnvironmentState): void => {
+        const taken = state.reporter.take();
+        state.activationErrors = taken.filter(cur => cur.category === ts.DiagnosticCategory.Error);
+        taken.filter(cur => cur.category !== ts.DiagnosticCategory.Error).forEach(cur => state.reporter.reportDiagnostic(cur));
+    };
+
+    // Logs the errors to the environment's logger, each once per environment
+    const logErrors = (context: HookContext, state: EnvironmentState, errors: readonly ts.Diagnostic[]): void =>
+        errors
+            .filter(cur => cur.category === ts.DiagnosticCategory.Error && !state.loggedKeys.has(getDiagnosticKey(cur)))
+            .forEach(cur => {
+                state.loggedKeys.add(getDiagnosticKey(cur));
+                context.environment.logger.error(LOG_PREFIX + formatDiagnostic(cur), { timestamp: true });
+            });
+
+    // Warns once per environment when transpileOnly drops the type information that addons of the profile need
+    const warnTranspileOnly = (context: HookContext, state: EnvironmentState, compiler: HookCompiler): void => {
+        if (!state.resolved.loaderOptions.transpileOnly) {
+            return;
+        }
+        const addons = compiler.getTypeInfoAddons();
+        if (addons.length === 0) {
+            return;
+        }
+        const profile = compiler.getProfile();
+        const owner = profile === undefined ? "the default profile" : `profile '${profile}'`;
+        context.environment.logger.warn(
+            `${LOG_PREFIX}'transpileOnly' drops type information in the Vite dev server for the addons of ${owner} that need it: ` +
+                `${addons.join(", ")}. Remove 'transpileOnly', or set needsTypeInfo to false in an addon that needs none.`,
+            { timestamp: true }
+        );
+    };
+
+    // Starts the environment in the dev server, once per state: client in buildStart, any other environment on its
+    // first transform. Logs its configuration errors, which fail each of its modules, since raising one here would
+    // stop the server.
+    const startServing = (context: HookContext, state: EnvironmentState): void => {
+        if (state.serving) {
+            return;
+        }
+        state.serving = true;
+        const current = state.compiler;
+        if (state.profileError || !current) {
+            state.serveErrors = state.profileError ? [state.profileError] : [];
+            logErrors(context, state, state.serveErrors);
+            return;
+        }
+        state.profileModule = getProfileModule(current);
+        warnTranspileOnly(context, state, current);
+        state.serveErrors = report(context, state, [
+            ...current.getConfigErrors(),
+            ...checkProfileModule(state.profileModule),
+            ...state.activationErrors,
+        ]);
+        logErrors(context, state, state.serveErrors);
+    };
+
     // Resolves the options for the environment and points its outputs to its build.outDir, which a later build() with
     // the same plugin object may change
     const configureEnvironment = ({ name, config }: EnvironmentInfo, outputs: AddonOutputs): ResolvedViteOptions => {
@@ -167,6 +272,10 @@ export const createWebsmithHooks = (
             raisedKeys: new Set(),
             warnedKeys: new Set(),
             profileError: selectProfile(options.profile, name).error,
+            activationErrors: [],
+            serving: false,
+            serveErrors: [],
+            loggedKeys: new Set(),
             packageJsonCache: ts.createModuleResolutionCache(config.root, cur => cur).getPackageJsonInfoCache(),
         };
         if (!state.profileError) {
@@ -175,6 +284,7 @@ export const createWebsmithHooks = (
                 created.keepCachesPerCompilation();
                 return created;
             });
+            keepActivationErrors(state);
         }
         return state;
     };
@@ -191,6 +301,11 @@ export const createWebsmithHooks = (
         environments.set(name, state);
         return state;
     };
+
+    // Drops the states of the environments other than `kept`, so that each starts again on its next module after a
+    // restart of the dev server, with the current configuration, since the dev server runs buildStart for client only
+    const forgetOtherEnvironments = (kept: EnvironmentState): void =>
+        [...environments].filter(([, cur]) => cur !== kept).forEach(([name]) => environments.delete(name));
 
     // Returns the state of the build that starts: a new one for a build nested in a running build of the same name
     const startEnvironmentState = (context: HookContext): { state: EnvironmentState; existing: boolean } => {
@@ -211,8 +326,7 @@ export const createWebsmithHooks = (
         },
         // Configuration errors fail the environment's build before any module is compiled, including a profile map
         // that does not name the environment. In serve mode nothing is raised, since an error here stops the dev
-        // server; the reporter buffer stays for the first transform, and reporting the configuration errors of the dev
-        // server belongs to the feature/vite-plugin-dev-server slice.
+        // server: the errors go to the environment's logger, and every transform of the environment raises them.
         buildStart() {
             const { state, existing } = startEnvironmentState(this);
             if (existing) {
@@ -228,12 +342,20 @@ export const createWebsmithHooks = (
                         compiler.refreshAddons();
                         compiler.resetCompilationCaches();
                     });
+                    keepActivationErrors(state);
                 }
                 state.profileModule = undefined;
+                // A restart of the dev server with the same plugin object starts the environment again
+                state.serving = false;
+                state.loggedKeys = new Set();
+                if (command === "serve") {
+                    forgetOtherEnvironments(state);
+                }
             }
             state.raisedKeys = new Set();
             state.warnedKeys = new Set();
             if (command !== "build") {
+                startServing(this, state);
                 return;
             }
             const current = state.compiler;
@@ -247,20 +369,34 @@ export const createWebsmithHooks = (
             const { files, missing } = current.getOptionsFiles();
             [...files, ...missing].forEach(cur => this.addWatchFile(cur));
             state.profileModule = getProfileModule(current);
-            const errors = report(this, state, [...current.getConfigErrors(), ...checkProfileModule(state.profileModule), ...state.reporter.take()]);
+            const errors = report(this, state, [
+                ...current.getConfigErrors(),
+                ...checkProfileModule(state.profileModule),
+                ...state.activationErrors,
+                ...state.reporter.take(),
+            ]);
             if (errors.length > 0) {
                 state.raisedKeys = new Set(errors.map(getDiagnosticKey));
                 this.error(toRollupError(errors));
             }
         },
         // A module under a node module kind that TypeScript emits as CommonJS fails before it is compiled, so no generator
-        // runs on output Vite rejects; the package.json that decides its format is watched either way.
+        // runs on output Vite rejects; the package.json that decides its format is watched either way. In serve mode, the
+        // configuration errors of the environment fail each module before it is compiled, and the TypeScript errors
+        // without a file, which exist only after an emit, join the errors of each module. A module without errors then
+        // runs the result processors with its output files, keeping what they add under its id.
         transformHandler(_code, id) {
             if (!isCompiledId(id, filter)) {
                 return null;
             }
             const state = getEnvironmentState(this);
-            if (state.profileError) {
+            const serving = command === "serve";
+            if (serving) {
+                startServing(this, state);
+                if (state.serveErrors.length > 0) {
+                    this.error(toRollupError(state.serveErrors));
+                }
+            } else if (state.profileError) {
                 this.error(toRollupError([state.profileError]));
             }
             const current = state.compiler;
@@ -280,13 +416,20 @@ export const createWebsmithHooks = (
             outputs.startModule(id);
             const { fragment, diagnostics, dependencies } = outputs.run(this, id, () => current.build(id, { moduleKind: "esm" }));
             [...dependencies.files, ...dependencies.missing].forEach(cur => this.addWatchFile(cur));
-            state.outputFiles.set(
-                id,
-                fragment.files.map(cur => cur.name)
-            );
-            const errors = report(this, state, [...diagnostics, ...reporter.take()]);
+            const files = fragment.files.map(cur => cur.name);
+            state.outputFiles.set(id, files);
+            const fileLessErrors = serving ? current.getConfigErrors() : [];
+            logErrors(this, state, fileLessErrors);
+            const errors = report(this, state, [...diagnostics, ...reporter.take(), ...fileLessErrors]);
             if (errors.length > 0) {
                 this.error(toRollupError(errors));
+            }
+            if (serving) {
+                const resultErrors = outputs.run(this, id, () => current.runResultProcessors(files));
+                const processorErrors = report(this, state, [...resultErrors, ...reporter.take()]);
+                if (processorErrors.length > 0) {
+                    this.error(toRollupError(processorErrors));
+                }
             }
             return pickOutput(fragment);
         },
@@ -337,6 +480,27 @@ export const createWebsmithHooks = (
             if (errors.length > 0) {
                 this.error(toRollupError(errors));
             }
+        },
+        // Serves the virtual files of the client environment, which serves the browser, at base + their bundle path. Each
+        // path segment is decoded on its own, and a segment holding an encoded slash matches no file.
+        findVirtualFile(url, base) {
+            const state = environments.get(CLIENT_ENVIRONMENT);
+            let pathname: string;
+            try {
+                const segments = url.replace(/[?#].*$/s, "").split("/").map(cur => decodeURIComponent(cur));
+                if (segments.some(cur => /[/\\]/.test(cur))) {
+                    return undefined;
+                }
+                pathname = segments.join("/");
+            } catch {
+                return undefined;
+            }
+            if (!state || !pathname.startsWith(base)) {
+                return undefined;
+            }
+            const fileName = pathname.slice(base.length);
+            const content = state.outputs.getVirtualFile(fileName);
+            return content === undefined ? undefined : { fileName, content };
         },
     };
 };
