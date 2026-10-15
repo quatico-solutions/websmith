@@ -46,7 +46,9 @@ export const toRollupError = (errors: readonly ts.Diagnostic[]): RollupErrorLog 
     const locs = errors.map(getLocation);
     const index = locs.findIndex(cur => cur !== undefined);
     const loc = locs[index];
-    const message = errors.map((cur, i) => (i === index ? ts.flattenDiagnosticMessageText(cur.messageText, "\n") : formatDiagnostic(cur))).join("\n");
+    const message = errors
+        .map((cur, i) => (i === index ? ts.flattenDiagnosticMessageText(cur.messageText, "\n") : formatDiagnostic(cur)))
+        .join("\n");
     return { message, ...(loc && { loc }) };
 };
 

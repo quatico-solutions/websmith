@@ -31,12 +31,7 @@ describe("formatDiagnostic", () => {
     });
 
     it("should flatten message chain w/ chained message", () => {
-        const chain: ts.DiagnosticMessageChain = {
-            messageText: "Outer",
-            category: ts.DiagnosticCategory.Error,
-            code: 1,
-            next: [{ messageText: "Inner", category: ts.DiagnosticCategory.Error, code: 2 }],
-        };
+        const chain: ts.DiagnosticMessageChain = { messageText: "Outer", category: ts.DiagnosticCategory.Error, code: 1, next: [{ messageText: "Inner", category: ts.DiagnosticCategory.Error, code: 2 }] };
 
         const actual = formatDiagnostic(diagnostic(chain));
 
@@ -111,10 +106,7 @@ describe("partitionDiagnostics", () => {
     });
 
     it("should drop messages and suggestions w/o debug", () => {
-        const actual = partitionDiagnostics(
-            [diagnostic("info", ts.DiagnosticCategory.Message), diagnostic("hint", ts.DiagnosticCategory.Suggestion)],
-            false
-        );
+        const actual = partitionDiagnostics([diagnostic("info", ts.DiagnosticCategory.Message), diagnostic("hint", ts.DiagnosticCategory.Suggestion)], false);
 
         expect(actual).toEqual({ errors: [], warnings: [] });
     });
