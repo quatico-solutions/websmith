@@ -4,6 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import { Compiler, createOptions, NoReporter } from "@quatico/websmith-core";
 import { compile } from "@quatico/websmith-node";
 import fs from "node:fs";
 import path from "node:path";
@@ -64,20 +65,25 @@ const readOutputPaths = (outDir: string): string[] =>
 // tsc prints "error TS5011: …" (pretty is off, so no color codes); websmith's reporter prints "Error: 5011: …"
 const readErrorCodes = (output: string, pattern: RegExp): string[] => [...new Set([...output.matchAll(pattern)].map(cur => cur[1]))].sort();
 
-// TypeScript 6 cannot infer rootDir (TS5011) for sources in src/ and tsc reports it once; TypeScript 5 infers it
-const ROOT_DIR_ERRORS = Number(ts.versionMajorMinor.split(".")[0]) < 6 ? 0 : 1;
-
 // websmith-node's tsc Compiler rejects on a non-zero exit; its message holds only the first output line, so read the full stdout
-const compileTsc = async (): Promise<{ paths: string[]; codes: string[] }> => {
+const compileTsc = async (): Promise<{ paths: string[]; codes: string[]; output: string }> => {
     const output = await compile([], { tsConfig: { project: path.join(projectDir, "tsconfig.tsc.json") } }).catch(
         (error: Error) => (error as Error & { getStdout?: () => string | undefined }).getStdout?.() ?? error.message
     );
-    return { paths: readOutputPaths(path.join(projectDir, "tsc")), codes: readErrorCodes(output, / TS(\d+): /g) };
+    return { paths: readOutputPaths(path.join(projectDir, "tsc")), codes: readErrorCodes(output, / TS(\d+): /g), output };
 };
 
-const compileWebsmith = async (files: string[], tsConfigFile: string): Promise<{ paths: string[]; codes: string[]; output: string }> => {
+const compileWebsmith = async (files: string[], tsConfigFile: string): Promise<{ paths: string[]; codes: string[] }> => {
     const output = await compile(files, { websmith: { tsConfigFile } });
-    return { paths: readOutputPaths(path.join(projectDir, "websmith")), codes: readErrorCodes(output, /Error: (\d+):/g), output };
+    return { paths: readOutputPaths(path.join(projectDir, "websmith")), codes: readErrorCodes(output, /Error: (\d+):/g) };
+};
+
+// Counts what websmith's reporter prints, as the CLI does: websmith-node's compile() reports the returned diagnostics once more
+const countWebsmithRootDirErrors = (tsConfigFile: string): number => {
+    const reporter = new NoReporter();
+    const target = jest.spyOn(reporter, "reportDiagnostic");
+    new Compiler({ ...createOptions({ tsConfigFile }, reporter, ts.sys), reporter }, {}, ts.sys).compile();
+    return target.mock.calls.filter(([cur]) => cur.code === 5011).length;
 };
 
 describe("compile w/ websmith and tsc w/o rootDir", () => {
@@ -86,15 +92,29 @@ describe("compile w/ websmith and tsc w/o rootDir", () => {
         async declaration => {
             const files = writeSources(SOURCES);
             const tsConfigFile = writeTsConfig(declaration);
-            const expected = await compileTsc();
+            const { paths, codes } = await compileTsc();
+            const expected = { paths, codes };
 
-            const { output, ...actual } = await compileWebsmith(files, tsConfigFile);
+            const actual = await compileWebsmith(files, tsConfigFile);
 
             expect(expected.paths).toEqual(
                 expect.arrayContaining([expect.stringMatching(/(^|\/)a\.js$/), expect.stringMatching(/(^|\/)sub\/b\.js$/)])
             );
             expect(actual).toEqual(expected);
-            expect(output.match(/Error: 5011:/g) ?? []).toHaveLength(ROOT_DIR_ERRORS);
+        },
+        60000
+    );
+
+    it.each([false, true])(
+        "reports TS5011 as often as tsc w/ sources in src, outDir, no rootDir and declaration %s",
+        async declaration => {
+            writeSources(SOURCES);
+            const tsConfigFile = writeTsConfig(declaration);
+            const expected = (await compileTsc()).output.match(/ TS5011: /g)?.length ?? 0;
+
+            const actual = countWebsmithRootDirErrors(tsConfigFile);
+
+            expect(actual).toBe(expected);
         },
         60000
     );
