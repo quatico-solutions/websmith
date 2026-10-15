@@ -217,7 +217,7 @@ string. This plan writes the package fresh off `develop` and keeps only the atte
 
 ### Addon outputs and context
 
-- `feature/vite-plugin-addon-outputs` — `ViteAddonContext` with the mapping table (`addInputFile`, `addAssetDependency` → `addWatchFile`; `addVirtualFile` → `emitFile`; `removeOutputFile` → bundle deletion; unsupported calls as error diagnostics), result processors once per environment in `buildEnd`, dependent profiles via `depends` with writes deduplicated per file version, generated files on disk only; API note in `packages/api`; unit tests for each mapped method; e2e: a generator, a result processor run once, a dependent profile, an `addVirtualFile` asset in the bundle <!-- builds: ViteAddonContext and addon outputs in Vite builds -->
+- `feature/vite-plugin-addon-outputs` — `ViteAddonContext` with the mapping table (`addInputFile`, `addAssetDependency` → `addWatchFile`; `addVirtualFile` → `emitFile`; `removeOutputFile` → bundle deletion; unsupported calls as error diagnostics), result processors once per environment in `buildEnd`, dependent profiles via `depends` with writes deduplicated per file version, generated files on disk only; API note in `packages/api`; unit tests for each mapped method; e2e: a generator, a result processor run once, a dependent profile, an `addVirtualFile` asset in the bundle → #198 <!-- builds: ViteAddonContext and addon outputs in Vite builds -->
 
 ### Environments
 
