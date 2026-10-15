@@ -45,9 +45,11 @@ export default defineConfig({
 - **Each environment has its own compiler**, whether Vite shares the plugin object between environments or not. The
   addons of its profile activate once per environment, its result processors run once per environment, and the paths
   of `addVirtualFile` and `removeOutputFile` are relative to **that environment's** `build.outDir`.
-- **A worker** that `worker.plugins` bundles with the same plugin object builds as environment `client` with the
-  `client` profile, and has its own compiler: its addons activate and its result processors run once per worker
-  bundle, with the worker's modules only.
+- **A worker** that `worker.plugins` bundles with the same plugin object builds as environment `client`, with the
+  profile selected for `client`, and has its own compiler: its addons activate and its result processors run once per
+  worker bundle, with the worker's modules only.
+- **Two `websmith()` plugins do not chain**: each compiles the TypeScript source, so the second never sees the output
+  of the first. Use one plugin with a profile map instead of one plugin per environment or profile.
 - **A `node16` or `nodenext` profile** emits CommonJS for a `.cts` module and for a `.ts` module whose nearest
   `package.json` has no `"type": "module"`. Vite cannot bundle CommonJS, so such a module fails the build: set
   `"type": "module"`, use the `.mts` extension, or use `module: "ESNext"`. With `esm` set, the profile's ESM check
