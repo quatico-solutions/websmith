@@ -272,7 +272,7 @@ describe("AddonOutputs", () => {
             expect(actual).toBe("B");
         });
 
-        it("should return content of later entry w/ same file name", () => {
+        it("should return entry made outside a transform over module and activation entries w/ same file name", () => {
             const context = createContext();
             const testObj = createOutputs(createReporter(), "serve");
             testObj.run(context, undefined, () => testObj.addVirtualFile("v.json", "BUILD", "probe"));

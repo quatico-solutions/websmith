@@ -340,6 +340,9 @@ export const createWebsmithHooks = (
                     keepActivationErrors(state);
                 }
                 state.profileModule = undefined;
+                // A restart of the dev server with the same plugin object starts the environment again
+                state.serving = false;
+                state.loggedKeys = new Set();
             }
             state.raisedKeys = new Set();
             state.warnedKeys = new Set();
