@@ -202,7 +202,7 @@ plan does not change `reportedConfigErrors` or the `depends` closure, which #134
 
 ### Watch
 
-- `bug/watch-generator-added-files` — item 9: one watcher per path and profile set regardless of how often a generator re-adds it, and the first watch build emits generator-added files. Unit: `Compiler.spec.ts` and `CompilationContext.spec.ts` on a watching test system; e2e: a `--watch` case in `bin.test.ts` (see Open Points); `Release-Notes.md` entry <!-- builds: deduplicated registerWatch and first-build emit of generator-added files -->
+- `bug/watch-generator-added-files` — item 9: one watcher per path and profile set regardless of how often a generator re-adds it, and the first watch build emits generator-added files. Unit: `Compiler.spec.ts` and `CompilationContext.spec.ts` on a watching test system; e2e: a `--watch` case in `bin.test.ts` (see Open Points); `Release-Notes.md` entry → #196 <!-- builds: deduplicated registerWatch and first-build emit of generator-added files -->
 
 ## Notes
 

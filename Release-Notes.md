@@ -176,6 +176,9 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   `config.profiles` is a configuration error too, and the `depends` error names the available profiles. The CLI
   reports the same errors and exits 1; before, `websmith --profile <unknown>` warned `Missing profile: …`, wrote
   nothing and exited 0.
+- In watch mode, a file a generator adds with `addInputFile` is emitted on the first build and reported once per
+  change and watched profile instead of once per rebuild that re-added it, also when the profile has `depends`. `Adding <file> to watch.` is printed once per file, and no
+  longer by builds without `--watch`.
 
 ### Removed
 

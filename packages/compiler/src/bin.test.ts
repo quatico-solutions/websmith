@@ -7,7 +7,7 @@
 
 import type { TscArguments } from "@quatico/websmith-api";
 import type { CompilationConfig } from "@quatico/websmith-core";
-import { spawnSync } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -1604,6 +1604,115 @@ exports.activate = ctx => ctx.registerTransformer({
             `exports.activate = ctx => ctx.registerProcessor((_fileName, content) => content + '\\ndeclare const require: (id: string) => unknown;\\nexport const generated = require("node:path");\\n');`
         );
     };
+
+    describe("w/ --watch and generator adding an input file", () => {
+        const waitFor = async (predicate: () => boolean, timeoutMs: number, getOutput: () => string): Promise<void> => {
+            const start = Date.now();
+            while (!predicate()) {
+                if (Date.now() - start > timeoutMs) {
+                    throw new Error(`Timed out after ${timeoutMs} ms. Output:\n${getOutput()}`);
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        };
+
+        // Repeats the edit until the output shows it: an edit right after the first emit can precede the file's watcher
+        const editUntil = async (edit: () => void, predicate: () => boolean, timeoutMs: number, getOutput: () => string): Promise<void> => {
+            const start = Date.now();
+            for (;;) {
+                edit();
+                try {
+                    await waitFor(predicate, 2000, getOutput);
+                    return;
+                } catch (err) {
+                    if (Date.now() - start > timeoutMs) {
+                        throw err;
+                    }
+                }
+            }
+        };
+
+        // Waits for the exit, so the next test's cleanup does not race the watcher of this one
+        const stopChild = async (child: ChildProcess): Promise<void> => {
+            if (child.exitCode !== null || child.signalCode !== null) {
+                return;
+            }
+            const exited = new Promise(resolve => child.once("exit", resolve));
+            child.kill();
+            await exited;
+        };
+
+        const startWatchCompiler = () => {
+            createAddon(
+                "gen",
+                `exports.activate = ctx => ctx.registerGenerator(f => { if (f.endsWith("a.ts")) ctx.addInputFile(require("path").join(require("path").dirname(f), "gen.ts")); });`
+            );
+            fs.writeFileSync(
+                path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                JSON.stringify({ compilerOptions: { outDir: "dist", rootDir: "src", target: "esnext", types: [] }, include: ["src/a.ts"] }),
+                { encoding: "utf-8" }
+            );
+            createSourceFile(`export const a = 1;`, "a.ts");
+            createSourceFile(`export const g = 1;`, "gen.ts");
+            const binPath = path.join(__dirname, "..", "bin", "bin.js");
+            const child = spawn(
+                "node",
+                [
+                    binPath,
+                    "--addonsDir",
+                    path.join(testDirs.PROJECT_DIR, "addons"),
+                    "--addons",
+                    "gen",
+                    "--project",
+                    path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                    "--watch",
+                ],
+                { cwd: testDirs.PROJECT_DIR }
+            );
+            let output = "";
+            child.stdout.on("data", (chunk: Buffer) => (output += chunk.toString()));
+            child.stderr.on("data", (chunk: Buffer) => (output += chunk.toString()));
+            return { child, getOutput: () => output };
+        };
+
+        it("should emit generator-added file on first watch build", async () => {
+            const { child, getOutput } = startWatchCompiler();
+            try {
+                await waitFor(() => fs.existsSync(path.join(testDirs.OUTPUT_DIR, "a.js")), 30000, getOutput);
+                await waitFor(() => fs.existsSync(path.join(testDirs.OUTPUT_DIR, "gen.js")), 5000, getOutput);
+
+                const actual = fs.readFileSync(path.join(testDirs.OUTPUT_DIR, "gen.js"), "utf-8");
+
+                expect(actual).toContain("export const g = 1;");
+            } finally {
+                await stopChild(child);
+            }
+        }, 60000);
+
+        it("should report a syntax error in a generator-added file once w/ rebuilds re-adding it", async () => {
+            const { child, getOutput } = startWatchCompiler();
+            try {
+                await waitFor(() => fs.existsSync(path.join(testDirs.OUTPUT_DIR, "a.js")), 30000, getOutput);
+                for (const value of [2, 3]) {
+                    await editUntil(
+                        () => createSourceFile(`export const a = ${value};`, "a.ts"),
+                        () => fs.readFileSync(path.join(testDirs.OUTPUT_DIR, "a.js"), "utf-8").includes(`a = ${value}`),
+                        10000,
+                        getOutput
+                    );
+                }
+                createSourceFile(`export const g = ;`, "gen.ts");
+                await waitFor(() => getOutput().includes("Expression expected."), 10000, getOutput);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                const actual = getOutput().split("Expression expected.").length - 1;
+
+                expect(actual).toBe(1);
+            } finally {
+                await stopChild(child);
+            }
+        }, 60000);
+    });
 
     const executeCompilerStatus = (args: string): { status: number | null; output: string } => {
         const binPath = path.join(__dirname, "..", "bin", "bin.js");

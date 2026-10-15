@@ -2944,6 +2944,162 @@ describe("watch", () => {
 
         testObj.closeAllWatchers();
     });
+
+    describe("w/ generator adding input files", () => {
+        const watchedCompilers: Compiler[] = [];
+
+        afterEach(() => {
+            watchedCompilers.splice(0).forEach(cur => cur.closeAllWatchers());
+        });
+
+        const createAddons = (fileSystem: ts.System, reporter: Reporter, activators: Record<string, (ctx: CompilationContext) => void>) => {
+            fileSystem.createDirectory("./addons");
+            const addons = new AddonRegistry({ addonsDir: "./addons", reporter, system: fileSystem });
+            const available = Object.entries(activators).map(([name, activate]) => ({ getName: () => name, activate, needsTypeInfo: false }));
+            addons.getAvailableAddons = jest.fn().mockReturnValue(available);
+            addons.getAddonByName = jest.fn((name: string) => available.find(cur => cur.getName() === name)) as never;
+            return addons;
+        };
+
+        const addingGenerator = (ctx: CompilationContext) =>
+            ctx.registerGenerator(fileName => {
+                if (fileName.endsWith("target.ts")) {
+                    ctx.addInputFile("/src/added.ts");
+                }
+            });
+
+        const createWatchCompiler = (
+            fileSystem: ts.System,
+            reporter: Reporter,
+            profile: string | undefined,
+            activate: (ctx: CompilationContext) => void = addingGenerator,
+            config: CompilerOptions["config"] = profile ? { profiles: { [profile]: { addons: ["gen-addon"] } } } : { addons: ["gen-addon"] }
+        ) => {
+            const compiler = new CompilerTestClass(
+                {
+                    reporter,
+                    config,
+                    profile,
+                    watch: true,
+                    tsConfig: { outDir: "/out", rootDir: "/src", target: ts.ScriptTarget.ESNext },
+                    cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+                },
+                undefined,
+                fileSystem
+            ).setAddonRegistry(createAddons(fileSystem, reporter, { "gen-addon": activate }));
+            watchedCompilers.push(compiler);
+            return compiler;
+        };
+
+        it.each([
+            { name: "no profile", profile: undefined },
+            { name: "profile", profile: "client" },
+        ])("emits generator-added file w/ $name and initial watch build", ({ profile }) => {
+            const fileSystem = createSystem({ "src/target.ts": `export const a = 1;`, "src/added.ts": `export const b = 1;` }, { virtual: true });
+            const testObj = createWatchCompiler(fileSystem, new ReporterMock(fileSystem), profile);
+
+            testObj.watch();
+            const actual = fileSystem.fileExists("/out/added.js");
+
+            expect(actual).toBe(true);
+        });
+
+        it.each([
+            { name: "no profile", profile: undefined },
+            { name: "profile", profile: "client" },
+        ])("watches generator-added file once w/ $name and rebuilds re-adding it", ({ profile }) => {
+            const fileSystem = createSystem({ "src/target.ts": `export const a = 1;`, "src/added.ts": `export const b = 1;` }, { virtual: true });
+            const target = jest.spyOn(fileSystem, "watchFile");
+            createWatchCompiler(fileSystem, new ReporterMock(fileSystem), profile).watch();
+            fileSystem.writeFile("/src/target.ts", `export const a = 2;`);
+
+            fileSystem.writeFile("/src/target.ts", `export const a = 3;`);
+            const actual = target.mock.calls.filter(([fileName]) => fileName === "/src/added.ts").length;
+
+            expect(actual).toBe(1);
+        });
+
+        it.each([
+            { name: "no profile", profile: undefined },
+            { name: "profile", profile: "client" },
+        ])("reports syntax error in generator-added file once w/ $name and rebuilds re-adding it", ({ profile }) => {
+            const fileSystem = createSystem({ "src/target.ts": `export const a = 1;`, "src/added.ts": `export const b = 1;` }, { virtual: true });
+            const target = new ReporterMock(fileSystem);
+            createWatchCompiler(fileSystem, target, profile).watch();
+            fileSystem.writeFile("/src/target.ts", `export const a = 2;`);
+            fileSystem.writeFile("/src/target.ts", `export const a = 3;`);
+
+            fileSystem.writeFile("/src/added.ts", `export const b = ;`);
+            const actual = target.message.split("Error: /src/added.ts (1,18): Expression expected.").length - 1;
+
+            expect(actual).toBe(1);
+        });
+
+        it.each([
+            { name: "generator in dependency profile", config: { profiles: { b: { addons: ["gen-addon"] }, c: { depends: ["b"] } } } },
+            { name: "generator in config addons", config: { addons: ["gen-addon"], profiles: { b: {}, c: { depends: ["b"] } } } },
+        ])("reports syntax error in generator-added file once per profile w/ one level of depends and $name", ({ config }) => {
+            const fileSystem = createSystem({ "src/target.ts": `export const a = 1;`, "src/added.ts": `export const b = 1;` }, { virtual: true });
+            const target = new ReporterMock(fileSystem);
+            createWatchCompiler(fileSystem, target, "c", addingGenerator, config).watch();
+
+            fileSystem.writeFile("/src/added.ts", `export const b = ;`);
+            const actual = target.message.split("Error: /src/added.ts (1,18): Expression expected.").length - 1;
+
+            expect(actual).toBe(2);
+        });
+
+        it("watches generator-added file once w/ one level of depends and generator in dependency profile", () => {
+            const fileSystem = createSystem({ "src/target.ts": `export const a = 1;`, "src/added.ts": `export const b = 1;` }, { virtual: true });
+            const target = jest.spyOn(fileSystem, "watchFile");
+            const config = { profiles: { b: { addons: ["gen-addon"] }, c: { depends: ["b"] } } };
+
+            createWatchCompiler(fileSystem, new ReporterMock(fileSystem), "c", addingGenerator, config).watch();
+            const actual = target.mock.calls.filter(([fileName]) => fileName === "/src/added.ts").length;
+
+            expect(actual).toBe(1);
+        });
+
+        it.each([
+            { name: "generator in deepest profile", config: { profiles: { a: { addons: ["gen-addon"] }, b: { depends: ["a"] }, c: { depends: ["b"] } } } },
+            { name: "generator in config addons", config: { addons: ["gen-addon"], profiles: { a: {}, b: { depends: ["a"] }, c: { depends: ["b"] } } } },
+        ])("reports syntax error in generator-added file once per watched profile w/ two levels of depends and $name", ({ config }) => {
+            const fileSystem = createSystem({ "src/target.ts": `export const a = 1;`, "src/added.ts": `export const b = 1;` }, { virtual: true });
+            const target = new ReporterMock(fileSystem);
+            createWatchCompiler(fileSystem, target, "c", addingGenerator, config).watch();
+
+            fileSystem.writeFile("/src/added.ts", `export const b = ;`);
+            const actual = target.message.split("Error: /src/added.ts (1,18): Expression expected.").length - 1;
+
+            expect(actual).toBe(2);
+        });
+
+        it.each([
+            { name: "no profile", profile: undefined },
+            { name: "profile", profile: "client" },
+        ])("emits generator-added virtual file w/ $name and initial watch build", ({ profile }) => {
+            const fileSystem = createSystem({ "src/target.ts": `export const a = 1;` }, { virtual: true });
+            const testObj = createWatchCompiler(fileSystem, new ReporterMock(fileSystem), profile, ctx =>
+                ctx.registerGenerator(fileName => fileName.endsWith("target.ts") && ctx.addVirtualFile("/src/virtual.ts", "export const v = 1;"))
+            );
+
+            testObj.watch();
+            const actual = fileSystem.fileExists("/out/virtual.js");
+
+            expect(actual).toBe(true);
+        });
+
+        it("watches root file again w/ closeAllWatchers and second watch", () => {
+            const fileSystem = createSystem({ "src/target.ts": `export const a = 1;`, "src/added.ts": `export const b = 1;` }, { virtual: true });
+            const target = jest.spyOn(fileSystem, "watchFile");
+            const testObj = createWatchCompiler(fileSystem, new ReporterMock(fileSystem), undefined).watch().closeAllWatchers();
+
+            testObj.watch();
+            const actual = target.mock.calls.filter(([fileName]) => fileName === "/src/target.ts").length;
+
+            expect(actual).toBe(2);
+        });
+    });
 });
 
 describe("watch w/ esm profile", () => {
