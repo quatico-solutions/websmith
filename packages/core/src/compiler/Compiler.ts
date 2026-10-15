@@ -609,7 +609,8 @@ export class Compiler {
      */
     private getRootDirInferenceErrors(ctx: CompilationContext, profile?: string): ts.Diagnostic[] {
         const options = ctx.getCompilerOptions();
-        if (options.rootDir || !(options.outDir || options.declarationDir) || !options.configFilePath) {
+        const { configFilePath } = options;
+        if (options.rootDir || !(options.outDir || options.declarationDir) || typeof configFilePath !== "string") {
             return [];
         }
         // The parsed tsconfig.json source file links to its parents, which JSON cannot serialize
@@ -636,7 +637,7 @@ export class Compiler {
             options: {
                 ...options,
                 configFile: undefined,
-                configFilePath: system.resolvePath(options.configFilePath),
+                configFilePath: system.resolvePath(configFilePath),
                 noResolve: true,
                 noLib: true,
                 types: [],
