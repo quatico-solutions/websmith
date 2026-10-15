@@ -270,9 +270,11 @@ describe("addInputFile", () => {
 
         testObj.addInputFile("/src/added.ts");
         testObj.addInputFile("/src/added.ts");
+        const actual1 = target.mock.calls.length;
+        const actual2 = reporter.message.split("Adding /src/added.ts to watch.").length - 1;
 
-        expect(target).toHaveBeenCalledTimes(1);
-        expect(reporter.message.split("Adding /src/added.ts to watch.").length - 1).toBe(1);
+        expect(actual1).toBe(1);
+        expect(actual2).toBe(1);
     });
 
     it("does not call watch callback w/ file already a root file", () => {
@@ -306,10 +308,13 @@ describe("addInputFile", () => {
         });
 
         testObj.addInputFile("/src/added.ts");
+        const actual1 = target.message;
+        const actual2 = testObj.getRootFiles();
+        const actual3 = testObj.isFileProcessedByAddon("/src/added.ts");
 
-        expect(target.message).not.toContain("to watch.");
-        expect(testObj.getRootFiles()).toEqual(["/src/added.ts"]);
-        expect(testObj.isFileProcessedByAddon("/src/added.ts")).toBe(true);
+        expect(actual1).not.toContain("to watch.");
+        expect(actual2).toEqual(["/src/added.ts"]);
+        expect(actual3).toBe(true);
     });
 });
 

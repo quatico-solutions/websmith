@@ -7,7 +7,7 @@
 
 import type { TscArguments } from "@quatico/websmith-api";
 import type { CompilationConfig } from "@quatico/websmith-core";
-import { spawn, spawnSync } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -1616,6 +1616,16 @@ exports.activate = ctx => ctx.registerTransformer({
             }
         };
 
+        // Waits for the exit, so the next test's cleanup does not race the watcher of this one
+        const stopChild = async (child: ChildProcess): Promise<void> => {
+            if (child.exitCode !== null || child.signalCode !== null) {
+                return;
+            }
+            const exited = new Promise(resolve => child.once("exit", resolve));
+            child.kill();
+            await exited;
+        };
+
         const startWatchCompiler = () => {
             createAddon(
                 "gen",
@@ -1659,7 +1669,7 @@ exports.activate = ctx => ctx.registerTransformer({
 
                 expect(actual).toContain("export const g = 1;");
             } finally {
-                child.kill();
+                await stopChild(child);
             }
         }, 60000);
 
@@ -1679,7 +1689,7 @@ exports.activate = ctx => ctx.registerTransformer({
 
                 expect(actual).toBe(1);
             } finally {
-                child.kill();
+                await stopChild(child);
             }
         }, 60000);
     });
