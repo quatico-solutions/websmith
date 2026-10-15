@@ -31,7 +31,12 @@ describe("formatDiagnostic", () => {
     });
 
     it("should flatten message chain w/ chained message", () => {
-        const chain: ts.DiagnosticMessageChain = { messageText: "Outer", category: ts.DiagnosticCategory.Error, code: 1, next: [{ messageText: "Inner", category: ts.DiagnosticCategory.Error, code: 2 }] };
+        const chain: ts.DiagnosticMessageChain = {
+            messageText: "Outer",
+            category: ts.DiagnosticCategory.Error,
+            code: 1,
+            next: [{ messageText: "Inner", category: ts.DiagnosticCategory.Error, code: 2 }],
+        };
 
         const actual = formatDiagnostic(diagnostic(chain));
 
@@ -75,10 +80,10 @@ describe("toRollupError", () => {
 });
 
 describe("toRollupWarning", () => {
-    it("should return message and loc w/ position", () => {
+    it("should return message without position and loc w/ position", () => {
         const actual = toRollupWarning(diagnostic("ESM91001", ts.DiagnosticCategory.Warning, { file: FILE, start: START }));
 
-        expect(actual).toEqual({ message: "/project/src/main.ts (2,18): ESM91001", loc: { file: "/project/src/main.ts", line: 2, column: 17 } });
+        expect(actual).toEqual({ message: "ESM91001", loc: { file: "/project/src/main.ts", line: 2, column: 17 } });
     });
 
     it("should return string w/o position", () => {
@@ -106,7 +111,10 @@ describe("partitionDiagnostics", () => {
     });
 
     it("should drop messages and suggestions w/o debug", () => {
-        const actual = partitionDiagnostics([diagnostic("info", ts.DiagnosticCategory.Message), diagnostic("hint", ts.DiagnosticCategory.Suggestion)], false);
+        const actual = partitionDiagnostics(
+            [diagnostic("info", ts.DiagnosticCategory.Message), diagnostic("hint", ts.DiagnosticCategory.Suggestion)],
+            false
+        );
 
         expect(actual).toEqual({ errors: [], warnings: [] });
     });
