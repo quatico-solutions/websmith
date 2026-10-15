@@ -8,7 +8,7 @@ import { type CompilationProfile, ErrorMessage, type Reporter } from "@quatico/w
 import path from "node:path";
 import ts from "typescript";
 import { createSystem } from "../environment";
-import { AddonRegistry, type CompilationContext, ModuleCompiler, NoReporter } from "../index";
+import { AddonRegistry, CompilationContext, type CompilationContextOptions, ModuleCompiler, type ModuleCompilerHost, NoReporter } from "../index";
 
 const MODULE_PACKAGE = { "/package.json": JSON.stringify({ type: "module" }) };
 const TS_CONFIG = { "/tsconfig.json": JSON.stringify({ compilerOptions: { target: "es2020", module: "esnext", outDir: "/dist", rootDir: "/src" } }) };
@@ -26,7 +26,8 @@ const createAddons = (system: ts.System, reporter: Reporter, activators: Record<
 const createModuleCompiler = (
     files: Record<string, string>,
     profiles: Record<string, CompilationProfile>,
-    activators: Record<string, (ctx: CompilationContext) => void> = {}
+    activators: Record<string, (ctx: CompilationContext) => void> = {},
+    host: Omit<ModuleCompilerHost, "addons"> = {}
 ): ModuleCompiler => {
     const system = createSystem({ ...TS_CONFIG, ...files }, { virtual: true });
     const reporter = new NoReporter();
@@ -34,9 +35,11 @@ const createModuleCompiler = (
         { config: { profiles }, reporter, cliArgs: { options: {}, fileNames: Object.keys(files).filter(cur => cur.endsWith(".ts")), errors: [] } },
         { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" },
         system,
-        { addons: createAddons(system, reporter, activators) }
+        { addons: createAddons(system, reporter, activators), ...host }
     );
 };
+
+class HostContext extends CompilationContext {}
 
 class ThrowingAddonsCompiler extends ModuleCompiler {
     protected applyAddons(): void {
@@ -220,6 +223,69 @@ describe("ModuleCompiler runResultProcessors", () => {
 
         expect(actual).toEqual([[ts.DiagnosticCategory.Error, `Error in result processor "throwing": Error: Result exploded`]]);
         expect(target).toHaveBeenCalledTimes(1);
+    });
+
+    it("runs result processor as its addon", () => {
+        const target = jest.fn();
+        let actual: string | undefined;
+        const testObj = createModuleCompiler(
+            { "/src/a.ts": "export const a = 1;" },
+            { target: { addons: ["results"] } },
+            {
+                results: ctx =>
+                    ctx.registerResultProcessor((_files, cur) => {
+                        cur.registerGenerator(target);
+                        actual = (cur as CompilationContext).findAddonName(target);
+                    }),
+            }
+        );
+
+        testObj.runResultProcessors(["/dist/a.js"]);
+
+        expect(actual).toBe("results");
+    });
+});
+
+describe("ModuleCompiler createContext", () => {
+    const PROFILES = {
+        target: { addons: ["targetAddon"], depends: ["dep"], tsConfig: { outDir: "/dist" } },
+        dep: { addons: ["depAddon"], tsConfig: { outDir: "/lib" } },
+    };
+    const createContext = (options: CompilationContextOptions): CompilationContext => new HostContext(options);
+
+    it("creates context of target profile w/ factory", () => {
+        let actual: CompilationContext | undefined;
+
+        createModuleCompiler(
+            { "/src/a.ts": "export const a = 1;" },
+            PROFILES,
+            { targetAddon: ctx => (actual = ctx), depAddon: () => undefined },
+            { createContext }
+        );
+
+        expect(actual).toBeInstanceOf(HostContext);
+    });
+
+    it("creates core context of dependent profile w/ factory", () => {
+        const contexts: CompilationContext[] = [];
+
+        createModuleCompiler(
+            { "/src/a.ts": "export const a = 1;" },
+            PROFILES,
+            { targetAddon: () => undefined, depAddon: ctx => contexts.push(ctx) },
+            { createContext }
+        );
+        const actual = contexts.map(cur => cur.constructor.name).sort();
+
+        expect(actual).toEqual(["CompilationContext", "HostContext"]);
+    });
+
+    it("creates core context of target profile w/o factory", () => {
+        let actual: CompilationContext | undefined;
+
+        createModuleCompiler({ "/src/a.ts": "export const a = 1;" }, PROFILES, { targetAddon: ctx => (actual = ctx), depAddon: () => undefined });
+
+        expect(actual?.constructor).toBe(CompilationContext);
     });
 });
 
@@ -738,7 +804,11 @@ describe("ModuleCompiler dependent profile diagnostics", () => {
     it("yields error once labelled w/ first dependent profile w/ same error in two dependent profiles", () => {
         const testObj = createInjectingCompiler(
             { dep1: [createFileDiagnostic("Decl error")], dep2: [createFileDiagnostic("Decl error")] },
-            { target: { depends: ["dep1", "dep2"], tsConfig: { outDir: "/dist" } }, dep1: { tsConfig: { outDir: "/lib1" } }, dep2: { tsConfig: { outDir: "/lib2" } } }
+            {
+                target: { depends: ["dep1", "dep2"], tsConfig: { outDir: "/dist" } },
+                dep1: { tsConfig: { outDir: "/lib1" } },
+                dep2: { tsConfig: { outDir: "/lib2" } },
+            }
         );
 
         const actual = flatten(testObj.build("/src/a.ts").diagnostics);
@@ -817,7 +887,9 @@ describe("ModuleCompiler dependent profile diagnostics", () => {
 
         const actual = flatten(testObj.build("/src/a.ts").diagnostics);
 
-        expect(actual).toEqual(["File '/src/a.ts' is not under 'rootDir' '/src/lib'. 'rootDir' is expected to contain all source files. (profile \"dep\")"]);
+        expect(actual).toEqual([
+            "File '/src/a.ts' is not under 'rootDir' '/src/lib'. 'rootDir' is expected to contain all source files. (profile \"dep\")",
+        ]);
     });
 
     it("yields no file-less TypeScript error naming the module's file as config error after rebuild w/o error in dependent profile", () => {
