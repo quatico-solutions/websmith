@@ -308,3 +308,160 @@ export const runViteWatch = ({
     );
     return JSON.parse(runScript("watch.mjs", projectDir, 45000)) as ViteWatchEvent[];
 };
+
+/** A line Vite's logger received during `runViteDev`, by level, without ANSI codes. */
+export type ViteDevLog = { level: "info" | "warn" | "error"; msg: string };
+
+/** A response of `runViteDev`: of `get(url)` with its status and body, or of `ssr(url)` with its code or error. */
+export type ViteDevResponse = { url: string; status?: number; body?: string; ssr?: boolean; code?: string; error?: string };
+
+/** An HMR payload the dev server sent, e.g. `{ type: "full-reload" }` or `{ type: "error", err: { message } }`. */
+export type ViteDevMessage = { type: string; err?: { message: string }; path?: string };
+
+/**
+ * The result of `runViteDev`: whether `server.listen()` resolved or its error, the logger's lines, the HMR payloads
+ * except `ping`, the responses of the steps, and the waits that timed out.
+ */
+export type ViteDevResult = {
+    listening: boolean;
+    listenError?: string;
+    logs: ViteDevLog[];
+    messages: ViteDevMessage[];
+    responses: ViteDevResponse[];
+    timeouts: string[];
+};
+
+/**
+ * Starts Vite's dev server with the plugin in a separate Node process, connects to its HMR socket and runs `steps`, code
+ * in an async function of the server process, in order. The steps have these helpers in scope:
+ * - `get(url)` requests `url` from the server and records `{ url, status, body }`;
+ * - `ssr(url)` records the code or the error of `server.environments.ssr.transformRequest(url)`;
+ * - `waitForMessage(predicate, ms)` waits for the next HMR payload after the last one a wait matched, polling every
+ *   25 ms, and records a timeout instead of throwing;
+ * - `edit(file, text, predicate)` writes the project file `file`, rewriting it every 250 ms until a payload matches
+ *   `predicate`, since the watcher may miss a write made right after a request.
+ */
+export const runViteDev = ({
+    vite = "vite",
+    pluginOptions,
+    viteOptions = {},
+    steps,
+}: Pick<RunViteOptions, "vite" | "pluginOptions" | "viteOptions"> & { steps: string[] }): ViteDevResult => {
+    writeFile(
+        "dev.mjs",
+        `
+        import { createLogger, createServer } from ${JSON.stringify(vite)};
+        import websmith from "@quatico/websmith-vite";
+        import fs from "node:fs";
+        import path from "node:path";
+
+        const root = ${JSON.stringify(projectDir)};
+        const logs = [];
+        const messages = [];
+        const responses = [];
+        const timeouts = [];
+        const strip = text => String(text).replace(/\\u001b\\[[0-9;]*m/g, "");
+        const customLogger = createLogger("info", { allowClearScreen: false });
+        customLogger.info = msg => logs.push({ level: "info", msg: strip(msg) });
+        customLogger.warn = msg => logs.push({ level: "warn", msg: strip(msg) });
+        customLogger.warnOnce = msg => logs.push({ level: "warn", msg: strip(msg) });
+        customLogger.error = msg => logs.push({ level: "error", msg: strip(msg) });
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        let cursor = 0;
+        const findMessage = predicate => {
+            const index = messages.findIndex((cur, i) => i >= cursor && predicate(cur));
+            if (index >= 0) {
+                cursor = index + 1;
+                return messages[index];
+            }
+            return undefined;
+        };
+        const waitForMessage = async (predicate, ms = 10000) => {
+            const end = Date.now() + ms;
+            for (;;) {
+                const found = findMessage(predicate);
+                if (found || Date.now() >= end) {
+                    if (!found) {
+                        timeouts.push(String(predicate));
+                    }
+                    return found;
+                }
+                await sleep(25);
+            }
+        };
+
+        const server = await createServer({
+            root,
+            configFile: false,
+            logLevel: "info",
+            clearScreen: false,
+            customLogger,
+            plugins: [websmith(${toSource(pluginOptions)})],
+            server: { port: 5273, strictPort: false },
+            ...${JSON.stringify(viteOptions)},
+        });
+        let listening = false;
+        let listenError;
+        try {
+            await server.listen();
+            listening = true;
+        } catch (cause) {
+            listenError = cause.message;
+        }
+
+        const port = listening ? server.httpServer.address().port : 0;
+        const get = async url => {
+            const response = await fetch("http://localhost:" + port + url);
+            const result = { url, status: response.status, body: await response.text() };
+            responses.push(result);
+            return result;
+        };
+        const ssr = async url => {
+            try {
+                const result = await server.environments.ssr.transformRequest(url);
+                responses.push({ url, ssr: true, code: result?.code ?? "" });
+            } catch (cause) {
+                responses.push({ url, ssr: true, error: cause.message });
+            }
+        };
+        const edit = async (file, text, predicate) => {
+            const write = () => fs.writeFileSync(path.join(root, file), text);
+            write();
+            const end = Date.now() + 10000;
+            for (;;) {
+                const found = findMessage(predicate);
+                if (found || Date.now() >= end) {
+                    if (!found) {
+                        timeouts.push("edit " + file);
+                    }
+                    return found;
+                }
+                await sleep(250);
+                write();
+            }
+        };
+
+        let socket;
+        if (listening) {
+            socket = new WebSocket("ws://localhost:" + port + "/", "vite-hmr");
+            socket.addEventListener("message", event => {
+                const message = JSON.parse(String(event.data));
+                if (message.type !== "ping") {
+                    messages.push(message);
+                }
+            });
+            await waitForMessage(cur => cur.type === "connected");
+            const steps = [${steps.map(cur => `async () => { ${cur} }`).join(", ")}];
+            for (const step of steps) {
+                await step();
+            }
+        }
+        socket?.close();
+        await server.close();
+        console.log(JSON.stringify({ listening, listenError, logs, messages, responses, timeouts }));
+        process.exit(0);
+        `
+    );
+    return JSON.parse(runScript("dev.mjs", projectDir, 60000)) as ViteDevResult;
+};
