@@ -230,9 +230,7 @@ export class Compiler {
         this.createProfileContextsIfNecessary();
 
         if (typeof this.system.watchFile === "function") {
-            const profiles = this.options.profile
-                ? [...(this.options.config?.profiles?.[this.options.profile]?.depends ?? []), this.options.profile]
-                : [];
+            const profiles = this.getWatchedProfiles();
             const files = this.getRootFiles();
             // Report a profile whose output is not ESM once, not on every rebuild
             profiles.forEach(curProfile => {
@@ -261,6 +259,12 @@ export class Compiler {
             this.reporter.reportDiagnostic(new ErrorMessage(`Watching is not supported by "${this.system.constructor.name}".`));
         }
         return this;
+    }
+
+    /** Returns the profiles a watched file is re-emitted for: the selected profile and its direct dependencies. */
+    private getWatchedProfiles(): string[] {
+        const { profile, config } = this.options;
+        return profile ? [...(config?.profiles?.[profile]?.depends ?? []), profile] : [];
     }
 
     closeAllWatchers(): this {
@@ -428,7 +432,6 @@ export class Compiler {
 
     protected createCompilationContext(profile?: string): CompilationContext {
         const { configFile, tsConfigFile, cliArgs, watch } = this.options;
-        const selectedProfiles = this.options.getSelectedProfiles(profile);
         const profileOptions = this.options.getOptions(profile);
 
         // Get the profile-specific outDir from the profile options
@@ -467,7 +470,8 @@ export class Compiler {
             reporter: this.reporter,
             ...(profile && { config: this.options.config?.profiles?.[profile]?.config }),
             profile,
-            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, selectedProfiles) }),
+            // Register with the profiles watch() registers root files with, so every context shares one watcher per file
+            ...(watch && { watchCallback: (filePath: string) => this.registerWatch(filePath, this.getWatchedProfiles()) }),
             registerDependencyCallback: this.dependencyCallback,
         });
     }
