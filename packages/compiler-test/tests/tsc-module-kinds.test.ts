@@ -73,17 +73,18 @@ const runTsc = (tsConfigFile: string, args: string[]): RunResult =>
 
 describe("compile w/ websmith and tsc w/ node module kinds", () => {
     describe.each(NODE_MODULE_KINDS)("w/ module %s", module => {
+        // websmith exits 1 where tsc exits 2, so the exit statuses are compared as success or failure
         it.each([{ args: [] }, { args: ["--transpileOnly"] }])(
-            "emits tsc's output under type module w/ args $args",
+            "emits tsc's output and exit status under type module w/ args $args",
             ({ args }) => {
                 const tsConfigFile = writeTsConfig({ module });
-                runTsc(tsConfigFile, []);
-                const expected = readOutputs(path.join(projectDir, "tsc"));
+                const tscResult = runTsc(tsConfigFile, []);
+                const expected = { outputs: readOutputs(path.join(projectDir, "tsc")), failed: tscResult.status !== 0 };
 
-                runWebsmithCli(tsConfigFile, args);
-                const actual = readOutputs(path.join(projectDir, "websmith"));
+                const websmithResult = runWebsmithCli(tsConfigFile, args);
+                const actual = { outputs: readOutputs(path.join(projectDir, "websmith")), failed: websmithResult.status !== 0 };
 
-                expect(Object.keys(expected)).toEqual(["a.js"]);
+                expect(Object.keys(expected.outputs)).toEqual(["a.js"]);
                 expect(actual).toEqual(expected);
             },
             60000
