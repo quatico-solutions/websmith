@@ -78,6 +78,9 @@ const compileWebsmith = async (files: string[], tsConfigFile: string): Promise<{
     return { paths: readOutputPaths(path.join(projectDir, "websmith")), codes: readErrorCodes(output, /Error: (\d+):/g) };
 };
 
+// TypeScript 6 cannot infer rootDir for these sources and reports TS5011 once; TypeScript 5 infers it
+const isTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6;
+
 // Counts what websmith's reporter prints, as the CLI does: websmith-node's compile() reports the returned diagnostics once more
 const countWebsmithRootDirErrors = (tsConfigFile: string): number => {
     const reporter = new NoReporter();
@@ -108,6 +111,7 @@ describe("compile w/ websmith and tsc w/o rootDir", () => {
 
             const actual = countWebsmithRootDirErrors(tsConfigFile);
 
+            expect(expected).toBe(isTs5 ? 0 : 1);
             expect(actual).toBe(expected);
         },
         60000
