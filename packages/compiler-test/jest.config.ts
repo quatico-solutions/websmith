@@ -11,6 +11,7 @@ import { config as baseConfig } from "../../jest-base.config";
 const config: Config = {
     ...baseConfig,
     moduleNameMapper: {
+        "^@quatico/websmith-core/lib/(.*)$": "<rootDir>/../core/src/$1",
         "@quatico/websmith-core": "<rootDir>/../core/src",
         "@quatico/websmith-testing": "<rootDir>/../testing/src",
         "@quatico/websmith-node": "<rootDir>/../node/src",
