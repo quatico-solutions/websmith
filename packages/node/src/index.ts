@@ -4,6 +4,8 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import "./typescript-guard";
+
 export * from "./Logger";
 export * from "./websmith";
 export * from "./webpack";
