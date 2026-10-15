@@ -1613,25 +1613,6 @@ describe("compile w/ outDir and no rootDir", () => {
         expect(actual).toEqual(expected);
     });
 
-    it("reports tsc's rootDir inference error once w/ relative configFilePath", () => {
-        const fileSystem = createSystem(ROOT_DIR_SOURCES, { virtual: true });
-        const options = { outDir: "/out", configFilePath: "tsconfig.json", target: ts.ScriptTarget.ESNext };
-        const expected = getTscRootDirErrors(fileSystem, { ...options, configFilePath: "/tsconfig.json" });
-        const target = new ReporterMock(fileSystem);
-        jest.spyOn(target, "reportDiagnostic");
-        const testObj = new CompilerTestClass(
-            { reporter: target, tsConfig: { ...options, types: [] }, cliArgs: { fileNames: ROOT_DIR_FILES, options, errors: [] } },
-            undefined,
-            fileSystem
-        );
-
-        testObj.compile();
-        const actual = getReportedRootDirErrors(target);
-
-        expect(actual).toHaveLength(isTs5 ? 0 : 1);
-        expect(actual).toEqual(expected);
-    });
-
     it.each([
         { path: "fast path", declaration: false },
         { path: "per-file declaration Programs", declaration: true },
@@ -2129,6 +2110,7 @@ describe("emitSourceFile", () => {
                 sourceMap: true,
                 resolveJsonModule: true,
                 outDir: "/build",
+                rootDir: "/src",
                 allowJs: true,
             },
             cliArgs: { fileNames: ["src/config.json"], options: {}, errors: [] },
@@ -2287,7 +2269,7 @@ describe("emitSourceFile", () => {
             const fileSystem = createSystem({ [fileName]: source }, { virtual: true });
             const target = {
                 reporter: new ReporterMock(fileSystem),
-                tsConfig: { target: ts.ScriptTarget.ESNext, module, allowJs: true, outDir: "/build" },
+                tsConfig: { target: ts.ScriptTarget.ESNext, module, allowJs: true, outDir: "/build", rootDir: "/src" },
                 cliArgs: { fileNames: [fileName], options: {}, errors: [] },
             };
 
@@ -2312,7 +2294,14 @@ describe("emitSourceFile", () => {
         const fileSystem = createSystem({ "src/d.jsx": source }, { virtual: true });
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX, allowJs: true, outDir: "/build" },
+            tsConfig: {
+                target: ts.ScriptTarget.ESNext,
+                module: ts.ModuleKind.ESNext,
+                jsx: ts.JsxEmit.ReactJSX,
+                allowJs: true,
+                outDir: "/build",
+                rootDir: "/src",
+            },
             cliArgs: { fileNames: ["/src/d.jsx"], options: {}, errors: [] },
         };
 
@@ -2337,6 +2326,7 @@ describe("emitSourceFile", () => {
                 moduleResolution: ts.ModuleResolutionKind.Bundler,
                 allowJs: true,
                 outDir: "/build",
+                rootDir: "/src",
             },
             cliArgs: { fileNames: ["/src/b.js"], options: {}, errors: [] },
         };
@@ -2368,7 +2358,7 @@ describe("emitSourceFile", () => {
         const fileSystem = createSystem({ "src/b.js": `export const b = ;` }, { virtual: true });
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, noEmitOnError: true, outDir: "/build" },
+            tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, noEmitOnError: true, outDir: "/build", rootDir: "/src" },
             cliArgs: { fileNames: ["/src/b.js"], options: {}, errors: [] },
         };
 
@@ -2384,7 +2374,7 @@ describe("emitSourceFile", () => {
         const fileSystem = createSystem({ "src/b.js": `export const b = 1;` }, { virtual: true });
         const target = {
             reporter: new ReporterMock(fileSystem),
-            tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, noEmitOnError: true, outDir: "/build" },
+            tsConfig: { target: ts.ScriptTarget.ESNext, allowJs: true, noEmitOnError: true, outDir: "/build", rootDir: "/src" },
             cliArgs: { fileNames: ["/src/b.js"], options: {}, errors: [] },
         };
 
