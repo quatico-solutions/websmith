@@ -21,6 +21,12 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 Builds that passed before can now fail: the `websmith` command reports errors it used to ignore and exits with code 1.
 
+- Under `module: node16`/`nodenext`, the webpack loader rebuilds a module in watch mode when the `"type"` of its
+  nearest `package.json` changes, also without the ESM check; before, its output kept the old module format until
+  the module itself changed. The `package.json` files the ESM check reads only for `"type"` no longer rebuild their
+  modules on other edits, e.g. by `npm install`. Under `thread-loader` and with webpack's persistent cache, any edit
+  of such a `package.json` rebuilds the modules that depend on it: as before with the ESM check, and newly for
+  `node16`/`nodenext` profiles without `esm`, whose modules no edit of their `package.json` rebuilt before.
 - **Behaviour change:** the webpack loader reports the TypeScript diagnostics of the profiles the selected `profile`
   depends on, labelled `(profile "<name>")`. Builds with an error only a dependent profile produces, e.g. a declaration
   emit error such as TS4094 in a profile with `declaration: true`, now fail; before, the dependent profile wrote its
@@ -177,6 +183,9 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   `config.profiles` is a configuration error too, and the `depends` error names the available profiles. The CLI
   reports the same errors and exits 1; before, `websmith --profile <unknown>` warned `Missing profile: …`, wrote
   nothing and exited 0.
+- In watch mode, a file a generator adds with `addInputFile` is emitted on the first build and reported once per
+  change and watched profile instead of once per rebuild that re-added it, also when the profile has `depends`. `Adding <file> to watch.` is printed once per file, and no
+  longer by builds without `--watch`.
 
 ### Removed
 

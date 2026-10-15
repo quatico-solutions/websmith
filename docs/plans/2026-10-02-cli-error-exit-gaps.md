@@ -13,7 +13,7 @@
 
 ## Status
 
-- **State:** Approved
+- **State:** Delivered
 - **Type:** bug
 - **Story:** node24-esm-support
 - **Review:** pr
@@ -22,6 +22,7 @@
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #136 merged
 - **Started:** 2026-10-02, Jan Wloka, `bug/cli-project-directory`
 - **Started:** 2026-10-03, Jan Wloka, `bug/emit-skipped-rule`
+- **Delivered:** 2026-10-15
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
@@ -202,7 +203,7 @@ plan does not change `reportedConfigErrors` or the `depends` closure, which #134
 
 ### Watch
 
-- `bug/watch-generator-added-files` — item 9: one watcher per path and profile set regardless of how often a generator re-adds it, and the first watch build emits generator-added files. Unit: `Compiler.spec.ts` and `CompilationContext.spec.ts` on a watching test system; e2e: a `--watch` case in `bin.test.ts` (see Open Points); `Release-Notes.md` entry <!-- builds: deduplicated registerWatch and first-build emit of generator-added files -->
+- `bug/watch-generator-added-files` — item 9: one watcher per path and profile set regardless of how often a generator re-adds it, and the first watch build emits generator-added files. Unit: `Compiler.spec.ts` and `CompilationContext.spec.ts` on a watching test system; e2e: a `--watch` case in `bin.test.ts` (see Open Points); `Release-Notes.md` entry → #196 <!-- builds: deduplicated registerWatch and first-build emit of generator-added files -->
 
 ## Notes
 

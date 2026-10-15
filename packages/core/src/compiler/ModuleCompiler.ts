@@ -17,9 +17,11 @@ import {
     checkJsonImportAttribute,
     checkMissingExtension,
     createCjsNamesCache,
+    createPackageTypeLookup,
     type EsmCheckContext,
     type ImportRule,
     type ModuleClassification,
+    type PackageType,
     type ScanCache,
 } from "./esm";
 
@@ -27,8 +29,12 @@ import {
 export type ModuleBuildResult = {
     fragment: CompileFragment;
     diagnostics: ts.Diagnostic[];
-    /** Files the build depends on, and files whose creation would change its result. */
-    dependencies: { files: string[]; missing: string[] };
+    /**
+     * Files the build depends on, and files whose creation would change its result. `packageTypes` holds the
+     * package.json files whose `"type"` alone decided the build, with the type read, `null` for none: only a change of
+     * that type changes the result.
+     */
+    dependencies: { files: string[]; missing: string[]; packageTypes: Record<string, PackageType | null> };
 };
 
 export type ModuleBuildOptions = {
@@ -175,7 +181,7 @@ export class ModuleCompiler extends Compiler {
     private cachesPerCompilation = false;
     private compilationHooks = false;
     private readonly baseOptions: Partial<CompilerOptions>;
-    private optionsFiles: ModuleBuildResult["dependencies"] = { files: [], missing: [] };
+    private optionsFiles: Omit<ModuleBuildResult["dependencies"], "packageTypes"> = { files: [], missing: [] };
     private readonly optionsFileTimes = new Map<string, number | undefined>();
     private addonsStamp?: string;
     // Until the next option resolution: Compiler's constructor resolves the options before these fields exist
@@ -285,7 +291,7 @@ export class ModuleCompiler extends Compiler {
     }
 
     /** Returns the files the options are resolved from: the config file, the tsconfig.json and the files it extends. */
-    public getOptionsFiles(): ModuleBuildResult["dependencies"] {
+    public getOptionsFiles(): Omit<ModuleBuildResult["dependencies"], "packageTypes"> {
         return this.optionsFiles;
     }
 
@@ -393,8 +399,18 @@ export class ModuleCompiler extends Compiler {
         const dependentDiagnostics: [string, ts.Diagnostic][] = [];
         const dependencies = { files: new Set<string>(), missing: new Set<string>() };
         const onDependency = (fileName: string, exists: boolean) => (exists ? dependencies.files : dependencies.missing).add(fileName);
+        const packageTypes: Record<string, PackageType | null> = {};
+        const onPackageType = (packageJson: string, type: PackageType | undefined) => (packageTypes[packageJson] = type ?? null);
         if (!this.isProfileConfigured()) {
-            return { fragment: { version: 0, files: [], writtenFiles: [] }, diagnostics: [], dependencies: { files: [], missing: [] } };
+            return {
+                fragment: { version: 0, files: [], writtenFiles: [] },
+                diagnostics: [],
+                dependencies: { files: [], missing: [], packageTypes: {} },
+            };
+        }
+        // The nearest package.json's "type" decides the module format a node16/nodenext profile emits
+        if (this.hasNodeModuleProfile()) {
+            createPackageTypeLookup(system, onDependency, this.compilationCaches.packageTypeCache, onPackageType)(filePath);
         }
 
         if (this.profile) {
@@ -414,7 +430,7 @@ export class ModuleCompiler extends Compiler {
                         ])
                     );
                     // Dependent profiles write files that another runtime loads: checked as written, by their own esm
-                    diagnostics.push(...this.checkLoaderOutput(profile, filePath, fragment.writtenFiles, undefined, onDependency));
+                    diagnostics.push(...this.checkLoaderOutput(profile, filePath, fragment.writtenFiles, undefined, { onDependency, onPackageType }));
 
                     // TODO: We cannot apply the resultProcessors to the resulting fragment, because webpack has not written the file yet.
                     const ctx = this.getContext(profile);
@@ -449,7 +465,7 @@ export class ModuleCompiler extends Compiler {
                     return !reported.has(key) && !!reported.add(key);
                 })
                 .map(([profile, cur]) => labelWithProfile(cur, profile)),
-            ...this.checkLoaderOutput(this.profile, filePath, result.files, moduleKind, onDependency)
+            ...this.checkLoaderOutput(this.profile, filePath, result.files, moduleKind, { onDependency, onPackageType })
         );
 
         this.logDebug(`Emit result: ${result.files.length} files generated`);
@@ -458,7 +474,11 @@ export class ModuleCompiler extends Compiler {
         }
 
         this.logDebug(`Build completed for: ${resourcePath}`);
-        return { fragment: result, diagnostics, dependencies: { files: [...dependencies.files], missing: [...dependencies.missing] } };
+        return {
+            fragment: result,
+            diagnostics,
+            dependencies: { files: [...dependencies.files], missing: [...dependencies.missing], packageTypes },
+        };
     }
 
     /**
@@ -526,6 +546,15 @@ export class ModuleCompiler extends Compiler {
         return super.emitSourceFile(fileName, profile, writeFile, true);
     }
 
+    /** True when the host's profile or one of its dependent profiles emits with `module` Node16 or NodeNext. */
+    private hasNodeModuleProfile(): boolean {
+        const profiles = this.profile ? this.getOptions().getSelectedProfiles(this.profile) : [this.profile];
+        return profiles.some(profile => {
+            const { module } = this.getContext(profile)?.getCompilerOptions() ?? {};
+            return module === ts.ModuleKind.Node16 || module === ts.ModuleKind.NodeNext;
+        });
+    }
+
     /**
      * Runs the ESM check on a profile's output of one module. `moduleKind` overrides the classification of a bundler
      * profile; a node profile's files are loaded by Node as written, so they are classified as Node does.
@@ -535,7 +564,7 @@ export class ModuleCompiler extends Compiler {
         fileName: string,
         files: ts.OutputFile[],
         moduleKind: ModuleClassification["kind"] | undefined,
-        onDependency: EsmCheckContext["onDependency"]
+        callbacks: Pick<EsmCheckContext, "onDependency" | "onPackageType">
     ): ts.Diagnostic[] {
         const ctx = this.getContext(profile);
         // A profile that is not ESM is reported once per option resolution, see completeResolution
@@ -548,7 +577,7 @@ export class ModuleCompiler extends Compiler {
             return this.checkEsmOutput(esm, profile, ctx, [{ files, addons: ctx.getAddonsChangingFile(fileName), source: fileName }], {
                 ...this.compilationCaches,
                 scanCache: this.scanCache,
-                onDependency,
+                ...callbacks,
                 importRules: esm.runtime === "node" ? NODE_IMPORT_RULES : [],
                 ...(esm.runtime === "bundler" && moduleKind && { moduleKind }),
             });

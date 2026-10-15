@@ -70,14 +70,19 @@ export const classifyModule = (
  */
 export type PackageTypeCache = Map<string, { result?: PackageInfo; missing: string[] }>;
 
+/** Receives a package.json whose `"type"` alone a lookup read, with that type, `undefined` for none. */
+export type PackageTypeCallback = (packageJson: string, type: PackageType | undefined) => void;
+
 /**
  * Creates a lookup that reads every package.json at most once, also across lookups sharing `cache`. Every lookup,
- * cached or not, reports the package.json paths it depends on to its own `onDependency`.
+ * cached or not, reports the package.json paths it depends on to its own `onDependency`; with `onPackageType`, the
+ * found package.json goes to it with its type instead, and only the missing candidates go to `onDependency`.
  */
 export const createPackageTypeLookup = (
     system: ts.System,
     onDependency?: DependencyCallback,
-    cache: PackageTypeCache = new Map()
+    cache: PackageTypeCache = new Map(),
+    onPackageType?: PackageTypeCallback
 ): PackageTypeLookup => {
     const lookupDirectory = (dirName: string): { result?: PackageInfo; missing: string[] } => {
         const cached = cache.get(dirName);
@@ -103,14 +108,17 @@ export const createPackageTypeLookup = (
     return (fileName: string) => {
         const { result, missing } = lookupDirectory(path.dirname(fileName));
         missing.forEach(cur => onDependency?.(cur, false));
-        if (result) {
+        if (result && onPackageType) {
+            onPackageType(result.packageJson, result.type);
+        } else if (result) {
             onDependency?.(result.packageJson, true);
         }
         return result;
     };
 };
 
-const readPackageType = (system: ts.System, packageJson: string): PackageType | undefined => {
+/** Returns the `"type"` of `packageJson`, `undefined` for none, an invalid value or an unreadable file. */
+export const readPackageType = (system: ts.System, packageJson: string): PackageType | undefined => {
     try {
         const { type } = JSON.parse(system.readFile(packageJson) ?? "{}") as { type?: unknown };
         return type === "module" || type === "commonjs" ? type : undefined;

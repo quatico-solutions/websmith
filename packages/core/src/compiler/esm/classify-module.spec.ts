@@ -202,6 +202,37 @@ describe("createPackageTypeLookup", () => {
         expect(actual).toBe(1);
     });
 
+    it("reports found package.json w/ type to onPackageType and missing paths to onDependency", () => {
+        const onDependency = jest.fn();
+        const onPackageType = jest.fn();
+        const testObj = createPackageTypeLookup(
+            createSystem({ "/package.json": JSON.stringify({ type: "module" }) }, { virtual: true }),
+            onDependency,
+            undefined,
+            onPackageType
+        );
+
+        testObj("/dist/target.js");
+        const actual = [onDependency.mock.calls, onPackageType.mock.calls];
+
+        expect(actual).toEqual([[["/dist/package.json", false]], [["/package.json", "module"]]]);
+    });
+
+    it("reports found package.json w/o type as undefined to onPackageType", () => {
+        const onPackageType = jest.fn();
+        const testObj = createPackageTypeLookup(
+            createSystem({ "/package.json": JSON.stringify({ name: "whatever" }) }, { virtual: true }),
+            undefined,
+            undefined,
+            onPackageType
+        );
+
+        testObj("/dist/target.js");
+        const actual = onPackageType.mock.calls;
+
+        expect(actual).toEqual([["/package.json", undefined]]);
+    });
+
     it("reports missing package.json paths w/o package.json", () => {
         const onDependency = jest.fn();
         const testObj = createPackageTypeLookup(createSystem({}, { virtual: true }), onDependency);

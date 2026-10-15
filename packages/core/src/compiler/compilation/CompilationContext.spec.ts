@@ -253,6 +253,69 @@ describe("addInputFile", () => {
             })
         );
     });
+
+    it("calls watch callback and reports adding to watch once w/ file added twice", () => {
+        const system = createSystem({}, { virtual: true });
+        const reporter = new ReporterMock(system);
+        const target = jest.fn();
+        const testObj = new CompilationContextTestClass({
+            tsConfig: {},
+            projectDir: system.getCurrentDirectory(),
+            reporter,
+            rootFiles: [],
+            system,
+            cliArgs: { options: {}, fileNames: [], errors: [] },
+            watchCallback: target,
+        });
+
+        testObj.addInputFile("/src/added.ts");
+        testObj.addInputFile("/src/added.ts");
+        const actual1 = target.mock.calls.length;
+        const actual2 = reporter.message.split("Adding /src/added.ts to watch.").length - 1;
+
+        expect(actual1).toBe(1);
+        expect(actual2).toBe(1);
+    });
+
+    it("does not call watch callback w/ file already a root file", () => {
+        const system = createSystem({}, { virtual: true });
+        const target = jest.fn();
+        const testObj = new CompilationContextTestClass({
+            tsConfig: {},
+            projectDir: system.getCurrentDirectory(),
+            reporter: new ReporterMock(system),
+            rootFiles: ["/src/a.ts"],
+            system,
+            cliArgs: { options: {}, fileNames: [], errors: [] },
+            watchCallback: target,
+        });
+
+        testObj.addInputFile("/src/a.ts");
+
+        expect(target).not.toHaveBeenCalled();
+    });
+
+    it("adds file without reporting adding to watch w/o watch callback", () => {
+        const system = createSystem({}, { virtual: true });
+        const target = new ReporterMock(system);
+        const testObj = new CompilationContextTestClass({
+            tsConfig: {},
+            projectDir: system.getCurrentDirectory(),
+            reporter: target,
+            rootFiles: [],
+            system,
+            cliArgs: { options: {}, fileNames: [], errors: [] },
+        });
+
+        testObj.addInputFile("/src/added.ts");
+        const actual1 = target.message;
+        const actual2 = testObj.getRootFiles();
+        const actual3 = testObj.isFileProcessedByAddon("/src/added.ts");
+
+        expect(actual1).not.toContain("to watch.");
+        expect(actual2).toEqual(["/src/added.ts"]);
+        expect(actual3).toBe(true);
+    });
 });
 
 describe("addAssetDependency", () => {

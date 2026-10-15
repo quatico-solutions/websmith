@@ -315,7 +315,7 @@ deprecation errors" is answered yes.
 
 ### 7.1 measurement
 
-- `docs/typescript-7-1-measurement` — the full run and `docs/stories/ts7-rearchitecture/analysis-ts71-measurement.md`: per workload the 7.1 / 6.0.3 ratio with min/max, machine, Node, nightly version and hash, the harness commit, the transformer probe result, 3C and ts-loader#1704 status on the run date; the story's two open questions (3C phase, IPC cost) updated in place, and one dated Decisions row chosen by the decision rule. Test: the report cites the bench commit and every threshold of the rule with its measured value; Definition of Done green <!-- builds: ts71 measurement report and Decisions row -->
+- `docs/typescript-7-1-measurement` — the full run and `docs/stories/ts7-rearchitecture/analysis-ts71-measurement.md`: per workload the 7.1 / 6.0.3 ratio with min/max, machine, Node, nightly version and hash, the harness commit, the transformer probe result, 3C and ts-loader#1704 status on the run date; the story's two open questions (3C phase, IPC cost) updated in place, and one dated Decisions row chosen by the decision rule. Test: the report cites the bench commit and every threshold of the rule with its measured value; Definition of Done green <!-- builds: ts71 measurement report and Decisions row --> → #199
 
 ### Own compilations
 

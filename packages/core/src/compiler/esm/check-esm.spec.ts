@@ -321,6 +321,20 @@ describe("checkEsm", () => {
         ]);
     });
 
+    it("reports package.json of classification to onPackageType w/ onPackageType in context", () => {
+        const onDependency = jest.fn();
+        const onPackageType = jest.fn();
+
+        checkEsm(
+            [output("/dist/target.js", `export const x = 1;`)],
+            { runtime: "node" },
+            createContext(MODULE_PACKAGE, { onDependency, onPackageType })
+        );
+        const actual = [onDependency.mock.calls, onPackageType.mock.calls];
+
+        expect(actual).toEqual([[["/dist/package.json", false]], [["/package.json", "module"]]]);
+    });
+
     it("yields diagnostic located in emitted file", () => {
         const [actual] = checkEsm([output("/dist/target.js", `const x = require("x");`)], { runtime: "node" }, createContext());
 

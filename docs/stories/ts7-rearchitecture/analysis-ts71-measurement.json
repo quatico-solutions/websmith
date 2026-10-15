@@ -1,0 +1,3548 @@
+{
+  "schema": "websmith-ts71-bench/1",
+  "meta": {
+    "machine": {
+      "platform": "darwin",
+      "arch": "arm64",
+      "release": "25.2.0",
+      "cpu": "Apple M1 Max",
+      "cpus": 10,
+      "totalMemBytes": 68719476736,
+      "loadavgStart": [
+        9.1796875,
+        18.001953125,
+        18.447265625
+      ],
+      "loadavgEnd": [
+        8.5986328125,
+        10.9267578125,
+        14.80078125
+      ],
+      "power": "Now drawing from 'AC Power'"
+    },
+    "node": {
+      "version": "v22.17.0",
+      "v8": "12.4.254.21-node.26",
+      "execPath": "/Users/jwloka/.nvm/versions/node/v22.17.0/bin/node"
+    },
+    "git": {
+      "head": "cf1e3767b92b412f398fa755bf9475b70313b8a1",
+      "perfDirty": false
+    },
+    "versions": {
+      "ts573": {
+        "version": "5.7.3",
+        "integrity": "sha512-84MVSjMEHP+FQRPy3pX9sTVV/INIex71s9TL2Gm5FG/WG1SqXeKyZ0k7/blY/4FdOzI12CBy1vGc4og/eus0fw==",
+        "package": "typescript"
+      },
+      "ts603": {
+        "version": "6.0.3",
+        "integrity": "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==",
+        "package": "typescript"
+      },
+      "ts71": {
+        "version": "7.1.0-dev.20261013.1",
+        "integrity": "sha512-wEt6fQCqhZ3hrbIUaO2LS7d94FSzH+xGP+/KJCxFNFHQiG/W2L0rJ/1B7lAQv6VKntlmjWuzYQ8LABuLZ3W/sg==",
+        "package": "typescript"
+      },
+      "binary": {
+        "name": "@typescript/typescript-darwin-arm64",
+        "version": "7.1.0-dev.20261013.1",
+        "integrity": "sha512-V22DvbTQjg6kMEqU5hhZmxhZqTNdbwNz3YB1CULEtxH7gxMxPvFpMM5rbJQgZlhabo0DxvsFfTdUNjOTr4IPIQ=="
+      },
+      "versionsDir": "/var/folders/cr/v5_bk7dx68161tz8hrfk1xbh0000gn/T/websmith-ts71-versions-979483494c62",
+      "ipc": {
+        "sync": "MessagePack-framed JSON over stdio (tsc --api; [type, method, JSON payload] tuples)",
+        "async": "JSON-RPC (vscode-jsonrpc) over stdio"
+      },
+      "compilerOptions": {
+        "target": 9,
+        "module": 99,
+        "jsx": 2,
+        "strict": true
+      },
+      "programOptions": {
+        "target": 9,
+        "module": 99,
+        "jsx": 2,
+        "strict": true,
+        "moduleResolution": 100
+      },
+      "installed": false
+    },
+    "options": {
+      "runs": 5,
+      "sizes": [
+        200,
+        1000
+      ],
+      "edits": 30,
+      "in-flight": 8,
+      "seed": 20261013,
+      "loader-instances": 1,
+      "versions-dir": "/var/folders/cr/v5_bk7dx68161tz8hrfk1xbh0000gn/T/websmith-ts71-versions-979483494c62",
+      "out": "/var/folders/cr/v5_bk7dx68161tz8hrfk1xbh0000gn/T//ts71-full.json",
+      "keep": false
+    },
+    "corpus": {
+      "200": {
+        "hash": "d71d43b82aa0b3129cee6eb7208dc61b550f6e7c0f06940b287f882c02e7d24d",
+        "seed": 20261013,
+        "files": 200,
+        "markerFiles": 19
+      },
+      "1000": {
+        "hash": "f182534b130d6211e7064027d15a009166487eeff9fc73877d046fab335c8d04",
+        "seed": 20261013,
+        "files": 1000,
+        "markerFiles": 99
+      }
+    },
+    "decisionSize": 1000,
+    "timestamp": "2026-10-15T02:26:12.677Z"
+  },
+  "runs": [
+    {
+      "variant": "5.7.3",
+      "size": 200,
+      "round": 0,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 131.07379199999997,
+          "loadMs": 106.0355,
+          "firstCallMs": 25.038291999999984,
+          "version": "5.7.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedCold": 19,
+          "transformedWarm": 19,
+          "cold": {
+            "calls": 200,
+            "totalMs": 373.34350399999954,
+            "medianMs": 0.9477914999999939,
+            "p95Ms": 5.6496250000000146,
+            "maxMs": 23.72845799999999
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 260.71537899999987,
+            "medianMs": 0.7022920000000568,
+            "p95Ms": 3.933208000000036,
+            "maxMs": 13.983458000000041
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 171.94841699999995,
+          "checks": {
+            "calls": 200,
+            "totalMs": 461.15049600000043,
+            "medianMs": 0.8613330000000587,
+            "p95Ms": 7.830249999999978,
+            "maxMs": 68.29416700000002
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 113.655826999998,
+            "medianMs": 0.3281245000000581,
+            "p95Ms": 1.955500000000029,
+            "maxMs": 6.455332999999882
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 574.8063229999984,
+            "medianMs": 1.2395625000001473,
+            "p95Ms": 9.88458300000002,
+            "maxMs": 68.63708399999996
+          },
+          "totalMs": 746.7547399999984,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 5178.973499000001,
+            "medianMs": 170.64958350000018,
+            "p95Ms": 202.536333,
+            "maxMs": 208.78958299999977
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 244.96266500000002,
+            "medianMs": 5.472000000000207,
+            "p95Ms": 21.06316700000025,
+            "maxMs": 36.660791999999674
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 280.6785840000002,
+          "sequentialPerSecond": 712.5588178113362,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "6.0.3",
+      "size": 200,
+      "round": 0,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 121.241208,
+          "loadMs": 96.866458,
+          "firstCallMs": 24.374750000000006,
+          "version": "6.0.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedCold": 19,
+          "transformedWarm": 19,
+          "cold": {
+            "calls": 200,
+            "totalMs": 382.6179560000002,
+            "medianMs": 1.0152704999999855,
+            "p95Ms": 5.542750000000012,
+            "maxMs": 23.682125000000013
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 358.9795860000007,
+            "medianMs": 0.8278750000000059,
+            "p95Ms": 7.642624999999953,
+            "maxMs": 22.603083999999967
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 253.05600000000004,
+          "checks": {
+            "calls": 200,
+            "totalMs": 545.3022150000024,
+            "medianMs": 0.8170209999999543,
+            "p95Ms": 9.325833999999986,
+            "maxMs": 98.11633399999982
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 103.02175300000158,
+            "medianMs": 0.3032500000000482,
+            "p95Ms": 1.8024579999998878,
+            "maxMs": 6.236333000000059
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 648.323968000004,
+            "medianMs": 1.1382915000001503,
+            "p95Ms": 10.237707999999884,
+            "maxMs": 98.45595899999967
+          },
+          "totalMs": 901.379968000004,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 5879.958457,
+            "medianMs": 195.60902050000027,
+            "p95Ms": 233.42741600000045,
+            "maxMs": 234.15858299999945
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 203.4389149999979,
+            "medianMs": 3.4242920000001504,
+            "p95Ms": 19.330540999999357,
+            "maxMs": 41.37424999999985
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 245.21687499999916,
+          "sequentialPerSecond": 815.6045541319319,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "7.1",
+      "size": 200,
+      "round": 0,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 42.049458,
+          "loadMs": 30.543041999999996,
+          "firstCallMs": 11.506416000000002,
+          "version": "7.1.0-dev.20261013.1"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": false,
+          "markerModules": 19,
+          "transformedCold": 0,
+          "transformedWarm": 0,
+          "cold": {
+            "calls": 200,
+            "totalMs": 90.72666899999994,
+            "medianMs": 0.2671874999999915,
+            "p95Ms": 1.2401669999999996,
+            "maxMs": 4.853290999999999
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 87.60912500000018,
+            "medianMs": 0.2685004999999876,
+            "p95Ms": 1.3907910000000072,
+            "maxMs": 4.748750000000001
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 33.57108299999999,
+          "checks": {
+            "calls": 200,
+            "totalMs": 64.26896299999999,
+            "medianMs": 0.1599379999999826,
+            "p95Ms": 1.4130419999999617,
+            "maxMs": 4.201082999999983
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 62.31753500000002,
+            "medianMs": 0.16674999999995066,
+            "p95Ms": 1.2094999999999914,
+            "maxMs": 3.5450409999999692
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 126.586498,
+            "medianMs": 0.3292704999999785,
+            "p95Ms": 2.3947089999999776,
+            "maxMs": 7.746123999999952
+          },
+          "totalMs": 160.157581,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 43.625587000000166,
+            "medianMs": 1.2673335000000066,
+            "p95Ms": 2.4074170000000095,
+            "maxMs": 2.838792000000012
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 152.21083299999998,
+          "sequentialPerSecond": 1313.966923760282,
+          "concurrentMs": 94.69237499999997,
+          "concurrentPerSecond": 2112.102479212292,
+          "inFlight": 8
+        }
+      }
+    },
+    {
+      "variant": "5.7.3",
+      "size": 200,
+      "round": 1,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 118.624917,
+          "loadMs": 94.318209,
+          "firstCallMs": 24.306708,
+          "version": "5.7.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedCold": 19,
+          "transformedWarm": 19,
+          "cold": {
+            "calls": 200,
+            "totalMs": 387.4432510000003,
+            "medianMs": 0.9319789999999841,
+            "p95Ms": 6.2223749999999995,
+            "maxMs": 24.116375000000005
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 273.46270599999946,
+            "medianMs": 0.7671874999999773,
+            "p95Ms": 4.551791999999978,
+            "maxMs": 13.98645799999997
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 168.34295900000006,
+          "checks": {
+            "calls": 200,
+            "totalMs": 460.3982149999987,
+            "medianMs": 0.7898334999999861,
+            "p95Ms": 6.407167000000072,
+            "maxMs": 71.97279199999991
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 122.749838000002,
+            "medianMs": 0.327833499999997,
+            "p95Ms": 2.221125000000029,
+            "maxMs": 7.667709000000059
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 583.1480530000007,
+            "medianMs": 1.1382915000000366,
+            "p95Ms": 8.563876000000164,
+            "maxMs": 72.33529199999987
+          },
+          "totalMs": 751.4910120000008,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 5130.441163999998,
+            "medianMs": 169.2831040000001,
+            "p95Ms": 199.51466700000037,
+            "maxMs": 202.58950000000004
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 214.69604399999935,
+            "medianMs": 4.770666500000061,
+            "p95Ms": 15.874708999999712,
+            "maxMs": 40.48895900000025
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 236.07816699999967,
+          "sequentialPerSecond": 847.177028445838,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "6.0.3",
+      "size": 200,
+      "round": 1,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 113.37883300000001,
+          "loadMs": 89.51566600000001,
+          "firstCallMs": 23.863167000000004,
+          "version": "6.0.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedCold": 19,
+          "transformedWarm": 19,
+          "cold": {
+            "calls": 200,
+            "totalMs": 353.40620100000035,
+            "medianMs": 0.9118119999999976,
+            "p95Ms": 5.082124999999991,
+            "maxMs": 22.308875
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 241.5653309999994,
+            "medianMs": 0.6469369999999799,
+            "p95Ms": 3.9886659999999665,
+            "maxMs": 15.320708999999965
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 162.31883300000004,
+          "checks": {
+            "calls": 200,
+            "totalMs": 464.9127919999992,
+            "medianMs": 0.7525215000000571,
+            "p95Ms": 7.114624999999933,
+            "maxMs": 74.53150000000005
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 95.75779699999953,
+            "medianMs": 0.27729199999987486,
+            "p95Ms": 1.7198329999998805,
+            "maxMs": 5.209042000000181
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 560.6705889999987,
+            "medianMs": 1.0457075000000486,
+            "p95Ms": 9.875999999999976,
+            "maxMs": 74.8715840000001
+          },
+          "totalMs": 722.9894219999987,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 5741.681289999999,
+            "medianMs": 190.46925,
+            "p95Ms": 218.4385000000002,
+            "maxMs": 225.47299999999996
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 205.48533200000293,
+            "medianMs": 3.451041499999974,
+            "p95Ms": 19.95600000000013,
+            "maxMs": 42.03808300000037
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 281.59320899999966,
+          "sequentialPerSecond": 710.244400815789,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "7.1",
+      "size": 200,
+      "round": 1,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 48.110542,
+          "loadMs": 36.120000000000005,
+          "firstCallMs": 11.990541999999998,
+          "version": "7.1.0-dev.20261013.1"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": false,
+          "markerModules": 19,
+          "transformedCold": 0,
+          "transformedWarm": 0,
+          "cold": {
+            "calls": 200,
+            "totalMs": 102.23308799999997,
+            "medianMs": 0.3313539999999904,
+            "p95Ms": 1.6879160000000013,
+            "maxMs": 5.003917000000001
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 102.5356670000003,
+            "medianMs": 0.335645999999997,
+            "p95Ms": 1.4593329999999867,
+            "maxMs": 5.273041999999975
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 34.562333000000024,
+          "checks": {
+            "calls": 200,
+            "totalMs": 78.30017200000026,
+            "medianMs": 0.209666000000027,
+            "p95Ms": 1.408208000000002,
+            "maxMs": 5.197833000000003
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 77.2205819999993,
+            "medianMs": 0.24927100000002156,
+            "p95Ms": 1.2646249999999668,
+            "maxMs": 4.4067079999999805
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 155.52075399999956,
+            "medianMs": 0.45895800000002396,
+            "p95Ms": 2.685791999999992,
+            "maxMs": 8.854999999999961
+          },
+          "totalMs": 190.08308699999958,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 55.92937500000028,
+            "medianMs": 1.5172709999999938,
+            "p95Ms": 2.9965839999999844,
+            "maxMs": 7.53429200000005
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 166.54899999999998,
+          "sequentialPerSecond": 1200.8477985457735,
+          "concurrentMs": 109.13887499999998,
+          "concurrentPerSecond": 1832.5275938569096,
+          "inFlight": 8
+        }
+      }
+    },
+    {
+      "variant": "5.7.3",
+      "size": 200,
+      "round": 2,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 120.510125,
+          "loadMs": 97.11729199999999,
+          "firstCallMs": 23.39283300000001,
+          "version": "5.7.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedCold": 19,
+          "transformedWarm": 19,
+          "cold": {
+            "calls": 200,
+            "totalMs": 362.9084850000002,
+            "medianMs": 0.9643125000000055,
+            "p95Ms": 5.253874999999994,
+            "maxMs": 22.99920800000001
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 245.48366599999997,
+            "medianMs": 0.6509370000000558,
+            "p95Ms": 3.9131249999999227,
+            "maxMs": 13.249500000000012
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 157.170709,
+          "checks": {
+            "calls": 200,
+            "totalMs": 455.8181650000017,
+            "medianMs": 0.7866454999999632,
+            "p95Ms": 6.66924999999992,
+            "maxMs": 70.046333
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 118.28188000000307,
+            "medianMs": 0.3143959999998742,
+            "p95Ms": 2.1112920000000486,
+            "maxMs": 6.3125
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 574.1000450000048,
+            "medianMs": 1.1460835000000316,
+            "p95Ms": 9.823208000000022,
+            "maxMs": 70.38266599999997
+          },
+          "totalMs": 731.2707540000048,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 5057.808120000002,
+            "medianMs": 162.57420850000017,
+            "p95Ms": 202.72570899999982,
+            "maxMs": 208.32441600000038
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 225.15987600000062,
+            "medianMs": 4.714812000000165,
+            "p95Ms": 18.10387499999979,
+            "maxMs": 41.4057499999999
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 242.5525829999997,
+          "sequentialPerSecond": 824.563472078136,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "6.0.3",
+      "size": 200,
+      "round": 2,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 120.46391600000001,
+          "loadMs": 95.07620800000001,
+          "firstCallMs": 25.387708000000003,
+          "version": "6.0.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedCold": 19,
+          "transformedWarm": 19,
+          "cold": {
+            "calls": 200,
+            "totalMs": 359.05824700000016,
+            "medianMs": 0.9359165000000189,
+            "p95Ms": 5.04579099999998,
+            "maxMs": 22.518207999999987
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 246.99474699999956,
+            "medianMs": 0.6827290000000517,
+            "p95Ms": 3.6804579999999305,
+            "maxMs": 15.348041999999964
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 158.919125,
+          "checks": {
+            "calls": 200,
+            "totalMs": 437.2189950000003,
+            "medianMs": 0.7185829999999669,
+            "p95Ms": 7.203708000000006,
+            "maxMs": 73.949209
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 90.26107799999966,
+            "medianMs": 0.2574375000000373,
+            "p95Ms": 1.6417080000001079,
+            "maxMs": 4.38145899999995
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 527.480073,
+            "medianMs": 1.0407500000001164,
+            "p95Ms": 9.400875000000042,
+            "maxMs": 74.25162499999999
+          },
+          "totalMs": 686.399198,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 5736.94225,
+            "medianMs": 187.0180835,
+            "p95Ms": 230.121083,
+            "maxMs": 241.01029199999994
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 212.32679100000132,
+            "medianMs": 3.6138755000001765,
+            "p95Ms": 18.86229100000037,
+            "maxMs": 43.99266700000044
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 250.08145799999966,
+          "sequentialPerSecond": 799.73941930553,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "7.1",
+      "size": 200,
+      "round": 2,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 44.311334,
+          "loadMs": 32.696834,
+          "firstCallMs": 11.6145,
+          "version": "7.1.0-dev.20261013.1"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": false,
+          "markerModules": 19,
+          "transformedCold": 0,
+          "transformedWarm": 0,
+          "cold": {
+            "calls": 200,
+            "totalMs": 95.3122959999999,
+            "medianMs": 0.30866649999999396,
+            "p95Ms": 1.615791999999999,
+            "maxMs": 4.985457999999994
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 94.25100300000031,
+            "medianMs": 0.30160400000001175,
+            "p95Ms": 1.3571249999999964,
+            "maxMs": 4.693125000000009
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 29.97908300000003,
+          "checks": {
+            "calls": 200,
+            "totalMs": 65.93005100000016,
+            "medianMs": 0.17016649999999345,
+            "p95Ms": 1.379415999999992,
+            "maxMs": 4.301833999999985
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 64.78628799999984,
+            "medianMs": 0.18252050000000963,
+            "p95Ms": 1.145417000000009,
+            "maxMs": 3.643709000000001
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 130.716339,
+            "medianMs": 0.3500825000000134,
+            "p95Ms": 2.538792000000001,
+            "maxMs": 7.945500000000038
+          },
+          "totalMs": 160.69542200000004,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 50.952916000000016,
+            "medianMs": 1.3802295000000129,
+            "p95Ms": 3.476458999999977,
+            "maxMs": 3.846541000000002
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 129.27091699999994,
+          "sequentialPerSecond": 1547.138402367797,
+          "concurrentMs": 92.45462499999996,
+          "concurrentPerSecond": 2163.223310894399,
+          "inFlight": 8
+        }
+      }
+    },
+    {
+      "variant": "5.7.3",
+      "size": 200,
+      "round": 3,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 119.292292,
+          "loadMs": 94.776083,
+          "firstCallMs": 24.516209000000003,
+          "version": "5.7.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedCold": 19,
+          "transformedWarm": 19,
+          "cold": {
+            "calls": 200,
+            "totalMs": 393.5097529999999,
+            "medianMs": 1.0536874999999952,
+            "p95Ms": 5.308082999999954,
+            "maxMs": 23.646040999999997
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 276.30766200000016,
+            "medianMs": 0.7798129999999901,
+            "p95Ms": 4.299958000000061,
+            "maxMs": 14.096874999999955
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 163.74645900000007,
+          "checks": {
+            "calls": 200,
+            "totalMs": 493.38251099999957,
+            "medianMs": 0.8831249999998363,
+            "p95Ms": 9.014040999999906,
+            "maxMs": 70.77070900000012
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 124.0757070000027,
+            "medianMs": 0.34818749999999454,
+            "p95Ms": 2.240583000000015,
+            "maxMs": 10.291042000000061
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 617.4582180000023,
+            "medianMs": 1.2446869999998853,
+            "p95Ms": 11.00483300000019,
+            "maxMs": 71.12033400000018
+          },
+          "totalMs": 781.2046770000023,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 5145.047045,
+            "medianMs": 171.52402099999995,
+            "p95Ms": 199.59212500000012,
+            "maxMs": 201.71887500000003
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 226.4452059999985,
+            "medianMs": 5.002666500000032,
+            "p95Ms": 17.48583299999973,
+            "maxMs": 38.62470800000028
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 262.1546669999998,
+          "sequentialPerSecond": 762.9084093322671,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "6.0.3",
+      "size": 200,
+      "round": 3,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 124.016875,
+          "loadMs": 97.843125,
+          "firstCallMs": 26.17375,
+          "version": "6.0.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedCold": 19,
+          "transformedWarm": 19,
+          "cold": {
+            "calls": 200,
+            "totalMs": 383.5870040000001,
+            "medianMs": 1.0067914999999914,
+            "p95Ms": 5.728416999999979,
+            "maxMs": 23.741000000000014
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 275.87610999999947,
+            "medianMs": 0.8458334999999693,
+            "p95Ms": 4.3279999999999745,
+            "maxMs": 14.517082999999957
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 177.797459,
+          "checks": {
+            "calls": 200,
+            "totalMs": 476.2067879999996,
+            "medianMs": 0.8300835000001143,
+            "p95Ms": 8.063958000000184,
+            "maxMs": 72.95770800000003
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 98.34662799999978,
+            "medianMs": 0.2991665000000694,
+            "p95Ms": 1.6469580000000406,
+            "maxMs": 5.602624999999989
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 574.5534159999994,
+            "medianMs": 1.1259795000001986,
+            "p95Ms": 9.471749999999929,
+            "maxMs": 73.31266600000015
+          },
+          "totalMs": 752.3508749999994,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 5827.378918000005,
+            "medianMs": 191.06902100000002,
+            "p95Ms": 229.85029200000008,
+            "maxMs": 245.8321249999999
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 205.3742489999995,
+            "medianMs": 3.8752290000002176,
+            "p95Ms": 18.970874999999978,
+            "maxMs": 41.666165999999976
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 262.68362499999967,
+          "sequentialPerSecond": 761.3721639481724,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "7.1",
+      "size": 200,
+      "round": 3,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 43.72312600000001,
+          "loadMs": 32.495209,
+          "firstCallMs": 11.227917000000005,
+          "version": "7.1.0-dev.20261013.1"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": false,
+          "markerModules": 19,
+          "transformedCold": 0,
+          "transformedWarm": 0,
+          "cold": {
+            "calls": 200,
+            "totalMs": 95.05616799999976,
+            "medianMs": 0.2956039999999973,
+            "p95Ms": 1.4248329999999925,
+            "maxMs": 5.065417000000011
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 91.2327499999999,
+            "medianMs": 0.27839600000001496,
+            "p95Ms": 1.4127499999999884,
+            "maxMs": 4.814499999999981
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 29.927875,
+          "checks": {
+            "calls": 200,
+            "totalMs": 69.5563799999997,
+            "medianMs": 0.16847949999998946,
+            "p95Ms": 1.4384999999999764,
+            "maxMs": 4.312250000000006
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 63.36088000000012,
+            "medianMs": 0.17795849999998836,
+            "p95Ms": 1.1198329999999714,
+            "maxMs": 3.756333999999981
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 132.91725999999983,
+            "medianMs": 0.342354499999999,
+            "p95Ms": 2.5683330000000524,
+            "maxMs": 8.068583999999987
+          },
+          "totalMs": 162.84513499999983,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 50.286580999999785,
+            "medianMs": 1.4237919999999917,
+            "p95Ms": 2.6779169999999795,
+            "maxMs": 6.269041000000016
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 131.144291,
+          "sequentialPerSecond": 1525.037792152157,
+          "concurrentMs": 96.36433299999999,
+          "concurrentPerSecond": 2075.4566941276917,
+          "inFlight": 8
+        }
+      }
+    },
+    {
+      "variant": "5.7.3",
+      "size": 200,
+      "round": 4,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 123.449833,
+          "loadMs": 99.16470799999999,
+          "firstCallMs": 24.285125000000008,
+          "version": "5.7.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedCold": 19,
+          "transformedWarm": 19,
+          "cold": {
+            "calls": 200,
+            "totalMs": 379.81024499999967,
+            "medianMs": 1.0173954999999921,
+            "p95Ms": 6.199332999999996,
+            "maxMs": 23.20316599999998
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 276.1140389999996,
+            "medianMs": 0.7904379999999946,
+            "p95Ms": 4.3385410000000775,
+            "maxMs": 13.809916999999928
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 182.41916700000002,
+          "checks": {
+            "calls": 200,
+            "totalMs": 489.1836720000024,
+            "medianMs": 0.8369790000000421,
+            "p95Ms": 7.406459000000041,
+            "maxMs": 77.83995800000002
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 124.48346100000117,
+            "medianMs": 0.33843750000005457,
+            "p95Ms": 2.198957999999948,
+            "maxMs": 8.231374999999844
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 613.6671330000036,
+            "medianMs": 1.1820620000000872,
+            "p95Ms": 10.636915999999928,
+            "maxMs": 78.18987500000003
+          },
+          "totalMs": 796.0863000000036,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 5008.6830850000015,
+            "medianMs": 166.76747899999964,
+            "p95Ms": 194.03079099999968,
+            "maxMs": 198.50604100000055
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 230.9207520000009,
+            "medianMs": 5.225562499999796,
+            "p95Ms": 18.125833000000057,
+            "maxMs": 38.811125000000175
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 246.29645900000014,
+          "sequentialPerSecond": 812.029538760035,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "6.0.3",
+      "size": 200,
+      "round": 4,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 120.83837500000001,
+          "loadMs": 96.179917,
+          "firstCallMs": 24.65845800000001,
+          "version": "6.0.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedCold": 19,
+          "transformedWarm": 19,
+          "cold": {
+            "calls": 200,
+            "totalMs": 358.374784,
+            "medianMs": 0.9111044999999933,
+            "p95Ms": 5.194958000000014,
+            "maxMs": 22.342457999999993
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 241.57637300000027,
+            "medianMs": 0.6944579999999974,
+            "p95Ms": 4.090250000000026,
+            "maxMs": 13.363833
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 175.078125,
+          "checks": {
+            "calls": 200,
+            "totalMs": 479.45887399999947,
+            "medianMs": 0.7558954999999514,
+            "p95Ms": 7.045791999999892,
+            "maxMs": 76.161292
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 101.64912000000004,
+            "medianMs": 0.2975209999999606,
+            "p95Ms": 1.757291000000123,
+            "maxMs": 5.283457999999882
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 581.1079939999995,
+            "medianMs": 1.0650005000001102,
+            "p95Ms": 9.998959000000013,
+            "maxMs": 76.53612599999997
+          },
+          "totalMs": 756.1861189999995,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 5609.359707999999,
+            "medianMs": 185.94981249999955,
+            "p95Ms": 208.52537500000017,
+            "maxMs": 237.80837499999961
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 197.80016900000282,
+            "medianMs": 3.8346459999997933,
+            "p95Ms": 18.039999999999964,
+            "maxMs": 40.44033399999989
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 239.67150000000038,
+          "sequentialPerSecond": 834.475521703664,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "7.1",
+      "size": 200,
+      "round": 4,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 41.523917000000004,
+          "loadMs": 31.00725,
+          "firstCallMs": 10.516667000000005,
+          "version": "7.1.0-dev.20261013.1"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": false,
+          "markerModules": 19,
+          "transformedCold": 0,
+          "transformedWarm": 0,
+          "cold": {
+            "calls": 200,
+            "totalMs": 91.87212400000004,
+            "medianMs": 0.2882085000000032,
+            "p95Ms": 1.5227090000000203,
+            "maxMs": 4.549542000000002
+          },
+          "warm": {
+            "calls": 200,
+            "totalMs": 83.5072470000002,
+            "medianMs": 0.2505210000000062,
+            "p95Ms": 1.2909580000000176,
+            "maxMs": 4.60012500000002
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 31.590750000000014,
+          "checks": {
+            "calls": 200,
+            "totalMs": 60.58316099999979,
+            "medianMs": 0.14756249999999227,
+            "p95Ms": 1.1168749999999932,
+            "maxMs": 4.520667000000003
+          },
+          "emits": {
+            "calls": 200,
+            "totalMs": 56.83124800000007,
+            "medianMs": 0.1537500000000307,
+            "p95Ms": 0.9575420000000463,
+            "maxMs": 3.49166699999995
+          },
+          "perFile": {
+            "calls": 200,
+            "totalMs": 117.41440899999986,
+            "medianMs": 0.30527100000003315,
+            "p95Ms": 2.045876000000078,
+            "maxMs": 8.012333999999953
+          },
+          "totalMs": 149.00515899999988,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 200
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 42.0606249999999,
+            "medianMs": 1.194666500000011,
+            "p95Ms": 2.4141670000000204,
+            "maxMs": 3.0985829999999623
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 200,
+          "sequentialMs": 135.62491699999993,
+          "sequentialPerSecond": 1474.655280342034,
+          "concurrentMs": 93.51720799999998,
+          "concurrentPerSecond": 2138.643831197356,
+          "inFlight": 8
+        }
+      }
+    },
+    {
+      "variant": "5.7.3",
+      "size": 1000,
+      "round": 0,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 115.50733299999999,
+          "loadMs": 92.089542,
+          "firstCallMs": 23.417790999999994,
+          "version": "5.7.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedCold": 99,
+          "transformedWarm": 99,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 1366.3904860000016,
+            "medianMs": 0.7256459999999834,
+            "p95Ms": 4.473041999999964,
+            "maxMs": 21.708416999999997
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 1287.4654269999976,
+            "medianMs": 0.6932500000000346,
+            "p95Ms": 4.102041999999983,
+            "maxMs": 33.46208299999989
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 414.3173330000004,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 1684.9818499999892,
+            "medianMs": 0.6206455000003643,
+            "p95Ms": 6.5393749999993815,
+            "maxMs": 149.8230840000001
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 604.8086940000007,
+            "medianMs": 0.3209790000000794,
+            "p95Ms": 2.2817080000004353,
+            "maxMs": 8.08987500000012
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 2289.79054399999,
+            "medianMs": 0.9683129999998528,
+            "p95Ms": 8.583749999999782,
+            "maxMs": 150.17008399999986
+          },
+          "totalMs": 2704.1078769999904,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 16191.701704999998,
+            "medianMs": 526.295166500001,
+            "p95Ms": 726.3214169999992,
+            "maxMs": 742.6251670000001
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 435.12691800000175,
+            "medianMs": 8.453874999999243,
+            "p95Ms": 36.78350000000137,
+            "maxMs": 127.5769160000018
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 1312.3289580000019,
+          "sequentialPerSecond": 762.0040645327272,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "6.0.3",
+      "size": 1000,
+      "round": 0,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 119.501375,
+          "loadMs": 94.021458,
+          "firstCallMs": 25.479917,
+          "version": "6.0.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedCold": 99,
+          "transformedWarm": 99,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 1353.028525000003,
+            "medianMs": 0.7193334999999479,
+            "p95Ms": 4.860374999999976,
+            "maxMs": 21.885165999999998
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 1105.8258330000021,
+            "medianMs": 0.6008954999999787,
+            "p95Ms": 3.542791999999963,
+            "maxMs": 11.88633300000015
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 364.9324590000001,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 1407.6883899999957,
+            "medianMs": 0.4839164999998502,
+            "p95Ms": 5.185625000000073,
+            "maxMs": 149.5940840000003
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 438.81311700000697,
+            "medianMs": 0.21829200000001947,
+            "p95Ms": 1.533291000000645,
+            "maxMs": 8.512583000000177
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 1846.5015070000027,
+            "medianMs": 0.7210834999998497,
+            "p95Ms": 6.661376000000018,
+            "maxMs": 149.91595900000038
+          },
+          "totalMs": 2211.433966000003,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 16426.45458099999,
+            "medianMs": 531.4829789999999,
+            "p95Ms": 673.4933749999982,
+            "maxMs": 767.7759999999998
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 382.54562199998327,
+            "medianMs": 6.136000000000422,
+            "p95Ms": 34.40333299999838,
+            "maxMs": 133.64566600000035
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 1210.2542079999985,
+          "sequentialPerSecond": 826.2726899768824,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "7.1",
+      "size": 1000,
+      "round": 0,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 42.31991699999999,
+          "loadMs": 31.260583999999994,
+          "firstCallMs": 11.059332999999995,
+          "version": "7.1.0-dev.20261013.1"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": false,
+          "markerModules": 99,
+          "transformedCold": 0,
+          "transformedWarm": 0,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 523.3526020000007,
+            "medianMs": 0.32220799999998917,
+            "p95Ms": 1.673958999999968,
+            "maxMs": 5.098000000000013
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 506.8889250000012,
+            "medianMs": 0.3024375000000532,
+            "p95Ms": 1.6013749999999618,
+            "maxMs": 5.153333999999859
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 70.49608400000011,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 367.3457940000003,
+            "medianMs": 0.16420850000008613,
+            "p95Ms": 1.4980419999999413,
+            "maxMs": 7.757624999999962
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 337.78828500000486,
+            "medianMs": 0.17124999999998636,
+            "p95Ms": 1.2633749999999964,
+            "maxMs": 7.213417000000163
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 705.1340790000052,
+            "medianMs": 0.33843800000011015,
+            "p95Ms": 2.7767089999999826,
+            "maxMs": 12.367874999999913
+          },
+          "totalMs": 775.6301630000053,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 72.66425099999992,
+            "medianMs": 2.1801044999999704,
+            "p95Ms": 3.725832999999966,
+            "maxMs": 5.486499999999978
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 666.3072079999997,
+          "sequentialPerSecond": 1500.8092183208087,
+          "concurrentMs": 514.1557079999998,
+          "concurrentPerSecond": 1944.9361048423884,
+          "inFlight": 8
+        }
+      }
+    },
+    {
+      "variant": "5.7.3",
+      "size": 1000,
+      "round": 1,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 118.319624,
+          "loadMs": 94.69758300000001,
+          "firstCallMs": 23.622040999999996,
+          "version": "5.7.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedCold": 99,
+          "transformedWarm": 99,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 1367.9725979999964,
+            "medianMs": 0.7331670000000088,
+            "p95Ms": 4.302000000000135,
+            "maxMs": 22.14991600000002
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 1209.9260719999959,
+            "medianMs": 0.6631454999999278,
+            "p95Ms": 4.034874999999829,
+            "maxMs": 13.85083399999985
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 334.64654199999995,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 1585.1078979999893,
+            "medianMs": 0.5665205000000242,
+            "p95Ms": 5.749499999999898,
+            "maxMs": 168.75537500000019
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 563.9320089999906,
+            "medianMs": 0.2920205000000351,
+            "p95Ms": 2.2001250000002983,
+            "maxMs": 7.2683750000001055
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 2149.03990699998,
+            "medianMs": 0.8704170000000886,
+            "p95Ms": 7.959416999999121,
+            "maxMs": 169.09966600000052
+          },
+          "totalMs": 2483.68644899998,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 15686.829832,
+            "medianMs": 524.7475834999996,
+            "p95Ms": 587.0319170000002,
+            "maxMs": 666.3702499999999
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 465.74620899999354,
+            "medianMs": 9.923895999998422,
+            "p95Ms": 40.78733300000022,
+            "maxMs": 129.58695799999987
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 1479.1460829999996,
+          "sequentialPerSecond": 676.065745968649,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "6.0.3",
+      "size": 1000,
+      "round": 1,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 122.026251,
+          "loadMs": 96.615542,
+          "firstCallMs": 25.410708999999997,
+          "version": "6.0.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedCold": 99,
+          "transformedWarm": 99,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 1393.837814999997,
+            "medianMs": 0.7434579999999471,
+            "p95Ms": 4.807458999999994,
+            "maxMs": 21.009917
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 1141.878031999995,
+            "medianMs": 0.6321254999999155,
+            "p95Ms": 3.7450840000001335,
+            "maxMs": 12.29216600000018
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 359.8106670000002,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 1601.2979959999943,
+            "medianMs": 0.5755209999997533,
+            "p95Ms": 5.835750000000189,
+            "maxMs": 162.99083299999984
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 483.94291399998747,
+            "medianMs": 0.27054199999975026,
+            "p95Ms": 1.709708999999748,
+            "maxMs": 7.311041000000387
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 2085.240909999982,
+            "medianMs": 0.8576880000000529,
+            "p95Ms": 7.5052080000004935,
+            "maxMs": 163.36891699999978
+          },
+          "totalMs": 2445.051576999982,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 16406.648331999997,
+            "medianMs": 537.4297079999997,
+            "p95Ms": 637.6274589999975,
+            "maxMs": 670.0570000000007
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 346.7122929999932,
+            "medianMs": 4.7789374999993015,
+            "p95Ms": 33.37320799999725,
+            "maxMs": 126.4227499999979
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 1320.7204170000005,
+          "sequentialPerSecond": 757.1625206427013,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "7.1",
+      "size": 1000,
+      "round": 1,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 41.487083,
+          "loadMs": 30.620041999999998,
+          "firstCallMs": 10.867041,
+          "version": "7.1.0-dev.20261013.1"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": false,
+          "markerModules": 99,
+          "transformedCold": 0,
+          "transformedWarm": 0,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 477.1121710000011,
+            "medianMs": 0.27774949999999876,
+            "p95Ms": 1.6115420000000142,
+            "maxMs": 4.733292000000006
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 477.22430599999905,
+            "medianMs": 0.28287499999993315,
+            "p95Ms": 1.603207999999995,
+            "maxMs": 4.789750000000026
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 62.762040999999954,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 376.30475000000024,
+            "medianMs": 0.17712500000004638,
+            "p95Ms": 1.533042000000023,
+            "maxMs": 5.841457999999875
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 342.30826199999683,
+            "medianMs": 0.1756874999999809,
+            "p95Ms": 1.2865840000001754,
+            "maxMs": 3.992332999999917
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 718.6130119999971,
+            "medianMs": 0.3561249999999063,
+            "p95Ms": 2.7993750000000546,
+            "maxMs": 9.38558299999977
+          },
+          "totalMs": 781.375052999997,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 67.34875100000045,
+            "medianMs": 2.0138745000000426,
+            "p95Ms": 3.549624999999878,
+            "maxMs": 5.178750000000036
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 654.2337920000002,
+          "sequentialPerSecond": 1528.5055774067991,
+          "concurrentMs": 493.45470799999975,
+          "concurrentPerSecond": 2026.5284407824527,
+          "inFlight": 8
+        }
+      }
+    },
+    {
+      "variant": "5.7.3",
+      "size": 1000,
+      "round": 2,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 118.71849899999998,
+          "loadMs": 94.464541,
+          "firstCallMs": 24.253957999999983,
+          "version": "5.7.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedCold": 99,
+          "transformedWarm": 99,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 1356.1744619999997,
+            "medianMs": 0.7174790000000257,
+            "p95Ms": 4.460958000000119,
+            "maxMs": 22.162500000000023
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 1097.9455020000012,
+            "medianMs": 0.5893744999999626,
+            "p95Ms": 3.6307919999999285,
+            "maxMs": 11.637291999999889
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 341.4793340000001,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 1511.4952879999869,
+            "medianMs": 0.5543744999997671,
+            "p95Ms": 5.419707999999446,
+            "maxMs": 145.45195900000044
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 569.9913449999949,
+            "medianMs": 0.2890829999998914,
+            "p95Ms": 2.1737080000002607,
+            "maxMs": 7.065375000000131
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 2081.486632999982,
+            "medianMs": 0.8637710000002699,
+            "p95Ms": 7.584959000000254,
+            "maxMs": 145.80487500000027
+          },
+          "totalMs": 2422.965966999982,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 15236.09012500001,
+            "medianMs": 492.7466875,
+            "p95Ms": 599.5427500000005,
+            "maxMs": 733.4142920000013
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 516.4955379999956,
+            "medianMs": 7.281104499999856,
+            "p95Ms": 35.955666000001656,
+            "maxMs": 236.2678330000017
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 1297.8027089999996,
+          "sequentialPerSecond": 770.5331427228515,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "6.0.3",
+      "size": 1000,
+      "round": 2,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 119.22879100000002,
+          "loadMs": 95.65904100000002,
+          "firstCallMs": 23.56975,
+          "version": "6.0.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedCold": 99,
+          "transformedWarm": 99,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 1372.1913010000003,
+            "medianMs": 0.733645499999966,
+            "p95Ms": 4.6092499999999745,
+            "maxMs": 21.30529200000001
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 1224.8130410000028,
+            "medianMs": 0.6862710000000334,
+            "p95Ms": 3.94724999999994,
+            "maxMs": 13.979000000000042
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 340.4112500000001,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 1544.268574000007,
+            "medianMs": 0.5597080000000005,
+            "p95Ms": 5.6056250000001455,
+            "maxMs": 179.14199999999983
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 482.5174479999955,
+            "medianMs": 0.25160399999981564,
+            "p95Ms": 1.75,
+            "maxMs": 12.386749999999665
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 2026.7860220000025,
+            "medianMs": 0.8200624999999491,
+            "p95Ms": 7.23183199999994,
+            "maxMs": 179.4856249999998
+          },
+          "totalMs": 2367.1972720000026,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 16582.736416999993,
+            "medianMs": 541.3700625000001,
+            "p95Ms": 631.890457999998,
+            "maxMs": 734.213667
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 479.929707999996,
+            "medianMs": 5.905458500001259,
+            "p95Ms": 30.722666999998182,
+            "maxMs": 244.66599999999744
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 1313.3104170000006,
+          "sequentialPerSecond": 761.4346060577997,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "7.1",
+      "size": 1000,
+      "round": 2,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 43.17766700000001,
+          "loadMs": 31.792875000000002,
+          "firstCallMs": 11.384792000000004,
+          "version": "7.1.0-dev.20261013.1"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": false,
+          "markerModules": 99,
+          "transformedCold": 0,
+          "transformedWarm": 0,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 503.6723220000002,
+            "medianMs": 0.3009999999999735,
+            "p95Ms": 1.6468340000000126,
+            "maxMs": 4.743750000000034
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 483.2449669999995,
+            "medianMs": 0.29829150000006166,
+            "p95Ms": 1.5649170000000368,
+            "maxMs": 5.003582999999935
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 62.03170799999998,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 385.49167399999396,
+            "medianMs": 0.17975000000001273,
+            "p95Ms": 1.5541659999998956,
+            "maxMs": 4.705083000000059
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 370.2301219999895,
+            "medianMs": 0.18799999999998818,
+            "p95Ms": 1.324624999999969,
+            "maxMs": 12.935916000000134
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 755.7217959999834,
+            "medianMs": 0.367917000000034,
+            "p95Ms": 2.8724989999998343,
+            "maxMs": 14.722624000000224
+          },
+          "totalMs": 817.7535039999834,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 73.79466700000125,
+            "medianMs": 2.2255415000000767,
+            "p95Ms": 3.7000000000000455,
+            "maxMs": 5.598500000000058
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 724.698875,
+          "sequentialPerSecond": 1379.8834722904737,
+          "concurrentMs": 522.7992920000002,
+          "concurrentPerSecond": 1912.7799430914297,
+          "inFlight": 8
+        }
+      }
+    },
+    {
+      "variant": "5.7.3",
+      "size": 1000,
+      "round": 3,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 124.85208300000002,
+          "loadMs": 99.547416,
+          "firstCallMs": 25.304667000000023,
+          "version": "5.7.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedCold": 99,
+          "transformedWarm": 99,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 1393.6930809999988,
+            "medianMs": 0.7416460000000029,
+            "p95Ms": 4.1518330000000105,
+            "maxMs": 22.952165999999977
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 1164.9859149999995,
+            "medianMs": 0.6423335000001771,
+            "p95Ms": 3.789541999999983,
+            "maxMs": 12.477707999999893
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 405.03637500000013,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 1557.6346019999778,
+            "medianMs": 0.5586669999997866,
+            "p95Ms": 5.630290999999943,
+            "maxMs": 157.32962499999985
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 577.4003309999857,
+            "medianMs": 0.28825000000006185,
+            "p95Ms": 2.174084000000221,
+            "maxMs": 7.278999999999996
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 2135.0349329999635,
+            "medianMs": 0.8688954999997804,
+            "p95Ms": 7.7268330000006245,
+            "maxMs": 157.69154100000014
+          },
+          "totalMs": 2540.0713079999637,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 16527.466373999996,
+            "medianMs": 523.5702284999993,
+            "p95Ms": 744.3718339999996,
+            "maxMs": 744.8064169999998
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 440.8213719999876,
+            "medianMs": 9.361166499998944,
+            "p95Ms": 36.10979199999929,
+            "maxMs": 123.93491700000232
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 1283.4334169999966,
+          "sequentialPerSecond": 779.1600146562201,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "6.0.3",
+      "size": 1000,
+      "round": 3,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 114.38345799999999,
+          "loadMs": 90.249458,
+          "firstCallMs": 24.133999999999986,
+          "version": "6.0.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedCold": 99,
+          "transformedWarm": 99,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 1300.2295760000018,
+            "medianMs": 0.6817915000000312,
+            "p95Ms": 4.4098749999999995,
+            "maxMs": 20.331041
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 1106.9602129999973,
+            "medianMs": 0.5912919999999531,
+            "p95Ms": 3.6004579999998896,
+            "maxMs": 13.66599999999994
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 340.13499999999976,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 1554.0055600000005,
+            "medianMs": 0.5463955000000169,
+            "p95Ms": 5.583999999999833,
+            "maxMs": 146.36979199999996
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 467.0953710000085,
+            "medianMs": 0.2520414999999048,
+            "p95Ms": 1.6320420000001832,
+            "maxMs": 6.079165999999532
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 2021.100931000009,
+            "medianMs": 0.8065420000000358,
+            "p95Ms": 7.06670800000029,
+            "maxMs": 146.6893759999998
+          },
+          "totalMs": 2361.235931000009,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 16660.803747000005,
+            "medianMs": 542.1412710000022,
+            "p95Ms": 664.606291,
+            "maxMs": 713.0712920000005
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 397.2488760000015,
+            "medianMs": 6.675729000000501,
+            "p95Ms": 38.38441700000112,
+            "maxMs": 137.51312499999767
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 1859.728500000001,
+          "sequentialPerSecond": 537.7128973395845,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "7.1",
+      "size": 1000,
+      "round": 3,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 149.335874,
+          "loadMs": 33.829708,
+          "firstCallMs": 115.506166,
+          "version": "7.1.0-dev.20261013.1"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": false,
+          "markerModules": 99,
+          "transformedCold": 0,
+          "transformedWarm": 0,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 669.4146770000024,
+            "medianMs": 0.429916999999989,
+            "p95Ms": 2.005957999999964,
+            "maxMs": 8.814082999999982
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 592.0083750000009,
+            "medianMs": 0.3862704999999096,
+            "p95Ms": 1.8432080000000042,
+            "maxMs": 5.74858299999994
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 73.15866699999992,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 404.0166020000029,
+            "medianMs": 0.19727049999994506,
+            "p95Ms": 1.5851249999998345,
+            "maxMs": 10.888999999999896
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 368.07465799999613,
+            "medianMs": 0.1989170000000513,
+            "p95Ms": 1.3712920000000395,
+            "maxMs": 6.212084000000004
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 772.091259999999,
+            "medianMs": 0.39279199999975845,
+            "p95Ms": 2.9671250000001237,
+            "maxMs": 17.1010839999999
+          },
+          "totalMs": 845.2499269999989,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 83.37287300000162,
+            "medianMs": 2.252707999999984,
+            "p95Ms": 5.482582999999977,
+            "maxMs": 10.879917000000205
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 876.7958330000001,
+          "sequentialPerSecond": 1140.5163692195601,
+          "concurrentMs": 583.8154159999999,
+          "concurrentPerSecond": 1712.870151411007,
+          "inFlight": 8
+        }
+      }
+    },
+    {
+      "variant": "5.7.3",
+      "size": 1000,
+      "round": 4,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 125.85812600000001,
+          "loadMs": 100.90195899999999,
+          "firstCallMs": 24.956167000000022,
+          "version": "5.7.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedCold": 99,
+          "transformedWarm": 99,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 1490.1287080000025,
+            "medianMs": 0.8172500000000582,
+            "p95Ms": 4.809459000000061,
+            "maxMs": 27.224290999999994
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 1206.681463000002,
+            "medianMs": 0.6643954999999551,
+            "p95Ms": 4.361041999999998,
+            "maxMs": 14.370374999999967
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 353.95787500000006,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 1647.550712999997,
+            "medianMs": 0.5884169999999358,
+            "p95Ms": 6.320417000000816,
+            "maxMs": 150.5340000000001
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 590.5745500000103,
+            "medianMs": 0.3129790000000412,
+            "p95Ms": 2.232708000000457,
+            "maxMs": 6.9231249999998
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 2238.125263000007,
+            "medianMs": 0.9263960000002953,
+            "p95Ms": 8.451333000000886,
+            "maxMs": 150.86620800000037
+          },
+          "totalMs": 2592.0831380000072,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 15864.481331999992,
+            "medianMs": 525.2488749999998,
+            "p95Ms": 604.0477919999994,
+            "maxMs": 661.1257500000029
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 598.1477080000041,
+            "medianMs": 9.19354100000055,
+            "p95Ms": 36.30579099999886,
+            "maxMs": 258.2966669999987
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 1803.594167000003,
+          "sequentialPerSecond": 554.4484553658452,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "6.0.3",
+      "size": 1000,
+      "round": 4,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 123.2335,
+          "loadMs": 96.838083,
+          "firstCallMs": 26.39541700000001,
+          "version": "6.0.3"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedCold": 99,
+          "transformedWarm": 99,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 1568.6205380000006,
+            "medianMs": 0.8331665000000612,
+            "p95Ms": 5.231374999999844,
+            "maxMs": 22.88137499999999
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 1388.9853579999992,
+            "medianMs": 0.7312080000003789,
+            "p95Ms": 4.798541999999998,
+            "maxMs": 16.095792000000074
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 405.1434999999997,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 1601.9035839999974,
+            "medianMs": 0.5722915000003468,
+            "p95Ms": 5.910625000000437,
+            "maxMs": 154.32341700000006
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 482.7122980000063,
+            "medianMs": 0.2659374999998363,
+            "p95Ms": 1.6677090000002863,
+            "maxMs": 10.749958999999762
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 2084.6158820000037,
+            "medianMs": 0.853708000000097,
+            "p95Ms": 7.459249999998974,
+            "maxMs": 154.63845899999978
+          },
+          "totalMs": 2489.7593820000034,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 16614.349,
+            "medianMs": 541.7595210000009,
+            "p95Ms": 669.5485829999998,
+            "maxMs": 713.0445419999996
+          },
+          "cachedHost": {
+            "calls": 30,
+            "totalMs": 402.8430049999988,
+            "medianMs": 5.569396000000779,
+            "p95Ms": 38.549291999999696,
+            "maxMs": 139.6349169999994
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 1700.0103750000017,
+          "sequentialPerSecond": 588.2317041741578,
+          "inFlight": 1
+        }
+      }
+    },
+    {
+      "variant": "7.1",
+      "size": 1000,
+      "round": 4,
+      "mode": "timed",
+      "results": {
+        "a": {
+          "status": "ok",
+          "ms": 45.06629199999998,
+          "loadMs": 33.84054199999999,
+          "firstCallMs": 11.22574999999999,
+          "version": "7.1.0-dev.20261013.1"
+        },
+        "b": {
+          "status": "ok",
+          "transformersApplied": false,
+          "markerModules": 99,
+          "transformedCold": 0,
+          "transformedWarm": 0,
+          "cold": {
+            "calls": 1000,
+            "totalMs": 606.743222,
+            "medianMs": 0.3965625000000159,
+            "p95Ms": 1.8462500000000546,
+            "maxMs": 5.702542000000022
+          },
+          "warm": {
+            "calls": 1000,
+            "totalMs": 538.3967700000032,
+            "medianMs": 0.3525619999999776,
+            "p95Ms": 1.6920829999999114,
+            "maxMs": 4.965750000000071
+          }
+        },
+        "c": {
+          "status": "ok",
+          "createProgramMs": 69.12520799999993,
+          "checks": {
+            "calls": 1000,
+            "totalMs": 384.73427500000116,
+            "medianMs": 0.18770849999998518,
+            "p95Ms": 1.524541999999883,
+            "maxMs": 4.731457999999975
+          },
+          "emits": {
+            "calls": 1000,
+            "totalMs": 354.67008399999713,
+            "medianMs": 0.18868749999990087,
+            "p95Ms": 1.2961250000000746,
+            "maxMs": 3.9081659999999374
+          },
+          "perFile": {
+            "calls": 1000,
+            "totalMs": 739.4043589999983,
+            "medianMs": 0.3732915000000503,
+            "p95Ms": 2.7876240000000507,
+            "maxMs": 8.639623999999912
+          },
+          "totalMs": 808.5295669999982,
+          "semanticDiagnostics": 5,
+          "emittedFiles": 1000
+        },
+        "e": {
+          "status": "ok",
+          "edits": {
+            "calls": 30,
+            "totalMs": 89.19554300000073,
+            "medianMs": 2.061937000000171,
+            "p95Ms": 5.525709000000006,
+            "maxMs": 20.328541999999743
+          },
+          "emitAsserted": true
+        },
+        "f": {
+          "status": "ok",
+          "modules": 1000,
+          "sequentialMs": 642.607833,
+          "sequentialPerSecond": 1556.1590578993143,
+          "concurrentMs": 520.3502920000001,
+          "concurrentPerSecond": 1921.782336580297,
+          "inFlight": 8
+        }
+      }
+    }
+  ],
+  "summary": {
+    "200": {
+      "a": {
+        "5.7.3": {
+          "status": "ok",
+          "median": 120.510125,
+          "min": 118.624917,
+          "max": 131.07379199999997,
+          "runs": 5,
+          "loadMs": {
+            "median": 97.11729199999999,
+            "min": 94.318209,
+            "max": 106.0355,
+            "runs": 5
+          }
+        },
+        "6.0.3": {
+          "status": "ok",
+          "median": 120.83837500000001,
+          "min": 113.37883300000001,
+          "max": 124.016875,
+          "runs": 5,
+          "loadMs": {
+            "median": 96.179917,
+            "min": 89.51566600000001,
+            "max": 97.843125,
+            "runs": 5
+          }
+        },
+        "7.1": {
+          "status": "ok",
+          "median": 43.72312600000001,
+          "min": 41.523917000000004,
+          "max": 48.110542,
+          "runs": 5,
+          "loadMs": {
+            "median": 32.495209,
+            "min": 30.543041999999996,
+            "max": 36.120000000000005,
+            "runs": 5
+          }
+        }
+      },
+      "b": {
+        "5.7.3": {
+          "status": "ok",
+          "warm": {
+            "median": 0.7671874999999773,
+            "min": 0.6509370000000558,
+            "max": 0.7904379999999946,
+            "runs": 5
+          },
+          "cold": {
+            "median": 0.9643125000000055,
+            "min": 0.9319789999999841,
+            "max": 1.0536874999999952,
+            "runs": 5
+          },
+          "warmP95": {
+            "median": 4.299958000000061,
+            "min": 3.9131249999999227,
+            "max": 4.551791999999978,
+            "runs": 5
+          },
+          "warmTotal": {
+            "median": 273.46270599999946,
+            "min": 245.48366599999997,
+            "max": 276.30766200000016,
+            "runs": 5
+          },
+          "coldTotal": {
+            "median": 379.81024499999967,
+            "min": 362.9084850000002,
+            "max": 393.5097529999999,
+            "runs": 5
+          },
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedWarm": 19
+        },
+        "6.0.3": {
+          "status": "ok",
+          "warm": {
+            "median": 0.6944579999999974,
+            "min": 0.6469369999999799,
+            "max": 0.8458334999999693,
+            "runs": 5
+          },
+          "cold": {
+            "median": 0.9359165000000189,
+            "min": 0.9111044999999933,
+            "max": 1.0152704999999855,
+            "runs": 5
+          },
+          "warmP95": {
+            "median": 4.090250000000026,
+            "min": 3.6804579999999305,
+            "max": 7.642624999999953,
+            "runs": 5
+          },
+          "warmTotal": {
+            "median": 246.99474699999956,
+            "min": 241.5653309999994,
+            "max": 358.9795860000007,
+            "runs": 5
+          },
+          "coldTotal": {
+            "median": 359.05824700000016,
+            "min": 353.40620100000035,
+            "max": 383.5870040000001,
+            "runs": 5
+          },
+          "transformersApplied": true,
+          "markerModules": 19,
+          "transformedWarm": 19
+        },
+        "7.1": {
+          "status": "ok",
+          "warm": {
+            "median": 0.27839600000001496,
+            "min": 0.2505210000000062,
+            "max": 0.335645999999997,
+            "runs": 5
+          },
+          "cold": {
+            "median": 0.2956039999999973,
+            "min": 0.2671874999999915,
+            "max": 0.3313539999999904,
+            "runs": 5
+          },
+          "warmP95": {
+            "median": 1.3907910000000072,
+            "min": 1.2909580000000176,
+            "max": 1.4593329999999867,
+            "runs": 5
+          },
+          "warmTotal": {
+            "median": 91.2327499999999,
+            "min": 83.5072470000002,
+            "max": 102.5356670000003,
+            "runs": 5
+          },
+          "coldTotal": {
+            "median": 95.05616799999976,
+            "min": 90.72666899999994,
+            "max": 102.23308799999997,
+            "runs": 5
+          },
+          "transformersApplied": false,
+          "markerModules": 19,
+          "transformedWarm": 0
+        }
+      },
+      "c": {
+        "5.7.3": {
+          "status": "ok",
+          "total": {
+            "median": 751.4910120000008,
+            "min": 731.2707540000048,
+            "max": 796.0863000000036,
+            "runs": 5
+          },
+          "createProgram": {
+            "median": 168.34295900000006,
+            "min": 157.170709,
+            "max": 182.41916700000002,
+            "runs": 5
+          },
+          "check": {
+            "median": 0.8369790000000421,
+            "min": 0.7866454999999632,
+            "max": 0.8831249999998363,
+            "runs": 5
+          },
+          "emit": {
+            "median": 0.3281245000000581,
+            "min": 0.3143959999998742,
+            "max": 0.34818749999999454,
+            "runs": 5
+          },
+          "perFile": {
+            "median": 1.1820620000000872,
+            "min": 1.1382915000000366,
+            "max": 1.2446869999998853,
+            "runs": 5
+          },
+          "perFileP95": {
+            "median": 9.88458300000002,
+            "min": 8.563876000000164,
+            "max": 11.00483300000019,
+            "runs": 5
+          },
+          "semanticDiagnostics": 5
+        },
+        "6.0.3": {
+          "status": "ok",
+          "total": {
+            "median": 752.3508749999994,
+            "min": 686.399198,
+            "max": 901.379968000004,
+            "runs": 5
+          },
+          "createProgram": {
+            "median": 175.078125,
+            "min": 158.919125,
+            "max": 253.05600000000004,
+            "runs": 5
+          },
+          "check": {
+            "median": 0.7558954999999514,
+            "min": 0.7185829999999669,
+            "max": 0.8300835000001143,
+            "runs": 5
+          },
+          "emit": {
+            "median": 0.2975209999999606,
+            "min": 0.2574375000000373,
+            "max": 0.3032500000000482,
+            "runs": 5
+          },
+          "perFile": {
+            "median": 1.0650005000001102,
+            "min": 1.0407500000001164,
+            "max": 1.1382915000001503,
+            "runs": 5
+          },
+          "perFileP95": {
+            "median": 9.875999999999976,
+            "min": 9.400875000000042,
+            "max": 10.237707999999884,
+            "runs": 5
+          },
+          "semanticDiagnostics": 5
+        },
+        "7.1": {
+          "status": "ok",
+          "total": {
+            "median": 160.69542200000004,
+            "min": 149.00515899999988,
+            "max": 190.08308699999958,
+            "runs": 5
+          },
+          "createProgram": {
+            "median": 31.590750000000014,
+            "min": 29.927875,
+            "max": 34.562333000000024,
+            "runs": 5
+          },
+          "check": {
+            "median": 0.16847949999998946,
+            "min": 0.14756249999999227,
+            "max": 0.209666000000027,
+            "runs": 5
+          },
+          "emit": {
+            "median": 0.17795849999998836,
+            "min": 0.1537500000000307,
+            "max": 0.24927100000002156,
+            "runs": 5
+          },
+          "perFile": {
+            "median": 0.342354499999999,
+            "min": 0.30527100000003315,
+            "max": 0.45895800000002396,
+            "runs": 5
+          },
+          "perFileP95": {
+            "median": 2.538792000000001,
+            "min": 2.045876000000078,
+            "max": 2.685791999999992,
+            "runs": 5
+          },
+          "semanticDiagnostics": 5
+        }
+      },
+      "e": {
+        "5.7.3": {
+          "status": "ok",
+          "perEdit": {
+            "median": 169.2831040000001,
+            "min": 162.57420850000017,
+            "max": 171.52402099999995,
+            "runs": 5
+          },
+          "perEditCachedHost": {
+            "median": 5.002666500000032,
+            "min": 4.714812000000165,
+            "max": 5.472000000000207,
+            "runs": 5
+          }
+        },
+        "6.0.3": {
+          "status": "ok",
+          "perEdit": {
+            "median": 190.46925,
+            "min": 185.94981249999955,
+            "max": 195.60902050000027,
+            "runs": 5
+          },
+          "perEditCachedHost": {
+            "median": 3.6138755000001765,
+            "min": 3.4242920000001504,
+            "max": 3.8752290000002176,
+            "runs": 5
+          }
+        },
+        "7.1": {
+          "status": "ok",
+          "perEdit": {
+            "median": 1.3802295000000129,
+            "min": 1.194666500000011,
+            "max": 1.5172709999999938,
+            "runs": 5
+          }
+        }
+      },
+      "f": {
+        "5.7.3": {
+          "status": "ok",
+          "sequentialPerSecond": {
+            "median": 812.029538760035,
+            "min": 712.5588178113362,
+            "max": 847.177028445838,
+            "runs": 5
+          },
+          "inFlight": 1
+        },
+        "6.0.3": {
+          "status": "ok",
+          "sequentialPerSecond": {
+            "median": 799.73941930553,
+            "min": 710.244400815789,
+            "max": 834.475521703664,
+            "runs": 5
+          },
+          "inFlight": 1
+        },
+        "7.1": {
+          "status": "ok",
+          "sequentialPerSecond": {
+            "median": 1474.655280342034,
+            "min": 1200.8477985457735,
+            "max": 1547.138402367797,
+            "runs": 5
+          },
+          "concurrentPerSecond": {
+            "median": 2112.102479212292,
+            "min": 1832.5275938569096,
+            "max": 2163.223310894399,
+            "runs": 5
+          },
+          "inFlight": 8
+        }
+      }
+    },
+    "1000": {
+      "a": {
+        "5.7.3": {
+          "status": "ok",
+          "median": 118.71849899999998,
+          "min": 115.50733299999999,
+          "max": 125.85812600000001,
+          "runs": 5,
+          "loadMs": {
+            "median": 94.69758300000001,
+            "min": 92.089542,
+            "max": 100.90195899999999,
+            "runs": 5
+          }
+        },
+        "6.0.3": {
+          "status": "ok",
+          "median": 119.501375,
+          "min": 114.38345799999999,
+          "max": 123.2335,
+          "runs": 5,
+          "loadMs": {
+            "median": 95.65904100000002,
+            "min": 90.249458,
+            "max": 96.838083,
+            "runs": 5
+          }
+        },
+        "7.1": {
+          "status": "ok",
+          "median": 43.17766700000001,
+          "min": 41.487083,
+          "max": 149.335874,
+          "runs": 5,
+          "loadMs": {
+            "median": 31.792875000000002,
+            "min": 30.620041999999998,
+            "max": 33.84054199999999,
+            "runs": 5
+          }
+        }
+      },
+      "b": {
+        "5.7.3": {
+          "status": "ok",
+          "warm": {
+            "median": 0.6631454999999278,
+            "min": 0.5893744999999626,
+            "max": 0.6932500000000346,
+            "runs": 5
+          },
+          "cold": {
+            "median": 0.7331670000000088,
+            "min": 0.7174790000000257,
+            "max": 0.8172500000000582,
+            "runs": 5
+          },
+          "warmP95": {
+            "median": 4.034874999999829,
+            "min": 3.6307919999999285,
+            "max": 4.361041999999998,
+            "runs": 5
+          },
+          "warmTotal": {
+            "median": 1206.681463000002,
+            "min": 1097.9455020000012,
+            "max": 1287.4654269999976,
+            "runs": 5
+          },
+          "coldTotal": {
+            "median": 1367.9725979999964,
+            "min": 1356.1744619999997,
+            "max": 1490.1287080000025,
+            "runs": 5
+          },
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedWarm": 99
+        },
+        "6.0.3": {
+          "status": "ok",
+          "warm": {
+            "median": 0.6321254999999155,
+            "min": 0.5912919999999531,
+            "max": 0.7312080000003789,
+            "runs": 5
+          },
+          "cold": {
+            "median": 0.733645499999966,
+            "min": 0.6817915000000312,
+            "max": 0.8331665000000612,
+            "runs": 5
+          },
+          "warmP95": {
+            "median": 3.7450840000001335,
+            "min": 3.542791999999963,
+            "max": 4.798541999999998,
+            "runs": 5
+          },
+          "warmTotal": {
+            "median": 1141.878031999995,
+            "min": 1105.8258330000021,
+            "max": 1388.9853579999992,
+            "runs": 5
+          },
+          "coldTotal": {
+            "median": 1372.1913010000003,
+            "min": 1300.2295760000018,
+            "max": 1568.6205380000006,
+            "runs": 5
+          },
+          "transformersApplied": true,
+          "markerModules": 99,
+          "transformedWarm": 99
+        },
+        "7.1": {
+          "status": "ok",
+          "warm": {
+            "median": 0.3024375000000532,
+            "min": 0.28287499999993315,
+            "max": 0.3862704999999096,
+            "runs": 5
+          },
+          "cold": {
+            "median": 0.32220799999998917,
+            "min": 0.27774949999999876,
+            "max": 0.429916999999989,
+            "runs": 5
+          },
+          "warmP95": {
+            "median": 1.603207999999995,
+            "min": 1.5649170000000368,
+            "max": 1.8432080000000042,
+            "runs": 5
+          },
+          "warmTotal": {
+            "median": 506.8889250000012,
+            "min": 477.22430599999905,
+            "max": 592.0083750000009,
+            "runs": 5
+          },
+          "coldTotal": {
+            "median": 523.3526020000007,
+            "min": 477.1121710000011,
+            "max": 669.4146770000024,
+            "runs": 5
+          },
+          "transformersApplied": false,
+          "markerModules": 99,
+          "transformedWarm": 0
+        }
+      },
+      "c": {
+        "5.7.3": {
+          "status": "ok",
+          "total": {
+            "median": 2540.0713079999637,
+            "min": 2422.965966999982,
+            "max": 2704.1078769999904,
+            "runs": 5
+          },
+          "createProgram": {
+            "median": 353.95787500000006,
+            "min": 334.64654199999995,
+            "max": 414.3173330000004,
+            "runs": 5
+          },
+          "check": {
+            "median": 0.5665205000000242,
+            "min": 0.5543744999997671,
+            "max": 0.6206455000003643,
+            "runs": 5
+          },
+          "emit": {
+            "median": 0.2920205000000351,
+            "min": 0.28825000000006185,
+            "max": 0.3209790000000794,
+            "runs": 5
+          },
+          "perFile": {
+            "median": 0.8704170000000886,
+            "min": 0.8637710000002699,
+            "max": 0.9683129999998528,
+            "runs": 5
+          },
+          "perFileP95": {
+            "median": 7.959416999999121,
+            "min": 7.584959000000254,
+            "max": 8.583749999999782,
+            "runs": 5
+          },
+          "semanticDiagnostics": 5
+        },
+        "6.0.3": {
+          "status": "ok",
+          "total": {
+            "median": 2367.1972720000026,
+            "min": 2211.433966000003,
+            "max": 2489.7593820000034,
+            "runs": 5
+          },
+          "createProgram": {
+            "median": 359.8106670000002,
+            "min": 340.13499999999976,
+            "max": 405.1434999999997,
+            "runs": 5
+          },
+          "check": {
+            "median": 0.5597080000000005,
+            "min": 0.4839164999998502,
+            "max": 0.5755209999997533,
+            "runs": 5
+          },
+          "emit": {
+            "median": 0.2520414999999048,
+            "min": 0.21829200000001947,
+            "max": 0.27054199999975026,
+            "runs": 5
+          },
+          "perFile": {
+            "median": 0.8200624999999491,
+            "min": 0.7210834999998497,
+            "max": 0.8576880000000529,
+            "runs": 5
+          },
+          "perFileP95": {
+            "median": 7.23183199999994,
+            "min": 6.661376000000018,
+            "max": 7.5052080000004935,
+            "runs": 5
+          },
+          "semanticDiagnostics": 5
+        },
+        "7.1": {
+          "status": "ok",
+          "total": {
+            "median": 808.5295669999982,
+            "min": 775.6301630000053,
+            "max": 845.2499269999989,
+            "runs": 5
+          },
+          "createProgram": {
+            "median": 69.12520799999993,
+            "min": 62.03170799999998,
+            "max": 73.15866699999992,
+            "runs": 5
+          },
+          "check": {
+            "median": 0.17975000000001273,
+            "min": 0.16420850000008613,
+            "max": 0.19727049999994506,
+            "runs": 5
+          },
+          "emit": {
+            "median": 0.18799999999998818,
+            "min": 0.17124999999998636,
+            "max": 0.1989170000000513,
+            "runs": 5
+          },
+          "perFile": {
+            "median": 0.367917000000034,
+            "min": 0.33843800000011015,
+            "max": 0.39279199999975845,
+            "runs": 5
+          },
+          "perFileP95": {
+            "median": 2.7993750000000546,
+            "min": 2.7767089999999826,
+            "max": 2.9671250000001237,
+            "runs": 5
+          },
+          "semanticDiagnostics": 5
+        }
+      },
+      "e": {
+        "5.7.3": {
+          "status": "ok",
+          "perEdit": {
+            "median": 524.7475834999996,
+            "min": 492.7466875,
+            "max": 526.295166500001,
+            "runs": 5
+          },
+          "perEditCachedHost": {
+            "median": 9.19354100000055,
+            "min": 7.281104499999856,
+            "max": 9.923895999998422,
+            "runs": 5
+          }
+        },
+        "6.0.3": {
+          "status": "ok",
+          "perEdit": {
+            "median": 541.3700625000001,
+            "min": 531.4829789999999,
+            "max": 542.1412710000022,
+            "runs": 5
+          },
+          "perEditCachedHost": {
+            "median": 5.905458500001259,
+            "min": 4.7789374999993015,
+            "max": 6.675729000000501,
+            "runs": 5
+          }
+        },
+        "7.1": {
+          "status": "ok",
+          "perEdit": {
+            "median": 2.1801044999999704,
+            "min": 2.0138745000000426,
+            "max": 2.252707999999984,
+            "runs": 5
+          }
+        }
+      },
+      "f": {
+        "5.7.3": {
+          "status": "ok",
+          "sequentialPerSecond": {
+            "median": 762.0040645327272,
+            "min": 554.4484553658452,
+            "max": 779.1600146562201,
+            "runs": 5
+          },
+          "inFlight": 1
+        },
+        "6.0.3": {
+          "status": "ok",
+          "sequentialPerSecond": {
+            "median": 757.1625206427013,
+            "min": 537.7128973395845,
+            "max": 826.2726899768824,
+            "runs": 5
+          },
+          "inFlight": 1
+        },
+        "7.1": {
+          "status": "ok",
+          "sequentialPerSecond": {
+            "median": 1500.8092183208087,
+            "min": 1140.5163692195601,
+            "max": 1556.1590578993143,
+            "runs": 5
+          },
+          "concurrentPerSecond": {
+            "median": 1921.782336580297,
+            "min": 1712.870151411007,
+            "max": 2026.5284407824527,
+            "runs": 5
+          },
+          "inFlight": 8
+        }
+      }
+    }
+  },
+  "ipc": {
+    "200": {
+      "status": "ok",
+      "files": 200,
+      "requestCount": 200,
+      "bytesSentPerFile": 2791.235,
+      "bytesReceivedPerFile": 1794.25,
+      "serverMsPerFile": 0.41568937499999997,
+      "transportOverheadMsPerFile": 0.04017416499999982,
+      "roundTripMsPerFile": 0.4558635399999998,
+      "meanSourceBytesPerFile": 2464.475,
+      "totals": {
+        "requestCount": 200,
+        "roundTripMs": 91.17270799999996,
+        "bytesSent": 558247,
+        "bytesReceived": 358850,
+        "serverTimeMs": 83.137875,
+        "transportOverheadMs": 8.034832999999963,
+        "nodesMaterialized": 0,
+        "sourceFilesFetched": 0,
+        "nodesFetched": 0
+      }
+    },
+    "1000": {
+      "status": "ok",
+      "files": 1000,
+      "requestCount": 1000,
+      "bytesSentPerFile": 3305.941,
+      "bytesReceivedPerFile": 2131.838,
+      "serverMsPerFile": 0.4578922850000006,
+      "transportOverheadMsPerFile": 0.03641435000000132,
+      "roundTripMsPerFile": 0.49430663500000194,
+      "meanSourceBytesPerFile": 2960.546,
+      "totals": {
+        "requestCount": 1000,
+        "roundTripMs": 494.30663500000196,
+        "bytesSent": 3305941,
+        "bytesReceived": 2131838,
+        "serverTimeMs": 457.89228500000064,
+        "transportOverheadMs": 36.41435000000132,
+        "nodesMaterialized": 0,
+        "sourceFilesFetched": 0,
+        "nodesFetched": 0
+      }
+    }
+  },
+  "probe": {
+    "version": "7.1.0-dev.20261013.1",
+    "runtime": "ignored",
+    "typeCheck": [
+      2353
+    ],
+    "tscOutput": "../../../../../../../var/folders/cr/v5_bk7dx68161tz8hrfk1xbh0000gn/T/websmith-ts71-versions-979483494c62/ts71-transformer-probe.mts(7,5): error TS2353: Object literal may only specify known properties, and 'transformers' does not exist in type 'TranspileOptions'."
+  },
+  "decision": [
+    {
+      "criterion": "1 (b) per-file transpileModule, warm, 7.1 / 6.0.3",
+      "metric": "ratio",
+      "value": 0.478445340363731,
+      "threshold": 1.5,
+      "status": "met",
+      "native": 0.3024375000000532,
+      "baseline": 0.6321254999999155
+    },
+    {
+      "criterion": "2 (c) createProgram + per-file checks and emits, 7.1 / 6.0.3",
+      "metric": "ratio",
+      "value": 0.34155563482754697,
+      "threshold": 2,
+      "status": "met",
+      "native": 808.5295669999982,
+      "baseline": 2367.1972720000026
+    },
+    {
+      "criterion": "3 (e) watch rebuild per edit, 7.1 / 6.0.3",
+      "metric": "ratio",
+      "value": 0.004027013407303013,
+      "threshold": 2,
+      "status": "met",
+      "native": 2.1801044999999704,
+      "baseline": 541.3700625000001,
+      "baselineCachedHost": 5.905458500001259
+    },
+    {
+      "criterion": "4 7.1 p95 / own median, max of (b warm) and (c per file)",
+      "metric": "ratio",
+      "value": 7.60871337828857,
+      "threshold": 3,
+      "status": "not met",
+      "bWarm": 5.300956395948628,
+      "cPerFile": 7.60871337828857
+    },
+    {
+      "criterion": "5 (f) 7.1 throughput in flight / 6.0.3 sequential",
+      "metric": "ratio",
+      "value": 2.538137168951565,
+      "threshold": 0.6666666666666666,
+      "status": "met",
+      "native": 1921.782336580297,
+      "baseline": 757.1625206427013,
+      "inFlight": 8
+    },
+    {
+      "criterion": "6 (a) 7.1 cold start ms (x loader instances above 1 s)",
+      "metric": "ms",
+      "value": 43.17766700000001,
+      "threshold": 2000,
+      "status": "met",
+      "coldStartMs": 43.17766700000001,
+      "loaderInstances": 1
+    }
+  ]
+}

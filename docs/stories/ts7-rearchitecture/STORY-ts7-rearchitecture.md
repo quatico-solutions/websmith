@@ -3,7 +3,7 @@ title: Re-architecture for TypeScript 7
 author: Jan Wloka
 status: draft
 created: 2026-09-24
-updated: 2026-10-02
+updated: 2026-10-15
 ---
 
 <!--
@@ -73,10 +73,14 @@ Research details: [analysis-ts7-api-gap.md](analysis-ts7-api-gap.md).
   (analysis 2.4).
 - 🟡 Target version: 7.1 is unreleased; the 7.0 blog says 7.1 ships "a new (and different) API". Tools that
   need the API today are pointed at `@typescript/typescript6` (analysis 2.5).
-- ⏸️ Will 7.1 GA ship custom transformers (roadmap 3C), and in which phase? Checked by the spike slice of
-  `typescript-6-support`.
-- ⏸️ IPC cost of per-file `transpileModule` / `getJavaScriptEmit` for webpack workloads — measured by the spike
-  slice of `typescript-6-support` (`infra/typescript-7-1-spike`).
+- ✅ Will 7.1 GA ship custom transformers (roadmap 3C), and in which phase? Not as of 2026-10-15: no phase is
+  documented. microsoft/TypeScript#63875 closed on 2026-10-09 in favour of #64709, which does not mention
+  transformers; npm has no 7.1 beta or release; the `7.1.0-dev.20261013.1` probe gets TS2353 on `transformers` and
+  ignores it at runtime ([analysis](analysis-ts71-measurement.md)). Re-check when the 7.x API adds in-process or
+  batched emit.
+- ✅ IPC cost of per-file `transpileModule` / `getJavaScriptEmit` for webpack workloads: at 1,000 modules 7.1 /
+  6.0.3 in process is 0.478 for (b), 0.342 for (c) and 0.004 for (e), with 3,306 bytes sent and 2,132 received per
+  file, measured by the `docs/typescript-7-1-measurement` slice ([analysis](analysis-ts71-measurement.md)).
 - ✅ Does TypeScript 6 raise the deprecation errors through `transpileModule`? Yes: `ts.transpileModule` on 6.0.3
   with `reportDiagnostics` reports TS5107 (probe 2026-10-02).
 - ⏸️ Does the ESM work in `node24-esm-support` change how addons are loaded here? (It keeps CJS loading under
@@ -89,6 +93,7 @@ Research details: [analysis-ts7-api-gap.md](analysis-ts7-api-gap.md).
 | 2026-09-24 | Track as a story in `docs/stories/`, index in `docs/stories/README.md` | Research-heavy, epic-scale, no ticket; keeps internal tracking off the public README |
 | 2026-09-24 | Split off Node 24 + ESM into `node24-esm-support` | Independent of the TypeScript decision and shippable on its own (Jan Wloka) |
 | 2026-10-02 | Strategy A plus a 7.1 spike: stay on TypeScript 6.x (peer `5.x \|\| 6.x`), clear the 6.0 deprecation hits, keep the addon API unchanged; measure the 7.1 nightly (IPC cost, transformer status) to decide when to revisit B/D | Smallest change; keeps in-process compilation, transformers and watch; the path Microsoft names for tools that need the API (Jan Wloka). Rejected: **B** dual backend — two code paths to test, and the 7.x backend lacks transformers, watch and the browser system on an API that changed between 7.0.2 and 7.1-dev; **C** websmith-owned AST/types — breaks every transformer addon and `getSystem()` user, needs a large node model and loses `before`-phase semantics; **D** 7.x only, out of process — 7.1 is unreleased and unstable, has no transformers or watch, drops the browser system and in-process loader, and breaks every `ts.*`-typed public member |
+| 2026-10-15 | stay on A; record "IPC cost blocks per-file emit"; re-run only when the 7.x API adds in-process or batched emit | Speed not met, 3C not met. At 1,000 modules, `typescript@7.1.0-dev.20261013.1` against in-process 6.0.3: (b) 0.478 ≤ 1.5 met; (c) 0.342 ≤ 2 met; (e) 0.004 ≤ 2 met; p95 / own median 7.609 ≤ 3 not met; (f) 2.538 ≥ 0.667 met; cold start 43 ms ≤ 2,000 ms met. 3C: no released 7.x ships a `before`-transformer phase. Harness `f7b7dd9c` ([analysis](analysis-ts71-measurement.md)) (decision rule of typescript-6-support, fixed 2026-10-02) |
 
 ## Key Findings
 
@@ -182,3 +187,14 @@ two plans, with #135 owning the `esModuleInterop`/`target` defaults and target t
 - Phase 2 decided; option B, C and D rejected for now with reasons in Decisions
 - Plan slices: toolchain, websmith's own options, websmith-node, peer range + CI matrix, 7.1 measurement spike
 - Analysis open question on `transpileModule` and the deprecation errors answered (yes)
+
+### 2026-10-15 — 7.1 measurement
+
+Ran the 7.1 bench harness (`f7b7dd9c`) once at its defaults on an Apple M1 Max, Node 22.17.0, against
+`typescript@7.1.0-dev.20261013.1`; report in `analysis-ts71-measurement.md`. Re-checked #63875, #64709,
+ts-loader#1704 and the npm dist-tags on the run date.
+
+**Key outcomes:**
+
+- Speed not met (only criterion 4, p95 7.609 > 3); 3C not met; Decisions row "stay on A"
+- Open points on 3C and IPC cost answered

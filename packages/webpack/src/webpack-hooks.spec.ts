@@ -9,9 +9,10 @@ import path from "node:path";
 import { ErrorMessage } from "@quatico/websmith-api";
 import { createSystem, NoReporter } from "@quatico/websmith-core";
 import ts from "typescript";
-import { type Compilation, type Compiler } from "webpack";
+import { type Compilation, type Compiler, type Module, NormalModule } from "webpack";
 import { CompilationQueue } from "./CompilationQueue";
 import { type WebpackLoaderContext } from "./loader";
+import { PACKAGE_TYPES_KEY } from "./package-types";
 import { TsCompiler } from "./TsCompiler";
 import { addCompilationHooks } from "./webpack-hooks";
 import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
@@ -278,6 +279,112 @@ describe("webpack-hooks", () => {
     });
 });
 
+describe("webpack-hooks package types", () => {
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    it("should rebuild module w/ changed type of recorded package.json", () => {
+        const onNeedBuild = setUpNeedBuild({ "/package.json": JSON.stringify({ type: "commonjs" }) });
+
+        const actual = onNeedBuild(createRecordingModule({ "/package.json": "module" }));
+
+        expect(actual).toBe(true);
+    });
+
+    it("should leave module to other taps w/ unchanged type of recorded package.json", () => {
+        const onNeedBuild = setUpNeedBuild({ "/package.json": JSON.stringify({ type: "module" }) });
+
+        const actual = onNeedBuild(createRecordingModule({ "/package.json": "module" }));
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("should leave module to other taps w/o recorded package.json", () => {
+        const onNeedBuild = setUpNeedBuild({});
+
+        const actual = onNeedBuild({ buildInfo: {} } as unknown as NormalModule);
+
+        expect(actual).toBeUndefined();
+    });
+
+    it("should read each package.json once per compilation w/ two modules", () => {
+        const onNeedBuild = setUpNeedBuild({ "/package.json": JSON.stringify({ type: "module" }) });
+        onNeedBuild(createRecordingModule({ "/package.json": "module" }));
+
+        onNeedBuild(createRecordingModule({ "/package.json": "module" }));
+        const actual = jest.mocked(ts.sys.readFile).mock.calls.filter(([cur]) => cur === "/package.json").length;
+
+        expect(actual).toBe(1);
+    });
+
+    it("should add recorded package.json files of modules to file dependencies after compile", () => {
+        const compiler = createHookedCompiler();
+        const target = createCompilation(compiler);
+        target.modules.add(createRecordingModule({ "/lib/package.json": "module" }));
+        addCompilationHooks(compiler, {}, createHooksContext());
+
+        getAfterCompileTaps(compiler).forEach(cur => cur(target));
+        const actual = [...target.fileDependencies];
+
+        expect(actual).toContain("/lib/package.json");
+    });
+
+    it("should tap needBuild once w/ two instances on one compiler", () => {
+        const tap = jest.fn();
+        jest.spyOn(NormalModule, "getCompilationHooks").mockReturnValue({ needBuild: { tap } } as unknown as ReturnType<
+            typeof NormalModule.getCompilationHooks
+        >);
+        const compiler = createHookedCompiler();
+        addCompilationHooks(compiler, {}, createHooksContext());
+        addCompilationHooks(compiler, {}, createHooksContext());
+
+        getThisCompilationTaps(compiler).forEach(cur => cur(createCompilation(compiler)));
+        const actual = tap.mock.calls.length;
+
+        expect(actual).toBe(1);
+    });
+});
+
+const createHookedCompiler = () =>
+    ({
+        hooks: {
+            beforeRun: { tap: jest.fn() },
+            watchRun: { tap: jest.fn() },
+            done: { tap: jest.fn(), tapAsync: jest.fn() },
+            compilation: { tap: jest.fn() },
+            thisCompilation: { tap: jest.fn() },
+            afterCompile: { tap: jest.fn() },
+        },
+        options: { watch: false },
+    }) as unknown as jest.Mocked<Compiler>;
+
+const createHooksContext = (): WebpackLoaderContext => ({
+    websmithCompiler: createConfigErrorCompiler([]),
+    queue: new CompilationQueue(),
+    loadOptions: () => ({}),
+});
+
+const createRecordingModule = (packageTypes: Record<string, string | null>) =>
+    ({ buildInfo: { [PACKAGE_TYPES_KEY]: packageTypes } }) as unknown as NormalModule;
+
+const getThisCompilationTaps = (compiler: jest.Mocked<Compiler>) =>
+    jest.mocked(compiler.hooks.thisCompilation.tap).mock.calls.map(([, cur]) => cur as unknown as (compilation: Compilation) => void);
+
+/** Runs the thisCompilation taps of a new compiler and returns its needBuild tap, reading package.json from `files`. */
+const setUpNeedBuild = (files: Record<string, string>) => {
+    const tap = jest.fn();
+    jest.spyOn(NormalModule, "getCompilationHooks").mockReturnValue({ needBuild: { tap } } as unknown as ReturnType<
+        typeof NormalModule.getCompilationHooks
+    >);
+    jest.spyOn(ts.sys, "readFile").mockImplementation(fileName => files[fileName]);
+    const compiler = createHookedCompiler();
+    addCompilationHooks(compiler, {}, createHooksContext());
+    getThisCompilationTaps(compiler).forEach(cur => cur(createCompilation(compiler)));
+    const [[, onNeedBuild]] = tap.mock.calls as [[string, (module: NormalModule) => boolean | undefined]];
+    return onNeedBuild;
+};
+
 const createConfigErrorCompiler = (configErrors: ts.Diagnostic[] = [new ErrorMessage("Unknown profile 'whatever' in 'depends'.")]) =>
     ({
         resetCompilationCaches: jest.fn(),
@@ -291,7 +398,13 @@ const createConfigErrorCompiler = (configErrors: ts.Diagnostic[] = [new ErrorMes
     }) as unknown as jest.Mocked<TsCompiler>;
 
 const createCompilation = (compiler: Compiler) =>
-    ({ compiler, errors: [], fileDependencies: new Set<string>(), missingDependencies: new Set<string>() }) as unknown as Compilation;
+    ({
+        compiler,
+        errors: [],
+        fileDependencies: new Set<string>(),
+        missingDependencies: new Set<string>(),
+        modules: new Set<Module>(),
+    }) as unknown as Compilation;
 
 const getAfterCompileTaps = (compiler: jest.Mocked<Compiler>) =>
     jest.mocked(compiler.hooks.afterCompile.tap).mock.calls.map(([, cur]) => cur as unknown as (compilation: Compilation) => void);
