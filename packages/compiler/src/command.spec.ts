@@ -170,6 +170,15 @@ describe("addCompileCommand", () => {
         expect(target.getOptions().tsConfig!.configFilePath).toEqual(expect.stringContaining("/expected/tsconfig.json"));
     });
 
+    it("should yield ignoreDeprecations option w/ --ignoreDeprecations cli argument", () => {
+        const testSystem = createSystem({ "./expected/tsconfig.json": "{}" }, { virtual: true });
+        const target = new Compiler({ reporter: new NoReporter() }, {}, testSystem);
+
+        addCompileCommand(new Command(), target).parse(["--project", "expected/tsconfig.json", "--ignoreDeprecations", "5.0"], { from: "user" });
+
+        expect(target.getOptions().cliArgs.options.ignoreDeprecations).toBe("5.0");
+    });
+
     it("should yield normalised project w/ --project directory cli argument", () => {
         const testSystem = createSystem(
             { "/expected/tsconfig.json": JSON.stringify({ include: ["src/**/*"] }), "/expected/src/index.ts": "export {};" },
@@ -569,9 +578,7 @@ describe("addCompileCommand#profile", () => {
             from: "user",
         });
 
-        expect(target.reportDiagnostic).toHaveBeenCalledWith(
-            new ErrorMessage("Profile 'unknown' is passed but no websmith.config.json was found.")
-        );
+        expect(target.reportDiagnostic).toHaveBeenCalledWith(new ErrorMessage("Profile 'unknown' is passed but no websmith.config.json was found."));
     });
 
     it("should not yield no profile provided warning w/ --profile cli argument and known name depending on unknown profile", () => {
