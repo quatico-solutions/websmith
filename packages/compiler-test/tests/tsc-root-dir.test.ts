@@ -7,6 +7,7 @@
 import { compile } from "@quatico/websmith-node";
 import fs from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 
 // Sources live in src/ on two levels; the tsconfig sets outDir and no rootDir, so the TypeScript major decides the layout
 const SOURCES: Record<string, string> = {
@@ -35,11 +36,14 @@ const writeSources = (sources: Record<string, string>): string[] =>
     });
 
 // The project's tsconfig.json has outDir and no rootDir; tsc gets the same one with its own outDir
-const writeTsConfig = (): string => {
+const writeTsConfig = (declaration: boolean): string => {
     const tsConfigFile = path.join(projectDir, "tsconfig.json");
     fs.writeFileSync(
         tsConfigFile,
-        JSON.stringify({ compilerOptions: { module: "commonjs", outDir: "websmith", skipLibCheck: true, types: [] }, include: ["src/**/*"] })
+        JSON.stringify({
+            compilerOptions: { declaration, module: "commonjs", outDir: "websmith", skipLibCheck: true, types: [] },
+            include: ["src/**/*"],
+        })
     );
     fs.writeFileSync(
         path.join(projectDir, "tsconfig.tsc.json"),
@@ -60,6 +64,9 @@ const readOutputPaths = (outDir: string): string[] =>
 // tsc prints "error TS5011: …" (pretty is off, so no color codes); websmith's reporter prints "Error: 5011: …"
 const readErrorCodes = (output: string, pattern: RegExp): string[] => [...new Set([...output.matchAll(pattern)].map(cur => cur[1]))].sort();
 
+// TypeScript 6 cannot infer rootDir (TS5011) for sources in src/ and tsc reports it once; TypeScript 5 infers it
+const ROOT_DIR_ERRORS = Number(ts.versionMajorMinor.split(".")[0]) < 6 ? 0 : 1;
+
 // websmith-node's tsc Compiler rejects on a non-zero exit; its message holds only the first output line, so read the full stdout
 const compileTsc = async (): Promise<{ paths: string[]; codes: string[] }> => {
     const output = await compile([], { tsConfig: { project: path.join(projectDir, "tsconfig.tsc.json") } }).catch(
@@ -68,20 +75,27 @@ const compileTsc = async (): Promise<{ paths: string[]; codes: string[] }> => {
     return { paths: readOutputPaths(path.join(projectDir, "tsc")), codes: readErrorCodes(output, / TS(\d+): /g) };
 };
 
-const compileWebsmith = async (files: string[], tsConfigFile: string): Promise<{ paths: string[]; codes: string[] }> => {
+const compileWebsmith = async (files: string[], tsConfigFile: string): Promise<{ paths: string[]; codes: string[]; output: string }> => {
     const output = await compile(files, { websmith: { tsConfigFile } });
-    return { paths: readOutputPaths(path.join(projectDir, "websmith")), codes: readErrorCodes(output, /Error: (\d+):/g) };
+    return { paths: readOutputPaths(path.join(projectDir, "websmith")), codes: readErrorCodes(output, /Error: (\d+):/g), output };
 };
 
 describe("compile w/ websmith and tsc w/o rootDir", () => {
-    it("emits to tsc's output paths and reports tsc's error codes w/ sources in src, outDir and no rootDir", async () => {
-        const files = writeSources(SOURCES);
-        const tsConfigFile = writeTsConfig();
-        const expected = await compileTsc();
+    it.each([false, true])(
+        "emits to tsc's output paths and reports tsc's error codes w/ sources in src, outDir, no rootDir and declaration %s",
+        async declaration => {
+            const files = writeSources(SOURCES);
+            const tsConfigFile = writeTsConfig(declaration);
+            const expected = await compileTsc();
 
-        const actual = await compileWebsmith(files, tsConfigFile);
+            const { output, ...actual } = await compileWebsmith(files, tsConfigFile);
 
-        expect(expected.paths).toEqual(expect.arrayContaining([expect.stringMatching(/(^|\/)a\.js$/), expect.stringMatching(/(^|\/)sub\/b\.js$/)]));
-        expect(actual).toEqual(expected);
-    }, 60000);
+            expect(expected.paths).toEqual(
+                expect.arrayContaining([expect.stringMatching(/(^|\/)a\.js$/), expect.stringMatching(/(^|\/)sub\/b\.js$/)])
+            );
+            expect(actual).toEqual(expected);
+            expect(output.match(/Error: 5011:/g) ?? []).toHaveLength(ROOT_DIR_ERRORS);
+        },
+        60000
+    );
 });
