@@ -175,6 +175,11 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   "Cannot find module" warning for a package with types only under `exports`).
 - `compilationEnv` of `@quatico/websmith-testing` sets `rootDir` to its source directory, so output paths are the same
   on TypeScript 5 and 6 (`dist/<file>`, not `dist/src/<file>`). A caller's own `rootDir` wins.
+- On TypeScript 6, websmith reports TS5011 ("The common source directory of 'tsconfig.json' is './src'. The 'rootDir'
+  setting must be explicitly set …") once, naming the directory `tsc` names, also with `declaration: true`, where the
+  build passed before. Before, the CLI and the webpack loader reported it once per source directory, naming each.
+  A project with `outDir` and no `rootDir` whose sources share a subdirectory now fails the build, with exit code 1,
+  as `tsc` does; set `"rootDir"` in `tsconfig.json` to fix it. TypeScript 5 does not report TS5011.
 - An unconfigured `profile` fails a webpack loader build with a configuration error that names the available
   profiles, e.g. `Profile 'x' is not configured in '<configFile>'. Available profiles: a, b.`, reported once per
   compilation (once per worker under `thread-loader`) instead of a `Module build failed` stack trace per module; without a configuration file the error is
