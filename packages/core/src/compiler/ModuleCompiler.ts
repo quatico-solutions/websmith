@@ -10,7 +10,7 @@ import ts from "typescript";
 import { type AddonRegistry } from "./addons";
 import { type CompilationContext, type CompilationContextOptions } from "./compilation";
 import { type CompileFragment, Compiler } from "./Compiler";
-import { resolvePath } from "./config";
+import { isNodeModuleKind, resolvePath } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import {
     checkDirectoryImport,
@@ -408,7 +408,8 @@ export class ModuleCompiler extends Compiler {
                 dependencies: { files: [], missing: [], packageTypes: {} },
             };
         }
-        // The nearest package.json's "type" decides the module format a node16/nodenext profile emits
+        // The nearest package.json's "type" decides the module format a profile emits under a node module kind (node16,
+        // node18, node20, nodenext)
         if (this.hasNodeModuleProfile()) {
             createPackageTypeLookup(system, onDependency, this.compilationCaches.packageTypeCache, onPackageType)(filePath);
         }
@@ -546,13 +547,13 @@ export class ModuleCompiler extends Compiler {
         return super.emitSourceFile(fileName, profile, writeFile, true);
     }
 
-    /** True when the host's profile or one of its dependent profiles emits with `module` Node16 or NodeNext. */
+    /**
+     * True when the host's profile or one of its dependent profiles emits with a node module kind (node16, node18, node20,
+     * nodenext).
+     */
     private hasNodeModuleProfile(): boolean {
         const profiles = this.profile ? this.getOptions().getSelectedProfiles(this.profile) : [this.profile];
-        return profiles.some(profile => {
-            const { module } = this.getContext(profile)?.getCompilerOptions() ?? {};
-            return module === ts.ModuleKind.Node16 || module === ts.ModuleKind.NodeNext;
-        });
+        return profiles.some(profile => isNodeModuleKind(this.getContext(profile)?.getCompilerOptions().module));
     }
 
     /**

@@ -24,7 +24,7 @@ import type { CompilerAddon } from "./addons/CompilerAddon";
 import type { FileCache } from "./cache";
 import { concat } from "./collections";
 import { CompilationContext, type CompilationContextOptions } from "./compilation";
-import { getEffectiveTarget, scriptTargetToString, TS_ERROR_CODE_INVALID_OPTION_VALUE } from "./config";
+import { getEffectiveTarget, isNodeModuleKind, scriptTargetToString, TS_ERROR_CODE_INVALID_OPTION_VALUE } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import { checkEsm, createCjsNamesCache, getEmittedModuleKind, isEsmModuleKind, type EsmCheckContext } from "./esm";
 import { collectEsmChecks, recordEsmCheck } from "./esm-check-registry";
@@ -122,7 +122,8 @@ export class Compiler {
     private baselineEmitCache = new Map<string, string | undefined>();
     // Track file modification times to detect when files change and invalidate stale cache entries
     private baselineEmitCacheFileTimes = new Map<string, Date>();
-    // Parsed package.json files for the module format of files under node16/nodenext, cleared with the options
+    // Parsed package.json files for the module format of files under a node module kind (node16, node18, node20,
+    // nodenext), cleared with the options
     private packageJsonInfoCache?: ts.PackageJsonInfoCache;
     // TypeScript diagnostics without a file a watch build reported, such as option errors that every fast path file returns
     private reportedWatchDiagnostics = new Set<string>();
@@ -1068,16 +1069,13 @@ export class Compiler {
     }
 
     /**
-     * Under node16/nodenext, watches the nearest package.json of each root file, because its "type" decides the module
-     * format of the file. A change re-emits the root files under that package.json.
+     * Under a node module kind (node16, node18, node20, nodenext), watches the nearest package.json of each root file,
+     * because its "type" decides the module format of the file. A change re-emits the root files under that package.json.
      */
     private registerPackageJsonWatches(files: string[], profileNames: string[]): void {
         const profiles = profileNames.length ? profileNames : [undefined];
-        const isNodeModuleKind = profiles.some(profile => {
-            const { module } = this.getContext(profile)?.getCompilerOptions() ?? {};
-            return module === ts.ModuleKind.Node16 || module === ts.ModuleKind.NodeNext;
-        });
-        if (!isNodeModuleKind) {
+        const hasNodeModuleKind = profiles.some(profile => isNodeModuleKind(this.getContext(profile)?.getCompilerOptions().module));
+        if (!hasNodeModuleKind) {
             return;
         }
 
@@ -1554,10 +1552,9 @@ export class Compiler {
         }
 
         const compilerOptions = ctx.getCompilerOptions();
-        const { outputText, sourceMapText, diagnostics } =
-            compilerOptions.module === ts.ModuleKind.Node16 || compilerOptions.module === ts.ModuleKind.NodeNext
-                ? this.transpileNodeModule(content, fileName, compilerOptions, ctx.getTransformers())
-                : ts.transpileModule(content, { compilerOptions, fileName, reportDiagnostics: true, transformers: ctx.getTransformers() });
+        const { outputText, sourceMapText, diagnostics } = isNodeModuleKind(compilerOptions.module)
+            ? this.transpileNodeModule(content, fileName, compilerOptions, ctx.getTransformers())
+            : ts.transpileModule(content, { compilerOptions, fileName, reportDiagnostics: true, transformers: ctx.getTransformers() });
 
         // Use ts.getOutputFileNames to get correct output paths
         // Note: We filter TS_ERROR_CODE_INVALID_OPTION_VALUE below, so numeric enum values won't cause issues
@@ -1583,9 +1580,9 @@ export class Compiler {
     }
 
     /**
-     * Emits one file like ts.transpileModule, but with the module format that node16/nodenext give the file through its
-     * extension and the nearest package.json. ts.transpileModule cannot read package.json and emits every .ts file as
-     * CommonJS under node16/nodenext.
+     * Emits one file like ts.transpileModule, but with the module format that a node module kind (node16, node18, node20,
+     * nodenext) gives the file through its extension and the nearest package.json. ts.transpileModule cannot read
+     * package.json and emits every .ts file as CommonJS under a node module kind.
      */
     private transpileNodeModule(
         content: string,
