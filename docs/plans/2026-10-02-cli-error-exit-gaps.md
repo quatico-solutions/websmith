@@ -13,7 +13,7 @@
 
 ## Status
 
-- **State:** Approved
+- **State:** Delivered
 - **Type:** bug
 - **Story:** node24-esm-support
 - **Review:** pr
@@ -22,6 +22,7 @@
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #136 merged
 - **Started:** 2026-10-02, Jan Wloka, `bug/cli-project-directory`
 - **Started:** 2026-10-03, Jan Wloka, `bug/emit-skipped-rule`
+- **Delivered:** 2026-10-15
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
