@@ -7,6 +7,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 import { writeSourceFile } from "./test-files";
 
 // Webpack runs in a separate Node process, like in webpack-esm-check.test.ts, and reports each compilation as a JSON line.
@@ -17,6 +18,9 @@ const getTestDirs = () => {
 };
 
 let testDirs: ReturnType<typeof getTestDirs>;
+
+// node18 and node20 exist only in TypeScript 6
+const describeOnTs6 = "Node20" in ts.ModuleKind ? describe : describe.skip;
 
 type BuildReport = {
     built: string[];
@@ -112,6 +116,35 @@ describe("webpack w/ websmith-loader and package.json type", () => {
             recorded: null,
         });
     }, 90000);
+
+    describeOnTs6("w/ node18 and node20 profiles on TypeScript 6", () => {
+        it.each(["node18", "node20"])(
+            "should emit ESM and record the package.json type w/ %s profile",
+            module => {
+                writeProject(module, {});
+
+                const [actual] = runWebpack({});
+
+                expect({ format: actual.format, recorded: actual.recorded }).toEqual({
+                    format: "esm",
+                    recorded: { [path.join(testDirs.PROJECT_DIR, "package.json")]: "module" },
+                });
+            },
+            90000
+        );
+
+        it.each(["node18", "node20"])(
+            "should rebuild module w/ type flip under watch w/ %s profile",
+            module => {
+                writeProject(module, {});
+
+                const [, actual] = runWebpack({ edit: { "package.json": JSON.stringify({ ...PACKAGE, type: "commonjs" }) } });
+
+                expect({ built: actual.built, format: actual.format }).toEqual({ built: [sourcePath("a.ts")], format: "commonjs" });
+            },
+            90000
+        );
+    });
 });
 
 const sourcePath = (fileName: string): string => path.join(testDirs.SOURCE_DIR, fileName);

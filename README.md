@@ -188,7 +188,7 @@ An example for a custom compilation profile:
             "tsConfig": {
                 "outDir": "dist/server",
                 "module": "commonjs",
-                "target": "es5",
+                "target": "es2020",
             }
 
         }

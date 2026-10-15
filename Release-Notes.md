@@ -16,6 +16,13 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 - The `AddonContext` docs describe what `addInputFile`, `addAssetDependency`, `addVirtualFile` and `removeOutputFile`
   do in each host: the `websmith` CLI, the webpack loader and the Vite plugin.
+- `--ignoreDeprecations <version>` on the `websmith` command and `ignoreDeprecations` in the programmatic compiler
+  arguments, as with `tsc`. Before, the command ignored the flag and the programmatic arguments threw "invalid
+  arguments".
+- Typed options in `@quatico/websmith-api`: `ignoreDeprecations` (`"5.0"` on TypeScript 5, `"5.0"` or `"6.0"` on
+  TypeScript 6), target `ES2025`, and module kinds `Node18`, `Node20` and `Preserve`. On TypeScript 5, TypeScript
+  reports the values that exist only in TypeScript 6; websmith does not drop them silently. Exhaustive `switch` or
+  `Record` code over these unions sees the new members.
 - The Vite plugin (`@quatico/websmith-vite`, not yet published) selects a websmith profile per Vite environment:
   `profile` takes a profile name or a map from environment name to profile, e.g. `{ client: "client", ssr: "server" }`,
   and each environment compiles with its own compiler and addons, as does a worker that `worker.plugins` bundles with
@@ -29,6 +36,10 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 Builds that passed before can now fail: the `websmith` command reports errors it used to ignore and exits with code 1.
 
+- **Behaviour change (TypeScript 6 only):** under `module: node18` or `node20`, the `websmith` command's fast path,
+  `--transpileOnly`, the webpack loader and the Vite plugin emit each file in the module format of its nearest
+  `package.json` `"type"`, as `tsc` does, and watch that `package.json` as under `node16`/`nodenext`. Before, they
+  emitted CommonJS whatever the `"type"`. A package with `"type": "module"` therefore gets ES module output now.
 - **Behaviour change:** on TypeScript 6, a TS5011 (rootDir) error fails the build with exit code 1 also with
   `declaration: true` or an addon that needs type information, as `tsc` 6 does; before, websmith reported nothing on
   these paths and exited with code 0. It affects a project with `outDir` (or `declarationDir`) and no `rootDir` whose

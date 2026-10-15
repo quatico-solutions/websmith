@@ -52,9 +52,15 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .option(
             "-t, --target <target>",
             "Set the JavaScript language version for emitted JavaScript and include compatible library declarations.\n" +
-                "one of:  es5, es5, es6/es2015, es2016, es2017, es2018, es2019, es2020, es2021, es2022, es2023, es2024, esnext"
+                "one of:  es6/es2015, es2016, es2017, es2018, es2019, es2020, es2021, es2022, es2023, es2024, es2025 (TypeScript 6), esnext\n" +
+                "deprecated in TypeScript 6:  es5"
         )
-        .option("-m, --module <module>", "Specify what module code is generated.\n" + "one of:  commonjs, amd, umd, system, esnext, none")
+        .option(
+            "-m, --module <module>",
+            "Specify what module code is generated.\n" +
+                "one of:  commonjs, es6/es2015, es2020, es2022, esnext, node16, node18 (TypeScript 6), node20 (TypeScript 6), nodenext, preserve\n" +
+                "deprecated in TypeScript 6:  none, amd, umd, system"
+        )
         .option(
             "--lib <lib...>",
             "Specify a set of bundled library declaration files that describe the target runtime environment.\n" +
@@ -74,6 +80,11 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
         .option(
             "--esModuleInterop",
             "Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility."
+        )
+        .option(
+            "--ignoreDeprecations <version>",
+            "Silence the deprecation errors of a TypeScript version: 5.0 on TypeScript 5, 5.0 or 6.0 on TypeScript 6; " +
+                "only 6.0 silences the deprecations of TypeScript 6. TypeScript reports a value its version does not accept (TS5103)."
         )
         .allowExcessArguments()
         .allowUnknownOption(true) // Allow unknown options to be passed to the compiler

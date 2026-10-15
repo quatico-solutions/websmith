@@ -50,7 +50,7 @@ export default defineConfig({
   worker bundle, with the worker's modules only.
 - **Two `websmith()` plugins do not chain**: each compiles the TypeScript source, so the second never sees the output
   of the first. Use one plugin with a profile map instead of one plugin per environment or profile.
-- **A `node16` or `nodenext` profile** emits CommonJS for a `.cts` module and for a `.ts` module whose nearest
+- **A `node16`, `node18`, `node20` or `nodenext` profile** emits CommonJS for a `.cts` module and for a `.ts` module whose nearest
   `package.json` has no `"type": "module"`. Vite cannot bundle CommonJS, so such a module fails the build: set
   `"type": "module"`, use the `.mts` extension, or use `module: "ESNext"`. With `esm` set, the profile's ESM check
   reports the case instead.

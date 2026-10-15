@@ -7,7 +7,7 @@
 
 /**
  * Comprehensive collection of all TypeScript Compiler (tsc) CLI flags.
- * Based on TypeScript 5.7.3 official documentation.
+ * Based on TypeScript 5.7 and 6.0; values marked 6.x exist only in TypeScript 6.
  *
  * This file provides type-safe access to all available tsc command-line options,
  * organized by their functional categories as defined in the TypeScript documentation.
@@ -125,6 +125,7 @@ export const TSC_WATCH_BUILD_FLAGS = {
  */
 export const TSC_BACKWARDS_COMPATIBILITY_FLAGS = {
     charset: "--charset",
+    ignoreDeprecations: "--ignoreDeprecations",
     importsNotUsedAsValues: "--importsNotUsedAsValues",
     keyofStringsOnly: "--keyofStringsOnly",
     noImplicitUseStrict: "--noImplicitUseStrict",
@@ -335,7 +336,24 @@ export interface TscCliArguments {
     allowUmdGlobalAccess?: boolean;
     baseUrl?: string;
     customConditions?: string[];
-    module?: "none" | "commonjs" | "amd" | "umd" | "system" | "es6" | "es2015" | "es2020" | "es2022" | "esnext" | "node16" | "nodenext" | "preserve";
+    module?:
+        | "none"
+        | "commonjs"
+        | "amd"
+        | "umd"
+        | "system"
+        | "es6"
+        | "es2015"
+        | "es2020"
+        | "es2022"
+        | "esnext"
+        | "node16"
+        /** 6.x */
+        | "node18"
+        /** 6.x */
+        | "node20"
+        | "nodenext"
+        | "preserve";
     moduleResolution?: "classic" | "node10" | "node16" | "nodenext" | "bundler" | "node";
     moduleSuffixes?: string[];
     noResolve?: boolean;
@@ -391,6 +409,11 @@ export interface TscCliArguments {
 
     // Backwards compatibility
     charset?: string;
+    /**
+     * `5.0` on TypeScript 5.x, `5.0` or `6.0` on 6.x; only `6.0` silences 6.0's deprecations. TypeScript reports a value
+     * its version does not accept (TS5103).
+     */
+    ignoreDeprecations?: "5.0" | "6.0";
     importsNotUsedAsValues?: "remove" | "preserve" | "error";
     keyofStringsOnly?: boolean;
     noImplicitUseStrict?: boolean;
@@ -457,7 +480,22 @@ export interface TscCliArguments {
     moduleDetection?: "legacy" | "auto" | "force";
     noLib?: boolean;
     reactNamespace?: string;
-    target?: "es5" | "es6" | "es2015" | "es2016" | "es2017" | "es2018" | "es2019" | "es2020" | "es2021" | "es2022" | "es2023" | "es2024" | "esnext";
+    target?:
+        | "es5"
+        | "es6"
+        | "es2015"
+        | "es2016"
+        | "es2017"
+        | "es2018"
+        | "es2019"
+        | "es2020"
+        | "es2021"
+        | "es2022"
+        | "es2023"
+        | "es2024"
+        /** 6.x */
+        | "es2025"
+        | "esnext";
     useDefineForClassFields?: boolean;
 
     // Output formatting

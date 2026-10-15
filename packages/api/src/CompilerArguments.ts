@@ -87,6 +87,7 @@ export const TSC_ARGUMENT_KEYS: (keyof TscCliArguments)[] = [
 
     // Backwards compatibility
     "charset",
+    "ignoreDeprecations",
     "importsNotUsedAsValues",
     "keyofStringsOnly",
     "noImplicitUseStrict",
