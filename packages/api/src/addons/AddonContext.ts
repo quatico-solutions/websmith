@@ -18,7 +18,11 @@ import { type ResultProcessor } from "./ResultProcessor";
  * An addon is activated once per context, not per file. In the webpack loader, an addon stays active for every module
  * of a compilation and across watch rebuilds while its files and the loader options are unchanged; it is loaded and
  * activated again on the next rebuild after an edit of its files, of `websmith.config.json`, of `tsconfig.json` or of
- * a file that `tsconfig.json` extends. Addons must not rely on being activated again for each module.
+ * a file that `tsconfig.json` extends. The Vite plugin activates its addons once per build in the same way, and again
+ * after such an edit under `vite build --watch`. Addons must not rely on being activated again for each module.
+ *
+ * Generators, processors, transformers and result processors behave alike in every host. The methods that add or
+ * remove files depend on the host, the `websmith` CLI, the webpack loader or the Vite plugin; see each method.
  */
 export interface AddonContext<O = unknown> {
     /**
@@ -58,12 +62,25 @@ export interface AddonContext<O = unknown> {
 
     /**
      * Adds a new code file to the compilation input. The file will be compiled with the same options as all other code files.
+     *
+     * - CLI: the file joins the compilation's root files and is emitted with them; in watch mode it is watched.
+     * - Webpack loader: the file becomes a dependency of the module (`loaderContext.addDependency`).
+     * - Vite plugin: the file joins the root files and is watched (`this.addWatchFile`); Vite bundles it only if a module
+     *   imports it.
+     *
+     * A non-code file is an error diagnostic.
      * @param filePath: Path to the code file to add. Must have a ts(x), js(x), m[tj]s or c[tj]s file extension
      */
     addInputFile(filePath: string): void;
 
     /**
      * Adds a new asset dependency.
+     *
+     * - CLI: the dependency is recorded, so that a change of a watched `childPath` emits `parentPath` again.
+     * - Webpack loader: `childPath` becomes a dependency of the module (`loaderContext.addDependency`).
+     * - Vite plugin: `childPath` is watched (`this.addWatchFile`), so editing it rebuilds under `vite build --watch`.
+     *
+     * A code file as `childPath` is an error diagnostic.
      * @param childPath: Path to the file that is introduced as new dependency. Must not have a ts(x), js(x), m[tj]s or c[tj]s file extension.
      * @param parentPath: Path to the file that depends on the file at childPath and that requires to be updated when childPath changes.
      */
@@ -72,11 +89,24 @@ export interface AddonContext<O = unknown> {
     /**
      * Adds a new file virtually to the compilation input. The file will be compiled with the same options
      * as original files without first being created on the drive.
+     *
+     * - CLI: a code file joins the root files with `fileContent` and is compiled; any other extension is an error.
+     * - Webpack loader: the file is emitted as an asset of the compilation (`compilation.emitAsset`), for any extension.
+     * - Vite plugin: the file is emitted as an asset of the bundle in `generateBundle` (`this.emitFile`), for any
+     *   extension and without compiling it. A relative path is relative to Vite's `build.outDir`, an absolute path must
+     *   be inside it; a path outside it is an error diagnostic that fails the build. The dev server keeps the file in
+     *   memory and does not serve it yet.
      */
     addVirtualFile(filePath: string, fileContent: string): void;
 
     /**
      * Removes the file from the compilation process and output. This does not impact the input file.
+     *
+     * - CLI: the file is dropped from the root files and the compilation's cache.
+     * - Webpack loader: the asset is deleted from the compilation.
+     * - Vite plugin: the file is deleted from the bundle in `generateBundle`, after the virtual files are emitted, so it
+     *   can remove a virtual file or an asset Vite emits itself. Paths follow `addVirtualFile`. A file the bundle does
+     *   not hold is a warning. The dev server drops it from its in-memory files.
      */
     removeOutputFile(filePath: string): void;
 
