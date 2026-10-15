@@ -64,11 +64,13 @@ export default defineConfig({
   start, `ssr` on its first module. They do not stop the server: every module of that environment fails with them, as
   the error overlay, until the configuration is fixed. Fixing it currently needs a restart of the server.
   TypeScript's errors without a file, e.g. an option error, exist only after a module was emitted; they join the errors
-  of every module.
+  of every module. This holds with `transpileOnly` only: without it, websmith does not report an option error such as
+  TS5053 at all, so the dev server serves the module and logs nothing, and `vite build` passes as well.
 - **Module diagnostics** show as the error overlay of the module, as Vite's own errors do.
 - **`addVirtualFile`** files are served from memory at `base` + their bundle path, e.g. `/virt/data.json` for
   `addVirtualFile("virt/data.json", …)`, and shadow a real file at the same URL. The server serves those of environment
-  `client`. A virtual file stays until its module is transformed again, also after the module was deleted.
+  `client`, and only to a host that `server.allowedHosts` allows, as Vite does for its modules. A virtual file stays
+  until its module is transformed again, also after the module was deleted.
 - **Result processors** run after each transform without errors, with that module's output files.
 - **`transpileOnly`** is never set automatically. An explicit `transpileOnly` warns once per environment and names the
   addons of the profile that need type information; set `needsTypeInfo` to `false` in an addon that needs none.

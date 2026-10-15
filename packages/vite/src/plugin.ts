@@ -42,7 +42,8 @@ export type { WebsmithViteOptions } from "./options";
  * - The dev server raises module diagnostics the same way. Its configuration errors go to Vite's logger once, when the
  *   environment starts (`client` at server start, any other environment on its first module), and fail every module
  *   of that environment as the error overlay, without stopping the server. TypeScript's errors without a file join
- *   the errors of every module.
+ *   the errors of every module, with `transpileOnly` only: without it, core does not report an option error such as
+ *   TS5053, and the module is served.
  *
  * Addons activate once for every module of a build and, under `vite build --watch`, again only after an edit of their
  * files or of the configuration; the files an addon adds or watches in `activate` apply to every rebuild until then.
