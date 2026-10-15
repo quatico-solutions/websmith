@@ -47,8 +47,8 @@ p95 / own median 7.609 > 3); the five ratio and cold-start criteria are met.
   | 1,000 | 1,000 | 99 | `f182534b130d6211e7064027d15a009166487eeff9fc73877d046fab335c8d04` |
 
 - **Options** (`meta.options`, the harness defaults): `runs 5` per variant, interleaved; `sizes [200,1000]`;
-  `edits 30`; `in-flight 8`; `loader-instances 1`; `decisionSize` 1000. Started 2026-10-15T02:26:12Z; about 6
-  minutes.
+  `edits 30`; `in-flight 8`; `loader-instances 1`; `decisionSize` 1000. Finished 2026-10-15T02:26:12Z (`meta.timestamp`, written at the end of the
+  run); about 6 minutes wall-clock, approximate and not recorded in the JSON.
 - **Run command**, from `packages/webpack-test`:
 
   ```bash
@@ -233,7 +233,7 @@ Criterion 4 is the only criterion that failed; criteria 1–3 and 5 are met with
   true)` (`ts71-bench.cjs:381`), the host websmith's `Compiler.createProgram` passes with `oldProgram`
   (`packages/core/src/compiler/Compiler.ts:1066-1071` → `createCompileHost`,
   `packages/core/src/environment/compile-service.ts:23-25`). It caches no `SourceFile`, so every edit re-parses all
-  corpus and lib files. Judged ratio 0.004; against the unjudged SourceFile-caching host (`:413-429`,
+  corpus and lib files. Judged ratio 0.004; against the unjudged SourceFile-caching host (`:414-429`,
   `perEditCachedHost`, 6.0.3 5.91 ms) the 7.1 / 6.0.3 ratio is 0.369 (range 0.302–0.471). About 535 of 6.0.3's 541
   ms per edit (99 %) is re-parsing that websmith could remove in process with a caching host. Both sides time an
   `fs.writeFileSync` of the edited file inside the measured region (`:397`, `:526`), a small constant that is the
@@ -262,7 +262,7 @@ Criterion 4 is the only criterion that failed; criteria 1–3 and 5 are met with
   resolver; the harness adds a `getSemanticDiagnostics` per file on both sides (`ts71-bench.cjs:315-336`, fix
   `3fe1cac5` in #190) so the two sides do the same work.
 - **Criterion 4 uses (c) check + emit per file** (`perFile`, `perFileP95`) for its (c) part, for the same reason.
-- **The (e) cached-host row is unjudged** (`ts71-bench.cjs:413-429`). The judged row keeps websmith's real host so
+- **The (e) cached-host row is unjudged** (`ts71-bench.cjs:414-429`). The judged row keeps websmith's real host so
   the rule measures what websmith does today.
 - **`Compiler.ts:1089` is now `:1458`.** The fast path's `ts.transpileModule(…, { transformers:
   ctx.getTransformers() })` is in `Compiler.transpileSourceCode` at `packages/core/src/compiler/Compiler.ts:1458`;
