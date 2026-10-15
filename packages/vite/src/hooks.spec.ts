@@ -854,6 +854,29 @@ describe("createWebsmithHooks", () => {
             expect(target.error).toHaveBeenCalledWith({ message: "Unknown profile 'other'" });
         });
 
+        it("should log configuration errors of other environment again w/ restart of server", () => {
+            const errors = [diagnostic("Unknown profile 'missing'")];
+            const compiler = createCompiler({ getConfigErrors: jest.fn(() => errors) });
+            const testObj = createHooks(compiler, "serve");
+            const client = createEnvironment();
+            const ssr = createEnvironment("ssr", "dist/server");
+            testObj.buildStart.call(createContext([], client));
+            attempt(() => testObj.transformHandler.call(createContext([], ssr), "whatever", MAIN));
+            testObj.buildEnd.call(createContext([], client), undefined);
+            errors.splice(0, errors.length, diagnostic("Unknown profile 'other'"));
+            testObj.buildStart.call(createContext([], createEnvironment()));
+            const target = createContext([], ssr);
+
+            attempt(() => testObj.transformHandler.call(target, "whatever", MAIN));
+            const actual = logged(ssr, "error");
+
+            expect(actual).toEqual([
+                ["[plugin websmith] Unknown profile 'missing'", { timestamp: true }],
+                ["[plugin websmith] Unknown profile 'other'", { timestamp: true }],
+            ]);
+            expect(target.error).toHaveBeenCalledWith({ message: "Unknown profile 'other'" });
+        });
+
         it("should raise configuration errors on every module and not build w/ transform", () => {
             const compiler = createCompiler({ getConfigErrors: jest.fn(() => [diagnostic("Unknown profile 'missing'")]) });
             const testObj = createHooks(compiler, "serve");

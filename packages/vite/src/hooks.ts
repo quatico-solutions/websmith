@@ -302,6 +302,11 @@ export const createWebsmithHooks = (
         return state;
     };
 
+    // Drops the states of the environments other than `kept`, so that each starts again on its next module after a
+    // restart of the dev server, with the current configuration, since the dev server runs buildStart for client only
+    const forgetOtherEnvironments = (kept: EnvironmentState): void =>
+        [...environments].filter(([, cur]) => cur !== kept).forEach(([name]) => environments.delete(name));
+
     // Returns the state of the build that starts: a new one for a build nested in a running build of the same name
     const startEnvironmentState = (context: HookContext): { state: EnvironmentState; existing: boolean } => {
         const { environment } = context;
@@ -343,6 +348,9 @@ export const createWebsmithHooks = (
                 // A restart of the dev server with the same plugin object starts the environment again
                 state.serving = false;
                 state.loggedKeys = new Set();
+                if (command === "serve") {
+                    forgetOtherEnvironments(state);
+                }
             }
             state.raisedKeys = new Set();
             state.warnedKeys = new Set();
