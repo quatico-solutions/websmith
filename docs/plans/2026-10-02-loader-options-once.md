@@ -260,7 +260,7 @@ first, right after the benchmark that measures it is trustworthy.
 
 ### Cached builds
 
-- `bug/loader-cached-config-errors` — to reproduce first: a build restored from the persistent cache reports config errors, and a config or `tsconfig.json` edit between two runs invalidates it; config errors carried as module errors of a carrier module; e2e with `cache: { type: "filesystem" }` built twice, and edited between runs <!-- builds: config errors restored from the persistent cache --> <!-- waits: bug/loader-resolve-options-once --> <!-- waits: bug/loader-option-errors-once -->
+- `bug/loader-cached-config-errors` — to reproduce first: a build restored from the persistent cache reports config errors, and a config or `tsconfig.json` edit between two runs invalidates it; config errors carried as module errors of a carrier module; e2e with `cache: { type: "filesystem" }` built twice, and edited between runs → #201 <!-- builds: config errors restored from the persistent cache --> <!-- waits: bug/loader-resolve-options-once --> <!-- waits: bug/loader-option-errors-once -->
 
 ## Notes
 
