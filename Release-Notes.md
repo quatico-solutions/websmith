@@ -92,8 +92,17 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   `target` / `esModuleInterop` entries above). npm 7+ and pnpm install a missing `typescript` themselves; with Yarn 1
   or `--legacy-peer-deps`, add it to the project. Without `typescript`, `websmith` exits with code 1 and
   `websmith needs typescript >=5.7 <7; none was found. Add typescript to your project.`; with TypeScript 7 it exits
-  with code 1 and `websmith needs typescript >=5.7 <7; found 7.x. …`. The webpack loader, `@quatico/websmith-node` and
+  with code 1 and `websmith needs typescript >=5.7 <7; found 7.x. …`; the README section "Supported TypeScript
+  versions" describes the TypeScript 7 setup. The webpack loader, `@quatico/websmith-node` and
   `@quatico/websmith-testing` throw the same errors when they are loaded.
+- **Breaking:** `@quatico/websmith-api`, `-core`, `-node`, `-testing` and `-examples` accept `typescript` `>=5.7 <7`,
+  where they declared `5.x`. TypeScript 5.0–5.6 is no longer supported. `websmith-loader` now declares `typescript`
+  `>=5.7 <7` as a peer dependency, so pnpm workspaces and strict layouts give it the project's `typescript`.
+  TypeScript 6 projects install without peer warnings, and npm no longer refuses them (ERESOLVE). Without a
+  `typescript`, npm 7+ and pnpm now install 6.x. TypeScript 7 is not supported: the new README section "Supported
+  TypeScript versions" describes how to keep 6.x for websmith and run 7.x by its own binary.
+- websmith's packages are built with TypeScript 6.0.3. CI checks their type declarations against TypeScript 5.7.3, and
+  runs the whole suite on 5.7.3 as well.
 - Builds that passed 0.10.x may now fail. The ESM check now reports these imports, each of which the build passed but
   the runtime rejects:
   - under `esm: { runtime: "node" }`, the ESM check tests the path that Node derives from a relative specifier, so a
@@ -169,6 +178,9 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 
 ### Fixed
 
+- `@quatico/websmith-api`, `-core`, `-node`, `-testing`, `-examples` and `websmith-loader` declare `tslib`, which
+  they load. Before, installing them without the `websmith` CLI failed with `Cannot find module 'tslib'` (also in
+  0.10.0).
 - With webpack's persistent cache (`cache: { type: "filesystem" }`), the webpack loader reports configuration
   errors, `tsconfig.json` errors and TypeScript option errors, also of dependent profiles, in every build while
   they remain. Before, a build that restored every module from the cache reported none and passed. While such an
