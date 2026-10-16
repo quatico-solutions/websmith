@@ -31,6 +31,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   logged at startup and shown as the error overlay on every module without stopping the server, `addVirtualFile` files
   are served from memory, result processors run after each transform, and `transpileOnly` warns which addons lose type
   information.
+- The Vite plugin (`@quatico/websmith-vite`, not yet published) reloads the Vite dev server when
+  `websmith.config.json`, `tsconfig.json`, an addon or a `package.json` changes, compiles with the new configuration
+  without a restart, and does not reload or rewrite for its own unchanged writes.
 
 ### Changed
 

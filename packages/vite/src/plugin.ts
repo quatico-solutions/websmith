@@ -44,9 +44,15 @@ export type { WebsmithViteOptions } from "./options";
  *   of that environment as the error overlay, without stopping the server. TypeScript's errors without a file join
  *   the errors of every module, with `transpileOnly` only: without it, core does not report an option error such as
  *   TS5053, and the module is served.
+ * - In the dev server, an edit of `websmith.config.json`, the `tsconfig.json`, a file it `extends` or a file in
+ *   `addonsDir` reloads the page with the new configuration: the environment's compiler starts again on its next
+ *   module, loads each addon's entry file again, and logs its configuration errors again, which replace the overlay or
+ *   clear it. An edit of a `package.json` checks the module format of the modules below it again. The plugin does not
+ *   rewrite a file whose text on disk is unchanged, and its own writes to files it watches trigger no reload.
  *
- * Addons activate once for every module of a build and, under `vite build --watch`, again only after an edit of their
- * files or of the configuration; the files an addon adds or watches in `activate` apply to every rebuild until then.
+ * Addons activate once for every module of a build. Under `vite build --watch` they do not activate again after an
+ * edit of their files, and a configuration edit leaves the modules Rollup does not transform again with their old
+ * output: restart the build. The files an addon adds or watches in `activate` apply to every rebuild.
  * The addons of the profile receive an `AddonContext` whose methods map to Vite:
  * - `addInputFile` adds a code file to the compilation and watches it; `addAssetDependency` watches a non-code file,
  *   so that editing it rebuilds under `vite build --watch`.
@@ -55,8 +61,8 @@ export type { WebsmithViteOptions } from "./options";
  *   `build.outDir`, or absolute inside it; a path outside it fails the build. Removing a file the bundle does not
  *   hold is a warning. The dev server serves the virtual files of environment `client` from memory, at `base` + their
  *   bundle path, in front of any real file at that URL, and only to a host `server.allowedHosts` allows, as Vite does.
- * - A file an addon writes through `getSystem().writeFile` goes to disk only, not into the bundle. A rebuild by the
- *   same plugin instance does not rewrite a file with the same text, e.g. the output of a profile in `depends`.
+ * - A file an addon writes through `getSystem().writeFile` goes to disk only, not into the bundle. A file whose text on
+ *   disk is unchanged is not rewritten, e.g. the output of a profile in `depends`.
  * - The result processors of the profile run once per environment of a `vite build`, in `buildEnd` and only for a
  *   build without errors, with the output files of every module of the environment's bundle. The dev server runs
  *   them after each transform without errors, with that module's output files.
