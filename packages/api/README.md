@@ -30,6 +30,8 @@ Install the API package using pnpm:
 pnpm add --dev @quatico/websmith-api
 ```
 
+`typescript` `>=5.7 <7` is a peer dependency, see [Supported TypeScript versions](https://github.com/quatico-solutions/websmith#supported-typescript-versions).
+
 ## Implementing compiler addons
 
 Create an directory e.g. `my-code-generator` in the `addons` folder in your project folder and add an ECMAScript module named `addon.ts`:

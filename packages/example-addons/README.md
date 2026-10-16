@@ -10,6 +10,8 @@ A set of example addons to create your own `Generators`, `Processors` or `Result
 
 See the [websmith github repository](https://github.com/quatico-solutions/websmith#readme) for a general introduction to the websmith compiler.
 
+`typescript` `>=5.7 <7` is a peer dependency, see [Supported TypeScript versions](https://github.com/quatico-solutions/websmith#supported-typescript-versions).
+
 ## Example Generator
 
 The `foo-added-generator` addon is a generator that creates additional input files for the compilation. It creates an additional source file for every input file with substring "foo" in its file name. The additional file is named "*-added.ts" and contains the original file content. It is compiled with the same options as the original file.

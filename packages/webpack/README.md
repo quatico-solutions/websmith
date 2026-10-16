@@ -22,6 +22,8 @@ Add the loader to your TypeScript project with the `websmith-loader` package. Fo
 pnpm add --dev websmith-loader
 ```
 
+`typescript` `>=5.7 <7` is a peer dependency, see [Supported TypeScript versions](https://github.com/quatico-solutions/websmith#supported-typescript-versions).
+
 ### Use websmith-loader in your webpack configuration
 
 You can use the `websmith-loader` loader in your webpack configuration by adding the following entry to your `module.rules` configuration:

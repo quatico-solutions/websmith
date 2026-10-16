@@ -16,6 +16,8 @@ Install the package with your favorite package manager. For example with pnpm:
 pnpm add @quatico/websmith-node
 ```
 
+`typescript` `>=5.7 <7` is a peer dependency, see [Supported TypeScript versions](https://github.com/quatico-solutions/websmith#supported-typescript-versions).
+
 ## Usage
 
 The library exports a two main functions. The first one is `compile` compiles one or more files with the websmith compiler. The second one is `webpack` to bundle one or more files with webpack.
