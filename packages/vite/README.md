@@ -60,7 +60,7 @@ of the file. `addonsDir`, `addons` and `profiles` belong in the file or in `conf
 {
     "addonsDir": "./addons",
     "profiles": {
-        "app": { "addons": ["my-processor"], "tsConfig": { "noEmit": false, "outDir": "./websmith-out" } }
+        "app": { "addons": ["my-processor"], "tsConfig": { "noEmit": false, "outDir": "./websmith-out", "rootDir": "." } }
     }
 }
 ```
@@ -68,10 +68,13 @@ of the file. `addonsDir`, `addons` and `profiles` belong in the file or in `conf
 - **`noEmit`:** with `"noEmit": true` in `tsconfig.json`, as many Vite templates set it, websmith emits nothing and the
   bundle silently has no addon output, without a warning. Set `"noEmit": false` in the profile's `tsConfig`, as above.
 - **`outDir`:** the profile Vite bundles also writes its own output to disk, to the tsconfig's `outDir`, or next to
-  each source file without one. Set an `outDir` in the profile's `tsConfig`, as above, and ignore it in git.
+  each source file without one. Set an `outDir` in the profile's `tsConfig`, as above, and ignore it in git. With an
+  `outDir`, TypeScript 6 also needs an explicit `rootDir` (`"."` above) when the sources sit in `src/`; without it
+  the build fails with TS5011.
 - **Addons in a `"type": "module"` project:** Node loads an `addon.js` there as an ES module, so a CommonJS
   `addon.js` (`exports.activate = …`) fails to load with "exports is not defined in ES module scope". Write the addon
-  in TypeScript (`addon.ts`): websmith compiles it to CommonJS in its own cache directory.
+  in TypeScript (`addon.ts`): websmith compiles it to CommonJS in its own cache directory. A failed addon load is
+  only a warning: the build still exits 0, without the addon's output.
 
 ## Options
 
