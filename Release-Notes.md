@@ -14,6 +14,17 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Added
 
+- New package `@quatico/websmith-vite`: a Vite plugin for Vite 6.3+ and 7 that compiles `.ts`, `.tsx`, `.mts` and
+  `.cts` modules with websmith in `vite build` and the Vite dev server.
+  - `profile` selects a websmith profile per Vite environment, e.g. `{ client: "client", ssr: "server" }`; each
+    environment, and each worker, compiles with its own compiler and addons.
+  - Diagnostics go through Vite: errors fail the module and `vite build`, but **type errors are not checked**; run
+    `tsc --noEmit` for them.
+  - `addVirtualFile` files become assets of the bundle, and result processors run once per environment. The dev server
+    shows errors as the overlay, serves virtual files from memory, and reloads on edits of `websmith.config.json`,
+    `tsconfig.json`, an addon or a `package.json`.
+  - Requires TypeScript `>=5.7 <7`, Node.js 22.12+ and a `websmith.config.json` in Vite's `root`. See
+    `packages/vite/README.md`, including its known limits.
 - The `AddonContext` docs describe what `addInputFile`, `addAssetDependency`, `addVirtualFile` and `removeOutputFile`
   do in each host: the `websmith` CLI, the webpack loader and the Vite plugin.
 - `--ignoreDeprecations <version>` on the `websmith` command and `ignoreDeprecations` in the programmatic compiler
@@ -23,26 +34,15 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   TypeScript 6), target `ES2025`, and module kinds `Node18`, `Node20` and `Preserve`. On TypeScript 5, TypeScript
   reports the values that exist only in TypeScript 6; websmith does not drop them silently. Exhaustive `switch` or
   `Record` code over these unions sees the new members.
-- The Vite plugin (`@quatico/websmith-vite`, not yet published) selects a websmith profile per Vite environment:
-  `profile` takes a profile name or a map from environment name to profile, e.g. `{ client: "client", ssr: "server" }`,
-  and each environment compiles with its own compiler and addons, as does a worker that `worker.plugins` bundles with
-  the same plugin object.
-- The Vite plugin (`@quatico/websmith-vite`, not yet published) runs in the Vite dev server: configuration errors are
-  logged at startup and shown as the error overlay on every module without stopping the server, `addVirtualFile` files
-  are served from memory, result processors run after each transform, and `transpileOnly` warns which addons lose type
-  information.
-- The Vite plugin (`@quatico/websmith-vite`, not yet published) reloads the Vite dev server when
-  `websmith.config.json`, `tsconfig.json`, an addon or a `package.json` changes, compiles with the new configuration
-  without a restart, and does not reload or rewrite for its own unchanged writes.
 
 ### Changed
 
 Builds that passed before can now fail: the `websmith` command reports errors it used to ignore and exits with code 1.
 
 - **Behaviour change (TypeScript 6 only):** under `module: node18` or `node20`, the `websmith` command's fast path,
-  `--transpileOnly`, the webpack loader and the Vite plugin emit each file in the module format of its nearest
-  `package.json` `"type"`, as `tsc` does, and watch that `package.json` as under `node16`/`nodenext`. Before, they
-  emitted CommonJS whatever the `"type"`. A package with `"type": "module"` therefore gets ES module output now.
+  `--transpileOnly` and the webpack loader emit each file in the module format of its nearest `package.json`
+  `"type"`, as `tsc` does, and watch that `package.json` as under `node16`/`nodenext`. Before, they emitted CommonJS
+  whatever the `"type"`. A package with `"type": "module"` therefore gets ES module output now.
 - **Behaviour change:** on TypeScript 6, a TS5011 (rootDir) error fails the build with exit code 1 also with
   `declaration: true` or an addon that needs type information, as `tsc` 6 does; before, websmith reported nothing on
   these paths and exited with code 0. It affects a project with `outDir` (or `declarationDir`) and no `rootDir` whose
