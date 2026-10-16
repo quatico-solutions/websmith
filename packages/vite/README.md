@@ -10,6 +10,31 @@
 A Vite plugin that compiles the TypeScript modules of a Vite bundle with websmith and runs the addons of a websmith
 profile on them: generators, processors, transformers and result processors.
 
+## Installation
+
+```bash
+pnpm add -D @quatico/websmith-vite typescript vite
+```
+
+With npm: `npm install --save-dev @quatico/websmith-vite typescript vite`. `typescript` and `vite` are peer
+dependencies: the plugin compiles with the project's `typescript` and runs in the project's `vite`.
+
+## Requirements
+
+|            | Supported            | Tested in CI                                                     |
+|------------|----------------------|------------------------------------------------------------------|
+| Node.js    | `>=22.12`            | 22 and 24                                                        |
+| Vite       | `^6.3.0` or `^7.0.0` | 7.3 (every e2e case); 6.4 (most e2e cases, through a `vite6` alias) |
+| TypeScript | `>=5.7 <7`           | 6.0.3; 5.7.3 in the override cell                                |
+
+- **Vite 8** is outside the peer range, so npm refuses to install the plugin next to it (`ERESOLVE`). It built and
+  served in a manual check with `--legacy-peer-deps`, but it is not supported.
+- **TypeScript 7** is not supported; see
+  [Supported TypeScript versions](../../README.md#supported-typescript-versions).
+- **A `websmith.config.json`** in Vite's `root` is required, see [Configuration](#configuration).
+
+## Usage
+
 ```js
 // vite.config.mjs
 import { defineConfig } from "vite";
@@ -20,6 +45,78 @@ export default defineConfig({
 });
 ```
 
+**List `websmith()` first in `plugins`.** The plugin runs with `enforce: "pre"` and must see the TypeScript source,
+so it must come before any other plugin that transforms `.ts` or `.tsx` modules with `enforce: "pre"`. websmith
+compiles `.tsx` with `jsx: "preserve"`, so Vite's JSX handling, and React Fast Refresh, still apply to its output.
+
+## Configuration
+
+The plugin reads `websmith.config.json` from Vite's `root`, or the file `configFile` names. **The file is required:**
+without it, `vite build` fails with `No configuration file found at "…"`, and the dev server shows that error on every
+module. An empty `{}` is enough when the plugin's `config` option holds the configuration; `config` overrides the keys
+of the file. `addonsDir`, `addons` and `profiles` belong in the file or in `config`, not in the plugin options:
+
+```json
+{
+    "addonsDir": "./addons",
+    "profiles": {
+        "app": { "addons": ["my-processor"], "tsConfig": { "noEmit": false, "outDir": "./websmith-out", "rootDir": "." } }
+    }
+}
+```
+
+- **`noEmit`:** with `"noEmit": true` in `tsconfig.json`, as many Vite templates set it, websmith emits nothing and the
+  bundle silently has no addon output, without a warning. Set `"noEmit": false` in the profile's `tsConfig`, as above.
+- **`outDir`:** the profile Vite bundles also writes its own output to disk, to the tsconfig's `outDir`, or next to
+  each source file without one. Set an `outDir` in the profile's `tsConfig`, as above, and ignore it in git. With an
+  `outDir`, TypeScript 6 also needs an explicit `rootDir` (`"."` above) when the sources sit in `src/`; without it
+  the build fails with TS5011.
+- **Addons in a `"type": "module"` project:** Node loads an `addon.js` there as an ES module, so a CommonJS
+  `addon.js` (`exports.activate = …`) fails to load with "exports is not defined in ES module scope". Write the addon
+  in TypeScript (`addon.ts`): websmith compiles it to CommonJS in its own cache directory. A failed addon load is
+  only a warning: the build still exits 0, without the addon's output.
+
+## Options
+
+- **configFile** (string): Path to the `websmith.config.json`, relative to Vite's `root`. Defaults to
+  `websmith.config.json` in `root`. The file must exist; a missing file is a configuration error.
+- **config** (object): websmith configuration (`addons`, `addonsDir`, `profiles`, `transpileOnly`,
+  `addonEmitOnly`). It overrides the same keys of the config file.
+- **tsConfigFile** (string): Path to the `tsconfig.json`, relative to Vite's `root`. Defaults to the `tsconfig.json`
+  next to the config file.
+- **tsConfig** (object): TypeScript compiler options. They override the options of the `tsconfig.json`.
+- **profile** (string or object): The profile whose output Vite bundles. A string applies to every Vite environment;
+  a map selects the profile by environment name, see [Environments](#environments). Without a profile, no profile
+  addons apply.
+- **transpileOnly** (boolean): Compile without type information. Never set automatically, also not in the dev
+  server, see [Dev server](#dev-server). Defaults to `false`.
+- **addonEmitOnly** (boolean): Only emit files that addons processed; all files are still compiled. Defaults to
+  `false`.
+- **debug** (boolean): Report messages and suggestions as warnings, in addition to errors and warnings. Defaults to
+  `false`.
+- **include** (RegExp, glob or array): The module ids websmith compiles. Defaults to `/\.(c|m)?tsx?$/`.
+- **exclude** (RegExp, glob or array): The module ids websmith does not compile. Defaults to `/node_modules/`.
+
+A relative glob in `include` or `exclude` is relative to Vite's `root`. Ids with a query, e.g. `?raw`, `?url`,
+`?worker`, `?inline` or `?vue&type=…`, and virtual ids that start with `\0` are never compiled, whatever the filter.
+The webpack loader's `instanceName`, `error` and `warn` options and its `ForkTsCheckerWebpackPlugin` detection do not
+exist in the plugin.
+
+## Diagnostics
+
+Diagnostics go through Vite, not to the console.
+
+- **The errors of a module** fail its transform with one error, `file (line,column): message` per diagnostic, and
+  the first position as the error's location: syntax errors, declaration emit errors, the ESM check of the profile
+  and of the profiles it depends on, and **a throwing processor, generator or transformer**.
+- **Warnings** go to Vite's warnings (`this.warn`), with their position when they have one. Messages and suggestions
+  are reported only with `debug`.
+- **Configuration errors** fail `vite build` once, in `buildStart`, before any module is compiled: an unconfigured
+  profile, a missing config file, a missing `depends` target, a throwing `activate`, and a profile whose `module`
+  emits CommonJS. In the dev server they go to Vite's logger instead, see [Dev server](#dev-server).
+- **Type errors are not checked**, as in the webpack loader and in Vite itself: `vite build` passes with a type
+  error. Run `tsc --noEmit` for them, e.g. in a `typecheck` script or in CI.
+
 ## Environments
 
 `profile` is a profile name, which applies to every Vite environment, or a map from environment name to profile. A
@@ -27,18 +124,30 @@ Magellan-shaped app transforms its client modules with one profile and generates
 
 ```js
 // vite.config.mjs
-import { defineConfig } from "vite";
 import websmith from "@quatico/websmith-vite";
 
-export default defineConfig({
-    plugins: [websmith({ profile: { client: "client", ssr: "server" } })],
+export default {
+    plugins: [websmith({ profile: { client: "client", ssr: "server" }, include: /\.tsx?$/, exclude: /node_modules/ })],
     builder: {},
     environments: {
         client: { build: { outDir: "dist/client", rollupOptions: { input: "src/main.ts" } } },
         ssr: { build: { outDir: "dist/server", ssr: "src/server.ts" } },
     },
-});
+};
 ```
+
+```json
+{
+    "addonsDir": "./addons",
+    "profiles": {
+        "client": { "addons": ["client-function-transform"] },
+        "server": { "addons": ["service-function-generate"] }
+    }
+}
+```
+
+Vite names its server environment `ssr`, so the map selects the `server` profile for `ssr`. `builder: {}` makes
+`vite build` build both environments.
 
 - **An environment the map does not name** fails that environment's build with an error that names the environment
   and the environments the map names. The other environments build.
@@ -114,4 +223,29 @@ The addons of the selected profile receive an `AddonContext` whose file methods 
   modules Rollup does not transform again with their old output; restart the build. The files an addon adds or
   watches in `activate` apply to every rebuild.
 
-The options and the remaining documentation follow with the plugin's release.
+## Differences from the webpack loader
+
+- **The config file is required.** The plugin reads `websmith.config.json` from Vite's `root` by default; the loader
+  reads a config file only when `configFile` names one.
+- **A throwing processor, generator or transformer is an error** that fails the module; the loader only warns.
+- **`profile` takes a map** from Vite environment to profile, see [Environments](#environments).
+- **No `instanceName`, `error` or `warn` options**, and no `ForkTsCheckerWebpackPlugin` detection.
+- **`include` and `exclude`** select the modules, instead of webpack's `rules`.
+- **The file methods of the `AddonContext`** map to Vite, see [Addon context](#addon-context).
+
+## Known limits
+
+- **Result processors of a profile in `depends`** run once per module, with the source path, and once more with the
+  output files when the environment's build ends.
+- **The profile Vite bundles writes its own output to disk**, see [Configuration](#configuration).
+- **`"noEmit": true`** in `tsconfig.json` drops every addon's output without a warning, see
+  [Configuration](#configuration).
+- **TypeScript's errors without a file**, e.g. the option error TS5053, reach the error overlay and fail `vite build`
+  only with `transpileOnly`, see [Dev server](#dev-server).
+- **An edit to a type-only import** does not reload its importer, see [Dev server](#dev-server).
+- **An edit of a file an addon reads through `addAssetDependency`** reloads the module, but its output can keep the
+  old text, in the dev server and under `vite build --watch`.
+- **Under `vite build --watch`**, edited addons do not activate again, and a configuration edit leaves the modules
+  Rollup does not transform again with their old output; restart the build, see [Addon context](#addon-context).
+- **The watched files and the record of written files** only grow during a long dev server session.
+- **Two `websmith()` plugins do not chain**, see [Environments](#environments).

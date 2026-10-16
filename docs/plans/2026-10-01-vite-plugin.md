@@ -233,7 +233,7 @@ string. This plan writes the package fresh off `develop` and keeps only the atte
 
 ### Release
 
-- `docs/vite-plugin-release` — `packages/vite/README.md` (options, environments, addon-context table, TypeScript 5/6, first `pre` plugin), root `README.md` mention, `Release-Notes.md` entry under `## [Unreleased]`, publish configuration for `@quatico/websmith-vite` checked against the npm trusted-publishing workflow from 0.10.0, and the example from issue #60 as a working fixture in `packages/vite-test` <!-- builds: @quatico/websmith-vite package docs and publish config -->
+- `docs/vite-plugin-release` — `packages/vite/README.md` (options, environments, addon-context table, TypeScript 5/6, first `pre` plugin), root `README.md` mention, `Release-Notes.md` entry under `## [Unreleased]`, publish configuration for `@quatico/websmith-vite` checked against the npm trusted-publishing workflow from 0.10.0, and the example from issue #60 as a working fixture in `packages/vite-test` → #212 <!-- builds: @quatico/websmith-vite package docs and publish config -->
 
 ## Notes
 
