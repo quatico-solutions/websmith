@@ -13,7 +13,7 @@
 
 ## Status
 
-- **State:** Approved
+- **State:** Delivered
 - **Type:** feature
 - **Story:** ts7-rearchitecture
 - **Review:** pr
@@ -22,6 +22,7 @@
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #144 merged
 - **Started:** 2026-10-02, Jan Wloka, `infra/typescript-6-toolchain`
 - **Started:** 2026-10-03, Jan Wloka, `infra/typescript-6-ci-leg`
+- **Delivered:** 2026-10-16
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
