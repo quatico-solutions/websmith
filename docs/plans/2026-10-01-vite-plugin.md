@@ -11,7 +11,7 @@
 
 ## Status
 
-- **State:** Approved
+- **State:** Delivered
 - **Type:** feature
 - **Issue:** #60
 - **Review:** pr
@@ -19,6 +19,7 @@
 - **Rounds:** 1
 - **Approved:** 2026-10-02, Jan Wloka, plan-PR #132 merged
 - **Started:** 2026-10-03, Jan Wloka, `feature/neutral-module-compiler`
+- **Delivered:** 2026-10-16
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
