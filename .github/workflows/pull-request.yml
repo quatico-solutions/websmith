@@ -12,6 +12,7 @@ jobs:
         name: ${{ matrix.name }}
         runs-on: ubuntu-latest
         strategy:
+            fail-fast: false
             matrix:
                 # 22 is the declared engines floor (>=22.12), 24 the development version
                 # typescript 6.0.3 comes from the lockfile; the override cell runs 5.7.3, the floor of the peer range, on Node 24
@@ -94,7 +95,7 @@ jobs:
                   done
                   cp .github/packed-types/tsconfig.json .github/packed-types/consumer.ts "$RUNNER_TEMP/packed-types"
                   cd "$RUNNER_TEMP/packed-types"
-                  npm install --no-audit --no-fund --legacy-peer-deps "typescript@$OTHER_TYPESCRIPT" @types/node@22 ./packs/*.tgz
+                  npm install --no-audit --no-fund --legacy-peer-deps "typescript@$OTHER_TYPESCRIPT" @types/node@24.13.6 ./packs/*.tgz
                   npx tsc -v
                   npx tsc -p .
 
