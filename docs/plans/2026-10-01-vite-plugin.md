@@ -229,7 +229,7 @@ string. This plan writes the package fresh off `develop` and keeps only the atte
 
 ### Dev invalidation
 
-- `feature/vite-plugin-dev-invalidation` — `hotUpdate` for `websmith.config.json`, `tsconfig.json` and the addons directory (instance dropped, options re-resolved, full reload), per-build caches invalidated on `package.json` change, write-loop guard (identical content skipped, own writes ignored in `hotUpdate`); unit tests for the guard; e2e: a config edit reloads and clears the overlay once fixed, an HMR edit with a generator produces exactly one rewrite and one HMR update <!-- builds: websmith config invalidation and write-loop guard for Vite -->
+- `feature/vite-plugin-dev-invalidation` — `hotUpdate` for `websmith.config.json`, `tsconfig.json` and the addons directory (instance dropped, options re-resolved, full reload), per-build caches invalidated on `package.json` change, write-loop guard (identical content skipped, own writes ignored in `hotUpdate`); unit tests for the guard; e2e: a config edit reloads and clears the overlay once fixed, an HMR edit with a generator produces exactly one rewrite and one HMR update → #209 <!-- builds: websmith config invalidation and write-loop guard for Vite -->
 
 ### Release
 
