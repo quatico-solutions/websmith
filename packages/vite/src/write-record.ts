@@ -5,6 +5,7 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { createHash } from "node:crypto";
+import fs from "node:fs";
 import type ts from "typescript";
 
 const BYTE_ORDER_MARK = "﻿";
@@ -50,18 +51,30 @@ export class WriteRecord {
     }
 }
 
+/** Reads the bytes of a file, or nothing for a file that cannot be read. */
+export type ReadBytes = (filePath: string) => Uint8Array | undefined;
+
+const readFileBytes: ReadBytes = filePath => {
+    try {
+        return fs.readFileSync(filePath);
+    } catch {
+        return undefined;
+    }
+};
+
 /**
- * Returns a copy of `system` with a `writeFile` that skips a write when the file on disk already has the same text,
+ * Returns a copy of `system` with a `writeFile` that skips a write when the file on disk already has the same bytes,
  * e.g. a dependent profile's output of an unchanged source written again, or a generator's output after a restart.
- * Every write it does goes into `record`. A write with a byte order mark is never skipped, since `readFile` strips it.
- * `system` itself is not changed.
+ * It compares bytes, read with `readBytes`, since `system.readFile` strips a byte order mark. Every write it does goes
+ * into `record`. `system` itself is not changed.
  */
-export const createDeduplicatingSystem = (system: ts.System, record: WriteRecord): ts.System => ({
+export const createDeduplicatingSystem = (system: ts.System, record: WriteRecord, readBytes: ReadBytes = readFileBytes): ts.System => ({
     // A copy with own members, since the compiler spreads the system into its hosts, which drops inherited members
     ...system,
     writeFile: (fileName: string, text: string, writeByteOrderMark?: boolean): void => {
         const filePath = system.resolvePath(fileName);
-        if (!writeByteOrderMark && system.fileExists(filePath) && system.readFile(filePath) === text) {
+        const onDisk = readBytes(filePath);
+        if (onDisk && Buffer.from(writeByteOrderMark ? BYTE_ORDER_MARK + text : text, "utf-8").equals(onDisk)) {
             return;
         }
         system.writeFile(fileName, text, writeByteOrderMark);
