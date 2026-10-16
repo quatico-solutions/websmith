@@ -79,6 +79,12 @@ const reloadOf = (file: string): string =>
 // Requests `url` and waits for the error payload of its failure, since the payload and the response race
 const GET_FAILING = (url: string): string => `await get(${JSON.stringify(url)}); await waitForMessage(cur => cur.type === "error");`;
 
+// The source of a step predicate that matches the watcher's report of `file` once it holds `text`. Vite's watcher reports
+// the delete only of a file it knows and, without FSEvents (Linux), holds an unlink back for 100 ms and reports a
+// recreation within that time as a change, so a delete step waits for both reports.
+const watchedWrite = (file: string, text: string): string =>
+    `cur => (cur.event === "add" || cur.event === "change") && cur.file === ${JSON.stringify(file)} && fs.existsSync(path.join(root, cur.file)) && fs.readFileSync(path.join(root, cur.file), "utf-8") === ${JSON.stringify(text)}`;
+
 // The watcher events after the first event of `from` that follows one of `after`, up to the next event of `after`
 const eventsBetween = (events: ViteWatcherEvent[], after: string, from: string): ViteWatcherEvent[] => {
     const start = events.findIndex((cur, i) => cur.file === from && events.slice(0, i).some(prev => prev.file === after));
@@ -385,7 +391,9 @@ describe("vite dev server invalidation w/ websmith plugin", () => {
                 pluginOptions: APP,
                 steps: [
                     `await get("/src/shared.ts");`,
+                    `await waitForWatcher(${watchedWrite("gen/shared.ts.txt", "GEN")});`,
                     `fs.unlinkSync(path.join(root, "gen/shared.ts.txt"));`,
+                    `await waitForWatcher(cur => cur.event === "unlink" && cur.file === "gen/shared.ts.txt");`,
                     `await edit("src/shared.ts", 'export const shared: string = "MARK_IN2";\\n', ${reloadOf("src/shared.ts")});`,
                     `await get("/src/shared.ts");`,
                 ],

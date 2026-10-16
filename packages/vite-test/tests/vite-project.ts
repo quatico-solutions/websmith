@@ -352,6 +352,7 @@ export type ViteDevResult = {
  * - `waitForMessage(predicate, ms)` waits for the next HMR payload after the last one a wait matched, polling every
  *   25 ms, and records a timeout instead of throwing;
  * - `waitForLog(predicate, ms)` does the same for the logger's lines, `{ level, msg }`;
+ * - `waitForWatcher(predicate, ms)` does the same for the events of the file watcher, `{ event, file }`;
  * - `edit(file, text, predicate)` writes the project file `file` until a payload matches `predicate`, or with
  *   `{ log: predicate }` a logger line, since the watcher may miss a write made right after a request. It checks
  *   every 25 ms and rewrites every 250 ms, only after a check that found nothing.
@@ -404,6 +405,15 @@ export const runViteDev = ({
             }
             return undefined;
         };
+        let watcherCursor = 0;
+        const findWatcherEvent = predicate => {
+            const index = watcherEvents.findIndex((cur, i) => i >= watcherCursor && predicate(cur));
+            if (index >= 0) {
+                watcherCursor = index + 1;
+                return watcherEvents[index];
+            }
+            return undefined;
+        };
         const waitFor = async (find, predicate, ms) => {
             const end = Date.now() + ms;
             for (;;) {
@@ -419,6 +429,7 @@ export const runViteDev = ({
         };
         const waitForMessage = (predicate, ms = 10000) => waitFor(findMessage, predicate, ms);
         const waitForLog = (predicate, ms = 10000) => waitFor(findLog, predicate, ms);
+        const waitForWatcher = (predicate, ms = 10000) => waitFor(findWatcherEvent, predicate, ms);
 
         const server = await createServer({
             root,
