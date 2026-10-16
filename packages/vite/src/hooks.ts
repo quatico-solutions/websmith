@@ -9,7 +9,7 @@ import { AddonRegistry, ModuleCompiler } from "@quatico/websmith-core";
 import path from "node:path";
 import ts from "typescript";
 import type { createFilter, ResolvedConfig, Rollup } from "vite";
-import { AddonOutputs } from "./addon-outputs";
+import { AddonOutputs, type OutputsContext } from "./addon-outputs";
 import { checkModuleFormat, checkTargetModule, selectConfigErrors } from "./config-errors";
 import { DiagnosticReporter } from "./diagnostic-reporter";
 import { formatDiagnostic, getDiagnosticKey, partitionDiagnostics, toRollupError, toRollupWarning } from "./diagnostics";
@@ -17,12 +17,13 @@ import { isCompiledId } from "./module-ids";
 import { createModuleFilter, resolveViteOptions, selectProfile, type ResolvedViteOptions, type WebsmithViteOptions } from "./options";
 import { pickOutput } from "./output";
 import { ViteAddonContext } from "./vite-addon-context";
-import { createDeduplicatingSystem } from "./write-record";
+import { createDeduplicatingSystem, toFileKey, WriteRecord } from "./write-record";
 
 /** The part of Vite's logger of an environment the hooks use, in serve mode only. */
 export type EnvironmentLogger = {
     error(msg: string, options?: { timestamp?: boolean }): void;
     warn(msg: string, options?: { timestamp?: boolean }): void;
+    info(msg: string, options?: { timestamp?: boolean }): void;
 };
 
 /**
@@ -59,14 +60,42 @@ export type HookCompiler = Pick<
     | "keepCachesPerCompilation"
 > & { getTypeInfoAddons: () => string[] };
 
+/**
+ * The part of the context of Vite's `hotUpdate` the hooks use: the dev environment the hook runs in, with its module
+ * graph and its HMR channel. It has no `addWatchFile`, so no addon can activate in `hotUpdate`.
+ */
+export type HotUpdateContext = {
+    environment: {
+        name: string;
+        config: { root: string };
+        logger: EnvironmentLogger;
+        moduleGraph: { invalidateAll: () => void };
+        hot: { send: (payload: { type: "full-reload"; path: string }) => void };
+    };
+};
+
+/** The part of the options of Vite's `hotUpdate` the hooks use: the changed file and the module nodes of that file. */
+export type HotUpdateInput<M extends { file: string | null }> = {
+    type: "create" | "update" | "delete";
+    file: string;
+    timestamp: number;
+    modules: M[];
+    read(): string | Promise<string>;
+};
+
+/** The part of Vite's dev server the hooks use: its file watcher, which watches a file outside `root` once it is added. */
+export type DevServerInfo = { watcher: { add: (paths: string | readonly string[]) => unknown } };
+
 /** The hooks of the websmith plugin, called with Rollup's plugin context as `this`. */
 export type WebsmithHooks = {
     configResolved: (config: Pick<ResolvedConfig, "root" | "command">) => void;
+    configureServer: (server: DevServerInfo) => void;
     buildStart: (this: HookContext) => void;
     transformHandler: (this: HookContext, code: string, id: string) => Rollup.TransformResult;
     buildEnd: (this: HookContext, error?: Error) => void;
     generateBundle: (this: HookContext, options: unknown, bundle: Record<string, unknown>) => void;
     findVirtualFile: (url: string, base: string) => VirtualFile | undefined;
+    hotUpdate: <M extends { file: string | null }>(this: HotUpdateContext, options: HotUpdateInput<M>) => Promise<M[] | undefined>;
 };
 
 /** A virtual file an addon added, by its bundle file name. */
@@ -80,7 +109,7 @@ const CLIENT_ENVIRONMENT = "client";
 /** The dependencies of the hooks that need Vite or the file system, injected so a spec can stub them. */
 export type HookDependencies = {
     createFilter: typeof createFilter;
-    createCompiler?: (loaderOptions: Partial<WebpackLoaderOptions>, reporter: Reporter, outputs: AddonOutputs) => HookCompiler;
+    createCompiler?: (loaderOptions: Partial<WebpackLoaderOptions>, reporter: Reporter, outputs: AddonOutputs, record: WriteRecord) => HookCompiler;
 };
 
 // Keeps JSX for Vite's own JSX handling, in the fragment returned to Vite only
@@ -88,15 +117,21 @@ const TARGET_COMPILER_OPTIONS: ts.CompilerOptions = { jsx: ts.JsxEmit.Preserve, 
 
 /**
  * Creates the module compiler of a plugin instance, with the addons of its `AddonRegistry`, reporting to `reporter`.
- * The addons of its profile get a `ViteAddonContext` that maps to `outputs`, and identical rewrites of a file are skipped.
+ * The addons of its profile get a `ViteAddonContext` that maps to `outputs`. A write of a file whose text on disk is the
+ * same is skipped, and every other write goes into `record`.
  * An addon needs type information unless it sets `needsTypeInfo` to false.
  */
-export const createModuleCompiler = (loaderOptions: Partial<WebpackLoaderOptions>, reporter: Reporter, outputs: AddonOutputs): HookCompiler => {
+export const createModuleCompiler = (
+    loaderOptions: Partial<WebpackLoaderOptions>,
+    reporter: Reporter,
+    outputs: AddonOutputs,
+    record: WriteRecord
+): HookCompiler => {
     const addons = new AddonRegistry({ reporter, system: ts.sys });
     const compiler = new ModuleCompiler(
         { reporter, cliArgs: { options: {}, fileNames: [], errors: [] } },
         loaderOptions,
-        createDeduplicatingSystem(ts.sys),
+        createDeduplicatingSystem(ts.sys, record),
         {
             addons,
             targetCompilerOptions: TARGET_COMPILER_OPTIONS,
@@ -156,8 +191,34 @@ type EnvironmentState = {
     serveErrors: ts.Diagnostic[];
     // The errors logged to the environment's logger, which are not logged again
     loggedKeys: Set<string>;
-    // The package.json files that decide the module format under a node module kind, cleared for every build
+    // The package.json files that decide the module format under a node module kind, and the nearest package.json of
+    // each directory, cleared for every build, and in the dev server when a package.json changes
     packageJsonCache: ts.PackageJsonInfoCache;
+    packageJsons: Map<string, string | undefined>;
+};
+
+// The inputs of the options of `compiler` to watch: its config file, its tsconfig.json and the files that extends,
+// also when missing, and its addonsDir
+const getOptionsInputs = (compiler: HookCompiler): string[] => {
+    const { files, missing } = compiler.getOptionsFiles();
+    const addonsDir = compiler.getOptions().config?.addonsDir;
+    return [...files, ...missing, ...(addonsDir ? [addonsDir] : [])];
+};
+
+// Whether `file` is an input of the options of `compiler`: its config file, its tsconfig.json and the files that
+// extends, also when missing, or a file in its addonsDir outside a node_modules directory
+const isOptionsInput = (compiler: HookCompiler, file: string): boolean => {
+    const { files, missing } = compiler.getOptionsFiles();
+    const key = toFileKey(path.resolve(file));
+    if ([...files, ...missing].some(cur => toFileKey(path.resolve(cur)) === key)) {
+        return true;
+    }
+    const addonsDir = compiler.getOptions().config?.addonsDir;
+    if (!addonsDir) {
+        return false;
+    }
+    const relative = toFileKey(path.relative(addonsDir, file));
+    return relative !== ".." && !relative.startsWith("../") && !path.isAbsolute(relative) && !relative.split("/").includes("node_modules");
 };
 
 /**
@@ -179,7 +240,26 @@ export const createWebsmithHooks = (
     let command: "build" | "serve" = "build";
     const environments = new Map<string, EnvironmentState>();
     // The state of each environment object a build started with, including those of nested builds
-    const instances = new WeakMap<EnvironmentInfo, EnvironmentState>();
+    const instances = new WeakMap<object, EnvironmentState>();
+    // The files the compilers of every environment wrote, since a write of one fires hotUpdate in all of them
+    const record = new WriteRecord();
+    // The watch files the plugin added in the dev server, which an own write to does not reload
+    const watchFiles = new Set<string>();
+    // The timestamp of the last change of an options input that was logged, which every environment sees
+    let loggedChange: number | undefined;
+    // The file watcher of the dev server, which watches the inputs of every state the dev server creates
+    let watcher: DevServerInfo["watcher"] | undefined;
+
+    // Adds `file` as a watch file of the hook that runs, and remembers it in the dev server
+    const addWatchFile = (context: OutputsContext, file: string): void => {
+        if (command === "serve") {
+            watchFiles.add(toFileKey(file));
+        }
+        context.addWatchFile(file);
+    };
+
+    // The context for the addon outputs, which remembers the watch files the addons add
+    const recording = (context: OutputsContext): OutputsContext => ({ addWatchFile: cur => addWatchFile(context, cur) });
 
     const report = (context: HookContext, state: EnvironmentState, diagnostics: readonly ts.Diagnostic[]): ts.Diagnostic[] => {
         const { errors, warnings } = partitionDiagnostics(diagnostics, state.resolved.loaderOptions.debug ?? false);
@@ -277,14 +357,19 @@ export const createWebsmithHooks = (
             serveErrors: [],
             loggedKeys: new Set(),
             packageJsonCache: ts.createModuleResolutionCache(config.root, cur => cur).getPackageJsonInfoCache(),
+            packageJsons: new Map(),
         };
         if (!state.profileError) {
-            state.compiler = outputs.runActivation(context, () => {
-                const created = createCompiler(state.resolved.loaderOptions, reporter, outputs);
+            state.compiler = outputs.runActivation(recording(context), () => {
+                const created = createCompiler(state.resolved.loaderOptions, reporter, outputs, record);
                 created.keepCachesPerCompilation();
                 return created;
             });
             keepActivationErrors(state);
+            // A state created again after an edit may read inputs outside root that no state read before
+            if (command === "serve" && watcher && state.compiler) {
+                watcher.add(getOptionsInputs(state.compiler));
+            }
         }
         return state;
     };
@@ -302,10 +387,26 @@ export const createWebsmithHooks = (
         return state;
     };
 
-    // Drops the states of the environments other than `kept`, so that each starts again on its next module after a
-    // restart of the dev server, with the current configuration, since the dev server runs buildStart for client only
-    const forgetOtherEnvironments = (kept: EnvironmentState): void =>
-        [...environments].filter(([, cur]) => cur !== kept).forEach(([name]) => environments.delete(name));
+    // Drops the state of the environment, so that its next module creates it again with the current configuration
+    const forgetEnvironment = (environment: { name: string }): void => {
+        environments.delete(environment.name);
+        instances.delete(environment);
+    };
+
+    // Starts client in the dev server, and every environment again after a restart with the same plugin object, which
+    // is the only way an environment has a state here: with the current configuration and addons, which a refresh of
+    // the compiler would not load again. Watches the inputs of the options, since Vite watches only files under root.
+    const startDevServer = (context: HookContext): void => {
+        if (instances.has(context.environment) || environments.has(context.environment.name)) {
+            environments.clear();
+            forgetEnvironment(context.environment);
+        }
+        const { state } = startEnvironmentState(context);
+        if (state.compiler) {
+            getOptionsInputs(state.compiler).forEach(cur => context.addWatchFile(cur));
+        }
+        startServing(context, state);
+    };
 
     // Returns the state of the build that starts: a new one for a build nested in a running build of the same name
     const startEnvironmentState = (context: HookContext): { state: EnvironmentState; existing: boolean } => {
@@ -324,15 +425,24 @@ export const createWebsmithHooks = (
             filter = createModuleFilter(options, config.root, createFilter);
             command = config.command;
         },
+        // Keeps the watcher of the dev server, which a restart creates anew
+        configureServer(server) {
+            watcher = server.watcher;
+        },
         // Configuration errors fail the environment's build before any module is compiled, including a profile map
         // that does not name the environment. In serve mode nothing is raised, since an error here stops the dev
         // server: the errors go to the environment's logger, and every transform of the environment raises them.
         buildStart() {
+            if (command === "serve") {
+                startDevServer(this);
+                return;
+            }
             const { state, existing } = startEnvironmentState(this);
             if (existing) {
                 state.resolved = configureEnvironment(this.environment, state.outputs);
                 state.outputs.startBuild();
                 state.packageJsonCache.clear();
+                state.packageJsons.clear();
                 const { compiler } = state;
                 if (compiler) {
                     // A rebuild of vite build --watch resolves the options again when one of their files changed, so the
@@ -345,19 +455,9 @@ export const createWebsmithHooks = (
                     keepActivationErrors(state);
                 }
                 state.profileModule = undefined;
-                // A restart of the dev server with the same plugin object starts the environment again
-                state.serving = false;
-                state.loggedKeys = new Set();
-                if (command === "serve") {
-                    forgetOtherEnvironments(state);
-                }
             }
             state.raisedKeys = new Set();
             state.warnedKeys = new Set();
-            if (command !== "build") {
-                startServing(this, state);
-                return;
-            }
             const current = state.compiler;
             if (!current) {
                 if (state.profileError) {
@@ -405,17 +505,17 @@ export const createWebsmithHooks = (
             }
             state.profileModule ??= getProfileModule(current);
             const { profile, tsConfig, hasEsm } = state.profileModule;
-            const { error, packageJson } = checkModuleFormat(profile, id, tsConfig, hasEsm, ts.sys, state.packageJsonCache);
+            const { error, packageJson } = checkModuleFormat(profile, id, tsConfig, hasEsm, ts.sys, state.packageJsonCache, state.packageJsons);
             if (packageJson) {
-                this.addWatchFile(packageJson);
+                addWatchFile(this, packageJson);
             }
             if (error) {
                 this.error(toRollupError([error]));
             }
             const { outputs, reporter } = state;
             outputs.startModule(id);
-            const { fragment, diagnostics, dependencies } = outputs.run(this, id, () => current.build(id, { moduleKind: "esm" }));
-            [...dependencies.files, ...dependencies.missing].forEach(cur => this.addWatchFile(cur));
+            const { fragment, diagnostics, dependencies } = outputs.run(recording(this), id, () => current.build(id, { moduleKind: "esm" }));
+            [...dependencies.files, ...dependencies.missing].forEach(cur => addWatchFile(this, cur));
             const files = fragment.files.map(cur => cur.name);
             state.outputFiles.set(id, files);
             const fileLessErrors = serving ? current.getConfigErrors() : [];
@@ -425,7 +525,7 @@ export const createWebsmithHooks = (
                 this.error(toRollupError(errors));
             }
             if (serving) {
-                const resultErrors = outputs.run(this, id, () => current.runResultProcessors(files));
+                const resultErrors = outputs.run(recording(this), id, () => current.runResultProcessors(files));
                 const processorErrors = report(this, state, [...resultErrors, ...reporter.take()]);
                 if (processorErrors.length > 0) {
                     this.error(toRollupError(processorErrors));
@@ -501,6 +601,52 @@ export const createWebsmithHooks = (
             const fileName = pathname.slice(base.length);
             const content = state.outputs.getVirtualFile(fileName);
             return content === undefined ? undefined : { fileName, content };
+        },
+        // Vite calls it in the dev server only, once per environment for each file change, with the module nodes of the
+        // file already invalidated. Everything that drops or clears the environment's state happens before the file is
+        // read, since the next transform may run while it is. An options input drops the state, so that the full reload
+        // creates it again: the options resolve again, the addon entries load again and activate, and the
+        // configuration errors are logged again. A package.json clears the caches of the module format check, and
+        // Vite reloads the modules that watch it. A deleted module drops its outputs; any other deleted file is no longer
+        // the plugin's own. An own write of the plugin reloads no module through a watch file the plugin added; a module
+        // the page imports keeps Vite's update.
+        async hotUpdate(input) {
+            const { environment } = this;
+            const state = instances.get(environment) ?? environments.get(environment.name);
+            const { file } = input;
+            if (!state) {
+                return undefined;
+            }
+            if (state.compiler && isOptionsInput(state.compiler, file)) {
+                forgetEnvironment(environment);
+                if (loggedChange !== input.timestamp) {
+                    loggedChange = input.timestamp;
+                    const changed = toFileKey(path.relative(environment.config.root, file));
+                    environment.logger.info(`${LOG_PREFIX}${changed} changed: websmith compiles with the new configuration`, { timestamp: true });
+                }
+                environment.moduleGraph.invalidateAll();
+                environment.hot.send({ type: "full-reload", path: "*" });
+                return [];
+            }
+            if (path.basename(file) === "package.json") {
+                state.packageJsonCache.clear();
+                state.packageJsons.clear();
+                state.compiler?.resetCompilationCaches();
+                return undefined;
+            }
+            if (input.type === "delete") {
+                // A deleted file has no text to read, and a later file at its path is no write of the plugin
+                record.forget(file);
+                if (isCompiledId(file, filter)) {
+                    state.outputs.startModule(file);
+                    state.outputFiles.delete(file);
+                }
+                return undefined;
+            }
+            if (record.has(file) && record.isOwnWrite(file, await input.read())) {
+                return input.modules.filter(cur => cur.file === null || !watchFiles.has(toFileKey(cur.file)));
+            }
+            return undefined;
         },
     };
 };
