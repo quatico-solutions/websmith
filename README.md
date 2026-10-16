@@ -134,6 +134,16 @@ import websmith from "@quatico/websmith-vite";
 export default { plugins: [websmith({ profile: "app" })] };
 ```
 
+The `app` profile must exist in the `websmith.config.json` next to the Vite configuration, for example:
+
+```json
+{
+    "profiles": {
+        "app": { "tsConfig": { "noEmit": false, "outDir": "./websmith-out", "rootDir": "." } }
+    }
+}
+```
+
 Unlike the loader, the plugin reads the `websmith.config.json` in Vite's `root` and requires it. Read the options, the per-environment profiles and the known limits in the [plugin's README](packages/vite/README.md).
 
 ## <a name="customizing-the-compilation-output"></a>Customizing the compilation output
