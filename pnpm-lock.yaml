@@ -126,6 +126,10 @@ importers:
         version: 5.111.1(@swc/core@1.5.0)
 
   packages/api:
+    dependencies:
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.6
@@ -428,6 +432,9 @@ importers:
       resolve.exports:
         specifier: ^2.0.2
         version: 2.0.2
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.6
@@ -512,6 +519,10 @@ importers:
         version: 8.58.0(eslint@9.19.0)(typescript@5.7.3)
 
   packages/example-addons:
+    dependencies:
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.6
@@ -612,6 +623,9 @@ importers:
       tildify:
         specifier: ^3.0.0
         version: 3.0.0
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.6
@@ -730,6 +744,9 @@ importers:
       require-from-string:
         specifier: ^2.0.2
         version: 2.0.2
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.6
@@ -815,6 +832,9 @@ importers:
       '@quatico/websmith-core':
         specifier: workspace:*
         version: link:../core
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.6
@@ -987,6 +1007,9 @@ importers:
       comment-json:
         specifier: ^4.2.5
         version: 4.2.5
+      tslib:
+        specifier: ^2.8.1
+        version: 2.8.1
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.6

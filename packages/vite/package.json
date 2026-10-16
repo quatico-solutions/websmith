@@ -48,7 +48,8 @@
     },
     "dependencies": {
         "@quatico/websmith-api": "workspace:*",
-        "@quatico/websmith-core": "workspace:*"
+        "@quatico/websmith-core": "workspace:*",
+        "tslib": "^2.8.1"
     },
     "peerDependencies": {
         "typescript": ">=5.7 <7",

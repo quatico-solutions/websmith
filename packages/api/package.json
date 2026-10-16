@@ -34,6 +34,9 @@
         "test:update-snapshots": "pnpm test -u",
         "dist": "pnpm clean && pnpm lint && pnpm test && cross-env-shell NODE_ENV=production \"pnpm build\""
     },
+    "dependencies": {
+        "tslib": "^2.8.1"
+    },
     "peerDependencies": {
         "typescript": "5.x"
     },
