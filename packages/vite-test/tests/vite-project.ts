@@ -312,15 +312,24 @@ export const runViteWatch = ({
 /** A line Vite's logger received during `runViteDev`, by level, without ANSI codes. */
 export type ViteDevLog = { level: "info" | "warn" | "error"; msg: string };
 
-/** A response of `runViteDev`: of `get(url)` with its status and body, or of `ssr(url)` with its code or error. */
-export type ViteDevResponse = { url: string; status?: number; body?: string; ssr?: boolean; code?: string; error?: string };
+/**
+ * A response of `runViteDev`: of `get(url)` with its status and body, or of `ssr(url)` and `transform(env, url)` with
+ * its code or error.
+ */
+export type ViteDevResponse = { url: string; status?: number; body?: string; ssr?: boolean; env?: string; code?: string; error?: string };
 
-/** An HMR payload the dev server sent, e.g. `{ type: "full-reload" }` or `{ type: "error", err: { message } }`. */
-export type ViteDevMessage = { type: string; err?: { message: string }; path?: string };
+/**
+ * An HMR payload the dev server sent, e.g. `{ type: "full-reload" }` or `{ type: "error", err: { message } }`.
+ * `triggeredBy` is the absolute file of a module reload; Vite marks it internal, so only tests read it.
+ */
+export type ViteDevMessage = { type: string; err?: { message: string }; path?: string; triggeredBy?: string };
+
+/** An event of the dev server's file watcher, e.g. `change` or `unlink`, with the file relative to the project. */
+export type ViteWatcherEvent = { event: string; file: string };
 
 /**
  * The result of `runViteDev`: whether `server.listen()` resolved or its error, the logger's lines, the HMR payloads
- * except `ping`, the responses of the steps, and the waits that timed out.
+ * except `ping`, the responses of the steps, the waits that timed out, and the events of the file watcher.
  */
 export type ViteDevResult = {
     listening: boolean;
@@ -329,6 +338,7 @@ export type ViteDevResult = {
     messages: ViteDevMessage[];
     responses: ViteDevResponse[];
     timeouts: string[];
+    watcherEvents: ViteWatcherEvent[];
 };
 
 /**
@@ -337,10 +347,15 @@ export type ViteDevResult = {
  * - `get(url, headers)` requests `url` from the server, with `headers` if given, e.g. `{ host }`, and records
  *   `{ url, status, body }`;
  * - `ssr(url)` records the code or the error of `server.environments.ssr.transformRequest(url)`;
+ * - `transform(env, url)` records the code or the error of `server.environments[env].transformRequest(url)`, e.g.
+ *   after `server.restart()`, which may listen on another port than `get` uses;
  * - `waitForMessage(predicate, ms)` waits for the next HMR payload after the last one a wait matched, polling every
  *   25 ms, and records a timeout instead of throwing;
- * - `edit(file, text, predicate)` writes the project file `file`, rewriting it every 250 ms until a payload matches
- *   `predicate`, since the watcher may miss a write made right after a request.
+ * - `waitForLog(predicate, ms)` does the same for the logger's lines, `{ level, msg }`;
+ * - `edit(file, text, predicate)` writes the project file `file` until a payload matches `predicate`, or with
+ *   `{ log: predicate }` a logger line, since the watcher may miss a write made right after a request. It checks
+ *   every 25 ms and rewrites every 250 ms, only after a check that found nothing.
+ * `server`, `root`, `fs` and `path` are in scope as well; `watcherEvents` records the events of `server.watcher`.
  */
 export const runViteDev = ({
     vite = "vite",
@@ -362,6 +377,7 @@ export const runViteDev = ({
         const messages = [];
         const responses = [];
         const timeouts = [];
+        const watcherEvents = [];
         const strip = text => String(text).replace(/\\u001b\\[[0-9;]*m/g, "");
         const customLogger = createLogger("info", { allowClearScreen: false });
         customLogger.info = msg => logs.push({ level: "info", msg: strip(msg) });
@@ -379,10 +395,19 @@ export const runViteDev = ({
             }
             return undefined;
         };
-        const waitForMessage = async (predicate, ms = 10000) => {
+        let logCursor = 0;
+        const findLog = predicate => {
+            const index = logs.findIndex((cur, i) => i >= logCursor && predicate(cur));
+            if (index >= 0) {
+                logCursor = index + 1;
+                return logs[index];
+            }
+            return undefined;
+        };
+        const waitFor = async (find, predicate, ms) => {
             const end = Date.now() + ms;
             for (;;) {
-                const found = findMessage(predicate);
+                const found = find(predicate);
                 if (found || Date.now() >= end) {
                     if (!found) {
                         timeouts.push(String(predicate));
@@ -392,6 +417,8 @@ export const runViteDev = ({
                 await sleep(25);
             }
         };
+        const waitForMessage = (predicate, ms = 10000) => waitFor(findMessage, predicate, ms);
+        const waitForLog = (predicate, ms = 10000) => waitFor(findLog, predicate, ms);
 
         const server = await createServer({
             root,
@@ -403,6 +430,7 @@ export const runViteDev = ({
             server: { port: 5273, strictPort: false },
             ...${JSON.stringify(viteOptions)},
         });
+        server.watcher.on("all", (event, file) => watcherEvents.push({ event, file: path.relative(root, file).split(path.sep).join("/") }));
         let listening = false;
         let listenError;
         try {
@@ -437,20 +465,32 @@ export const runViteDev = ({
                 responses.push({ url, ssr: true, error: cause.message });
             }
         };
+        const transform = async (env, url) => {
+            try {
+                const result = await server.environments[env].transformRequest(url);
+                responses.push({ url, env, code: result?.code ?? "" });
+            } catch (cause) {
+                responses.push({ url, env, error: cause.message });
+            }
+        };
         const edit = async (file, text, predicate) => {
+            const find = typeof predicate === "function" ? () => findMessage(predicate) : () => findLog(predicate.log);
             const write = () => fs.writeFileSync(path.join(root, file), text);
-            write();
             const end = Date.now() + 10000;
+            let next = 0;
             for (;;) {
-                const found = findMessage(predicate);
+                const found = next === 0 ? undefined : find();
                 if (found || Date.now() >= end) {
                     if (!found) {
                         timeouts.push("edit " + file);
                     }
                     return found;
                 }
-                await sleep(250);
-                write();
+                if (Date.now() >= next) {
+                    write();
+                    next = Date.now() + 250;
+                }
+                await sleep(25);
             }
         };
 
@@ -471,7 +511,7 @@ export const runViteDev = ({
         }
         socket?.close();
         await server.close();
-        console.log(JSON.stringify({ listening, listenError, logs, messages, responses, timeouts }));
+        console.log(JSON.stringify({ listening, listenError, logs, messages, responses, timeouts, watcherEvents }));
         process.exit(0);
         `
     );
