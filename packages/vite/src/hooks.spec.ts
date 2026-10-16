@@ -1721,6 +1721,47 @@ describe("createWebsmithHooks", () => {
             ]);
         });
 
+        it("should add inputs of new state to watcher w/ transform after edit", async () => {
+            const target = { add: jest.fn() };
+            const environment = createEnvironment();
+            const testObj = createHooks(createInputsCompiler(), "serve");
+            testObj.configureServer({ watcher: target });
+            testObj.buildStart.call(createContext([], environment));
+            await testObj.hotUpdate.call({ environment }, hotInput(CONFIG_FILE));
+
+            testObj.transformHandler.call(createContext([], environment), "whatever", MAIN);
+            const actual = target.add.mock.calls;
+
+            expect(actual).toEqual([
+                [[CONFIG_FILE, `${ROOT}/tsconfig.json`, `${ROOT}/tsconfig.base.json`, `${ROOT}/missing.json`, ADDONS_DIR]],
+                [[CONFIG_FILE, `${ROOT}/tsconfig.json`, `${ROOT}/tsconfig.base.json`, `${ROOT}/missing.json`, ADDONS_DIR]],
+            ]);
+        });
+
+        it("should add inputs to watcher of restarted server w/ restart", () => {
+            const target = { add: jest.fn() };
+            const environment = createEnvironment();
+            const testObj = createHooks(createInputsCompiler(), "serve");
+            testObj.configureServer({ watcher: { add: jest.fn() } });
+            testObj.buildStart.call(createContext([], environment));
+            testObj.configureServer({ watcher: target });
+
+            testObj.buildStart.call(createContext([], environment));
+            const actual = target.add.mock.calls;
+
+            expect(actual).toEqual([[[CONFIG_FILE, `${ROOT}/tsconfig.json`, `${ROOT}/tsconfig.base.json`, `${ROOT}/missing.json`, ADDONS_DIR]]]);
+        });
+
+        it("should not add inputs to watcher w/ build mode", () => {
+            const target = { add: jest.fn() };
+            const testObj = createHooks(createInputsCompiler());
+            testObj.configureServer({ watcher: target });
+
+            testObj.buildStart.call(createContext([], createEnvironment()));
+
+            expect(target.add).not.toHaveBeenCalled();
+        });
+
         it("should return undefined and keep compiler w/ unrelated file", async () => {
             const { testObj, target, environment } = createServing();
 

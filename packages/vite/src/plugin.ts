@@ -79,6 +79,7 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
         configResolved: hooks.configResolved,
         // Without a returned function, the middleware runs before Vite's own, so a virtual file shadows a real one
         configureServer(server: ViteDevServer) {
+            hooks.configureServer(server);
             server.middlewares.use(createVirtualFileMiddleware(hooks.findVirtualFile, server.config.base, createHostCheck(server.config)));
         },
         buildStart: hooks.buildStart,

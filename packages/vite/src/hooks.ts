@@ -83,9 +83,13 @@ export type HotUpdateInput<M extends { file: string | null }> = {
     read(): string | Promise<string>;
 };
 
+/** The part of Vite's dev server the hooks use: its file watcher, which watches a file outside `root` once it is added. */
+export type DevServerInfo = { watcher: { add: (paths: string | readonly string[]) => unknown } };
+
 /** The hooks of the websmith plugin, called with Rollup's plugin context as `this`. */
 export type WebsmithHooks = {
     configResolved: (config: Pick<ResolvedConfig, "root" | "command">) => void;
+    configureServer: (server: DevServerInfo) => void;
     buildStart: (this: HookContext) => void;
     transformHandler: (this: HookContext, code: string, id: string) => Rollup.TransformResult;
     buildEnd: (this: HookContext, error?: Error) => void;
@@ -193,6 +197,14 @@ type EnvironmentState = {
     packageJsons: Map<string, string | undefined>;
 };
 
+// The inputs of the options of `compiler` to watch: its config file, its tsconfig.json and the files that extends,
+// also when missing, and its addonsDir
+const getOptionsInputs = (compiler: HookCompiler): string[] => {
+    const { files, missing } = compiler.getOptionsFiles();
+    const addonsDir = compiler.getOptions().config?.addonsDir;
+    return [...files, ...missing, ...(addonsDir ? [addonsDir] : [])];
+};
+
 // Whether `file` is an input of the options of `compiler`: its config file, its tsconfig.json and the files that
 // extends, also when missing, or a file in its addonsDir outside a node_modules directory
 const isOptionsInput = (compiler: HookCompiler, file: string): boolean => {
@@ -235,6 +247,8 @@ export const createWebsmithHooks = (
     const watchFiles = new Set<string>();
     // The timestamp of the last change of an options input that was logged, which every environment sees
     let loggedChange: number | undefined;
+    // The file watcher of the dev server, which watches the inputs of every state the dev server creates
+    let watcher: DevServerInfo["watcher"] | undefined;
 
     // Adds `file` as a watch file of the hook that runs, and remembers it in the dev server
     const addWatchFile = (context: OutputsContext, file: string): void => {
@@ -352,6 +366,10 @@ export const createWebsmithHooks = (
                 return created;
             });
             keepActivationErrors(state);
+            // A state created again after an edit may read inputs outside root that no state read before
+            if (command === "serve" && watcher && state.compiler) {
+                watcher.add(getOptionsInputs(state.compiler));
+            }
         }
         return state;
     };
@@ -384,11 +402,8 @@ export const createWebsmithHooks = (
             forgetEnvironment(context.environment);
         }
         const { state } = startEnvironmentState(context);
-        const current = state.compiler;
-        if (current) {
-            const { files, missing } = current.getOptionsFiles();
-            const addonsDir = current.getOptions().config?.addonsDir;
-            [...files, ...missing, ...(addonsDir ? [addonsDir] : [])].forEach(cur => context.addWatchFile(cur));
+        if (state.compiler) {
+            getOptionsInputs(state.compiler).forEach(cur => context.addWatchFile(cur));
         }
         startServing(context, state);
     };
@@ -409,6 +424,10 @@ export const createWebsmithHooks = (
         configResolved(config) {
             filter = createModuleFilter(options, config.root, createFilter);
             command = config.command;
+        },
+        // Keeps the watcher of the dev server, which a restart creates anew
+        configureServer(server) {
+            watcher = server.watcher;
         },
         // Configuration errors fail the environment's build before any module is compiled, including a profile map
         // that does not name the environment. In serve mode nothing is raised, since an error here stops the dev

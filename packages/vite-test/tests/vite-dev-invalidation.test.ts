@@ -56,6 +56,22 @@ const containing = (text: string): string => expect.stringContaining(text) as st
 // The source of a step predicate that matches the plugin's info line about a changed options input
 const CHANGED = `{ log: cur => cur.msg.includes("${PLUGIN_PREFIX}") && cur.msg.includes(" changed: ") }`;
 
+// The source of a step predicate that matches the plugin's info line about a change of `file`, relative to Vite's root
+const changedOf = (file: string): string => `{ log: cur => cur.msg.includes("${PLUGIN_PREFIX}") && cur.msg.includes(${JSON.stringify(`${file} changed: `)}) }`;
+
+// The Vite options of a project whose root is its directory `web`, so that a file outside the root is in the project
+const WEB_ROOT = (): Record<string, unknown> => ({ root: projectPath("web") });
+
+const TS_OPTIONS = { target: "ES2022", rootDir: "./src", outDir: "./tsc-out" };
+
+// Writes the sources, the tsconfig.json and `config` as websmith.config.json into the directory `web`
+const writeWebProject = (config: string): void => {
+    writeFile("web/tsconfig.json", JSON.stringify({ compilerOptions: { ...TS_OPTIONS, module: "ESNext", moduleResolution: "bundler" } }));
+    writeFile("web/websmith.config.json", config);
+    writeFile("web/src/shared.ts", `export const shared: string = "MARK_IN";\n`);
+    writeFile("web/src/main.ts", `import { shared } from "./shared";\nexport const greeting: string = "MAIN " + shared + " MARK_IN";\n`);
+};
+
 // The source of a step predicate that matches the reload of a module, triggered by `file`
 const reloadOf = (file: string): string =>
     `cur => (cur.type === "full-reload" || cur.type === "update") && String(cur.triggeredBy ?? cur.updates?.[0]?.path).endsWith(${JSON.stringify(file)})`;
@@ -367,6 +383,62 @@ describe("vite dev server invalidation w/ websmith plugin", () => {
             expect(actual.watcherEvents).toContainEqual({ event: "unlink", file: "gen/shared.ts.txt" });
             expect(errorMessages(actual)).toEqual([]);
             expect(actual.responses[1]).toEqual(expect.objectContaining({ status: 200, body: containing("MARK_OUT2") }));
+        },
+        60000
+    );
+
+    it.each(VITES)(
+        "should recompile with the new tsconfig w/ edit of new extends outside root w/ %s",
+        vite => {
+            writeWebProject(JSON.stringify({ addonsDir: "../addons", profiles: { app: { addons: ["replacer"] } } }));
+            writeFile("base.json", JSON.stringify({ compilerOptions: { module: "ESNext", moduleResolution: "bundler" } }));
+            const tsConfig = JSON.stringify({ extends: "../base.json", compilerOptions: TS_OPTIONS });
+            const base = JSON.stringify({ compilerOptions: { module: "commonjs", moduleResolution: "node10" } });
+
+            const actual = runViteDev({
+                vite,
+                pluginOptions: APP,
+                viteOptions: WEB_ROOT(),
+                steps: [
+                    `await get("/src/main.ts");`,
+                    `await edit("web/tsconfig.json", ${JSON.stringify(tsConfig)}, ${changedOf("tsconfig.json")});`,
+                    `await get("/src/main.ts");`,
+                    `await edit("base.json", ${JSON.stringify(base)}, ${changedOf("../base.json")});`,
+                    `await get("/src/main.ts");`,
+                ],
+            });
+
+            expect(actual.timeouts).toEqual([]);
+            expect(actual.responses.slice(0, 2).map(cur => cur.status)).toEqual([200, 200]);
+            expect(actual.responses[2]).toEqual(expect.objectContaining({ status: 500, body: containing("emits CommonJS") }));
+        },
+        60000
+    );
+
+    it.each(VITES)(
+        "should load the addon again w/ addon edit in addonsDir outside root of config broken at start w/ %s",
+        vite => {
+            writeWebProject("{ broken");
+            const config = JSON.stringify({ addonsDir: "../addons", profiles: { app: { addons: ["replacer"] } } });
+            const addon = fs.readFileSync(projectPath("addons/replacer/addon.js"), "utf-8").replace('"MARK_OUT"', '"MARK_NEW"');
+
+            const actual = runViteDev({
+                vite,
+                pluginOptions: APP,
+                viteOptions: WEB_ROOT(),
+                steps: [
+                    GET_FAILING("/src/shared.ts"),
+                    `await edit("web/websmith.config.json", ${JSON.stringify(config)}, ${changedOf("websmith.config.json")});`,
+                    `await get("/src/shared.ts");`,
+                    `await edit("addons/replacer/addon.js", ${JSON.stringify(addon)}, ${changedOf("../addons/replacer/addon.js")});`,
+                    `await get("/src/shared.ts");`,
+                ],
+            });
+
+            expect(actual.timeouts).toEqual([]);
+            expect(actual.responses.map(cur => cur.status)).toEqual([500, 200, 200]);
+            expect(actual.responses[1].body).toContain("MARK_OUT");
+            expect(actual.responses[2].body).toContain("MARK_NEW");
         },
         60000
     );
