@@ -4,7 +4,6 @@
     "description": "A Vite plugin for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
-    "private": true,
     "engines": {
         "node": ">=22.12"
     },
