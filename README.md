@@ -39,8 +39,8 @@ and run 7.x through its own binary (see README).`
 
 websmith supports `typescript` `>=5.7 <7`. Every package that loads `typescript` declares that range as a peer
 dependency: the CLI (`@quatico/websmith-compiler`), the webpack loader (`websmith-loader`), `@quatico/websmith-api`,
-`@quatico/websmith-core`, `@quatico/websmith-node`, `@quatico/websmith-testing` and the examples
-(`@quatico/websmith-examples`). The CLI, the loader and the addons all use the project's `typescript`.
+`@quatico/websmith-core`, `@quatico/websmith-node`, `@quatico/websmith-testing`, the Vite plugin
+(`@quatico/websmith-vite`) and the examples (`@quatico/websmith-examples`). The CLI, the loader and the addons all use the project's `typescript`.
 
 TypeScript 7 (`typescript@7`) has no JavaScript compiler API, which websmith and its addons need, so websmith stops
 with the "found 7.x" message above. To type-check with TypeScript 7 anyway, keep TypeScript 6 as the project's
@@ -116,6 +116,25 @@ module.exports = {
     },
 };
 ```
+
+### Use websmith with Vite
+
+Install the Vite plugin `@quatico/websmith-vite` next to `typescript` and `vite` (Vite 6.3+ or 7):
+
+```bash
+pnpm add -D @quatico/websmith-vite typescript vite
+```
+
+Add it first to the `plugins` of your Vite configuration:
+
+```javascript
+// vite.config.mjs
+import websmith from "@quatico/websmith-vite";
+
+export default { plugins: [websmith({ profile: "app" })] };
+```
+
+Unlike the loader, the plugin reads the `websmith.config.json` in Vite's `root` and requires it. Read the options, the per-environment profiles and the known limits in the [plugin's README](packages/vite/README.md).
 
 ## <a name="customizing-the-compilation-output"></a>Customizing the compilation output
 
