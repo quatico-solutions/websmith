@@ -83,6 +83,21 @@ jobs:
               if: ${{ !cancelled() && steps.assert-typescript.outcome == 'success' }}
               run: pnpm build
 
+            - name: check packed types
+              if: ${{ !cancelled() && !matrix.override && steps.build.outcome == 'success' }}
+              env:
+                  OTHER_TYPESCRIPT: 5.7.3
+              run: |
+                  mkdir -p "$RUNNER_TEMP/packed-types/packs"
+                  for dir in packages/api packages/core packages/testing; do
+                      (cd "$dir" && pnpm pack --pack-destination "$RUNNER_TEMP/packed-types/packs")
+                  done
+                  cp .github/packed-types/tsconfig.json .github/packed-types/consumer.ts "$RUNNER_TEMP/packed-types"
+                  cd "$RUNNER_TEMP/packed-types"
+                  npm install --no-audit --no-fund --legacy-peer-deps "typescript@$OTHER_TYPESCRIPT" @types/node@22 ./packs/*.tgz
+                  npx tsc -v
+                  npx tsc -p .
+
             - name: E2E tests
               if: ${{ !cancelled() && steps.assert-typescript.outcome == 'success' }}
               run: pnpm test:e2e
