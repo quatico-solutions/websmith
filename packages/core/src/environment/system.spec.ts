@@ -11,6 +11,8 @@ import { createVersionedFile, ignoreConfigFiles, recursiveFindByFilter } from ".
 const isTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6;
 const describeOnTs5 = isTs5 ? describe : describe.skip;
 const describeOnTs6 = isTs5 ? describe.skip : describe;
+// ES2025; ts.ScriptTarget.ES2025 is undefined on TypeScript 5
+const DEFAULT_TARGET = isTs5 ? ts.ScriptTarget.ES5 : (12 as ts.ScriptTarget);
 
 describe("recursiveFindByFilter", () => {
     it("should find files", () => {
@@ -66,7 +68,7 @@ describe("ignoreConfigFiles", () => {
 
 describe("createVersionedFile", () => {
     it.each([
-        ["nothing", {}, ts.getDefaultCompilerOptions().target],
+        ["nothing", {}, DEFAULT_TARGET],
         ["nodenext and target ES5", { module: ts.ModuleKind.NodeNext, target: ts.ScriptTarget.ES5 }, ts.ScriptTarget.ES5],
     ])("yields source file with effective target w/ %s set", (_name, tsConfig, expected) => {
         const actual = createVersionedFile("/src/target.ts", "export const x = 1;", tsConfig);
@@ -92,7 +94,7 @@ describe("createVersionedFile", () => {
         ])("yields source file with the TypeScript default target w/ %s set", (_name, tsConfig) => {
             const actual = createVersionedFile("/src/target.ts", "export const x = 1;", tsConfig);
 
-            expect(actual.languageVersion).toBe(ts.getDefaultCompilerOptions().target);
+            expect(actual.languageVersion).toBe(DEFAULT_TARGET);
         });
     });
 });

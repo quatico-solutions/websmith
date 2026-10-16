@@ -27,6 +27,8 @@ Install the library in your project, e.g. with npm:
 npm add -D @quatico/websmith-testing
 ```
 
+`typescript` `>=5.7 <7` is a peer dependency, see [Supported TypeScript versions](https://github.com/quatico-solutions/websmith#supported-typescript-versions).
+
 We don't add jest as a dependency, so you need to install it yourself!
 
 ### 1.1 Test your addon with virtual project files

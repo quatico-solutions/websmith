@@ -26,6 +26,7 @@ yourself. Without `typescript`, `websmith` exits with
 `websmith needs typescript >=5.7 <7; none was found. Add typescript to your project.`; with TypeScript 7, it exits
 with `websmith needs typescript >=5.7 <7; found 7.x. For TypeScript 7, keep typescript@6 as the project's typescript
 and run 7.x through its own binary (see README).`
+The README it refers to is [Supported TypeScript versions](https://github.com/quatico-solutions/websmith#supported-typescript-versions).
 
 ### Use websmith as build command
 

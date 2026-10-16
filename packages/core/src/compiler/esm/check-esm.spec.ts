@@ -7,11 +7,12 @@
 import { InfoMessage, type EsmProfileOptions } from "@quatico/websmith-api";
 import ts from "typescript";
 import { createSystem } from "../../environment";
-import { getEffectiveTarget } from "../config/effective-options";
 import { NoReporter } from "../NoReporter";
 import { checkEsm, getEmittedModuleKind, type EsmCheckContext } from "./check-esm";
 import { checkMissingExtension } from "./import-rules";
 import * as scanModuleExports from "./scan-module";
+
+const isTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6;
 
 const MODULE_PACKAGE = { "/package.json": JSON.stringify({ type: "module" }) };
 
@@ -730,7 +731,7 @@ describe("getEmittedModuleKind", () => {
     it("yields the module kind of the installed TypeScript's default target w/o module and target", () => {
         const actual = getEmittedModuleKind({});
 
-        expect(actual).toBe(getEmittedModuleKind({ target: getEffectiveTarget({}) }));
+        expect(actual).toBe(isTs5 ? ts.ModuleKind.CommonJS : ts.ModuleKind.ES2015);
     });
 
     it("yields ES2015 w/o module and ES2020 target", () => {

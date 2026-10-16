@@ -12,7 +12,6 @@ import { ReporterMock } from "../../test";
 import { createSystem } from "../environment";
 import { AddonRegistry } from "./addons";
 import { type CompilationContext } from "./compilation";
-import { getEffectiveTarget, scriptTargetToString } from "./config";
 import { Compiler, type CompileFragment } from "./Compiler";
 import { DefaultReporter } from "./DefaultReporter";
 import { NoReporter } from "./NoReporter";
@@ -115,6 +114,8 @@ class CompilerTestClass extends Compiler {
 const isTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6;
 const describeOnTs5 = isTs5 ? describe : describe.skip;
 const describeOnTs6 = isTs5 ? describe.skip : describe;
+// ES2025; ts.ScriptTarget.ES2025 is undefined on TypeScript 5
+const DEFAULT_TARGET = isTs5 ? ts.ScriptTarget.ES5 : (12 as ts.ScriptTarget);
 
 beforeEach(() => {
     jest.spyOn(console, "log").mockImplementation(() => {});
@@ -5182,7 +5183,7 @@ describe("compile w/ esm profile", () => {
             const actual = target.mock.calls.map(([cur]) => cur.messageText);
 
             expect(actual).toEqual([
-                `Profile 'client' sets 'esm', but 'module' is unset and 'target' is '${scriptTargetToString(ts.getDefaultCompilerOptions().target!)}', ` +
+                `Profile 'client' sets 'esm', but 'module' is unset and 'target' is 'es5', ` +
                     `so TypeScript emits CommonJS. ` +
                     `Use an ES module format such as "ESNext" or "NodeNext", or remove 'esm'. The ESM check skips this profile.`,
             ]);
@@ -6009,9 +6010,9 @@ describe("source file language version", () => {
     };
 
     it.each([
-        ["node16", { module: ts.ModuleKind.Node16 }, getEffectiveTarget({ module: ts.ModuleKind.Node16 })],
-        ["nodenext", { module: ts.ModuleKind.NodeNext }, getEffectiveTarget({ module: ts.ModuleKind.NodeNext })],
-        ["nothing", {}, ts.getDefaultCompilerOptions().target],
+        ["node16", { module: ts.ModuleKind.Node16 }, isTs5 ? ts.ScriptTarget.ES2022 : DEFAULT_TARGET],
+        ["nodenext", { module: ts.ModuleKind.NodeNext }, isTs5 ? ts.ScriptTarget.ESNext : DEFAULT_TARGET],
+        ["nothing", {}, DEFAULT_TARGET],
     ])("parses with effective target for per-file declarations w/ %s set", (_name, tsConfig, expected) => {
         const target: ts.ScriptTarget[] = [];
         const testObj = createVersionCompiler(target, tsConfig, false, false);
@@ -6023,9 +6024,9 @@ describe("source file language version", () => {
     });
 
     it.each([
-        ["node16", { module: ts.ModuleKind.Node16 }, getEffectiveTarget({ module: ts.ModuleKind.Node16 })],
-        ["nodenext", { module: ts.ModuleKind.NodeNext }, getEffectiveTarget({ module: ts.ModuleKind.NodeNext })],
-        ["nothing", {}, ts.getDefaultCompilerOptions().target],
+        ["node16", { module: ts.ModuleKind.Node16 }, isTs5 ? ts.ScriptTarget.ES2022 : DEFAULT_TARGET],
+        ["nodenext", { module: ts.ModuleKind.NodeNext }, isTs5 ? ts.ScriptTarget.ESNext : DEFAULT_TARGET],
+        ["nothing", {}, DEFAULT_TARGET],
     ])("parses with effective target for addonEmitOnly detection w/ type info addon and %s set", (_name, tsConfig, expected) => {
         const target: ts.ScriptTarget[] = [];
         const testObj = createVersionCompiler(target, tsConfig, true, true);
@@ -6039,9 +6040,9 @@ describe("source file language version", () => {
 
 describe("debug configuration summary", () => {
     it.each([
-        ["node16", { module: ts.ModuleKind.Node16 }, getEffectiveTarget({ module: ts.ModuleKind.Node16 })],
-        ["nodenext", { module: ts.ModuleKind.NodeNext }, getEffectiveTarget({ module: ts.ModuleKind.NodeNext })],
-        ["nothing", {}, ts.getDefaultCompilerOptions().target],
+        ["node16", { module: ts.ModuleKind.Node16 }, isTs5 ? ts.ScriptTarget.ES2022 : DEFAULT_TARGET],
+        ["nodenext", { module: ts.ModuleKind.NodeNext }, isTs5 ? ts.ScriptTarget.ESNext : DEFAULT_TARGET],
+        ["nothing", {}, DEFAULT_TARGET],
         ["nodenext and target ES5", { module: ts.ModuleKind.NodeNext, target: ts.ScriptTarget.ES5 }, ts.ScriptTarget.ES5],
     ])("reports effective target w/ %s set", (_name, tsConfig, expected) => {
         const fileSystem = createSystem({ "src/target.ts": "export const x = 1;" }, { virtual: true });

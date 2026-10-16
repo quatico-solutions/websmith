@@ -35,6 +35,25 @@ yourself. Without `typescript`, `websmith` exits with
 with `websmith needs typescript >=5.7 <7; found 7.x. For TypeScript 7, keep typescript@6 as the project's typescript
 and run 7.x through its own binary (see README).`
 
+### Supported TypeScript versions
+
+websmith supports `typescript` `>=5.7 <7`. Every package that loads `typescript` declares that range as a peer
+dependency: the CLI (`@quatico/websmith-compiler`), the webpack loader (`websmith-loader`), `@quatico/websmith-api`,
+`@quatico/websmith-core`, `@quatico/websmith-node`, `@quatico/websmith-testing` and the examples
+(`@quatico/websmith-examples`). The CLI, the loader and the addons all use the project's `typescript`.
+
+TypeScript 7 (`typescript@7`) has no JavaScript compiler API, which websmith and its addons need, so websmith stops
+with the "found 7.x" message above. To type-check with TypeScript 7 anyway, keep TypeScript 6 as the project's
+`typescript` and install 7.x under an alias:
+
+```bash
+pnpm add -D typescript@^6.0.3 typescript-7@npm:typescript@^7
+node node_modules/typescript-7/bin/tsc --noEmit -p .
+```
+
+Run 7.x by its path: with both installed, `node_modules/.bin/tsc` can be either version (npm links 6.x, pnpm links
+7.x). `websmith` keeps compiling with 6.x.
+
 ### Use websmith in your package.json
 
 In your package.json, add the `websmith` command as your build target to the `scripts` section:

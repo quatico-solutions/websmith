@@ -10,6 +10,8 @@ This package contains shared library functions for the websmith compiler. It's a
 
 See the [websmith github repository](https://github.com/quatico-solutions/websmith#readme) for more information and examples.
 
+`typescript` `>=5.7 <7` is a peer dependency, see [Supported TypeScript versions](https://github.com/quatico-solutions/websmith#supported-typescript-versions).
+
 ## Embedding websmith / failing your own command on errors
 
 The `websmith` command exits with code 1 when compilation reports an error-level diagnostic. A host that builds its

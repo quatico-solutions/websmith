@@ -10,6 +10,8 @@ import { getEffectiveTarget } from "./effective-options";
 const isTs5 = Number(ts.versionMajorMinor.split(".")[0]) < 6;
 const describeOnTs5 = isTs5 ? describe : describe.skip;
 const describeOnTs6 = isTs5 ? describe.skip : describe;
+// ES2025; ts.ScriptTarget.ES2025 is undefined on TypeScript 5
+const DEFAULT_TARGET = isTs5 ? ts.ScriptTarget.ES5 : (12 as ts.ScriptTarget);
 
 describe("getEffectiveTarget", () => {
     it("returns the explicit target", () => {
@@ -45,7 +47,7 @@ describe("getEffectiveTarget", () => {
         ])("returns the TypeScript default target with module %s and no target", (_name, module) => {
             const actual = getEffectiveTarget({ module });
 
-            expect(actual).toBe(ts.getDefaultCompilerOptions().target);
+            expect(actual).toBe(DEFAULT_TARGET);
         });
     });
 
@@ -57,6 +59,6 @@ describe("getEffectiveTarget", () => {
     ])("returns the TypeScript default target with module %s and no target", (_name, module) => {
         const actual = getEffectiveTarget({ module });
 
-        expect(actual).toBe(ts.getDefaultCompilerOptions().target);
+        expect(actual).toBe(DEFAULT_TARGET);
     });
 });

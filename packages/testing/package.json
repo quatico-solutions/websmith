@@ -37,11 +37,12 @@
         "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-core": "workspace:*",
         "memfs": "^4.17.0",
-        "require-from-string": "^2.0.2"
+        "require-from-string": "^2.0.2",
+        "tslib": "^2.8.1"
     },
     "peerDependencies": {
         "jest": "29.x",
-        "typescript": "5.x"
+        "typescript": ">=5.7 <7"
     },
     "devDependencies": {
         "@eslint/compat": "^1.2.6",
@@ -67,7 +68,7 @@
         "prettier": "^3.4.2",
         "rimraf": "6.0.1",
         "ts-jest": "^29.4.7",
-        "typescript": "5.7.3",
+        "typescript": "6.0.3",
         "typescript-eslint": "8.58.0"
     }
 }
