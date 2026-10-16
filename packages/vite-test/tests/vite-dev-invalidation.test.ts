@@ -255,12 +255,24 @@ describe("vite dev server invalidation w/ websmith plugin", () => {
             const actual = runViteDev({
                 vite,
                 pluginOptions: APP,
-                steps: [`await get("/src/main.ts");`, `await edit("src/package.json", "{}", cur => cur.type === "full-reload");`, `await get("/src/main.ts");`],
+                steps: [
+                    `await get("/src/main.ts");`,
+                    `await get("/src/shared.ts");`,
+                    `await edit("src/package.json", "{}", cur => cur.type === "full-reload");`,
+                    `await get("/src/main.ts");`,
+                    `await edit("src/shared.ts", 'export const shared: string = "MARK_IN2";\\n', ${reloadOf("src/shared.ts")});`,
+                    `await get("/src/shared.ts");`,
+                    `await get("/src/main.ts");`,
+                ],
             });
 
             expect(actual.timeouts).toEqual([]);
-            expect(actual.responses[0].status).toBe(200);
-            expect(actual.responses[1]).toEqual(expect.objectContaining({ status: 500, body: containing("emits CommonJS for") }));
+            expect(actual.responses.slice(0, 2).map(cur => cur.status)).toEqual([200, 200]);
+            expect(actual.responses.slice(2)).toEqual([
+                expect.objectContaining({ status: 500, body: containing("emits CommonJS for") }),
+                expect.objectContaining({ status: 500, body: containing("emits CommonJS for") }),
+                expect.objectContaining({ status: 500, body: containing("emits CommonJS for") }),
+            ]);
             expect(actual.responses.map(cur => cur.body)).not.toContainEqual(containing("__esModule"));
         },
         60000
