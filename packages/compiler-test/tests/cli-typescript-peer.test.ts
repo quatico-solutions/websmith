@@ -52,6 +52,8 @@ afterEach(() => {
 const runCli = (): { status: number | null; output: string } => {
     const env = { ...process.env };
     delete env.NODE_PATH;
+    env.HOME = projectDir;
+    env.USERPROFILE = projectDir;
     const result = spawnSync(process.execPath, [path.join(projectDir, "node_modules", "@quatico", "websmith-compiler", "bin", "bin.js"), "-p", "."], {
         cwd: projectDir,
         env,
