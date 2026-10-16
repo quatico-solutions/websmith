@@ -348,4 +348,26 @@ describe("vite dev server invalidation w/ websmith plugin", () => {
         },
         60000
     );
+
+    it.each(VITES)(
+        "should send no error w/ deleted file the plugin wrote w/ %s",
+        vite => {
+            const actual = runViteDev({
+                vite,
+                pluginOptions: APP,
+                steps: [
+                    `await get("/src/shared.ts");`,
+                    `fs.unlinkSync(path.join(root, "gen/shared.ts.txt"));`,
+                    `await edit("src/shared.ts", 'export const shared: string = "MARK_IN2";\\n', ${reloadOf("src/shared.ts")});`,
+                    `await get("/src/shared.ts");`,
+                ],
+            });
+
+            expect(actual.timeouts).toEqual([]);
+            expect(actual.watcherEvents).toContainEqual({ event: "unlink", file: "gen/shared.ts.txt" });
+            expect(errorMessages(actual)).toEqual([]);
+            expect(actual.responses[1]).toEqual(expect.objectContaining({ status: 200, body: containing("MARK_OUT2") }));
+        },
+        60000
+    );
 });
