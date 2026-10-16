@@ -4,8 +4,6 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
-import type ts from "typescript";
-
 export * from "./addons";
 export * from "./config";
 export * from "./diagnostic";
@@ -17,5 +15,3 @@ export * from "./CompilerArguments";
 
 // TscArguments exports (CLI flags and interface)
 export * from "./TscArguments";
-
-export type OnlyOnTypeScript6 = ts.ModuleKind.Node20;
