@@ -36,7 +36,7 @@
     "dependencies": {
         "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-core": "workspace:*",
-        "comment-json": "^4.2.5",
+        "comment-json": "^5.0.0",
         "tslib": "^2.8.1"
     },
     "peerDependencies": {
