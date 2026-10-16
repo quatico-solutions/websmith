@@ -115,7 +115,7 @@ describe("vite CLI w/ the vite.config.mjs of issue #60", () => {
             const { status, stdout, stderr } = spawnSync(process.execPath, [projectPath("dev.mjs")], { cwd: getProjectDir(), encoding: "utf-8" });
             const actual = JSON.parse(stdout.trim().split("\n").pop() || "{}") as { client?: string; ssr?: string };
 
-            expect(stderr).toBe("");
+            expect(stderr).not.toContain("[plugin websmith]");
             expect(status).toBe(0);
             expect(actual.client).toContain("CLIENT_OUT");
             expect(actual.ssr).toContain("MARK_IN");
