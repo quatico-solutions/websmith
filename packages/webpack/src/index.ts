@@ -4,6 +4,7 @@
  *   Licensed under the MIT License. See LICENSE in the project root for license information.
  * ---------------------------------------------------------------------------------------------
  */
+import "./typescript-guard";
 
 // Re-export core components
 export type { CompilerOptions } from "@quatico/websmith-api";

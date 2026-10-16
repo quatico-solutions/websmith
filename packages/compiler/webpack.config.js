@@ -23,6 +23,7 @@ module.exports = {
     resolve: {
         extensions: [".ts", ".js"],
         alias: {
+            "@quatico/websmith-core/lib": path.resolve(__dirname, "../core/src"),
             "@quatico/websmith-api": path.resolve(__dirname, "../api/lib"),
             "@quatico/websmith-core": path.resolve(__dirname, "../core/src"),
         },

@@ -7,15 +7,25 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { readTscVersion } from "./find-tsc";
+import { Logger } from "../Logger";
+import { findTsc, readTscVersion } from "./find-tsc";
+
+let mockNothingExists = false;
+
+jest.mock("path-exists", () => ({
+    pathExists: (candidate: string) => (mockNothingExists ? Promise.resolve(false) : jest.requireActual("path-exists").pathExists(candidate)),
+}));
 
 let tempDir: string;
 
 beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "websmith-find-tsc-"));
+    // module resolution yields real paths, the macOS tmpdir is a symlink
+    tempDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "websmith-find-tsc-")));
 });
 
 afterEach(() => {
+    jest.restoreAllMocks();
+    mockNothingExists = false;
     fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
@@ -29,6 +39,61 @@ const writeTypeScript = (packageJson?: Record<string, unknown>): string => {
     fs.writeFileSync(tscPath, "");
     return tscPath;
 };
+
+const writeProject = (name: string): string => {
+    const projectDir = path.join(tempDir, name);
+    const tsDir = path.join(projectDir, "node_modules", "typescript");
+    fs.mkdirSync(path.join(tsDir, "bin"), { recursive: true });
+    fs.writeFileSync(path.join(tsDir, "package.json"), JSON.stringify({ name: "typescript", version: "6.0.3", main: "./lib/typescript.js" }));
+    fs.writeFileSync(path.join(tsDir, "bin", "tsc"), "");
+    return projectDir;
+};
+
+describe("findTsc", () => {
+    it("should return the tsc of the typescript resolved from websmith-node", async () => {
+        const projectDir = writeProject("project");
+        const fromDir = path.join(projectDir, "node_modules", "@quatico", "websmith-node", "lib", "websmith");
+        fs.mkdirSync(fromDir, { recursive: true });
+
+        const actual = await findTsc(new Logger(), fromDir);
+
+        expect(actual).toBe(path.join(projectDir, "node_modules", "typescript", "bin", "tsc"));
+    });
+
+    it("should return the resolved tsc w/ another typescript in the working directory", async () => {
+        const projectDir = writeProject("project");
+        const fromDir = path.join(projectDir, "node_modules", "@quatico", "websmith-node", "lib", "websmith");
+        fs.mkdirSync(fromDir, { recursive: true });
+        jest.spyOn(process, "cwd").mockReturnValue(writeProject("sub"));
+
+        const actual = await findTsc(new Logger(), fromDir);
+
+        expect(actual).toBe(path.join(projectDir, "node_modules", "typescript", "bin", "tsc"));
+    });
+
+    it("should return the tsc of the working directory w/o typescript resolvable from websmith-node", async () => {
+        const fromDir = path.join(tempDir, "unresolvable");
+        fs.mkdirSync(fromDir, { recursive: true });
+        const cwd = writeProject("cwd");
+        jest.spyOn(process, "cwd").mockReturnValue(cwd);
+
+        const actual = await findTsc(new Logger(), fromDir);
+
+        expect(actual).toBe(path.join(cwd, "node_modules", "typescript", "bin", "tsc"));
+    });
+
+    it("should name the unresolvable typescript in the error message w/o any tsc", async () => {
+        const fromDir = path.join(tempDir, "unresolvable");
+        fs.mkdirSync(fromDir, { recursive: true });
+        mockNothingExists = true;
+        const logger = new Logger();
+        const target = jest.spyOn(logger, "error").mockImplementation(() => undefined);
+
+        await findTsc(logger, fromDir).catch(() => undefined);
+
+        expect(target.mock.calls[0][0]).toContain(`- typescript not resolvable from ${fromDir} ✖ not found`);
+    });
+});
 
 describe("readTscVersion", () => {
     it.each(["5.7.3", "6.0.3"])("should return version %s of the typescript package", async version => {

@@ -37,7 +37,7 @@ The `compile` function returns a string with the logs of the compilation. It als
 - `tsConfig`: A typescript compiler options object. See [tsconfig.json](https://www.typescriptlang.org/tsconfig) for more information.
 - `websmith`: A websmith options object. See [websmith.config.ts](https://github.com/quatico-solutions/websmith/blob/develop/packages/core/src/compiler/options/CompilerOptions.ts) for more information.
 
-Without a `websmith` option, `compile` runs the project's `tsc` on the given files with the given `tsConfig` and does not load a `tsconfig.json`, as `tsc` 5 does with file arguments; with TypeScript 6 it passes `--ignoreConfig` for that.
+Without a `websmith` option, `compile` runs the `tsc` of the `typescript` that websmith-node resolves, normally the project's, on the given files with the given `tsConfig` and does not load a `tsconfig.json`, as `tsc` 5 does with file arguments; with TypeScript 6 it passes `--ignoreConfig` for that.
 
 Run your profile or addons with the websmith compiler:
 

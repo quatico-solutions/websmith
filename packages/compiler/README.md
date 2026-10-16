@@ -17,10 +17,15 @@ Whenever you use the `tsc` command to compile your TypeScript project, you can r
 Add websmith to your TypeScript project with the `@quatico/websmith-compiler` package. For example, use the following command with `pnpm`:
 
 ```bash
-pnpm add --dev @quatico/websmith-compiler
+pnpm add -D typescript @quatico/websmith-compiler
 ```
 
-If you don't have added the "typescript" dependency yet, add it to your project too.
+`typescript` `>=5.7 <7` is a peer dependency: `websmith` compiles with the project's `typescript`, the same one its
+addons use. npm 7+ and pnpm install a missing peer themselves, but with Yarn 1 or `--legacy-peer-deps` you add it
+yourself. Without `typescript`, `websmith` exits with
+`websmith needs typescript >=5.7 <7; none was found. Add typescript to your project.`; with TypeScript 7, it exits
+with `websmith needs typescript >=5.7 <7; found 7.x. For TypeScript 7, keep typescript@6 as the project's typescript
+and run 7.x through its own binary (see README).`
 
 ### Use websmith as build command
 
