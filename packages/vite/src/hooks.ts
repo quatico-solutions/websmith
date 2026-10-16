@@ -588,8 +588,9 @@ export const createWebsmithHooks = (
         // read, since the next transform may run while it is. An options input drops the state, so that the full reload
         // creates it again: the options resolve again, the addon entries load again and activate, and the
         // configuration errors are logged again. A package.json clears the caches of the module format check, and
-        // Vite reloads the modules that watch it. A deleted module drops its outputs. An own write of the plugin reloads
-        // no module through a watch file the plugin added; a module the page imports keeps Vite's update.
+        // Vite reloads the modules that watch it. A deleted module drops its outputs; any other deleted file is no longer
+        // the plugin's own. An own write of the plugin reloads no module through a watch file the plugin added; a module
+        // the page imports keeps Vite's update.
         async hotUpdate(input) {
             const { environment } = this;
             const state = instances.get(environment) ?? environments.get(environment.name);
@@ -614,9 +615,13 @@ export const createWebsmithHooks = (
                 state.compiler?.resetCompilationCaches();
                 return undefined;
             }
-            if (input.type === "delete" && isCompiledId(file, filter)) {
-                state.outputs.startModule(file);
-                state.outputFiles.delete(file);
+            if (input.type === "delete") {
+                // A deleted file has no text to read, and a later file at its path is no write of the plugin
+                record.forget(file);
+                if (isCompiledId(file, filter)) {
+                    state.outputs.startModule(file);
+                    state.outputFiles.delete(file);
+                }
                 return undefined;
             }
             if (record.has(file) && record.isOwnWrite(file, await input.read())) {

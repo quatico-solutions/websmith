@@ -31,6 +31,11 @@ export class WriteRecord {
         return this.written.has(toFileKey(filePath));
     }
 
+    /** Forgets that the plugin wrote `filePath`, e.g. after it was deleted. */
+    public forget(filePath: string): void {
+        this.written.delete(toFileKey(filePath));
+    }
+
     /**
      * Returns whether `text`, read from `filePath`, is what the plugin wrote there last. Forgets `filePath` otherwise,
      * so that another writer's later write of the same text is not taken for the plugin's own.

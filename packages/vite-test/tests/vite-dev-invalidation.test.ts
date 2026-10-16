@@ -67,7 +67,7 @@ const GET_FAILING = (url: string): string => `await get(${JSON.stringify(url)});
 const eventsBetween = (events: ViteWatcherEvent[], after: string, from: string): ViteWatcherEvent[] => {
     const start = events.findIndex((cur, i) => cur.file === from && events.slice(0, i).some(prev => prev.file === after));
     const end = events.findIndex((cur, i) => i > start && cur.file === after);
-    return events.slice(start, end);
+    return start < 0 ? [] : events.slice(start, end < 0 ? events.length : end);
 };
 
 beforeEach(() => {

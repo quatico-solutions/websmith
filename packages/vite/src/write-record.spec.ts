@@ -203,6 +203,16 @@ describe("WriteRecord", () => {
         expect(actual).toBe(false);
     });
 
+    it("should forget path w/ forget", () => {
+        const testObj = new WriteRecord();
+        testObj.record("/out/a.js", "A");
+        testObj.forget("/out/a.js");
+
+        const actual = testObj.isOwnWrite("/out/a.js", "A");
+
+        expect(actual).toBe(false);
+    });
+
     it("should be own write w/ byte order mark recorded and read", () => {
         const testObj = new WriteRecord();
         testObj.record("/out/a.js", "A", true);

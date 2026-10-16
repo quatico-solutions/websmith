@@ -1725,8 +1725,8 @@ describe("createWebsmithHooks", () => {
             const { testObj, target, environment } = createServing();
 
             const actual = await testObj.hotUpdate.call({ environment }, hotInput(`${ROOT}/src/other.ts`));
-
             testObj.transformHandler.call(createContext([], environment), "whatever", MAIN);
+
             expect(actual).toBeUndefined();
             expect(target).toHaveBeenCalledTimes(1);
         });
@@ -1830,7 +1830,7 @@ describe("createWebsmithHooks", () => {
                 });
                 const testObj = createWebsmithHooks(
                     { profile: "app" },
-                    { createFilter: () => () => true, createCompiler: (_options, _reporter, _outputs, cur) => ((record = cur), compiler) }
+                    { createFilter: () => id => id.endsWith(".ts"), createCompiler: (_options, _reporter, _outputs, cur) => ((record = cur), compiler) }
                 );
                 testObj.configResolved({ root: ROOT, command: "serve" });
                 testObj.buildStart.call(createContext([], environment));
@@ -1883,6 +1883,27 @@ describe("createWebsmithHooks", () => {
                 await testObj.hotUpdate.call({ environment }, hotInput(GEN, { text: "OTHER", modules: [{ file: GEN }] }));
 
                 const actual = await testObj.hotUpdate.call({ environment }, hotInput(GEN, { text: "GEN", modules: [{ file: GEN }] }));
+
+                expect(actual).toBeUndefined();
+            });
+
+            it("should return undefined without reading file w/ deleted own write", async () => {
+                const environment = createEnvironment();
+                const testObj = createWriting(environment);
+                const read = jest.fn(() => Promise.reject(new Error("ENOENT")));
+
+                const actual = await testObj.hotUpdate.call({ environment }, { ...hotInput(GEN, { type: "delete", modules: [{ file: GEN }] }), read });
+
+                expect(actual).toBeUndefined();
+                expect(read).not.toHaveBeenCalled();
+            });
+
+            it("should return undefined w/ foreign write of the recorded text after delete", async () => {
+                const environment = createEnvironment();
+                const testObj = createWriting(environment);
+                await testObj.hotUpdate.call({ environment }, hotInput(GEN, { type: "delete", text: "GEN", modules: [{ file: GEN }] }));
+
+                const actual = await testObj.hotUpdate.call({ environment }, hotInput(GEN, { type: "create", text: "GEN", modules: [{ file: GEN }] }));
 
                 expect(actual).toBeUndefined();
             });
