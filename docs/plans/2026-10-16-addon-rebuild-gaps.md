@@ -18,6 +18,7 @@
 - **Story:** node24-esm-support
 - **Review:** pr
 - **Impl:** own branches
+- **Rounds:** 3
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
@@ -31,8 +32,10 @@
   output. Before, the CLI's watch mode, the loader and the Vite plugin kept the previous text.
 - `vite build --watch` rebuilds when an addon, `websmith.config.json` or `tsconfig.json` changes, activates the
   addons again and transforms every module with the new configuration.
-- The webpack loader and the Vite plugin compile with `noEmit: false`, so addon output is no longer dropped in
-  projects whose `tsconfig.json` sets `noEmit: true`, as Vite's project templates do. The CLI keeps `tsc`'s meaning.
+- The webpack loader and the Vite plugin no longer drop addon output in projects whose `tsconfig.json` sets
+  `noEmit: true` or `emitDeclarationOnly: true`, as Vite's project templates do. They use the compiled JavaScript in
+  memory and write no file for it, and `allowImportingTsExtensions` no longer needs `noEmit`. A profile `tsConfig`
+  with `"noEmit": false` and an `outDir` keeps writing there, but is no longer needed. The CLI keeps `tsc`'s meaning.
 
 ## Motivation
 
@@ -57,32 +60,52 @@ The Vite plugin plan's slices recorded these four limits under "Not in this slic
   does for `dependencies`; the Vite plugin forwards them through `this.addWatchFile` and records them as its own watch
   files, so the dev-invalidation write guard keeps working. Which files "the Program read for that module" means is
   the slice's first decision: the transitive imports of the module's source file, not the whole Program, so one edit
-  does not rebuild every module.
+  does not rebuild every module. It follows `import` and `export` chains through project files, so a type
+  re-exported by a barrel `index.ts` is covered; direct imports alone would miss that, and every Program file would
+  rebuild every typed module on any edit. An edit of a shared types file still rebuilds all its importers; that is
+  the correct result, and its cost is gated: if `esm-watch-bench.cjs` shows the 1000-module initial build more than
+  5% slower than on `develop`, the slice caches the import graph per compilation before it merges. In the loader
+  a type-only edit can only change diagnostics (or a type-aware addon's output), so its e2e asserts that a type
+  error caused by an edit of `types.ts` appears in the watch rebuild and clears when the edit is reverted.
 - **Stale output.** `FileCache.updateSource` replaces the snapshot when the content differs from the cached content,
-  as well as when the file's mtime is newer. The version bump makes the language service re-read the file.
+  as well as when the file's mtime is newer. The version bump makes the language service re-read the file. A
+  processor whose output differs on every run (a timestamp) now bumps the version on every rebuild and re-checks that
+  file and its dependents; the new text is the right output, so correctness wins over the extra check. Bumping only
+  when the edited file is one of the module's `addAssetDependency` files was rejected: it needs the changed path
+  passed down into the cache for a saving that only such processors would see.
 - **`vite build --watch`.** In build mode with `this.meta.watchMode`, the plugin passes `websmith.config.json`, the
-  `tsconfig.json` and its `extends` chain, and the addon files to `this.addWatchFile` in `transform` for every module
-  it compiles. Rollup then re-transforms every such module when one of them changes, which is what the config edit
+  `tsconfig.json` and its `extends` chain, and every file under the addons directory to `this.addWatchFile` in
+  `transform` for every module it compiles. The addons directory tree is the rule the dev server's `hotUpdate`
+  already uses, so dev and build watch agree; an addon's own dependencies outside that directory are not watched in
+  either. Rollup then re-transforms every such module when one of them changes, which is what the config edit
   needs. In `watchChange` for one of those files, the plugin drops its compiler instance, as `hotUpdate` does in the
-  dev server, so the next `buildStart` re-resolves options and re-activates the addons.
-- **`noEmit`.** The loader and the Vite plugin set `noEmit: false` on the options they resolve, after `tsconfig.json`
-  and the profile's `tsConfig` are merged. A bundler host needs the transformed code; type checking is not affected.
-  The CLI keeps `tsc`'s meaning (`noEmit` emits nothing). The same slice checks `emitDeclarationOnly`, which drops
-  JavaScript the same way, and treats it the same if it does.
+  dev server, so the next `buildStart` re-resolves options and re-activates the addons. A configuration error on
+  such a rebuild fails that rebuild and leaves the watcher running; the edit that fixes it rebuilds clean, as in
+  the dev server and the loader's watch mode.
+- **`noEmit`.** A bundler host needs the compiled JavaScript, so the loader and the Vite plugin decide per profile,
+  after `tsconfig.json` and the profile's `tsConfig` are merged: a profile whose resolved `noEmit` or
+  `emitDeclarationOnly` is true is compiled with both removed, as `ts.transpileModule` already removes them on the
+  `transpileOnly` path (`TRANSPILE_REMOVED_OPTIONS`, `Compiler.ts:67`), together with `allowImportingTsExtensions`,
+  and its JavaScript is emitted with `writeFile` false (`Compiler.ts:491`): used in memory, never written to disk.
+  Two traps of a plain `noEmit: false` are avoided that way: without an `outDir` the emit would write `.js` next to
+  the user's sources, and Vite's templates set `allowImportingTsExtensions`, which reports TS5096 without `noEmit`.
+  Declarations are still written where the profile asks for them. A dependent profile with its own `noEmit: false`
+  and `outDir` writes as it does today, so the README's current workaround keeps working; the README says it is no
+  longer needed. The override is silent and documented in the README: Vite's templates set `noEmit`, so a warning
+  would fire in almost every project. The CLI keeps `tsc`'s meaning (`noEmit` emits nothing).
 
 ### Open Points
 
-- [ ] Type-only imports: is the dependency set per module (transitive imports of the source file) cheap enough on a
-      1000-module build? The slice measures with `esm-watch-bench.cjs` and reports the numbers in the PR.
 - [ ] `noEmit`: does a loader build with `noEmit: true` drop output, fail, or work today? Reproduce first; the slice
       line holds either way.
+- [ ] Type-only imports in the loader: reproduce first that a type-only edit rebuilds nothing in watch mode today.
 
 ## Slices
 
-- `bug/type-only-import-deps` — core returns, for a module compiled with type information, the project source files its type check depends on (transitive imports, `lib*.d.ts` and `node_modules` excluded) in `dependencies.files`; the loader and the Vite plugin forward them; unit tests in `ModuleCompiler.spec.ts` (type-only import listed with a Program, not listed under `transpileOnly`); e2e: a webpack watch edit of a type-only import that changes a diagnostic rebuilds the importer (reproduce first), and a Vite dev-server edit of `src/types.ts` reloads `main.ts`; README known-limit lines removed; Release-Notes entry; bench numbers in the PR <!-- builds: type-check dependencies in ModuleBuildResult -->
+- `bug/type-only-import-deps` — core returns, for a module compiled with type information, the project source files its type check depends on (transitive imports, `lib*.d.ts` and `node_modules` excluded) in `dependencies.files`; the loader and the Vite plugin forward them; unit tests in `ModuleCompiler.spec.ts` (type-only import listed with a Program, a type re-exported through a barrel listed, nothing listed under `transpileOnly`); e2e: in webpack watch mode an edit of a type-only import makes a type error appear on the importer and reverting it clears the error (reproduce first), and a Vite dev-server edit of `src/types.ts` reloads `main.ts`; README known-limit lines removed; Release-Notes entry; bench numbers in the PR, initial build at most 5% slower than `develop` or the import graph cached per compilation <!-- builds: type-check dependencies in ModuleBuildResult -->
 - `bug/file-cache-update-source` — `FileCache.updateSource` replaces the snapshot when the content changed; unit tests in `FileCache.spec.ts` (same mtime, new content → new version; same content → same version); e2e: a processor reading a data file through `addAssetDependency` serves the new text after the data edit in the Vite dev server, in `vite build --watch`, in the loader's watch mode and in the CLI's watch mode; README known-limit lines removed; Release-Notes entry <!-- builds: content-aware FileCache.updateSource -->
-- `bug/vite-build-watch-reload` — in `vite build --watch`, the config file, the `tsconfig.json` chain and the addon files are watch files of every compiled module, and a change of one drops the compiler instance; unit tests in `hooks.spec.ts`; e2e in `vite-test`: an addon edit rebuilds with the new addon, a config edit that drops an addon removes its output from every module; README "Addon context" known limit removed; Release-Notes entry <!-- builds: build-watch invalidation in the Vite plugin --> <!-- waits: bug/type-only-import-deps -->
-- `bug/bundler-no-emit` — the loader and the Vite plugin resolve options with `noEmit: false` (and `emitDeclarationOnly: false` if it drops output too); unit tests on option resolution in both hosts; e2e in `webpack-test` and `vite-test` with a `tsconfig.json` that sets `noEmit: true`: addon output is in the bundle, dev and build; the CLI e2e unchanged; README Configuration warning about `noEmit` replaced; Release-Notes behaviour-change entry <!-- builds: noEmit override in the bundler hosts -->
+- `bug/vite-build-watch-reload` — in `vite build --watch`, the config file, the `tsconfig.json` chain and the addon files are watch files of every compiled module, and a change of one drops the compiler instance; unit tests in `hooks.spec.ts`; e2e in `vite-test`: an addon edit rebuilds with the new addon, a config edit that drops an addon removes its output from every module, a broken config fails one rebuild and the fixing edit rebuilds clean; README "Addon context" known limit removed; Release-Notes entry <!-- builds: build-watch invalidation in the Vite plugin --> <!-- waits: bug/type-only-import-deps -->
+- `bug/bundler-no-emit` — in the loader and the Vite plugin, a profile whose resolved `noEmit` or `emitDeclarationOnly` is true compiles without them and without `allowImportingTsExtensions` and emits its JavaScript in memory only; unit tests on option resolution in both hosts; e2e in `webpack-test` and `vite-test` with Vite's template `tsconfig.json` (`noEmit`, `allowImportingTsExtensions`, no `outDir`): addon output is in the bundle in dev and build, no TS5096, no `.js` written beside the sources; `emitDeclarationOnly: true` gives the same bundle; a dependent profile with `noEmit: false` and `outDir` still writes there; the CLI e2e unchanged; README Configuration warning replaced by the in-memory rule and "the workaround is no longer needed"; Release-Notes behaviour-change entry <!-- builds: noEmit override in the bundler hosts -->
 
 ## Notes
 
@@ -92,5 +115,20 @@ The Vite plugin plan's slices recorded these four limits under "Not in this slic
 - `noEmit`: decided to emit anyway in the bundler hosts. Rejected: failing the build with a diagnostic, because Vite's
   own templates set `noEmit: true` and every Vite user would have to override it; deciding in the slice, because the
   direction changes the slice's scope.
+- Challenged 2026-10-17 (3 rounds). The plain `noEmit: false` override was replaced by the in-memory emit, because it
+  would write `.js` beside sources without an `outDir` and report TS5096 under Vite's `allowImportingTsExtensions`.
+  Rejected there: overriding only when an `outDir` is set (Vite templates set none), and going back to an error.
+  Override per resolved profile, not only the host's target profile, so a dependent profile's addon output is not
+  dropped either. No warning and no debug line for the override. Type-only dependencies: transitive project imports,
+  with a 5% initial-build gate; rejected direct imports only and every Program file. `vite build --watch` watches the
+  addons directory tree, as dev does; rejected tracking the files the registry loaded (core has no require
+  tracking). The loader's type-only e2e asserts a diagnostic, not a type-aware addon's output.
 - `bug/vite-build-watch-reload` waits for `bug/type-only-import-deps`: both add watch files in `packages/vite`'s
   `transform` and record them for the write guard.
+
+<!-- CHALLENGE-THE-PLAN-METADATA
+rounds: 3
+last_run: 2026-10-17
+categories_covered: [technical, ux-error, non-functional-performance, trade-offs]
+deferred: []
+-->
