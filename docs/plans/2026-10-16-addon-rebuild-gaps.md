@@ -129,7 +129,7 @@ the type-only dependencies, then build watch, which adds its watch files beside 
 
 `FileCache.updateSource` replaces the snapshot when the content changed; unit tests in `FileCache.spec.ts` (same mtime, new content → new version; same content → same version); e2e: a processor reading a data file through `addAssetDependency` serves the new text after the data edit in the Vite dev server, in `vite build --watch`, in the loader's watch mode and in the CLI's watch mode; README known-limit lines removed; Release-Notes entry
 
-### noEmit in bundler hosts (Branch: bug/bundler-no-emit) <!-- builds: noEmit override in the bundler hosts -->
+### noEmit in bundler hosts (Branch: bug/bundler-no-emit) <!-- builds: noEmit override in the bundler hosts --> → #215
 
 In the loader and the Vite plugin, a profile whose resolved `noEmit` or `emitDeclarationOnly` is true compiles without them and without `allowImportingTsExtensions` and emits its JavaScript in memory only; unit tests on option resolution in both hosts, including a profile that inherits `noEmit` through `extends`; e2e in `webpack-test` and `vite-test` with Vite's template `tsconfig.json` (`noEmit`, `allowImportingTsExtensions`, no `outDir`): addon output is in the bundle in dev and build, no TS5096, no `.js` written beside the sources; `emitDeclarationOnly: true` gives the same bundle; a dependent profile with `noEmit: false` and `outDir` still writes there; the CLI e2e unchanged; README Configuration warning replaced by the in-memory rule and "the workaround is no longer needed"; Release-Notes behaviour-change entry
 
