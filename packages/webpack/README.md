@@ -139,6 +139,17 @@ a compilation and across watch rebuilds while its files and the options are unch
 worker looks for edits in `addonsDir` once per watch compilation, and at most once a second without watch. Addons
 must not rely on being activated again for each module.
 
+#### `noEmit` and `emitDeclarationOnly`
+
+With `"noEmit": true` or `"emitDeclarationOnly": true` in the `tsconfig.json`, the loader's `tsConfig` or the
+profile's `tsConfig`, as Vite-style projects set `noEmit`, the loader compiles the modules as if neither were set and
+without `allowImportingTsExtensions` (and, under `noEmit`, without `noEmitOnError`), and passes the JavaScript to
+webpack in memory; it writes no `.js` file. Declarations are still written under `emitDeclarationOnly` and
+`declaration`, to `outDir`, and webpack emits them as assets as well. The same applies to each profile the selected
+`profile` depends on, by its own resolved options; a profile with `"noEmit": false` and an `outDir` keeps writing
+there. Before, the loader wrote the JavaScript to `outDir`, or to `./lib` in the working directory, despite `noEmit`,
+and failed with "No processed output found" under `declaration: true` or `emitDeclarationOnly`.
+
 #### `package.json` `"type"` under the node module kinds
 
 Under `module: node16`, `node18`, `node20` or `nodenext` (`node18` and `node20` exist only in TypeScript 6), in the
