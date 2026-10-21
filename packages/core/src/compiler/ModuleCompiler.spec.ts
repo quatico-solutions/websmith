@@ -14,10 +14,15 @@ const MODULE_PACKAGE = { "/package.json": JSON.stringify({ type: "module" }) };
 const TS_CONFIG = { "/tsconfig.json": JSON.stringify({ compilerOptions: { target: "es2020", module: "esnext", outDir: "/dist", rootDir: "/src" } }) };
 const REQUIRE_SOURCE = `declare const require: (id: string) => unknown;\nexport const x = require("x");`;
 
-const createAddons = (system: ts.System, reporter: Reporter, activators: Record<string, (ctx: CompilationContext) => void>): AddonRegistry => {
+const createAddons = (
+    system: ts.System,
+    reporter: Reporter,
+    activators: Record<string, (ctx: CompilationContext) => void>,
+    { typeInfo = false }: { typeInfo?: boolean } = {}
+): AddonRegistry => {
     system.createDirectory("/addons");
     const addons = new AddonRegistry({ addonsDir: "/addons", reporter, system });
-    const available = Object.entries(activators).map(([name, activate]) => ({ getName: () => name, activate, needsTypeInfo: false }));
+    const available = Object.entries(activators).map(([name, activate]) => ({ getName: () => name, activate, needsTypeInfo: typeInfo }));
     addons.getAvailableAddons = jest.fn().mockReturnValue(available);
     addons.getAddonByName = jest.fn().mockImplementation((name: string) => available.find(cur => cur.getName() === name));
     return addons;
@@ -27,15 +32,16 @@ const createModuleCompiler = (
     files: Record<string, string>,
     profiles: Record<string, CompilationProfile>,
     activators: Record<string, (ctx: CompilationContext) => void> = {},
-    host: Omit<ModuleCompilerHost, "addons"> = {}
+    host: Omit<ModuleCompilerHost, "addons"> = {},
+    { typeInfo = false }: { typeInfo?: boolean } = {}
 ): ModuleCompiler => {
     const system = createSystem({ ...TS_CONFIG, ...files }, { virtual: true });
     const reporter = new NoReporter();
     return new ModuleCompiler(
         { config: { profiles }, reporter, cliArgs: { options: {}, fileNames: Object.keys(files).filter(cur => cur.endsWith(".ts")), errors: [] } },
-        { tsConfigFile: "/tsconfig.json", transpileOnly: true, profile: "target" },
+        { tsConfigFile: "/tsconfig.json", transpileOnly: !typeInfo, profile: "target" },
         system,
-        { addons: createAddons(system, reporter, activators), ...host }
+        { addons: createAddons(system, reporter, activators, { typeInfo }), ...host }
     );
 };
 
@@ -186,6 +192,62 @@ describe("ModuleCompiler build", () => {
         jest.spyOn(testObj, "getSystem").mockReturnValue(undefined as never);
 
         expect(() => testObj.build("/src/a.ts")).toThrow(new Error("TsCompiler.build() called without a valid ts.System"));
+    });
+});
+
+describe("ModuleCompiler build w/ asset dependency", () => {
+    const DATA_SOURCE = { ...MODULE_PACKAGE, "/src/a.ts": `export const greeting: string = "DATA_IN";`, "/data.txt": "DATA1" };
+    const dataProcessor = (ctx: CompilationContext) =>
+        ctx.registerProcessor((fileName, content) => {
+            ctx.addAssetDependency("/data.txt", fileName);
+            return content.replace("DATA_IN", ctx.getSystem().readFile("/data.txt") ?? "");
+        });
+    const jsOf = (compiler: ModuleCompiler) => compiler.build("/src/a.ts").fragment.files.find(cur => cur.name.endsWith(".js"))?.text;
+
+    it("yields fragment w/ new processor output after edit of asset dependency w/ type info", () => {
+        const testObj = createModuleCompiler(DATA_SOURCE, { target: { addons: ["datap"] } }, { datap: dataProcessor }, {}, { typeInfo: true });
+        testObj.build("/src/a.ts");
+        testObj.getSystem().writeFile("/data.txt", "DATA2");
+
+        const actual = jsOf(testObj);
+
+        expect(actual).toContain(`"DATA2"`);
+    });
+
+    it("yields version bumped twice w/ two rebuilds of processor returning different text w/ type info", () => {
+        let count = 0;
+        const testObj = createModuleCompiler(
+            { ...MODULE_PACKAGE, "/src/a.ts": `export const x = 1;` },
+            { target: { addons: ["counter"] } },
+            { counter: ctx => ctx.registerProcessor((_fileName, content) => `${content}\nexport const count = ${++count};`) },
+            {},
+            { typeInfo: true }
+        );
+        const first = testObj.build("/src/a.ts").fragment.version;
+        testObj.build("/src/a.ts");
+
+        const actual = testObj.build("/src/a.ts").fragment.version;
+
+        expect(actual).toBe(first + 2);
+    });
+
+    it("yields same version w/ rebuild of unchanged module w/ type info", () => {
+        const testObj = createModuleCompiler(DATA_SOURCE, { target: { addons: ["datap"] } }, { datap: dataProcessor }, {}, { typeInfo: true });
+        const first = testObj.build("/src/a.ts").fragment.version;
+
+        const actual = testObj.build("/src/a.ts").fragment.version;
+
+        expect(actual).toBe(first);
+    });
+
+    it("yields fragment w/ new processor output after edit of asset dependency w/o type info", () => {
+        const testObj = createModuleCompiler(DATA_SOURCE, { target: { addons: ["datap"] } }, { datap: dataProcessor });
+        testObj.build("/src/a.ts");
+        testObj.getSystem().writeFile("/data.txt", "DATA2");
+
+        const actual = jsOf(testObj);
+
+        expect(actual).toContain(`"DATA2"`);
     });
 });
 

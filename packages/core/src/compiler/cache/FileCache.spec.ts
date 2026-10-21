@@ -42,3 +42,57 @@ describe("hasChanged", () => {
         expect(testObj.getCachedFile("target-file.txt").content).toBe("expected");
     });
 });
+
+describe("updateSource", () => {
+    it("should yield new version w/ new content and unchanged modification time", () => {
+        const system = createBrowserSystem();
+        system.writeFile("target-file.ts", "whatever");
+        const testObj = new FileCache(system).updateSource("target-file.ts", "first").updateOutput("target-file.ts", []);
+
+        const actual = testObj.updateSource("target-file.ts", "second").getVersion("target-file.ts");
+
+        expect(actual).toBe(2);
+    });
+
+    it("should yield snapshot of new content w/ new content and unchanged modification time", () => {
+        const system = createBrowserSystem();
+        system.writeFile("target-file.ts", "whatever");
+        const testObj = new FileCache(system).updateSource("target-file.ts", "first").updateOutput("target-file.ts", []);
+
+        const actual = testObj.updateSource("target-file.ts", "second").getSnapshot("target-file.ts")!;
+
+        expect(actual.getText(0, actual.getLength())).toBe("second");
+    });
+
+    it("should keep version w/ same content and unchanged modification time", () => {
+        const system = createBrowserSystem();
+        system.writeFile("target-file.ts", "whatever");
+        const testObj = new FileCache(system).updateSource("target-file.ts", "first").updateOutput("target-file.ts", []);
+
+        const actual = testObj.updateSource("target-file.ts", "first").getVersion("target-file.ts");
+
+        expect(actual).toBe(1);
+    });
+
+    it("should yield new version per update w/ different content in each update", () => {
+        const system = createBrowserSystem();
+        system.writeFile("target-file.ts", "whatever");
+        const testObj = new FileCache(system).updateSource("target-file.ts", "first").updateOutput("target-file.ts", []);
+        testObj.updateSource("target-file.ts", "second").updateOutput("target-file.ts", []);
+
+        const actual = testObj.updateSource("target-file.ts", "third").getVersion("target-file.ts");
+
+        expect(actual).toBe(3);
+    });
+
+    it("should yield new version w/ newer modification time and same content", () => {
+        const system = createBrowserSystem();
+        system.writeFile("target-file.ts", "whatever");
+        const testObj = new FileCache(system).updateSource("target-file.ts", "first").updateOutput("target-file.ts", []);
+        jest.spyOn(system, "getModifiedTime").mockReturnValue(new Date(Date.now() + 60_000));
+
+        const actual = testObj.updateSource("target-file.ts", "first").getVersion("target-file.ts");
+
+        expect(actual).toBe(2);
+    });
+});

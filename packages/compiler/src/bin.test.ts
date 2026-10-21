@@ -1605,43 +1605,43 @@ exports.activate = ctx => ctx.registerTransformer({
         );
     };
 
-    describe("w/ --watch and generator adding an input file", () => {
-        const waitFor = async (predicate: () => boolean, timeoutMs: number, getOutput: () => string): Promise<void> => {
-            const start = Date.now();
-            while (!predicate()) {
-                if (Date.now() - start > timeoutMs) {
-                    throw new Error(`Timed out after ${timeoutMs} ms. Output:\n${getOutput()}`);
-                }
-                await new Promise(resolve => setTimeout(resolve, 100));
+    const waitFor = async (predicate: () => boolean, timeoutMs: number, getOutput: () => string): Promise<void> => {
+        const start = Date.now();
+        while (!predicate()) {
+            if (Date.now() - start > timeoutMs) {
+                throw new Error(`Timed out after ${timeoutMs} ms. Output:\n${getOutput()}`);
             }
-        };
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    };
 
-        // Repeats the edit until the output shows it: an edit right after the first emit can precede the file's watcher
-        const editUntil = async (edit: () => void, predicate: () => boolean, timeoutMs: number, getOutput: () => string): Promise<void> => {
-            const start = Date.now();
-            for (;;) {
-                edit();
-                try {
-                    await waitFor(predicate, 2000, getOutput);
-                    return;
-                } catch (err) {
-                    if (Date.now() - start > timeoutMs) {
-                        throw err;
-                    }
-                }
-            }
-        };
-
-        // Waits for the exit, so the next test's cleanup does not race the watcher of this one
-        const stopChild = async (child: ChildProcess): Promise<void> => {
-            if (child.exitCode !== null || child.signalCode !== null) {
+    // Repeats the edit until the output shows it: an edit right after the first emit can precede the file's watcher
+    const editUntil = async (edit: () => void, predicate: () => boolean, timeoutMs: number, getOutput: () => string): Promise<void> => {
+        const start = Date.now();
+        for (;;) {
+            edit();
+            try {
+                await waitFor(predicate, 2000, getOutput);
                 return;
+            } catch (err) {
+                if (Date.now() - start > timeoutMs) {
+                    throw err;
+                }
             }
-            const exited = new Promise(resolve => child.once("exit", resolve));
-            child.kill();
-            await exited;
-        };
+        }
+    };
 
+    // Waits for the exit, so the next test's cleanup does not race the watcher of this one
+    const stopChild = async (child: ChildProcess): Promise<void> => {
+        if (child.exitCode !== null || child.signalCode !== null) {
+            return;
+        }
+        const exited = new Promise(resolve => child.once("exit", resolve));
+        child.kill();
+        await exited;
+    };
+
+    describe("w/ --watch and generator adding an input file", () => {
         const startWatchCompiler = () => {
             createAddon(
                 "gen",
@@ -1708,6 +1708,66 @@ exports.activate = ctx => ctx.registerTransformer({
                 const actual = getOutput().split("Expression expected.").length - 1;
 
                 expect(actual).toBe(1);
+            } finally {
+                await stopChild(child);
+            }
+        }, 60000);
+    });
+
+    describe("w/ --watch and processor reading an asset dependency", () => {
+        const startWatchCompiler = () => {
+            createAddon(
+                "datap",
+                `const fs = require("fs");
+exports.activate = ctx => ctx.registerProcessor((file, content) => {
+    const data = ctx.resolvePath("data.txt");
+    ctx.addAssetDependency(data, file);
+    return content.replaceAll("DATA_IN", fs.readFileSync(data, "utf-8"));
+});`
+            );
+            fs.writeFileSync(
+                path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                JSON.stringify({ compilerOptions: { outDir: "dist", rootDir: "src", target: "esnext", types: [] }, include: ["src/a.ts"] }),
+                { encoding: "utf-8" }
+            );
+            fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "data.txt"), "DATA1", { encoding: "utf-8" });
+            createSourceFile(`export const greeting: string = "DATA_IN";`, "a.ts");
+            const binPath = path.join(__dirname, "..", "bin", "bin.js");
+            const child = spawn(
+                "node",
+                [
+                    binPath,
+                    "--addonsDir",
+                    path.join(testDirs.PROJECT_DIR, "addons"),
+                    "--addons",
+                    "datap",
+                    "--project",
+                    path.join(testDirs.PROJECT_DIR, "tsconfig.json"),
+                    "--watch",
+                ],
+                { cwd: testDirs.PROJECT_DIR }
+            );
+            let output = "";
+            child.stdout.on("data", (chunk: Buffer) => (output += chunk.toString()));
+            child.stderr.on("data", (chunk: Buffer) => (output += chunk.toString()));
+            return { child, getOutput: () => output };
+        };
+
+        it("should emit new processor output w/ edit of asset dependency", async () => {
+            const { child, getOutput } = startWatchCompiler();
+            const outFile = path.join(testDirs.OUTPUT_DIR, "a.js");
+            try {
+                await waitFor(() => fs.existsSync(outFile) && fs.readFileSync(outFile, "utf-8").includes("DATA1"), 30000, getOutput);
+                await editUntil(
+                    () => fs.writeFileSync(path.join(testDirs.PROJECT_DIR, "data.txt"), "DATA2", { encoding: "utf-8" }),
+                    () => fs.readFileSync(outFile, "utf-8").includes("DATA2"),
+                    10000,
+                    getOutput
+                );
+
+                const actual = fs.readFileSync(outFile, "utf-8");
+
+                expect(actual).toContain("DATA2");
             } finally {
                 await stopChild(child);
             }

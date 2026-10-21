@@ -194,7 +194,7 @@ Vite names its server environment `ssr`, so the map selects the `server` profile
   addons of the profile that need type information; set `needsTypeInfo` to `false` in an addon that needs none.
 - **An edit to a type-only import**, e.g. `import type { Props } from "./types"`, does not reload its importer. An edit
   to a value import reloads it through Vite's module graph. An edit of a file an addon reads through
-  `addAssetDependency` reloads the module, but the served output can keep the old text.
+  `addAssetDependency` reloads the module with the addon's new output.
 
 ## Addon context
 
@@ -243,8 +243,6 @@ The addons of the selected profile receive an `AddonContext` whose file methods 
 - **TypeScript's errors without a file**, e.g. the option error TS5053, reach the error overlay and fail `vite build`
   only with `transpileOnly`, see [Dev server](#dev-server).
 - **An edit to a type-only import** does not reload its importer, see [Dev server](#dev-server).
-- **An edit of a file an addon reads through `addAssetDependency`** reloads the module, but its output can keep the
-  old text, in the dev server and under `vite build --watch`.
 - **Under `vite build --watch`**, edited addons do not activate again, and a configuration edit leaves the modules
   Rollup does not transform again with their old output; restart the build, see [Addon context](#addon-context).
 - **The watched files and the record of written files** only grow during a long dev server session.

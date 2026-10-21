@@ -154,7 +154,7 @@ type WebsmithLoaderConfig = {
 
 The loader calls `this.addDependency(path)` for all source files, dependencies added via
 `addAssetDependency()`, and configuration file changes. `this.version` is set to `CompileFragment.version`; the
-version increments when a source changes, which drives webpack's incremental rebuilds.
+version increments when a source or its processed text changes, which drives webpack's incremental rebuilds.
 
 ### Wrong
 

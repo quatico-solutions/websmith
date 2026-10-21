@@ -125,7 +125,7 @@ The Vite plugin plan's slices recorded these four limits under "Not in this slic
 One slice per wave, in this order: the small core fix first, then `noEmit`, which hits most Vite projects, then
 the type-only dependencies, then build watch, which adds its watch files beside theirs.
 
-### Stale output (Branch: bug/file-cache-update-source) <!-- builds: content-aware FileCache.updateSource -->
+### Stale output (Branch: bug/file-cache-update-source) <!-- builds: content-aware FileCache.updateSource --> → #214
 
 `FileCache.updateSource` replaces the snapshot when the content changed; unit tests in `FileCache.spec.ts` (same mtime, new content → new version; same content → same version); e2e: a processor reading a data file through `addAssetDependency` serves the new text after the data edit in the Vite dev server, in `vite build --watch`, in the loader's watch mode and in the CLI's watch mode; README known-limit lines removed; Release-Notes entry
 

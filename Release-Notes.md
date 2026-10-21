@@ -247,6 +247,10 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 - In watch mode, a file a generator adds with `addInputFile` is emitted on the first build and reported once per
   change and watched profile instead of once per rebuild that re-added it, also when the profile has `depends`. `Adding <file> to watch.` is printed once per file, and no
   longer by builds without `--watch`.
+- Under `websmith --watch`, an edit of a file an addon registered with `addAssetDependency` now emits the addon's
+  new output when the addon needs type information (it does not set `needsTypeInfo: false`) and `transpileOnly` is
+  off. Before, the output kept the old text until the source file itself changed. The Vite plugin's dev server and
+  `vite build --watch` behave the same. The webpack loader was not affected.
 
 ### Removed
 
