@@ -23,6 +23,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
   - `addVirtualFile` files become assets of the bundle, and result processors run once per environment. The dev server
     shows errors as the overlay, serves virtual files from memory, and reloads on edits of `websmith.config.json`,
     `tsconfig.json`, an addon or a `package.json`.
+  - `vite build --watch` rebuilds when `websmith.config.json`, the `tsconfig.json` or a file in `addonsDir` changes,
+    activates the addons again and transforms every module with the new configuration. A configuration error fails
+    that rebuild only; the fixing edit rebuilds.
   - Requires TypeScript `>=5.7 <7`, Node.js 22.12+ and a `websmith.config.json` in Vite's `root`. See
     `packages/vite/README.md`, including its known limits.
 - The `AddonContext` docs describe what `addInputFile`, `addAssetDependency`, `addVirtualFile` and `removeOutputFile`

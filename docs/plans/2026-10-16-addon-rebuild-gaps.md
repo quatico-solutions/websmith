@@ -138,7 +138,7 @@ In the loader and the Vite plugin, a profile whose resolved `noEmit` or `emitDec
 
 Core returns, for a module compiled with type information, the project source files its type check depends on (transitive imports, `lib*.d.ts` and `node_modules` excluded) in `dependencies.files`; the loader and the Vite plugin forward them; unit tests in `ModuleCompiler.spec.ts` (type-only import listed with a Program, a type re-exported through a barrel listed, nothing listed under `transpileOnly`); e2e: in webpack watch mode an edit of a type-only import makes a type error appear on the importer and reverting it clears the error (reproduce first), and a Vite dev-server edit of `src/types.ts` reloads `main.ts`; README known-limit lines removed; Release-Notes entry; bench numbers in the PR, initial build at most 5% slower than `develop` or the import graph cached per compilation
 
-### Build watch (Branch: bug/vite-build-watch-reload) <!-- builds: build-watch invalidation in the Vite plugin --> <!-- waits: bug/type-only-import-deps -->
+### Build watch (Branch: bug/vite-build-watch-reload) <!-- builds: build-watch invalidation in the Vite plugin --> <!-- waits: bug/type-only-import-deps --> → #218
 
 In `vite build --watch`, the config file, the `tsconfig.json` chain and the addon files are watch files of every compiled module, and a change of one drops the compiler instance; unit tests in `hooks.spec.ts`; e2e in `vite-test`: an addon edit rebuilds with the new addon, a config edit that drops an addon removes its output from every module, a broken config fails one rebuild and the fixing edit rebuilds clean; README "Addon context" known limit removed; Release-Notes entry
 

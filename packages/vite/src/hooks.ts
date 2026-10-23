@@ -6,6 +6,7 @@
  */
 import { type Reporter, type WebpackLoaderOptions } from "@quatico/websmith-api";
 import { AddonRegistry, ModuleCompiler } from "@quatico/websmith-core";
+import fs from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import type { createFilter, ResolvedConfig, Rollup } from "vite";
@@ -38,7 +39,7 @@ export type EnvironmentInfo = {
 };
 
 /** The part of Rollup's plugin context the hooks use, with the Vite environment the hook runs in. */
-export type HookContext = Pick<Rollup.PluginContext, "error" | "warn" | "addWatchFile" | "emitFile" | "getModuleIds"> & {
+export type HookContext = Pick<Rollup.PluginContext, "error" | "warn" | "addWatchFile" | "emitFile" | "getModuleIds" | "meta"> & {
     environment: EnvironmentInfo;
 };
 
@@ -96,6 +97,7 @@ export type WebsmithHooks = {
     generateBundle: (this: HookContext, options: unknown, bundle: Record<string, unknown>) => void;
     findVirtualFile: (url: string, base: string) => VirtualFile | undefined;
     hotUpdate: <M extends { file: string | null }>(this: HotUpdateContext, options: HotUpdateInput<M>) => Promise<M[] | undefined>;
+    watchChange: (this: Pick<HookContext, "environment">, id: string) => void;
 };
 
 /** A virtual file an addon added, by its bundle file name. */
@@ -195,6 +197,8 @@ type EnvironmentState = {
     // each directory, cleared for every build, and in the dev server when a package.json changes
     packageJsonCache: ts.PackageJsonInfoCache;
     packageJsons: Map<string, string | undefined>;
+    // The options inputs every module of a vite build --watch watches, listed again in each buildStart
+    buildWatchInputs?: string[];
 };
 
 // The inputs of the options of `compiler` to watch: its config file, its tsconfig.json and the files that extends,
@@ -219,6 +223,43 @@ const isOptionsInput = (compiler: HookCompiler, file: string): boolean => {
     }
     const relative = toFileKey(path.relative(addonsDir, file));
     return relative !== ".." && !relative.startsWith("../") && !path.isAbsolute(relative) && !relative.split("/").includes("node_modules");
+};
+
+// The files under `dir`, recursively and sorted by name, outside any node_modules directory; none for a missing or
+// unreadable directory. A symbolic link counts as a file only when it points to one.
+const listFiles = (dir: string): string[] => {
+    let entries: fs.Dirent[];
+    try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+        return [];
+    }
+    return entries
+        .filter(cur => cur.name !== "node_modules")
+        .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+        .flatMap(cur => {
+            const file = path.join(dir, cur.name);
+            if (cur.isDirectory()) {
+                return listFiles(file);
+            }
+            return cur.isFile() || (cur.isSymbolicLink() && fs.statSync(file, { throwIfNoEntry: false })?.isFile()) ? [file] : [];
+        });
+};
+
+// The options inputs of `compiler` a vite build --watch adds to every module, each once: its config file, its
+// tsconfig.json and the files that extends, also when missing, and every file in its addonsDir outside node_modules.
+// Rollup re-transforms a cached module only for a changed file it lists, so the addonsDir itself would not do.
+const getBuildWatchInputs = (compiler: HookCompiler): string[] => {
+    const { files, missing } = compiler.getOptionsFiles();
+    const addonsDir = compiler.getOptions().config?.addonsDir;
+    const inputs = new Map<string, string>();
+    [...files, ...missing, ...(addonsDir ? listFiles(addonsDir) : [])].forEach(cur => {
+        const key = toFileKey(path.resolve(cur));
+        if (!inputs.has(key)) {
+            inputs.set(key, cur);
+        }
+    });
+    return [...inputs.values()];
 };
 
 /**
@@ -445,8 +486,9 @@ export const createWebsmithHooks = (
                 state.packageJsons.clear();
                 const { compiler } = state;
                 if (compiler) {
-                    // A rebuild of vite build --watch resolves the options again when one of their files changed, so the
-                    // configuration errors raised below are those of the current config, and loads changed addons again
+                    // A rebuild of vite build --watch without a changed options input keeps the compiler and its addons, and
+                    // resolves the options again, so the configuration errors raised below are those of the current
+                    // config. A changed options input dropped the state in watchChange, so the build creates it anew.
                     state.outputs.runActivation(this, () => {
                         compiler.refreshOptions(() => state.resolved.loaderOptions);
                         compiler.refreshAddons();
@@ -468,6 +510,7 @@ export const createWebsmithHooks = (
             }
             const { files, missing } = current.getOptionsFiles();
             [...files, ...missing].forEach(cur => this.addWatchFile(cur));
+            state.buildWatchInputs = this.meta.watchMode ? getBuildWatchInputs(current) : undefined;
             state.profileModule = getProfileModule(current);
             const errors = report(this, state, [
                 ...current.getConfigErrors(),
@@ -480,6 +523,8 @@ export const createWebsmithHooks = (
                 this.error(toRollupError(errors));
             }
         },
+        // Under vite build --watch, every compiled module watches the options inputs, so that a change of one transforms
+        // every module again. A module that fails with an error watches them too, so that the fixing edit transforms it.
         // A module under a node module kind that TypeScript emits as CommonJS fails before it is compiled, so no generator
         // runs on output Vite rejects; the package.json that decides its format is watched either way. In serve mode, the
         // configuration errors of the environment fail each module before it is compiled, and the TypeScript errors
@@ -515,7 +560,13 @@ export const createWebsmithHooks = (
             const { outputs, reporter } = state;
             outputs.startModule(id);
             const { fragment, diagnostics, dependencies } = outputs.run(recording(this), id, () => current.build(id, { moduleKind: "esm" }));
-            [...dependencies.files, ...dependencies.missing].forEach(cur => addWatchFile(this, cur));
+            const dependencyFiles = [...dependencies.files, ...dependencies.missing];
+            dependencyFiles.forEach(cur => addWatchFile(this, cur));
+            if (!serving && this.meta.watchMode && state.buildWatchInputs) {
+                // In the dev server a watch file of transform becomes an import of the module: hotUpdate handles the inputs
+                const added = new Set(dependencyFiles.map(cur => toFileKey(path.resolve(cur))));
+                state.buildWatchInputs.filter(cur => !added.has(toFileKey(path.resolve(cur)))).forEach(cur => this.addWatchFile(cur));
+            }
             const files = fragment.files.map(cur => cur.name);
             state.outputFiles.set(id, files);
             const fileLessErrors = serving ? current.getConfigErrors() : [];
@@ -587,7 +638,10 @@ export const createWebsmithHooks = (
             const state = environments.get(CLIENT_ENVIRONMENT);
             let pathname: string;
             try {
-                const segments = url.replace(/[?#].*$/s, "").split("/").map(cur => decodeURIComponent(cur));
+                const segments = url
+                    .replace(/[?#].*$/s, "")
+                    .split("/")
+                    .map(cur => decodeURIComponent(cur));
                 if (segments.some(cur => /[/\\]/.test(cur))) {
                     return undefined;
                 }
@@ -648,6 +702,20 @@ export const createWebsmithHooks = (
                 return input.modules.filter(cur => cur.file === null || !watchFiles.has(toFileKey(cur.file)) || isCompiledId(cur.file, filter));
             }
             return undefined;
+        },
+        // Rollup calls it under vite build --watch between two builds, never while one runs. A changed options input drops
+        // the state of the environment, so that the next buildStart creates it with the new options, loads the addon
+        // entries again, activates them with its context, and raises the configuration errors of the new options.
+        // Vite calls it in the dev server too, where hotUpdate handles the change.
+        watchChange(id) {
+            if (command === "serve") {
+                return;
+            }
+            const { environment } = this;
+            const state = instances.get(environment) ?? environments.get(environment.name);
+            if (state?.compiler && isOptionsInput(state.compiler, id)) {
+                forgetEnvironment(environment);
+            }
         },
     };
 };

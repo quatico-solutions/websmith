@@ -36,8 +36,10 @@ export type { WebsmithViteOptions } from "./options";
  * - Type errors are not checked, as in the webpack loader and in Vite itself: run `tsc --noEmit` for them.
  * - Configuration errors fail a `vite build` in `buildStart`, once, before any module is compiled: an unconfigured
  *   profile, a missing config file, a missing `depends` target, a throwing `activate`, and a profile whose
- *   effective `module` emits CommonJS, which Vite cannot bundle. A `vite build --watch` resolves the options again
- *   when `websmith.config.json` or `tsconfig.json` changes. TypeScript's errors without a file, e.g. an option
+ *   effective `module` emits CommonJS, which Vite cannot bundle. Under `vite build --watch`, an edit of
+ *   `websmith.config.json`, the `tsconfig.json`, a file it `extends` or a file in `addonsDir` rebuilds every module
+ *   with the new configuration and activates the addons again; a configuration error fails that rebuild only, and the
+ *   fixing edit rebuilds. TypeScript's errors without a file, e.g. an option
  *   error, exist only after a module was emitted and fail the build in `buildEnd`, once.
  * - The dev server raises module diagnostics the same way. Its configuration errors go to Vite's logger once, when the
  *   environment starts (`client` at server start, any other environment on its first module), and fail every module
@@ -50,9 +52,10 @@ export type { WebsmithViteOptions } from "./options";
  *   clear it. An edit of a `package.json` checks the module format of the modules below it again. The plugin does not
  *   rewrite a file whose text on disk is unchanged, and its own writes to files it watches trigger no reload.
  *
- * Addons activate once for every module of a build. Under `vite build --watch` they do not activate again after an
- * edit of their files, and a configuration edit leaves the modules Rollup does not transform again with their old
- * output: restart the build. The files an addon adds or watches in `activate` apply to every rebuild.
+ * Addons activate once for every module of a build. Under `vite build --watch` and in the dev server, only an addon's
+ * entry file is loaded again: modules it requires keep Node's cache, also inside `addonsDir`, and files it requires
+ * from outside `addonsDir` are not watched. A file created in `addonsDir` is watched from the next rebuild. The files
+ * an addon adds or watches in `activate` apply to every rebuild.
  * The addons of the profile receive an `AddonContext` whose methods map to Vite:
  * - `addInputFile` adds a code file to the compilation and watches it; `addAssetDependency` watches a non-code file,
  *   so that editing it rebuilds under `vite build --watch`.
@@ -87,6 +90,8 @@ export const websmith = (options: WebsmithViteOptions = {}): Plugin => {
         buildEnd: hooks.buildEnd,
         // In the dev server only: reloads with the new configuration, and sends no reload for the plugin's own writes
         hotUpdate: hooks.hotUpdate,
+        // Under vite build --watch only: a changed config, tsconfig or addon file creates the compiler again
+        watchChange: hooks.watchChange,
         // After Vite's own plugins, so a removal sees the assets they emit there, e.g. the CSS of the bundle
         generateBundle: { order: "post", handler: hooks.generateBundle },
     };
