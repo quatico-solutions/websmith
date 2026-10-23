@@ -139,7 +139,7 @@ The `app` profile must exist in the `websmith.config.json` next to the Vite conf
 ```json
 {
     "profiles": {
-        "app": { "tsConfig": { "noEmit": false, "outDir": "./websmith-out", "rootDir": "." } }
+        "app": { "tsConfig": { "outDir": "./websmith-out", "rootDir": "." } }
     }
 }
 ```

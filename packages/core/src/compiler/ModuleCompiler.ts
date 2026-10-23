@@ -9,7 +9,7 @@ import path from "node:path";
 import ts from "typescript";
 import { type AddonRegistry } from "./addons";
 import { type CompilationContext, type CompilationContextOptions } from "./compilation";
-import { type CompileFragment, Compiler } from "./Compiler";
+import { type CompileFragment, Compiler, ROOT_DIR_INFERENCE_ERROR } from "./Compiler";
 import { isNodeModuleKind, resolvePath } from "./config";
 import { DefaultReporter } from "./DefaultReporter";
 import {
@@ -62,6 +62,19 @@ export const MISSING_SYSTEM_ERROR = "TsCompiler.build() called without a valid t
 
 // webpack reports unresolved imports itself (91012), and enforces fully specified imports itself under bundler
 const NODE_IMPORT_RULES: readonly ImportRule[] = [checkMissingExtension, checkDirectoryImport, checkJsonImportAttribute];
+
+/**
+ * How a profile emits in a bundler host: "memory" when its resolved options set `noEmit`, "memory-declarations" when they
+ * set `emitDeclarationOnly`, else "disk". A profile in memory emits its JavaScript for the host without writing it.
+ */
+type EmitMode = "memory" | "memory-declarations" | "disk";
+
+// Compiled without them, so the JavaScript exists; tsc removes nothing else under these options
+const IN_MEMORY_OPTIONS: ts.CompilerOptions = { noEmit: false, emitDeclarationOnly: false, allowImportingTsExtensions: false };
+
+const isJavaScriptOutput = (fileName: string): boolean => /\.([cm]?js|jsx)(\.map)?$/i.test(fileName);
+
+const isDeclarationOutput = (fileName: string): boolean => /\.d\.[cm]?ts(\.map)?$/i.test(fileName);
 
 type ScanEntry = Parameters<ScanCache["set"]>[1];
 
@@ -188,6 +201,7 @@ export class ModuleCompiler extends Compiler {
     private readonly fileLessErrors = new Map<string, ts.Diagnostic>();
     private readonly configErrorCarriers = new Map<string, string>();
     private configErrorCompilation?: unknown;
+    private readonly emitModes = new Map<string | undefined, EmitMode>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -209,9 +223,19 @@ export class ModuleCompiler extends Compiler {
         this.completeResolution();
     }
 
-    /** Returns the host's target compiler options for its profile, where no profile is the default context. */
+    /**
+     * Returns the host's target compiler options for its profile, where no profile is the default context. A profile in
+     * memory is compiled without `noEmit`, `emitDeclarationOnly` and `allowImportingTsExtensions`, and under `noEmit`
+     * without `noEmitOnError`: tsc emits nothing under `noEmit`, so the option would only skip the in-memory emit on errors
+     * the override causes, e.g. TS5097 of a `.ts` import.
+     */
     protected getContextCompilerOptions(profile?: string): ts.CompilerOptions {
-        return profile === this.profile ? this.targetCompilerOptions : {};
+        const mode = this.getEmitMode(profile);
+        return {
+            ...(profile === this.profile ? this.targetCompilerOptions : {}),
+            ...(mode !== "disk" && IN_MEMORY_OPTIONS),
+            ...(mode === "memory" && { noEmitOnError: false }),
+        };
     }
 
     /** Creates the host's context for its profile with the host's factory, where no profile is the default context. */
@@ -236,6 +260,7 @@ export class ModuleCompiler extends Compiler {
     public setOptions(options: Partial<CompilerOptions>, loaderOptions?: Partial<WebpackLoaderOptions>): this {
         // Undefined while Compiler's constructor resolves the options
         this.fileLessErrors?.clear();
+        this.emitModes?.clear();
         this.configErrorCarriers?.clear();
         this.configErrorCompilation = undefined;
         const reporter = this.getReporter();
@@ -554,8 +579,39 @@ export class ModuleCompiler extends Compiler {
         }
     }
 
+    /**
+     * Emits `fileName` with `profile`. A profile in memory under `noEmit` writes nothing and yields only its JavaScript and
+     * source maps, without TS5011, which tsc does not report under `noEmit`; under `emitDeclarationOnly` it writes only
+     * its declarations, see selectWrittenFiles.
+     */
     protected emitSourceFile(fileName: string, profile: string | undefined, writeFile: boolean): CompileFragment {
-        return super.emitSourceFile(fileName, profile, writeFile, true);
+        if (this.getEmitMode(profile) !== "memory") {
+            return super.emitSourceFile(fileName, profile, writeFile, true);
+        }
+        const fragment = super.emitSourceFile(fileName, profile, false, true);
+        return {
+            ...fragment,
+            files: fragment.files.filter(cur => isJavaScriptOutput(cur.name)),
+            ...(fragment.diagnostics && { diagnostics: fragment.diagnostics.filter(cur => cur.code !== ROOT_DIR_INFERENCE_ERROR) }),
+        };
+    }
+
+    /** Writes only the declarations of a profile under `emitDeclarationOnly`, where tsc writes them. */
+    protected selectWrittenFiles(files: ts.OutputFile[], profile?: string): ts.OutputFile[] {
+        return this.getEmitMode(profile) === "memory-declarations" ? files.filter(cur => isDeclarationOutput(cur.name)) : files;
+    }
+
+    /** Returns the emit mode of `profile` from its resolved options, once per option resolution. */
+    private getEmitMode(profile?: string): EmitMode {
+        // Undefined while Compiler's constructor resolves the options
+        const cached = this.emitModes?.get(profile);
+        if (cached) {
+            return cached;
+        }
+        const { noEmit, emitDeclarationOnly } = this.getOptions().getOptions(profile).tsConfig ?? {};
+        const result: EmitMode = noEmit ? "memory" : emitDeclarationOnly ? "memory-declarations" : "disk";
+        this.emitModes?.set(profile, result);
+        return result;
     }
 
     /**

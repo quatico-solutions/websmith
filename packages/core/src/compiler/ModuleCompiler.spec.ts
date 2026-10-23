@@ -1114,3 +1114,246 @@ describe("ModuleCompiler package types", () => {
         expect(actual).toEqual({ "/package.json": "commonjs" });
     });
 });
+
+describe("ModuleCompiler in-memory emit", () => {
+    const SOURCE = { "/src/a.ts": `export const x = "before";` };
+    const TS_IMPORT_SOURCE = { "/src/a.ts": `import { y } from "./b.ts";\nexport const x = "before" + y;`, "/src/b.ts": `export const y = 1;` };
+    const REPLACER = { replacer: (ctx: CompilationContext) => ctx.registerProcessor((_fileName, content) => content.replace("before", "after")) };
+
+    type InMemoryCompilerOptions = {
+        compilerOptions?: Record<string, unknown>;
+        extendsFile?: string;
+        files?: Record<string, string>;
+        profiles?: Record<string, CompilationProfile>;
+        typeInfo?: boolean;
+        transpileOnly?: boolean;
+        addonEmitOnly?: boolean;
+    };
+
+    const createInMemoryCompiler = ({
+        compilerOptions = {},
+        extendsFile,
+        files = SOURCE,
+        profiles = { target: { addons: ["replacer"] } },
+        typeInfo = false,
+        transpileOnly = !typeInfo,
+        addonEmitOnly,
+    }: InMemoryCompilerOptions = {}): { testObj: ModuleCompiler; system: ts.System; written: () => string[] } => {
+        const tsConfig = {
+            ...(extendsFile && { extends: extendsFile }),
+            compilerOptions: { target: "es2020", module: "esnext", outDir: "/dist", rootDir: "/src", ...compilerOptions },
+        };
+        const system = createSystem({ "/tsconfig.json": JSON.stringify(tsConfig), ...files }, { virtual: true });
+        const reporter = new NoReporter();
+        const spy = jest.spyOn(system, "writeFile");
+        const testObj = new ModuleCompiler(
+            {
+                config: { profiles, ...(addonEmitOnly !== undefined && { addonEmitOnly }) },
+                reporter,
+                cliArgs: { options: {}, fileNames: Object.keys(files).filter(cur => cur.endsWith(".ts")), errors: [] },
+            },
+            { tsConfigFile: "/tsconfig.json", transpileOnly, profile: "target" },
+            system,
+            { addons: createAddons(system, reporter, REPLACER, { typeInfo }) }
+        );
+        return { testObj, system, written: () => spy.mock.calls.map(([name]) => name) };
+    };
+
+    const findJs = (files: ts.OutputFile[]): string | undefined => files.find(cur => cur.name.endsWith("/a.js"))?.text;
+
+    // tsc's TS5011 of the running TypeScript: TypeScript 6 reports it for a single source without rootDir, 5.x does not
+    const getTscRootDirErrorCodes = (system: ts.System): number[] => {
+        const { options, fileNames } = ts.parseJsonConfigFileContent(
+            JSON.parse(system.readFile("/tsconfig.json") ?? "{}"),
+            system,
+            "/",
+            undefined,
+            "/tsconfig.json"
+        );
+        const host: ts.CompilerHost = {
+            ...ts.createCompilerHost(options),
+            getCurrentDirectory: () => system.getCurrentDirectory(),
+            fileExists: fileName => system.fileExists(fileName),
+            readFile: fileName => system.readFile(fileName),
+            directoryExists: directoryName => system.directoryExists(directoryName),
+            realpath: fileName => fileName,
+            getSourceFile: (fileName, languageVersion) => {
+                const text = system.readFile(fileName);
+                return text !== undefined ? ts.createSourceFile(fileName, text, languageVersion) : undefined;
+            },
+        };
+        return ts
+            .createProgram(fileNames, { ...options, noLib: true, types: [] }, host)
+            .getOptionsDiagnostics()
+            .map(cur => cur.code)
+            .filter(cur => cur === 5011);
+    };
+
+    it("yields JavaScript changed by processor and writes no file w/ noEmit in tsconfig.json on fast path", () => {
+        const { testObj, written } = createInMemoryCompiler({ compilerOptions: { noEmit: true } });
+
+        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
+
+        expect(actual).toContain(`"after"`);
+        expect(written()).toEqual([]);
+    });
+
+    it("yields JavaScript changed by processor and writes no file w/ noEmit in tsconfig.json on language-service path", () => {
+        const { testObj, written } = createInMemoryCompiler({ compilerOptions: { noEmit: true }, typeInfo: true });
+
+        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
+
+        expect(actual).toContain(`"after"`);
+        expect(written()).toEqual([]);
+    });
+
+    it("yields JavaScript changed by processor and writes no file w/ noEmit inherited through extends", () => {
+        const { testObj, written } = createInMemoryCompiler({
+            extendsFile: "./tsconfig.base.json",
+            files: { ...SOURCE, "/tsconfig.base.json": JSON.stringify({ compilerOptions: { noEmit: true } }) },
+            typeInfo: true,
+        });
+
+        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
+
+        expect(actual).toContain(`"after"`);
+        expect(written()).toEqual([]);
+    });
+
+    it("yields JavaScript changed by processor and writes no file w/ noEmit in profile tsConfig only", () => {
+        const { testObj, written } = createInMemoryCompiler({ profiles: { target: { addons: ["replacer"], tsConfig: { noEmit: true } } } });
+
+        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
+
+        expect(actual).toContain(`"after"`);
+        expect(written()).toEqual([]);
+    });
+
+    it("yields JavaScript w/o TS5096 w/ noEmit, allowImportingTsExtensions, declaration and .ts import", () => {
+        const { testObj } = createInMemoryCompiler({
+            compilerOptions: { noEmit: true, allowImportingTsExtensions: true, declaration: true },
+            files: TS_IMPORT_SOURCE,
+            transpileOnly: false,
+        });
+
+        const { fragment, diagnostics } = testObj.build("/src/a.ts");
+
+        expect(findJs(fragment.files)).toContain(`"after"`);
+        expect([...diagnostics, ...testObj.getConfigErrors()].map(cur => cur.code)).not.toContain(5096);
+    });
+
+    it("yields no declaration file and writes none w/ noEmit and declaration", () => {
+        const { testObj, written } = createInMemoryCompiler({
+            compilerOptions: { noEmit: true, declaration: true, declarationMap: true },
+            transpileOnly: false,
+        });
+
+        const actual = testObj.build("/src/a.ts").fragment.files.map(cur => cur.name);
+
+        expect(actual).toEqual(["/dist/a.js"]);
+        expect(written()).toEqual([]);
+    });
+
+    it("writes declaration and no JavaScript, and yields JavaScript, w/ emitDeclarationOnly and declaration", () => {
+        const { testObj, written } = createInMemoryCompiler({
+            compilerOptions: { emitDeclarationOnly: true, declaration: true },
+            transpileOnly: false,
+        });
+
+        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
+
+        expect(actual).toContain(`"after"`);
+        expect(written()).toEqual(["/dist/a.d.ts"]);
+    });
+
+    it("writes declaration beside the source w/ emitDeclarationOnly, declaration and no outDir", () => {
+        const { testObj, written } = createInMemoryCompiler({
+            compilerOptions: { emitDeclarationOnly: true, declaration: true, outDir: undefined },
+            transpileOnly: false,
+        });
+
+        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
+
+        expect(actual).toContain(`"after"`);
+        expect(written()).toEqual(["/src/a.d.ts"]);
+    });
+
+    it("writes no declaration of file no addon processed w/ emitDeclarationOnly and addonEmitOnly", () => {
+        const { testObj, written } = createInMemoryCompiler({
+            compilerOptions: { emitDeclarationOnly: true, declaration: true },
+            files: { "/src/a.ts": `export const x = "unchanged";` },
+            transpileOnly: false,
+            addonEmitOnly: true,
+        });
+
+        testObj.build("/src/a.ts");
+
+        expect(written()).toEqual([]);
+    });
+
+    it("reports no TS5011 w/ noEmit, outDir and no rootDir", () => {
+        const { testObj } = createInMemoryCompiler({ compilerOptions: { noEmit: true, rootDir: undefined } });
+
+        const { diagnostics } = testObj.build("/src/a.ts");
+
+        expect([...diagnostics, ...testObj.getConfigErrors()].map(cur => cur.code)).not.toContain(5011);
+    });
+
+    it("reports tsc's TS5011 w/ emitDeclarationOnly, outDir and no rootDir", () => {
+        const { testObj, system } = createInMemoryCompiler({ compilerOptions: { emitDeclarationOnly: true, declaration: true, rootDir: undefined } });
+        const expected = getTscRootDirErrorCodes(system);
+
+        const { diagnostics } = testObj.build("/src/a.ts");
+
+        expect([...diagnostics, ...testObj.getConfigErrors()].map(cur => cur.code).filter(cur => cur === 5011)).toEqual(expected);
+    });
+
+    it("writes output of dependent profile to its outDir w/ noEmit in host profile and noEmit false in dependent profile", () => {
+        const { testObj, system } = createInMemoryCompiler({
+            profiles: {
+                target: { addons: ["replacer"], depends: ["dep"], tsConfig: { noEmit: true } },
+                dep: { tsConfig: { noEmit: false, outDir: "/lib" } },
+            },
+        });
+
+        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
+
+        expect(actual).toContain(`"after"`);
+        expect(system.readFile("/lib/a.js")).toContain(`"before"`);
+    });
+
+    it("yields JavaScript w/ noEmit, noEmitOnError and .ts import on language-service path", () => {
+        const { testObj } = createInMemoryCompiler({
+            compilerOptions: { noEmit: true, noEmitOnError: true, allowImportingTsExtensions: true },
+            files: TS_IMPORT_SOURCE,
+            typeInfo: true,
+        });
+
+        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
+
+        expect(actual).toContain(`"after"`);
+    });
+
+    it("writes no tsbuildinfo w/ noEmit, incremental and tsBuildInfoFile", () => {
+        const { testObj, written } = createInMemoryCompiler({
+            compilerOptions: { noEmit: true, incremental: true, tsBuildInfoFile: "/dist/app.tsbuildinfo" },
+            typeInfo: true,
+        });
+
+        testObj.build("/src/a.ts");
+
+        expect(written()).toEqual([]);
+    });
+
+    it("yields JavaScript and writes no file after updateLoaderConfig to tsconfig w/ noEmit", () => {
+        const { testObj, written } = createInMemoryCompiler({
+            files: { ...SOURCE, "/tsconfig.noemit.json": JSON.stringify({ extends: "./tsconfig.json", compilerOptions: { noEmit: true } }) },
+        });
+        testObj.updateLoaderConfig({ tsConfigFile: "/tsconfig.noemit.json", transpileOnly: true, profile: "target" });
+
+        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
+
+        expect(actual).toContain(`"after"`);
+        expect(written()).toEqual([]);
+    });
+});
