@@ -5,6 +5,8 @@
  * ---------------------------------------------------------------------------------------------
  */
 import { type CompilationProfile, ErrorMessage, type Reporter } from "@quatico/websmith-api";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import ts from "typescript";
 import { createSystem } from "../environment";
@@ -1355,5 +1357,183 @@ describe("ModuleCompiler in-memory emit", () => {
 
         expect(actual).toContain(`"after"`);
         expect(written()).toEqual([]);
+    });
+});
+
+describe("ModuleCompiler type dependencies", () => {
+    const NOOP = { noop: () => undefined };
+    const TYPED_PROFILES = { target: { addons: ["noop"] } };
+    const TYPE_ONLY_IMPORT = { "/src/a.ts": `import type { T } from "./types";\nexport const a: T = 1;`, "/src/types.ts": `export type T = number;` };
+
+    const buildFiles = (files: Record<string, string>, profiles: Record<string, CompilationProfile> = TYPED_PROFILES, typeInfo = true): string[] =>
+        createModuleCompiler(files, profiles, NOOP, {}, { typeInfo })
+            .build("/src/a.ts")
+            .dependencies.files.filter(cur => !cur.endsWith("package.json"))
+            .sort();
+
+    it("yields type-only import as dependency w/ type info", () => {
+        const actual = buildFiles(TYPE_ONLY_IMPORT);
+
+        expect(actual).toEqual(["/src/types.ts"]);
+    });
+
+    it("yields barrel and re-exported file as dependencies w/ type info", () => {
+        const actual = buildFiles({
+            "/src/a.ts": `import type { T } from "./barrel";\nexport const a: T = 1;`,
+            "/src/barrel.ts": `export * from "./types";`,
+            "/src/types.ts": `export type T = number;`,
+        });
+
+        expect(actual).toEqual(["/src/barrel.ts", "/src/types.ts"]);
+    });
+
+    it("yields ambient declaration file as dependency w/ type info", () => {
+        const actual = buildFiles({ "/src/a.ts": `export const a = 1;`, "/src/globals.d.ts": `declare const G: number;` });
+
+        expect(actual).toEqual(["/src/globals.d.ts"]);
+    });
+
+    it("yields module with global augmentation as dependency w/ type info", () => {
+        const actual = buildFiles({
+            "/src/a.ts": `export const a = 1;`,
+            "/src/global.ts": `export {};\ndeclare global {\n    interface Window { g: number }\n}`,
+        });
+
+        expect(actual).toEqual(["/src/global.ts"]);
+    });
+
+    it("yields path alias target as dependency w/ type info", () => {
+        const actual = buildFiles(
+            { "/src/a.ts": `import type { T } from "@lib/types";\nexport const a: T = 1;`, "/src/lib/types.ts": `export type T = number;` },
+            { target: { addons: ["noop"], tsConfig: { paths: { "@lib/*": ["/src/lib/*"] } } } }
+        );
+
+        expect(actual).toEqual(["/src/lib/types.ts"]);
+    });
+
+    it("yields no type dependencies w/ transpileOnly", () => {
+        const actual = buildFiles(TYPE_ONLY_IMPORT, TYPED_PROFILES, false);
+
+        expect(actual).toEqual([]);
+    });
+
+    it("yields no unrelated project file w/ type info", () => {
+        const actual = buildFiles({ ...TYPE_ONLY_IMPORT, "/src/unrelated.ts": `export const u = 1;` });
+
+        expect(actual).not.toContain("/src/unrelated.ts");
+    });
+
+    it("yields no own file w/ type info", () => {
+        const actual = buildFiles(TYPE_ONLY_IMPORT);
+
+        expect(actual).not.toContain("/src/a.ts");
+    });
+
+    it("yields no node_modules or lib file w/ type info", () => {
+        const actual = buildFiles({
+            "/src/a.ts": `import type { D } from "dep";\nexport const a: D = 1;`,
+            "/node_modules/dep/package.json": JSON.stringify({ name: "dep", types: "index.d.ts" }),
+            "/node_modules/dep/index.d.ts": `export type D = number;`,
+        });
+
+        expect(actual.filter(cur => cur.includes("node_modules") || /lib\.[^/]*\.d\.ts$/.test(cur))).toEqual([]);
+    });
+
+    it("yields declaration of edited unbuilt type w/ rebuild w/ type info and declaration", () => {
+        const system = createSystem(
+            {
+                ...TS_CONFIG,
+                "/src/a.ts": `import type { Make } from "./types";\ndeclare const make: Make;\nexport const v = make();`,
+                "/src/types.ts": `export type Make = () => { a: number };`,
+            },
+            { virtual: true }
+        );
+        const reporter = new NoReporter();
+        const testObj = new ModuleCompiler(
+            {
+                config: { profiles: { target: { addons: ["noop"], tsConfig: { declaration: true } } } },
+                reporter,
+                cliArgs: { options: {}, fileNames: ["/src/a.ts", "/src/types.ts"], errors: [] },
+            },
+            { tsConfigFile: "/tsconfig.json", transpileOnly: false, profile: "target" },
+            system,
+            { addons: createAddons(system, reporter, NOOP, { typeInfo: true }) }
+        );
+        testObj.build("/src/a.ts");
+        system.writeFile("/src/types.ts", `export type Make = () => { a: string };`);
+        const { getModifiedTime } = system;
+        jest.spyOn(system, "getModifiedTime").mockImplementation(name =>
+            name === "/src/types.ts" ? new Date(Date.now() + 60_000) : getModifiedTime?.(name)
+        );
+
+        const actual = testObj.build("/src/a.ts").fragment.files.find(cur => cur.name.endsWith(".d.ts"))?.text;
+
+        expect(actual).toContain("a: string");
+    });
+
+    describe("on disk", () => {
+        let dir: string;
+
+        beforeEach(() => {
+            dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "websmith-type-deps-")));
+        });
+
+        afterEach(() => {
+            fs.rmSync(dir, { recursive: true, force: true });
+        });
+
+        const createDiskCompiler = (files: Record<string, string>, profiles: Record<string, CompilationProfile>): ModuleCompiler => {
+            const all = {
+                "tsconfig.json": JSON.stringify({ compilerOptions: { target: "es2020", module: "esnext", outDir: "dist", rootDir: "src" } }),
+                ...files,
+            };
+            Object.entries(all).forEach(([name, content]) => {
+                fs.mkdirSync(path.dirname(path.join(dir, name)), { recursive: true });
+                fs.writeFileSync(path.join(dir, name), content);
+            });
+            return new ModuleCompiler(
+                {
+                    config: { profiles },
+                    reporter: new NoReporter(),
+                    cliArgs: { options: {}, fileNames: Object.keys(files).map(cur => path.join(dir, cur)), errors: [] },
+                    buildDir: dir,
+                    project: dir,
+                },
+                { tsConfigFile: path.join(dir, "tsconfig.json"), transpileOnly: false, profile: "target" },
+                ts.sys
+            );
+        };
+
+        const DISK_TYPE_ONLY_IMPORT = {
+            "src/a.ts": `import type { T } from "./types";\nexport const a: T = 1;`,
+            "src/types.ts": `export type T = number;`,
+        };
+
+        it("yields type-only import as dependency w/ declaration w/o type-info addon", () => {
+            const testObj = createDiskCompiler(DISK_TYPE_ONLY_IMPORT, { target: { tsConfig: { declaration: true } } });
+
+            const actual = testObj.build(path.join(dir, "src/a.ts")).dependencies.files;
+
+            expect(actual).toContain(path.join(dir, "src/types.ts"));
+        });
+
+        it("yields type dependency of dependent profile w/ declaration and fast-path target", () => {
+            const testObj = createDiskCompiler(DISK_TYPE_ONLY_IMPORT, {
+                target: { depends: ["dep"] },
+                dep: { tsConfig: { declaration: true, outDir: path.join(dir, "lib") } },
+            });
+
+            const actual = testObj.build(path.join(dir, "src/a.ts")).dependencies.files;
+
+            expect(actual).toContain(path.join(dir, "src/types.ts"));
+        });
+
+        it("yields no type dependencies w/o declaration and type-info addon", () => {
+            const testObj = createDiskCompiler(DISK_TYPE_ONLY_IMPORT, { target: {} });
+
+            const actual = testObj.build(path.join(dir, "src/a.ts")).dependencies.files;
+
+            expect(actual).not.toContain(path.join(dir, "src/types.ts"));
+        });
     });
 });

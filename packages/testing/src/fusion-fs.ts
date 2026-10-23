@@ -14,13 +14,18 @@ import {
     type Stats,
     type WatchFileOptions,
 } from "node:fs";
-import { createFsFromVolume, vol } from "memfs";
-import type Dirent from "memfs/lib/Dirent";
-import type { TDataOut } from "memfs/lib/encoding";
-import type { IWatchOptions, StatWatcher, TCallback } from "memfs/lib/volume";
-import type { IReadStream } from "memfs/lib/node/types/misc";
-import type { IReadStreamOptions, IReaddirOptions } from "memfs/lib/node/types/options";
+import { createFsFromVolume, type IFs, vol } from "memfs";
 import path from "node:path";
+
+// memfs 4.80 no longer exposes its internal type modules, so the types are derived from the public IFs interface.
+type Dirent = InstanceType<IFs["Dirent"]>;
+type StatWatcher = InstanceType<IFs["StatWatcher"]>;
+type IReadStream = InstanceType<IFs["ReadStream"]>;
+type IReadStreamOptions = Parameters<IFs["createReadStream"]>[1];
+type IReaddirOptions = Parameters<IFs["readdir"]>[1];
+type IWatchOptions = Parameters<IFs["watch"]>[1];
+type TDataOut = string | Buffer;
+type TCallback<TData> = (error?: NodeJS.ErrnoException | null, data?: TData) => void;
 
 /**
  * Creates a new fs module that uses the memfs volume as a base.

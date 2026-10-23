@@ -19,6 +19,7 @@
     },
     "homepage": "https://github.com/quatico-solutions/websmith#readme",
     "private": true,
+    "packageManager": "pnpm@10.8.0",
     "scripts": {
         "clean": "rimraf coverage test-output && nx run-many --target=clean",
         "lint": "nx run-many --target=lint",
@@ -45,8 +46,8 @@
         "@typescript-eslint/eslint-plugin": "8.71.2",
         "@typescript-eslint/parser": "8.71.2",
         "@typescript-eslint/utils": "8.71.2",
-        "commander": "^13.1.0",
-        "comment-json": "^4.2.5",
+        "commander": "^15.0.0",
+        "comment-json": "^5.0.0",
         "concurrently": "^10.0.6",
         "cross-env": "10.1.0",
         "deepmerge": "^4.3.1",

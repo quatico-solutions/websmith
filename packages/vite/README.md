@@ -196,9 +196,11 @@ Vite names its server environment `ssr`, so the map selects the `server` profile
 - **Result processors** run after each transform without errors, with that module's output files.
 - **`transpileOnly`** is never set automatically. An explicit `transpileOnly` warns once per environment and names the
   addons of the profile that need type information; set `needsTypeInfo` to `false` in an addon that needs none.
-- **An edit to a type-only import**, e.g. `import type { Props } from "./types"`, does not reload its importer. An edit
-  to a value import reloads it through Vite's module graph. An edit of a file an addon reads through
-  `addAssetDependency` reloads the module with the addon's new output.
+- **An edit to a type-only import**, e.g. `import type { Props } from "./types"`, also through re-exports and `paths`
+  aliases, reloads its importer when the importer is compiled with type information: with an addon that needs it, or
+  with `declaration: true`, and never under `transpileOnly`. An edit of an ambient `.d.ts` or a global script of the
+  project reloads every such module. An edit to a value import reloads its importer through Vite's module graph. An
+  edit of a file an addon reads through `addAssetDependency` reloads the module with the addon's new output.
 
 ## Addon context
 
@@ -222,10 +224,15 @@ The addons of the selected profile receive an `AddonContext` whose file methods 
   build without errors, with the output files of every module of the environment's bundle.
 - **Profiles in `depends`** keep the CLI's context: their files go to their own `outDir`, not into the bundle. A file
   whose text on disk is unchanged is not rewritten.
-- Addons activate once for every module of a build. **Known limit:** under `vite build --watch`, addons do not
-  activate again after an edit of their files, and an edit of `websmith.config.json` or `tsconfig.json` leaves the
-  modules Rollup does not transform again with their old output; restart the build. The files an addon adds or
-  watches in `activate` apply to every rebuild.
+- Addons activate once for every module of a build. The files an addon adds or watches in `activate` apply to every
+  rebuild.
+- **Under `vite build --watch`**, an edit of `websmith.config.json`, the `tsconfig.json` (and a file it `extends`) or
+  any file in `addonsDir` rebuilds, activates the addons again and transforms every module with the new
+  configuration. A configuration error fails that rebuild only; the watcher keeps running and the fixing edit
+  rebuilds. The limits are the same as in the dev server:
+  - an addon's own dependencies outside `addonsDir` are not watched;
+  - only an addon's entry file is loaded again; modules it requires keep Node's cache, also inside `addonsDir`;
+  - a file created in `addonsDir` without another edit starts no rebuild; it is watched from the next rebuild.
 
 ## Differences from the webpack loader
 
@@ -245,8 +252,7 @@ The addons of the selected profile receive an `AddonContext` whose file methods 
   `emitDeclarationOnly`, see [Configuration](#configuration).
 - **TypeScript's errors without a file**, e.g. the option error TS5053, reach the error overlay and fail `vite build`
   only with `transpileOnly`, see [Dev server](#dev-server).
-- **An edit to a type-only import** does not reload its importer, see [Dev server](#dev-server).
-- **Under `vite build --watch`**, edited addons do not activate again, and a configuration edit leaves the modules
-  Rollup does not transform again with their old output; restart the build, see [Addon context](#addon-context).
+- **Addon reloading under `vite build --watch` and in the dev server** loads only an addon's entry file again and does
+  not watch its dependencies outside `addonsDir`, see [Addon context](#addon-context).
 - **The watched files and the record of written files** only grow during a long dev server session.
 - **Two `websmith()` plugins do not chain**, see [Environments](#environments).

@@ -139,6 +139,13 @@ a compilation and across watch rebuilds while its files and the options are unch
 worker looks for edits in `addonsDir` once per watch compilation, and at most once a second without watch. Addons
 must not rely on being activated again for each module.
 
+#### Type-only imports
+
+With `declaration: true` and without `transpileOnly`, a module also depends on the project files its type check
+reads: the files it imports, also only for types and through re-exports or `paths` aliases, and the project's ambient
+`.d.ts` files and global scripts, never `lib*.d.ts` or files under `node_modules`. So in watch mode an edit of a
+type-only import rebuilds the module and updates its declaration errors, e.g. TS4023.
+
 #### `noEmit` and `emitDeclarationOnly`
 
 With `"noEmit": true` or `"emitDeclarationOnly": true` in the `tsconfig.json`, the loader's `tsConfig` or the

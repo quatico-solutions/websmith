@@ -48,8 +48,35 @@ export class FileCache {
         return this;
     }
 
+    /**
+     * Records that the language service read `fileName` without building it. Keeps the version of an earlier entry, so a
+     * version that `refreshUnbuilt` raised is not handed out again.
+     */
     public createCacheEntry(fileName: string): this {
-        this.setCachedFile0(fileName, this.createEmptyCacheFile());
+        this.setCachedFile0(fileName, {
+            ...this.createEmptyCacheFile(),
+            version: this.getCachedFile0(fileName)?.version ?? 0,
+            modifiedTime: this.system.getModifiedTime?.(fileName),
+        });
+        return this;
+    }
+
+    /**
+     * Raises the version of `fileName` when it was never built and was modified since it was last seen, so the language
+     * service reads it again. Records the modification time of a file seen first. A built file keeps its version:
+     * `updateSource` versions it.
+     */
+    public refreshUnbuilt(fileName: string): this {
+        const file = this.getCachedFile0(fileName);
+        const modifiedTime = this.system.getModifiedTime?.(fileName);
+        if (file?.snapshot || !modifiedTime) {
+            return this;
+        }
+        if (!file?.modifiedTime) {
+            this.setCachedFile0(fileName, { ...(file ?? this.createEmptyCacheFile()), modifiedTime });
+        } else if (modifiedTime > file.modifiedTime) {
+            this.setCachedFile0(fileName, { ...file, version: file.version + 1, modifiedTime });
+        }
         return this;
     }
 
