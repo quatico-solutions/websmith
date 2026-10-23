@@ -1858,15 +1858,15 @@ describe("createWebsmithHooks", () => {
             const GEN = `${ROOT}/gen/main.ts.txt`;
             const GENERATED = `${ROOT}/src/gen/index.ts`;
 
-            // Hooks whose transform of MAIN writes GEN and GENERATED and adds GEN as a watch file of MAIN, as a generator
+            // Hooks whose transform of MAIN writes GEN and GENERATED and adds `files` as watch files of MAIN, as a generator
             // and a processor calling addAssetDependency do
-            const createWriting = (environment = createEnvironment()) => {
+            const createWriting = (environment = createEnvironment(), files = [GEN]) => {
                 let record: WriteRecord | undefined;
                 const compiler = createInputsCompiler({
                     build: jest.fn((id: string) => {
                         record?.record(GEN, "GEN");
                         record?.record(GENERATED, "export {};");
-                        return { ...buildModule(id), dependencies: { files: [GEN], missing: [] } };
+                        return { ...buildModule(id), dependencies: { files, missing: [] } };
                     }),
                 });
                 const testObj = createWebsmithHooks(
@@ -1891,6 +1891,15 @@ describe("createWebsmithHooks", () => {
             it("should keep module that is no watch file of plugin w/ own write", async () => {
                 const environment = createEnvironment();
                 const testObj = createWriting(environment);
+
+                const actual = await testObj.hotUpdate.call({ environment }, hotInput(GENERATED, { text: "export {};", modules: [{ file: GENERATED }] }));
+
+                expect(actual).toEqual([{ file: GENERATED }]);
+            });
+
+            it("should keep compiled module that is a watch file of plugin w/ own write", async () => {
+                const environment = createEnvironment();
+                const testObj = createWriting(environment, [GEN, GENERATED]);
 
                 const actual = await testObj.hotUpdate.call({ environment }, hotInput(GENERATED, { text: "export {};", modules: [{ file: GENERATED }] }));
 

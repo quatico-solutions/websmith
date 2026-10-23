@@ -644,7 +644,8 @@ export const createWebsmithHooks = (
                 return undefined;
             }
             if (record.has(file) && record.isOwnWrite(file, await input.read())) {
-                return input.modules.filter(cur => cur.file === null || !watchFiles.has(toFileKey(cur.file)));
+                // A module the plugin compiles is a watch file of the modules that read its types, yet Vite updates it as usual
+                return input.modules.filter(cur => cur.file === null || !watchFiles.has(toFileKey(cur.file)) || isCompiledId(cur.file, filter));
             }
             return undefined;
         },
