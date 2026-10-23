@@ -286,7 +286,7 @@ export class AddonRegistry {
         }
 
         // Get fresh modification time
-        let timestamp = 0;
+        let timestamp: number;
         try {
             const modTime = this.config.system.getModifiedTime?.(filePath);
             timestamp = modTime ? modTime.getTime() : 0;
@@ -944,7 +944,7 @@ export class AddonRegistry {
         error?: string;
     } {
         const { system } = this.config;
-        let workingDir = "unknown";
+        let workingDir: string;
 
         try {
             workingDir = system.getCurrentDirectory();
@@ -965,7 +965,7 @@ export class AddonRegistry {
         const libExists = system.directoryExists(libDir);
 
         // Test if we can write to the lib directory
-        let libWritable = false;
+        let libWritable: boolean;
         if (libExists) {
             libWritable = this.canWriteToDirectory(libDir);
         } else {
