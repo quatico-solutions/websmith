@@ -326,6 +326,42 @@ describe("vite dev server invalidation w/ websmith plugin", () => {
     );
 
     it.each(VITES)(
+        "should update the generated module the page imports w/ own write of the generator w/ %s",
+        vite => {
+            writeLoggingAddon(
+                "genm",
+                [
+                    `ctx.registerGenerator((file, content) => {`,
+                    `        if (path.basename(file) === "main.ts") {`,
+                    `            ctx.getSystem().writeFile(ctx.resolvePath("src/gen/index.ts"), "export const gen: number = " + content.length + ";\\n");`,
+                    `        }`,
+                    `    });`,
+                ].join("\n")
+            );
+            const main = `import { gen } from "./gen/index";\nexport const greeting: string = "MAIN " + gen;\n`;
+            writeProfiles({ app: { addons: ["genm"] } });
+            // What the generator writes for main.ts, so that only the edit changes the generated module
+            writeFile("src/gen/index.ts", `export const gen: number = ${main.length};\n`);
+            writeFile("src/main.ts", main);
+
+            const actual = runViteDev({
+                vite,
+                pluginOptions: APP,
+                steps: [
+                    `await get("/src/main.ts");`,
+                    `await get("/src/gen/index.ts");`,
+                    `await edit("src/main.ts", 'import { gen } from "./gen/index";\\nexport const greeting: string = "MAIN 2 " + gen;\\n', ${reloadOf("src/main.ts")});`,
+                    `await get("/src/main.ts");`,
+                    `await waitForMessage(${reloadOf("src/gen/index.ts")});`,
+                ],
+            });
+
+            expect(actual.timeouts).toEqual([]);
+        },
+        60000
+    );
+
+    it.each(VITES)(
         "should serve new processor output w/ edit of asset dependency w/ %s",
         vite => {
             writeLoggingAddon(

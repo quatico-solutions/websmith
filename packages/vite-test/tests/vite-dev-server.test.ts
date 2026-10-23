@@ -25,6 +25,10 @@ const OPTION_ERROR = "Option 'reactNamespace' cannot be specified with option 'j
 
 const projectPath = (fileName: string): string => path.join(getProjectDir(), fileName);
 
+// The source of a step predicate that matches the reload of a module, triggered by `file`
+const reloadOf = (file: string): string =>
+    `cur => (cur.type === "full-reload" || cur.type === "update") && String(cur.triggeredBy ?? cur.updates?.[0]?.path).endsWith(${JSON.stringify(file)})`;
+
 // The lines the addons logged, e.g. "activate rp" or "replacer main.ts"
 const readLog = (): string[] => {
     const filePath = projectPath("addons.log");
@@ -118,6 +122,52 @@ describe("vite dev server w/ websmith plugin", () => {
             expect(actual.timeouts).toEqual([]);
             expect(actual.messages.filter(cur => cur.type === "full-reload")).not.toEqual([]);
             expect(actual.responses[2]).toEqual(expect.objectContaining({ status: 200, body: containing("MARK_OUT2") }));
+        },
+        60000
+    );
+
+    it.each(VITES)(
+        "should reload the importer w/ edit of a type-only import w/ %s",
+        vite => {
+            writeFile("src/types.ts", "export type Greeting = string;\n");
+            writeFile("src/barrel.ts", `export * from "./types";\n`);
+            writeFile("src/main.ts", `import type { Greeting } from "./barrel";\nexport const greeting: Greeting = "MAIN MARK_IN";\n`);
+
+            const actual = runViteDev({
+                vite,
+                pluginOptions: APP,
+                steps: [`await get("/src/main.ts");`, `await edit("src/types.ts", "export type Greeting = string | number;\\n", ${reloadOf("src/types.ts")});`, `await get("/src/main.ts");`],
+            });
+
+            expect(actual.timeouts).toEqual([]);
+            expect(actual.messages.filter(cur => String(cur.triggeredBy ?? cur.updates?.[0]?.path).endsWith("src/types.ts"))).toHaveLength(1);
+            expect(actual.responses[1]).toEqual(expect.objectContaining({ status: 200 }));
+        },
+        60000
+    );
+
+    it.each(VITES)(
+        "should write declarations of the edited type-only import w/ addon that needs type information w/ %s",
+        vite => {
+            writeProfiles({
+                app: { addons: ["replacer"], depends: ["dep"] },
+                dep: { addons: ["replacer"], tsConfig: { declaration: true, outDir: "./dep-out" } },
+            });
+            writeFile("src/types.ts", "export type Make = () => { a: number };\n");
+            writeFile("src/main.ts", `import type { Make } from "./types";\ndeclare const make: Make;\nexport const v = make();\n`);
+
+            const actual = runViteDev({
+                vite,
+                pluginOptions: APP,
+                steps: [
+                    `await get("/src/main.ts");`,
+                    `await edit("src/types.ts", "export type Make = () => { a: string };\\n", ${reloadOf("src/types.ts")});`,
+                    `await get("/src/main.ts");`,
+                ],
+            });
+
+            expect(actual.timeouts).toEqual([]);
+            expect(fs.readFileSync(projectPath("dep-out/main.d.ts"), "utf-8")).toContain("a: string");
         },
         60000
     );

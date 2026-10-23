@@ -104,7 +104,11 @@ describe("webpack w/ websmith-loader and type-only import", () => {
     }, 90000);
 
     it("should register no node_modules or lib file as dependency", () => {
-        writeSourceFile("main.ts", `${MAIN}import type { ScriptTarget } from "typescript";\nexport const t: ScriptTarget | undefined = undefined;\n`, testDirs.SOURCE_DIR);
+        writeSourceFile(
+            "main.ts",
+            `${MAIN}import type { ScriptTarget } from "typescript";\nexport const t: ScriptTarget | undefined = undefined;\n`,
+            testDirs.SOURCE_DIR
+        );
 
         const [actual] = runWebpack({});
 
