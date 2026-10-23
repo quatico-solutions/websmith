@@ -24,15 +24,18 @@ import {
     type PackageType,
     type ScanCache,
 } from "./esm";
+import { getTypeDependencies } from "./type-dependencies";
 
 /** What one module's build yields: its output, the diagnostics to report on it and the files to watch for it. */
 export type ModuleBuildResult = {
     fragment: CompileFragment;
     diagnostics: ts.Diagnostic[];
     /**
-     * Files the build depends on, and files whose creation would change its result. `packageTypes` holds the
-     * package.json files whose `"type"` alone decided the build, with the type read, `null` for none: only a change of
-     * that type changes the result.
+     * Files the build depends on, and files whose creation would change its result. When a profile emitted the module
+     * with a Program, i.e. with type information, `files` also holds the project files its type check read: its
+     * transitive imports, also those for types only, and the global files of the Program, never `lib*.d.ts` or files
+     * under `node_modules`. `packageTypes` holds the package.json files whose `"type"` alone decided the build, with
+     * the type read, `null` for none: only a change of that type changes the result.
      */
     dependencies: { files: string[]; missing: string[]; packageTypes: Record<string, PackageType | null> };
 };
@@ -202,6 +205,9 @@ export class ModuleCompiler extends Compiler {
     private readonly configErrorCarriers = new Map<string, string>();
     private configErrorCompilation?: unknown;
     private readonly emitModes = new Map<string | undefined, EmitMode>();
+    // The type dependencies the running build collects, and those of each module's last build
+    private typeDependencies?: Set<string>;
+    private readonly lastTypeDependencies = new Map<string, string[]>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -444,6 +450,10 @@ export class ModuleCompiler extends Compiler {
                 dependencies: { files: [], missing: [], packageTypes: {} },
             };
         }
+        // The language service reads a file it never built again only when its version changes
+        const lastTypeDependencies = this.lastTypeDependencies.get(filePath) ?? [];
+        this.refreshUnbuiltFiles(lastTypeDependencies);
+        this.typeDependencies = new Set();
         // The nearest package.json's "type" decides the module format a profile emits under a node module kind (node16,
         // node18, node20, nodenext)
         if (this.hasNodeModuleProfile()) {
@@ -510,6 +520,13 @@ export class ModuleCompiler extends Compiler {
             this.logDebug(`Write file: ${result.files[0].name}`);
         }
 
+        const typeDependencies = [...this.typeDependencies];
+        this.typeDependencies = undefined;
+        typeDependencies.forEach(cur => dependencies.files.add(cur));
+        // Records when the files were seen, so the next build of the module finds those modified since
+        this.refreshUnbuiltFiles(typeDependencies);
+        this.lastTypeDependencies.set(filePath, typeDependencies);
+
         this.logDebug(`Build completed for: ${resourcePath}`);
         return {
             fragment: result,
@@ -555,6 +572,15 @@ export class ModuleCompiler extends Compiler {
      */
     protected prepareAddons(): void {
         // Nothing to set up without a host
+    }
+
+    /** Collects the project files the type check of `fileName` read, while `build` runs. */
+    protected onTypeCheckProgram(fileName: string, getProgram: () => ts.Program | undefined): void {
+        const program = this.typeDependencies && getProgram();
+        if (program) {
+            // webpack compares native paths
+            getTypeDependencies(program, fileName).forEach(cur => this.typeDependencies?.add(path.resolve(cur)));
+        }
     }
 
     /** Called after the target profile emitted `filePath` and before its output is checked. */
@@ -612,6 +638,17 @@ export class ModuleCompiler extends Compiler {
         const result: EmitMode = noEmit ? "memory" : emitDeclarationOnly ? "memory-declarations" : "disk";
         this.emitModes?.set(profile, result);
         return result;
+    }
+
+    /** Raises the cached version of each of `fileNames` that no profile built and that changed since it was last seen. */
+    private refreshUnbuiltFiles(fileNames: string[]): void {
+        if (fileNames.length > 0) {
+            const profiles = this.profile ? this.getOptions().getSelectedProfiles(this.profile) : [this.profile];
+            profiles.forEach(profile => {
+                const cache = this.getContext(profile)?.getCache();
+                fileNames.forEach(cur => cache?.refreshUnbuilt(cur));
+            });
+        }
     }
 
     /**

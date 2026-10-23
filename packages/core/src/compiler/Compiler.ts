@@ -1345,6 +1345,7 @@ export class Compiler {
         if (addonNeedsBigProgram && compilerOptions.declaration && isSourceFile(fileName)) {
             const langService = ctx.getLanguageService();
             const emitOutput = langService.getEmitOutput(fileName);
+            this.onTypeCheckProgram(fileName, () => langService.getProgram());
 
             // When addonEmitOnly is enabled, detect if transformers changed the output
             // Uses per-file Program comparison (same as Case 3) while returning language service output
@@ -1401,12 +1402,22 @@ export class Compiler {
         // Default slow path: Use language service (which uses the big Program if it exists)
         const langService = ctx.getLanguageService();
         const emitOutput = langService.getEmitOutput(fileName);
+        this.onTypeCheckProgram(fileName, () => langService.getProgram());
 
         return {
             ...emitOutput,
             diagnostics: langService.getSyntacticDiagnostics(fileName),
             emitSkipped: this.isLanguageServiceEmitSkipped(emitOutput, compilerOptions),
         };
+    }
+
+    /**
+     * Called after `fileName` was emitted with a Program, i.e. with type information: on the language service paths
+     * and for the declarations of a per-file Program, not on the transpileModule paths. `getProgram` returns the
+     * Program the emit used; a subclass calls it only when it needs it.
+     */
+    protected onTypeCheckProgram(_fileName: string, _getProgram: () => ts.Program | undefined): void {
+        // Nothing to do without a host
     }
 
     /**
@@ -1458,7 +1469,7 @@ export class Compiler {
             // Helper function to emit with given transformers
             const emitWithTransformers = (
                 transformers: ts.CustomTransformers
-            ): { outputFiles: ts.OutputFile[]; diagnostics: readonly ts.Diagnostic[] } => {
+            ): { outputFiles: ts.OutputFile[]; diagnostics: readonly ts.Diagnostic[]; program: ts.Program } => {
                 // Create a simple program with just this file
                 const baseHost = ts.createCompilerHost(ctx.getCompilerOptions());
                 const program = ts.createProgram({
@@ -1494,6 +1505,7 @@ export class Compiler {
                         ...program.getSyntacticDiagnostics(sourceFile).filter(cur => !emitted.has(this.getDiagnosticKey(cur))),
                         ...emitResult.diagnostics,
                     ],
+                    program,
                 };
             };
 
@@ -1505,7 +1517,9 @@ export class Compiler {
 
                 if (hasTransformers) {
                     // Emit with transformers to get the actual output
-                    const { outputFiles: withTransformers, diagnostics } = emitWithTransformers(transformers);
+                    const { outputFiles: withTransformers, diagnostics, program } = emitWithTransformers(transformers);
+                    // The baseline's Program reads the same files
+                    this.onTypeCheckProgram(fileName, () => program);
 
                     // Invalidate stale cache entries if file content has changed
                     this.invalidateBaselineEmitCacheForFile(fileName);
@@ -1549,7 +1563,8 @@ export class Compiler {
             }
 
             // Default behavior: emit with transformers (when addonEmitOnly is disabled or no transformers)
-            const { outputFiles, diagnostics } = emitWithTransformers(ctx.getTransformers());
+            const { outputFiles, diagnostics, program } = emitWithTransformers(ctx.getTransformers());
+            this.onTypeCheckProgram(fileName, () => program);
 
             return {
                 outputFiles,
