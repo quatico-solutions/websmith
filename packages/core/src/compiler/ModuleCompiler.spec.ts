@@ -915,11 +915,7 @@ describe("ModuleCompiler dependent profile diagnostics", () => {
     it("yields error once labelled w/ first dependent profile w/ same error in two dependent profiles", () => {
         const testObj = createInjectingCompiler(
             { dep1: [createFileDiagnostic("Decl error")], dep2: [createFileDiagnostic("Decl error")] },
-            {
-                target: { depends: ["dep1", "dep2"], tsConfig: { outDir: "/dist" } },
-                dep1: { tsConfig: { outDir: "/lib1" } },
-                dep2: { tsConfig: { outDir: "/lib2" } },
-            }
+            { target: { depends: ["dep1", "dep2"], tsConfig: { outDir: "/dist" } }, dep1: { tsConfig: { outDir: "/lib1" } }, dep2: { tsConfig: { outDir: "/lib2" } } }
         );
 
         const actual = flatten(testObj.build("/src/a.ts").diagnostics);
@@ -998,9 +994,7 @@ describe("ModuleCompiler dependent profile diagnostics", () => {
 
         const actual = flatten(testObj.build("/src/a.ts").diagnostics);
 
-        expect(actual).toEqual([
-            "File '/src/a.ts' is not under 'rootDir' '/src/lib'. 'rootDir' is expected to contain all source files. (profile \"dep\")",
-        ]);
+        expect(actual).toEqual(["File '/src/a.ts' is not under 'rootDir' '/src/lib'. 'rootDir' is expected to contain all source files. (profile \"dep\")"]);
     });
 
     it("yields no file-less TypeScript error naming the module's file as config error after rebuild w/o error in dependent profile", () => {
