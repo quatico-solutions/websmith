@@ -1167,6 +1167,34 @@ describe("ModuleCompiler in-memory emit", () => {
         const actual = findJs(testObj.build("/src/a.ts").fragment.files);
 
         expect(actual).toContain(`"after"`);
+    // tsc's TS5011 of the running TypeScript: TypeScript 6 reports it for a single source without rootDir, 5.x does not
+    const getTscRootDirErrorCodes = (system: ts.System): number[] => {
+        const { options, fileNames } = ts.parseJsonConfigFileContent(
+            JSON.parse(system.readFile("/tsconfig.json") ?? "{}"),
+            system,
+            "/",
+            undefined,
+            "/tsconfig.json"
+        );
+        const host: ts.CompilerHost = {
+            ...ts.createCompilerHost(options),
+            getCurrentDirectory: () => system.getCurrentDirectory(),
+            fileExists: fileName => system.fileExists(fileName),
+            readFile: fileName => system.readFile(fileName),
+            directoryExists: directoryName => system.directoryExists(directoryName),
+            realpath: fileName => fileName,
+            getSourceFile: (fileName, languageVersion) => {
+                const text = system.readFile(fileName);
+                return text !== undefined ? ts.createSourceFile(fileName, text, languageVersion) : undefined;
+            },
+        };
+        return ts
+            .createProgram(fileNames, { ...options, noLib: true, types: [] }, host)
+            .getOptionsDiagnostics()
+            .map(cur => cur.code)
+            .filter(cur => cur === 5011);
+    };
+
         expect(written()).toEqual([]);
     });
 
@@ -1271,12 +1299,13 @@ describe("ModuleCompiler in-memory emit", () => {
         expect([...diagnostics, ...testObj.getConfigErrors()].map(cur => cur.code)).not.toContain(5011);
     });
 
-    it("reports TS5011 w/ emitDeclarationOnly, outDir and no rootDir", () => {
-        const { testObj } = createInMemoryCompiler({ compilerOptions: { emitDeclarationOnly: true, declaration: true, rootDir: undefined } });
+    it("reports tsc's TS5011 w/ emitDeclarationOnly, outDir and no rootDir", () => {
+        const { testObj, system } = createInMemoryCompiler({ compilerOptions: { emitDeclarationOnly: true, declaration: true, rootDir: undefined } });
+        const expected = getTscRootDirErrorCodes(system);
 
         const { diagnostics } = testObj.build("/src/a.ts");
 
-        expect([...diagnostics, ...testObj.getConfigErrors()].map(cur => cur.code)).toContain(5011);
+        expect([...diagnostics, ...testObj.getConfigErrors()].map(cur => cur.code).filter(cur => cur === 5011)).toEqual(expected);
     });
 
     it("writes output of dependent profile to its outDir w/ noEmit in host profile and noEmit false in dependent profile", () => {
