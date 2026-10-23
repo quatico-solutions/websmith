@@ -73,13 +73,13 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             callback: (err: NodeJS.ErrnoException | null, bytesRead: number, buffer: TBuffer) => void
         ): void => {
             return memfs.fstatSync(fd)
-                ? memfs.read(fd, buffer, offset, length, position as any, callback as any)
+                ? memfs.read(fd, buffer, offset, length, position, callback as any)
                 : actualFs.read(fd, buffer, offset, length, position, callback);
         },
         // readSync: (fd: number, buffer: NodeJS.ArrayBufferView, opts?: ReadSyncOptions): number => {
         readSync: (fd: number, buffer: NodeJS.ArrayBufferView, offset: number, length: number, position: fs.ReadPosition | null): number => {
             return memfs.fstatSync(fd)
-                ? memfs.readSync(fd, buffer, offset, length, position as any)
+                ? memfs.readSync(fd, buffer, offset, length, position)
                 : actualFs.readSync(fd, buffer, offset, length, position);
         },
         readFile: (
