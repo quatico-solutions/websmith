@@ -286,7 +286,7 @@ export class AddonRegistry {
         }
 
         // Get fresh modification time
-        let timestamp = 0;
+        let timestamp: number;
         try {
             const modTime = this.config.system.getModifiedTime?.(filePath);
             timestamp = modTime ? modTime.getTime() : 0;
@@ -944,7 +944,7 @@ export class AddonRegistry {
         error?: string;
     } {
         const { system } = this.config;
-        let workingDir = "unknown";
+        let workingDir: string;
 
         try {
             workingDir = system.getCurrentDirectory();
@@ -965,7 +965,7 @@ export class AddonRegistry {
         const libExists = system.directoryExists(libDir);
 
         // Test if we can write to the lib directory
-        let libWritable = false;
+        let libWritable: boolean;
         if (libExists) {
             libWritable = this.canWriteToDirectory(libDir);
         } else {
@@ -1092,8 +1092,8 @@ export class AddonRegistry {
 
         // Handle objects (but not arrays, which are handled above)
         if (typeof a === "object" && !Array.isArray(a)) {
-            const keysA = Object.keys(a as Record<string, unknown>);
-            const keysB = Object.keys(b as Record<string, unknown>);
+            const keysA = Object.keys(a);
+            const keysB = Object.keys(b);
 
             if (keysA.length !== keysB.length) {
                 return false;

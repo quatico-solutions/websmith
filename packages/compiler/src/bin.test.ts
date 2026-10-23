@@ -573,7 +573,7 @@ describe("bin.ts e2e tests", () => {
             target: "esnext",
             module: "esnext",
             types: [],
-        } as TscArguments);
+        });
         createSourceFile(`export const a = 1;`, "a.ts");
         createSourceFile(`export const b = 1;`, "b.ts");
         createSourceFile(`export const c = 1;`, "c.ts");
@@ -587,7 +587,7 @@ describe("bin.ts e2e tests", () => {
     }, 60000);
 
     it("should exit with status 1, report the command-line option error once and write the output w/ invalid --target", () => {
-        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, types: [] } as TscArguments);
+        createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, types: [] });
         createSourceFile(`export const a = 1;`, "test.ts");
 
         const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} --target foo`);
@@ -710,7 +710,7 @@ describe("bin.ts e2e tests", () => {
     ])(
         "should exit with status 0 and report no unknown compiler option w/ $name and valid project",
         ({ args }) => {
-            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, types: [] } as TscArguments);
+            createTsConfig({ outDir: testDirs.OUTPUT_DIR, noEmit: false, types: [] });
             createSourceFile(`export const a = 1;`, "test.ts");
 
             const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")} ${args()}`);
@@ -764,7 +764,7 @@ describe("bin.ts e2e tests", () => {
                 moduleResolution: "node16",
                 target: "esnext",
                 types: [],
-            } as TscArguments);
+            });
             createSourceFile(`export const a = 1;`, "test.ts");
 
             const target = executeCompilerStatus(`--project ${path.join(testDirs.PROJECT_DIR, "tsconfig.json")}`);

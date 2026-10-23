@@ -146,7 +146,7 @@ export class ResolvedCompilerOptions implements CompilerOptions {
                     },
                     fileNames: options.cliArgs?.fileNames ?? [],
                     errors: options.cliArgs?.errors ?? [],
-                } as ts.ParsedCommandLine,
+                },
             },
             loaderOptions ?? {},
             {

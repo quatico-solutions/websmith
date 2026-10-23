@@ -8,7 +8,6 @@
 import {
     ErrorMessage,
     InfoMessage,
-    type AddonContext,
     type CompilerOptions,
     type EsmProfileOptions,
     type Reporter,
@@ -711,7 +710,7 @@ export class Compiler {
 
             // Filter addon explicitly wants this file
             try {
-                if (addon.shouldProcessFile(fileName, ctx as unknown as AddonContext)) {
+                if (addon.shouldProcessFile(fileName, ctx)) {
                     return false;
                 }
             } catch (err) {

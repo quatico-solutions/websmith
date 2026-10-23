@@ -156,7 +156,7 @@ export class WebpackAddonContext implements AddonContext {
         if (this.webpackCompilation) {
             // Calculate relative path from output directory, handling both absolute and relative paths
             const outputPath = this.webpackCompilation.outputOptions?.path || process.cwd();
-            let relativePath = resolvedPath;
+            let relativePath: string;
 
             if (resolvedPath.startsWith(outputPath)) {
                 relativePath = path.relative(outputPath, resolvedPath);
@@ -194,7 +194,7 @@ export class WebpackAddonContext implements AddonContext {
         if (this.webpackCompilation) {
             // Calculate relative path from output directory, handling both absolute and relative paths
             const outputPath = this.webpackCompilation.outputOptions.path || process.cwd();
-            let relativePath = resolvedPath;
+            let relativePath: string;
 
             if (resolvedPath.startsWith(outputPath)) {
                 relativePath = path.relative(outputPath, resolvedPath);
@@ -480,7 +480,7 @@ export class WebpackAddonContext implements AddonContext {
 
         // Apply virtual files as assets
         for (const [filePath, content] of this.virtualFiles) {
-            let relativePath = filePath;
+            let relativePath: string;
 
             if (filePath.startsWith(outputPath)) {
                 relativePath = path.relative(outputPath, filePath);
@@ -500,7 +500,7 @@ export class WebpackAddonContext implements AddonContext {
 
         // Remove files from assets
         for (const filePath of this.filesToRemove) {
-            let relativePath = filePath;
+            let relativePath: string;
 
             if (filePath.startsWith(outputPath)) {
                 relativePath = path.relative(outputPath, filePath);

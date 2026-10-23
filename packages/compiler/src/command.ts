@@ -127,7 +127,7 @@ export const addCompileCommand = (parent = program, compiler?: Compiler): Comman
                             : !filteredArgs.project && compiler?.getOptions()?.cliArgs?.fileNames?.length
                               ? { fileNames: compiler.getOptions().cliArgs.fileNames.join(",") }
                               : {}),
-                    } as CompilerArguments,
+                    },
                     // A new Compiler resolves these options again and reports their errors, so report them only once.
                     // An injected Compiler reports to its own reporter, so errors reported here set the exit code.
                     compiler ? reporter : new NoReporter(),

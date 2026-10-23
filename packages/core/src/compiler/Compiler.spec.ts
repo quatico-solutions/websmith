@@ -20,7 +20,7 @@ import { type ResolvedCompilerOptions } from "./options";
 // The node module kinds of the installed TypeScript; Node18 and Node20 exist only in TypeScript 6
 const NODE_MODULE_KINDS = ["Node16", "Node18", "Node20", "NodeNext"]
     .filter(name => name in ts.ModuleKind)
-    .map(name => ({ name, module: (ts.ModuleKind as unknown as Record<string, number>)[name] as ts.ModuleKind }));
+    .map(name => ({ name, module: (ts.ModuleKind as unknown as Record<string, number>)[name] }));
 
 class CompilerTestClass extends Compiler {
     constructor(
@@ -2528,7 +2528,7 @@ describe("report", () => {
             {
                 diagnostics: [],
                 emitSkipped: true,
-            } as any
+            }
         );
 
         expect(actual.emitSkipped).toBe(true);
@@ -4219,8 +4219,8 @@ describe("addonEmitOnly mode", () => {
             fileSystem
         ).createProfileContextsIfNecessary();
         const ctx = testObj.getContext()!;
-        ctx.activateAddon({ getName: () => "identity-addon", activate: () => ctx.registerTransformer({ before: [() => sf => sf] }) } as never);
-        ctx.activateAddon({ getName: () => "changing-addon", activate: () => ctx.registerTransformer({ before: [changeService] }) } as never);
+        ctx.activateAddon({ getName: () => "identity-addon", activate: () => ctx.registerTransformer({ before: [() => sf => sf] }) });
+        ctx.activateAddon({ getName: () => "changing-addon", activate: () => ctx.registerTransformer({ before: [changeService] }) });
 
         const actual = ["/src/service.ts", "/src/helper.ts"].map(cur =>
             testObj.emitSourceFile(cur, undefined, true).writtenFiles.map(file => file.name)

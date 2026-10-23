@@ -1050,7 +1050,7 @@ describe("ModuleCompiler package types", () => {
     it.each(["Node16", "Node18", "Node20", "NodeNext"].filter(name => name in ts.ModuleKind))(
         "yields type of nearest package.json w/ module %s target",
         name => {
-            const module = (ts.ModuleKind as unknown as Record<string, number>)[name] as ts.ModuleKind;
+            const module = (ts.ModuleKind as unknown as Record<string, number>)[name];
             const testObj = createModuleCompiler(
                 { ...MODULE_PACKAGE, "/src/a.ts": "export const a = 1;" },
                 { target: { tsConfig: { module, outDir: "/dist" } } }

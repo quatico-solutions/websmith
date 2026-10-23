@@ -468,7 +468,7 @@ const emitAdditionalFile = (context: LoaderContext<WebsmithLoaderConfig>, file: 
     // moduleA/index.d.ts
     // moduleB/index.d.ts
 
-    let fileName = file.name;
+    let fileName: string;
 
     try {
         // Get compiler options directly from the context

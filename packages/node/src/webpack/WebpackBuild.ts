@@ -125,13 +125,13 @@ export class WebpackBuild {
                 rule.use.forEach(useItem => {
                     if (typeof useItem === "object" && useItem !== null && "loader" in useItem) {
                         if (this.tsLoaderOptions && useItem.loader?.includes("ts-loader")) {
-                            this.injectTsLoaderOptions(useItem as webpack.RuleSetRule, this.tsLoaderOptions);
+                            this.injectTsLoaderOptions(useItem, this.tsLoaderOptions);
                         }
                         if (
                             this.websmithLoaderOptions &&
                             (useItem.loader?.includes("websmith-loader") || useItem.loader?.includes("packages/webpack"))
                         ) {
-                            this.injectWebsmithLoaderOptions(useItem as webpack.RuleSetRule, this.websmithLoaderOptions);
+                            this.injectWebsmithLoaderOptions(useItem, this.websmithLoaderOptions);
                         }
                     }
                 });

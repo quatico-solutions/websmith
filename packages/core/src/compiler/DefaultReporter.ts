@@ -76,7 +76,7 @@ export class DefaultReporter implements Reporter {
 
     protected logProblem(message: string, category: ts.DiagnosticCategory): void {
         let level: LogLevel;
-        let icon = "";
+        let icon: string;
 
         switch (category) {
             case ts.DiagnosticCategory.Error:
