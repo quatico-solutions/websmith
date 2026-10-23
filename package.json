@@ -19,6 +19,7 @@
     },
     "homepage": "https://github.com/quatico-solutions/websmith#readme",
     "private": true,
+    "packageManager": "pnpm@10.8.0",
     "scripts": {
         "clean": "rimraf coverage test-output && nx run-many --target=clean",
         "lint": "nx run-many --target=lint",
