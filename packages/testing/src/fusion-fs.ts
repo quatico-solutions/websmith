@@ -68,13 +68,13 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             callback: (err: NodeJS.ErrnoException | null, bytesRead: number, buffer: TBuffer) => void
         ): void => {
             return memfs.fstatSync(fd)
-                ? memfs.read(fd, buffer as any, offset, length, position as any, callback as any)
+                ? memfs.read(fd, buffer, offset, length, position as any, callback as any)
                 : actualFs.read(fd, buffer, offset, length, position, callback);
         },
         // readSync: (fd: number, buffer: NodeJS.ArrayBufferView, opts?: ReadSyncOptions): number => {
         readSync: (fd: number, buffer: NodeJS.ArrayBufferView, offset: number, length: number, position: fs.ReadPosition | null): number => {
             return memfs.fstatSync(fd)
-                ? memfs.readSync(fd, buffer as any, offset, length, position as any)
+                ? memfs.readSync(fd, buffer, offset, length, position as any)
                 : actualFs.readSync(fd, buffer, offset, length, position);
         },
         readFile: (
@@ -142,7 +142,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             }
         ) => memfs.mkdirSync(path, options ?? { recursive: true }),
         exists: (path: PathLike, callback: (exists: boolean) => void): void =>
-            memfs.existsSync(path) ? memfs.exists(path, callback as any) : actualFs.exists(path, callback),
+            memfs.existsSync(path) ? memfs.exists(path, callback) : actualFs.exists(path, callback),
         existsSync: (path: PathLike): boolean => memfs.existsSync(path) || actualFs.existsSync(path),
         lstat: memfs.lstat,
         lstatSync: (path: PathLike): Stats => (memfs.existsSync(path) ? memfs.lstatSync(path) : actualFs.lstatSync(path)),
@@ -178,7 +178,7 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             listener: (curr: Stats, prev: Stats) => void
         ): StatWatcher =>
             memfs.existsSync(path)
-                ? (memfs.watchFile(path, options as any, listener as any) as any)
+                ? memfs.watchFile(path, options as any, listener as any)
                 : (actualFs.watchFile(path, options as any, listener) as any),
         unwatchFile: (path: PathLike, listener?: (curr: Stats, prev: Stats) => void): void =>
             memfs.existsSync(path) ? memfs.unwatchFile(path, listener as any) : actualFs.unwatchFile(path, listener),

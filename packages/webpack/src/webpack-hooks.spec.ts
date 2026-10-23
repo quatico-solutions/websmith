@@ -50,7 +50,7 @@ describe("webpack-hooks", () => {
             instanceName: "test-instance",
             configFile: undefined,
             transpileOnly: true,
-        } as WebsmithLoaderConfig;
+        };
     });
 
     describe("addCompilationHooks", () => {
@@ -406,8 +406,7 @@ const createCompilation = (compiler: Compiler) =>
         modules: new Set<Module>(),
     }) as unknown as Compilation;
 
-const getAfterCompileTaps = (compiler: jest.Mocked<Compiler>) =>
-    jest.mocked(compiler.hooks.afterCompile.tap).mock.calls.map(([, cur]) => cur as unknown as (compilation: Compilation) => void);
+const getAfterCompileTaps = (compiler: jest.Mocked<Compiler>) => jest.mocked(compiler.hooks.afterCompile.tap).mock.calls.map(([, cur]) => cur);
 
 const OPTIONS_LOADER_CONFIG: WebsmithLoaderConfig = {
     tsConfigFile: "/tsconfig.json",

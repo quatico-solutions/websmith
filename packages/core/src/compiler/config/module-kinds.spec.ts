@@ -28,13 +28,13 @@ describe("isNodeModuleKind", () => {
     });
 
     it("returns false w/ a value whose member the module kinds lack", () => {
-        const actual = isNodeModuleKind(101 as ts.ModuleKind, { Node16: 100, NodeNext: 199 });
+        const actual = isNodeModuleKind(101, { Node16: 100, NodeNext: 199 });
 
         expect(actual).toBe(false);
     });
 
     it("returns true w/ a value of a member the module kinds have", () => {
-        const actual = isNodeModuleKind(100 as ts.ModuleKind, { Node16: 100, NodeNext: 199 });
+        const actual = isNodeModuleKind(100, { Node16: 100, NodeNext: 199 });
 
         expect(actual).toBe(true);
     });

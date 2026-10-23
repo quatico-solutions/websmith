@@ -696,7 +696,7 @@ describe("parsedCommandLine w/ extra args", () => {
     });
 
     it("returns no error for websmith's own arguments w/ existing tsconfig.json", () => {
-        const actual = parsedCommandLine("tsconfig.json", { files: [], addonEmitOnly: true, build: true } as TscArguments, target);
+        const actual = parsedCommandLine("tsconfig.json", { files: [], addonEmitOnly: true, build: true }, target);
 
         expect(actual.errors).toEqual([]);
     });
@@ -784,7 +784,7 @@ describe("createArgs", () => {
     });
 
     it("returns array with number value", () => {
-        const actual = createArgs({ target: "es2020" as any });
+        const actual = createArgs({ target: "es2020" });
 
         expect(actual).toEqual(["--target", "es2020"]);
     });
@@ -877,7 +877,7 @@ describe("createArgs", () => {
     });
 
     it("returns array with empty object value", () => {
-        const actual = createArgs({ config: {} as any });
+        const actual = createArgs({ config: {} });
 
         expect(actual).toEqual(["--config", "{}"]);
     });

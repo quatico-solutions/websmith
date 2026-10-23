@@ -259,10 +259,10 @@ describe("configFile", () => {
             {
                 configFile: "whatever",
                 reporter: new NoReporter(),
-            } as any,
+            },
             {
                 configFile: "tsconfig.json",
-            } as any
+            }
         );
 
         expect(testObj.configFile).toBe("/tsconfig.json");
@@ -303,13 +303,13 @@ describe("config", () => {
                     addonsDir: "./other",
                     transpileOnly: true,
                 },
-            } as any,
+            },
             {
                 config: {
                     addons: ["addon3", "addon4"],
                     addonsDir: "./expected",
                 },
-            } as any
+            }
         );
 
         expect(testObj.config).toEqual({
@@ -340,9 +340,13 @@ describe("config", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
 
-        new ResolvedCompilerOptions(fileSystem, { configFile: "./websmith.config.json", profile: "valid", reporter: target }, {
-            profile: "broken",
-        } as any);
+        new ResolvedCompilerOptions(
+            fileSystem,
+            { configFile: "./websmith.config.json", profile: "valid", reporter: target },
+            {
+                profile: "broken",
+            }
+        );
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             expect.objectContaining({ messageText: expect.stringContaining("Unknown 'esm.runtime' value 'deno' in profile 'broken'") })
@@ -370,7 +374,7 @@ describe("debug", () => {
     it("should yield overridden value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any, { debug: false });
+        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true }, { debug: false });
 
         expect(testObj.debug).toBe(false);
     });
@@ -396,7 +400,7 @@ describe("watch", () => {
     it("should yield overridden value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true } as any, { debug: false });
+        const testObj = new ResolvedCompilerOptions(fileSystem, { debug: true }, { debug: false });
 
         expect(testObj.debug).toBe(false);
     });
@@ -428,10 +432,10 @@ describe("tsConfigFile", () => {
             fileSystem,
             {
                 tsConfigFile: "whatever",
-            } as any,
+            },
             {
                 tsConfigFile: "tsconfig.json",
-            } as any
+            }
         );
 
         expect(testObj.tsConfigFile).toBe("/tsconfig.json");
@@ -542,12 +546,12 @@ describe("tsConfig", () => {
                 tsConfig: {
                     outDir: "whatever",
                 },
-            } as any,
+            },
             {
                 tsConfig: {
                     outDir: "./expected",
                 },
-            } as any
+            }
         );
 
         expect(testObj.tsConfig).toEqual({
@@ -585,12 +589,12 @@ describe("tsConfig", () => {
                         },
                     },
                 },
-            } as any,
+            },
             {
                 tsConfig: {
                     outDir: "./loader-out-dir",
                 },
-            } as any
+            }
         );
 
         expect(testObj.tsConfig).toEqual({
@@ -628,12 +632,12 @@ describe("tsConfig", () => {
                         },
                     },
                 },
-            } as any,
+            },
             {
                 tsConfig: {
                     outDir: "./loader-out-dir",
                 },
-            } as any
+            }
         );
 
         expect(testObj.tsConfig).toEqual({
@@ -672,11 +676,7 @@ describe("profile", () => {
     it("should yield overridden value", () => {
         const fileSystem = createSystem({}, { virtual: true });
 
-        const testObj = new ResolvedCompilerOptions(
-            fileSystem,
-            { profile: "target", reporter: new NoReporter() } as any,
-            { profile: "expected" } as any
-        );
+        const testObj = new ResolvedCompilerOptions(fileSystem, { profile: "target", reporter: new NoReporter() }, { profile: "expected" });
 
         expect(testObj.profile).toBe("expected");
     });
@@ -699,10 +699,14 @@ describe("profile", () => {
         const target = new NoReporter();
         target.reportDiagnostic = jest.fn();
 
-        new ResolvedCompilerOptions(fileSystem, { reporter: target }, {
-            profile: "a",
-            config: { profiles: { a: { depends: ["nope"] } } },
-        } as any);
+        new ResolvedCompilerOptions(
+            fileSystem,
+            { reporter: target },
+            {
+                profile: "a",
+                config: { profiles: { a: { depends: ["nope"] } } },
+            }
+        );
 
         expect(target.reportDiagnostic).toHaveBeenCalledWith(
             new ErrorMessage("Unknown profile 'nope' in 'depends' of the loader options. Available profiles: a.")
