@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`compile w/ websmith should build foobar-arrow.d.ts with ES2020 and addonsDir 1`] = `
 "export declare const getFoobar: (date: Date) => string;

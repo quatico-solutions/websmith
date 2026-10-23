@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`compile w/ tsc on TypeScript 5 should build foobar-arrow.js with ES5 target 1`] = `
 ""use strict";
