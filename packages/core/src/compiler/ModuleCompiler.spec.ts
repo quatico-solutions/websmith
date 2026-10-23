@@ -1161,12 +1161,6 @@ describe("ModuleCompiler in-memory emit", () => {
 
     const findJs = (files: ts.OutputFile[]): string | undefined => files.find(cur => cur.name.endsWith("/a.js"))?.text;
 
-    it("yields JavaScript changed by processor and writes no file w/ noEmit in tsconfig.json on fast path", () => {
-        const { testObj, written } = createInMemoryCompiler({ compilerOptions: { noEmit: true } });
-
-        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
-
-        expect(actual).toContain(`"after"`);
     // tsc's TS5011 of the running TypeScript: TypeScript 6 reports it for a single source without rootDir, 5.x does not
     const getTscRootDirErrorCodes = (system: ts.System): number[] => {
         const { options, fileNames } = ts.parseJsonConfigFileContent(
@@ -1195,6 +1189,12 @@ describe("ModuleCompiler in-memory emit", () => {
             .filter(cur => cur === 5011);
     };
 
+    it("yields JavaScript changed by processor and writes no file w/ noEmit in tsconfig.json on fast path", () => {
+        const { testObj, written } = createInMemoryCompiler({ compilerOptions: { noEmit: true } });
+
+        const actual = findJs(testObj.build("/src/a.ts").fragment.files);
+
+        expect(actual).toContain(`"after"`);
         expect(written()).toEqual([]);
     });
 
