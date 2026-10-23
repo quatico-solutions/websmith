@@ -42,7 +42,16 @@
  *   5. Compare the two numbers and put both, and the command, in the PR. The gate of loader-options-once
  *      (docs/plans/2026-10-02-loader-options-once.md): the 1000-module initial build drops by at least 80%.
  *
- * Options: --processes 5 --modules 1000 --edits 30 --flips 5 --settle 300 --flip-budget <ms> --keep
+ * With --declaration, the fixture's tsconfig.json sets `declaration: true` and the loader runs without `transpileOnly`,
+ * so every module is compiled with a Program and lists the files its type check reads as dependencies (default off, so
+ * runs without it keep their meaning). The gate of type-only-import-deps (docs/plans/2026-10-16-addon-rebuild-gaps.md):
+ * the 1000-module initial build of variant A with --declaration is at most 5% slower than `develop`'s, measured as in
+ * steps 1-4 above with --declaration on both sides. `develop` before that slice has no such option: copy this script.
+ * Variant A alone decides that gate, and a 1000-module build with declarations takes minutes, so `--variants A` runs
+ * only the variants named.
+ *
+ * Options: --processes 5 --modules 1000 --edits 30 --flips 5 --settle 300 --flip-budget <ms> --declaration --variants ABC
+ * --keep
  */
 const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
@@ -55,11 +64,24 @@ const BUDGET = 1.1;
 const ADDON_MARKER = "bench-addon";
 
 const parseOptions = argv => {
-    const options = { processes: 5, modules: 1000, edits: 30, flips: 5, settle: 300, "flip-budget": undefined, keep: false };
+    const options = {
+        processes: 5,
+        modules: 1000,
+        edits: 30,
+        flips: 5,
+        settle: 300,
+        "flip-budget": undefined,
+        declaration: false,
+        variants: VARIANTS,
+        keep: false,
+    };
     for (let i = 0; i < argv.length; i++) {
         const name = argv[i].replace(/^--/, "");
-        if (name === "keep") {
-            options.keep = true;
+        if (name === "keep" || name === "declaration") {
+            options[name] = true;
+        } else if (name === "variants") {
+            const names = argv[++i];
+            options.variants = VARIANTS.filter(cur => names.includes(cur));
         } else if (name in options) {
             options[name] = Number(argv[++i]);
         } else if (name !== "child") {
@@ -144,7 +166,7 @@ const ADDONS = {
     `,
 };
 
-const writeFixture = (projectDir, count) => {
+const writeFixture = (projectDir, count, declaration) => {
     const sourceDir = path.join(projectDir, "src");
     for (let index = 0; index < count; index++) {
         writeFile(path.join(sourceDir, moduleFile(index)), createModuleSource(index, count));
@@ -156,7 +178,15 @@ const writeFixture = (projectDir, count) => {
     writeFile(
         path.join(projectDir, "tsconfig.json"),
         JSON.stringify({
-            compilerOptions: { target: "es2022", module: "esnext", moduleResolution: "bundler", rootDir: "src", outDir: "tsout", strict: true },
+            compilerOptions: {
+                target: "es2022",
+                module: "esnext",
+                moduleResolution: "bundler",
+                rootDir: "src",
+                outDir: "tsout",
+                strict: true,
+                ...(declaration && { declaration: true }),
+            },
         })
     );
     Object.entries(ADDONS).forEach(([fileName, content]) => writeFile(path.join(projectDir, "addons", fileName), content));
@@ -179,7 +209,7 @@ const writeVariantConfig = (projectDir, variant) => {
 // Child: one watch process of one variant
 // ---------------------------------------------------------------------------------------------------------------------
 
-const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
+const runChild = ({ projectDir, variant, count, edits, flips, settle, declaration }) => {
     const loaderDir = path.dirname(require.resolve("websmith-loader"));
     const { TsCompiler } = require(path.join(loaderDir, "TsCompiler"));
     const webpack = require("webpack");
@@ -216,7 +246,7 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
                         {
                             loader: require.resolve("websmith-loader"),
                             options: {
-                                transpileOnly: true,
+                                transpileOnly: !declaration,
                                 tsConfigFile: path.join(projectDir, "tsconfig.json"),
                                 configFile: path.join(projectDir, `websmith.${variant}.config.json`),
                                 profile: "target",
@@ -279,9 +309,9 @@ const runChild = ({ projectDir, variant, count, edits, flips, settle }) => {
 // Main: interleaved processes and the gate
 // ---------------------------------------------------------------------------------------------------------------------
 
-const summarize = (runs, scenario) => {
+const summarize = (runs, scenario, variants) => {
     const byVariant = Object.fromEntries(
-        VARIANTS.map(variant => {
+        variants.map(variant => {
             const processRuns = runs.filter(cur => cur.variant === variant);
             const processMedians = processRuns.map(cur => median(cur[scenario].map(sample => sample.ms)));
             const checkMedians = processRuns.map(cur => median(cur[scenario].map(sample => sample.checkMs)));
@@ -311,16 +341,24 @@ const main = () => {
     // The real path: TypeScript expects the file names webpack passes, which resolve symlinks such as macOS' /var
     const projectDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "websmith-esm-bench-")));
     console.log(`Fixture: ${options.modules} modules in ${projectDir}`);
-    writeFixture(projectDir, options.modules);
-    VARIANTS.forEach(variant => writeVariantConfig(projectDir, variant));
+    writeFixture(projectDir, options.modules, options.declaration);
+    options.variants.forEach(variant => writeVariantConfig(projectDir, variant));
 
     const runs = [];
     try {
         for (let round = 0; round < options.processes; round++) {
-            for (const variant of VARIANTS) {
+            for (const variant of options.variants) {
                 // Every process starts from the same outputs and caches
                 ["dist", "tsout", ".websmith-cache"].forEach(dir => fs.rmSync(path.join(projectDir, dir), { recursive: true, force: true }));
-                const child = { projectDir, variant, count: options.modules, edits: options.edits, flips: options.flips, settle: options.settle };
+                const child = {
+                    projectDir,
+                    variant,
+                    count: options.modules,
+                    edits: options.edits,
+                    flips: options.flips,
+                    settle: options.settle,
+                    declaration: options.declaration,
+                };
                 const result = spawnSync(process.execPath, [__filename, "--child"], {
                     cwd: projectDir,
                     encoding: "utf-8",
@@ -347,11 +385,11 @@ const main = () => {
 
     let passed = true;
     ["edit", "flip"].forEach(scenario => {
-        const summary = summarize(runs, scenario);
+        const summary = summarize(runs, scenario, options.variants);
         console.log(
             `\nScenario ${scenario} (${scenario === "edit" ? options.edits : options.flips} per process, ${options.processes} processes per variant)`
         );
-        VARIANTS.forEach(variant => {
+        options.variants.forEach(variant => {
             const { median: value, processMedians, checkMs, checkShare, built, unchanged, late } = summary[variant];
             const ratio = value / summary.A.median;
             const checkPerModule = built > 0 ? checkMs / built : 0;
@@ -368,7 +406,7 @@ const main = () => {
         });
     });
     console.log(`\nInitial build (${options.modules} modules, ${options.processes} processes per variant)`);
-    VARIANTS.forEach(variant => {
+    options.variants.forEach(variant => {
         const processInitials = runs.filter(cur => cur.variant === variant).map(cur => cur.initial.ms);
         console.log(
             `  ${variant}: median ${median(processInitials).toFixed(0)} ms, per process [${processInitials.map(cur => cur.toFixed(0)).join(", ")}]`
