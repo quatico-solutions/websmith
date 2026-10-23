@@ -20,6 +20,7 @@
 - **Impl:** own branches
 - **Rounds:** 3
 - **Approved:** 2026-10-20, Jan Wloka, plan-PR #213 merged
+- **Started:** 2026-10-23, Jan Wloka, `bug/type-only-import-deps`
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
