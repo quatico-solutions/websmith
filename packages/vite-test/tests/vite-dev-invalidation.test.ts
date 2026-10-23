@@ -326,6 +326,30 @@ describe("vite dev server invalidation w/ websmith plugin", () => {
     );
 
     it.each(VITES)(
+        "should serve new processor output w/ edit of asset dependency w/ %s",
+        vite => {
+            writeLoggingAddon(
+                "datap",
+                `ctx.registerProcessor((file, content) => (ctx.addAssetDependency(ctx.resolvePath("data.txt"), file), content.replaceAll("DATA_IN", fs.readFileSync(ctx.resolvePath("data.txt"), "utf-8"))));`
+            );
+            writeProfiles({ app: { addons: ["datap"] } });
+            writeFile("data.txt", "DATA1");
+            writeFile("src/shared.ts", `export const shared: string = "DATA_IN";\n`);
+
+            const actual = runViteDev({
+                vite,
+                pluginOptions: APP,
+                steps: [`await get("/src/shared.ts");`, `await edit("data.txt", "DATA2", ${reloadOf("data.txt")});`, `await get("/src/shared.ts");`],
+            });
+
+            expect(actual.timeouts).toEqual([]);
+            expect(actual.responses[0].body).toContain("DATA1");
+            expect(actual.responses[actual.responses.length - 1].body).toContain("DATA2");
+        },
+        60000
+    );
+
+    it.each(VITES)(
         "should not rewrite a file w/ identical content on disk w/ %s",
         vite => {
             writeFile("gen/main.ts.txt", "GEN");

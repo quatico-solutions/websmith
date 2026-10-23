@@ -60,15 +60,19 @@ of the file. `addonsDir`, `addons` and `profiles` belong in the file or in `conf
 {
     "addonsDir": "./addons",
     "profiles": {
-        "app": { "addons": ["my-processor"], "tsConfig": { "noEmit": false, "outDir": "./websmith-out", "rootDir": "." } }
+        "app": { "addons": ["my-processor"], "tsConfig": { "outDir": "./websmith-out", "rootDir": "." } }
     }
 }
 ```
 
-- **`noEmit`:** with `"noEmit": true` in `tsconfig.json`, as many Vite templates set it, websmith emits nothing and the
-  bundle silently has no addon output, without a warning. Set `"noEmit": false` in the profile's `tsConfig`, as above.
-- **`outDir`:** the profile Vite bundles also writes its own output to disk, to the tsconfig's `outDir`, or next to
-  each source file without one. Set an `outDir` in the profile's `tsConfig`, as above, and ignore it in git. With an
+- **`noEmit` and `emitDeclarationOnly`:** with `"noEmit": true` or `"emitDeclarationOnly": true` in `tsconfig.json`
+  or the profile's `tsConfig`, as Vite's templates set `noEmit`, websmith compiles the modules as if neither were
+  set and without `allowImportingTsExtensions`, and passes the JavaScript to Vite in memory; it writes no `.js` file.
+  Declarations are still written under `emitDeclarationOnly` (beside the sources without `outDir`). Setting
+  `"noEmit": false` in the profile is no longer needed; a profile that sets it with an `outDir` keeps writing there.
+- **`outDir`:** the profile Vite bundles writes its own output to disk only when its resolved options set neither
+  `noEmit` nor `emitDeclarationOnly`: to the tsconfig's `outDir`, or next to each source file without one. Set an
+  `outDir` in the profile's `tsConfig`, as above, and ignore it in git. With an
   `outDir`, TypeScript 6 also needs an explicit `rootDir` (`"."` above) when the sources sit in `src/`; without it
   the build fails with TS5011.
 - **Addons in a `"type": "module"` project:** Node loads an `addon.js` there as an ES module, so a CommonJS
@@ -194,7 +198,7 @@ Vite names its server environment `ssr`, so the map selects the `server` profile
   addons of the profile that need type information; set `needsTypeInfo` to `false` in an addon that needs none.
 - **An edit to a type-only import**, e.g. `import type { Props } from "./types"`, does not reload its importer. An edit
   to a value import reloads it through Vite's module graph. An edit of a file an addon reads through
-  `addAssetDependency` reloads the module, but the served output can keep the old text.
+  `addAssetDependency` reloads the module with the addon's new output.
 
 ## Addon context
 
@@ -237,14 +241,11 @@ The addons of the selected profile receive an `AddonContext` whose file methods 
 
 - **Result processors of a profile in `depends`** run once per module, with the source path, and once more with the
   output files when the environment's build ends.
-- **The profile Vite bundles writes its own output to disk**, see [Configuration](#configuration).
-- **`"noEmit": true`** in `tsconfig.json` drops every addon's output without a warning, see
-  [Configuration](#configuration).
+- **The profile Vite bundles writes its own output to disk** unless its resolved options set `noEmit` or
+  `emitDeclarationOnly`, see [Configuration](#configuration).
 - **TypeScript's errors without a file**, e.g. the option error TS5053, reach the error overlay and fail `vite build`
   only with `transpileOnly`, see [Dev server](#dev-server).
 - **An edit to a type-only import** does not reload its importer, see [Dev server](#dev-server).
-- **An edit of a file an addon reads through `addAssetDependency`** reloads the module, but its output can keep the
-  old text, in the dev server and under `vite build --watch`.
 - **Under `vite build --watch`**, edited addons do not activate again, and a configuration edit leaves the modules
   Rollup does not transform again with their old output; restart the build, see [Addon context](#addon-context).
 - **The watched files and the record of written files** only grow during a long dev server session.

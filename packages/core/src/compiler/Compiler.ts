@@ -94,7 +94,7 @@ const ESM_LABELLED_TS_CODES: ReadonlySet<number> = new Set([2835, 2834, 1543, 14
  * fast path and the per-file Programs would each print their own. Every fragment carries its compilation context's
  * instead, see getRootDirInferenceErrors.
  */
-const ROOT_DIR_INFERENCE_ERROR = 5011;
+export const ROOT_DIR_INFERENCE_ERROR = 5011;
 
 export class Compiler {
     private system: ts.System;
@@ -593,7 +593,8 @@ export class Compiler {
                     this.transpile({ fileName, ctx, content, profile, useFastPath, addonNeedsBigProgram }),
                     writeFile,
                     fileName,
-                    ctx
+                    ctx,
+                    profile
                 );
             } catch (err) {
                 this.reporter.reportDiagnostic(new ErrorMessage(`Error during transpilation of "${fileName}": ${err}`));
@@ -1180,7 +1181,8 @@ export class Compiler {
         output: (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined,
         writeFile: boolean,
         fileName: string,
-        ctx?: CompilationContext
+        ctx?: CompilationContext,
+        profile?: string
     ) {
         if (output && !output.emitSkipped) {
             cache.updateOutput(fileName, output.outputFiles);
@@ -1190,7 +1192,7 @@ export class Compiler {
             // Files are marked as processed through automatic detection in both transpileOnly and full compilation modes
             const shouldEmitFile = !this.addonEmitOnly || (ctx && ctx.isFileProcessedByAddon(fileName));
 
-            const writtenFiles = writeFile && output.outputFiles && shouldEmitFile ? output.outputFiles : [];
+            const writtenFiles = writeFile && output.outputFiles && shouldEmitFile ? this.selectWrittenFiles(output.outputFiles, profile) : [];
             if (writtenFiles.length) {
                 this.writeOutputFiles(writtenFiles);
             }
@@ -1203,6 +1205,11 @@ export class Compiler {
         } else {
             return { version: cache.getVersion(fileName), files: [], writtenFiles: [], diagnostics: output?.diagnostics };
         }
+    }
+
+    /** Returns the output files of `profile` that an emit with `writeFile` writes to disk: all of them. */
+    protected selectWrittenFiles(files: ts.OutputFile[], _profile?: string): ts.OutputFile[] {
+        return files;
     }
 
     private transpile(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {

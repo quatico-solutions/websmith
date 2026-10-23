@@ -1951,3 +1951,44 @@ describe("createWebsmithHooks", () => {
         });
     });
 });
+
+describe("createWebsmithHooks w/ module compiler", () => {
+    const REPLACER_ADDON = `module.exports = { activate: ctx => ctx.registerProcessor((_fileName, content) => content.replace("MARK_IN", "MARK_OUT")) };`;
+
+    const listFiles = (dir: string): string[] =>
+        fs.readdirSync(dir, { recursive: true, withFileTypes: true }).flatMap(cur => (cur.isFile() ? [path.join(cur.parentPath, cur.name)] : []));
+
+    const createNoEmitProject = (): string => {
+        const dir = createNodeProject();
+        const write = (name: string, text: string) => {
+            fs.mkdirSync(path.dirname(path.join(dir, name)), { recursive: true });
+            fs.writeFileSync(path.join(dir, name), text);
+        };
+        write("addons/replacer/addon.js", REPLACER_ADDON);
+        write("websmith.config.json", JSON.stringify({ addonsDir: "./addons", profiles: { app: { addons: ["replacer"] } } }));
+        write(
+            "tsconfig.base.json",
+            JSON.stringify({
+                compilerOptions: { target: "es2022", module: "esnext", moduleResolution: "bundler", noEmit: true, allowImportingTsExtensions: true },
+            })
+        );
+        write("tsconfig.json", JSON.stringify({ extends: "./tsconfig.base.json", include: ["src"] }));
+        write("src/main.ts", `import { dep } from "./dep.ts";\nexport const main = "MARK_IN" + dep;\n`);
+        write("src/dep.ts", `export const dep = "dep";\n`);
+        return dir;
+    };
+
+    it("should return processed code and write no file w/ noEmit inherited through extends", () => {
+        const dir = createNoEmitProject();
+        const expected = listFiles(dir);
+        const environment = { ...createEnvironment(), config: { root: dir, build: { outDir: "dist" } } };
+        const testObj = createWebsmithHooks({ profile: "app" }, { createFilter: () => () => true });
+        testObj.configResolved({ root: dir, command: "build" });
+        testObj.buildStart.call(createContext([], environment));
+
+        const actual = testObj.transformHandler.call(createContext([], environment), "whatever", path.join(dir, "src", "main.ts"));
+
+        expect((actual as { code: string } | null)?.code).toContain("MARK_OUT");
+        expect(listFiles(dir)).toEqual(expected);
+    });
+});

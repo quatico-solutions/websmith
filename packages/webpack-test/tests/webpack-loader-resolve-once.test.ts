@@ -108,6 +108,33 @@ describe("webpack w/ websmith-loader under watch", () => {
         expect(actual).toEqual([false, true]);
     }, 90000);
 
+    it("emits new processor output of edited asset dependency", () => {
+        writeTsConfig({});
+        writeSourceFile("websmith.config.json", JSON.stringify({ addonsDir: "./addons", profiles: { target: { addons: ["datap"] } } }), projectDir);
+        writeSourceFile(
+            "addons/datap/addon.js",
+            `
+                const fs = require("node:fs");
+                const data = ${JSON.stringify(path.join(projectDir, "data.txt"))};
+                exports.activate = ctx => ctx.registerProcessor((file, content) => {
+                    ctx.addAssetDependency(data, file);
+                    return content.replaceAll("DATA_IN", fs.readFileSync(data, "utf-8"));
+                });
+            `,
+            projectDir
+        );
+        writeSourceFile("data.txt", "DATA1", projectDir);
+        writeSourceFile("src/a.ts", `export const greeting: string = "DATA_IN";\n`, projectDir);
+
+        const actual = runWebpack({
+            config: singleRule({ profile: "target", transpileOnly: false }),
+            outputs: ["dist/main.js"],
+            steps: [{ "data.txt": "DATA2" }],
+        }).map(cur => cur.outputs["dist/main.js"].match(/DATA\d/)?.[0]);
+
+        expect(actual).toEqual(["DATA1", "DATA2"]);
+    }, 90000);
+
     it("emits transformed output of edited module w/ starter-shaped build", () => {
         writeTsConfig({});
         writeSourceFile("websmith.config.json", JSON.stringify({ addonsDir: "./addons", profiles: { client: { addons: ["marker"] } } }), projectDir);

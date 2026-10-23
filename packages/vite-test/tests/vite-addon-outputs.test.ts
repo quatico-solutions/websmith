@@ -84,6 +84,30 @@ describe("vite build w/ websmith addon outputs", () => {
         expect(actual[actual.length - 1]).toBe("BUNDLE_END");
     }, 60000);
 
+    it.each(VITES)(
+        "should bundle new processor output w/ edit of asset dependency under watch w/ %s",
+        vite => {
+            writeFile("data.txt", "DATA1");
+            writeFile(
+                "addons/datap/addon.js",
+                `const fs = require("fs");\nexports.activate = ctx => ctx.registerProcessor((file, content) => (ctx.addAssetDependency(ctx.resolvePath("data.txt"), file), content.replaceAll("DATA_IN", fs.readFileSync(ctx.resolvePath("data.txt"), "utf-8"))));\n`
+            );
+            writeFile("src/main.ts", `export const greeting: string = "DATA_IN";\n`);
+            writeProfiles({ app: { addons: ["datap"] } });
+
+            const actual = runViteWatch({
+                vite,
+                pluginOptions: APP,
+                afterBuilds: [`fs.writeFileSync(${JSON.stringify(projectPath("data.txt"))}, "DATA2");`],
+            })
+                .filter(cur => cur.code === "BUNDLE_END")
+                .map(cur => cur.bundle?.match(/DATA\d/)?.[0]);
+
+            expect(actual).toEqual(["DATA1", "DATA2"]);
+        },
+        60000
+    );
+
     it("should bundle virtual file added on activation w/ rebuild under watch", () => {
         writeFile("addons/activation/addon.js", `exports.activate = ctx => ctx.addVirtualFile("activation.json", '{"activation":true}');\n`);
         writeProfiles({ app: { addons: ["replacer", "activation"] } });

@@ -36,7 +36,7 @@ export class FileCache {
 
     public updateSource(fileName: string, content: string): this {
         const file = this.getCachedFile(fileName);
-        if (!file.snapshot || this.hasChanged(fileName)) {
+        if (!file.snapshot || file.content !== content || this.hasChanged(fileName)) {
             const newFile: CacheFile = {
                 version: file.version + 1,
                 content,

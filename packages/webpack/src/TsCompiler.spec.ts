@@ -768,6 +768,63 @@ describe("TsCompiler dependent profile diagnostics", () => {
     });
 });
 
+describe("TsCompiler in-memory emit", () => {
+    const REPLACER_ADDON = `module.exports = { activate: ctx => ctx.registerProcessor((_fileName, content) => content.replace("MARK_IN", "MARK_OUT")) };`;
+
+    const listFiles = (dir: string): string[] =>
+        fs.readdirSync(dir, { recursive: true, withFileTypes: true }).flatMap(cur => (cur.isFile() ? [path.join(cur.parentPath, cur.name)] : []));
+
+    const createInMemoryCompiler = (
+        dirs: ReturnType<typeof getTestDirs>,
+        { baseOptions = {}, tsConfig = {} }: { baseOptions?: Record<string, unknown>; tsConfig?: ts.CompilerOptions }
+    ): TsCompiler => {
+        const mainFile = path.join(dirs.SOURCE_DIR, "main.ts");
+        createSource(path.join(dirs.PROJECT_DIR, "addons", "replacer", "addon.js"), REPLACER_ADDON);
+        createSource(
+            path.join(dirs.PROJECT_DIR, "tsconfig.base.json"),
+            JSON.stringify({ compilerOptions: { target: "es2022", module: "esnext", moduleResolution: "bundler", ...baseOptions } })
+        );
+        createSource(path.join(dirs.PROJECT_DIR, "tsconfig.json"), JSON.stringify({ extends: "./tsconfig.base.json", include: ["src"] }));
+        createSource(mainFile, `import { dep } from "./dep.ts";\nexport const main = "MARK_IN" + dep;\n`);
+        createSource(path.join(dirs.SOURCE_DIR, "dep.ts"), `export const dep = "dep";\n`);
+        return new TsCompiler(
+            {
+                config: { addonsDir: path.join(dirs.PROJECT_DIR, "addons"), addons: ["replacer"] },
+                tsConfig,
+                reporter: new NoReporter(),
+                cliArgs: { options: {}, fileNames: [mainFile], errors: [] },
+            },
+            { tsConfigFile: path.join(dirs.PROJECT_DIR, "tsconfig.json"), transpileOnly: false }
+        );
+    };
+
+    it("yields processed JavaScript and writes no file w/ noEmit and allowImportingTsExtensions in extended tsconfig", () => {
+        const dirs = getTestDirs();
+        const testObj = createInMemoryCompiler(dirs, { baseOptions: { noEmit: true, allowImportingTsExtensions: true } });
+        const expected = listFiles(dirs.PROJECT_DIR);
+
+        const actual = testObj.build(path.join(dirs.SOURCE_DIR, "main.ts")).fragment.files.find(cur => cur.name.endsWith("main.js"))?.text;
+
+        expect(actual).toContain("MARK_OUT");
+        expect(listFiles(dirs.PROJECT_DIR)).toEqual(expected);
+
+        fs.rmSync(dirs.PROJECT_DIR, { recursive: true, force: true });
+    });
+
+    it("yields processed JavaScript and writes no file w/ noEmit in loader tsConfig", () => {
+        const dirs = getTestDirs();
+        const testObj = createInMemoryCompiler(dirs, { baseOptions: { allowImportingTsExtensions: true }, tsConfig: { noEmit: true } });
+        const expected = listFiles(dirs.PROJECT_DIR);
+
+        const actual = testObj.build(path.join(dirs.SOURCE_DIR, "main.ts")).fragment.files.find(cur => cur.name.endsWith("main.js"))?.text;
+
+        expect(actual).toContain("MARK_OUT");
+        expect(listFiles(dirs.PROJECT_DIR)).toEqual(expected);
+
+        fs.rmSync(dirs.PROJECT_DIR, { recursive: true, force: true });
+    });
+});
+
 describe("CompilationScanCache", () => {
     const whatever = { hash: "whatever", scan: {} as never };
 
