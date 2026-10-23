@@ -23,8 +23,8 @@ export const checkTypeScript = (fromDir: string): string => {
     try {
         // createRequire resolves at runtime, webpack would resolve require.resolve at build time
         manifestPath = createRequire(path.join(fromDir, "noop.js")).resolve("typescript/package.json");
-    } catch (_ignored) {
-        throw new Error(`websmith needs typescript ${SUPPORTED_RANGE}; none was found. Add typescript to your project.`);
+    } catch (error) {
+        throw new Error(`websmith needs typescript ${SUPPORTED_RANGE}; none was found. Add typescript to your project.`, { cause: error });
     }
     const version = readVersion(manifestPath);
     if (typeof version !== "string" || !isSupported(version)) {

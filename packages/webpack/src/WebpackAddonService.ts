@@ -229,7 +229,9 @@ export class WebpackAddonService {
 
             this.loadedAddons.set(addonName, addon);
         } catch (error) {
-            throw new Error(`Failed to load compiled addon "${addonName}": ${error instanceof Error ? error.message : String(error)}`);
+            throw new Error(`Failed to load compiled addon "${addonName}": ${error instanceof Error ? error.message : String(error)}`, {
+                cause: error,
+            });
         }
     }
 

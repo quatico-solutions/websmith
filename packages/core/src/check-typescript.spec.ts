@@ -37,7 +37,7 @@ describe("checkTypeScript", () => {
     it("should throw 'none was found' w/o typescript", () => {
         const actual = () => checkTypeScript(projectDir);
 
-        expect(actual).toThrow(new Error("websmith needs typescript >=5.7 <7; none was found. Add typescript to your project."));
+        expect(actual).toThrow("websmith needs typescript >=5.7 <7; none was found. Add typescript to your project.");
     });
 
     it("should throw 'found 7.0.2' w/ TypeScript 7", () => {
