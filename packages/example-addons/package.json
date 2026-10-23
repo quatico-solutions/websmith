@@ -48,7 +48,7 @@
         "@quatico/websmith-api": "workspace:*",
         "@quatico/websmith-testing": "workspace:*",
         "@types/jest": "^30.0.0",
-        "@types/node": "26.6.5",
+        "@types/node": "24.13.6",
         "@typescript-eslint/eslint-plugin": "8.71.2",
         "@typescript-eslint/parser": "8.71.2",
         "@typescript-eslint/utils": "8.71.2",
