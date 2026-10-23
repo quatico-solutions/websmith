@@ -154,8 +154,9 @@ type WebsmithLoaderConfig = {
 
 The loader calls `this.addDependency(path)` for all source files, dependencies added via
 `addAssetDependency()`, and configuration file changes; when a Program compiled the module (`declaration: true`
-without `transpileOnly`), also for the module's type dependencies, the project files its type check read. `this.version` is set to `CompileFragment.version`; the
-version increments when a source or its processed text changes, which drives webpack's incremental rebuilds.
+without `transpileOnly`), also for the module's type dependencies, the project files its type check read.
+`this.version` is set to `CompileFragment.version`; the version increments when a source or its processed text
+changes, which drives webpack's incremental rebuilds.
 
 ### Wrong
 

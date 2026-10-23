@@ -23,7 +23,18 @@ const getLibFile = (name: string, languageVersion: ts.ScriptTarget): ts.SourceFi
     return libFiles.get(name);
 };
 
-const createProgram = (files: Record<string, string>, rootNames = Object.keys(files).filter(cur => !cur.includes("node_modules"))): ts.Program => {
+const createProgram = (
+    files: Record<string, string>,
+    rootNames = Object.keys(files).filter(cur => !cur.includes("node_modules")),
+    sourceFiles = new Map<string, ts.SourceFile>()
+): ts.Program => {
+    const getSourceFile = (name: string, languageVersion: ts.ScriptTarget): ts.SourceFile => {
+        const key = `${name}\n${files[name]}`;
+        if (!sourceFiles.has(key)) {
+            sourceFiles.set(key, ts.createSourceFile(name, files[name], languageVersion, true));
+        }
+        return sourceFiles.get(key) as ts.SourceFile;
+    };
     return ts.createProgram({
         rootNames,
         options: OPTIONS,
@@ -31,8 +42,7 @@ const createProgram = (files: Record<string, string>, rootNames = Object.keys(fi
             ...baseHost,
             fileExists: name => name in files || baseHost.fileExists(name),
             readFile: name => files[name] ?? baseHost.readFile(name),
-            getSourceFile: (name, languageVersion) =>
-                name in files ? ts.createSourceFile(name, files[name], languageVersion, true) : getLibFile(name, languageVersion),
+            getSourceFile: (name, languageVersion) => (name in files ? getSourceFile(name, languageVersion) : getLibFile(name, languageVersion)),
             getCurrentDirectory: () => "/",
             directoryExists: name => Object.keys(files).some(cur => cur.startsWith(`${name}/`)) || !!baseHost.directoryExists?.(name),
         },
@@ -152,6 +162,17 @@ describe("getTypeDependencies", () => {
             "/src/a.ts": `import type { B } from "./b";\nexport type A = B;`,
             "/src/b.ts": `import type { A } from "./a";\nexport type B = number;\nexport type C = A;`,
         });
+
+        const actual = getTypeDependencies(program, "/src/a.ts");
+
+        expect(actual).toEqual(["/src/b.ts"]);
+    });
+
+    it("yields newly resolved file w/ unchanged importer reused by next program", () => {
+        const sourceFiles = new Map<string, ts.SourceFile>();
+        const files = { "/src/a.ts": `import type { B } from "./b";\nexport const a: B = 1;` };
+        getTypeDependencies(createProgram(files, undefined, sourceFiles), "/src/a.ts");
+        const program = createProgram({ ...files, "/src/b.ts": `export type B = number;` }, ["/src/a.ts"], sourceFiles);
 
         const actual = getTypeDependencies(program, "/src/a.ts");
 

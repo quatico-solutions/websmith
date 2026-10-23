@@ -7,8 +7,8 @@
 import path from "node:path";
 import ts from "typescript";
 
-// The language service reuses unchanged source files across Programs, so each file version is walked once
-const edgesCache = new WeakMap<ts.SourceFile, string[]>();
+// Edges per Program: an unchanged source file the language service reuses in a later Program can resolve differently
+const edgesCache = new WeakMap<ts.Program, WeakMap<ts.SourceFile, string[]>>();
 const globalFilesCache = new WeakMap<ts.Program, string[]>();
 
 /**
@@ -25,8 +25,8 @@ export const getTypeDependencies = (program: ts.Program, fileName: string): stri
     const result = new Set<string>();
     const visited = new Set<ts.SourceFile>([start]);
     const queue = [start];
-    while (queue.length > 0) {
-        const cur = queue.shift() as ts.SourceFile;
+    for (let index = 0; index < queue.length; index++) {
+        const cur = queue[index];
         for (const name of getEdges(program, cur)) {
             const next = program.getSourceFile(name);
             if (next && !visited.has(next) && isProjectFile(program, next)) {
@@ -67,7 +67,12 @@ const hasAugmentation = (file: ts.SourceFile): boolean =>
 
 /** Returns the files the module specifiers and reference paths of `file` resolve to in `program`. */
 const getEdges = (program: ts.Program, file: ts.SourceFile): string[] => {
-    let result = edgesCache.get(file);
+    let programEdges = edgesCache.get(program);
+    if (!programEdges) {
+        programEdges = new WeakMap();
+        edgesCache.set(program, programEdges);
+    }
+    let result = programEdges.get(file);
     if (!result) {
         const checker = program.getTypeChecker();
         const names = new Set<string>();
@@ -98,13 +103,14 @@ const getEdges = (program: ts.Program, file: ts.SourceFile): string[] => {
             visit(file);
         }
         for (const cur of file.referencedFiles) {
-            const target = program.getSourceFile(path.posix.resolve(path.posix.dirname(file.fileName), cur.fileName));
+            // TypeScript file names use forward slashes, also on Windows
+            const target = program.getSourceFile(path.resolve(path.dirname(file.fileName), cur.fileName).replace(/\\/g, "/"));
             if (target) {
                 names.add(target.fileName);
             }
         }
         result = [...names];
-        edgesCache.set(file, result);
+        programEdges.set(file, result);
     }
     return result;
 };
