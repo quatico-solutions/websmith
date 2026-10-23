@@ -21,7 +21,7 @@ export type ViteAsset = { fileName: string; source: string };
 export type ViteBuildResult = { code: string; error?: ViteBuildError; warnings: string[]; assets: ViteAsset[]; watchFiles?: string[] };
 
 /** One event of a `vite build --watch`, with the message and hook of an `ERROR` event. */
-export type ViteWatchEvent = { code: string; message?: string; hook?: string };
+export type ViteWatchEvent = { code: string; message?: string; hook?: string; bundle?: string };
 
 /**
  * The options of the runners: the Vite package to import, the plugin options, Vite options and the working directory.
@@ -255,7 +255,7 @@ export const runViteBuild = (options: RunViteOptions): string => {
  * build process, e.g. a file write, and returns the watcher events up to the outcome of the build after the last
  * step, its `BUNDLE_END` or `ERROR`. Rollup registers the watch files of a build asynchronously after its `END`, so a
  * write right after it can go unseen: the runner repeats a step every 250 ms until the watcher reports the `START` of
- * the next build.
+ * the next build. Each `BUNDLE_END` carries the code of the build's chunks as `bundle`.
  */
 export const runViteWatch = ({
     vite = "vite",
@@ -269,11 +269,20 @@ export const runViteWatch = ({
         import websmith from "@quatico/websmith-vite";
         import fs from "node:fs";
 
+        let bundleCode;
         const watcher = await build({
             root: ${JSON.stringify(projectDir)},
             configFile: false,
             logLevel: "silent",
-            plugins: [websmith(${toSource(pluginOptions)})],
+            plugins: [
+                websmith(${toSource(pluginOptions)}),
+                {
+                    name: "bundle-probe",
+                    generateBundle(_options, bundle) {
+                        bundleCode = Object.values(bundle).filter(cur => cur.type === "chunk").map(cur => cur.code).join("\\n");
+                    },
+                },
+            ],
             build: { minify: false, lib: { entry: "src/main.ts", formats: ["es"] }, watch: {} },
         });
         const events = [];
@@ -288,6 +297,8 @@ export const runViteWatch = ({
         watcher.on("event", event => {
             if (event.code === "ERROR") {
                 events.push({ code: event.code, message: event.error.message, hook: event.error.hook });
+            } else if (event.code === "BUNDLE_END") {
+                events.push({ code: event.code, bundle: bundleCode });
             } else {
                 events.push({ code: event.code });
             }

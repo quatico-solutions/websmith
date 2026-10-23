@@ -178,6 +178,13 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   printed nothing and exited 0. Errors that need the type checker of the whole program, such as a missing global type
   under `noLib` (TS2318), are reported only with an addon that needs type information. The webpack loader reports them
   with `declaration: true` too; an error that names a source file, such as TS6059, is reported on that module.
+- **Behaviour change:** the webpack loader compiles a profile whose resolved options set `noEmit: true` or
+  `emitDeclarationOnly: true` as if neither were set, and without `allowImportingTsExtensions` (and, under `noEmit`,
+  without `noEmitOnError`), and bundles the JavaScript from memory: it writes no `.js` file for it. Before, it wrote
+  the JavaScript to `outDir`, or to `./lib` in the working directory, despite `noEmit`, and failed with "No processed
+  output found" under `declaration: true` or `emitDeclarationOnly`. Declarations are still written under
+  `emitDeclarationOnly`. The Vite plugin does the same, so projects from Vite's templates get their addon output
+  without a profile override. The `websmith` command keeps `tsc`'s meaning.
 
 ### Fixed
 
@@ -247,6 +254,10 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 - In watch mode, a file a generator adds with `addInputFile` is emitted on the first build and reported once per
   change and watched profile instead of once per rebuild that re-added it, also when the profile has `depends`. `Adding <file> to watch.` is printed once per file, and no
   longer by builds without `--watch`.
+- Under `websmith --watch`, an edit of a file an addon registered with `addAssetDependency` now emits the addon's
+  new output when the addon needs type information (it does not set `needsTypeInfo: false`) and `transpileOnly` is
+  off. Before, the output kept the old text until the source file itself changed. The Vite plugin's dev server and
+  `vite build --watch` behave the same. The webpack loader was not affected.
 
 ### Removed
 
