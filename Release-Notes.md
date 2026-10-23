@@ -258,6 +258,12 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   new output when the addon needs type information (it does not set `needsTypeInfo: false`) and `transpileOnly` is
   off. Before, the output kept the old text until the source file itself changed. The Vite plugin's dev server and
   `vite build --watch` behave the same. The webpack loader was not affected.
+- In watch mode, the webpack loader rebuilds a module when a file it imports only for types changes (`import type`,
+  also through re-exports and `paths` aliases), and the Vite plugin's dev server reloads it, when the module is
+  compiled with type information: with `declaration: true`, or in the Vite plugin with an addon that needs type
+  information, and never under `transpileOnly`. Before, such an edit rebuilt nothing, so a declaration error such as
+  TS4023 did not appear or did not clear. An edit of a project's ambient `.d.ts` rebuilds every such module. The
+  rebuilt module's declarations hold the new types also when an addon needs type information.
 
 ### Removed
 
