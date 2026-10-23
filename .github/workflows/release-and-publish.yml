@@ -38,8 +38,6 @@ jobs:
                   registry-url: https://registry.npmjs.org/
                   scope: "@quatico"
             - uses: pnpm/action-setup@v6
-              with:
-                  version: 9
 
             - name: npm with trusted publishing
               # Trusted publishing needs npm 11.5.1 or newer
