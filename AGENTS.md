@@ -82,6 +82,7 @@ pnpm license:add                 # Add missing license headers
 - **Worktree root:** .worktrees
 - **Worker command:** PLOT_UNATTENDED=1 plot-worker-loop.sh
 - **Commit style:** arlo-no-colon — e.g. `R Fixes …`; see the `commit-notation` skill
+- **People:** jwloka = Jan Wloka
 
 <!-- Written by /plot-init.
      Definition of Done: confirmed

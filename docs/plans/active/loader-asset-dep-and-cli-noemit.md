@@ -1,0 +1,1 @@
+../2026-10-28-loader-asset-dep-and-cli-noemit.md
