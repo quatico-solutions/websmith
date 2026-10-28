@@ -20,6 +20,7 @@
 - **Review:** in-session
 - **Impl:** own branches
 - **Approved:** 2026-10-28, jwloka, in-session
+- **Started:** 2026-10-28, Jan Wloka, `infra/typescript-7-1-batched-bench`
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
