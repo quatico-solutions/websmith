@@ -28,6 +28,12 @@ type TDataOut = string | Buffer;
 type TCallback<TData> = (error?: NodeJS.ErrnoException | null, data?: TData) => void;
 
 /**
+ * The single memfs/node type boundary for stats. memfs returns its own `Stats<number>`, which structurally lacks
+ * the `*Instant` fields newer @types/node declare on `Stats`; at runtime both are used interchangeably.
+ */
+const asNodeStats = (stats: object): Stats => stats as unknown as Stats;
+
+/**
  * Creates a new fs module that uses the memfs volume as a base.
  * This can be very useful for testing purposes. The actual fs module is used as a fallback.
  *
@@ -102,7 +108,8 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             } catch (_ignored) {
                 // falls through
             }
-            return actualFs.readFileSync(path, options);
+            // newer @types/node overloads only accept an options object; normalize the legacy encoding-string/null/undefined forms
+            return actualFs.readFileSync(path, typeof options === "string" ? { encoding: options } : (options ?? {}));
         },
         copyFileSync: (src: PathLike, dest: PathLike, mode?: number): void => {
             if (memfs.existsSync(src)) {
@@ -150,12 +157,12 @@ export const createFs = (actualFs: typeof fs): typeof fs => {
             memfs.existsSync(path) ? memfs.exists(path, callback) : actualFs.exists(path, callback),
         existsSync: (path: PathLike): boolean => memfs.existsSync(path) || actualFs.existsSync(path),
         lstat: memfs.lstat,
-        lstatSync: (path: PathLike): Stats => (memfs.existsSync(path) ? memfs.lstatSync(path) : actualFs.lstatSync(path)),
+        lstatSync: (path: PathLike): Stats => (memfs.existsSync(path) ? asNodeStats(memfs.lstatSync(path)) : actualFs.lstatSync(path)),
         fstat: memfs.fstat,
         fstatSync: memfs.fstatSync,
         stat: (path: PathLike, callback: TCallback<Stats>): void =>
             memfs.existsSync(path) ? memfs.stat(path, callback as any) : actualFs.stat(path, callback),
-        statSync: (path: PathLike): Stats => (memfs.existsSync(path) ? memfs.statSync(path) : actualFs.statSync(path)),
+        statSync: (path: PathLike): Stats => (memfs.existsSync(path) ? asNodeStats(memfs.statSync(path)) : actualFs.statSync(path)),
         createReadStream: (path: PathLike, options?: BufferEncoding | IReadStreamOptions): IReadStream | fs.ReadStream =>
             memfs.existsSync(path) ? memfs.createReadStream(path, options) : actualFs.createReadStream(path, options as any),
         unlinkSync: memfs.unlinkSync,
