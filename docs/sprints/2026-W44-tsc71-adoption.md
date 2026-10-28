@@ -11,7 +11,7 @@
 
 ## Status
 
-- **State:** Committed
+- **State:** Active
 - **Start:** 2026-10-28
 - **End:** 2026-11-04
 - **Release:** 0.11.0
