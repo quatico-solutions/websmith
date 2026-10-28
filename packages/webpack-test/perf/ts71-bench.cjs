@@ -40,7 +40,9 @@
  *       same channel; in process sequential only (one thread)
  *   (g) CLI batch, after (f) and on the corpus as (e) left it: one createProgram, every file's semantic diagnostics,
  *       then one emit of every file, as the websmith command compiles. In process ts.createProgram +
- *       getPreEmitDiagnostics + program.emit(); 7.1 on a new sync API (server started by an untimed transpileModule)
+ *       getSemanticDiagnostics of every corpus file + program.emit(), the same check scope as 7.1's; the websmith
+ *       command's getPreEmitDiagnostics (lib and global diagnostics too) is timed on a fresh program as an unjudged
+ *       row. 7.1 on a new sync API (server started by an untimed transpileModule)
  *       api.createProgram + one getSemanticDiagnostics over all files + one getJavaScriptEmit over all files
  *   (h) loader micro-batch: the files in --in-flight chunks, one chunk timed as one unit. 7.1 sends each chunk as one
  *       api.batch of transpileModule generators (fast path, no transformers: transformersApplied false), then on a new
@@ -526,12 +528,19 @@ const runInProcess = ({ variant, versionsDir, corpus, edits, inFlight }) => {
     // (g) and (h) read the corpus as (e) left it on disk
     const batchedSources = readSources(corpus.files);
 
-    // (g) CLI batch: createProgram, getPreEmitDiagnostics, then one program.emit() of every file
+    // (g) CLI batch: createProgram, every corpus file's semantic diagnostics, then one program.emit() of every file.
+    // Judged: the check covers the corpus files only, as 7.1's getSemanticDiagnostics(files) and (c) do.
     const cliOutputs = new Map();
     const cliProgram = measure(() => ts.createProgram(corpus.files, PROGRAM_OPTIONS));
-    const cliChecked = measure(() => ts.getPreEmitDiagnostics(cliProgram.result).length);
+    const cliChecked = measure(() =>
+        corpus.files.reduce((count, fileName) => count + cliProgram.result.getSemanticDiagnostics(cliProgram.result.getSourceFile(fileName)).length, 0)
+    );
     const cliEmitted = measure(() => cliProgram.result.emit(undefined, (name, text) => cliOutputs.set(stem(name), text)));
     results.g = cliBatchResult(cliProgram, cliChecked, cliEmitted, assertMarkers(`${variant} (g)`, batchedSources, cliOutputs));
+    // (g) unjudged: what the websmith command checks, getPreEmitDiagnostics (lib and global diagnostics included), on a
+    // fresh program so that the judged check above does not warm it
+    const websmithProgram = ts.createProgram(corpus.files, PROGRAM_OPTIONS);
+    results.g.preEmitCheckMs = measure(() => ts.getPreEmitDiagnostics(websmithProgram).length).ms;
 
     // (h) the files of each --in-flight chunk as sequential calls, timed per chunk: transpileModule, then on a new
     // program each file's semantic diagnostics and emit
@@ -939,6 +948,7 @@ const summarizeSize = runs => {
                 total: stats(pick(of("g"), variant, cur => cur.results.g.totalMs)),
                 createProgram: stats(pick(of("g"), variant, cur => cur.results.g.createProgramMs)),
                 check: stats(pick(of("g"), variant, cur => cur.results.g.checkMs)),
+                preEmitCheck: stats(pick(of("g"), variant, cur => cur.results.g.preEmitCheckMs)),
                 emit: stats(pick(of("g"), variant, cur => cur.results.g.emitMs)),
                 diagnostics: of("g")[0]?.results.g.diagnostics,
             },
@@ -1003,7 +1013,8 @@ const printSummary = (size, summary, runs) => {
         na(
             summary.g[v],
             `${fmtStats(summary.g[v].total, 0)} (createProgram ${fmtStats(summary.g[v].createProgram, 0)}, check ${fmtStats(summary.g[v].check, 0)}, ` +
-                `emit ${fmtStats(summary.g[v].emit, 0)}; ${summary.g[v].diagnostics} diagnostics)`
+                `emit ${fmtStats(summary.g[v].emit, 0)}; ${summary.g[v].diagnostics} diagnostics)` +
+                (summary.g[v].preEmitCheck ? `; unjudged getPreEmitDiagnostics ${fmtStats(summary.g[v].preEmitCheck, 0)}` : "")
         )
     );
     const microBatch = cur =>
