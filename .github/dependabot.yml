@@ -27,6 +27,15 @@ updates:
       - dependency-name: "typescript"
         update-types:
           - "version-update:semver-major"
+      # Vite 8 bundles with rolldown and fails the plugin's e2e suites; the plugin supports ^6.3.0 || ^7.0.0.
+      # Lift once a plan adds Vite 8 support.
+      - dependency-name: "vite"
+        update-types:
+          - "version-update:semver-major"
+      # Types for Node majors CI does not run (22 and 24); 26 also breaks memfs's Stats in fusion-fs.ts.
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
