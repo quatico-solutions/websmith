@@ -77,7 +77,7 @@ One slice per wave. The CLI slice goes first: the `[Unreleased]` sentence it mak
 false. The two slices touch different packages (`core`'s write decision; `core`'s dependency set and `webpack`'s
 loader) and share only `Release-Notes.md`.
 
-### CLI noEmit (Branch: bug/cli-no-emit) <!-- builds: noEmit write decision on the CLI fast path -->
+### CLI noEmit (Branch: bug/cli-no-emit) <!-- builds: noEmit write decision on the CLI fast path --> → #221
 
 The CLI writes nothing under `noEmit` or `--noEmit` on the transpile fast path; unit tests in `Compiler.spec.ts` for
 the write decision; e2e in `compiler-test`: `noEmit` in tsconfig, `--noEmit`, and a `needsTypeInfo: false` addon each

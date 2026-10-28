@@ -4414,6 +4414,66 @@ describe("emitSourceFile writtenFiles", () => {
     });
 });
 
+describe("emitSourceFile writtenFiles w/ noEmit", () => {
+    it.each([
+        { name: "noEmit in tsconfig", tsConfig: { noEmit: true }, cliOptions: {}, transpileOnly: false },
+        { name: "noEmit from the CLI options", tsConfig: {}, cliOptions: { noEmit: true }, transpileOnly: false },
+        { name: "noEmit and transpileOnly", tsConfig: { noEmit: true }, cliOptions: {}, transpileOnly: true },
+    ])("writes no file w/ $name", ({ tsConfig, cliOptions, transpileOnly }) => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext, outDir: "/out", rootDir: "/src", ...tsConfig },
+                cliArgs: { fileNames: ["/src/target.ts"], options: cliOptions, errors: [] },
+                config: { transpileOnly },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+
+        const { files, writtenFiles } = testObj.emitSourceFile("/src/target.ts", undefined, true);
+        const actual = { files: files.map(cur => cur.name), writtenFiles, written: fileSystem.fileExists("/out/target.js") };
+
+        expect(actual).toEqual({ files: ["/out/target.js"], writtenFiles: [], written: false });
+    });
+
+    it("writes the output file w/o noEmit", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = () => "original";` }, { virtual: true });
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext, outDir: "/out", rootDir: "/src" },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+
+        const { writtenFiles } = testObj.emitSourceFile("/src/target.ts", undefined, true);
+        const actual = { writtenFiles: writtenFiles.map(cur => cur.name), written: fileSystem.fileExists("/out/target.js") };
+
+        expect(actual).toEqual({ writtenFiles: ["/out/target.js"], written: true });
+    });
+
+    it("writes only the declaration w/ declaration and emitDeclarationOnly", () => {
+        const fileSystem = createSystem({ "src/target.ts": `export const test = (): string => "original";` }, { virtual: true });
+        const testObj = new CompilerTestClass(
+            {
+                reporter: new ReporterMock(fileSystem),
+                tsConfig: { target: ts.ScriptTarget.ESNext, outDir: "/out", rootDir: "/src", declaration: true, emitDeclarationOnly: true },
+                cliArgs: { fileNames: ["/src/target.ts"], options: {}, errors: [] },
+            },
+            undefined,
+            fileSystem
+        ).createProfileContextsIfNecessary();
+
+        const actual = testObj.emitSourceFile("/src/target.ts", undefined, true).writtenFiles.map(cur => cur.name);
+
+        expect(actual).toEqual(["/out/target.d.ts"]);
+    });
+});
+
 const complexFileExtension = (name: string): string => {
     return path.basename(name).replace(path.basename(name).split(".")[0], "");
 };

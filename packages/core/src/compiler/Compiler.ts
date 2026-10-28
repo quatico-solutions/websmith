@@ -1206,9 +1206,12 @@ export class Compiler {
         }
     }
 
-    /** Returns the output files of `profile` that an emit with `writeFile` writes to disk: all of them. */
-    protected selectWrittenFiles(files: ts.OutputFile[], _profile?: string): ts.OutputFile[] {
-        return files;
+    /**
+     * Returns the output files of `profile` that an emit with `writeFile` writes to disk: none under `noEmit`, as with tsc,
+     * else all of them. transpileModule drops `noEmit`, so it is read from the context's options here.
+     */
+    protected selectWrittenFiles(files: ts.OutputFile[], profile?: string): ts.OutputFile[] {
+        return this.getContext(profile)?.getCompilerOptions().noEmit ? [] : files;
     }
 
     private transpile(compilationFragment: CompilationFragment): (ts.EmitOutput & { diagnostics?: ts.Diagnostic[] }) | undefined {
