@@ -13,12 +13,13 @@
 
 ## Status
 
-- **State:** Draft
+- **State:** Approved
 - **Type:** infra
 - **Story:** ts7-rearchitecture
 - **Sprint:** tsc71-adoption
 - **Review:** in-session
 - **Impl:** own branches
+- **Approved:** 2026-10-28, jwloka, in-session
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)

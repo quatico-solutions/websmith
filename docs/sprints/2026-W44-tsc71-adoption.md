@@ -36,7 +36,7 @@ sprint's one Must Have keeps the release gate on the measurement plan, not on ad
 
 ### Must Have
 
-- [ ] [typescript-7-1-batched-measurement] Re-run the 7.1 bench against `7.1.0-beta` with batched emit and record the decision
+- [ ] [typescript-7-1-batched-measurement] Re-run the 7.1 bench against `7.1.0-beta` with batched emit and record the decision <!-- pr: #0, branch: docs/typescript-7-1-batched-measurement -->
 
 ### Should Have
 
