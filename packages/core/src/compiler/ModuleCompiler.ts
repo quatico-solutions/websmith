@@ -208,6 +208,9 @@ export class ModuleCompiler extends Compiler {
     // The type dependencies the running build collects, and those of each module's last build
     private typeDependencies?: Set<string>;
     private readonly lastTypeDependencies = new Map<string, string[]>();
+    // The asset dependencies the running build's processors register, and those of each module's last build that registered any
+    private assetDependencies?: Set<string>;
+    private readonly lastAssetDependencies = new Map<string, string[]>();
 
     constructor(
         options: Partial<CompilerOptions>,
@@ -246,7 +249,27 @@ export class ModuleCompiler extends Compiler {
 
     /** Creates the host's context for its profile with the host's factory, where no profile is the default context. */
     protected instantiateCompilationContext(options: CompilationContextOptions, profile?: string): CompilationContext {
-        return profile === this.profile && this.contextFactory ? this.contextFactory(options) : super.instantiateCompilationContext(options, profile);
+        const contextOptions = this.collectAssetDependencies(options);
+        return profile === this.profile && this.contextFactory
+            ? this.contextFactory(contextOptions)
+            : super.instantiateCompilationContext(contextOptions, profile);
+    }
+
+    /**
+     * Credits the asset dependencies that addons register during `build` to the module it builds: they travel with its
+     * build result. The host's dependency callback belongs to the call that created this instance, so it only receives
+     * those registered outside a build. Without a callback, the context registers them itself, e.g. for the watch of the
+     * CLI and the Vite plugin.
+     */
+    private collectAssetDependencies(options: CompilationContextOptions): CompilationContextOptions {
+        const hostCallback = options.registerDependencyCallback;
+        if (!hostCallback) {
+            return options;
+        }
+        return {
+            ...options,
+            registerDependencyCallback: (filePath: string) => (this.assetDependencies ? this.assetDependencies.add(filePath) : hostCallback(filePath)),
+        };
     }
 
     /** Returns the profile whose output the host bundles. */
@@ -454,6 +477,7 @@ export class ModuleCompiler extends Compiler {
         const lastTypeDependencies = this.lastTypeDependencies.get(filePath) ?? [];
         this.refreshUnbuiltFiles(lastTypeDependencies);
         this.typeDependencies = new Set();
+        this.assetDependencies = new Set();
         // The nearest package.json's "type" decides the module format a profile emits under a node module kind (node16,
         // node18, node20, nodenext)
         if (this.hasNodeModuleProfile()) {
@@ -526,6 +550,11 @@ export class ModuleCompiler extends Compiler {
         // Records when the files were seen, so the next build of the module finds those modified since
         this.refreshUnbuiltFiles(typeDependencies);
         this.lastTypeDependencies.set(filePath, typeDependencies);
+        // A build whose processors did not run again, e.g. of an unchanged module, keeps those of the last build
+        const assetDependencies = this.assetDependencies.size > 0 ? [...this.assetDependencies] : (this.lastAssetDependencies.get(filePath) ?? []);
+        this.assetDependencies = undefined;
+        assetDependencies.forEach(cur => dependencies.files.add(cur));
+        this.lastAssetDependencies.set(filePath, assetDependencies);
 
         this.logDebug(`Build completed for: ${resourcePath}`);
         return {
