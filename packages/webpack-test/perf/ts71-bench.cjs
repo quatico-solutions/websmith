@@ -7,8 +7,9 @@
 /**
  * Manual benchmark of the TypeScript 7.1 (native, out-of-process) API against the in-process 5.7.3 and 6.0.3 APIs,
  * in the call shapes websmith's loader uses. It runs in no suite and not in CI: timing noise on shared runners
- * exceeds the thresholds, and the pinned 7.1 nightly must never join the workspace's TypeScript matrix. It is the
- * spike of docs/plans/2026-10-02-typescript-6-support.md; the measurement slice runs it at full size.
+ * exceeds the thresholds, and the pinned 7.1 build (7.1.0-beta) must never join the workspace's TypeScript matrix. It
+ * is the spike of docs/plans/2026-10-02-typescript-6-support.md; docs/plans/2026-10-28-typescript-7-1-batched-measurement.md
+ * added the batched workloads (g) and (h). The measurement slices run it at full size.
  *
  * Versions come from ts71-versions.json and ts71-versions.lock.json, installed with `npm ci --ignore-scripts` into a
  * directory outside the repository (--versions-dir, default a temp directory named after the lockfile hash), with an
@@ -37,6 +38,18 @@
  *       every unchanged SourceFile, so that the measurement can tell the native compiler's gain from the cache's
  *   (f) concurrency: on 7.1 the async API (JSON-RPC) with --in-flight calls in flight against sequential calls on the
  *       same channel; in process sequential only (one thread)
+ *   (g) CLI batch, after (f) and on the corpus as (e) left it: one createProgram, every file's semantic diagnostics,
+ *       then one emit of every file, as the websmith command compiles. In process ts.createProgram +
+ *       getPreEmitDiagnostics + program.emit(); 7.1 on a new sync API (server started by an untimed transpileModule)
+ *       api.createProgram + one getSemanticDiagnostics over all files + one getJavaScriptEmit over all files
+ *   (h) loader micro-batch: the files in --in-flight chunks, one chunk timed as one unit. 7.1 sends each chunk as one
+ *       api.batch of transpileModule generators (fast path, no transformers: transformersApplied false), then on a new
+ *       program one api.batch of getSemanticDiagnostics and getJavaScriptEmit generators per chunk (type-checked path,
+ *       checked as in (c)). In process the same chunks as sequential calls, as in (f), also without transformers.
+ *       Webpack calls a loader once per module, so no loader holds a chunk today: (h) is an upper bound of what a
+ *       micro-batching loader could reach, not what websmith's loader reaches
+ *   (g) and (h) split the batched output per file by path without extension and assert every file's marker in its own
+ *   output: a generated module's revision value, a fixture's first export name; a missing marker aborts the run.
  * Payload bytes: an untimed 7.1 pass per size with collectTiming reports bytes and server ms per file.
  * Transformer probe: ts71-transformer-probe.cjs, once, as a child.
  * A 7.1 workload that throws or lacks a method is "not measurable" and the run continues; the decision counts it as
@@ -53,7 +66,17 @@
  *   5  (f) 7.1 throughput with --in-flight in flight            >= 1/1.5 x 6.0.3 in-process sequential throughput
  *   6  (a) 7.1 median cold start: above 1 s it is also reported x --loader-instances, and counts against speed only
  *      when that exceeds 2 s
- * "Speed: met" when all six are met. The Decisions row (3C, the released-7.x criterion) is the measurement slice's.
+ * "Speed (per call): met" when all six are met.
+ *
+ * "Speed (batched)" judges (g) and (h) by the same six thresholds, read the same way:
+ *   1  (h) 7.1 median per file within a micro-batch, transpileModule            <= 1.5 x 6.0.3 (h)
+ *   2  (g) 7.1 createProgram + all checks + one emit                            <= 2 x 6.0.3 (g)
+ *   3  (e) unchanged: one edit is one snapshot update and has no batched form
+ *   4  7.1 p95 <= 3 x its own median over batches (the unit a host waits for), in (h transpile) and (h check + emit)
+ *   5  (h) 7.1 micro-batched transpileModule throughput                        >= 1/1.5 x 6.0.3 (h) throughput
+ *   6  (a) unchanged: a cold start is one
+ * decision[] holds both results, each with its six criteria, threshold and value. The Decisions row (3C, the
+ * released-7.x criterion) is the measurement slice's.
  *
  * Run (pnpm 10 and npm 10.9.2 come with Node 22.17.0):
  *   export PATH="$HOME/.nvm/versions/node/v22.17.0/bin:$PATH"
@@ -61,9 +84,10 @@
  *   pnpm perf:ts71 --sizes 20 --runs 1 --edits 3                                               # dry run
  *   $HOME/.nvm/versions/node/v24.21.0/bin/node perf/ts71-bench.cjs --sizes 20 --runs 1 --edits 3  # Node 24
  *   pnpm perf:ts71                                                                             # full run
- * The last stdout line is `RESULT <json file>` (--out, default a temp file), schema websmith-ts71-bench/1.
+ * The last stdout line is `RESULT <json file>` (--out, default a temp file), schema websmith-ts71-bench/2 (/1 had
+ * workloads (a)–(f) and a single result in decision[]).
  *
- * Re-pinning: pick the nightly with `npm view typescript dist-tags` (empty NPM_CONFIG_USERCONFIG,
+ * Re-pinning: pick the build (a nightly or the beta) with `npm view typescript dist-tags` (empty NPM_CONFIG_USERCONFIG,
  * --registry=https://registry.npmjs.org/), then
  *   1. edit the ts71 alias in ts71-versions.json;
  *   2. regenerate ts71-versions.lock.json: copy ts71-versions.json to package.json in a scratch directory, run
@@ -71,7 +95,8 @@
  *      user config, copy package-lock.json back as ts71-versions.lock.json;
  *   3. check `npm view typescript@<v> exports`: the harness needs ./sync and ./async (before 7.1.0-dev.20261009.1
  *      they were ./unstable/sync and ./unstable/async);
- *   4. check the TranspileOptions and Snapshot.update shapes in dist/api/sync/api.d.ts and dist/api/async/api.d.ts;
+ *   4. check the TranspileOptions and Snapshot.update shapes in dist/api/sync/api.d.ts and dist/api/async/api.d.ts,
+ *      and for (g) and (h) Program.getJavaScriptEmit(files) with its .gen and API.batch(...generators) in the sync one;
  *   5. do a dry run;
  *   6. commit both files together.
  *
