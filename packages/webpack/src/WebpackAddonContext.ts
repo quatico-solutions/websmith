@@ -132,15 +132,15 @@ export class WebpackAddonContext implements AddonContext {
         }
         this.assetDependencies.get(resolvedParentPath)!.add(resolvedChildPath);
 
-        // If we have a loader context, add the child as a dependency
-        if (this.loaderContext) {
+        // The compilation context credits the child to the module whose build registers it. The loader context is the
+        // one this context was created with, i.e. of another module once the compiler instance builds the next one
+        if (this.compilationContext) {
+            this.compilationContext.addAssetDependency(resolvedChildPath, resolvedParentPath);
+            this.reportDebug(`WebpackAddonContext: Added asset dependency ${resolvedChildPath} -> ${resolvedParentPath}`);
+        } else if (this.loaderContext) {
             this.loaderContext.addDependency(resolvedChildPath);
             this.reportDebug(`WebpackAddonContext: Added asset dependency ${resolvedChildPath} -> ${resolvedParentPath}`);
         } else {
-            // Fallback to compilation context if available
-            if (this.compilationContext) {
-                this.compilationContext.addAssetDependency(childPath, parentPath);
-            }
             this.reportDebug(`WebpackAddonContext: Queued asset dependency ${resolvedChildPath} -> ${resolvedParentPath}`);
         }
     }

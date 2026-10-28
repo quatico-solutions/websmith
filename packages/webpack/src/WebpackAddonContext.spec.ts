@@ -5,10 +5,11 @@
  * ---------------------------------------------------------------------------------------------
  */
 
-import { DefaultReporter } from "@quatico/websmith-core";
+import { type CompilationContext, DefaultReporter } from "@quatico/websmith-core";
 import ts from "typescript";
-import { sources } from "webpack";
+import { type LoaderContext, sources } from "webpack";
 import { WebpackAddonContext } from "./WebpackAddonContext";
+import { type WebsmithLoaderConfig } from "./WebsmithLoaderConfig";
 
 describe("WebpackAddonContext", () => {
     let mockSystem: ts.System;
@@ -104,6 +105,17 @@ describe("WebpackAddonContext", () => {
                     messageText: expect.stringContaining("Added asset dependency"),
                 })
             );
+        });
+
+        it("calls compilation context w/o loader dependency w/ compilation context", () => {
+            const target = { addAssetDependency: jest.fn() } as unknown as CompilationContext;
+            const loaderContext = { addDependency: jest.fn() } as unknown as LoaderContext<WebsmithLoaderConfig>;
+            const testObj = new WebpackAddonContext(mockSystem, mockReporter, "test-profile", undefined, target, loaderContext);
+
+            testObj.addAssetDependency("style.css", "component.ts");
+
+            expect(target.addAssetDependency).toHaveBeenCalledWith("/resolved/style.css", "/resolved/component.ts");
+            expect(loaderContext.addDependency).not.toHaveBeenCalled();
         });
 
         it("should handle multiple dependencies for same parent", () => {

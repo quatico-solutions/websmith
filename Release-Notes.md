@@ -194,6 +194,9 @@ Builds that passed before can now fail: the `websmith` command reports errors it
 - The `websmith` command writes no output file under `noEmit`, from `tsconfig.json` or `--noEmit`, as `tsc` does,
   also with `--transpileOnly`, in watch mode and with addons that need no type information; the addons still run.
   Before, it wrote the JavaScript to `outDir` unless an addon needed type information.
+- In webpack watch mode, every edit of a file an addon registered with `addAssetDependency` rebuilds the module that
+  registered it, with the addon's new output. Before, the loader rebuilt it on the first edit only, and with more
+  than one module it credited the file to the first module it built, so an edit rebuilt that module instead.
 - `@quatico/websmith-api`, `-core`, `-node`, `-testing`, `-examples` and `websmith-loader` declare `tslib`, which
   they load. Before, installing them without the `websmith` CLI failed with `Cannot find module 'tslib'` (also in
   0.10.0).

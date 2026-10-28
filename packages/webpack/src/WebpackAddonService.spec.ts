@@ -690,7 +690,7 @@ describe("WebpackAddonService", () => {
             expect(target).toEqual(["named-addon"]);
         });
 
-        it("should add dependencies to webpack loader context", () => {
+        it("should add input file to webpack loader context and asset dependency to compilation context", () => {
             const addonsDir = path.join(tempDir, "addons");
             fs.mkdirSync(addonsDir, { recursive: true });
 
@@ -718,9 +718,12 @@ describe("WebpackAddonService", () => {
 
             testObj.applyAddonsToContext(mockCompilationContext, undefined, mockLoaderContext, mockWebpackCompilation);
 
-            // Verify that dependencies were added to the loader context
+            // The compilation context credits the asset dependency to the module whose build registers it
             expect(mockLoaderContext.addDependency).toHaveBeenCalledWith(expect.stringContaining("input.ts"));
-            expect(mockLoaderContext.addDependency).toHaveBeenCalledWith(expect.stringContaining("style.css"));
+            expect(mockCompilationContext.addAssetDependency).toHaveBeenCalledWith(
+                expect.stringContaining("style.css"),
+                expect.stringContaining("component.ts")
+            );
         });
 
         it("should emit virtual files as webpack assets", () => {
