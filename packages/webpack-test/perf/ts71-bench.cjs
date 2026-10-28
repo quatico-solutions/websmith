@@ -87,7 +87,7 @@ const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const corpusModule = require("./ts71-corpus.cjs");
 
-const SCHEMA = "websmith-ts71-bench/1";
+const SCHEMA = "websmith-ts71-bench/2";
 const VARIANTS = ["5.7.3", "6.0.3", "7.1"];
 const ALIASES = { "5.7.3": "ts573", "6.0.3": "ts603", "7.1": "ts71" };
 const BASELINE = "6.0.3";
@@ -337,7 +337,72 @@ const typeCheckedPass = (created, files, callsFor) => {
 
 const leafIndices = (count, edits) => Array.from({ length: edits }, (_, i) => Math.floor(count / 2) + ((i * 7) % Math.floor(count / 2)));
 
-const runInProcess = ({ variant, versionsDir, corpus, edits }) => {
+const readSources = files => files.map(fileName => ({ fileName, text: fs.readFileSync(fileName, "utf-8") }));
+
+// a source and its emitted JavaScript share the path without extension, which splits a batched emit per file
+const stem = fileName => fileName.replace(/\.[cm]?[jt]sx?$/, "");
+
+// The text a file's emitted JavaScript must contain: a generated module's revision value (as (e) left it), else the
+// name of the file's first export (the fixtures)
+const markerOf = ({ fileName, text }) => {
+    const found = /export const revision\d+ = "([^"]+)"/.exec(text) ?? /export\s+(?:const|function|class)\s+(\w+)|export\s*\{\s*(\w+)/.exec(text);
+    const marker = found?.slice(1).find(Boolean);
+    if (!marker) {
+        throw new CorrectnessError(`${fileName} has neither a revision constant nor an export to assert`);
+    }
+    return marker;
+};
+
+// (g) and (h): every source's marker in its own output, `outputs` keyed by stem
+const assertMarkers = (label, sources, outputs) => {
+    sources.forEach(source => {
+        const marker = markerOf(source);
+        if (!outputs.get(stem(source.fileName))?.includes(marker)) {
+            throw new CorrectnessError(`${label}: the output for ${source.fileName} is missing "${marker}"`);
+        }
+    });
+    return sources.length;
+};
+
+const chunksOf = (items, size) => Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size));
+
+const cliBatchResult = (created, checked, emitted, markersAsserted) => ({
+    status: "ok",
+    createProgramMs: created.ms,
+    checkMs: checked.ms,
+    emitMs: emitted.ms,
+    totalMs: created.ms + checked.ms + emitted.ms,
+    diagnostics: checked.result,
+    markersAsserted,
+});
+
+// (h) in-process and 7.1 share this loop: one timed `runBatch` per chunk, which returns [stem, output] per file
+const microBatchPass = (chunks, runBatch) => {
+    const durations = [];
+    const outputs = new Map();
+    chunks.forEach(chunk => {
+        const { ms, result } = measure(() => runBatch(chunk));
+        durations.push(ms);
+        result.forEach(([key, text]) => outputs.set(key, text));
+    });
+    const files = chunks.reduce((sum, cur) => sum + cur.length, 0);
+    const batches = summarizeCalls(durations);
+    return {
+        outputs,
+        summary: { ...batches, files, perFile: summarizeCalls(durations.map((ms, i) => ms / chunks[i].length)), perSecond: (files * 1000) / batches.totalMs },
+    };
+};
+
+const microBatchResult = ({ inFlight, sources, label, transpiled, created, typeChecked, diagnostics }) => ({
+    status: "ok",
+    inFlight,
+    transformersApplied: false,
+    transpile: transpiled.summary,
+    typeChecked: { createProgramMs: created.ms, ...typeChecked.summary, semanticDiagnostics: diagnostics },
+    markersAsserted: assertMarkers(`${label} (h) transpileModule`, sources, transpiled.outputs) + assertMarkers(`${label} (h) type-checked`, sources, typeChecked.outputs),
+});
+
+const runInProcess = ({ variant, versionsDir, corpus, edits, inFlight }) => {
     const requireAlias = createRequire(path.join(versionsDir, "package.json"));
     const sources = corpus.files.map(fileName => ({ fileName, text: fs.readFileSync(fileName, "utf-8") }));
     const markers = new Set(corpus.markerFiles);
@@ -432,6 +497,35 @@ const runInProcess = ({ variant, versionsDir, corpus, edits }) => {
     // (f) sequential throughput only: one thread, in-flight calls have no meaning in process
     const sequential = measure(() => sources.forEach(({ fileName, text }) => ts.transpileModule(text, { compilerOptions: COMPILER_OPTIONS, fileName, reportDiagnostics: true })));
     results.f = { status: "ok", modules: sources.length, sequentialMs: sequential.ms, sequentialPerSecond: (sources.length * 1000) / sequential.ms, inFlight: 1 };
+
+    // (g) and (h) read the corpus as (e) left it on disk
+    const batchedSources = readSources(corpus.files);
+
+    // (g) CLI batch: createProgram, getPreEmitDiagnostics, then one program.emit() of every file
+    const cliOutputs = new Map();
+    const cliProgram = measure(() => ts.createProgram(corpus.files, PROGRAM_OPTIONS));
+    const cliChecked = measure(() => ts.getPreEmitDiagnostics(cliProgram.result).length);
+    const cliEmitted = measure(() => cliProgram.result.emit(undefined, (name, text) => cliOutputs.set(stem(name), text)));
+    results.g = cliBatchResult(cliProgram, cliChecked, cliEmitted, assertMarkers(`${variant} (g)`, batchedSources, cliOutputs));
+
+    // (h) the files of each --in-flight chunk as sequential calls, timed per chunk: transpileModule, then on a new
+    // program each file's semantic diagnostics and emit
+    const chunks = chunksOf(batchedSources, inFlight);
+    const transpiled = microBatchPass(chunks, chunk =>
+        chunk.map(cur => [stem(cur.fileName), ts.transpileModule(cur.text, { compilerOptions: COMPILER_OPTIONS, fileName: cur.fileName, reportDiagnostics: true }).outputText])
+    );
+    const checkedProgram = measure(() => ts.createProgram(corpus.files, PROGRAM_OPTIONS));
+    let diagnostics = 0;
+    const typeChecked = microBatchPass(chunks, chunk =>
+        chunk.map(cur => {
+            const sourceFile = checkedProgram.result.getSourceFile(cur.fileName);
+            diagnostics += checkedProgram.result.getSemanticDiagnostics(sourceFile).length;
+            let text = "";
+            checkedProgram.result.emit(sourceFile, (_name, emittedText) => (text += emittedText));
+            return [stem(cur.fileName), text];
+        })
+    );
+    results.h = microBatchResult({ inFlight, sources: batchedSources, label: variant, transpiled, created: checkedProgram, typeChecked, diagnostics });
     return results;
 };
 
@@ -483,7 +577,7 @@ const runNative = async ({ versionsDir, corpus, edits, inFlight }) => {
         results.a = notMeasurable(error);
     }
     if (!api) {
-        ["b", "c", "e", "f"].forEach(key => (results[key] = { status: NOT_MEASURABLE, reason: `no API: cold start failed (${results.a.reason})` }));
+        ["b", "c", "e", "f", "g", "h"].forEach(key => (results[key] = { status: NOT_MEASURABLE, reason: `no API: cold start failed (${results.a.reason})` }));
         return results;
     }
 
@@ -574,6 +668,51 @@ const runNative = async ({ versionsDir, corpus, edits, inFlight }) => {
             await asyncApi.close();
         }
     });
+
+    // (g) and (h) on a new sync API, its server started by an untimed transpileModule as (b) starts it for (c) and (e);
+    // they read the corpus as (e) left it on disk
+    const batchedSources = readSources(corpus.files);
+    try {
+        const { API } = await import(pathToFileURL(resolve("ts71/sync")).href);
+        api = new API({ cwd });
+        api.transpileModule(sources[0].text, { compilerOptions: COMPILER_OPTIONS, fileName: sources[0].fileName, reportDiagnostics: true });
+    } catch (error) {
+        results.g = notMeasurable(error);
+        results.h = notMeasurable(error);
+        api?.close();
+        return results;
+    }
+
+    // (g) CLI batch: createProgram, one getSemanticDiagnostics over every file, then one getJavaScriptEmit over every file
+    guard(results, "g", () => {
+        const created = measure(() => api.createProgram(corpus.files, PROGRAM_OPTIONS));
+        const checked = measure(() => created.result.getSemanticDiagnostics(corpus.files).length);
+        const emitted = measure(() => created.result.getJavaScriptEmit(corpus.files));
+        const outputs = new Map([...emitted.result.outputFiles.entries()].map(([name, cur]) => [stem(name), cur.text]));
+        return cliBatchResult(created, checked, emitted, assertMarkers("7.1 (g)", batchedSources, outputs));
+    });
+
+    // (h) loader micro-batch: per --in-flight chunk one api.batch of transpileModule generators, then on a new program
+    // one api.batch of getSemanticDiagnostics and getJavaScriptEmit generators, one pair per file
+    guard(results, "h", () => {
+        const chunks = chunksOf(batchedSources, inFlight);
+        const transpiled = microBatchPass(chunks, chunk =>
+            api
+                .batch(...chunk.map(cur => api.transpileModule.gen(cur.text, { compilerOptions: COMPILER_OPTIONS, fileName: cur.fileName, reportDiagnostics: true })))
+                .map((output, i) => [stem(chunk[i].fileName), output.outputText])
+        );
+        const created = measure(() => api.createProgram(corpus.files, PROGRAM_OPTIONS));
+        let diagnostics = 0;
+        const typeChecked = microBatchPass(chunks, chunk => {
+            const outputs = api.batch(...chunk.flatMap(cur => [created.result.getSemanticDiagnostics.gen([cur.fileName]), created.result.getJavaScriptEmit.gen([cur.fileName])]));
+            return chunk.map((cur, i) => {
+                diagnostics += outputs[2 * i].length;
+                return [stem(cur.fileName), emitText(outputs[2 * i + 1])];
+            });
+        });
+        return microBatchResult({ inFlight, sources: batchedSources, label: "7.1", transpiled, created, typeChecked, diagnostics });
+    });
+    api.close();
     return results;
 };
 
@@ -704,6 +843,8 @@ const describeRun = run => {
             part("c", `c ${fmt(r.c?.totalMs, 0)} ms`),
             part("e", `e ${fmt(r.e?.edits?.medianMs, 1)}${r.e?.cachedHost ? ` (cached host ${fmt(r.e.cachedHost.medianMs, 1)})` : ""} ms/edit`),
             part("f", `f ${fmt(r.f?.sequentialPerSecond, 0)}${r.f?.concurrentPerSecond ? `/${fmt(r.f.concurrentPerSecond, 0)}` : ""} modules/s`),
+            part("g", `g ${fmt(r.g?.totalMs, 0)} ms`),
+            part("h", `h ${fmt(r.h?.transpile?.perSecond, 0)}/${fmt(r.h?.typeChecked?.perSecond, 0)} modules/s`),
         ].join(", ")
     );
 };
@@ -766,6 +907,37 @@ const summarizeSize = runs => {
                 inFlight: of("f")[0]?.results.f.inFlight,
             },
         };
+        summary.g = {
+            ...summary.g,
+            [variant]: {
+                ...unmeasured("g"),
+                total: stats(pick(of("g"), variant, cur => cur.results.g.totalMs)),
+                createProgram: stats(pick(of("g"), variant, cur => cur.results.g.createProgramMs)),
+                check: stats(pick(of("g"), variant, cur => cur.results.g.checkMs)),
+                emit: stats(pick(of("g"), variant, cur => cur.results.g.emitMs)),
+                diagnostics: of("g")[0]?.results.g.diagnostics,
+            },
+        };
+        const batches = (path, fn) => stats(pick(of("h"), variant, cur => fn(cur.results.h[path])));
+        summary.h = {
+            ...summary.h,
+            [variant]: {
+                ...unmeasured("h"),
+                inFlight: of("h")[0]?.results.h.inFlight,
+                ...Object.fromEntries(
+                    ["transpile", "typeChecked"].map(path => [
+                        path,
+                        {
+                            perFile: batches(path, cur => cur.perFile.medianMs),
+                            batch: batches(path, cur => cur.medianMs),
+                            batchP95: batches(path, cur => cur.p95Ms),
+                            perSecond: batches(path, cur => cur.perSecond),
+                            batches: of("h")[0]?.results.h[path].calls,
+                        },
+                    ])
+                ),
+            },
+        };
     });
     return summary;
 };
@@ -802,6 +974,18 @@ const printSummary = (size, summary, runs) => {
     line("(f) throughput modules/s, sequential / in flight", v =>
         na(summary.f[v], `${fmtStats(summary.f[v].sequentialPerSecond, 0)}${summary.f[v].concurrentPerSecond ? ` / ${fmtStats(summary.f[v].concurrentPerSecond, 0)} (${summary.f[v].inFlight} in flight)` : ""}`)
     );
+    line("(g) CLI batch: createProgram + all checks + one emit of every file, total ms", v =>
+        na(
+            summary.g[v],
+            `${fmtStats(summary.g[v].total, 0)} (createProgram ${fmtStats(summary.g[v].createProgram, 0)}, check ${fmtStats(summary.g[v].check, 0)}, ` +
+                `emit ${fmtStats(summary.g[v].emit, 0)}; ${summary.g[v].diagnostics} diagnostics)`
+        )
+    );
+    const microBatch = cur =>
+        `${fmtStats(cur.perFile, 3)} ms/file, batch ${fmtStats(cur.batch, 2)} ms, p95 ${fmtStats(cur.batchP95, 2)} ms over ${cur.batches} batches, ${fmtStats(cur.perSecond, 0)} modules/s`;
+    const unit = v => (v === NATIVE ? "one api.batch" : "sequential calls");
+    line("(h) loader micro-batch, transpileModule (no transformers)", v => na(summary.h[v], `${unit(v)} per ${summary.h[v].inFlight} files: ${microBatch(summary.h[v].transpile)}`));
+    line("(h) loader micro-batch, semantic check + emit", v => na(summary.h[v], `${unit(v)} per ${summary.h[v].inFlight} files: ${microBatch(summary.h[v].typeChecked)}`));
 };
 
 const printPayload = (size, payload) => {
@@ -820,43 +1004,16 @@ const printPayload = (size, payload) => {
 
 const ratioOf = (value, base) => (typeof value === "number" && typeof base === "number" && base > 0 ? value / base : undefined);
 
-const decide = (summary, options) => {
-    const criteria = [];
-    const judge = (criterion, metric, value, threshold, ok, detail) => {
-        const measurable = typeof value === "number" && Number.isFinite(value);
-        criteria.push({ criterion, metric, value: measurable ? value : null, threshold, status: measurable ? (ok(value) ? "met" : "not met") : NOT_MEASURABLE, ...detail });
-    };
-    const b = summary.b, c = summary.c, e = summary.e, f = summary.f, a = summary.a;
-    judge("1 (b) per-file transpileModule, warm, 7.1 / 6.0.3", "ratio", ratioOf(b[NATIVE].warm?.median, b[BASELINE].warm?.median), 1.5, v => v <= 1.5, {
-        reason: b[NATIVE].reason,
-        native: b[NATIVE].warm?.median,
-        baseline: b[BASELINE].warm?.median,
-    });
-    judge("2 (c) createProgram + per-file checks and emits, 7.1 / 6.0.3", "ratio", ratioOf(c[NATIVE].total?.median, c[BASELINE].total?.median), 2, v => v <= 2, {
-        reason: c[NATIVE].reason,
-        native: c[NATIVE].total?.median,
-        baseline: c[BASELINE].total?.median,
-    });
+// criteria 3 and 6 have no batched form (one edit is one snapshot update, a cold start is one): both results share them
+const judgeWatch = (judge, e) =>
     judge("3 (e) watch rebuild per edit, 7.1 / 6.0.3", "ratio", ratioOf(e[NATIVE].perEdit?.median, e[BASELINE].perEdit?.median), 2, v => v <= 2, {
         reason: e[NATIVE].reason,
         native: e[NATIVE].perEdit?.median,
         baseline: e[BASELINE].perEdit?.median,
         baselineCachedHost: e[BASELINE].perEditCachedHost?.median,
     });
-    const p95b = ratioOf(b[NATIVE].warmP95?.median, b[NATIVE].warm?.median);
-    const p95c = ratioOf(c[NATIVE].perFileP95?.median, c[NATIVE].perFile?.median);
-    const p95 = [p95b, p95c].every(cur => typeof cur === "number") ? Math.max(p95b, p95c) : undefined;
-    judge("4 7.1 p95 / own median, max of (b warm) and (c per file)", "ratio", p95, 3, v => v <= 3, {
-        reason: b[NATIVE].reason ?? c[NATIVE].reason,
-        bWarm: p95b,
-        cPerFile: p95c,
-    });
-    judge("5 (f) 7.1 throughput in flight / 6.0.3 sequential", "ratio", ratioOf(f[NATIVE].concurrentPerSecond?.median, f[BASELINE].sequentialPerSecond?.median), 1 / 1.5, v => v >= 1 / 1.5, {
-        reason: f[NATIVE].reason,
-        native: f[NATIVE].concurrentPerSecond?.median,
-        baseline: f[BASELINE].sequentialPerSecond?.median,
-        inFlight: f[NATIVE].inFlight,
-    });
+
+const judgeColdStart = (judge, a, options) => {
     // the plan multiplies by the loader instances of a multi-profile build only when one cold start exceeds 1 s
     const instances = options["loader-instances"];
     const cold = a[NATIVE].median;
@@ -865,24 +1022,96 @@ const decide = (summary, options) => {
         coldStartMs: cold,
         loaderInstances: instances,
     });
-    return criteria;
 };
 
-const printDecision = (criteria, size) => {
-    console.log(`\nDecision (size ${size}, 7.1 against in-process 6.0.3)`);
-    criteria.forEach(cur => {
-        const detail =
-            cur.status === NOT_MEASURABLE
-                ? ` (${cur.reason ?? "no value"})`
-                : cur.metric === "ratio"
-                  ? cur.native !== undefined
-                      ? ` (7.1 ${fmt(cur.native, 3)} vs 6.0.3 ${fmt(cur.baseline, 3)}${cur.baselineCachedHost !== undefined ? `; unjudged: 6.0.3 with a SourceFile-caching host ${fmt(cur.baselineCachedHost, 3)}` : ""})`
-                      : ` (b ${fmt(cur.bWarm, 3)}, c ${fmt(cur.cPerFile, 3)})`
-                  : ` (cold start ${fmt(cur.coldStartMs, 0)} ms${cur.coldStartMs > 1000 ? ` x ${cur.loaderInstances} loader instances = ${fmt(cur.value, 0)} ms` : ""})`;
-        const threshold = cur.metric === "ratio" ? (cur.criterion.startsWith("5") ? `>= ${fmt(cur.threshold, 3)}` : `<= ${cur.threshold}`) : `<= ${cur.threshold} ms`;
-        console.log(`  ${cur.criterion}: ${cur.value === null ? "n/a" : fmt(cur.value, cur.metric === "ratio" ? 3 : 0)} ${threshold} ${cur.status}${detail}`);
+const speedResult = (result, judgeAll) => {
+    const criteria = [];
+    judgeAll((criterion, metric, value, threshold, ok, detail) => {
+        const measurable = typeof value === "number" && Number.isFinite(value);
+        criteria.push({ criterion, metric, value: measurable ? value : null, threshold, status: measurable ? (ok(value) ? "met" : "not met") : NOT_MEASURABLE, ...detail });
     });
-    console.log(`Speed: ${criteria.every(cur => cur.status === "met") ? "met" : "not met"}`);
+    return { result, status: criteria.every(cur => cur.status === "met") ? "met" : "not met", criteria };
+};
+
+const maxOf = values => (values.every(cur => typeof cur === "number") ? Math.max(...values) : undefined);
+
+const decide = (summary, options) => {
+    const { a, b, c, e, f, g, h } = summary;
+    const perCall = speedResult("Speed (per call)", judge => {
+        judge("1 (b) per-file transpileModule, warm, 7.1 / 6.0.3", "ratio", ratioOf(b[NATIVE].warm?.median, b[BASELINE].warm?.median), 1.5, v => v <= 1.5, {
+            reason: b[NATIVE].reason,
+            native: b[NATIVE].warm?.median,
+            baseline: b[BASELINE].warm?.median,
+        });
+        judge("2 (c) createProgram + per-file checks and emits, 7.1 / 6.0.3", "ratio", ratioOf(c[NATIVE].total?.median, c[BASELINE].total?.median), 2, v => v <= 2, {
+            reason: c[NATIVE].reason,
+            native: c[NATIVE].total?.median,
+            baseline: c[BASELINE].total?.median,
+        });
+        judgeWatch(judge, e);
+        const p95b = ratioOf(b[NATIVE].warmP95?.median, b[NATIVE].warm?.median);
+        const p95c = ratioOf(c[NATIVE].perFileP95?.median, c[NATIVE].perFile?.median);
+        judge("4 7.1 p95 / own median, max of (b warm) and (c per file)", "ratio", maxOf([p95b, p95c]), 3, v => v <= 3, {
+            reason: b[NATIVE].reason ?? c[NATIVE].reason,
+            bWarm: p95b,
+            cPerFile: p95c,
+            components: { "b warm": p95b, "c per file": p95c },
+        });
+        judge("5 (f) 7.1 throughput in flight / 6.0.3 sequential", "ratio", ratioOf(f[NATIVE].concurrentPerSecond?.median, f[BASELINE].sequentialPerSecond?.median), 1 / 1.5, v => v >= 1 / 1.5, {
+            reason: f[NATIVE].reason,
+            native: f[NATIVE].concurrentPerSecond?.median,
+            baseline: f[BASELINE].sequentialPerSecond?.median,
+            inFlight: f[NATIVE].inFlight,
+        });
+        judgeColdStart(judge, a, options);
+    });
+    // the same six thresholds over (g) and (h); criterion 4 reads p95 over batches, the unit a host waits for
+    const batched = speedResult("Speed (batched)", judge => {
+        judge("1 (h) per-file transpileModule in micro-batches, 7.1 / 6.0.3", "ratio", ratioOf(h[NATIVE].transpile?.perFile?.median, h[BASELINE].transpile?.perFile?.median), 1.5, v => v <= 1.5, {
+            reason: h[NATIVE].reason,
+            native: h[NATIVE].transpile?.perFile?.median,
+            baseline: h[BASELINE].transpile?.perFile?.median,
+        });
+        judge("2 (g) createProgram + all checks + one emit, 7.1 / 6.0.3", "ratio", ratioOf(g[NATIVE].total?.median, g[BASELINE].total?.median), 2, v => v <= 2, {
+            reason: g[NATIVE].reason,
+            native: g[NATIVE].total?.median,
+            baseline: g[BASELINE].total?.median,
+        });
+        judgeWatch(judge, e);
+        const p95t = ratioOf(h[NATIVE].transpile?.batchP95?.median, h[NATIVE].transpile?.batch?.median);
+        const p95c = ratioOf(h[NATIVE].typeChecked?.batchP95?.median, h[NATIVE].typeChecked?.batch?.median);
+        judge("4 7.1 p95 / own median over batches, max of (h transpile) and (h check + emit)", "ratio", maxOf([p95t, p95c]), 3, v => v <= 3, {
+            reason: h[NATIVE].reason,
+            components: { "h transpile": p95t, "h check + emit": p95c },
+        });
+        judge("5 (h) 7.1 micro-batched transpileModule throughput / 6.0.3 sequential", "ratio", ratioOf(h[NATIVE].transpile?.perSecond?.median, h[BASELINE].transpile?.perSecond?.median), 1 / 1.5, v => v >= 1 / 1.5, {
+            reason: h[NATIVE].reason,
+            native: h[NATIVE].transpile?.perSecond?.median,
+            baseline: h[BASELINE].transpile?.perSecond?.median,
+            inFlight: h[NATIVE].inFlight,
+        });
+        judgeColdStart(judge, a, options);
+    });
+    return [perCall, batched];
+};
+
+const printDecision = (decision, size) => {
+    decision.forEach(({ result, status, criteria }) => {
+        console.log(`\nDecision, ${result} (size ${size}, 7.1 against in-process 6.0.3)`);
+        criteria.forEach(cur => {
+            const detail =
+                cur.status === NOT_MEASURABLE
+                    ? ` (${cur.reason ?? "no value"})`
+                    : cur.metric === "ratio"
+                      ? cur.components
+                          ? ` (${Object.entries(cur.components).map(([name, value]) => `${name} ${fmt(value, 3)}`).join(", ")})`
+                          : ` (7.1 ${fmt(cur.native, 3)} vs 6.0.3 ${fmt(cur.baseline, 3)}${cur.baselineCachedHost !== undefined ? `; unjudged: 6.0.3 with a SourceFile-caching host ${fmt(cur.baselineCachedHost, 3)}` : ""})`
+                      : ` (cold start ${fmt(cur.coldStartMs, 0)} ms${cur.coldStartMs > 1000 ? ` x ${cur.loaderInstances} loader instances = ${fmt(cur.value, 0)} ms` : ""})`;
+            const threshold = cur.metric === "ratio" ? (cur.criterion.startsWith("5") ? `>= ${fmt(cur.threshold, 3)}` : `<= ${cur.threshold}`) : `<= ${cur.threshold} ms`;
+            console.log(`  ${cur.criterion}: ${cur.value === null ? "n/a" : fmt(cur.value, cur.metric === "ratio" ? 3 : 0)} ${threshold} ${cur.status}${detail}`);
+        });
+        console.log(`${result}: ${status}`);
+    });
 };
 
 const main = () => {
