@@ -51,6 +51,19 @@ Research details: [analysis-ts7-api-gap.md](analysis-ts7-api-gap.md).
 - ✅ Chose option A plus a 7.1 measurement spike (2026-10-02, Jan Wloka; see Decisions)
 - 🟡 Implementation plan drafted: `typescript-6-support` (`docs/plans/2026-10-02-typescript-6-support.md`) —
   TypeScript 6 support, peer range `5.x || 6.x`, and the 7.1 spike whose result decides when to revisit B or D
+- ✅ 7.1 spike, per call (2026-10-15, `7.1.0-dev.20261013.1`): speed not met (criterion 4), 3C not met — stay on
+  A ([analysis](analysis-ts71-measurement.md))
+- ✅ 7.1 re-run with batched emit (2026-10-28, `7.1.0-beta`, plan `typescript-7-1-batched-measurement`): Speed
+  (batched) met, Speed (per call) not met, 3C not met — B reopened for profiles without transformer addons
+  ([analysis](analysis-ts71-batched-measurement.md))
+
+### Phase 3: TypeScript 7.1 for profiles without transformer addons
+
+- 📝 Next: a plan for a dual backend (B), with D assessed in it, limited to profiles without transformer addons. It
+  has to decide whether websmith's webpack loader can micro-batch its in-flight modules: (h) is only an upper bound,
+  the CLI's batched compile (g) needs no loader change
+- ⏸️ Profiles with transformer addons stay on A (TypeScript 5.x / 6.x) until 3C ships in a released 7.x
+- ⏸️ Re-run the harness on `7.1.0` (the release) and at each later 7.x minor, re-checking 3C
 
 ### Candidate slice independent of the strategy
 
@@ -94,6 +107,7 @@ Research details: [analysis-ts7-api-gap.md](analysis-ts7-api-gap.md).
 | 2026-09-24 | Split off Node 24 + ESM into `node24-esm-support` | Independent of the TypeScript decision and shippable on its own (Jan Wloka) |
 | 2026-10-02 | Strategy A plus a 7.1 spike: stay on TypeScript 6.x (peer `5.x \|\| 6.x`), clear the 6.0 deprecation hits, keep the addon API unchanged; measure the 7.1 nightly (IPC cost, transformer status) to decide when to revisit B/D | Smallest change; keeps in-process compilation, transformers and watch; the path Microsoft names for tools that need the API (Jan Wloka). Rejected: **B** dual backend — two code paths to test, and the 7.x backend lacks transformers, watch and the browser system on an API that changed between 7.0.2 and 7.1-dev; **C** websmith-owned AST/types — breaks every transformer addon and `getSystem()` user, needs a large node model and loses `before`-phase semantics; **D** 7.x only, out of process — 7.1 is unreleased and unstable, has no transformers or watch, drops the browser system and in-process loader, and breaks every `ts.*`-typed public member |
 | 2026-10-15 | stay on A; record "IPC cost blocks per-file emit"; re-run only when the 7.x API adds in-process or batched emit | Speed not met, 3C not met. At 1,000 modules, `typescript@7.1.0-dev.20261013.1` against in-process 6.0.3: (b) 0.478 ≤ 1.5 met; (c) 0.342 ≤ 2 met; (e) 0.004 ≤ 2 met; p95 / own median 7.609 ≤ 3 not met; (f) 2.538 ≥ 0.667 met; cold start 43 ms ≤ 2,000 ms met. 3C: no released 7.x ships a `before`-transformer phase. Harness `f7b7dd9c` ([analysis](analysis-ts71-measurement.md)) (decision rule of typescript-6-support, fixed 2026-10-02) |
+| 2026-10-28 | reopen B: a new plan for a dual backend, D assessed in it — limited to profiles without transformer addons; profiles with transformer addons stay on A. Next trigger: re-run the harness on `7.1.0` (the release) and at each later 7.x minor, re-checking 3C | Speed (batched) met, Speed (per call) not met, 3C not met; the plan `typescript-7-1-batched-measurement` reads batched met with 3C not met as the B/D row for transformer-free profiles. At 1,000 modules, `typescript@7.1.0-beta` against in-process 6.0.3, batched: (h) 0.303 ≤ 1.5 met; (g) 0.171 ≤ 2 met; (e) 0.004 ≤ 2 met; p95 / own median over batches 2.352 ≤ 3 met; (h) throughput 3.470 ≥ 0.667 met; cold start 45 ms ≤ 2,000 ms met. Per call: criterion 4 7.111 > 3 not met, the other five met. (h) is an upper bound: webpack calls a loader once per module. 3C: the beta has no `transformers` in `TranspileOptions` (TS2353), and no 7.1 release exists. Harness `d9926b76` ([analysis](analysis-ts71-batched-measurement.md)) (decision table of typescript-6-support, fixed 2026-10-02) |
 
 ## Key Findings
 
