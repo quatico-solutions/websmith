@@ -13,7 +13,7 @@
 
 ## Status
 
-- **State:** Approved
+- **State:** Delivered
 - **Type:** bug
 - **Story:** node24-esm-support
 - **Review:** in-session
@@ -21,6 +21,7 @@
 - **Approved:** 2026-10-28, jwloka, in-session
 - **Started:** 2026-10-28, Jan Wloka, `bug/cli-no-emit`
 - **Started:** 2026-10-28, Jan Wloka, `bug/loader-asset-dependency`
+- **Delivered:** 2026-10-28
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
