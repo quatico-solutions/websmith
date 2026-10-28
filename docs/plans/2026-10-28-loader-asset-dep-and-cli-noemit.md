@@ -71,8 +71,23 @@ commit before the PR that touched the area.
 
 ## Slices
 
-- `bug/loader-asset-dependency` — core returns each module's asset dependencies in its build result and the loader registers them per call; e2e in `webpack-test`: three successive edits of one data file each rebuild with the new text, and two modules with their own data files each rebuild only on their own; unit tests in core for the per-module dependency set; Release-Notes Fixed entry <!-- builds: per-module asset dependencies in ModuleBuildResult -->
-- `bug/cli-no-emit` — the CLI writes nothing under `noEmit` or `--noEmit` on the transpile fast path; unit tests in `Compiler.spec.ts` for the write decision; e2e in `compiler-test`: `noEmit` in tsconfig, `--noEmit`, and a `needsTypeInfo: false` addon each write no file and exit 0, with the addon still activated; a run with `--watch` writes nothing either; Release-Notes Fixed entry <!-- builds: noEmit write decision on the CLI fast path -->
+One slice per wave. The CLI slice goes first: the `[Unreleased]` sentence it makes true must not reach a release
+false. The two slices touch different packages (`core`'s write decision; `core`'s dependency set and `webpack`'s
+loader) and share only `Release-Notes.md`.
+
+### CLI noEmit (Branch: bug/cli-no-emit) <!-- builds: noEmit write decision on the CLI fast path -->
+
+The CLI writes nothing under `noEmit` or `--noEmit` on the transpile fast path; unit tests in `Compiler.spec.ts` for
+the write decision; e2e in `compiler-test`: `noEmit` in tsconfig, `--noEmit`, and a `needsTypeInfo: false` addon each
+write no file and exit 0, with the addon still activated; a run with `--watch` writes nothing either; the webpack and
+Vite `noEmit` e2e suites unchanged and passing; Release-Notes Fixed entry
+
+### Loader asset dependencies (Branch: bug/loader-asset-dependency) <!-- builds: per-module asset dependencies in ModuleBuildResult -->
+
+Core returns each module's asset dependencies in its build result and the loader registers them per call; e2e in
+`webpack-test`: three successive edits of one data file each rebuild with the new text, and two modules with their own
+data files each rebuild only on their own; unit tests in core for the per-module dependency set; Release-Notes Fixed
+entry
 
 ## Notes
 
