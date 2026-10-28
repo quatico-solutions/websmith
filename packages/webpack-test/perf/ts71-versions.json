@@ -4,6 +4,6 @@
     "dependencies": {
         "ts573": "npm:typescript@5.7.3",
         "ts603": "npm:typescript@6.0.3",
-        "ts71": "npm:typescript@7.1.0-dev.20261013.1"
+        "ts71": "npm:typescript@7.1.0-beta"
     }
 }
