@@ -253,6 +253,90 @@ describe("ModuleCompiler build w/ asset dependency", () => {
     });
 });
 
+describe("ModuleCompiler build w/ asset dependency and dependency callback", () => {
+    const DATA_SOURCES = {
+        ...MODULE_PACKAGE,
+        "/src/a.ts": `export const a: string = "DATA_IN";`,
+        "/src/b.ts": `export const b: string = "DATA_IN";`,
+        "/data-a.txt": "ALPHA",
+        "/data-b.txt": "BRAVO",
+    };
+    // Registers the data file named after the module, e.g. /data-a.txt for /src/a.ts
+    const dataProcessor = (ctx: CompilationContext) =>
+        ctx.registerProcessor((fileName, content) => {
+            const data = `/data-${path.basename(fileName, ".ts")}.txt`;
+            ctx.addAssetDependency(data, fileName);
+            return content.replace("DATA_IN", ctx.getSystem().readFile(data) ?? "");
+        });
+    const createDataCompiler = (dependencyCallback: (filePath: string) => void = jest.fn()) =>
+        createModuleCompiler(DATA_SOURCES, { target: { addons: ["datap"] } }, { datap: dataProcessor }, { dependencyCallback }, { typeInfo: true });
+
+    it("yields asset dependency of processor in build dependencies", () => {
+        const testObj = createDataCompiler();
+
+        const actual = testObj.build("/src/a.ts").dependencies.files;
+
+        expect(actual).toContain("/data-a.txt");
+    });
+
+    it("yields asset dependency of last build w/ rebuild that registers none", () => {
+        let registered = false;
+        const testObj = createModuleCompiler(
+            DATA_SOURCES,
+            { target: { addons: ["once"] } },
+            {
+                once: ctx =>
+                    ctx.registerProcessor((fileName, content) => {
+                        if (!registered) {
+                            registered = true;
+                            ctx.addAssetDependency("/data-a.txt", fileName);
+                        }
+                        return content;
+                    }),
+            },
+            { dependencyCallback: jest.fn() },
+            { typeInfo: true }
+        );
+        testObj.build("/src/a.ts");
+
+        const actual = testObj.build("/src/a.ts").dependencies.files;
+
+        expect(actual).toContain("/data-a.txt");
+    });
+
+    it("yields no asset dependency of other module", () => {
+        const testObj = createDataCompiler();
+        testObj.build("/src/a.ts");
+
+        const actual = testObj.build("/src/b.ts").dependencies.files;
+
+        expect(actual).not.toContain("/data-a.txt");
+    });
+
+    it("calls no dependency callback w/ asset dependency during build", () => {
+        const target = jest.fn();
+        const testObj = createDataCompiler(target);
+
+        testObj.build("/src/a.ts");
+
+        expect(target).not.toHaveBeenCalled();
+    });
+
+    it("calls dependency callback w/ asset dependency outside build", () => {
+        const target = jest.fn();
+        const contexts: CompilationContext[] = [];
+        createModuleCompiler(DATA_SOURCES, { target: { addons: ["datap"] } }, { datap: dataProcessor }, {
+            dependencyCallback: target,
+            createContext: (options: CompilationContextOptions) => contexts[contexts.push(new HostContext(options)) - 1],
+        });
+        const testObj = contexts[0];
+
+        testObj.addAssetDependency("/data-a.txt", "/src/a.ts");
+
+        expect(target).toHaveBeenCalledWith("/data-a.txt");
+    });
+});
+
 describe("ModuleCompiler runResultProcessors", () => {
     it("runs each result processor of target profile once w/ files", () => {
         const target = jest.fn();

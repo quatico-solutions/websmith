@@ -13,7 +13,7 @@
 
 ## Status
 
-- **State:** Approved
+- **State:** Delivered
 - **Type:** bug
 - **Story:** node24-esm-support
 - **Review:** in-session
@@ -21,6 +21,7 @@
 - **Approved:** 2026-10-28, jwloka, in-session
 - **Started:** 2026-10-28, Jan Wloka, `bug/cli-no-emit`
 - **Started:** 2026-10-28, Jan Wloka, `bug/loader-asset-dependency`
+- **Delivered:** 2026-10-28
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
@@ -85,7 +86,7 @@ the write decision; e2e in `compiler-test`: `noEmit` in tsconfig, `--noEmit`, an
 write no file and exit 0, with the addon still activated; a run with `--watch` writes nothing either; the webpack and
 Vite `noEmit` e2e suites unchanged and passing; Release-Notes Fixed entry
 
-### Loader asset dependencies (Branch: bug/loader-asset-dependency) <!-- builds: per-module asset dependencies in ModuleBuildResult -->
+### Loader asset dependencies (Branch: bug/loader-asset-dependency) <!-- builds: per-module asset dependencies in ModuleBuildResult --> → #222
 
 Core returns each module's asset dependencies in its build result and the loader registers them per call; e2e in
 `webpack-test`: three successive edits of one data file each rebuild with the new text, and two modules with their own
