@@ -13,11 +13,12 @@
 
 ## Status
 
-- **State:** Draft
+- **State:** Approved
 - **Type:** bug
 - **Story:** node24-esm-support
 - **Review:** in-session
 - **Impl:** own branches
+- **Approved:** 2026-10-28, jwloka, in-session
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
