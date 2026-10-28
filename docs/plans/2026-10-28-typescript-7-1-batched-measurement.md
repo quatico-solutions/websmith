@@ -87,7 +87,7 @@ for addons with transformers.
 
 One slice per wave. The harness merges first, so the report runs on reviewed code.
 
-### Batched bench (Branch: infra/typescript-7-1-batched-bench) <!-- builds: (g) and (h) batched-emit workloads in ts71-bench.cjs -->
+### Batched bench (Branch: infra/typescript-7-1-batched-bench) <!-- builds: (g) and (h) batched-emit workloads in ts71-bench.cjs --> → #224
 
 Re-pin to `7.1.0-beta` (lockfile and integrity checks of the harness); add workloads (g) and (h) with per-file marker
 assertions; extend `decision[]` with "Speed (batched)" beside the per-call result; a dry run
