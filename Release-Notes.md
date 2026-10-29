@@ -14,6 +14,30 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Added
 
+- TBA
+
+### Changed
+
+- TBA
+
+### Fixed
+
+- TBA
+
+### Removed
+
+- TBA
+
+## [0.11.0] - 2026-10-29
+
+This release supports TypeScript 6, adds a Vite plugin, and makes the `websmith` command and the webpack loader follow
+`tsc` more closely: the CLI takes `typescript` as a peer dependency, leaves unset options to TypeScript's defaults, and
+reports option, project and configuration errors it used to ignore. The webpack loader resolves its options and loads
+its addons once per compilation, and watch mode rebuilds on edits of asset dependencies, type-only imports and
+configuration files. Builds that passed with 0.10.x can fail now; see the **Breaking** and **Behaviour change** entries.
+
+### Added
+
 - New package `@quatico/websmith-vite`: a Vite plugin for Vite 6.3+ and 7 that compiles `.ts`, `.tsx`, `.mts` and
   `.cts` modules with websmith in `vite build` and the Vite dev server.
   - `profile` selects a websmith profile per Vite environment, e.g. `{ client: "client", ssr: "server" }`; each
@@ -28,6 +52,9 @@ Release notes follow the [keep a changelog](https://keepachangelog.com/en/1.0.0/
     that rebuild only; the fixing edit rebuilds.
   - Requires TypeScript `>=5.7 <7`, Node.js 22.12+ and a `websmith.config.json` in Vite's `root`. See
     `packages/vite/README.md`, including its known limits.
+  - Known issue: once the profile's addons directory holds an addon that loads, `vite build` does not report
+    declaration emit errors such as TS4094 and passes; the `websmith` command and the webpack loader report them
+    ([#231](https://github.com/quatico-solutions/websmith/issues/231)).
 - The `AddonContext` docs describe what `addInputFile`, `addAssetDependency`, `addVirtualFile` and `removeOutputFile`
   do in each host: the `websmith` CLI, the webpack loader and the Vite plugin.
 - `--ignoreDeprecations <version>` on the `websmith` command and `ignoreDeprecations` in the programmatic compiler

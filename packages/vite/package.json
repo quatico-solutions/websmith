@@ -1,6 +1,6 @@
 {
     "name": "@quatico/websmith-vite",
-    "version": "0.10.0",
+    "version": "0.11.0",
     "description": "A Vite plugin for the websmith compiler",
     "author": "Quatico Solutions AG",
     "license": "MIT",
