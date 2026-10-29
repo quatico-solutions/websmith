@@ -40,7 +40,7 @@ sprint's one Must Have keeps the release gate on the measurement plan, not on ad
 
 ### Should Have
 
-- [ ] Check custom transformers (3C) upstream on the run date: the beta's declarations, TypeScript#64709, the 7.1 release notes
+- [x] Check custom transformers (3C) upstream on the run date: the beta's declarations, TypeScript#64709, the 7.1 release notes — not met on 2026-10-28, see section 7 of [analysis-ts71-batched-measurement.md](../stories/ts7-rearchitecture/analysis-ts71-batched-measurement.md)
 
 ### Could Have
 
