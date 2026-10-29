@@ -11,7 +11,8 @@
 
 ## Status
 
-- **State:** Active
+- **State:** Closed
+- **Actual End:** 2026-10-29
 - **Start:** 2026-10-28
 - **End:** 2026-11-04
 - **Release:** 0.11.0
@@ -55,3 +56,20 @@ sprint's one Must Have keeps the release gate on the measurement plan, not on ad
 ### Scope Changes
 
 <!-- - YYYY-MM-DD: Added/Deferred/Reprioritized [slug] — <reason> -->
+
+## Retrospective
+
+### What went well
+
+### What could improve
+
+### Action items
+
+### Metrics
+
+- **Must-haves completed:** 1/1
+- **Should-haves completed:** 1/1
+- **Could-haves completed:** 0/0
+- **Deferred items:** 0
+- **Scope changes during sprint:** 0
+- **Duration:** planned 7 days, actual 1 day
