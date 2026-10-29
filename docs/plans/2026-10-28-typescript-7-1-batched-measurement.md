@@ -95,7 +95,7 @@ assertions; extend `decision[]` with "Speed (batched)" beside the per-call resul
 (`--sizes 20 --runs 1 --edits 3`) passes on Node 22 and 24; the header comment documents both workloads and the
 batched criteria.
 
-### Batched measurement (Branch: docs/typescript-7-1-batched-measurement) <!-- builds: analysis-ts71-batched-measurement.md and the story's 2026-11 decision row -->
+### Batched measurement (Branch: docs/typescript-7-1-batched-measurement) <!-- builds: analysis-ts71-batched-measurement.md and the story's 2026-11 decision row --> → #225
 
 Full run at the default sizes; a report beside the first one with every threshold and its measured value for both
 results, the payload bytes, and the 3C status on the run date (beta declarations, TypeScript#64709); the committed
