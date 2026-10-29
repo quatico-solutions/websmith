@@ -4,29 +4,19 @@
     "defaultBase": "develop",
     "targetDefaults": {
         "dist": {
-            "dependsOn": [
-                "^dist"
-            ],
+            "dependsOn": ["^dist"],
             "cache": true
         },
         "build": {
-            "dependsOn": [
-                "^build"
-            ],
-            "outputs": [
-                "{projectRoot}/lib"
-            ],
+            "dependsOn": ["^build"],
+            "outputs": ["{projectRoot}/lib"],
             "cache": true
         },
         "typecheck": {
-            "dependsOn": [
-                "^build"
-            ]
+            "dependsOn": ["^build"]
         },
         "lint": {
-            "dependsOn": [
-                "^build"
-            ],
+            "dependsOn": ["^build"],
             "cache": true
         },
         "test": {
@@ -35,5 +25,6 @@
         "test:e2e": {
             "cache": true
         }
-    }
+    },
+    "analytics": false
 }
