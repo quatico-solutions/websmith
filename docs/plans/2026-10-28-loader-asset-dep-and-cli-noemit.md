@@ -79,14 +79,14 @@ One slice per wave. The CLI slice goes first: the `[Unreleased]` sentence it mak
 false. The two slices touch different packages (`core`'s write decision; `core`'s dependency set and `webpack`'s
 loader) and share only `Release-Notes.md`.
 
-### CLI noEmit (Branch: bug/cli-no-emit) <!-- builds: noEmit write decision on the CLI fast path --> → #221
+### CLI noEmit (Branch: bug/cli-no-emit) <!-- builds: noEmit write decision on the CLI fast path --> PR: #221
 
 The CLI writes nothing under `noEmit` or `--noEmit` on the transpile fast path; unit tests in `Compiler.spec.ts` for
 the write decision; e2e in `compiler-test`: `noEmit` in tsconfig, `--noEmit`, and a `needsTypeInfo: false` addon each
 write no file and exit 0, with the addon still activated; a run with `--watch` writes nothing either; the webpack and
 Vite `noEmit` e2e suites unchanged and passing; Release-Notes Fixed entry
 
-### Loader asset dependencies (Branch: bug/loader-asset-dependency) <!-- builds: per-module asset dependencies in ModuleBuildResult --> → #222
+### Loader asset dependencies (Branch: bug/loader-asset-dependency) <!-- builds: per-module asset dependencies in ModuleBuildResult --> PR: #222
 
 Core returns each module's asset dependencies in its build result and the loader registers them per call; e2e in
 `webpack-test`: three successive edits of one data file each rebuild with the new text, and two modules with their own

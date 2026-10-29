@@ -127,19 +127,19 @@ The Vite plugin plan's slices recorded these four limits under "Not in this slic
 One slice per wave, in this order: the small core fix first, then `noEmit`, which hits most Vite projects, then
 the type-only dependencies, then build watch, which adds its watch files beside theirs.
 
-### Stale output (Branch: bug/file-cache-update-source) <!-- builds: content-aware FileCache.updateSource --> → #214
+### Stale output (Branch: bug/file-cache-update-source) <!-- builds: content-aware FileCache.updateSource --> PR: #214
 
 `FileCache.updateSource` replaces the snapshot when the content changed; unit tests in `FileCache.spec.ts` (same mtime, new content → new version; same content → same version); e2e: a processor reading a data file through `addAssetDependency` serves the new text after the data edit in the Vite dev server, in `vite build --watch`, in the loader's watch mode and in the CLI's watch mode; README known-limit lines removed; Release-Notes entry
 
-### noEmit in bundler hosts (Branch: bug/bundler-no-emit) <!-- builds: noEmit override in the bundler hosts --> → #215
+### noEmit in bundler hosts (Branch: bug/bundler-no-emit) <!-- builds: noEmit override in the bundler hosts --> PR: #215
 
 In the loader and the Vite plugin, a profile whose resolved `noEmit` or `emitDeclarationOnly` is true compiles without them and without `allowImportingTsExtensions` and emits its JavaScript in memory only; unit tests on option resolution in both hosts, including a profile that inherits `noEmit` through `extends`; e2e in `webpack-test` and `vite-test` with Vite's template `tsconfig.json` (`noEmit`, `allowImportingTsExtensions`, no `outDir`): addon output is in the bundle in dev and build, no TS5096, no `.js` written beside the sources; `emitDeclarationOnly: true` gives the same bundle; a dependent profile with `noEmit: false` and `outDir` still writes there; the CLI e2e unchanged; README Configuration warning replaced by the in-memory rule and "the workaround is no longer needed"; Release-Notes behaviour-change entry
 
-### Type-only imports (Branch: bug/type-only-import-deps) <!-- builds: type-check dependencies in ModuleBuildResult --> → #216
+### Type-only imports (Branch: bug/type-only-import-deps) <!-- builds: type-check dependencies in ModuleBuildResult --> PR: #216
 
 Core returns, for a module compiled with type information, the project source files its type check depends on (transitive imports, `lib*.d.ts` and `node_modules` excluded) in `dependencies.files`; the loader and the Vite plugin forward them; unit tests in `ModuleCompiler.spec.ts` (type-only import listed with a Program, a type re-exported through a barrel listed, nothing listed under `transpileOnly`); e2e: in webpack watch mode an edit of a type-only import makes a type error appear on the importer and reverting it clears the error (reproduce first), and a Vite dev-server edit of `src/types.ts` reloads `main.ts`; README known-limit lines removed; Release-Notes entry; bench numbers in the PR, initial build at most 5% slower than `develop` or the import graph cached per compilation
 
-### Build watch (Branch: bug/vite-build-watch-reload) <!-- builds: build-watch invalidation in the Vite plugin --> <!-- waits: bug/type-only-import-deps --> → #218
+### Build watch (Branch: bug/vite-build-watch-reload) <!-- builds: build-watch invalidation in the Vite plugin --> <!-- waits: bug/type-only-import-deps --> PR: #218
 
 In `vite build --watch`, the config file, the `tsconfig.json` chain and the addon files are watch files of every compiled module, and a change of one drops the compiler instance; unit tests in `hooks.spec.ts`; e2e in `vite-test`: an addon edit rebuilds with the new addon, a config edit that drops an addon removes its output from every module, a broken config fails one rebuild and the fixing edit rebuilds clean; README "Addon context" known limit removed; Release-Notes entry
 
