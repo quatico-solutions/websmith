@@ -48,6 +48,7 @@ test-output*
 # with `git worktree add`, and none of them is content this repo carries.
 .worktrees/
 
-# Plot runtime state and logs (board pidfile, pulse records)
+# Plot runtime state and logs (board pidfile, pulse records, agent registry)
 .plot/state/
 .plot/logs/
+.plot/agents/
