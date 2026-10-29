@@ -13,7 +13,7 @@
 
 ## Status
 
-- **State:** Delivered
+- **State:** Released
 - **Type:** bug
 - **Story:** node24-esm-support
 - **Review:** pr
@@ -22,6 +22,7 @@
 - **Approved:** 2026-10-20, Jan Wloka, plan-PR #213 merged
 - **Started:** 2026-10-23, Jan Wloka, `bug/type-only-import-deps`
 - **Delivered:** 2026-10-23
+- **Released:** 2026-10-29, v0.11.0
 <!-- Transition records — written by the workflow commands, not by hand:
 - **Approved:** <date>, <who>, <channel>
 - **Started:** <date>, <who>, <branch>   (one line per started branch)
