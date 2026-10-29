@@ -188,6 +188,10 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   output found" under `declaration: true` or `emitDeclarationOnly`. Declarations are still written under
   `emitDeclarationOnly`. The Vite plugin does the same, so projects from Vite's templates get their addon output
   without a profile override. The `websmith` command keeps `tsc`'s meaning.
+- Runtime dependencies updated: `commander` 15 (`@quatico/websmith-compiler`), `comment-json` 5
+  (`@quatico/websmith-core`, `websmith-loader`), `memfs` 4.80 (`@quatico/websmith-testing`),
+  `cjs-module-lexer` 2.3 and `resolve.exports` 2.0.4 (`@quatico/websmith-core`). Command-line parsing, configuration
+  reading and the in-memory file system behave as before.
 
 ### Fixed
 
@@ -285,7 +289,8 @@ Builds that passed before can now fail: the `websmith` command reports errors it
   longer install `sha.js` and `cipher-base` (two critical advisories) through websmith.
 - `@quatico/websmith-core` and `@quatico/websmith-node` require `lodash ^4.18.1` (was `^4.17.21`, which admits
   versions with a high advisory).
-- Development dependencies updated (nx 22, vulnerable transitives); no change to the published packages' behaviour.
+- Development dependencies updated (nx 23, ESLint 10, Jest 30; vulnerable transitives such as `handlebars` and
+  `undici` raised to fixed versions); no change to the published packages' behaviour.
 
 ## [0.10.0] - 2026-10-02
 
