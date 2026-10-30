@@ -102,9 +102,8 @@ jobs:
             contents: read
         steps:
             - name: Checkout
+              # The workflow's own commit, not the tag: the script comes from here, the version from the tag
               uses: actions/checkout@v7
-              with:
-                  ref: ${{ inputs.tag || github.ref }}
 
             - name: Setup environment
               uses: actions/setup-node@v7
