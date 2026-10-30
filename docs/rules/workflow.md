@@ -184,6 +184,9 @@ risky / untested (e.g. `R!`).
   `develop` and `main`).
 - CI (`pull-request.yml`) must be green; `claude-code-review.yml` adds an automated review.
 - Add user-visible changes under `## [Unreleased]` in `Release-Notes.md` (keep-a-changelog format).
+- A `v*` tag runs `release-and-publish.yml`: it publishes the packages, then its `smoke-test` job installs them from
+  npm and runs `scripts/smoke-release.sh <version>` (CLI, Vite plugin, webpack loader, watch modes). Run the script
+  by hand to check a published version.
 
 ## Documentation
 
