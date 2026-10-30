@@ -91,3 +91,49 @@ jobs:
                           npm publish "$tarball" --access public
                       fi
                   done
+
+    smoke-test:
+        # Installs the published packages from npm into a fresh project and runs the CLI, the Vite plugin and the
+        # webpack loader, as users get them. The e2e suites above test the workspace build, not the packages on npm.
+        needs: release
+        if: ${{ !contains(inputs.tag || github.ref_name, '-') }}
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - name: Checkout
+              # The workflow's own commit, not the tag: the script comes from here, the version from the tag
+              uses: actions/checkout@v7
+
+            - name: Setup environment
+              uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+
+            - name: wait for the packages on npm
+              # A package published a moment ago can take a while to show up in the registry
+              run: |
+                  version="${RELEASE_TAG#v}"
+                  missing=0
+                  for manifest in packages/*/package.json; do
+                      [ "$(node -p "require('./$manifest').private === true")" = "true" ] && continue
+                      name=$(node -p "require('./$manifest').name")
+                      found=0
+                      for _ in $(seq 1 30); do
+                          if npm view "$name@$version" version --registry https://registry.npmjs.org > /dev/null 2>&1; then
+                              found=1
+                              break
+                          fi
+                          sleep 10
+                      done
+                      if [ "$found" = 1 ]; then
+                          echo "$name@$version is on npm"
+                      else
+                          echo "::error::$name@$version is not on npm"
+                          missing=1
+                      fi
+                  done
+                  exit "$missing"
+
+            - name: smoke test
+              run: scripts/smoke-release.sh "${RELEASE_TAG#v}"
