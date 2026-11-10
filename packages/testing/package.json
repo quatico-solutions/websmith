@@ -38,7 +38,7 @@
         "@quatico/websmith-core": "workspace:*",
         "memfs": "^4.80.0",
         "require-from-string": "^2.0.2",
-        "tslib": "^2.8.1"
+        "tslib": "^2.9.1"
     },
     "peerDependencies": {
         "jest": "29.x",
